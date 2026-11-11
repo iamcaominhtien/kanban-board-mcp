@@ -12,7 +12,7 @@ use serde_json::{Map, Value, json};
 use crate::delivery::{announce, head_id};
 use crate::error::{NotifyError, Result};
 use crate::follow::muted_list;
-use crate::helpers::{as_str, dumps, local, loads_map, now_iso, py_int, truthy, utcnow};
+use crate::helpers::{as_str, dumps, loads_map, local, now_iso, py_int, truthy, utcnow};
 use crate::kinds::{
     DEFAULT_RETENTION_DAYS, KINDS, REMIND_MAX_MIN, SOUND_NAMES, default_prefs, info_kinds, kind_info, needs_kinds,
 };
@@ -21,7 +21,8 @@ use crate::recipients::may_manage;
 /// A recipient's settings: a JSON object kept in key order, as a Python dict is.
 pub type Prefs = Map<String, Value>;
 
-static HHMM: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d{2}:\d{2}$").expect("the HH:MM pattern is a valid regex"));
+static HHMM: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\d{2}:\d{2}$").expect("the HH:MM pattern is a valid regex"));
 
 fn default_map() -> Prefs {
     match default_prefs() {

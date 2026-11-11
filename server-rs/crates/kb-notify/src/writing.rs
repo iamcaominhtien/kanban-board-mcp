@@ -142,7 +142,8 @@ async fn emit_in(session: &Session, kind: &str, fields: EmitFields) -> Result<i3
     let mut known = recipients_state(session, &keys, &gk, ev.needs, now).await?;
     for key in &keys {
         if let Some((prefs, follows, row)) = known.remove(key) {
-            write_row(session, key, &ev, &prefs, &follows, row, &item, &data, &gk, now, fields.since.as_deref()).await?;
+            write_row(session, key, &ev, &prefs, &follows, row, &item, &data, &gk, now, fields.since.as_deref())
+                .await?;
         }
     }
     session.commit().await?;
@@ -188,7 +189,8 @@ pub async fn recipients_state(
         .into_iter()
         .map(|r| (r.recipient.clone(), r))
         .collect();
-    let mut follows: HashMap<String, Vec<notify_follow::Model>> = keys.iter().map(|k| (k.clone(), Vec::new())).collect();
+    let mut follows: HashMap<String, Vec<notify_follow::Model>> =
+        keys.iter().map(|k| (k.clone(), Vec::new())).collect();
     for f in notify_follow::Entity::find()
         .filter(notify_follow::Column::Recipient.is_in(keys.iter().cloned()))
         .all(session)
@@ -214,7 +216,7 @@ pub async fn recipients_state(
             continue;
         }
         let first = parse(Some(&r.created_at));
-        if needs || first.is_some_and(|f| now - f <= Duration::minutes(GROUP_WINDOW_MINUTES)) {
+        if needs || first.is_some_and(|f| now.signed_duration_since(f) <= Duration::minutes(GROUP_WINDOW_MINUTES)) {
             open_rows.insert(r.recipient.clone(), r);
         }
     }
@@ -241,13 +243,8 @@ pub async fn write_row(
     since: Option<&str>,
 ) -> Result<()> {
     let (inapp, desktop) = event_switch(prefs, &ev.kind);
-    let quiet = quiet_by_follows(
-        follows,
-        &ev.kind,
-        ev.project_id.as_deref(),
-        ev.ticket_id.as_deref(),
-        ev.page_id.as_deref(),
-    );
+    let quiet =
+        quiet_by_follows(follows, &ev.kind, ev.project_id.as_deref(), ev.ticket_id.as_deref(), ev.page_id.as_deref());
     if let Some(before) = row.filter(|_| ev.kind != "day_card") {
         let mut after = before.clone();
         merge_into(&mut after, ev, item, data, now);
@@ -416,7 +413,8 @@ pub async fn point_at_last_run(session: &Session, item: &mut EmitFields) -> Resu
         data.insert("srun_id".into(), json!(target));
         item.data = Some(data);
         item.target_kind = Some("run".into());
-        item.target_id = Some(helpers::as_str(Some(last)).map(str::to_string).unwrap_or_else(|| kb_base::pyjson::py_str(last)));
+        item.target_id =
+            Some(helpers::as_str(Some(last)).map(str::to_string).unwrap_or_else(|| kb_base::pyjson::py_str(last)));
     }
     Ok(())
 }

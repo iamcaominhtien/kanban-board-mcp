@@ -179,7 +179,9 @@ fn parse_ranges(range: &str, size: i128) -> Vec<(i128, i128)> {
 
 /// `FileResponse._parse_range_header`.
 fn parse_range_header(header: &str, size: i128) -> Result<Vec<(i128, i128)>, RangeError> {
-    let Some((units, range)) = header.split_once('=') else { return Err(RangeError::Malformed("Malformed range header.")) };
+    let Some((units, range)) = header.split_once('=') else {
+        return Err(RangeError::Malformed("Malformed range header."));
+    };
     if units.trim().to_lowercase() != "bytes" {
         return Err(RangeError::Malformed("Only support bytes range"));
     }
@@ -353,8 +355,10 @@ impl FileResponse {
                 return plain_text(416, "", &[("Content-Range", format!("bytes */{size}"))]);
             }
         };
-        let bounds: Vec<(u64, u64)> =
-            ranges.iter().map(|(start, end)| (u64::try_from(*start).unwrap_or(0), u64::try_from(*end).unwrap_or(0))).collect();
+        let bounds: Vec<(u64, u64)> = ranges
+            .iter()
+            .map(|(start, end)| (u64::try_from(*start).unwrap_or(0), u64::try_from(*end).unwrap_or(0)))
+            .collect();
         if let [(start, end)] = bounds[..] {
             set(&mut headers, "content-range", format!("bytes {start}-{}/{size}", end - 1).into_bytes());
             set(&mut headers, "content-length", (end - start).to_string().into_bytes());
@@ -377,14 +381,15 @@ impl FileResponse {
             .map(|(_, value)| value.iter().map(|b| char::from(*b)).collect::<String>())
             .unwrap_or_default();
         let part_head = |start: u64, end: u64| {
-            format!("--{boundary}\r\nContent-Type: {content_type}\r\nContent-Range: bytes {start}-{}/{size}\r\n\r\n", end - 1)
+            format!(
+                "--{boundary}\r\nContent-Type: {content_type}\r\nContent-Range: bytes {start}-{}/{size}\r\n\r\n",
+                end - 1
+            )
         };
-        let content_length: u64 = bounds
-            .iter()
-            .map(|(start, end)| part_head(*start, *end).len() as u64 + (end - start) + 2)
-            .sum::<u64>()
-            + 4
-            + boundary.len() as u64;
+        let content_length: u64 =
+            bounds.iter().map(|(start, end)| part_head(*start, *end).len() as u64 + (end - start) + 2).sum::<u64>()
+                + 4
+                + boundary.len() as u64;
         set(&mut headers, "content-type", format!("multipart/byteranges; boundary={boundary}").into_bytes());
         set(&mut headers, "content-length", content_length.to_string().into_bytes());
         if header_only {

@@ -12,6 +12,9 @@ publish = false
 [workspace.dependencies]
 kb-base = { path = "crates/kb-base" }
 kb-db = { path = "crates/kb-db" }
+kb-files = { path = "crates/kb-files" }
+kb-fuzzy = { path = "crates/kb-fuzzy" }
+kb-log = { path = "crates/kb-log" }
 kb-notify = { path = "crates/kb-notify" }
 kb-doctext = { path = "crates/kb-doctext" }
 kb-draw = { path = "crates/kb-draw" }

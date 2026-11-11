@@ -1204,12 +1204,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "http-range-header"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9171a2ea8a68358193d15dd5d70c1c10a2afc3e7e4c5bc92bc9f025cebd7359c"
-
-[[package]]
 name = "httparse"
 version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1521,13 +1515,18 @@ dependencies = [
  "kb-dbkit",
  "kb-docs",
  "kb-draw",
+ "kb-files",
  "kb-ideas",
  "kb-log",
  "kb-notify",
+ "regex",
+ "reqwest",
  "serde_json",
+ "sqlx",
+ "tempfile",
  "testkit",
  "tokio",
- "tower-http",
+ "tower",
  "tracing",
 ]
 
@@ -1569,11 +1568,15 @@ dependencies = [
 name = "kb-board"
 version = "5.0.0"
 dependencies = [
+ "async-trait",
  "axum",
  "kb-base",
  "kb-db",
+ "kb-doctext",
  "serde",
  "serde_json",
+ "sqlx",
+ "tempfile",
  "testkit",
  "tokio",
  "tracing",
@@ -3389,23 +3392,13 @@ checksum = "4cfcf7e2740e6fc6d4d688b4ef00650406bb94adf4731e43c096c3a19fe40840"
 dependencies = [
  "bitflags",
  "bytes",
- "futures-core",
  "futures-util",
  "http",
  "http-body",
- "http-body-util",
- "http-range-header",
- "httpdate",
- "mime",
- "mime_guess",
- "percent-encoding",
  "pin-project-lite",
- "tokio",
- "tokio-util",
  "tower",
  "tower-layer",
  "tower-service",
- "tracing",
  "url",
 ]
 

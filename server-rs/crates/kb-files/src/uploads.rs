@@ -16,10 +16,10 @@ pub const PRIVATE_DIR: &str = "_private";
 pub const MAX_DESCRIPTION_IMAGE_BYTES: u64 = 5 * 1024 * 1024;
 pub const MAX_ATTACHMENT_BYTES: u64 = 100 * 1024 * 1024;
 
-pub const SUPPORTED_IMAGE_EXTENSIONS: [&str; 8] = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico"];
+pub const SUPPORTED_IMAGE_EXTENSIONS: &[&str] = &[".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico"];
 
 /// `MIME_BY_EXTENSION`, in the order of the Python table.
-pub const MIME_BY_EXTENSION: [(&str, &str); 53] = [
+pub const MIME_BY_EXTENSION: &[(&str, &str)] = &[
     // Images
     (".png", "image/png"),
     (".jpg", "image/jpeg"),
@@ -74,10 +74,41 @@ pub const MIME_BY_EXTENSION: [(&str, &str); 53] = [
     (".7z", "application/x-7z-compressed"),
 ];
 
-pub const VIEWABLE_INLINE_EXTENSIONS: [&str; 33] = [
-    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico", ".txt", ".log", ".csv", ".tsv", ".json", ".xml",
-    ".yaml", ".yml", ".md", ".markdown", ".pdf", ".js", ".ts", ".jsx", ".tsx", ".py", ".css", ".html", ".sql", ".sh",
-    ".env", ".mp3", ".wav", ".ogg", ".mp4",
+pub const VIEWABLE_INLINE_EXTENSIONS: &[&str] = &[
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".svg",
+    ".bmp",
+    ".ico",
+    ".txt",
+    ".log",
+    ".csv",
+    ".tsv",
+    ".json",
+    ".xml",
+    ".yaml",
+    ".yml",
+    ".md",
+    ".markdown",
+    ".pdf",
+    ".js",
+    ".ts",
+    ".jsx",
+    ".tsx",
+    ".py",
+    ".css",
+    ".html",
+    ".sql",
+    ".sh",
+    ".env",
+    ".mp3",
+    ".wav",
+    ".ogg",
+    ".mp4",
+    ".webm",
 ];
 
 /// `MIME_BY_EXTENSION.get(extension)`: the type of a file by its extension (with the dot, lower case).
@@ -87,7 +118,7 @@ pub fn mime_by_extension(extension: &str) -> Option<&'static str> {
 
 /// `extension in VIEWABLE_INLINE_EXTENSIONS`.
 pub fn is_viewable_inline(extension: &str) -> bool {
-    extension == ".webm" || VIEWABLE_INLINE_EXTENSIONS.contains(&extension)
+    VIEWABLE_INLINE_EXTENSIONS.contains(&extension)
 }
 
 /// `extension in SUPPORTED_IMAGE_EXTENSIONS`.
@@ -97,7 +128,8 @@ pub fn is_supported_image(extension: &str) -> bool {
 
 /// `SUPPORTED_IMAGE_MIME_TYPES`: the image types, sorted, each once.
 pub fn supported_image_mime_types() -> Vec<&'static str> {
-    let mut types: Vec<&'static str> = SUPPORTED_IMAGE_EXTENSIONS.iter().filter_map(|ext| mime_by_extension(ext)).collect();
+    let mut types: Vec<&'static str> =
+        SUPPORTED_IMAGE_EXTENSIONS.iter().filter_map(|ext| mime_by_extension(ext)).collect();
     types.sort_unstable();
     types.dedup();
     types
@@ -115,11 +147,6 @@ pub const SOURCE_DB_PATH: &str = "db_path";
 pub const SOURCE_CODE: &str = "code";
 
 static FALLBACK_LOGGED: AtomicBool = AtomicBool::new(false);
-
-/// `Path.resolve()` of a text; a NUL character is Python's `ValueError`, so there is no path.
-fn resolve_text(text: &str) -> Option<PathBuf> {
-    if text.contains('\0') { None } else { Some(pathlib::resolve(Path::new(text))) }
-}
 
 /// The folder next to the program (`server/uploads` next to the code in the Python server).
 fn code_uploads_dir() -> PathBuf {
@@ -294,12 +321,12 @@ mod tests {
 
     #[test]
     fn the_tables_have_the_sizes_of_the_python_ones() {
-        assert_eq!(MIME_BY_EXTENSION.len(), 53);
+        assert_eq!(MIME_BY_EXTENSION.len(), 45);
         assert_eq!(mime_by_extension(".html"), Some("text/plain"));
         assert_eq!(mime_by_extension(".pdf"), Some("application/pdf"));
         assert_eq!(mime_by_extension(".exe"), None);
         assert!(is_viewable_inline(".webm") && is_viewable_inline(".html") && !is_viewable_inline(".zip"));
-        assert_eq!(VIEWABLE_INLINE_EXTENSIONS.len() + 1, 34);
+        assert_eq!(VIEWABLE_INLINE_EXTENSIONS.len(), 34);
         assert!(is_supported_image(".svg") && !is_supported_image(".pdf"));
         assert_eq!(
             supported_image_mime_types(),
@@ -366,7 +393,28 @@ mod tests {
         assert_eq!(sanitize_filename("a  b__c.tar.gz"), ("a-b__c.tar".into(), ".gz".into()));
         assert_eq!(sanitize_filename("ﬁle.txt"), ("file".into(), ".txt".into()));
         let name = build_upload_filename("my photo.JPG");
-        assert!(name.starts_with("my-photo-") && name.ends_with(".jpg") && name.len() == "my-photo-".len() + 12 + 4, "{name}");
+        assert!(
+            name.starts_with("my-photo-") && name.ends_with(".jpg") && name.len() == "my-photo-".len() + 12 + 4,
+            "{name}"
+        );
         assert_eq!(build_markdown_alt_text("a[b].png"), "a-b");
+    }
+}
+
+#[cfg(test)]
+mod golden {
+    use super::*;
+
+    #[test]
+    fn filenames_are_sanitized_as_python_sanitizes_them() {
+        let rows: Vec<Value> =
+            serde_json::from_str(include_str!("../../../contract/golden/uploads.json")).expect("golden file");
+        assert!(rows.len() > 20);
+        for row in rows {
+            let name = row["name"].as_str().expect("name");
+            let (stem, extension) = sanitize_filename(name);
+            assert_eq!(serde_json::json!([stem, extension]), row["stem_ext"], "sanitize_filename({name:?})");
+            assert_eq!(build_markdown_alt_text(name), row["alt"].as_str().expect("alt"), "alt text of {name:?}");
+        }
     }
 }

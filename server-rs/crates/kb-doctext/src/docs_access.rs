@@ -236,7 +236,8 @@ mod tests {
 
     #[test]
     fn roles_come_from_the_actor_and_the_member_list() {
-        let members = [member("Ada", "admin"), member("Vy", "viewer"), member("Odd", "owner"), member("Straße", "member")];
+        let members =
+            [member("Ada", "admin"), member("Vy", "viewer"), member("Odd", "owner"), member("Straße", "member")];
         assert_eq!(role_in(&members, "user"), "admin");
         assert_eq!(role_in(&members, "agent"), "member");
         assert_eq!(role_in(&members, "ADA"), "admin");

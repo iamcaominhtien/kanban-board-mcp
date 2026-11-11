@@ -3,7 +3,7 @@
 use std::time::{Duration, Instant};
 
 use axum::Json;
-use axum::extract::Request;
+use axum::extract::{ConnectInfo, Request};
 use axum::http::{Method, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
@@ -12,6 +12,9 @@ use serde_json::{Map, Value, json};
 use kb_base::error::DbFailure;
 use kb_base::{activity, api_secret, ctx};
 use kb_db::database;
+use kb_files::drawio_bundle;
+
+use crate::LocalAddr;
 
 const DB_FREE_PATHS: [&str; 8] =
     ["/database", "/version", "/settings", "/events", "/logs", "/mcp-clients", "/assets", "/drawio"];
@@ -75,6 +78,13 @@ pub async fn require_the_apps_secret(request: Request, next: Next) -> Response {
 /// Attribute REST calls to the board user, or to `X-Actor` when the header is sent. Each request runs with a
 /// context of its own (`kb_base::ctx`).
 pub async fn record_activity_actor(request: Request, next: Next) -> Response {
+    if let Some(ConnectInfo(LocalAddr(server))) = request.extensions().get::<ConnectInfo<LocalAddr>>() {
+        if server.ip().is_loopback() {
+            // A local runner's CLI reaches the board's MCP server on the same socket
+            // ai_runs.set_board_url: wired when kb-ai is ported
+            drawio_bundle::set_origin(&server.ip().to_string(), server.port());
+        }
+    }
     // read the headers first: a borrow of the request must not live across the await
     let (actor, origin) = {
         let header = |name: &str| {
@@ -91,6 +101,25 @@ pub async fn record_activity_actor(request: Request, next: Next) -> Response {
         response
     })
     .await
+}
+
+/// FastAPI answers HEAD with 405 (its routes list GET only, so `Allow` is `GET`) and names no `HEAD` in the `Allow`
+/// of any 405; axum answers HEAD for every GET route, so the difference is put back here, next to the routes.
+pub async fn starlette_methods(request: Request, next: Next) -> Response {
+    if request.method() == Method::HEAD {
+        return crate::method_not_allowed_for("GET");
+    }
+    let mut response = next.run(request).await;
+    if response.status() == StatusCode::METHOD_NOT_ALLOWED {
+        let allow = response.headers().get(axum::http::header::ALLOW).and_then(|v| v.to_str().ok()).map(str::to_string);
+        if let Some(allow) = allow {
+            let methods: Vec<&str> = allow.split(',').map(str::trim).filter(|m| *m != "HEAD").collect();
+            if let Ok(value) = axum::http::HeaderValue::from_str(&methods.join(", ")) {
+                response.headers_mut().insert(axum::http::header::ALLOW, value);
+            }
+        }
+    }
+    response
 }
 
 /// Log failed requests (4xx at WARNING, 5xx at ERROR) with timing.

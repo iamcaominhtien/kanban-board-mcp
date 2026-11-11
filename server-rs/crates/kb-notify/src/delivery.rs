@@ -8,6 +8,7 @@ use std::sync::{Arc, LazyLock, Mutex};
 use kb_base::{events, pyjson};
 use kb_db::Session;
 use kb_db::entities::notify_event;
+use kb_db::sea_orm::sea_query::{Expr, ExprTrait};
 use kb_db::sea_orm::{EntityTrait, QuerySelect};
 use serde_json::json;
 use tokio::sync::Notify;
@@ -93,7 +94,7 @@ pub async fn announce(head: Option<i32>) {
 pub async fn head_id(session: &Session) -> Result<i32> {
     let top: Option<Option<i32>> = notify_event::Entity::find()
         .select_only()
-        .column_as(notify_event::Column::Id.max(), "top")
+        .column_as(Expr::col(notify_event::Column::Id).max(), "top")
         .into_tuple::<Option<i32>>()
         .one(session)
         .await?;

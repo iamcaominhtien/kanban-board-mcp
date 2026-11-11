@@ -12,6 +12,8 @@ workspace = true
 [dependencies]
 kb-base = { workspace = true }
 kb-db = { workspace = true }
+kb-doctext = { workspace = true }
+async-trait = { workspace = true }
 axum = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -20,3 +22,6 @@ tracing = { workspace = true }
 
 [dev-dependencies]
 testkit = { workspace = true }
+tempfile = "3"
+# the same sqlx as testkit: tests add rows to the server's SQLite file where no ported route can
+sqlx = { version = "0.9", default-features = false, features = ["sqlite", "runtime-tokio"] }

@@ -23,7 +23,11 @@ fn table(data: &Value, key: &str) -> HashMap<String, String> {
 
 static TABLES: LazyLock<Tables> = LazyLock::new(|| {
     let data: Value = serde_json::from_str(include_str!("../../../contract/golden/mimetypes.json")).unwrap_or_default();
-    Tables { suffix_map: table(&data, "suffix_map"), encodings_map: table(&data, "encodings_map"), types_map: table(&data, "types_map") }
+    Tables {
+        suffix_map: table(&data, "suffix_map"),
+        encodings_map: table(&data, "encodings_map"),
+        types_map: table(&data, "types_map"),
+    }
 });
 
 /// `posixpath.splitext`: the extension (with its dot) of the last part, leading dots of the name ignored.

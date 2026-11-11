@@ -112,3 +112,30 @@ does, including the odd cases, and do not improve behavior on the way.
   change the test until it passes on Rust.
 - A reply compared across both servers: compare parsed JSON (key order and spacing of a JSON *response* do not
   matter; the bytes of what is *stored* do).
+
+## The pattern to copy
+
+`crates/kb-board` is the worked example: `src/projects.rs` and `src/members.rs` (services), `src/api/projects.rs`
+(a router), `src/schemas.rs` (request and response models), `src/hooks.rs` (a hook into an upper area),
+`tests/test_projects.rs` (a ported pytest file with differential checks) and `tests/common/mod.rs`. Read them before
+you write anything, and write yours the same way.
+
+- **Errors of a service.** A module whose functions raise gets one `Error` enum: a case per Python exception type
+  it raises (`Value(String)` for `ValueError`...), `Db(DbErr)` with `impl From<DbErr>`, and where needed
+  `Other(String)` for anything that is a 500. The router maps it to `ApiError` in one small function that mirrors
+  the Python `except` clauses.
+- **Names.** A Python `_private` function that another module calls loses its underscore and is `pub(crate)` (or
+  `pub` when another crate calls it); do not alias on import.
+- **Python text and path semantics** are in `kb_base::pytext` (`strip`, `split`, `splitlines`, `isupper`, `repr`...)
+  and `kb_base::pypath` (`os.path`): use them where the Python code uses `str` methods whose Rust namesakes differ
+  (`str.strip()` strips more than ASCII, `splitlines` knows more line ends). Add a missing one there with a unit
+  test, and say so in your report. `str.casefold()` is the `caseless` crate's `default_case_fold_str`.
+- **Files and uploads** are in `kb-files`: `FileResponse` / `file_response` is Starlette's `FileResponse` (use it
+  for every file a route sends), `uploads` is `uploads.py`, `drawio_bundle` is `services/drawio_bundle.py`.
+- **HEAD** on a GET route answers 405 as FastAPI does; the app does this for every route, routers do nothing.
+- SeaORM: `sea_query::ExprTrait` must be in scope for `.eq()`, `.is_in()`... on expressions.
+- A golden generator that imports the server's modules starts with `sys.path.insert(0, os.getcwd())`, and is run
+  with its own `KANBAN_CONFIG_DIR`, `KANBAN_DB_PATH` and `KANBAN_LOG_DIR` (temporary folders), never the developer's.
+- Known difference, accepted: Pydantic coerces `"true"` to a bool and `"3"` to an int in a JSON body; the Rust
+  server answers 422. The app sends typed JSON.
+- Do not stage, commit or push (`git add`, `git mv`, `git rm` included): the orchestrating session commits.

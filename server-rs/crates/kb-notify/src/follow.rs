@@ -21,7 +21,8 @@ fn active(f: &notify_follow::Model, now: DateTime<Utc>) -> bool {
 
 /// The recipient's follows and mutes that have not run out.
 pub async fn follows_of(session: &Session, recipient: &str) -> Result<Vec<notify_follow::Model>> {
-    let rows = notify_follow::Entity::find().filter(notify_follow::Column::Recipient.eq(recipient)).all(session).await?;
+    let rows =
+        notify_follow::Entity::find().filter(notify_follow::Column::Recipient.eq(recipient)).all(session).await?;
     let now = utcnow();
     Ok(rows.into_iter().filter(|f| active(f, now)).collect())
 }
@@ -81,8 +82,11 @@ pub fn follow_to_dict(f: &notify_follow::Model) -> Value {
 
 /// What the bell on a ticket, page or space shows: following, everything, mentions only, muted, or nothing.
 pub async fn follow_state(session: &Session, recipient: &str, scope: &str, scope_id: &str) -> Result<Value> {
-    let rows: Vec<_> =
-        follows_of(session, recipient).await?.into_iter().filter(|f| f.scope == scope && f.scope_id == scope_id).collect();
+    let rows: Vec<_> = follows_of(session, recipient)
+        .await?
+        .into_iter()
+        .filter(|f| f.scope == scope && f.scope_id == scope_id)
+        .collect();
     let f = rows.first();
     Ok(json!({
         "scope": scope,
@@ -138,7 +142,11 @@ pub async fn set_follow(
             }
             None => None,
         };
-        let label = if label.is_empty() { follow_label(session, scope, scope_id, project_id).await? } else { label.to_string() };
+        let label = if label.is_empty() {
+            follow_label(session, scope, scope_id, project_id).await?
+        } else {
+            label.to_string()
+        };
         let mut row = notify_follow::new();
         row.recipient = ActiveValue::Set(recipient.to_string());
         row.scope = ActiveValue::Set(scope.to_string());

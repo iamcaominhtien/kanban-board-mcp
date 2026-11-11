@@ -202,3 +202,28 @@ pub fn truthy(value: Option<&Value>) -> bool {
 pub fn non_empty(value: &Option<String>) -> Option<&str> {
     value.as_deref().filter(|v| !v.is_empty())
 }
+
+/// How an `Optional[str]` reads in an f-string: the text, or `None`.
+pub fn opt_str(value: &Option<String>) -> String {
+    value.clone().unwrap_or_else(|| "None".to_string())
+}
+
+/// `text.splitlines()[0]` for text that is already stripped (`None` when there is no line).
+pub fn first_line(text: &str) -> Option<&str> {
+    if text.is_empty() {
+        return None;
+    }
+    let end = text
+        .char_indices()
+        .find(|(_, c)| {
+            matches!(c, '\n' | '\r' | '\x0b' | '\x0c' | '\x1c' | '\x1d' | '\x1e' | '\u{85}' | '\u{2028}' | '\u{2029}')
+        })
+        .map(|(i, _)| i)
+        .unwrap_or(text.len());
+    Some(&text[..end])
+}
+
+/// `text[:n]` for characters.
+pub fn head_chars(text: &str, n: usize) -> String {
+    text.chars().take(n).collect()
+}

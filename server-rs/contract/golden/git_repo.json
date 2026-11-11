@@ -1,0 +1,2566 @@
+{
+ "git_version": "git version 2.43.0",
+ "env": {
+  "GIT_AUTHOR_NAME": "Tester",
+  "GIT_AUTHOR_EMAIL": "t@example.com",
+  "GIT_COMMITTER_NAME": "Committer",
+  "GIT_COMMITTER_EMAIL": "c@example.com",
+  "GIT_CONFIG_GLOBAL": "/dev/null",
+  "GIT_CONFIG_NOSYSTEM": "1"
+ },
+ "ops": [
+  {
+   "do": "mkdir",
+   "path": "repo"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "init",
+    "-q",
+    "-b",
+    "main"
+   ],
+   "date": "2026-01-02T03:00:01+00:00"
+  },
+  {
+   "do": "write",
+   "path": "repo/a.txt",
+   "text": "a\n"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "add",
+    "."
+   ],
+   "date": "2026-01-02T03:00:02+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "commit",
+    "-q",
+    "-m",
+    "init"
+   ],
+   "date": "2026-01-02T03:00:03+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "rev-parse",
+    "HEAD"
+   ],
+   "date": "2026-01-02T03:00:04+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "branch",
+    "feature/x"
+   ],
+   "date": "2026-01-02T03:00:05+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "checkout",
+    "-q",
+    "feature/x"
+   ],
+   "date": "2026-01-02T03:00:06+00:00"
+  },
+  {
+   "do": "write",
+   "path": "repo/f1.txt",
+   "text": "f1\n"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "add",
+    "."
+   ],
+   "date": "2026-01-02T03:00:07+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "commit",
+    "-q",
+    "-m",
+    "add f1"
+   ],
+   "date": "2026-01-02T03:00:08+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "rev-parse",
+    "HEAD"
+   ],
+   "date": "2026-01-02T03:00:09+00:00"
+  },
+  {
+   "do": "write",
+   "path": "repo/a.txt",
+   "text": "a\nmore\n"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "add",
+    "."
+   ],
+   "date": "2026-01-02T03:00:10+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "commit",
+    "-q",
+    "-m",
+    "change a\n\nA body line.\n\nAnother paragraph."
+   ],
+   "date": "2026-01-02T03:00:11+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "rev-parse",
+    "HEAD"
+   ],
+   "date": "2026-01-02T03:00:12+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "checkout",
+    "-q",
+    "main"
+   ],
+   "date": "2026-01-02T03:00:13+00:00"
+  },
+  {
+   "do": "write",
+   "path": "repo/m1.txt",
+   "text": "m1\n"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "add",
+    "."
+   ],
+   "date": "2026-01-02T03:00:14+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "commit",
+    "-q",
+    "-m",
+    "add m1"
+   ],
+   "date": "2026-01-02T03:00:15+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "rev-parse",
+    "HEAD"
+   ],
+   "date": "2026-01-02T03:00:16+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "merge",
+    "-q",
+    "--no-ff",
+    "-m",
+    "merge feature/x",
+    "feature/x"
+   ],
+   "date": "2026-01-02T03:00:17+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "rev-parse",
+    "HEAD"
+   ],
+   "date": "2026-01-02T03:00:18+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "tag",
+    "v1"
+   ],
+   "date": "2026-01-02T03:00:19+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "branch",
+    "feat/open"
+   ],
+   "date": "2026-01-02T03:00:20+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "checkout",
+    "-q",
+    "feat/open"
+   ],
+   "date": "2026-01-02T03:00:21+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "mv",
+    "f1.txt",
+    "renamed.txt"
+   ],
+   "date": "2026-01-02T03:00:22+00:00"
+  },
+  {
+   "do": "write_bytes",
+   "path": "repo/bin.dat",
+   "bytes": [
+    0,
+    1,
+    2,
+    255,
+    0,
+    10
+   ]
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "add",
+    "."
+   ],
+   "date": "2026-01-02T03:00:23+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "commit",
+    "-q",
+    "-m",
+    "rename f1 and add a binary file"
+   ],
+   "date": "2026-01-02T03:00:24+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "rev-parse",
+    "HEAD"
+   ],
+   "date": "2026-01-02T03:00:25+00:00"
+  },
+  {
+   "do": "write",
+   "path": "repo/o2.txt",
+   "text": "o2\n"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "add",
+    "."
+   ],
+   "date": "2026-01-02T03:00:26+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "commit",
+    "-q",
+    "-m",
+    "add o2"
+   ],
+   "date": "2026-01-02T03:00:27+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "rev-parse",
+    "HEAD"
+   ],
+   "date": "2026-01-02T03:00:28+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "checkout",
+    "-q",
+    "main"
+   ],
+   "date": "2026-01-02T03:00:29+00:00"
+  },
+  {
+   "do": "write",
+   "path": "repo/m2.txt",
+   "text": "m2\n"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "add",
+    "."
+   ],
+   "date": "2026-01-02T03:00:30+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "commit",
+    "-q",
+    "-m",
+    "add m2"
+   ],
+   "date": "2026-01-02T03:00:31+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "rev-parse",
+    "HEAD"
+   ],
+   "date": "2026-01-02T03:00:32+00:00"
+  },
+  {
+   "do": "mkdir",
+   "path": "repo/sub"
+  },
+  {
+   "do": "mkdir",
+   "path": "plain"
+  },
+  {
+   "do": "symlink",
+   "target": "repo",
+   "path": "link"
+  },
+  {
+   "fn": "open_repo",
+   "repo": null,
+   "args": [
+    "<ROOT>/repo"
+   ],
+   "out": {
+    "ok": {
+     "working_dir": "<ROOT>/repo",
+     "git_dir": "<ROOT>/repo/.git",
+     "bare": false
+    }
+   }
+  },
+  {
+   "fn": "open_repo",
+   "repo": null,
+   "args": [
+    "<ROOT>/repo/.git"
+   ],
+   "out": {
+    "ok": {
+     "working_dir": "<ROOT>/repo",
+     "git_dir": "<ROOT>/repo/.git",
+     "bare": false
+    }
+   }
+  },
+  {
+   "fn": "open_repo",
+   "repo": null,
+   "args": [
+    "<ROOT>/repo/sub"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Not a git repository: <ROOT>/repo/sub"
+   }
+  },
+  {
+   "fn": "open_repo",
+   "repo": null,
+   "args": [
+    "<ROOT>/plain"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Not a git repository: <ROOT>/plain"
+   }
+  },
+  {
+   "fn": "open_repo",
+   "repo": null,
+   "args": [
+    "<ROOT>/nope"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Not a git repository: <ROOT>/nope"
+   }
+  },
+  {
+   "fn": "normalize_repo_path",
+   "repo": null,
+   "args": [
+    "  <ROOT>/repo/./sub/..  "
+   ],
+   "out": {
+    "ok": "<ROOT>/repo"
+   }
+  },
+  {
+   "fn": "normalize_repo_path",
+   "repo": null,
+   "args": [
+    "<ROOT>/link"
+   ],
+   "out": {
+    "ok": "<ROOT>/repo"
+   }
+  },
+  {
+   "fn": "normalize_repo_path",
+   "repo": null,
+   "args": [
+    "<ROOT>/plain/"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Not a git repository: <ROOT>/plain"
+   }
+  },
+  {
+   "fn": "normalize_repo_path",
+   "repo": null,
+   "args": [
+    "<ROOT>/nope/x"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Not a git repository: <ROOT>/nope/x"
+   }
+  },
+  {
+   "fn": "list_local_branches",
+   "repo": "repo",
+   "args": [],
+   "out": {
+    "ok": [
+     "feat/open",
+     "feature/x",
+     "main"
+    ]
+   }
+  },
+  {
+   "fn": "branch_exists",
+   "repo": "repo",
+   "args": [
+    "main"
+   ],
+   "out": {
+    "ok": true
+   }
+  },
+  {
+   "fn": "branch_exists",
+   "repo": "repo",
+   "args": [
+    "feature"
+   ],
+   "out": {
+    "ok": false
+   }
+  },
+  {
+   "fn": "branch_exists",
+   "repo": "repo",
+   "args": [
+    "v1"
+   ],
+   "out": {
+    "ok": false
+   }
+  },
+  {
+   "fn": "current_branch",
+   "repo": "repo",
+   "args": [],
+   "out": {
+    "ok": "main"
+   }
+  },
+  {
+   "fn": "default_base_branch",
+   "repo": "repo",
+   "args": [],
+   "out": {
+    "ok": "main"
+   }
+  },
+  {
+   "fn": "resolve_base",
+   "repo": "repo",
+   "args": [
+    null
+   ],
+   "out": {
+    "ok": "main"
+   }
+  },
+  {
+   "fn": "resolve_base",
+   "repo": "repo",
+   "args": [
+    ""
+   ],
+   "out": {
+    "ok": "main"
+   }
+  },
+  {
+   "fn": "resolve_base",
+   "repo": "repo",
+   "args": [
+    "main"
+   ],
+   "out": {
+    "ok": "main"
+   }
+  },
+  {
+   "fn": "resolve_base",
+   "repo": "repo",
+   "args": [
+    "develop"
+   ],
+   "out": {
+    "ok": "develop"
+   }
+  },
+  {
+   "fn": "_resolve_ref",
+   "repo": "repo",
+   "args": [
+    "main"
+   ],
+   "out": {
+    "ok": "main"
+   }
+  },
+  {
+   "fn": "_resolve_ref",
+   "repo": "repo",
+   "args": [
+    "v1"
+   ],
+   "out": {
+    "ok": "v1"
+   }
+  },
+  {
+   "fn": "_resolve_ref",
+   "repo": "repo",
+   "args": [
+    "nope"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Branch 'nope' does not exist in the repository"
+   }
+  },
+  {
+   "fn": "validate_branch_name",
+   "repo": "repo",
+   "args": [
+    "ok/name"
+   ],
+   "out": {
+    "ok": null
+   }
+  },
+  {
+   "fn": "validate_branch_name",
+   "repo": "repo",
+   "args": [
+    "bad name"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Invalid branch name: 'bad name'"
+   }
+  },
+  {
+   "fn": "validate_branch_name",
+   "repo": "repo",
+   "args": [
+    "it's..bad"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Invalid branch name: \"it's..bad\""
+   }
+  },
+  {
+   "fn": "validate_branch_name",
+   "repo": "repo",
+   "args": [
+    "a\"b'c~\\"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Invalid branch name: 'a\"b\\'c~\\\\'"
+   }
+  },
+  {
+   "fn": "branch_info",
+   "repo": "repo",
+   "args": [
+    "feat/open",
+    "main"
+   ],
+   "out": {
+    "ok": {
+     "name": "feat/open",
+     "commit_hash": "e80360368fbd8f55e7565580f21eca7f95dfaf55",
+     "ahead_count": 2,
+     "behind_count": 1
+    }
+   }
+  },
+  {
+   "fn": "branch_info",
+   "repo": "repo",
+   "args": [
+    "feature/x",
+    "main"
+   ],
+   "out": {
+    "ok": {
+     "name": "feature/x",
+     "commit_hash": "f2c5f2820ab00848194663412b2588e9db0e799a",
+     "ahead_count": 0,
+     "behind_count": 3
+    }
+   }
+  },
+  {
+   "fn": "branch_info",
+   "repo": "repo",
+   "args": [
+    "main",
+    "feat/open"
+   ],
+   "out": {
+    "ok": {
+     "name": "main",
+     "commit_hash": "8c4a1d0a5ec32cd6dff3e7e5bc9056c0a3ab5310",
+     "ahead_count": 1,
+     "behind_count": 2
+    }
+   }
+  },
+  {
+   "fn": "branch_info",
+   "repo": "repo",
+   "args": [
+    "nope",
+    "main"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Branch 'nope' does not exist in the repository"
+   }
+  },
+  {
+   "fn": "branch_info",
+   "repo": "repo",
+   "args": [
+    "main",
+    "nope"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Branch 'nope' does not exist in the repository"
+   }
+  },
+  {
+   "fn": "is_merged",
+   "repo": "repo",
+   "args": [
+    "feature/x",
+    "main"
+   ],
+   "out": {
+    "ok": true
+   }
+  },
+  {
+   "fn": "is_merged",
+   "repo": "repo",
+   "args": [
+    "feat/open",
+    "main"
+   ],
+   "out": {
+    "ok": false
+   }
+  },
+  {
+   "fn": "is_merged",
+   "repo": "repo",
+   "args": [
+    "nope",
+    "main"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Branch 'nope' does not exist in the repository"
+   }
+  },
+  {
+   "fn": "commit_graph",
+   "repo": "repo",
+   "args": [
+    [
+     "main"
+    ],
+    [
+     "feat/open",
+     "feature/x"
+    ],
+    80
+   ],
+   "out": {
+    "ok": {
+     "base": "main",
+     "current": "main",
+     "commits": [
+      {
+       "hash": "8c4a1d0a5ec32cd6dff3e7e5bc9056c0a3ab5310",
+       "short": "8c4a1d0",
+       "parents": [
+        "92a6101daf669040b5c36a615f9efb01bbed4bb0"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:31+00:00",
+       "subject": "add m2",
+       "refs": [
+        {
+         "name": "HEAD",
+         "type": "head"
+        },
+        {
+         "name": "main",
+         "type": "branch"
+        }
+       ],
+       "lane": 0,
+       "ticket_branches": []
+      },
+      {
+       "hash": "e80360368fbd8f55e7565580f21eca7f95dfaf55",
+       "short": "e803603",
+       "parents": [
+        "191d9a9f343113e818ca3b15b195efcafe27c612"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:27+00:00",
+       "subject": "add o2",
+       "refs": [
+        {
+         "name": "feat/open",
+         "type": "branch"
+        }
+       ],
+       "lane": 1,
+       "ticket_branches": [
+        "feat/open"
+       ]
+      },
+      {
+       "hash": "191d9a9f343113e818ca3b15b195efcafe27c612",
+       "short": "191d9a9",
+       "parents": [
+        "92a6101daf669040b5c36a615f9efb01bbed4bb0"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:24+00:00",
+       "subject": "rename f1 and add a binary file",
+       "refs": [],
+       "lane": 1,
+       "ticket_branches": [
+        "feat/open"
+       ]
+      },
+      {
+       "hash": "92a6101daf669040b5c36a615f9efb01bbed4bb0",
+       "short": "92a6101",
+       "parents": [
+        "0de6fe1048d87efddf7e717f140340dbe0f3848d",
+        "f2c5f2820ab00848194663412b2588e9db0e799a"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:17+00:00",
+       "subject": "merge feature/x",
+       "refs": [
+        {
+         "name": "v1",
+         "type": "tag"
+        }
+       ],
+       "lane": 0,
+       "ticket_branches": []
+      },
+      {
+       "hash": "f2c5f2820ab00848194663412b2588e9db0e799a",
+       "short": "f2c5f28",
+       "parents": [
+        "63e24a33837436ac85103e2873f20e2c71425ec2"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:11+00:00",
+       "subject": "change a",
+       "refs": [
+        {
+         "name": "feature/x",
+         "type": "branch"
+        }
+       ],
+       "lane": 1,
+       "ticket_branches": []
+      },
+      {
+       "hash": "63e24a33837436ac85103e2873f20e2c71425ec2",
+       "short": "63e24a3",
+       "parents": [
+        "0cb1b7a78c59157fcaa3f3863da72687d9658dfd"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:08+00:00",
+       "subject": "add f1",
+       "refs": [],
+       "lane": 1,
+       "ticket_branches": []
+      },
+      {
+       "hash": "0de6fe1048d87efddf7e717f140340dbe0f3848d",
+       "short": "0de6fe1",
+       "parents": [
+        "0cb1b7a78c59157fcaa3f3863da72687d9658dfd"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:15+00:00",
+       "subject": "add m1",
+       "refs": [],
+       "lane": 0,
+       "ticket_branches": []
+      },
+      {
+       "hash": "0cb1b7a78c59157fcaa3f3863da72687d9658dfd",
+       "short": "0cb1b7a",
+       "parents": [],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:03+00:00",
+       "subject": "init",
+       "refs": [],
+       "lane": 0,
+       "ticket_branches": []
+      }
+     ],
+     "lane_count": 2,
+     "truncated": false
+    }
+   }
+  },
+  {
+   "fn": "commit_graph",
+   "repo": "repo",
+   "args": [
+    [
+     "main"
+    ],
+    [
+     "feat/open"
+    ],
+    2
+   ],
+   "out": {
+    "ok": {
+     "base": "main",
+     "current": "main",
+     "commits": [
+      {
+       "hash": "8c4a1d0a5ec32cd6dff3e7e5bc9056c0a3ab5310",
+       "short": "8c4a1d0",
+       "parents": [
+        "92a6101daf669040b5c36a615f9efb01bbed4bb0"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:31+00:00",
+       "subject": "add m2",
+       "refs": [
+        {
+         "name": "HEAD",
+         "type": "head"
+        },
+        {
+         "name": "main",
+         "type": "branch"
+        }
+       ],
+       "lane": 0,
+       "ticket_branches": []
+      },
+      {
+       "hash": "e80360368fbd8f55e7565580f21eca7f95dfaf55",
+       "short": "e803603",
+       "parents": [
+        "191d9a9f343113e818ca3b15b195efcafe27c612"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:27+00:00",
+       "subject": "add o2",
+       "refs": [
+        {
+         "name": "feat/open",
+         "type": "branch"
+        }
+       ],
+       "lane": 1,
+       "ticket_branches": [
+        "feat/open"
+       ]
+      },
+      {
+       "hash": "191d9a9f343113e818ca3b15b195efcafe27c612",
+       "short": "191d9a9",
+       "parents": [
+        "92a6101daf669040b5c36a615f9efb01bbed4bb0"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:24+00:00",
+       "subject": "rename f1 and add a binary file",
+       "refs": [],
+       "lane": 1,
+       "ticket_branches": [
+        "feat/open"
+       ]
+      },
+      {
+       "hash": "92a6101daf669040b5c36a615f9efb01bbed4bb0",
+       "short": "92a6101",
+       "parents": [
+        "0de6fe1048d87efddf7e717f140340dbe0f3848d",
+        "f2c5f2820ab00848194663412b2588e9db0e799a"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:17+00:00",
+       "subject": "merge feature/x",
+       "refs": [
+        {
+         "name": "v1",
+         "type": "tag"
+        }
+       ],
+       "lane": 0,
+       "ticket_branches": []
+      }
+     ],
+     "lane_count": 2,
+     "truncated": true
+    }
+   }
+  },
+  {
+   "fn": "commit_graph",
+   "repo": "repo",
+   "args": [
+    [
+     "main"
+    ],
+    [],
+    3
+   ],
+   "out": {
+    "ok": {
+     "base": "main",
+     "current": "main",
+     "commits": [
+      {
+       "hash": "8c4a1d0a5ec32cd6dff3e7e5bc9056c0a3ab5310",
+       "short": "8c4a1d0",
+       "parents": [
+        "92a6101daf669040b5c36a615f9efb01bbed4bb0"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:31+00:00",
+       "subject": "add m2",
+       "refs": [
+        {
+         "name": "HEAD",
+         "type": "head"
+        },
+        {
+         "name": "main",
+         "type": "branch"
+        }
+       ],
+       "lane": 0,
+       "ticket_branches": []
+      },
+      {
+       "hash": "92a6101daf669040b5c36a615f9efb01bbed4bb0",
+       "short": "92a6101",
+       "parents": [
+        "0de6fe1048d87efddf7e717f140340dbe0f3848d",
+        "f2c5f2820ab00848194663412b2588e9db0e799a"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:17+00:00",
+       "subject": "merge feature/x",
+       "refs": [
+        {
+         "name": "v1",
+         "type": "tag"
+        }
+       ],
+       "lane": 0,
+       "ticket_branches": []
+      },
+      {
+       "hash": "f2c5f2820ab00848194663412b2588e9db0e799a",
+       "short": "f2c5f28",
+       "parents": [
+        "63e24a33837436ac85103e2873f20e2c71425ec2"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:11+00:00",
+       "subject": "change a",
+       "refs": [
+        {
+         "name": "feature/x",
+         "type": "branch"
+        }
+       ],
+       "lane": 1,
+       "ticket_branches": []
+      }
+     ],
+     "lane_count": 2,
+     "truncated": true
+    }
+   }
+  },
+  {
+   "fn": "commit_graph",
+   "repo": "repo",
+   "args": [
+    [
+     "main",
+     "feature/x"
+    ],
+    [
+     "feat/open",
+     "feat/open"
+    ],
+    80
+   ],
+   "out": {
+    "ok": {
+     "base": "main",
+     "current": "main",
+     "commits": [
+      {
+       "hash": "8c4a1d0a5ec32cd6dff3e7e5bc9056c0a3ab5310",
+       "short": "8c4a1d0",
+       "parents": [
+        "92a6101daf669040b5c36a615f9efb01bbed4bb0"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:31+00:00",
+       "subject": "add m2",
+       "refs": [
+        {
+         "name": "HEAD",
+         "type": "head"
+        },
+        {
+         "name": "main",
+         "type": "branch"
+        }
+       ],
+       "lane": 0,
+       "ticket_branches": []
+      },
+      {
+       "hash": "e80360368fbd8f55e7565580f21eca7f95dfaf55",
+       "short": "e803603",
+       "parents": [
+        "191d9a9f343113e818ca3b15b195efcafe27c612"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:27+00:00",
+       "subject": "add o2",
+       "refs": [
+        {
+         "name": "feat/open",
+         "type": "branch"
+        }
+       ],
+       "lane": 1,
+       "ticket_branches": [
+        "feat/open"
+       ]
+      },
+      {
+       "hash": "191d9a9f343113e818ca3b15b195efcafe27c612",
+       "short": "191d9a9",
+       "parents": [
+        "92a6101daf669040b5c36a615f9efb01bbed4bb0"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:24+00:00",
+       "subject": "rename f1 and add a binary file",
+       "refs": [],
+       "lane": 1,
+       "ticket_branches": [
+        "feat/open"
+       ]
+      },
+      {
+       "hash": "92a6101daf669040b5c36a615f9efb01bbed4bb0",
+       "short": "92a6101",
+       "parents": [
+        "0de6fe1048d87efddf7e717f140340dbe0f3848d",
+        "f2c5f2820ab00848194663412b2588e9db0e799a"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:17+00:00",
+       "subject": "merge feature/x",
+       "refs": [
+        {
+         "name": "v1",
+         "type": "tag"
+        }
+       ],
+       "lane": 0,
+       "ticket_branches": []
+      },
+      {
+       "hash": "f2c5f2820ab00848194663412b2588e9db0e799a",
+       "short": "f2c5f28",
+       "parents": [
+        "63e24a33837436ac85103e2873f20e2c71425ec2"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:11+00:00",
+       "subject": "change a",
+       "refs": [
+        {
+         "name": "feature/x",
+         "type": "branch"
+        }
+       ],
+       "lane": 1,
+       "ticket_branches": []
+      },
+      {
+       "hash": "63e24a33837436ac85103e2873f20e2c71425ec2",
+       "short": "63e24a3",
+       "parents": [
+        "0cb1b7a78c59157fcaa3f3863da72687d9658dfd"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:08+00:00",
+       "subject": "add f1",
+       "refs": [],
+       "lane": 1,
+       "ticket_branches": []
+      },
+      {
+       "hash": "0de6fe1048d87efddf7e717f140340dbe0f3848d",
+       "short": "0de6fe1",
+       "parents": [
+        "0cb1b7a78c59157fcaa3f3863da72687d9658dfd"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:15+00:00",
+       "subject": "add m1",
+       "refs": [],
+       "lane": 0,
+       "ticket_branches": []
+      },
+      {
+       "hash": "0cb1b7a78c59157fcaa3f3863da72687d9658dfd",
+       "short": "0cb1b7a",
+       "parents": [],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:03+00:00",
+       "subject": "init",
+       "refs": [],
+       "lane": 0,
+       "ticket_branches": []
+      }
+     ],
+     "lane_count": 2,
+     "truncated": false
+    }
+   }
+  },
+  {
+   "fn": "commit_graph",
+   "repo": "repo",
+   "args": [
+    [],
+    [],
+    80
+   ],
+   "out": {
+    "ok": {
+     "base": null,
+     "commits": [],
+     "lane_count": 1,
+     "truncated": false
+    }
+   }
+  },
+  {
+   "fn": "commit_graph",
+   "repo": "repo",
+   "args": [
+    [
+     "main"
+    ],
+    [
+     "nope"
+    ],
+    80
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Branch 'nope' does not exist in the repository"
+   }
+  },
+  {
+   "fn": "commit_detail",
+   "repo": "repo",
+   "args": [
+    "92a6101daf669040b5c36a615f9efb01bbed4bb0",
+    200
+   ],
+   "out": {
+    "ok": {
+     "hash": "92a6101daf669040b5c36a615f9efb01bbed4bb0",
+     "short": "92a6101",
+     "parents": [
+      "0de6fe1048d87efddf7e717f140340dbe0f3848d",
+      "f2c5f2820ab00848194663412b2588e9db0e799a"
+     ],
+     "author": "Tester",
+     "author_email": "t@example.com",
+     "date": "2026-01-02T03:00:17+00:00",
+     "committer": "Committer",
+     "committer_date": "2026-01-02T03:00:17+00:00",
+     "subject": "merge feature/x",
+     "body": "",
+     "files": [
+      {
+       "status": "M",
+       "old_path": null,
+       "path": "a.txt",
+       "additions": 1,
+       "deletions": 0,
+       "binary": false
+      },
+      {
+       "status": "A",
+       "old_path": null,
+       "path": "f1.txt",
+       "additions": 1,
+       "deletions": 0,
+       "binary": false
+      }
+     ],
+     "file_count": 2,
+     "additions": 2,
+     "deletions": 0,
+     "files_truncated": false
+    }
+   }
+  },
+  {
+   "fn": "commit_detail",
+   "repo": "repo",
+   "args": [
+    "191d9a9f343113e818ca3b15b195efcafe27c612",
+    200
+   ],
+   "out": {
+    "ok": {
+     "hash": "191d9a9f343113e818ca3b15b195efcafe27c612",
+     "short": "191d9a9",
+     "parents": [
+      "92a6101daf669040b5c36a615f9efb01bbed4bb0"
+     ],
+     "author": "Tester",
+     "author_email": "t@example.com",
+     "date": "2026-01-02T03:00:24+00:00",
+     "committer": "Committer",
+     "committer_date": "2026-01-02T03:00:24+00:00",
+     "subject": "rename f1 and add a binary file",
+     "body": "",
+     "files": [
+      {
+       "status": "A",
+       "old_path": null,
+       "path": "bin.dat",
+       "additions": 0,
+       "deletions": 0,
+       "binary": true
+      },
+      {
+       "status": "R",
+       "old_path": "f1.txt",
+       "path": "renamed.txt",
+       "additions": 0,
+       "deletions": 0,
+       "binary": false
+      }
+     ],
+     "file_count": 2,
+     "additions": 0,
+     "deletions": 0,
+     "files_truncated": false
+    }
+   }
+  },
+  {
+   "fn": "commit_detail",
+   "repo": "repo",
+   "args": [
+    "191d9a9f",
+    1
+   ],
+   "out": {
+    "ok": {
+     "hash": "191d9a9f343113e818ca3b15b195efcafe27c612",
+     "short": "191d9a9",
+     "parents": [
+      "92a6101daf669040b5c36a615f9efb01bbed4bb0"
+     ],
+     "author": "Tester",
+     "author_email": "t@example.com",
+     "date": "2026-01-02T03:00:24+00:00",
+     "committer": "Committer",
+     "committer_date": "2026-01-02T03:00:24+00:00",
+     "subject": "rename f1 and add a binary file",
+     "body": "",
+     "files": [
+      {
+       "status": "A",
+       "old_path": null,
+       "path": "bin.dat",
+       "additions": 0,
+       "deletions": 0,
+       "binary": true
+      }
+     ],
+     "file_count": 2,
+     "additions": 0,
+     "deletions": 0,
+     "files_truncated": true
+    }
+   }
+  },
+  {
+   "fn": "commit_detail",
+   "repo": "repo",
+   "args": [
+    "0cb1b7a78c59157fcaa3f3863da72687d9658dfd",
+    200
+   ],
+   "out": {
+    "ok": {
+     "hash": "0cb1b7a78c59157fcaa3f3863da72687d9658dfd",
+     "short": "0cb1b7a",
+     "parents": [],
+     "author": "Tester",
+     "author_email": "t@example.com",
+     "date": "2026-01-02T03:00:03+00:00",
+     "committer": "Committer",
+     "committer_date": "2026-01-02T03:00:03+00:00",
+     "subject": "init",
+     "body": "",
+     "files": [
+      {
+       "status": "A",
+       "old_path": null,
+       "path": "a.txt",
+       "additions": 1,
+       "deletions": 0,
+       "binary": false
+      }
+     ],
+     "file_count": 1,
+     "additions": 1,
+     "deletions": 0,
+     "files_truncated": false
+    }
+   }
+  },
+  {
+   "fn": "commit_detail",
+   "repo": "repo",
+   "args": [
+    "0cb1b7a\n",
+    200
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Commit '0cb1b7a\n' not found in the repository"
+   }
+  },
+  {
+   "fn": "commit_detail",
+   "repo": "repo",
+   "args": [
+    "HEAD",
+    200
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Invalid commit id"
+   }
+  },
+  {
+   "fn": "commit_detail",
+   "repo": "repo",
+   "args": [
+    "abc",
+    200
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Invalid commit id"
+   }
+  },
+  {
+   "fn": "commit_detail",
+   "repo": "repo",
+   "args": [
+    "abcd1234",
+    200
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Commit 'abcd1234' not found in the repository"
+   }
+  },
+  {
+   "fn": "create_branch",
+   "repo": "repo",
+   "args": [
+    "new/one",
+    "main"
+   ],
+   "out": {
+    "ok": {
+     "name": "new/one",
+     "commit_hash": "8c4a1d0a5ec32cd6dff3e7e5bc9056c0a3ab5310",
+     "ahead_count": 0,
+     "behind_count": 0
+    }
+   }
+  },
+  {
+   "fn": "create_branch",
+   "repo": "repo",
+   "args": [
+    "new/one",
+    "main"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Branch 'new/one' already exists"
+   }
+  },
+  {
+   "fn": "create_branch",
+   "repo": "repo",
+   "args": [
+    "from-tag",
+    "v1"
+   ],
+   "out": {
+    "ok": {
+     "name": "from-tag",
+     "commit_hash": "92a6101daf669040b5c36a615f9efb01bbed4bb0",
+     "ahead_count": 0,
+     "behind_count": 0
+    }
+   }
+  },
+  {
+   "fn": "create_branch",
+   "repo": "repo",
+   "args": [
+    "x",
+    "nope"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Branch 'nope' does not exist in the repository"
+   }
+  },
+  {
+   "fn": "create_branch",
+   "repo": "repo",
+   "args": [
+    "bad name",
+    "main"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Invalid branch name: 'bad name'"
+   }
+  },
+  {
+   "fn": "create_branch",
+   "repo": "repo",
+   "args": [
+    "new",
+    "main"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Could not create branch 'new': stderr: 'fatal: cannot lock ref 'refs/heads/new': 'refs/heads/new/one' exists; cannot create 'refs/heads/new''"
+   }
+  },
+  {
+   "fn": "rename_branch",
+   "repo": "repo",
+   "args": [
+    "new/one",
+    "new/two"
+   ],
+   "out": {
+    "ok": null
+   }
+  },
+  {
+   "fn": "rename_branch",
+   "repo": "repo",
+   "args": [
+    "feat/open",
+    "main"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Branch 'main' already exists"
+   }
+  },
+  {
+   "fn": "rename_branch",
+   "repo": "repo",
+   "args": [
+    "ghost",
+    "ghost2"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Could not rename branch 'ghost': stderr: 'fatal: no branch named 'ghost''"
+   }
+  },
+  {
+   "fn": "rename_branch",
+   "repo": "repo",
+   "args": [
+    "from-tag",
+    "bad name"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Invalid branch name: 'bad name'"
+   }
+  },
+  {
+   "fn": "list_local_branches",
+   "repo": "repo",
+   "args": [],
+   "out": {
+    "ok": [
+     "feat/open",
+     "feature/x",
+     "from-tag",
+     "main",
+     "new/two"
+    ]
+   }
+  },
+  {
+   "fn": "resolve_worktree_path",
+   "repo": null,
+   "args": [
+    "../wt/{project}-{ticket}-{branch}",
+    "<ROOT>/repo",
+    "KAN",
+    "KAN-7",
+    "feat/a/b"
+   ],
+   "out": {
+    "ok": "<ROOT>/wt/KAN-KAN-7-feat-a-b"
+   }
+  },
+  {
+   "fn": "resolve_worktree_path",
+   "repo": null,
+   "args": [
+    " <ROOT>/wt//{repo}/./{ticket_id}/ ",
+    "<ROOT>/repo/",
+    "KAN",
+    "KAN-7",
+    "x"
+   ],
+   "out": {
+    "ok": "<ROOT>/wt/KAN-7"
+   }
+  },
+  {
+   "fn": "resolve_worktree_path",
+   "repo": null,
+   "args": [
+    "{repo}_{branch}",
+    "<ROOT>/repo",
+    "KAN",
+    "KAN-7",
+    "x"
+   ],
+   "out": {
+    "ok": "<ROOT>/repo/repo_x"
+   }
+  },
+  {
+   "fn": "add_worktree",
+   "repo": "repo",
+   "args": [
+    " <ROOT>/wt/deep/one ",
+    "new/two"
+   ],
+   "out": {
+    "ok": "<ROOT>/wt/deep/one"
+   }
+  },
+  {
+   "fn": "add_worktree",
+   "repo": "repo",
+   "args": [
+    "<ROOT>/wt/deep/one",
+    "from-tag"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Target worktree path already exists: <ROOT>/wt/deep/one"
+   }
+  },
+  {
+   "fn": "add_worktree",
+   "repo": "repo",
+   "args": [
+    "<ROOT>/wt/two",
+    "ghost"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Could not create worktree at '<ROOT>/wt/two': stderr: 'fatal: invalid reference: ghost'"
+   }
+  },
+  {
+   "fn": "add_worktree",
+   "repo": "repo",
+   "args": [
+    "<ROOT>/wt/three",
+    "new/two"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Could not create worktree at '<ROOT>/wt/three': stderr: 'Preparing worktree (checking out 'new/two')\nfatal: 'new/two' is already used by worktree at '<ROOT>/wt/deep/one''"
+   }
+  },
+  {
+   "fn": "list_worktrees",
+   "repo": "repo",
+   "args": [],
+   "out": {
+    "ok": [
+     {
+      "path": "<ROOT>/repo",
+      "branch": "main"
+     },
+     {
+      "path": "<ROOT>/wt/deep/one",
+      "branch": "new/two"
+     }
+    ]
+   }
+  },
+  {
+   "fn": "open_repo",
+   "repo": null,
+   "args": [
+    "<ROOT>/wt/deep/one"
+   ],
+   "out": {
+    "ok": {
+     "working_dir": "<ROOT>/wt/deep/one",
+     "git_dir": "<ROOT>/repo/.git/worktrees/one",
+     "bare": false
+    }
+   }
+  },
+  {
+   "fn": "current_branch",
+   "repo": "wt/deep/one",
+   "args": [],
+   "out": {
+    "ok": "new/two"
+   }
+  },
+  {
+   "fn": "list_local_branches",
+   "repo": "wt/deep/one",
+   "args": [],
+   "out": {
+    "ok": [
+     "feat/open",
+     "feature/x",
+     "from-tag",
+     "main",
+     "new/two"
+    ]
+   }
+  },
+  {
+   "fn": "default_base_branch",
+   "repo": "wt/deep/one",
+   "args": [],
+   "out": {
+    "ok": "main"
+   }
+  },
+  {
+   "fn": "delete_branch",
+   "repo": "repo",
+   "args": [
+    "new/two",
+    false
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Could not delete git branch 'new/two': stderr: 'error: cannot delete branch 'new/two' used by worktree at '<ROOT>/wt/deep/one''"
+   }
+  },
+  {
+   "do": "write",
+   "path": "wt/deep/one/untracked.txt",
+   "text": "left behind\n"
+  },
+  {
+   "fn": "remove_worktree",
+   "repo": "repo",
+   "args": [
+    "<ROOT>/wt/deep/one",
+    false
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Could not remove worktree '<ROOT>/wt/deep/one': stderr: 'fatal: '<ROOT>/wt/deep/one' contains modified or untracked files, use --force to delete it'"
+   }
+  },
+  {
+   "fn": "remove_worktree",
+   "repo": "repo",
+   "args": [
+    "<ROOT>/wt/deep/one",
+    true
+   ],
+   "out": {
+    "ok": null
+   }
+  },
+  {
+   "fn": "remove_worktree",
+   "repo": "repo",
+   "args": [
+    "<ROOT>/wt/never",
+    false
+   ],
+   "out": {
+    "ok": null
+   }
+  },
+  {
+   "fn": "remove_worktree",
+   "repo": "repo",
+   "args": [
+    "<ROOT>/plain",
+    false
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Could not remove worktree '<ROOT>/plain': stderr: 'fatal: '<ROOT>/plain' is not a working tree'"
+   }
+  },
+  {
+   "fn": "list_worktrees",
+   "repo": "repo",
+   "args": [],
+   "out": {
+    "ok": [
+     {
+      "path": "<ROOT>/repo",
+      "branch": "main"
+     }
+    ]
+   }
+  },
+  {
+   "fn": "delete_branch",
+   "repo": "repo",
+   "args": [
+    "new/two",
+    false
+   ],
+   "out": {
+    "ok": null
+   }
+  },
+  {
+   "fn": "delete_branch",
+   "repo": "repo",
+   "args": [
+    "ghost",
+    false
+   ],
+   "out": {
+    "ok": null
+   }
+  },
+  {
+   "fn": "delete_branch",
+   "repo": "repo",
+   "args": [
+    "feat/open",
+    false
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Could not delete git branch 'feat/open': stderr: 'error: the branch 'feat/open' is not fully merged.\nIf you are sure you want to delete it, run 'git branch -D feat/open''"
+   }
+  },
+  {
+   "fn": "delete_branch",
+   "repo": "repo",
+   "args": [
+    "from-tag",
+    true
+   ],
+   "out": {
+    "ok": null
+   }
+  },
+  {
+   "fn": "list_local_branches",
+   "repo": "repo",
+   "args": [],
+   "out": {
+    "ok": [
+     "feat/open",
+     "feature/x",
+     "main"
+    ]
+   }
+  },
+  {
+   "fn": "checkout_branch",
+   "repo": "repo",
+   "args": [
+    "feature/x"
+   ],
+   "out": {
+    "ok": null
+   }
+  },
+  {
+   "fn": "current_branch",
+   "repo": "repo",
+   "args": [],
+   "out": {
+    "ok": "feature/x"
+   }
+  },
+  {
+   "fn": "checkout_branch",
+   "repo": "repo",
+   "args": [
+    "feature/x"
+   ],
+   "out": {
+    "ok": null
+   }
+  },
+  {
+   "fn": "checkout_branch",
+   "repo": "repo",
+   "args": [
+    "ghost"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Branch 'ghost' does not exist in the repository"
+   }
+  },
+  {
+   "do": "write",
+   "path": "repo/a.txt",
+   "text": "changed and not committed\n"
+  },
+  {
+   "fn": "checkout_branch",
+   "repo": "repo",
+   "args": [
+    "main"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "The working tree has uncommitted changes; commit or stash them before switching branches"
+   }
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "add",
+    "."
+   ],
+   "date": "2026-01-02T03:00:33+00:00"
+  },
+  {
+   "fn": "checkout_branch",
+   "repo": "repo",
+   "args": [
+    "main"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "The working tree has uncommitted changes; commit or stash them before switching branches"
+   }
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "reset",
+    "-q",
+    "--hard"
+   ],
+   "date": "2026-01-02T03:00:34+00:00"
+  },
+  {
+   "do": "write",
+   "path": "repo/untracked.txt",
+   "text": "untracked files do not block\n"
+  },
+  {
+   "fn": "checkout_branch",
+   "repo": "repo",
+   "args": [
+    "main"
+   ],
+   "out": {
+    "ok": null
+   }
+  },
+  {
+   "fn": "current_branch",
+   "repo": "repo",
+   "args": [],
+   "out": {
+    "ok": "main"
+   }
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "pack-refs",
+    "--all"
+   ],
+   "date": "2026-01-02T03:00:35+00:00"
+  },
+  {
+   "fn": "list_local_branches",
+   "repo": "repo",
+   "args": [],
+   "out": {
+    "ok": [
+     "feat/open",
+     "feature/x",
+     "main"
+    ]
+   }
+  },
+  {
+   "fn": "branch_exists",
+   "repo": "repo",
+   "args": [
+    "feat/open"
+   ],
+   "out": {
+    "ok": true
+   }
+  },
+  {
+   "do": "git",
+   "repo": "repo",
+   "args": [
+    "checkout",
+    "-q",
+    "--detach"
+   ],
+   "date": "2026-01-02T03:00:36+00:00"
+  },
+  {
+   "fn": "current_branch",
+   "repo": "repo",
+   "args": [],
+   "out": {
+    "ok": null
+   }
+  },
+  {
+   "fn": "default_base_branch",
+   "repo": "repo",
+   "args": [],
+   "out": {
+    "ok": "main"
+   }
+  },
+  {
+   "fn": "commit_graph",
+   "repo": "repo",
+   "args": [
+    [
+     "main"
+    ],
+    [
+     "feat/open"
+    ],
+    80
+   ],
+   "out": {
+    "ok": {
+     "base": "main",
+     "current": null,
+     "commits": [
+      {
+       "hash": "8c4a1d0a5ec32cd6dff3e7e5bc9056c0a3ab5310",
+       "short": "8c4a1d0",
+       "parents": [
+        "92a6101daf669040b5c36a615f9efb01bbed4bb0"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:31+00:00",
+       "subject": "add m2",
+       "refs": [
+        {
+         "name": "HEAD",
+         "type": "head"
+        },
+        {
+         "name": "main",
+         "type": "branch"
+        }
+       ],
+       "lane": 0,
+       "ticket_branches": []
+      },
+      {
+       "hash": "e80360368fbd8f55e7565580f21eca7f95dfaf55",
+       "short": "e803603",
+       "parents": [
+        "191d9a9f343113e818ca3b15b195efcafe27c612"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:27+00:00",
+       "subject": "add o2",
+       "refs": [
+        {
+         "name": "feat/open",
+         "type": "branch"
+        }
+       ],
+       "lane": 1,
+       "ticket_branches": [
+        "feat/open"
+       ]
+      },
+      {
+       "hash": "191d9a9f343113e818ca3b15b195efcafe27c612",
+       "short": "191d9a9",
+       "parents": [
+        "92a6101daf669040b5c36a615f9efb01bbed4bb0"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:24+00:00",
+       "subject": "rename f1 and add a binary file",
+       "refs": [],
+       "lane": 1,
+       "ticket_branches": [
+        "feat/open"
+       ]
+      },
+      {
+       "hash": "92a6101daf669040b5c36a615f9efb01bbed4bb0",
+       "short": "92a6101",
+       "parents": [
+        "0de6fe1048d87efddf7e717f140340dbe0f3848d",
+        "f2c5f2820ab00848194663412b2588e9db0e799a"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:17+00:00",
+       "subject": "merge feature/x",
+       "refs": [
+        {
+         "name": "v1",
+         "type": "tag"
+        }
+       ],
+       "lane": 0,
+       "ticket_branches": []
+      },
+      {
+       "hash": "f2c5f2820ab00848194663412b2588e9db0e799a",
+       "short": "f2c5f28",
+       "parents": [
+        "63e24a33837436ac85103e2873f20e2c71425ec2"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:11+00:00",
+       "subject": "change a",
+       "refs": [
+        {
+         "name": "feature/x",
+         "type": "branch"
+        }
+       ],
+       "lane": 1,
+       "ticket_branches": []
+      },
+      {
+       "hash": "63e24a33837436ac85103e2873f20e2c71425ec2",
+       "short": "63e24a3",
+       "parents": [
+        "0cb1b7a78c59157fcaa3f3863da72687d9658dfd"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:08+00:00",
+       "subject": "add f1",
+       "refs": [],
+       "lane": 1,
+       "ticket_branches": []
+      },
+      {
+       "hash": "0de6fe1048d87efddf7e717f140340dbe0f3848d",
+       "short": "0de6fe1",
+       "parents": [
+        "0cb1b7a78c59157fcaa3f3863da72687d9658dfd"
+       ],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:15+00:00",
+       "subject": "add m1",
+       "refs": [],
+       "lane": 0,
+       "ticket_branches": []
+      },
+      {
+       "hash": "0cb1b7a78c59157fcaa3f3863da72687d9658dfd",
+       "short": "0cb1b7a",
+       "parents": [],
+       "author": "Tester",
+       "date": "2026-01-02T03:00:03+00:00",
+       "subject": "init",
+       "refs": [],
+       "lane": 0,
+       "ticket_branches": []
+      }
+     ],
+     "lane_count": 2,
+     "truncated": false
+    }
+   }
+  },
+  {
+   "do": "mkdir",
+   "path": "old"
+  },
+  {
+   "do": "git",
+   "repo": "old",
+   "args": [
+    "init",
+    "-q",
+    "-b",
+    "master"
+   ],
+   "date": "2026-01-02T03:00:37+00:00"
+  },
+  {
+   "do": "write",
+   "path": "old/a.txt",
+   "text": "a\n"
+  },
+  {
+   "do": "git",
+   "repo": "old",
+   "args": [
+    "add",
+    "."
+   ],
+   "date": "2026-01-02T03:00:38+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "old",
+   "args": [
+    "commit",
+    "-q",
+    "-m",
+    "init"
+   ],
+   "date": "2026-01-02T03:00:39+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "old",
+   "args": [
+    "rev-parse",
+    "HEAD"
+   ],
+   "date": "2026-01-02T03:00:40+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "old",
+   "args": [
+    "branch",
+    "zeta"
+   ],
+   "date": "2026-01-02T03:00:41+00:00"
+  },
+  {
+   "fn": "default_base_branch",
+   "repo": "old",
+   "args": [],
+   "out": {
+    "ok": "master"
+   }
+  },
+  {
+   "fn": "resolve_base",
+   "repo": "old",
+   "args": [
+    "main"
+   ],
+   "out": {
+    "ok": "master"
+   }
+  },
+  {
+   "fn": "resolve_base",
+   "repo": "old",
+   "args": [
+    null
+   ],
+   "out": {
+    "ok": "master"
+   }
+  },
+  {
+   "fn": "resolve_base",
+   "repo": "old",
+   "args": [
+    "zeta"
+   ],
+   "out": {
+    "ok": "zeta"
+   }
+  },
+  {
+   "do": "git",
+   "repo": "old",
+   "args": [
+    "branch",
+    "-m",
+    "master",
+    "trunk"
+   ],
+   "date": "2026-01-02T03:00:42+00:00"
+  },
+  {
+   "do": "git",
+   "repo": "old",
+   "args": [
+    "checkout",
+    "-q",
+    "zeta"
+   ],
+   "date": "2026-01-02T03:00:43+00:00"
+  },
+  {
+   "fn": "default_base_branch",
+   "repo": "old",
+   "args": [],
+   "out": {
+    "ok": "zeta"
+   }
+  },
+  {
+   "fn": "resolve_base",
+   "repo": "old",
+   "args": [
+    "main"
+   ],
+   "out": {
+    "ok": "zeta"
+   }
+  },
+  {
+   "do": "git",
+   "repo": "old",
+   "args": [
+    "checkout",
+    "-q",
+    "--detach"
+   ],
+   "date": "2026-01-02T03:00:44+00:00"
+  },
+  {
+   "fn": "default_base_branch",
+   "repo": "old",
+   "args": [],
+   "out": {
+    "ok": "trunk"
+   }
+  },
+  {
+   "do": "git",
+   "repo": ".",
+   "args": [
+    "clone",
+    "-q",
+    "--bare",
+    "old",
+    "bare.git"
+   ],
+   "date": "2026-01-02T03:00:45+00:00"
+  },
+  {
+   "fn": "open_repo",
+   "repo": null,
+   "args": [
+    "<ROOT>/bare.git"
+   ],
+   "out": {
+    "ok": {
+     "working_dir": "<ROOT>/bare.git",
+     "git_dir": "<ROOT>/bare.git",
+     "bare": true
+    }
+   }
+  },
+  {
+   "fn": "list_local_branches",
+   "repo": "bare.git",
+   "args": [],
+   "out": {
+    "ok": [
+     "trunk",
+     "zeta"
+    ]
+   }
+  },
+  {
+   "fn": "current_branch",
+   "repo": "bare.git",
+   "args": [],
+   "out": {
+    "ok": "trunk"
+   }
+  },
+  {
+   "fn": "list_worktrees",
+   "repo": "bare.git",
+   "args": [],
+   "out": {
+    "ok": [
+     {
+      "path": "<ROOT>/bare.git",
+      "bare": true
+     }
+    ]
+   }
+  },
+  {
+   "fn": "checkout_branch",
+   "repo": "bare.git",
+   "args": [
+    "trunk"
+   ],
+   "out": {
+    "ok": null
+   }
+  },
+  {
+   "do": "mkdir",
+   "path": "empty"
+  },
+  {
+   "do": "git",
+   "repo": "empty",
+   "args": [
+    "init",
+    "-q",
+    "-b",
+    "main"
+   ],
+   "date": "2026-01-02T03:00:46+00:00"
+  },
+  {
+   "fn": "open_repo",
+   "repo": null,
+   "args": [
+    "<ROOT>/empty"
+   ],
+   "out": {
+    "ok": {
+     "working_dir": "<ROOT>/empty",
+     "git_dir": "<ROOT>/empty/.git",
+     "bare": false
+    }
+   }
+  },
+  {
+   "fn": "list_local_branches",
+   "repo": "empty",
+   "args": [],
+   "out": {
+    "ok": []
+   }
+  },
+  {
+   "fn": "current_branch",
+   "repo": "empty",
+   "args": [],
+   "out": {
+    "ok": "main"
+   }
+  },
+  {
+   "fn": "default_base_branch",
+   "repo": "empty",
+   "args": [],
+   "out": {
+    "ok": "main"
+   }
+  },
+  {
+   "fn": "resolve_base",
+   "repo": "empty",
+   "args": [
+    "main"
+   ],
+   "out": {
+    "ok": "main"
+   }
+  },
+  {
+   "fn": "resolve_base",
+   "repo": "empty",
+   "args": [
+    null
+   ],
+   "out": {
+    "ok": "main"
+   }
+  },
+  {
+   "fn": "branch_info",
+   "repo": "empty",
+   "args": [
+    "main",
+    "main"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Branch 'main' does not exist in the repository"
+   }
+  },
+  {
+   "fn": "create_branch",
+   "repo": "empty",
+   "args": [
+    "x",
+    "main"
+   ],
+   "out": {
+    "error": "GitRepoError",
+    "message": "Branch 'main' does not exist in the repository"
+   }
+  }
+ ]
+}
