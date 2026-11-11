@@ -1,0 +1,584 @@
+//! The board's database: which one is in use, its pool and sessions, and bringing its schema up to date.
+//!
+//! SQLite in the data folder is the default. PostgreSQL or MySQL/MariaDB is used when `KANBAN_DATABASE_URL` says so
+//! or when it was chosen in Settings › Storage & backup (`targets`). Every module reaches the database through
+//! `conn()` and `session()`, so `reinit_db` re-points the whole app without a restart.
+
+use std::path::{Path, PathBuf};
+use std::sync::RwLock;
+use std::time::{Duration, Instant};
+
+use sea_orm::sqlx::{self, ConnectOptions as _, Connection as _};
+use sea_orm::{
+    ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbBackend, DbErr, EntityTrait,
+    Statement, TransactionTrait,
+};
+use serde_json::{Map, Value, json};
+
+use kb_base::{config as app_config, events, pyjson, time};
+
+use crate::session::Session;
+use crate::targets::{self, Target, TargetError};
+use crate::{changes, schema};
+
+/// The database cannot be used as it is: it was made by a newer app, or it holds something that is not a board.
+/// `code` is "newer", "foreign", "older" or "locked".
+#[derive(Debug, Clone, thiserror::Error)]
+#[error("{message}")]
+pub struct SchemaError {
+    pub code: &'static str,
+    pub message: String,
+}
+
+/// Why the database could not be set up or reached.
+#[derive(Debug, thiserror::Error)]
+pub enum DatabaseError {
+    #[error(transparent)]
+    Schema(#[from] SchemaError),
+    #[error(transparent)]
+    Target(#[from] TargetError),
+    #[error(transparent)]
+    Db(#[from] DbErr),
+    #[error("{0}")]
+    Other(String),
+}
+
+struct State {
+    db_path: PathBuf,
+    target: Target,
+    source: &'static str,
+    conn: DatabaseConnection,
+}
+
+static STATE: RwLock<Option<State>> = RwLock::new(None);
+
+/// Set while the database in use cannot be reached: `{"since": epoch seconds, "error": str, "target": public dict}`.
+/// The API answers 503 with code "database_unreachable" meanwhile, and the app shows the reconnect screen.
+static UNREACHABLE: RwLock<Option<Map<String, Value>>> = RwLock::new(None);
+pub const RETRY_S: u64 = 8;
+
+fn read<T>(f: impl FnOnce(&State) -> T) -> T {
+    let guard = STATE.read().unwrap_or_else(|e| e.into_inner());
+    f(guard
+        .as_ref()
+        .expect("database::setup runs before anything uses the database"))
+}
+
+/// `Path(text).resolve()`: absolute, with symlinks of the existing part followed.
+fn resolve_path(path: &Path) -> PathBuf {
+    let absolute = std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
+    match (absolute.parent(), absolute.file_name()) {
+        (Some(parent), Some(name)) => match parent.canonicalize() {
+            Ok(parent) => parent.join(name),
+            Err(_) => absolute,
+        },
+        _ => absolute,
+    }
+}
+
+fn resolve_db_path() -> PathBuf {
+    // A data folder chosen in Settings wins over KANBAN_DB_PATH. The desktop app always sets KANBAN_DB_PATH to its
+    // default location, so letting it win would hide the data of anyone who moved their data folder (the board
+    // would look empty after an upgrade).
+    if let Some(configured) = app_config::get_data_folder() {
+        let _ = std::fs::create_dir_all(&configured);
+        return configured.join("kanban.db");
+    }
+    let from_env = std::env::var("KANBAN_DB_PATH").unwrap_or_default();
+    if !from_env.is_empty() {
+        let path = PathBuf::from(&from_env);
+        if let Some(parent) = std::path::absolute(&path)
+            .ok()
+            .and_then(|p| p.parent().map(Path::to_path_buf))
+        {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        return resolve_path(&path);
+    }
+    // next to the program, as the Python server kept it next to its sources
+    std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|dir| dir.join("kanban.db")))
+        .unwrap_or_else(|| PathBuf::from("kanban.db"))
+}
+
+fn resolve_target(db_path: &Path) -> Result<(Target, &'static str), TargetError> {
+    match targets::resolve(db_path) {
+        Ok(found) => Ok(found),
+        Err(err) => {
+            // A broken KANBAN_DATABASE_URL must not silently fall back to another database
+            if !std::env::var(targets::ENV_URL)
+                .unwrap_or_default()
+                .is_empty()
+            {
+                return Err(err);
+            }
+            tracing::error!("The saved database setting cannot be used; using SQLite: {err}");
+            Ok((
+                Target::sqlite(db_path.to_string_lossy().into_owned()),
+                "default",
+            ))
+        }
+    }
+}
+
+/// Decide which database to use and open its pool (once, at startup, before `init_db`). The pool connects on first
+/// use, so this does not fail because a server is away.
+pub async fn setup() -> Result<(), DatabaseError> {
+    let db_path = resolve_db_path();
+    let (target, source) = resolve_target(&db_path)?;
+    let conn = targets::make_engine(&target, None).await?;
+    *STATE.write().unwrap_or_else(|e| e.into_inner()) = Some(State {
+        db_path,
+        target,
+        source,
+        conn,
+    });
+    Ok(())
+}
+
+/// Whether `setup` has run.
+pub fn is_set_up() -> bool {
+    STATE.read().unwrap_or_else(|e| e.into_inner()).is_some()
+}
+
+/// The pool of the database in use.
+pub fn conn() -> DatabaseConnection {
+    read(|s| s.conn.clone())
+}
+
+/// `async_session()`: a new unit of work on the database in use.
+pub fn session() -> Session {
+    Session::new(conn())
+}
+
+/// The connection URL of the database in use, without its password.
+pub fn database_url() -> String {
+    read(|s| s.target.url(true))
+}
+
+/// The SQLite file in the data folder (the database when SQLite is in use; folders of the app sit next to it).
+pub fn get_db_path() -> PathBuf {
+    read(|s| s.db_path.clone())
+}
+
+/// The data folder: attachments, AI run logs and the SQLite file live here whichever database is in use.
+pub fn get_data_dir() -> PathBuf {
+    read(|s| {
+        s.db_path
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_default()
+    })
+}
+
+/// The database in use (with its password; never print it, use `display()`).
+pub fn current_target() -> Target {
+    read(|s| s.target.clone())
+}
+
+/// Where the database in use was set: "environment", "settings" or "default".
+pub fn target_source() -> &'static str {
+    read(|s| s.source)
+}
+
+/// Whether the board runs on a SQLite file (FTS5 search, the WAL file, the file-based export).
+pub fn is_sqlite() -> bool {
+    read(|s| s.conn.get_database_backend() == DbBackend::Sqlite)
+}
+
+/// The engine in use as the Python code names it: "sqlite", "postgresql" or "mysql".
+pub fn dialect() -> &'static str {
+    read(|s| crate::session::dialect_name(s.conn.get_database_backend()))
+}
+
+/// Insert one row unless it exists (INSERT OR IGNORE), in the session's transaction: how a row is made on first use.
+///
+/// Two requests that both find the row missing can both try to make it. With a plain insert and commit, the second
+/// one's commit fails and it has to roll back. With this, the second insert does nothing and both read the row
+/// back. The same on every engine.
+pub async fn insert_missing<C, A>(conn: &C, row: A) -> Result<(), DbErr>
+where
+    C: ConnectionTrait,
+    A: ActiveModelTrait + Send,
+{
+    <A::Entity as EntityTrait>::insert(row)
+        .on_conflict_do_nothing()
+        .exec_without_returning(conn)
+        .await
+        .map(|_| ())
+}
+
+/// Bring the database in use up to the newest schema.
+///
+/// SQLite: turn on WAL (readers never wait for a writer) and make or upgrade the tables. PostgreSQL and MySQL: an
+/// empty database gets the app's tables, one of ours gets its pending migrations, anything else is refused. Safe
+/// to call on every startup; it does nothing when the schema is already at head.
+pub async fn init_db() -> Result<(), DatabaseError> {
+    let conn = conn();
+    if conn.get_database_backend() == DbBackend::Sqlite {
+        conn.execute_unprepared("PRAGMA journal_mode=WAL").await?;
+    }
+    let txn = conn.begin().await?;
+    let state = schema::schema_state(&txn).await?;
+    match state.state {
+        "empty" => schema::create_schema(&txn).await?,
+        "foreign" => {
+            if conn.get_database_backend() != DbBackend::Sqlite {
+                return Err(SchemaError {
+                    code: "foreign",
+                    message: format!(
+                        "This database already holds {} tables that are not a Kanban board. Choose an empty database.",
+                        state.tables
+                    ),
+                }
+                .into());
+            }
+            // a SQLite file with tables but no stamp: the Python chain started from its first migration here
+            return Err(SchemaError {
+                code: "foreign",
+                message: "This file holds tables that are not a Kanban board.".into(),
+            }
+            .into());
+        }
+        _ => {
+            if let Some(rev) = state.revision.as_deref() {
+                if !schema::known_revision(rev) {
+                    let short: String = rev.chars().take(8).collect();
+                    return Err(SchemaError {
+                        code: "newer",
+                        message: format!(
+                            "This database was made by a newer version of the app (migration {short}…). Update the app first; \
+                             the board will not touch it."
+                        ),
+                    }
+                    .into());
+                }
+            }
+            changes::create(&txn).await?;
+            schema::restamp_legacy_revision(&txn).await?;
+            crate::migrations::upgrade(&txn).await?;
+        }
+    }
+    txn.commit().await?;
+    Ok(())
+}
+
+async fn set_target(target: Target, source: &'static str, db_path: PathBuf) -> Result<(), DbErr> {
+    let conn = targets::make_engine(&target, None).await?;
+    *STATE.write().unwrap_or_else(|e| e.into_inner()) = Some(State {
+        db_path,
+        target,
+        source,
+        conn,
+    });
+    Ok(())
+}
+
+/// Re-read which database to use (after the data folder moved, an import, or a switch), then bring its schema up to
+/// date. Every later `conn()` and `session()` uses the new database; a request that already holds a session goes on
+/// with the old pool until it ends.
+pub async fn reinit_db(new_db_path: Option<PathBuf>) -> Result<(), DatabaseError> {
+    let old = conn();
+    let db_path = new_db_path.unwrap_or_else(get_db_path);
+    let (target, source) = resolve_target(&db_path)?;
+    set_target(target, source, db_path).await?;
+    let _ = old.close().await;
+    init_db().await
+}
+
+/// Point the app at `target` now and remember it in Settings (the wizard's Switch). Refused while
+/// `KANBAN_DATABASE_URL` is set: the environment wins.
+pub async fn use_target(target: &Target) -> Result<(), DatabaseError> {
+    if !std::env::var(targets::ENV_URL)
+        .unwrap_or_default()
+        .is_empty()
+    {
+        return Err(SchemaError {
+            code: "locked",
+            message: "KANBAN_DATABASE_URL is set, so the database cannot be changed from here."
+                .into(),
+        }
+        .into());
+    }
+    let old = app_config::get_section(targets::CONFIG_KEY);
+    targets::save_choice(target).map_err(|e| DatabaseError::Other(e.to_string()))?;
+    match reinit_db(None).await {
+        Ok(()) => Ok(()),
+        Err(err) => {
+            let _ = app_config::set_section(
+                targets::CONFIG_KEY,
+                if old.is_empty() { None } else { Some(old) },
+            );
+            reinit_db(None).await?;
+            Err(err)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Following the setting, and a database that does not answer
+// ---------------------------------------------------------------------------
+
+/// The "cannot reach the database" state, or `None` when the database answers.
+pub fn unreachable() -> Option<Map<String, Value>> {
+    UNREACHABLE
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone()
+}
+
+fn set_unreachable(value: Option<Map<String, Value>>) {
+    *UNREACHABLE.write().unwrap_or_else(|e| e.into_inner()) = value;
+}
+
+/// What decides the database: the environment variable and the saved choice (never shown).
+fn settings_key() -> String {
+    let saved = app_config::get_section(targets::CONFIG_KEY);
+    pyjson::Dumps::new().sort_keys(true).dump(&json!([
+        std::env::var(targets::ENV_URL).unwrap_or_default(),
+        saved
+    ]))
+}
+
+fn is_connection_error(err: &DatabaseError) -> bool {
+    match err {
+        DatabaseError::Db(DbErr::Conn(_) | DbErr::ConnectionAcquire(_)) => true,
+        DatabaseError::Db(other) => {
+            let text = other.to_string().to_lowercase();
+            text.contains("connection")
+                || text.contains("timed out")
+                || text.contains("pool")
+                || text.contains("io error")
+        }
+        _ => false,
+    }
+}
+
+/// The first line of an error, 300 characters at most.
+fn first_line(err: &dyn std::fmt::Display) -> String {
+    err.to_string()
+        .lines()
+        .next()
+        .unwrap_or("")
+        .chars()
+        .take(300)
+        .collect()
+}
+
+fn unreachable_entry(error: String) -> Map<String, Value> {
+    let target = current_target();
+    let mut public = target.public();
+    public.insert("label".into(), json!(target.label()));
+    public.insert("display".into(), json!(target.display()));
+    let mut entry = Map::new();
+    entry.insert("since".into(), json!(time::epoch()));
+    entry.insert("error".into(), json!(error));
+    entry.insert("target".into(), Value::Object(public));
+    entry
+}
+
+/// `init_db`, but a server database that does not answer at startup leaves the app running in the "cannot reach its
+/// database" state, retrying every few seconds, instead of failing to start.
+pub async fn init_db_or_wait() -> Result<(), DatabaseError> {
+    match init_db().await {
+        Ok(()) => {
+            set_unreachable(None);
+            return Ok(());
+        }
+        Err(err @ DatabaseError::Schema(_)) => return Err(err),
+        Err(err) => {
+            if is_sqlite() || !is_connection_error(&err) {
+                return Err(err);
+            }
+            let entry = unreachable_entry(first_line(&err));
+            tracing::error!(
+                "The database cannot be reached: {}",
+                entry["error"].as_str().unwrap_or("")
+            );
+            set_unreachable(Some(entry));
+        }
+    }
+    tokio::spawn(async {
+        while unreachable().is_some() {
+            tokio::time::sleep(Duration::from_secs(RETRY_S)).await;
+            match init_db().await {
+                Ok(()) => {
+                    set_unreachable(None);
+                    tracing::info!("The database answers again");
+                }
+                Err(err) => {
+                    // keep trying
+                    let mut guard = UNREACHABLE.write().unwrap_or_else(|e| e.into_inner());
+                    if let Some(entry) = guard.as_mut() {
+                        entry.insert("error".into(), json!(first_line(&err)));
+                    }
+                }
+            }
+        }
+    });
+    Ok(())
+}
+
+/// Ask the database in use for one row; updates the unreachable state.
+pub async fn check_reachable(timeout: Duration) -> Value {
+    let started = Instant::now();
+    let conn = conn();
+    let ping = async {
+        let backend = conn.get_database_backend();
+        conn.query_one_raw(Statement::from_string(backend, "SELECT 1"))
+            .await
+    };
+    let outcome = match tokio::time::timeout(timeout, ping).await {
+        Ok(Ok(_)) => Ok(()),
+        Ok(Err(err)) => Err(first_line(&err)),
+        Err(_) => Err("TimeoutError".to_string()),
+    };
+    match outcome {
+        Ok(()) => {
+            set_unreachable(None);
+            json!({"ok": true, "latency_ms": started.elapsed().as_millis() as u64})
+        }
+        Err(error) => {
+            let error = if error.is_empty() {
+                "Error".to_string()
+            } else {
+                error
+            };
+            let mut guard = UNREACHABLE.write().unwrap_or_else(|e| e.into_inner());
+            match guard.as_mut() {
+                Some(entry) => {
+                    entry.insert("error".into(), json!(error));
+                }
+                None => {
+                    drop(guard);
+                    set_unreachable(Some(unreachable_entry(error.clone())));
+                }
+            }
+            json!({"ok": false, "error": error})
+        }
+    }
+}
+
+/// Re-point this process when the database setting changes (the wizard's switch in the board, `kanban-db use` on
+/// the command line): the board and the stdio MCP processes that editors launch then always use one database.
+pub async fn follow_settings(interval: Duration) {
+    let mut seen = settings_key();
+    loop {
+        tokio::time::sleep(interval).await;
+        let now = settings_key();
+        if now == seen {
+            continue;
+        }
+        seen = now;
+        let current = current_target();
+        let (target, _source) = match resolve_target(&get_db_path()) {
+            Ok(found) => found,
+            Err(err) => {
+                tracing::error!("Could not follow the database setting: {err}");
+                continue;
+            }
+        };
+        if target.url(false) == current.url(false) && target.password == current.password {
+            continue;
+        }
+        tracing::info!("The database setting changed; now using {}", target.label());
+        if let Err(err) = reinit_db(None).await {
+            // keep following
+            tracing::error!("Could not follow the database setting: {err}");
+        }
+    }
+}
+
+/// Announce changes that another process made to the database.
+///
+/// The stdio MCP server (what the desktop app and editors launch) is a separate process from the API: its own
+/// `publish` reaches nobody, so the board only showed the change after a restart. This loop notices such changes
+/// and publishes one invalidation. A change this process published itself (a REST call, an MCP call over HTTP) is
+/// not repeated.
+///
+/// On SQLite it reads the commit counter of *other* connections (`PRAGMA data_version`); on PostgreSQL and MySQL it
+/// reads the newest row another process added to the change log (`changes`). It follows the database in use, so a
+/// switch in Settings needs no restart.
+///
+/// `path` is the SQLite file to watch (`None` follows the database in use), `interval` the time between checks,
+/// `grace` the wait after a change for this process's own `publish` to land.
+pub async fn watch_database(path: Option<PathBuf>, interval: Duration, grace: Duration) {
+    let mut watcher: Option<(PathBuf, sqlx::SqliteConnection)> = None;
+    let mut seen: Option<i64> = None;
+    // the SQLite path or the server URL the last value came from
+    let mut watching: Option<String> = None;
+    let mut trimmed_at = Instant::now();
+    // What this process had announced when the version was last read: an announcement since then explains a change
+    let mut seen_published = events::published();
+    loop {
+        tokio::time::sleep(interval).await;
+        let step: Result<(i64, String, bool), String> = async {
+            if path.is_some() || is_sqlite() {
+                let db_path = path.clone().unwrap_or_else(get_db_path);
+                if watcher.as_ref().is_none_or(|(p, _)| *p != db_path) {
+                    if let Some((_, old)) = watcher.take() {
+                        let _ = old.close().await;
+                    }
+                    let options = sqlx::sqlite::SqliteConnectOptions::new()
+                        .filename(&db_path)
+                        .create_if_missing(false)
+                        .busy_timeout(Duration::from_secs(1))
+                        .disable_statement_logging();
+                    let connection = sqlx::SqliteConnection::connect_with(&options)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    watcher = Some((db_path.clone(), connection));
+                }
+                let (_, connection) = watcher.as_mut().ok_or("no watcher connection")?;
+                let version: i64 = sqlx::query_scalar("PRAGMA data_version")
+                    .fetch_one(connection)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                Ok((version, db_path.to_string_lossy().into_owned(), false))
+            } else {
+                if let Some((_, old)) = watcher.take() {
+                    let _ = old.close().await;
+                }
+                let conn = conn();
+                let version = changes::latest_from_others(&conn)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                Ok((version, current_target().url(true), true))
+            }
+        }
+        .await;
+        match step {
+            Ok((version, source, server)) => {
+                if watching.as_deref() != Some(source.as_str()) {
+                    // another database: start over, nothing to announce yet
+                    seen = None;
+                    watching = Some(source);
+                }
+                if seen.is_some_and(|s| s != version) {
+                    tokio::time::sleep(grace).await;
+                    // Counted from the last read, not from now: this process announces right after it commits,
+                    // usually before the watcher looks, and a change it announced must not be announced a second
+                    // time. The change log of a server database names the writer, so only other processes' rows
+                    // are counted.
+                    if server || events::published() == seen_published {
+                        events::invalidate().await;
+                    }
+                }
+                seen = Some(version);
+                seen_published = events::published();
+                if server && trimmed_at.elapsed() > Duration::from_secs(300) {
+                    trimmed_at = Instant::now();
+                    let _ = changes::trim(&conn()).await;
+                }
+            }
+            Err(err) => {
+                tracing::debug!("Database watcher could not read the version: {err}");
+                if let Some((_, old)) = watcher.take() {
+                    let _ = old.close().await;
+                }
+                seen = None;
+            }
+        }
+    }
+}

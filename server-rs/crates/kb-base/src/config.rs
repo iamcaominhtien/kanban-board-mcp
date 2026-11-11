@@ -48,14 +48,20 @@ fn load() -> Map<String, Value> {
         Ok(text) => text,
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Map::new(),
         Err(_) => {
-            tracing::warn!("Corrupted config file at {} — using defaults", config_file().display());
+            tracing::warn!(
+                "Corrupted config file at {} — using defaults",
+                config_file().display()
+            );
             return Map::new();
         }
     };
     match serde_json::from_str::<Value>(&text) {
         Ok(Value::Object(map)) => map,
         _ => {
-            tracing::warn!("Corrupted config file at {} — using defaults", config_file().display());
+            tracing::warn!(
+                "Corrupted config file at {} — using defaults",
+                config_file().display()
+            );
             Map::new()
         }
     }
@@ -63,7 +69,10 @@ fn load() -> Map<String, Value> {
 
 fn save(data: Map<String, Value>) -> std::io::Result<()> {
     std::fs::create_dir_all(&*CONFIG_DIR)?;
-    std::fs::write(config_file(), pyjson::Dumps::new().indent(2).dump(&Value::Object(data)))
+    std::fs::write(
+        config_file(),
+        pyjson::Dumps::new().indent(2).dump(&Value::Object(data)),
+    )
 }
 
 /// The stored data folder, or `None` when it was never set.
@@ -87,7 +96,10 @@ pub fn get_uploads_dir() -> Option<PathBuf> {
 /// Persist the data folder path in the config file.
 pub fn set_data_folder(path: &Path) -> std::io::Result<()> {
     let mut data = load();
-    data.insert("data_folder".into(), Value::String(path.to_string_lossy().into_owned()));
+    data.insert(
+        "data_folder".into(),
+        Value::String(path.to_string_lossy().into_owned()),
+    );
     save(data)
 }
 

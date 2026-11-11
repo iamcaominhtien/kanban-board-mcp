@@ -35,7 +35,12 @@ impl Default for Dumps {
 impl Dumps {
     /// Python's defaults: `ensure_ascii=True`, no sorting, no indent, separators `(", ", ": ")`.
     pub const fn new() -> Self {
-        Self { ensure_ascii: true, sort_keys: false, indent: None, compact: false }
+        Self {
+            ensure_ascii: true,
+            sort_keys: false,
+            indent: None,
+            compact: false,
+        }
     }
 
     /// `ensure_ascii=...`.
@@ -119,7 +124,11 @@ impl Dumps {
     }
 
     fn item_separator(&self) -> &'static str {
-        if self.compact || self.indent.is_some() { "," } else { ", " }
+        if self.compact || self.indent.is_some() {
+            ","
+        } else {
+            ", "
+        }
     }
 
     fn newline(&self, depth: usize, out: &mut String) {
@@ -173,10 +182,18 @@ pub fn float_repr(f: f64) -> String {
         return "NaN".into();
     }
     if f.is_infinite() {
-        return if f > 0.0 { "Infinity".into() } else { "-Infinity".into() };
+        return if f > 0.0 {
+            "Infinity".into()
+        } else {
+            "-Infinity".into()
+        };
     }
     if f == 0.0 {
-        return if f.is_sign_negative() { "-0.0".into() } else { "0.0".into() };
+        return if f.is_sign_negative() {
+            "-0.0".into()
+        } else {
+            "0.0".into()
+        };
     }
     // Rust's `{:e}` gives the shortest round-trip digits: "1.2345e-5", "1e16"
     let sci = format!("{f:e}");
@@ -190,14 +207,21 @@ pub fn float_repr(f: f64) -> String {
         if point <= 0 {
             format!("{sign}0.{}{digits}", "0".repeat((-point) as usize))
         } else if (point as usize) >= digits.len() {
-            format!("{sign}{digits}{}.0", "0".repeat(point as usize - digits.len()))
+            format!(
+                "{sign}{digits}{}.0",
+                "0".repeat(point as usize - digits.len())
+            )
         } else {
             let (whole, fraction) = digits.split_at(point as usize);
             format!("{sign}{whole}.{fraction}")
         }
     } else {
         let (first, rest) = digits.split_at(1);
-        let mantissa = if rest.is_empty() { first.to_string() } else { format!("{first}.{rest}") };
+        let mantissa = if rest.is_empty() {
+            first.to_string()
+        } else {
+            format!("{first}.{rest}")
+        };
         let exp_sign = if exponent < 0 { '-' } else { '+' };
         format!("{sign}{mantissa}e{exp_sign}{:02}", exponent.abs())
     }
@@ -248,7 +272,13 @@ mod tests {
             esc("de00")
         );
         assert_eq!(dumps(&v), want);
-        assert_eq!(Dumps::new().compact().ensure_ascii(false).dump(&json!({"k": ["ọ", 1]})), r#"{"k":["ọ",1]}"#);
+        assert_eq!(
+            Dumps::new()
+                .compact()
+                .ensure_ascii(false)
+                .dump(&json!({"k": ["ọ", 1]})),
+            r#"{"k":["ọ",1]}"#
+        );
         assert_eq!(dumps(&json!([])), "[]");
         assert_eq!(dumps(&json!({})), "{}");
     }
@@ -264,7 +294,12 @@ mod tests {
 
     #[test]
     fn sort_keys() {
-        assert_eq!(Dumps::new().sort_keys(true).dump(&json!({"b": 1, "a": {"z": 1, "y": 2}})), r#"{"a": {"y": 2, "z": 1}, "b": 1}"#);
+        assert_eq!(
+            Dumps::new()
+                .sort_keys(true)
+                .dump(&json!({"b": 1, "a": {"z": 1, "y": 2}})),
+            r#"{"a": {"y": 2, "z": 1}, "b": 1}"#
+        );
     }
 
     #[test]

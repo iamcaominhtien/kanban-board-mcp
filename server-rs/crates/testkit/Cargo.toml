@@ -10,3 +10,13 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+bytes = { workspace = true }
+futures = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tempfile = "3"
+# sqlx (not rusqlite): the app crates use sea-orm, whose sqlx pulls libsqlite3-sys; two versions cannot link together
+sqlx = { version = "0.9", default-features = false, features = ["sqlite", "runtime-tokio"] }

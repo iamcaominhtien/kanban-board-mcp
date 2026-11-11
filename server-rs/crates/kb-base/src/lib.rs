@@ -8,6 +8,7 @@ pub mod ctx;
 pub mod error;
 pub mod events;
 pub mod pyjson;
+pub mod secrets;
 pub mod time;
 pub mod version;
 

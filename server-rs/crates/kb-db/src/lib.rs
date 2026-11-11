@@ -1,14 +1,19 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! The board's database: which one is in use, how it is opened, sessions, the tables, and bringing the schema up to
+//! date. SQLite in the data folder is the default; PostgreSQL or MySQL/MariaDB when `KANBAN_DATABASE_URL` says so or
+//! when it was chosen in Settings.
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod changes;
+pub mod database;
+pub mod entities;
+pub mod migrations;
+pub mod schema;
+pub mod session;
+pub mod sql;
+pub mod targets;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use database::{conn, is_sqlite, session};
+pub use sea_orm;
+pub use session::Session;
+
+/// What a database call returns.
+pub type DbResult<T> = Result<T, sea_orm::DbErr>;

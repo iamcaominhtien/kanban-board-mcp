@@ -1,14 +1,17 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! Test harness of the Python-to-Rust migration: starts the Python reference server or the Rust server as a child
+//! process on temporary folders and gives the test an HTTP client, an MCP client and an SSE reader.
+//!
+//! Every test is black-box; `PARITY_TARGET=python|rust` (default `rust`) picks the server. Each server gets its own
+//! config folder, database path, log, workspace and uploads folders inside one temporary folder, and every inherited
+//! `KANBAN_*` variable is removed from its environment, so a developer's own settings never reach it.
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+mod client;
+mod dump;
+mod mcp;
+mod normalize;
+mod server;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use client::{Client, Events, Resp};
+pub use mcp::{Mcp, ToolResult};
+pub use normalize::normalize;
+pub use server::{Options, Server, Target, rust_binary_available, skip_unless_available, target};

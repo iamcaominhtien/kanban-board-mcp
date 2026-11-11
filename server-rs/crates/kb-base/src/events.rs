@@ -44,7 +44,10 @@ impl Subscriber {
 
     /// The next event if one is waiting.
     pub fn try_recv(&self) -> Option<String> {
-        self.queue.lock().unwrap_or_else(|e| e.into_inner()).pop_front()
+        self.queue
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .pop_front()
     }
 
     fn push(&self, event: &str) {
@@ -67,10 +70,12 @@ impl Drop for Subscriber {
 type Forwarder = Arc<dyn Fn(String) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
 type Listener = Arc<dyn Fn() + Send + Sync>;
 
-static SUBSCRIBERS: LazyLock<Mutex<HashMap<u64, Arc<Subscriber>>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
+static SUBSCRIBERS: LazyLock<Mutex<HashMap<u64, Arc<Subscriber>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 /// Called (without waiting) on every publish: the notification centre checks its open rows soon after any change.
-static ON_PUBLISH: LazyLock<RwLock<Vec<(usize, Listener)>>> = LazyLock::new(|| RwLock::new(Vec::new()));
+static ON_PUBLISH: LazyLock<RwLock<Vec<(usize, Listener)>>> =
+    LazyLock::new(|| RwLock::new(Vec::new()));
 /// Number of events published so far (lets the database watcher tell whether this process already announced a
 /// change).
 static PUBLISHED: AtomicU64 = AtomicU64::new(0);
@@ -84,13 +89,19 @@ pub fn subscribe() -> Arc<Subscriber> {
         queue: Mutex::new(VecDeque::new()),
         notify: Notify::new(),
     });
-    SUBSCRIBERS.lock().unwrap_or_else(|e| e.into_inner()).insert(sub.id, sub.clone());
+    SUBSCRIBERS
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .insert(sub.id, sub.clone());
     sub
 }
 
 /// Remove a subscriber's queue.
 pub fn unsubscribe(sub: &Subscriber) {
-    SUBSCRIBERS.lock().unwrap_or_else(|e| e.into_inner()).remove(&sub.id);
+    SUBSCRIBERS
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .remove(&sub.id);
 }
 
 /// Number of open subscribers.
@@ -113,7 +124,8 @@ where
     F: Fn(String) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = ()> + Send + 'static,
 {
-    *FORWARDER.write().unwrap_or_else(|e| e.into_inner()) = Some(Arc::new(move |event| Box::pin(forward(event))));
+    *FORWARDER.write().unwrap_or_else(|e| e.into_inner()) =
+        Some(Arc::new(move |event| Box::pin(forward(event))));
 }
 
 /// Stop forwarding (tests).
@@ -128,8 +140,12 @@ pub fn published() -> u64 {
 
 fn note_publish() {
     PUBLISHED.fetch_add(1, Ordering::SeqCst);
-    let listeners: Vec<Listener> =
-        ON_PUBLISH.read().unwrap_or_else(|e| e.into_inner()).iter().map(|(_, cb)| cb.clone()).collect();
+    let listeners: Vec<Listener> = ON_PUBLISH
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .iter()
+        .map(|(_, cb)| cb.clone())
+        .collect();
     for cb in listeners {
         // a listener never stops an announcement
         if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| cb())).is_err() {
@@ -139,8 +155,12 @@ fn note_publish() {
 }
 
 fn deliver(event: &str) {
-    let subscribers: Vec<Arc<Subscriber>> =
-        SUBSCRIBERS.lock().unwrap_or_else(|e| e.into_inner()).values().cloned().collect();
+    let subscribers: Vec<Arc<Subscriber>> = SUBSCRIBERS
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .values()
+        .cloned()
+        .collect();
     for sub in subscribers {
         sub.push(event);
     }
@@ -210,7 +230,10 @@ mod tests {
         publish(INVALIDATE, &[]).await;
         publish(INVALIDATE, &["b", "a", "b"]).await;
         assert_eq!(sub.recv().await, "invalidate");
-        assert_eq!(sub.recv().await, r#"{"type": "invalidate", "topics": ["a", "b"]}"#);
+        assert_eq!(
+            sub.recv().await,
+            r#"{"type": "invalidate", "topics": ["a", "b"]}"#
+        );
         for i in 0..150 {
             broadcast_raw(&i.to_string());
         }

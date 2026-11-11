@@ -26,7 +26,9 @@ struct Origin(Option<String>);
 
 /// Mark the current request as coming through `origin`; returns a token for `ctx::reset`.
 pub fn set_origin(origin: Option<&str>) -> ctx::Token {
-    ctx::set(Origin(origin.filter(|o| ORIGINS.contains(o)).map(str::to_string)))
+    ctx::set(Origin(
+        origin.filter(|o| ORIGINS.contains(o)).map(str::to_string),
+    ))
 }
 
 /// "mcp" when a tool is acting for the person making the current request, else `None`.
@@ -58,7 +60,9 @@ pub fn set_actor(name: Option<&str>) -> ctx::Token {
 /// The actor for the current request or task. Python returns whatever was set, including `None` or an empty
 /// string; `raw_actor` gives that, this gives the person's name with the default filled in.
 pub fn current_actor() -> String {
-    ctx::get::<Actor>().map(|a| a.0).unwrap_or_else(|| HUMAN_ACTOR.to_string())
+    ctx::get::<Actor>()
+        .map(|a| a.0)
+        .unwrap_or_else(|| HUMAN_ACTOR.to_string())
 }
 
 /// Shorten free text so one long note cannot bloat the log (only strings are clipped).
@@ -81,12 +85,26 @@ pub fn clip_str(s: &str) -> String {
 }
 
 /// Build one activity-log entry for a field change. `actor` defaults to the current actor and `at` to now.
-pub fn entry(field: &str, from: Value, to: Value, reference: Option<&str>, actor: Option<&str>, at: Option<&str>) -> Value {
+pub fn entry(
+    field: &str,
+    from: Value,
+    to: Value,
+    reference: Option<&str>,
+    actor: Option<&str>,
+    at: Option<&str>,
+) -> Value {
     let mut out = Map::new();
     out.insert("field".into(), json!(field));
     out.insert("from".into(), from);
     out.insert("to".into(), to);
-    out.insert("at".into(), json!(at.filter(|a| !a.is_empty()).map(str::to_string).unwrap_or_else(time::now_iso)));
+    out.insert(
+        "at".into(),
+        json!(
+            at.filter(|a| !a.is_empty())
+                .map(str::to_string)
+                .unwrap_or_else(time::now_iso)
+        ),
+    );
     let actor = match actor.filter(|a| !a.is_empty()) {
         Some(actor) => actor.to_string(),
         None => current_actor(),
@@ -97,19 +115,42 @@ pub fn entry(field: &str, from: Value, to: Value, reference: Option<&str>, actor
     }
     if let Some(ai) = current_ai().filter(pyjson::truthy) {
         out.insert("ai".into(), json!(true));
-        out.insert("on_behalf_of".into(), ai.get("on_behalf_of").cloned().unwrap_or(Value::Null));
-        out.insert("run_id".into(), ai.get("run_id").cloned().unwrap_or(Value::Null));
-        out.insert("member_id".into(), ai.get("member_id").cloned().unwrap_or(Value::Null));
+        out.insert(
+            "on_behalf_of".into(),
+            ai.get("on_behalf_of").cloned().unwrap_or(Value::Null),
+        );
+        out.insert(
+            "run_id".into(),
+            ai.get("run_id").cloned().unwrap_or(Value::Null),
+        );
+        out.insert(
+            "member_id".into(),
+            ai.get("member_id").cloned().unwrap_or(Value::Null),
+        );
     }
-    if let Some(suggested) = ctx::get::<Suggested>().and_then(|s| s.0).filter(|s| !s.is_empty()) {
+    if let Some(suggested) = ctx::get::<Suggested>()
+        .and_then(|s| s.0)
+        .filter(|s| !s.is_empty())
+    {
         out.insert("suggested_by".into(), json!(suggested));
     }
     Value::Object(out)
 }
 
 /// Append an entry to a ticket's activity log (the JSON text of the `activity_log` column); the caller saves it.
-pub fn record(activity_log: &mut String, field: &str, from: Value, to: Value, reference: Option<&str>, actor: Option<&str>) {
-    let mut log = match serde_json::from_str::<Value>(if activity_log.is_empty() { "[]" } else { activity_log }) {
+pub fn record(
+    activity_log: &mut String,
+    field: &str,
+    from: Value,
+    to: Value,
+    reference: Option<&str>,
+    actor: Option<&str>,
+) {
+    let mut log = match serde_json::from_str::<Value>(if activity_log.is_empty() {
+        "[]"
+    } else {
+        activity_log
+    }) {
         Ok(Value::Array(log)) => log,
         _ => Vec::new(),
     };
@@ -129,12 +170,31 @@ mod tests {
     #[tokio::test]
     async fn entries_carry_the_actor_and_the_ai() {
         ctx::scope(async {
-            let e = entry("status", json!("todo"), json!("done"), None, None, Some("t"));
-            assert_eq!(pyjson::dumps(&e), r#"{"field": "status", "from": "todo", "to": "done", "at": "t", "actor": "user"}"#);
+            let e = entry(
+                "status",
+                json!("todo"),
+                json!("done"),
+                None,
+                None,
+                Some("t"),
+            );
+            assert_eq!(
+                pyjson::dumps(&e),
+                r#"{"field": "status", "from": "todo", "to": "done", "at": "t", "actor": "user"}"#
+            );
             let _a = set_actor(Some("Tien"));
-            let _ai = set_ai(Some(json!({"member_id": "m1", "on_behalf_of": "Tien", "run_id": "r1"})));
+            let _ai = set_ai(Some(
+                json!({"member_id": "m1", "on_behalf_of": "Tien", "run_id": "r1"}),
+            ));
             let mut log = String::from("[]");
-            record(&mut log, "title", json!("x".repeat(300)), json!(3), Some("c1"), None);
+            record(
+                &mut log,
+                "title",
+                json!("x".repeat(300)),
+                json!(3),
+                Some("c1"),
+                None,
+            );
             let parsed: Value = serde_json::from_str(&log).unwrap();
             let first = &parsed[0];
             assert_eq!(first["actor"], "Tien");

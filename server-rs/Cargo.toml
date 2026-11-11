@@ -52,6 +52,9 @@ uuid = { version = "1", features = ["v4"] }
 unsafe_code = "deny"
 
 [workspace.lints.clippy]
+# ports keep the shape of the Python code they come from, so the two read side by side
+collapsible_if = "allow"
+collapsible_else_if = "allow"
 too_many_arguments = "allow"
 type_complexity = "allow"
 
@@ -60,6 +63,7 @@ debug = "line-tables-only"
 
 [profile.dev.package."*"]
 opt-level = 1
+debug = false
 
 [profile.release]
 opt-level = 3
