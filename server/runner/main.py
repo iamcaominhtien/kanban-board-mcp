@@ -38,7 +38,7 @@ def _parent_alive(pid: int) -> bool:
 
 
 class Forwarder:
-    """Posts the board's events to the API."""
+    """Posts the board's events to the API, and tells it when this process wrote to the database."""
 
     def __init__(self, board_url: str, token: str):
         """`token` is what the API gave this runner when it started it."""
@@ -46,9 +46,39 @@ class Forwarder:
         self.token = token
         self._client = None
         self._failed_at = 0.0
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._wrote: list[float] = []
+        self._noting: asyncio.Task | None = None
 
     async def __call__(self, event: str) -> None:
         """Send one event; a failure is logged (at most every 30 s) and dropped."""
+        await self._post({"event": event})
+
+    def bind(self, loop: asyncio.AbstractEventLoop) -> None:
+        """The loop `note_write` schedules its posts on."""
+        self._loop = loop
+
+    def note_write(self) -> None:
+        """A commit of this process wrote (called inside the commit, so it only schedules). The API's database watcher
+        would otherwise take it for another app's change and make every window refetch everything: say it was the
+        runner's, and when (the watcher matches a commit to its readings by time). Commits while a post is on its way
+        are told in one more post."""
+        loop = self._loop
+        if loop is None or loop.is_closed():
+            return
+        loop.call_soon_threadsafe(self._kick, time.time())
+
+    def _kick(self, at: float) -> None:
+        self._wrote.append(at)
+        if self._noting is None or self._noting.done():
+            self._noting = asyncio.get_running_loop().create_task(self._send_notes())
+
+    async def _send_notes(self) -> None:
+        while self._wrote:
+            times, self._wrote = self._wrote[-500:], []
+            await self._post({"own_change": True, "at": times})
+
+    async def _post(self, body: dict) -> None:
         import httpx
 
         if self._client is None:
@@ -56,7 +86,7 @@ class Forwarder:
         try:
             await self._client.post(
                 self.url,
-                json={"event": event},
+                json=body,
                 headers={"X-Kanban-Internal": self.token},
             )
             self._failed_at = 0.0
@@ -146,8 +176,13 @@ async def serve(
     import events as board_events
     from services.ai import runs
 
+    from dbkit import changes
+
     os.environ["KANBAN_IN_RUNNER"] = "1"
-    board_events.set_forwarder(Forwarder(board_url, token))
+    forwarder = Forwarder(board_url, token)
+    forwarder.bind(asyncio.get_running_loop())
+    board_events.set_forwarder(forwarder)
+    changes.on_write_commit(forwarder.note_write)
     runs.set_board_url(board_url)
     await runs.start_scheduler()
     logger.info("AI runner serving for %s (parent %s)", board_url, parent_pid)
@@ -173,6 +208,9 @@ def main() -> None:
     import app_logging
 
     app_logging.setup_logging()
+    # Every event the runner forwards is one HTTP request: httpx's line per request filled the log (tens of thousands
+    # a day while the AI works) and cost the disk writes. Its warnings and errors still show.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     board_url = os.environ.get("KANBAN_BOARD_URL") or "http://127.0.0.1:8000"
     token = os.environ.get("KANBAN_INTERNAL_TOKEN") or ""
     parent_pid = int(os.environ.get("KANBAN_PARENT_PID") or "0")

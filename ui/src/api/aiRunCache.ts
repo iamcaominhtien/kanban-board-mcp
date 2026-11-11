@@ -56,12 +56,39 @@ function patchProjectRuns(qc: QueryClient, runId: string, patch: (r: AiRun) => A
   });
 }
 
+/** How often a run's step counter may change the board entry and the run lists while its state stays the same. */
+export const COUNTERS_EVERY_MS = 5000;
+const countersAt = new Map<string, number>();
+
+/**
+ * Whether a step batch should touch the board entry and the run lists. The App and every ticket, card and comment
+ * box read them, so a run streaming a batch a second re-rendered the whole app a second (typing a comment lagged):
+ * a change of state goes through at once, the counters at most every COUNTERS_EVERY_MS.
+ */
+function countersDue(qc: QueryClient, ev: AiStepEvent, now: number): boolean {
+  const boards = qc.getQueriesData<AiBoardData>({ queryKey: ['ai', 'board'] });
+  const held = boards.map(([, d]) => Object.values(d?.tickets ?? {}).find((r) => r.runId === ev.runId)).find(Boolean);
+  const last = countersAt.get(ev.runId);
+  if ((held && held.state !== ev.state) || last === undefined || now - last >= COUNTERS_EVERY_MS) {
+    countersAt.set(ev.runId, now);
+    if (countersAt.size > 200) countersAt.delete(countersAt.keys().next().value as string);
+    return true;
+  }
+  return false;
+}
+
+/** Forget when the counters were last written (tests). */
+export function resetCounterThrottle(): void {
+  countersAt.clear();
+}
+
 /**
  * `ai.step`: a batch of a run's steps. They go on the run in the cache when it is there (a run nobody opened takes
- * nothing), and the counters and state go on the board entry and the ticket's run list. A batch that left out steps
- * (`truncated`) or does not follow the ones held makes the open run refetch.
+ * nothing), and the counters and state go on the board entry and the ticket's run list (counters at most every
+ * COUNTERS_EVERY_MS). A batch that left out steps (`truncated`) or does not follow the ones held makes the open run
+ * refetch.
  */
-export function applyStepEvent(qc: QueryClient, ev: AiStepEvent): void {
+export function applyStepEvent(qc: QueryClient, ev: AiStepEvent, now = Date.now()): void {
   const runKey = aiKeys.run(ev.runId);
   const run = qc.getQueryData<AiRunFull>(runKey);
   if (run) {
@@ -87,6 +114,7 @@ export function applyStepEvent(qc: QueryClient, ev: AiStepEvent): void {
     stepsCount: ev.stepsCount,
     lastOutputAt: ev.lastOutputAt ?? r.lastOutputAt,
   });
+  if (!countersDue(qc, ev, now)) return;
   patchBoard(qc, (r) => r.runId === ev.runId, counters);
   patchTicketRuns(qc, ev.runId, counters);
   patchProjectRuns(qc, ev.runId, counters);
@@ -140,10 +168,17 @@ export function applyMessageEvent(qc: QueryClient, ev: AiMessageEvent): void {
   void qc.invalidateQueries({ queryKey: aiKeys.runMessages(ev.runId), exact: true });
 }
 
-/** Route one SSE message. Returns true when it was an AI event (so the generic invalidation is skipped). */
+// `{"type": "ai.…"` at the start: how the server writes a typed AI event (events.publish_typed)
+const AI_TYPED = /^\{\s*"type"\s*:\s*"ai\./;
+
+/**
+ * Route one SSE message. Returns true when it was an AI event (so the generic invalidation is skipped). A typed AI
+ * event handled elsewhere (`ai.resources`, RAM and CPU every 2 s, read by useResources) or not known here is never a
+ * reason to refetch: taken for "anything changed", it made the whole app refetch everything while an AI ran.
+ */
 export function applyAiEvent(qc: QueryClient, data: string): boolean {
   const ev = parseAiEvent(data);
-  if (!ev) return false;
+  if (!ev) return AI_TYPED.test(data);
   if (ev.type === 'ai.step') applyStepEvent(qc, ev);
   else if (ev.type === 'ai.run') applyRunEvent(qc, ev);
   else if (ev.type === 'ai.message') applyMessageEvent(qc, ev);

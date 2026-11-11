@@ -30,7 +30,9 @@ CONFIG_KEY = "database"
 
 # Which process this is, in the connection's name on PostgreSQL ("kanban-board app 1a2b3c4d"): the board can then
 # tell another app on the same database from its own MCP process. `main` keeps "app"; the stdio MCP server sets "mcp".
-PROCESS_TOKEN = uuid.uuid4().hex
+# The AI runner gets its token from the API that starts it (services/ai/runner_link.py), so the API can tell the
+# runner's rows of the change log from another app's. Taken out of the environment so the runner's children don't share it.
+PROCESS_TOKEN = os.environ.pop("KANBAN_PROCESS_TOKEN", "") or uuid.uuid4().hex
 ROLE = "app"
 APP_NAME_PREFIX = "kanban-board"
 

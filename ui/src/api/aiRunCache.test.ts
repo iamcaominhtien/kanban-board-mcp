@@ -1,8 +1,17 @@
 import { QueryClient } from '@tanstack/react-query';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { AiRun, AiRunFull, RunStep } from '../types/ai';
 import { aiKeys, type AiBoardData } from './ai';
-import { applyAiEvent, mergeSteps, parseAiEvent } from './aiRunCache';
+import {
+  applyAiEvent,
+  applyStepEvent,
+  COUNTERS_EVERY_MS,
+  mergeSteps,
+  parseAiEvent,
+  resetCounterThrottle,
+} from './aiRunCache';
+
+beforeEach(() => resetCounterThrottle());
 
 const step = (seq: number, extra: Partial<RunStep> = {}): RunStep => ({
   seq,
@@ -192,6 +201,50 @@ describe('ai.run', () => {
     );
     expect(qc.getQueryData<AiRun[]>(aiKeys.ticketRuns('IAM-12'))![0].id).toBe('r3');
     expect(qc.getQueryData<AiBoardData>(aiKeys.board('p1'))!.tickets['IAM-12'].runId).toBe('r3');
+  });
+});
+
+describe('ai.step counters', () => {
+  const ev = (stepsCount: number, state = 'running') =>
+    parseAiEvent(stepEvent({ steps_count: stepsCount, state, steps: [] })) as Parameters<typeof applyStepEvent>[1];
+
+  it('moves the board and the run list at most every few seconds while the state stays, but the open run every time', () => {
+    const qc = setup();
+    applyStepEvent(qc, ev(4), 1000);
+    const board = qc.getQueryData<AiBoardData>(aiKeys.board('p1'));
+    const runs = qc.getQueryData<AiRun[]>(aiKeys.ticketRuns('IAM-12'));
+    expect(board!.tickets['IAM-12'].stepsCount).toBe(4);
+    applyStepEvent(qc, ev(5), 2000);
+    // the same objects: nothing that reads the board re-renders
+    expect(qc.getQueryData(aiKeys.board('p1'))).toBe(board);
+    expect(qc.getQueryData(aiKeys.ticketRuns('IAM-12'))).toBe(runs);
+    expect(qc.getQueryData<AiRunFull>(aiKeys.run('r1'))!.stepsCount).toBe(5);
+    applyStepEvent(qc, ev(6), 1000 + COUNTERS_EVERY_MS);
+    expect(qc.getQueryData<AiBoardData>(aiKeys.board('p1'))!.tickets['IAM-12'].stepsCount).toBe(6);
+  });
+
+  it('lets a change of state through at once', () => {
+    const qc = setup();
+    applyStepEvent(qc, ev(4), 1000);
+    applyStepEvent(qc, ev(5, 'needs_input'), 1500);
+    const entry = qc.getQueryData<AiBoardData>(aiKeys.board('p1'))!.tickets['IAM-12'];
+    expect(entry.state).toBe('needs_input');
+    expect(entry.stepsCount).toBe(5);
+  });
+});
+
+describe('typed AI events read elsewhere', () => {
+  it('counts ai.resources and unknown ai.* events as handled, so nothing is refetched', () => {
+    const qc = setup();
+    const before = qc.getQueryData(aiKeys.board('p1'));
+    expect(applyAiEvent(qc, '{"type": "ai.resources", "project_id": "p1", "runs": []}')).toBe(true);
+    expect(applyAiEvent(qc, '{"type":"ai.something_new"}')).toBe(true);
+    expect(qc.getQueryData(aiKeys.board('p1'))).toBe(before);
+    expect(qc.getQueryState(aiKeys.run('r1'))?.isInvalidated).toBe(false);
+    // everything else still goes to the generic invalidation
+    expect(applyAiEvent(qc, 'invalidate')).toBe(false);
+    expect(applyAiEvent(qc, '{"type":"invalidate","topics":["notifications"]}')).toBe(false);
+    expect(applyAiEvent(qc, '{"type":"comment_added","ticket_id":"x"}')).toBe(false);
   });
 });
 

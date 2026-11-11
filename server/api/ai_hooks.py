@@ -82,7 +82,8 @@ async def post_hook(
 async def post_internal_event(
     request: Request, x_kanban_internal: str | None = Header(default=None)
 ) -> JSONResponse:
-    """An event from the runner process, broadcast to the SSE subscribers of this API."""
+    """An event from the runner process, broadcast to the SSE subscribers of this API; or `{"own_change": true}`: the
+    runner wrote to the database, so the database watcher does not announce that commit as another app's."""
     import hmac
 
     import events as board_events
@@ -96,6 +97,17 @@ async def post_internal_event(
         body = await request.json()
     except ValueError:
         return JSONResponse({"ignored": "not json"})
+    if isinstance(body, dict) and body.get("own_change"):
+        # The runner committed changes it announces itself (or that need no announcement), at these times: not
+        # another app's
+        at = body.get("at")
+        times = (
+            [t for t in at[-500:] if isinstance(t, (int, float))]
+            if isinstance(at, list)
+            else None
+        )
+        board_events.mark_own_change(times)
+        return JSONResponse({"ok": True})
     event = body.get("event") if isinstance(body, dict) else None
     if not isinstance(event, str):
         return JSONResponse({"ignored": "no event"})
