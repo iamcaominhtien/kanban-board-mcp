@@ -1,14 +1,5 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! Docs text and access rules shared by the areas that read or write Docs (`services/docs_text.py`,
+//! `services/docs_access.py`).
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub mod docs_access;
+pub mod docs_text;

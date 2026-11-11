@@ -13,10 +13,16 @@ workspace = true
 kb-base = { workspace = true }
 kb-db = { workspace = true }
 axum = { workspace = true }
+chrono = { workspace = true }
+regex = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+url = "2"
 
 [dev-dependencies]
 testkit = { workspace = true }
+tempfile = "3"
+# the same sqlx as testkit and the entities: two versions of libsqlite3-sys cannot link together
+sqlx = { version = "0.9", default-features = false, features = ["sqlite", "runtime-tokio"] }

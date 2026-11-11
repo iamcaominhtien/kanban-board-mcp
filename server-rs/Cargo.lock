@@ -414,6 +414,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
+name = "caseless"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b6fd507454086c8edfd769ca6ada439193cdb209c7681712ef6275cccbfe5d8"
+dependencies = [
+ "unicode-normalization",
+]
+
+[[package]]
 name = "cbc"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -491,6 +500,12 @@ checksum = "4ca0197aee26d1ae37445ee532fefce43251d24cc7c166799f4d46817f1d3973"
 dependencies = [
  "crossbeam-utils",
 ]
+
+[[package]]
+name = "const-oid"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be95d4a884358a21a199689323c29e9256b4a1b315e22f183d155422041d3a9a"
 
 [[package]]
 name = "core-foundation"
@@ -729,6 +744,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1dd6dbb5841937940781866fa1281a1ff7bd3bf827091440879f9994983d5c2"
 dependencies = [
  "block-buffer 0.12.1",
+ "const-oid",
  "crypto-common 0.2.2",
  "ctutils",
 ]
@@ -1612,6 +1628,8 @@ dependencies = [
 name = "kb-doctext"
 version = "5.0.0"
 dependencies = [
+ "caseless",
+ "chrono",
  "kb-base",
  "kb-db",
  "serde",
@@ -1630,6 +1648,25 @@ dependencies = [
  "testkit",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "kb-files"
+version = "5.0.0"
+dependencies = [
+ "axum",
+ "bytes",
+ "chrono",
+ "futures",
+ "kb-base",
+ "md-5",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "unicode-normalization",
+ "unicode-properties",
 ]
 
 [[package]]
@@ -1675,13 +1712,18 @@ name = "kb-notify"
 version = "5.0.0"
 dependencies = [
  "axum",
+ "chrono",
  "kb-base",
  "kb-db",
+ "regex",
  "serde",
  "serde_json",
+ "sqlx",
+ "tempfile",
  "testkit",
  "tokio",
  "tracing",
+ "url",
 ]
 
 [[package]]
@@ -3288,6 +3330,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
+ "libc",
  "pin-project-lite",
  "tokio",
 ]
