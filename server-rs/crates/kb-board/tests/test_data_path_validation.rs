@@ -16,8 +16,9 @@ async fn start() -> (Server, PathBuf, tempfile::TempDir) {
     let home = tmp.path().join("home");
     std::fs::create_dir(&home).unwrap();
     let home = std::fs::canonicalize(home).unwrap();
-    let s = Server::start_with(Options { env: vec![("HOME".into(), home.display().to_string())], ..Default::default() })
-        .await;
+    let s =
+        Server::start_with(Options { env: vec![("HOME".into(), home.display().to_string())], ..Default::default() })
+            .await;
     (s, home, tmp)
 }
 

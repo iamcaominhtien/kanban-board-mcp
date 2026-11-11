@@ -10,6 +10,7 @@ use kb_db::database::{self, DatabaseError};
 /// The background tasks to stop at shutdown.
 pub struct Running {
     follow: JoinHandle<()>,
+    sweeper: JoinHandle<()>,
     db_watcher: JoinHandle<()>,
 }
 
@@ -19,19 +20,22 @@ pub async fn startup() -> Result<Running, DatabaseError> {
     database::init_db_or_wait().await?;
     let follow = tokio::spawn(database::follow_settings(Duration::from_secs(2)));
     tracing::info!(target: "kanban.http", "Server started (version {})", kb_base::version::APP_VERSION);
+    let sweeper = tokio::spawn(kb_board::workspace::sweep_loop());
     let db_watcher =
         tokio::spawn(database::watch_database(None, Duration::from_millis(400), Duration::from_millis(150)));
     // (the AI run scheduler, the Docs AI and assistant recovery and the AI schedules start here once ported)
     kb_notify::start();
-    Ok(Running { follow, db_watcher })
+    Ok(Running { follow, sweeper, db_watcher })
 }
 
 /// Stop the background work, in the reverse order of `startup`.
 pub async fn shutdown(running: Running) {
     // (the GitHub watcher and the repository rescan stop here once ported)
     kb_notify::stop().await;
+    running.sweeper.abort();
     running.db_watcher.abort();
     running.follow.abort();
+    let _ = running.sweeper.await;
     let _ = running.db_watcher.await;
     let _ = running.follow.await;
 }

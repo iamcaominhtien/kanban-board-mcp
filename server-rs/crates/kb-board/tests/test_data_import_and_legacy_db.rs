@@ -13,7 +13,7 @@ use std::path::Path;
 
 use common::{id, project};
 use kb_board::api::data::{check_sqlite_file, remove_wal_files};
-use serde_json::{Value, json};
+use serde_json::json;
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::{ConnectOptions, Connection, Row};
 use testkit::{Client, Server, Target, skip_unless_available, target};
@@ -244,16 +244,8 @@ async fn import_answers_each_refusal_the_same() {
     refused(&import(&c, "backup.ZIP", zip_of(&[("kanban.db", &good_db)])).await, 400, "Only .zip files are accepted");
     refused(&import(&c, "backup.zip", Vec::new()).await, 400, "Empty file");
     refused(&import(&c, "backup.zip", b"this is not a zip".to_vec()).await, 400, "Invalid ZIP file");
-    refused(
-        &import(&c, "backup.zip", zip_of(&[("uploads/a.png", b"x")])).await,
-        400,
-        "ZIP must contain kanban.db",
-    );
-    refused(
-        &import(&c, "backup.zip", zip_of(&[("sub/kanban.db", &good_db)])).await,
-        400,
-        "ZIP must contain kanban.db",
-    );
+    refused(&import(&c, "backup.zip", zip_of(&[("uploads/a.png", b"x")])).await, 400, "ZIP must contain kanban.db");
+    refused(&import(&c, "backup.zip", zip_of(&[("sub/kanban.db", &good_db)])).await, 400, "ZIP must contain kanban.db");
     refused(
         &import(&c, "backup.zip", zip_of(&[("kanban.db", &b"this is not a database".repeat(500))])).await,
         400,
@@ -266,7 +258,9 @@ async fn import_answers_each_refusal_the_same() {
     // no file part, or a field that is not a file
     let r = c.post("/data/import", json!({})).await;
     assert_eq!(r.status, 422);
-    let r = c.upload("/data/import", "other", "backup.zip", "application/zip", zip_of(&[("kanban.db", &good_db)]), &[]).await;
+    let r = c
+        .upload("/data/import", "other", "backup.zip", "application/zip", zip_of(&[("kanban.db", &good_db)]), &[])
+        .await;
     assert_eq!(r.status, 422);
     assert_eq!(r.detail()[0]["loc"], json!(["body", "file"]));
     // too many entries
@@ -343,7 +337,10 @@ async fn a_failed_import_puts_the_previous_data_back() {
     make_db(&foreign, 1).await;
     {
         let mut conn = SqliteConnectOptions::new().filename(&foreign).connect().await.unwrap();
-        sqlx::query("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)").execute(&mut conn).await.unwrap();
+        sqlx::query("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)")
+            .execute(&mut conn)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO alembic_version VALUES ('ffffffffffff')").execute(&mut conn).await.unwrap();
         conn.close().await.unwrap();
     }
@@ -371,8 +368,7 @@ async fn a_failed_import_puts_the_previous_data_back() {
 /// `KB_PEER_IMPORT_FROM=/tmp/x.zip PARITY_TARGET=rust ...` imports it (and the other way round).
 #[tokio::test]
 async fn the_other_servers_export_can_be_imported() {
-    let (export_to, import_from) =
-        (std::env::var("KB_PEER_EXPORT_TO").ok(), std::env::var("KB_PEER_IMPORT_FROM").ok());
+    let (export_to, import_from) = (std::env::var("KB_PEER_EXPORT_TO").ok(), std::env::var("KB_PEER_IMPORT_FROM").ok());
     if export_to.is_none() && import_from.is_none() {
         return;
     }
@@ -397,6 +393,5 @@ async fn the_other_servers_export_can_be_imported() {
         assert_eq!(names.len(), 1);
         assert!(names[0].starts_with("Made by "), "{names:?}");
         assert_eq!(files_in(&s.uploads_dir()), vec!["peer.png"]);
-        let _ = Value::Null;
     }
 }

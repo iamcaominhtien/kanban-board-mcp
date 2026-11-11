@@ -390,7 +390,10 @@ async fn settings_routes_answer_the_same_json() {
     assert_eq!(r.status, 200);
     // the row comes from the migrated template database, whose root is that of the template's own run
     let first = r.json();
-    assert_eq!((&first["id"], &first["enabled"], &first["default_retention_days"]), (&json!(1), &json!(true), &json!(14)));
+    assert_eq!(
+        (&first["id"], &first["enabled"], &first["default_retention_days"]),
+        (&json!(1), &json!(true), &json!(14))
+    );
     assert!(first["root_path"].as_str().is_some_and(|root| root.ends_with("/workspace")), "{first}");
     assert_eq!(first.as_object().unwrap().len(), 4);
     // a partial update leaves the rest as it was; a value is stored stripped
@@ -544,7 +547,7 @@ async fn ticket_workspace_route_answers_the_same_json() {
     let r = c.get("/tickets/NOPE-1/workspace").await;
     assert_eq!((r.status, r.json()), (404, json!({"detail": "Ticket not found"})));
     // a ticket whose id cannot name a folder reads as missing
-    ticket(&s, "a.b", &json!(project(&c, "X", "XX").await["id"]).as_str().unwrap().to_string(), "odd", json!({})).await;
+    ticket(&s, "a.b", &id(&project(&c, "X", "XX").await), "odd", json!({})).await;
     let r = c.get("/tickets/a.b/workspace").await;
     assert_eq!((r.status, r.json()), (404, json!({"detail": "Ticket not found"})));
 }
