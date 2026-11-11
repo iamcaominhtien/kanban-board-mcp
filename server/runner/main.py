@@ -49,6 +49,9 @@ class Forwarder:
         self._loop: asyncio.AbstractEventLoop | None = None
         self._wrote: list[float] = []
         self._noting: asyncio.Task | None = None
+        self._tickets = (
+            False  # a commit wrote a ticket since the last announcement of it
+        )
 
     async def __call__(self, event: str) -> None:
         """Send one event; a failure is logged (at most every 30 s) and dropped."""
@@ -58,25 +61,36 @@ class Forwarder:
         """The loop `note_write` schedules its posts on."""
         self._loop = loop
 
-    def note_write(self) -> None:
+    def note_write(self, tables: set[str] | None = None) -> None:
         """A commit of this process wrote (called inside the commit, so it only schedules). The API's database watcher
         would otherwise take it for another app's change and make every window refetch everything: say it was the
         runner's, and when (the watcher matches a commit to its readings by time). Commits while a post is on its way
-        are told in one more post."""
+        are told in one more post.
+
+        A commit that wrote a ticket (a run's closing comment, its question, Pending, the work log) is also announced:
+        the windows refetch the tickets (topic `tickets`), as they do for a change made through the API."""
         loop = self._loop
         if loop is None or loop.is_closed():
             return
-        loop.call_soon_threadsafe(self._kick, time.time())
+        ticket = not tables or "ticket" in tables or "*" in tables
+        loop.call_soon_threadsafe(self._kick, time.time(), ticket)
 
-    def _kick(self, at: float) -> None:
+    def _kick(self, at: float, ticket: bool = False) -> None:
         self._wrote.append(at)
+        self._tickets = self._tickets or ticket
         if self._noting is None or self._noting.done():
             self._noting = asyncio.get_running_loop().create_task(self._send_notes())
 
     async def _send_notes(self) -> None:
-        while self._wrote:
+        while self._wrote or self._tickets:
             times, self._wrote = self._wrote[-500:], []
-            await self._post({"own_change": True, "at": times})
+            if times:
+                await self._post({"own_change": True, "at": times})
+            if self._tickets:
+                self._tickets = False
+                await self._post(
+                    {"event": json.dumps({"type": "invalidate", "topics": ["tickets"]})}
+                )
 
     async def _post(self, body: dict) -> None:
         import httpx

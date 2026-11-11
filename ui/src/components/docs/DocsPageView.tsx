@@ -117,9 +117,11 @@ export function DocsPageView({
   const [editTip, setEditTip] = useState(false);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   // the page whose content is all on screen: the panels around it ask the server only then (pageSettled.ts)
+  // The page whose content has been all on screen once. Until then a long page comes in piece by piece and the panels
+  // around it wait (pageSettled.ts); after, a new text of the same page (a new version, the translated view) renders
+  // at once, so the reader keeps their place and the panels stay on.
   const [renderedKey, setRenderedKey] = useState<string | null>(null);
-  const pageKey = `${page.id}:${page.version}`;
-  const onRendered = useCallback(() => setRenderedKey(pageKey), [pageKey]);
+  const onRendered = useCallback(() => setRenderedKey(page.id), [page.id]);
   const tocNavRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
@@ -239,7 +241,7 @@ export function DocsPageView({
   }, [page.id]);
 
   const published = page.version > 0;
-  const settled = !(published || page.draft) || renderedKey === pageKey;
+  const settled = !(published || page.draft) || renderedKey === page.id;
   const showDraft = page.hasUnpublishedChanges && !!page.draft;
   const who = showDraft ? page.draft!.author : page.updatedBy;
   const whenIso = showDraft ? page.draft!.updatedAt : page.updatedAt;
@@ -732,7 +734,7 @@ export function DocsPageView({
                       onRestorePage={onRestorePage}
                       onReplaceSection={published && !translated ? onReplaceSection : undefined}
                       changedIn={published && since.behind && since.marks && !translated ? since.changedIn : undefined}
-                      progressive
+                      progressive={renderedKey !== page.id}
                       onRendered={onRendered}
                     >
                       {translated ?? (published ? page.markdown : page.draft!.markdown)}

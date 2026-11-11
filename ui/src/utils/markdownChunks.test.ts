@@ -34,6 +34,20 @@ describe('splitMarkdown', () => {
     for (const p of pieces.slice(1)) expect(strip(p.text)).toMatch(/^## Section \d/);
   });
 
+  it('keeps a fence open until a closing fence as long as the opening one (nested fences, info strings)', () => {
+    const inner = ['````md', '```python', ...Array.from({ length: 80 }, (_, i) => `# comment ${i}`), '```', '````'];
+    const tilde = ['~~~text', '~~~python', ...Array.from({ length: 80 }, (_, i) => `## not ${i}`), '~~~'];
+    const md = [section(1, 70), ...inner, section(2, 70), ...tilde, section(3, 70), section(4, 70)].join('\n');
+    const pieces = splitMarkdown(md, 50, 60);
+    for (const p of pieces.slice(1)) expect(strip(p.text)).toMatch(/^## Section \d/);
+  });
+
+  it('does not cut before an indented heading (it may be inside a list item)', () => {
+    const list = ['- item', ...Array.from({ length: 80 }, (_, i) => `  ## inside ${i}\n  text`)];
+    const md = [section(1, 70), ...list, section(2, 70), section(3, 70)].join('\n');
+    for (const p of splitMarkdown(md, 50, 60).slice(1)) expect(strip(p.text)).toMatch(/^## Section \d/);
+  });
+
   it('does not cut a page with reference definitions or footnotes', () => {
     const md = Array.from({ length: 40 }, (_, i) => section(i)).join('\n') + '\n[docs]: https://example.com\n';
     expect(splitMarkdown(md, 60, 100)).toHaveLength(1);

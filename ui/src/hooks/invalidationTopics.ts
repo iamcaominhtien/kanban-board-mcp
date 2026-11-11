@@ -12,6 +12,11 @@ const TOPIC_KEYS: Record<string, QueryKey[]> = {
   // A ticket comment was added, edited, deleted or restored (server/api/tickets.py): the ticket, the lists that show
   // it, its activity, and the Docs pages and ticket links it names
   comments: [['ticket'], ['tickets'], ['wont_do_tickets'], ['project_activities'], ['docs']],
+  // A ticket changed (the AI runner wrote a comment, its question, Pending, the work log; an AI moved or edited it):
+  // the ticket, the lists that show it, the lane counts and its activity
+  tickets: [['ticket'], ['tickets'], ['wont_do_tickets'], ['ticket-lane-counts'], ['project_activities']],
+  // Docs pages changed: every Docs query (tree, pages, comments, backlinks, a ticket's pages)
+  docs: [['docs']],
 };
 
 /** What an SSE message asks to refetch: topic names, or null for everything. */

@@ -32,6 +32,15 @@ describe('invalidation topics', () => {
     expect(topicsOf('{"type": "comment_added", "ticket_id": "KAN-1", "comment_id": "c1"}')).toEqual(['comments']);
   });
 
+  it('maps the tickets and docs topics to their queries only', () => {
+    const keys = keysFor(new Set(['tickets', 'docs']))!;
+    expect(keys).toContainEqual(['ticket']);
+    expect(keys).toContainEqual(['tickets']);
+    expect(keys).toContainEqual(['ticket-lane-counts']);
+    expect(keys).toContainEqual(['docs']);
+    expect(keys).not.toContainEqual(['ai']);
+  });
+
   it('refetches everything when a topic is unknown', () => {
     expect(keysFor(new Set(['notifications', 'something-new']))).toBeNull();
   });

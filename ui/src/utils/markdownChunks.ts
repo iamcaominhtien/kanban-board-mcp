@@ -17,7 +17,10 @@ export interface MarkdownChunk {
 }
 
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
-const HEADING = /^ {0,3}#{1,3}\s/;
+// what closes a fence (CommonMark): the same character, at least as many, nothing after it
+const FENCE_CLOSE = /^ {0,3}(`{3,}|~{3,})\s*$/;
+// a cut goes only before a heading at the start of a line: an indented one may belong to a list item
+const HEADING = /^#{1,3}\s/;
 const DEFINITION = /^ {0,3}\[[^\]\n]+\]:\s/m;
 
 /**
@@ -31,18 +34,21 @@ export function splitMarkdown(markdown: string, first = 120, size = 220): Markdo
   const lines = markdown.split('\n');
   if (lines.length <= first + size / 2 || DEFINITION.test(markdown)) return [{ text: markdown, start: 0 }];
   const cuts: number[] = [];
-  let fence: string | null = null;
+  let fence: { char: string; len: number } | null = null;
   let math = false;
   let from = 0;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const f = FENCE.exec(line);
-    if (f) {
-      if (fence === null) fence = f[1][0];
-      else if (f[1][0] === fence) fence = null;
+    if (fence !== null) {
+      const c = FENCE_CLOSE.exec(line);
+      if (c && c[1][0] === fence.char && c[1].length >= fence.len) fence = null;
       continue;
     }
-    if (fence !== null) continue;
+    const f = FENCE.exec(line);
+    if (f) {
+      fence = { char: f[1][0], len: f[1].length };
+      continue;
+    }
     if (line.trim() === '$$') {
       math = !math;
       continue;

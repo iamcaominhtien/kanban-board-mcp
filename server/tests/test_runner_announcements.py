@@ -29,6 +29,14 @@ async def _drain(q: asyncio.Queue) -> list[str]:
     return out
 
 
+def _no_global(got: list[str]) -> bool:
+    """Nothing told every window to refetch everything; at most the occasional refetch of tickets and Docs that stands
+    in for another app's change hidden behind the runner's (events.RUNNER_MASK_REFRESH_S)."""
+    return all(
+        g == '{"type": "invalidate", "topics": ["docs", "tickets"]}' for g in got
+    )
+
+
 async def test_ai_resources_reaches_the_windows_but_is_not_an_announcement():
     calls: list[int] = []
 
@@ -91,7 +99,7 @@ async def test_the_runners_own_change_is_not_announced_as_another_apps(tmp_path)
         writer.commit()
         events.mark_own_change([time.time()])  # what POST /internal/ai/events does
         await asyncio.sleep(0.3)
-        assert await _drain(q) == []
+        assert _no_global(await _drain(q))
     finally:
         task.cancel()
         events.unsubscribe(q)
@@ -120,7 +128,7 @@ async def test_a_runner_commit_told_while_the_watcher_waits_is_still_the_runners
         writer.commit()
         events.mark_own_change([time.time()])
         await asyncio.sleep(0.8)
-        assert await _drain(q) == []
+        assert _no_global(await _drain(q))
         # another app's commit, long after the runner's, is announced
         writer.execute("INSERT INTO t VALUES (3)")
         writer.commit()
@@ -161,10 +169,10 @@ async def test_own_change_over_http_counts_and_reaches_nobody():
 
 
 async def test_a_writing_commit_is_told_and_a_reading_one_is_not():
-    calls: list[int] = []
+    calls: list[set[str]] = []
 
-    def listener() -> None:
-        calls.append(1)
+    def listener(tables: set[str]) -> None:
+        calls.append(tables)
 
     changes.on_write_commit(listener)
     try:
@@ -175,7 +183,7 @@ async def test_a_writing_commit_is_told_and_a_reading_one_is_not():
         async with database.async_session() as session:
             session.add(Project(name="Told", prefix="TLD", color="#336699"))
             await session.commit()
-        assert calls == [1]
+        assert len(calls) == 1 and "project" in calls[0]
     finally:
         changes._on_write_commit.remove(listener)
 
@@ -217,14 +225,95 @@ async def test_the_runner_tells_its_writes_in_few_posts(monkeypatch):
     fwd = runner_main.Forwarder("http://127.0.0.1:1", "t")
     fwd.bind(asyncio.get_running_loop())
     for _ in range(10):
-        fwd.note_write()
+        fwd.note_write({"ai_run_step"})
     await asyncio.sleep(0.01)
     assert len(posted) == 1 and posted[0]["own_change"] is True  # one on its way
     assert len(posted[0]["at"]) == 10
     for _ in range(3):
-        fwd.note_write()
+        fwd.note_write({"ai_run"})
     gate.set()
     await asyncio.sleep(0.05)
     assert (
         len(posted) == 2 and len(posted[1]["at"]) == 3
     )  # the writes meanwhile, in one more
+
+
+async def test_a_ticket_the_runner_wrote_is_announced_once_for_a_burst(monkeypatch):
+    """A run's closing comment, its question, Pending, the work log: the windows refetch the tickets."""
+    posted: list[dict] = []
+
+    async def post(self, body: dict) -> None:
+        posted.append(body)
+
+    monkeypatch.setattr(runner_main.Forwarder, "_post", post)
+    fwd = runner_main.Forwarder("http://127.0.0.1:1", "t")
+    fwd.bind(asyncio.get_running_loop())
+    fwd.note_write({"ai_run_step"})
+    await asyncio.sleep(0.02)
+    assert all("event" not in b for b in posted)
+    for _ in range(5):
+        fwd.note_write({"ticket", "ai_run"})
+    await asyncio.sleep(0.05)
+    told = [b["event"] for b in posted if "event" in b]
+    assert told and len(told) <= 2
+    assert all(t == '{"type": "invalidate", "topics": ["tickets"]}' for t in told)
+
+
+async def test_the_change_log_is_written_by_a_plain_add_then_commit(tmp_path):
+    """On a server database the change log gets its row even when commit() does the only flush (no explicit flush)."""
+    engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'log.db'}")
+    from sqlalchemy import select
+    from sqlmodel import SQLModel
+
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(changes.metadata.create_all)
+            await conn.run_sync(SQLModel.metadata.create_all)
+        # pretend the dialect is a server's, so the row is written (SQLite itself never has the table)
+        from sqlmodel.ext.asyncio.session import AsyncSession
+
+        async with AsyncSession(engine) as session:
+            monkey = session.sync_session.get_bind().dialect
+            real = monkey.name
+            monkey.name = "postgresql"
+            try:
+                session.add(Project(name="Logged", prefix="LOG", color="#336699"))
+                await session.commit()
+            finally:
+                monkey.name = real
+        async with engine.connect() as conn:
+            rows = (await conn.execute(select(changes.kanban_change))).all()
+        assert len(rows) == 1
+    finally:
+        await engine.dispose()
+
+
+async def test_another_apps_change_hidden_by_the_runners_still_refreshes_tickets_and_docs(
+    tmp_path, monkeypatch
+):
+    """The runner commits about once a second; another app (an editor's MCP server) edits a ticket at the same
+    moment. SQLite cannot tell the two apart, so the tickets and Docs are refetched now and then (not everything)."""
+    monkeypatch.setattr(events, "RUNNER_MASK_REFRESH_S", 0.5)
+    db = tmp_path / "kanban.db"
+    writer = sqlite3.connect(db)
+    writer.execute("PRAGMA journal_mode=WAL")
+    writer.execute("CREATE TABLE t (x)")
+    writer.commit()
+    q = events.subscribe()
+    task = asyncio.create_task(events.watch_database(db, interval=0.05, grace=0.05))
+    try:
+        await asyncio.sleep(0.2)
+        for i in range(8):
+            writer.execute(
+                "INSERT INTO t VALUES (?)", (i,)
+            )  # the runner's commit and, once, another app's with it
+            writer.commit()
+            events.mark_own_change([time.time()])
+            await asyncio.sleep(0.15)
+        got = await _drain(q)
+        assert '{"type": "invalidate", "topics": ["docs", "tickets"]}' in got
+        assert events.INVALIDATE not in got
+    finally:
+        task.cancel()
+        events.unsubscribe(q)
+        writer.close()

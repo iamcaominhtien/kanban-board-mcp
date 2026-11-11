@@ -297,6 +297,9 @@ function sectionOf(from: HTMLElement, href: string): HTMLElement | null {
 }
 
 const REMARK_PLUGINS = [remarkGfm, remarkMath, remarkDocs];
+
+/** The heading-id counts at the end of each piece of a page, filled as the pieces are parsed in order. */
+type SlugCounts = Map<string, number>[];
 // KaTeX runs after sanitize: its own markup would be stripped, and its input is only the sanitized math code.
 const REHYPE_PLUGINS = [
   [rehypeSanitize, SCHEMA],
@@ -322,15 +325,40 @@ function docsUrlTransform(url: string): string {
 const MarkdownPiece = memo(function MarkdownPiece({
   text,
   components,
+  index,
+  slugCounts,
 }: {
   text: string;
   components: Components;
   /** Not read here: a new map of marks must render the piece again (`changedProps` reads it). */
   changedIn?: Map<string, number>;
+  /** Which piece of the page this is, and the shared counts: a heading repeated in a later piece keeps the id the
+   *  whole page gives it (`-2`, `-3`…), as the server's headings, the outline and `#section` links expect. */
+  index?: number;
+  slugCounts?: SlugCounts;
 }) {
+  const plugins = useMemo(
+    () =>
+      index === undefined || !slugCounts
+        ? REMARK_PLUGINS
+        : [
+            remarkGfm,
+            remarkMath,
+            [
+              remarkDocs,
+              {
+                seen: index > 0 ? slugCounts[index - 1] : undefined,
+                done: (seen: Map<string, number>) => {
+                  slugCounts[index] = seen;
+                },
+              },
+            ] as const,
+          ],
+    [index, slugCounts],
+  );
   return (
     <ReactMarkdown
-      remarkPlugins={REMARK_PLUGINS}
+      remarkPlugins={plugins as NonNullable<Parameters<typeof ReactMarkdown>[0]['remarkPlugins']>}
       rehypePlugins={REHYPE_PLUGINS}
       urlTransform={docsUrlTransform}
       components={components}
@@ -645,6 +673,9 @@ export function DocsMarkdown({
     () => (progressive ? splitMarkdown(linked.markdown) : [{ text: linked.markdown, start: 0 }]),
     [progressive, linked.markdown],
   );
+  // heading-id counts carried from one piece to the next (pieces render in order, each after the one before)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- a new page (new pieces) starts its counts over
+  const slugCounts = useMemo<SlugCounts>(() => [], [pieces]);
   const [shown, setShown] = useState({ of: pieces, count: 1 });
   const count = shown.of === pieces ? shown.count : 1;
   const done = count >= pieces.length;
@@ -669,8 +700,15 @@ export function DocsMarkdown({
   return (
     <ChipCtx.Provider value={chips}>
       <div className="dk-md" data-preview-scope data-rendering={done ? undefined : ''}>
-        {pieces.slice(0, count).map((p) => (
-          <MarkdownPiece key={p.start} text={p.text} components={components} changedIn={changedIn} />
+        {pieces.slice(0, count).map((p, i) => (
+          <MarkdownPiece
+            key={p.start}
+            text={p.text}
+            components={components}
+            changedIn={changedIn}
+            index={pieces.length > 1 ? i : undefined}
+            slugCounts={slugCounts}
+          />
         ))}
       </div>
     </ChipCtx.Provider>

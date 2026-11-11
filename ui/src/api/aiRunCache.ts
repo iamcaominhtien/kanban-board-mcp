@@ -70,8 +70,16 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 function counted<T extends { state: AiRun['state']; stepsCount: number; lastOutputAt: string | null }>(
   r: T,
   c: Counters,
+  withState: boolean,
 ): T {
-  return { ...r, state: c.state, stepsCount: c.stepsCount, lastOutputAt: c.lastOutputAt ?? r.lastOutputAt };
+  // a batch written later carries only the counters: a state it held may be older than what a refetch or an `ai.run`
+  // put there since (a change of state is written at once, with `withState`)
+  return {
+    ...r,
+    state: withState ? c.state : r.state,
+    stepsCount: Math.max(c.stepsCount, r.stepsCount),
+    lastOutputAt: c.lastOutputAt ?? r.lastOutputAt,
+  };
 }
 
 /**
@@ -90,11 +98,11 @@ function writeCounters(qc: QueryClient, now: number, board = false): void {
     patchBoard(
       qc,
       (r) => all.has(r.runId),
-      (r) => counted(r, all.get(r.runId) as Counters),
+      (r) => counted(r, all.get(r.runId) as Counters, true),
     );
   for (const [runId, c] of all) {
-    patchTicketRuns(qc, runId, (r) => counted(r, c));
-    patchProjectRuns(qc, runId, (r) => counted(r, c));
+    patchTicketRuns(qc, runId, (r) => counted(r, c, board));
+    patchProjectRuns(qc, runId, (r) => counted(r, c, board));
   }
 }
 

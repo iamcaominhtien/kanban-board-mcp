@@ -177,6 +177,7 @@ COMMIT_SLACK_S = 0.05
 
 
 RUNNER_GRACE_S = 0.5
+RUNNER_MASK_REFRESH_S = 15.0
 
 
 def _grace_for(grace: float) -> float:
@@ -220,9 +221,9 @@ async def watch_database(
     trimmed_at = 0.0
     # What this process had announced when the version was last read: an announcement since then explains a change
     seen_published = _published
-    read_at = (
-        time.time()
-    )  # when the version was last read: a runner commit since then explains a change
+    # when the version was last read: a runner commit since then explains a change
+    read_at = time.time()
+    runner_masked_at = 0.0  # the last refetch of tickets and Docs for changes the runner's commits explained
 
     def close() -> None:
         nonlocal conn, conn_path
@@ -241,7 +242,7 @@ async def watch_database(
     while True:
         try:
             await asyncio.sleep(interval)
-            last_read_at, read_at = read_at, time.time()
+            last_read_at = read_at
             if path is not None or database.is_sqlite():
                 db_path = path or database.get_db_path()
                 source = db_path
@@ -254,6 +255,8 @@ async def watch_database(
                 source = database.engine
                 version = await changes.latest_from_others(source)
                 server = True
+            # after the read: a runner commit made while the version was being read is in this reading
+            read_at = time.time()
             if source != watching:
                 seen, watching = (
                     None,
@@ -265,11 +268,15 @@ async def watch_database(
                 # before the watcher looks, and a change it announced must not be announced a second time. The
                 # change log of a server database names the writer, so only other processes' rows are counted. A
                 # commit the AI runner told about counts when it was made between the last reading and this one.
-                if server or (
-                    _published == seen_published
-                    and not _runner_committed(last_read_at, read_at)
-                ):
-                    await publish(INVALIDATE)
+                if server or _published == seen_published:
+                    if server or not _runner_committed(last_read_at, read_at):
+                        await publish(INVALIDATE)
+                    elif time.time() - runner_masked_at >= RUNNER_MASK_REFRESH_S:
+                        # SQLite does not say who wrote: a change made by another app in the same moment as one of
+                        # the runner's (an editor's MCP server, while a run streams) would never show. So while the
+                        # runner's commits explain the changes, the tickets and Docs are refetched now and then.
+                        runner_masked_at = time.time()
+                        await publish(INVALIDATE, topics=["tickets", "docs"])
             seen = version
             seen_published = _published
             if server and asyncio.get_running_loop().time() - trimmed_at > 300:

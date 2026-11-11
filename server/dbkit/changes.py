@@ -48,6 +48,7 @@ kanban_change = Table(
 
 _WROTE = "kanban_wrote"
 _COMMITTING = "kanban_committing"
+_TABLES = "kanban_tables"
 _installed = False
 # Called (synchronously, cheaply) after each commit of this process that wrote something (the runner tells the API)
 _on_write_commit: list = []
@@ -56,7 +57,8 @@ _ignored_origins: set[str] = set()
 
 
 def on_write_commit(callback) -> None:
-    """Call `callback()` after every commit of this process that wrote. It runs inside the commit: keep it cheap."""
+    """Call `callback(tables)` after every commit of this process that wrote: `tables` names the tables written
+    (``"*"`` when a statement's table is not known). It runs inside the commit: keep it cheap."""
     if callback not in _on_write_commit:
         _on_write_commit.append(callback)
 
@@ -73,30 +75,44 @@ def create(sync_conn) -> None:
         metadata.create_all(sync_conn, checkfirst=True)
 
 
-def _mark(session: Session) -> None:
+def _mark(session: Session, tables: set[str]) -> None:
     session.info[_WROTE] = True
     if _on_write_commit:
         # commit() flushes after before_commit, so what its own flush writes is only known here
         session.info[_COMMITTING] = True
+        session.info.setdefault(_TABLES, set()).update(tables)
+
+
+def _table_of(obj) -> str:  # noqa: ANN001
+    table = getattr(obj, "__table__", None)
+    return getattr(table, "name", None) or "*"
 
 
 def _after_flush(session: Session, _ctx) -> None:  # noqa: ANN001
     if session.new or session.dirty or session.deleted:
-        _mark(session)
+        _mark(
+            session,
+            {_table_of(o) for o in (*session.new, *session.dirty, *session.deleted)},
+        )
 
 
 def _orm_execute(state) -> None:  # noqa: ANN001 - ORMExecuteState
+    table = getattr(getattr(state.statement, "table", None), "name", None) or "*"
     if state.is_insert or state.is_update or state.is_delete:
-        _mark(state.session)
+        _mark(state.session, {table})
         return
     if not state.is_select:
         head = str(state.statement).lstrip()[:7].upper()
         if head.startswith(("INSERT", "UPDATE", "DELETE", "REPLACE")):
-            _mark(state.session)
+            _mark(state.session, {"*"})
 
 
 def _before_commit(session: Session) -> None:
-    if not session.info.get(_WROTE):
+    # commit() flushes only after this hook: changes still pending (a plain add() then commit()) are a write too, and
+    # their row of the change log must go in the same transaction
+    if not session.info.get(_WROTE) and not (
+        session.new or session.dirty or session.deleted
+    ):
         return
     try:
         bind = session.get_bind()
@@ -104,6 +120,7 @@ def _before_commit(session: Session) -> None:
         session.info.pop(_WROTE, None)
         return
     if bind.dialect.name != "sqlite":
+        session.flush()
         session.execute(
             insert(kanban_change).values(
                 origin=targets.PROCESS_TOKEN[:32], at=time.time()
@@ -113,11 +130,12 @@ def _before_commit(session: Session) -> None:
 
 
 def _after_commit(session: Session) -> None:
+    tables = session.info.pop(_TABLES, None) or {"*"}
     if not session.info.pop(_COMMITTING, False):
         return
     for cb in _on_write_commit:
         try:
-            cb()
+            cb(tables)
         except Exception:  # noqa: BLE001 - a listener never fails a commit
             pass
 
@@ -125,6 +143,7 @@ def _after_commit(session: Session) -> None:
 def _forget(session: Session, *_args) -> None:
     session.info.pop(_WROTE, None)
     session.info.pop(_COMMITTING, None)
+    session.info.pop(_TABLES, None)
 
 
 def install() -> None:
