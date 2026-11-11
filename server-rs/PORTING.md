@@ -139,3 +139,12 @@ you write anything, and write yours the same way.
 - Known difference, accepted: Pydantic coerces `"true"` to a bool and `"3"` to an int in a JSON body; the Rust
   server answers 422. The app sends typed JSON.
 - Do not stage, commit or push (`git add`, `git mv`, `git rm` included): the orchestrating session commits.
+- `kb_base::error::Query<T>` reads repeated keys into a `Vec` field (`kind=a&kind=b`), as FastAPI reads
+  `list[str] = Query(...)`. A body that may be left out (`data: Model | None = None`) is
+  `kb_base::error::OptionalBody<T>`.
+- `dict.pop(key)` on a `serde_json::Map` is `shift_remove` (`remove` swaps the last entry into the hole and changes
+  the key order).
+- There is no after-commit hook on `Session`: where Python reacts to a commit (a listener, a callback queued on the
+  session), call the reaction right after `session.commit().await?`.
+- Golden vector files are committed: keep each under about 2 MB (sample the generated cases; a few hundred
+  well-chosen cases per function find what thousands do).

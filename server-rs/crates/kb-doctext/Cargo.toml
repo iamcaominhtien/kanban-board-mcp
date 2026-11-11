@@ -17,3 +17,4 @@ serde_json = { workspace = true }
 chrono = { workspace = true }
 # str.casefold() (full Unicode case folding), which the standard library does not have
 caseless = "0.2.2"
+regex = { workspace = true }

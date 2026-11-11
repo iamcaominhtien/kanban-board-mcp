@@ -134,7 +134,7 @@ async fn dismiss_resolves_the_work_for_everyone_it_was_addressed_to() {
     gone.group_key = "question:run:q2".into();
     gone.data = r#"{"gone": true, "gone_reason": "The run is gone."}"#.into();
     gone.insert(&db).await;
-    let mut info = Nrow::new("info", "ai_finished", false, "Finished");
+    let info = Nrow::new("info", "ai_finished", false, "Finished");
     info.insert(&db).await;
     let c = s.client();
 
@@ -213,7 +213,7 @@ async fn snooze_clear_and_clear_read_change_one_row_each() {
     let mut r_ = Nrow::new("r", "comment", false, "read already");
     r_.read_at = Some(at(-5));
     r_.insert(&db).await;
-    let mut n = Nrow::new("n", "mention", true, "open need");
+    let n = Nrow::new("n", "mention", true, "open need");
     n.insert(&db).await;
     let mut dn = Nrow::new("dn", "mention", true, "done need");
     dn.group_key = "mention:x".into();

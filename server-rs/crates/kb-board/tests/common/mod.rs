@@ -118,3 +118,48 @@ pub async fn insert(server: &Server, table: &str, columns: &Value) {
     let values: Vec<Value> = columns.values().cloned().collect();
     exec(server, &format!("INSERT INTO \"{table}\" ({}) VALUES ({marks})", names.join(", ")), &values).await;
 }
+
+/// An `IdeaTicket` row as the Python model stores a new one, with the given columns on top.
+pub async fn idea(server: &Server, idea_id: &str, extra: Value) {
+    let mut columns = json!({
+        "id": idea_id, "title": "an idea", "description": "", "idea_status": "draft", "stage": "inbox",
+        "source": "manual", "source_ref": "{}", "prev_state": "{}", "merge_undo": "{}",
+        "workspace_retention": "open_then_30", "body": "", "details": "", "idea_color": "yellow",
+        "idea_emoji": "💡", "tags": "[]", "ice_impact": 3, "ice_effort": 3, "ice_confidence": 3,
+        "activity_trail": "[]", "microthoughts": "[]", "assumptions": "[]", "created_at": NOW, "updated_at": NOW,
+    });
+    for (key, value) in extra.as_object().expect("extra columns") {
+        columns[key] = value.clone();
+    }
+    insert(server, "idea_ticket", &columns).await;
+}
+
+/// `os.utime(path, (t, t))` on a path and everything under it (`_age` of the Python tests, with a fixed time).
+pub fn set_mtime(path: &std::path::Path, secs: u64, nanos: u32) {
+    let when = std::time::UNIX_EPOCH + std::time::Duration::new(secs, nanos);
+    let mut todo = vec![path.to_path_buf()];
+    while let Some(p) = todo.pop() {
+        if p.is_dir() && !p.is_symlink() {
+            for entry in std::fs::read_dir(&p).expect("read_dir") {
+                todo.push(entry.expect("entry").path());
+            }
+        }
+        if !p.is_symlink() {
+            std::fs::File::open(&p).expect("open").set_modified(when).expect("set_modified");
+        }
+    }
+}
+
+/// `os.utime` to `days` days ago, for a folder and everything in it.
+pub fn age(path: &std::path::Path, days: u64) {
+    let old =
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("clock").as_secs() - days * 86400;
+    set_mtime(path, old, 0);
+}
+
+/// `PATCH /workspace/settings`.
+pub async fn workspace_settings(c: &Client, body: Value) -> Value {
+    let r = c.patch("/workspace/settings", body).await;
+    r.assert_status(200);
+    r.json()
+}

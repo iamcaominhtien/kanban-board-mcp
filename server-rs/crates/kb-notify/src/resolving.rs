@@ -19,7 +19,6 @@ use crate::db::save_notification;
 use crate::delivery::{announce, head_id};
 use crate::error::Result;
 use crate::helpers::{self, dumps, loads_map, local, now_iso, parse, person_key, plural, utcnow};
-use crate::kinds::AN_AI_TEAM;
 use crate::recipients::owners_and_admins;
 use crate::writing::EmitFields;
 use crate::writing::{emit, flush_pending};
@@ -587,6 +586,3 @@ pub async fn user_and_admins_of(session: &Session, project_ids: &[String]) -> Re
     }
     Ok(recipients)
 }
-
-#[allow(dead_code)]
-const _: &str = AN_AI_TEAM;

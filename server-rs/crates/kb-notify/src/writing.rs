@@ -12,7 +12,7 @@ use crate::db::save_notification;
 use crate::delivery::{LATER, PENDING, announce, mark_dirty};
 use crate::error::{NotifyError, Result};
 use crate::features::on_comment_event;
-use crate::follow::{follows_of, quiet_by_follows};
+use crate::follow::quiet_by_follows;
 use crate::helpers::{self, dumps, iso, loads_list, loads_map, parse, person_key, pop, utcnow};
 use crate::kinds::{GROUP_ITEMS_KEPT, GROUP_NAMES_MAX, GROUP_WINDOW_MINUTES};
 use crate::recipients::{followers, recipient_keys};
@@ -489,10 +489,4 @@ pub fn ticket_order(t: &str) -> (String, i64) {
         }
     }
     (t.to_string(), 0)
-}
-
-#[allow(dead_code)]
-fn _unused(_: &notify_follow::Model) -> Vec<notify_follow::Model> {
-    let _ = follows_of;
-    Vec::new()
 }

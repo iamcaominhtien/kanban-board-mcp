@@ -58,11 +58,15 @@ unsafe_code = "deny"
 # ports keep the shape of the Python code they come from, so the two read side by side
 collapsible_if = "allow"
 collapsible_else_if = "allow"
+# ApiError carries the JSON detail of the answer
+result_large_err = "allow"
 too_many_arguments = "allow"
 type_complexity = "allow"
 
 [profile.dev]
-debug = "line-tables-only"
+# no debug info: each test binary links the whole server, and the build folders fill the disk otherwise
+debug = false
+incremental = false
 
 [profile.dev.package."*"]
 opt-level = 1

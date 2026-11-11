@@ -42,7 +42,7 @@ pub use daycard::{
     latest_scheduled_card, not_retried, people, prune, published_between, runs_of_the_day, tomorrow_line, waiting_line,
     waiting_of, write_day_cards,
 };
-pub use delivery::{Event, announce, head_id, mark_dirty};
+pub use delivery::{Event, announce, clear_queues, head_id, mark_dirty};
 pub use error::{NotifyError, Result};
 pub use features::{
     CHAT_OPEN_FOR_SECONDS, CommentFields, chat_in_front, close_passed_question, comment_body, comment_event,

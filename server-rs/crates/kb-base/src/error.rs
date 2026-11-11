@@ -6,7 +6,7 @@
 //! is a 500 with the plain text `Internal Server Error`, and is logged.
 
 use axum::Json;
-use axum::extract::rejection::{JsonRejection, PathRejection, QueryRejection};
+use axum::extract::rejection::{JsonRejection, PathRejection};
 use axum::extract::{FromRequest, FromRequestParts, Request};
 use axum::http::request::Parts;
 use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
@@ -221,21 +221,48 @@ where
 {
     type Rejection = ApiError;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        match axum::extract::Query::<T>::from_request_parts(parts, state).await {
-            Ok(axum::extract::Query(value)) => Ok(Query(value)),
-            Err(err) => Err(query_error(&err)),
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        // a key may repeat (`kind=a&kind=b` fills a `Vec`), as FastAPI reads a `list[str]` query parameter
+        match serde_html_form::from_str::<T>(parts.uri.query().unwrap_or_default()) {
+            Ok(value) => Ok(Query(value)),
+            Err(err) => Err(query_error(&err.to_string())),
         }
     }
 }
 
-fn query_error(err: &QueryRejection) -> ApiError {
-    let text = err.body_text();
-    let msg = text.strip_prefix("Failed to deserialize query string: ").unwrap_or(&text).to_string();
+fn query_error(text: &str) -> ApiError {
+    let msg = text.strip_prefix("Failed to deserialize query string: ").unwrap_or(text).to_string();
     if let Some(field) = msg.strip_prefix("missing field `").and_then(|m| m.split('`').next()) {
         return ApiError::validation(&["query", field], "Field required", "missing");
     }
     ApiError::validation(&["query"], msg, "value_error")
+}
+
+/// A JSON body that may be left out (`data: Model | None = None`): no body, or an empty one, is `None`.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct OptionalBody<T>(pub Option<T>);
+
+impl<S, T> FromRequest<S> for OptionalBody<T>
+where
+    S: Send + Sync,
+    T: DeserializeOwned,
+{
+    type Rejection = ApiError;
+
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+        let bytes = match axum::body::Bytes::from_request(req, state).await {
+            Ok(bytes) => bytes,
+            Err(err) => return Err(ApiError::validation(&["body"], err.to_string(), "value_error")),
+        };
+        if bytes.iter().all(u8::is_ascii_whitespace) || bytes.as_ref() == b"null" {
+            return Ok(OptionalBody(None));
+        }
+        let de = &mut serde_json::Deserializer::from_slice(&bytes);
+        match serde_path_to_error::deserialize::<_, T>(de) {
+            Ok(value) => Ok(OptionalBody(Some(value))),
+            Err(err) => Err(body_error(&err)),
+        }
+    }
 }
 
 /// Path parameters, answered with FastAPI's 422 when one cannot be read (a number expected, text given).

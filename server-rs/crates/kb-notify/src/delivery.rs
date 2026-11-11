@@ -83,6 +83,14 @@ pub fn mark_dirty() {
     }
 }
 
+/// Empty the queues of events written by the loop (`_pending` and `_later`). The Python test suite does this between
+/// tests (`conftest._notification_queues_are_per_test`), so events queued by one test are not written into the next
+/// one's database.
+pub fn clear_queues() {
+    PENDING.lock().unwrap_or_else(|e| e.into_inner()).clear();
+    LATER.lock().unwrap_or_else(|e| e.into_inner()).clear();
+}
+
 /// Tell every open window (and the desktop notifier) that the log or a row moved. The window asks for what it has
 /// not seen, so a dropped message costs nothing.
 pub async fn announce(head: Option<i32>) {

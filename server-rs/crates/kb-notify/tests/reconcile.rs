@@ -333,11 +333,20 @@ async fn reconcile_closes_what_no_longer_needs_a_person_and_says_why() {
     // closing a row writes the resolve event but leaves the row's own `last_event_id`; the feed names the rows that
     // closed (those with a target) so a toast or desktop notice for them is withdrawn
     let feed = c.get("/notifications/feed?since=0").await.json();
-    let mut resolved: Vec<String> = feed["resolved"].as_array().expect("resolved").iter().map(|r| r.as_str().expect("id").to_string()).collect();
+    let mut resolved: Vec<String> =
+        feed["resolved"].as_array().expect("resolved").iter().map(|r| r.as_str().expect("id").to_string()).collect();
     resolved.sort();
     let mut expected: Vec<&str> = vec![
-        "q_answered", "q_ended", "stuck_ended", "stuck_moving", "stuck_cleared", "win_started", "trip_team_resumed",
-        "acc_in", "th_replied", "off_account",
+        "q_answered",
+        "q_ended",
+        "stuck_ended",
+        "stuck_moving",
+        "stuck_cleared",
+        "win_started",
+        "trip_team_resumed",
+        "acc_in",
+        "th_replied",
+        "off_account",
     ];
     expected.sort_unstable();
     assert_eq!(resolved, expected);

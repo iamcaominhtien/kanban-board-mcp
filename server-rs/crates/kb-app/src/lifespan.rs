@@ -21,11 +21,15 @@ pub async fn startup() -> Result<Running, DatabaseError> {
     tracing::info!(target: "kanban.http", "Server started (version {})", kb_base::version::APP_VERSION);
     let db_watcher =
         tokio::spawn(database::watch_database(None, Duration::from_millis(400), Duration::from_millis(150)));
+    // (the AI run scheduler, the Docs AI and assistant recovery and the AI schedules start here once ported)
+    kb_notify::start();
     Ok(Running { follow, db_watcher })
 }
 
 /// Stop the background work, in the reverse order of `startup`.
 pub async fn shutdown(running: Running) {
+    // (the GitHub watcher and the repository rescan stop here once ported)
+    kb_notify::stop().await;
     running.db_watcher.abort();
     running.follow.abort();
     let _ = running.db_watcher.await;
