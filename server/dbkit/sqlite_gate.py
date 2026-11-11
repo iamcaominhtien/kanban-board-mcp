@@ -90,6 +90,9 @@ class GatedConnection(aiosqlite.Connection):
 
     _gate: asyncio.Lock | None = None
     _path = ""
+    # Only in WAL mode do reads never wait for a writer. In the old journal modes a read can wait for another
+    # connection's commit, and under the call lock it would hold up that commit (of this process) until it times out.
+    _wal = False
 
     async def _execute(self, fn, *args: Any, **kwargs: Any):  # noqa: ANN001 - aiosqlite's signature
         call, gate = _loop_locks(self._path)
@@ -108,7 +111,7 @@ class GatedConnection(aiosqlite.Connection):
             self._gate = gate
             first_write = True
         try:
-            if first_write:
+            if first_write or not self._wal:
                 # It may wait for another process's write lock: not under the call lock.
                 return await super()._execute(fn, *args, **kwargs)
             async with call:
@@ -141,9 +144,11 @@ def connector(path: str, **kwargs: Any):
 
         conn = GatedConnection(raw, 64)
         conn._path = os.path.realpath(path)
-        conn._thread.daemon = (
-            True  # SQLAlchemy does this for its own connections, not for a creator's
-        )
-        return await conn
+        # SQLAlchemy does this for its own connections, not for a creator's
+        conn._thread.daemon = True
+        await conn
+        mode = await conn.execute_fetchall("PRAGMA journal_mode")
+        conn._wal = bool(mode) and str(mode[0][0]).lower() == "wal"
+        return conn
 
     return connect
