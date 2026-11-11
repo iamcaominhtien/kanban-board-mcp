@@ -21,6 +21,17 @@ describe('invalidation topics', () => {
     expect(keysFor(new Set(['notifications']))).toEqual([['notifications']]);
   });
 
+  it('maps a ticket comment to the ticket, its lists, its activity and Docs, not to everything', () => {
+    expect(topicsOf('{"type": "invalidate", "topics": ["comments"]}')).toEqual(['comments']);
+    const keys = keysFor(new Set(['comments']))!;
+    expect(keys).toContainEqual(['ticket']);
+    expect(keys).toContainEqual(['tickets']);
+    expect(keys).toContainEqual(['docs']);
+    expect(keys).not.toContainEqual(['ai']);
+    // the note of who it notified that follows it does not refetch everything either
+    expect(topicsOf('{"type": "comment_added", "ticket_id": "KAN-1", "comment_id": "c1"}')).toEqual(['comments']);
+  });
+
   it('refetches everything when a topic is unknown', () => {
     expect(keysFor(new Set(['notifications', 'something-new']))).toBeNull();
   });

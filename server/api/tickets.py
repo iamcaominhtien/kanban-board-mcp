@@ -1,3 +1,4 @@
+import asyncio
 import json
 from pathlib import Path
 from typing import Annotated, Any, Literal, NoReturn, Optional
@@ -150,7 +151,8 @@ async def upload_description_image(
 
     stored_filename = build_upload_filename(filename)
     destination = get_uploads_dir() / stored_filename
-    destination.write_bytes(payload)
+    # a big picture written on the server loop held every other request (and the AI's events) while it was written
+    await asyncio.to_thread(destination.write_bytes, payload)
 
     url = f"/uploads/{stored_filename}"
     alt_text = build_markdown_alt_text(filename)
@@ -199,7 +201,7 @@ async def upload_attachment(file: UploadFile = File(...)) -> AttachmentUploadRes
         await file.close()
 
     stored = build_upload_filename(original)
-    (get_uploads_dir() / stored).write_bytes(b"".join(chunks))
+    await asyncio.to_thread((get_uploads_dir() / stored).write_bytes, b"".join(chunks))
 
     url = f"/uploads/{stored}"
     clean_name = Path(original).name[:200]
@@ -573,6 +575,11 @@ def _loads_comments(ticket) -> list[dict]:
     return [c for c in data if isinstance(c, dict)]
 
 
+# A comment changes its ticket (the list's counts, the activity) and the Docs pages it names, nothing else: the app
+# refetches only those (ui/src/hooks/invalidationTopics.ts), not everything every open window holds
+COMMENTS_TOPIC = "comments"
+
+
 class CommentBody(BaseModel):
     """Request body to add a comment."""
 
@@ -618,7 +625,7 @@ async def post_comment(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
-    await board_events.publish("invalidate")
+    await board_events.publish(board_events.INVALIDATE, topics=[COMMENTS_TOPIC])
     latest = (_loads_comments(ticket) or [None])[-1]
     if latest and latest.get("notified"):
         await board_events.publish(
@@ -646,7 +653,7 @@ async def patch_comment(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if ticket is None:
         _404()
-    await board_events.publish("invalidate")
+    await board_events.publish(board_events.INVALIDATE, topics=[COMMENTS_TOPIC])
     return _read(ticket)
 
 
@@ -660,7 +667,7 @@ async def undo_delete_comment(
     ticket = await restore_comment(session, ticket_id, comment_id)
     if ticket is None:
         _404()
-    await board_events.publish("invalidate")
+    await board_events.publish(board_events.INVALIDATE, topics=[COMMENTS_TOPIC])
     return _read(ticket)
 
 
@@ -670,7 +677,7 @@ async def del_comment(ticket_id: str, comment_id: str, session: Session) -> Tick
     ticket = await delete_comment(session, ticket_id, comment_id)
     if ticket is None:
         _404()
-    await board_events.publish("invalidate")
+    await board_events.publish(board_events.INVALIDATE, topics=[COMMENTS_TOPIC])
     return _read(ticket)
 
 

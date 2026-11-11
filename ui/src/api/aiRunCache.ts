@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import camelcaseKeys from 'camelcase-keys';
 import type { AiMessageEvent, AiRun, AiRunEvent, AiRunFull, AiStepEvent, BoardRun, RunStep } from '../types/ai';
 import { aiKeys, type AiBoardData } from './ai';
+import { resetRunCounters, setRunCounter } from './runCounters';
 
 /** Steps by seq, oldest first, each seq once (a later copy replaces an earlier one: its output may have arrived). */
 export function mergeSteps(old: RunStep[], incoming: RunStep[]): RunStep[] {
@@ -56,7 +57,7 @@ function patchProjectRuns(qc: QueryClient, runId: string, patch: (r: AiRun) => A
   });
 }
 
-/** How often the step counters of the running AIs may change the board entries and the run lists. */
+/** How often the step counters of the running AIs may change the run lists (and the board, on a change of state). */
 export const COUNTERS_EVERY_MS = 5000;
 
 type Counters = Pick<AiStepEvent, 'state' | 'stepsCount' | 'lastOutputAt'>;
@@ -73,19 +74,24 @@ function counted<T extends { state: AiRun['state']; stepsCount: number; lastOutp
   return { ...r, state: c.state, stepsCount: c.stepsCount, lastOutputAt: c.lastOutputAt ?? r.lastOutputAt };
 }
 
-/** Write the waiting counters of every run: one change of the board (so one render of what reads it) for all. */
-function writeCounters(qc: QueryClient, now: number): void {
+/**
+ * Write the waiting counters of every run on the run lists, at once. The board gets them only with a change of state
+ * (`board`): its cards show their live "step N" from api/runCounters.ts, and a board entry that moved rendered every
+ * card and column of the board.
+ */
+function writeCounters(qc: QueryClient, now: number, board = false): void {
   clearTimeout(timer);
   timer = undefined;
   lastWrite = now;
   if (!pending.size) return;
   const all = new Map(pending);
   pending.clear();
-  patchBoard(
-    qc,
-    (r) => all.has(r.runId),
-    (r) => counted(r, all.get(r.runId) as Counters),
-  );
+  if (board)
+    patchBoard(
+      qc,
+      (r) => all.has(r.runId),
+      (r) => counted(r, all.get(r.runId) as Counters),
+    );
   for (const [runId, c] of all) {
     patchTicketRuns(qc, runId, (r) => counted(r, c));
     patchProjectRuns(qc, runId, (r) => counted(r, c));
@@ -93,16 +99,20 @@ function writeCounters(qc: QueryClient, now: number): void {
 }
 
 /**
- * Put a step batch's counters on the board entry and the run lists. The App and every ticket, card and comment box
- * read them, so a run streaming a batch a second re-rendered the whole app a second, once per running AI (typing a
- * comment lagged): a change of state goes through at once, the counters of all runs together at most every
- * COUNTERS_EVERY_MS.
+ * Put a step batch's counters where they show. The live "step N" goes to api/runCounters.ts at once (only that line
+ * renders). The board and the run lists are read by the App, every card, column, ticket and comment box: a run
+ * streaming a batch a second re-rendered the whole app a second, once per running AI (typing a comment lagged). So a
+ * change of state goes to the board at once; the counters go to the run lists, for all runs together, at most every
+ * COUNTERS_EVERY_MS, and to the board not at all.
  */
 function queueCounters(qc: QueryClient, ev: AiStepEvent, now: number): void {
+  setRunCounter(ev.runId, { stepsCount: ev.stepsCount, lastOutputAt: ev.lastOutputAt ?? null });
   const boards = qc.getQueriesData<AiBoardData>({ queryKey: ['ai', 'board'] });
   const held = boards.map(([, d]) => Object.values(d?.tickets ?? {}).find((r) => r.runId === ev.runId)).find(Boolean);
   pending.set(ev.runId, { state: ev.state, stepsCount: ev.stepsCount, lastOutputAt: ev.lastOutputAt });
-  if ((held && held.state !== ev.state) || now - lastWrite >= COUNTERS_EVERY_MS) {
+  if (held && held.state !== ev.state) {
+    writeCounters(qc, now, true);
+  } else if (now - lastWrite >= COUNTERS_EVERY_MS) {
     writeCounters(qc, now);
   } else if (timer === undefined) {
     timer = setTimeout(() => writeCounters(qc, Date.now()), lastWrite + COUNTERS_EVERY_MS - now);
@@ -111,6 +121,7 @@ function queueCounters(qc: QueryClient, ev: AiStepEvent, now: number): void {
 
 /** Forget the waiting counters and when they were last written (tests). */
 export function resetCounterThrottle(): void {
+  resetRunCounters();
   clearTimeout(timer);
   timer = undefined;
   pending.clear();
@@ -119,8 +130,8 @@ export function resetCounterThrottle(): void {
 
 /**
  * `ai.step`: a batch of a run's steps. They go on the run in the cache when it is there (a run nobody opened takes
- * nothing), and the counters and state go on the board entry and the ticket's run list (the counters of all runs
- * together, at most every COUNTERS_EVERY_MS). A batch that left out steps (`truncated`) or does not follow the ones held makes the open run
+ * nothing), the counter to the line that shows it (api/runCounters.ts), a change of state to the board entry and the
+ * run lists, and the counters to the run lists (all runs together, at most every COUNTERS_EVERY_MS). A batch that left out steps (`truncated`) or does not follow the ones held makes the open run
  * refetch.
  */
 export function applyStepEvent(qc: QueryClient, ev: AiStepEvent, now = Date.now()): void {

@@ -15,6 +15,7 @@ import './accounts/accountsMember.css';
 import { RestartNotice, RunResourcesStrip } from './RunResources';
 import { AiAvatar, RunStateChip, SparkleIcon, fmtElapsed, hhmm, secondsSince, useAiBoardState, useNow } from './aiUi';
 import { LineIcon } from '../ui/LineIcon';
+import { useRunStepsCount } from '../../api/runCounters';
 
 // The run view, steps, history and the AI tab live in RunView.tsx
 export { RunView, RunHistory, TicketRunsTab } from './RunView';
@@ -213,6 +214,7 @@ export function RunHeaderChip({ ticket }: { ticket: Ticket }) {
 /** The run now going on a ticket: who, since when, which step, and a bar moving while it works (as on main). */
 function ActiveRunCard({ run, who, onOpenRun }: { run: AiRun; who: string; onOpenRun: () => void }) {
   useNow(1000, run.state !== 'queued');
+  const steps = useRunStepsCount(run.id, run.stepsCount);
   const queued = run.state === 'queued';
   const state = run.state === 'starting' ? 'starting' : queued ? 'queued' : 'in progress';
   return (
@@ -250,7 +252,7 @@ function ActiveRunCard({ run, who, onOpenRun }: { run: AiRun; who: string; onOpe
               ? (run.waitingReason ?? 'Starts in a few seconds')
               : run.state === 'starting'
                 ? 'Starting… the CLI is starting up'
-                : `Started ${hhmm(run.startedAt)} · ${fmtElapsed(secondsSince(run.startedAt))} · step ${run.stepsCount}`}
+                : `Started ${hhmm(run.startedAt)} · ${fmtElapsed(secondsSince(run.startedAt))} · step ${steps}`}
           </div>
         </div>
         <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun}>
@@ -340,6 +342,8 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
   const toast = useToast();
   const live = run?.state === 'running' || run?.state === 'starting';
   useNow(1000, !!live);
+  // live from the AI's events, without the whole board rendering again (api/runCounters.ts)
+  const steps = useRunStepsCount(run?.runId, run?.stepsCount ?? 0);
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   // Pause all AI: one chip in the banner's colour. A ticket that needs your answer keeps its footer.
@@ -374,7 +378,7 @@ export function CardAiFooter({ ticket }: { ticket: Ticket }) {
           </span>
         )}
         <span className="ai-muted" style={{ marginLeft: 'auto' }} data-testid="card-step-hint">
-          {run.state === 'starting' ? '' : `step ${run.stepsCount}`}
+          {run.state === 'starting' ? '' : `step ${steps}`}
         </span>
         {run.state === 'running' && <div className="ai-progress" />}
       </div>
