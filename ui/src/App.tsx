@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Board } from './components/Board';
 import { IdeaSpace } from './components/ideas/IdeaSpace';
 import { IdeaCaptureProvider } from './components/ideas/IdeaCapture';
@@ -43,7 +44,7 @@ import { useLoadingPill } from './hooks/useLoadingPill';
 import { Splash } from './components/Splash';
 import { UpdateNotice } from './components/UpdateNotice';
 import { DesktopMenuHost, type MenuView } from './components/desktop/DesktopMenuHost';
-import { useAiBoard, useAiSettings, useAiTeams, aiApi } from './api/ai';
+import { aiKeys, useAiBoard, useAiSettings, useAiTeams, aiApi, type AiBoardData } from './api/ai';
 import { AiBoardContext, type AiBoardState } from './components/ai/aiUi';
 import { AiMembersPage } from './components/ai/AiMembersPage';
 import { OPEN_DOC_EVENT } from './utils/openDoc';
@@ -105,21 +106,30 @@ function SidebarWithAssist(props: Omit<Parameters<typeof ProjectSidebar>[0], 'as
   return <ProjectSidebar {...rest} askAi={askAi} notifications={notifications} />;
 }
 
-/** The AI state and the schedule layers (editor, detail) for everything under them. */
+/**
+ * The AI state and the schedule layers (editor, detail) for everything under them. The runs of the board are read
+ * here, not in App: a running AI moves them every few seconds, and only what reads them should render again, not the
+ * whole app (typing a comment lagged while an AI ran).
+ */
 function BoardProviders({
   ai,
   schedules,
   ideas,
   children,
 }: {
-  ai: AiBoardState;
+  ai: Omit<AiBoardState, 'runsByTicket'>;
   schedules: Omit<Parameters<typeof SchedulesProvider>[0], 'children'>;
   /** Idea Space: Quick add (Alt+N, "Make idea") and the links from tickets to their idea. */
   ideas: { projectId: string | null; openIdea: (id: string, tab?: string) => void };
   children: ReactNode;
 }) {
+  const aiBoard = useAiBoard(ai.projectId);
+  const value = useMemo<AiBoardState>(
+    () => ({ ...ai, runsByTicket: new Map(Object.entries(aiBoard.data?.tickets ?? {})) }),
+    [ai, aiBoard.data],
+  );
   return (
-    <AiBoardContext.Provider value={ai}>
+    <AiBoardContext.Provider value={value}>
       <SchedulesProvider {...schedules}>
         <IdeaLinksProvider value={{ openIdea: ideas.openIdea }}>
           <IdeaCaptureProvider projectId={ideas.projectId} onOpenIdea={ideas.openIdea}>
@@ -188,17 +198,16 @@ export default function App() {
   } | null>(null);
   const aiTeams = useAiTeams(currentProjectId ?? '');
   const aiSettings = useAiSettings(currentProjectId ?? '');
-  const aiBoard = useAiBoard(currentProjectId ?? '');
-  const aiState = useMemo<AiBoardState>(
+  const queryClient = useQueryClient();
+  const aiState = useMemo<Omit<AiBoardState, 'runsByTicket'>>(
     () => ({
       projectId: currentProjectId ?? '',
       members: new Map((aiTeams.data ?? []).map((m) => [m.id, m])),
-      runsByTicket: new Map(Object.entries(aiBoard.data?.tickets ?? {})),
       settings: aiSettings.data ?? null,
       openAiPage: (memberId?: string) => setAiPage({ memberId, key: Date.now() }),
       openAiTab: (tab) => setAiPage({ tab: tab === 'accounts' ? 'accounts' : undefined, key: Date.now() }),
     }),
-    [currentProjectId, aiTeams.data, aiSettings.data, aiBoard.data],
+    [currentProjectId, aiTeams.data, aiSettings.data],
   );
   // All notifications page (a view of its own, like Settings)
   const [notifPage, setNotifPage] = useState(false);
@@ -592,7 +601,7 @@ export default function App() {
       return;
     }
 
-    const heldBy = aiState.runsByTicket.get(ticketId);
+    const heldBy = queryClient.getQueryData<AiBoardData>(aiKeys.board(currentProjectId ?? ''))?.tickets[ticketId];
     if (
       heldBy &&
       ['queued', 'starting', 'running', 'needs_input'].includes(heldBy.state) &&

@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AiRun, AiRunFull, RunStep } from '../types/ai';
 import { aiKeys, type AiBoardData } from './ai';
 import {
@@ -221,6 +221,50 @@ describe('ai.step counters', () => {
     expect(qc.getQueryData<AiRunFull>(aiKeys.run('r1'))!.stepsCount).toBe(5);
     applyStepEvent(qc, ev(6), 1000 + COUNTERS_EVERY_MS);
     expect(qc.getQueryData<AiBoardData>(aiKeys.board('p1'))!.tickets['IAM-12'].stepsCount).toBe(6);
+  });
+
+  it('writes the waiting counters of every run in one change of the board', () => {
+    vi.useFakeTimers();
+    try {
+      const qc = setup();
+      const boardWith = (extra: Record<string, unknown>) =>
+        qc.setQueryData<AiBoardData>(aiKeys.board('p1'), (old) => ({
+          tickets: {
+            ...old!.tickets,
+            'IAM-13': { ...old!.tickets['IAM-12'], ticketId: 'IAM-13', runId: 'r2', ...extra },
+          },
+        }));
+      boardWith({});
+      const now = Date.now();
+      applyStepEvent(qc, ev(4), now);
+      const after = qc.getQueryData<AiBoardData>(aiKeys.board('p1'));
+      applyStepEvent(qc, ev(5), now + 100);
+      applyStepEvent(qc, { ...ev(9), runId: 'r2' }, now + 200);
+      expect(qc.getQueryData(aiKeys.board('p1'))).toBe(after);
+      vi.advanceTimersByTime(COUNTERS_EVERY_MS);
+      const board = qc.getQueryData<AiBoardData>(aiKeys.board('p1'))!;
+      expect(board.tickets['IAM-12'].stepsCount).toBe(5);
+      expect(board.tickets['IAM-13'].stepsCount).toBe(9);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('drops waiting counters when the run itself changes', () => {
+    vi.useFakeTimers();
+    try {
+      const qc = setup();
+      const now = Date.now();
+      applyStepEvent(qc, ev(4), now);
+      applyStepEvent(qc, ev(5), now + 100);
+      applyAiEvent(qc, JSON.stringify({ type: 'ai.run', run: { ...run(), state: 'finished', steps_count: 7 } }));
+      vi.advanceTimersByTime(COUNTERS_EVERY_MS);
+      const entry = qc.getQueryData<AiBoardData>(aiKeys.board('p1'))!.tickets['IAM-12'];
+      expect(entry.state).toBe('finished');
+      expect(entry.stepsCount).toBe(7);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('lets a change of state through at once', () => {
