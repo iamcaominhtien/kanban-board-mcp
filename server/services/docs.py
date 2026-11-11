@@ -2127,20 +2127,37 @@ async def docs_for_ticket(
                         ref["context"],
                         detail,
                     )
-    links = await session.exec(
-        select(DocsLink).where(DocsLink.target_ticket_id == ticket_id)
+    links = list(
+        (
+            await session.exec(
+                select(DocsLink).where(DocsLink.target_ticket_id == ticket_id)
+            )
+        ).all()
     )
-    for link in links.all():
-        src = await session.get(DocsPage, link.source_page_id)
-        if src is None or src.deleted_at:
+    sources: dict[str, DocsPage] = {}
+    for link in links:
+        src = by_id.get(link.source_page_id) or await session.get(
+            DocsPage, link.source_page_id
+        )
+        if src is not None and not src.deleted_at:
+            sources[src.id] = src
+    # the headings of every source page in one read (an agent reads a ticket many times; a long page links it often)
+    headings_of = await _headings_by_page(session, list(sources.values()))
+    for link in links:
+        src = sources.get(link.source_page_id)
+        if src is None:
             continue
         by_id.setdefault(src.id, src)
-        row(
-            src,
-            "manual" if link.origin == "manual" else "page",
-            await _section_label(session, src, link.source_section),
-            link.snippet,
+        slug = link.source_section
+        label = (
+            next(
+                (h["text"] for h in headings_of.get(src.id, []) if h["slug"] == slug),
+                slug,
+            )
+            if slug
+            else None
         )
+        row(src, "manual" if link.origin == "manual" else "page", label, link.snippet)
     if ticket is not None:
         await _canvas_rows(session, ticket, pages, by_id, row, out)
     out.sort(key=lambda r: (_ORIGIN_ORDER[r["origin"]], r["title"].lower()))

@@ -1,5 +1,6 @@
 """Pure Markdown helpers for the Docs space: slugs, headings and reference parsing."""
 
+import functools
 import re
 from typing import Any
 
@@ -108,7 +109,20 @@ def _strip_inline(text: str) -> str:
 
 
 def heading_anchors(markdown: str) -> list[dict[str, Any]]:
-    """Headings with their slug anchors; duplicates get ``-2``, ``-3``…"""
+    """Headings with their slug anchors; duplicates get ``-2``, ``-3``…
+
+    The same page is read for many requests (an agent reading a ticket reads the headings of every page that links it;
+    a page open reads those of the pages it links), so the result is kept per text (`_headings_cached`) and each call
+    gets its own copy."""
+    return [dict(h) for h in _headings_cached(markdown)]
+
+
+@functools.lru_cache(maxsize=64)
+def _headings_cached(markdown: str) -> tuple[dict[str, Any], ...]:
+    return tuple(_parse_headings(markdown))
+
+
+def _parse_headings(markdown: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     seen: dict[str, int] = {}
     in_fence = False
@@ -130,9 +144,15 @@ def heading_anchors(markdown: str) -> list[dict[str, Any]]:
     return out
 
 
-def _prose_lines(markdown: str) -> list[tuple[str, str | None, str]]:
-    """(line, current section slug, raw line) for lines outside code fences."""
-    anchors = {a["text"]: a["slug"] for a in heading_anchors(markdown)}
+def _prose_lines(markdown: str) -> tuple[tuple[str, str | None, str], ...]:
+    """(line, current section slug, raw line) for lines outside code fences. Kept per text, like the headings: the
+    tuples cannot be changed by a caller."""
+    return _prose_lines_cached(markdown)
+
+
+@functools.lru_cache(maxsize=32)
+def _prose_lines_cached(markdown: str) -> tuple[tuple[str, str | None, str], ...]:
+    anchors = {a["text"]: a["slug"] for a in _headings_cached(markdown)}
     section: str | None = None
     in_fence = False
     out: list[tuple[str, str | None, str]] = []
@@ -146,7 +166,7 @@ def _prose_lines(markdown: str) -> list[tuple[str, str | None, str]]:
         if m:
             section = anchors.get(_strip_inline(m.group(2)), section)
         out.append((_INLINE_CODE.sub("", raw), section, raw))
-    return out
+    return tuple(out)
 
 
 def parse_references(markdown: str) -> list[dict[str, Any]]:
