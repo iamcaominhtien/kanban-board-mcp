@@ -23,10 +23,5 @@ impl ActiveModelBehavior for ActiveModel {}
 /// A new row with the defaults of the Python model `DocsAnchorAlias`.
 /// Set before saving: `page_id`, `old_slug`, `new_slug`.
 pub fn new() -> ActiveModel {
-    ActiveModel {
-        id: Set(kb_base::time::uuid4()),
-        page_id: NotSet,
-        old_slug: NotSet,
-        new_slug: NotSet,
-    }
+    ActiveModel { id: Set(kb_base::time::uuid4()), page_id: NotSet, old_slug: NotSet, new_slug: NotSet }
 }

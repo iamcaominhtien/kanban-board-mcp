@@ -3,9 +3,7 @@
 //! Every time column is such a string, and rows are ordered and compared as text, so the format must not drift:
 //! `2026-11-11T14:30:43.123456+00:00`, and no fraction at all when the microseconds are zero.
 
-use chrono::{
-    DateTime, FixedOffset, NaiveDate, NaiveDateTime, SecondsFormat, TimeZone, Timelike, Utc,
-};
+use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, SecondsFormat, TimeZone, Timelike, Utc};
 
 /// `datetime.now(timezone.utc).isoformat()`.
 pub fn now_iso() -> String {
@@ -20,22 +18,14 @@ where
     let micros = dt.nanosecond() / 1_000;
     let base = dt.format("%Y-%m-%dT%H:%M:%S");
     let offset = dt.format("%:z");
-    if micros == 0 {
-        format!("{base}{offset}")
-    } else {
-        format!("{base}.{micros:06}{offset}")
-    }
+    if micros == 0 { format!("{base}{offset}") } else { format!("{base}.{micros:06}{offset}") }
 }
 
 /// `dt.isoformat()` for a naive datetime (no offset).
 pub fn iso_naive(dt: &NaiveDateTime) -> String {
     let micros = dt.nanosecond() / 1_000;
     let base = dt.format("%Y-%m-%dT%H:%M:%S");
-    if micros == 0 {
-        format!("{base}")
-    } else {
-        format!("{base}.{micros:06}")
-    }
+    if micros == 0 { format!("{base}") } else { format!("{base}.{micros:06}") }
 }
 
 /// `dt.isoformat(timespec="milliseconds")` for an aware datetime.
@@ -96,18 +86,8 @@ pub fn parse_iso(text: &str) -> Option<Parsed> {
     };
     let mut parts = hms.split(':');
     let hour: u32 = parts.next()?.parse().ok()?;
-    let minute: u32 = parts
-        .next()
-        .map(|p| p.parse())
-        .transpose()
-        .ok()?
-        .unwrap_or(0);
-    let second: u32 = parts
-        .next()
-        .map(|p| p.parse())
-        .transpose()
-        .ok()?
-        .unwrap_or(0);
+    let minute: u32 = parts.next().map(|p| p.parse()).transpose().ok()?.unwrap_or(0);
+    let second: u32 = parts.next().map(|p| p.parse()).transpose().ok()?.unwrap_or(0);
     if parts.next().is_some() {
         return None;
     }
@@ -138,11 +118,7 @@ fn parse_offset(text: &str) -> Option<i32> {
     let (h, m, s) = match digits.len() {
         2 => (digits.parse::<i32>().ok()?, 0, 0),
         4 => (digits[..2].parse().ok()?, digits[2..].parse().ok()?, 0),
-        6 => (
-            digits[..2].parse().ok()?,
-            digits[2..4].parse().ok()?,
-            digits[4..].parse().ok()?,
-        ),
+        6 => (digits[..2].parse().ok()?, digits[2..4].parse().ok()?, digits[4..].parse().ok()?),
         _ => return None,
     };
     Some(sign * (h * 3600 + m * 60 + s))
@@ -189,19 +165,10 @@ mod tests {
     fn parses_what_python_parses() {
         let p = parse_iso("2026-11-11T14:30:43.123456+00:00").unwrap();
         assert_eq!(iso(&p.utc()), "2026-11-11T14:30:43.123456+00:00");
-        assert!(matches!(
-            parse_iso("2026-11-11 14:30"),
-            Some(Parsed::Naive(_))
-        ));
+        assert!(matches!(parse_iso("2026-11-11 14:30"), Some(Parsed::Naive(_))));
         assert!(matches!(parse_iso("2026-11-11"), Some(Parsed::Naive(_))));
-        assert_eq!(
-            iso(&parse_iso("2026-11-11T14:30:43Z").unwrap().utc()),
-            "2026-11-11T14:30:43+00:00"
-        );
-        assert_eq!(
-            iso(&parse_iso("2026-11-11T21:30:43.5+07:00").unwrap().utc()),
-            "2026-11-11T14:30:43.500000+00:00"
-        );
+        assert_eq!(iso(&parse_iso("2026-11-11T14:30:43Z").unwrap().utc()), "2026-11-11T14:30:43+00:00");
+        assert_eq!(iso(&parse_iso("2026-11-11T21:30:43.5+07:00").unwrap().utc()), "2026-11-11T14:30:43.500000+00:00");
         assert!(parse_iso("yesterday").is_none());
         assert!(parse_iso("2026-13-01").is_none());
     }

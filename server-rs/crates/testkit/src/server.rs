@@ -26,12 +26,7 @@ pub enum Target {
 
 /// `PARITY_TARGET=python|rust` (default `rust`).
 pub fn target() -> Target {
-    match std::env::var("PARITY_TARGET")
-        .unwrap_or_default()
-        .trim()
-        .to_lowercase()
-        .as_str()
-    {
+    match std::env::var("PARITY_TARGET").unwrap_or_default().trim().to_lowercase().as_str() {
         "python" | "py" => Target::Python,
         "" | "rust" | "rs" => Target::Rust,
         other => panic!("PARITY_TARGET must be python or rust, got {other:?}"),
@@ -50,10 +45,7 @@ pub struct Options {
 }
 
 fn workspace() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .components()
-        .collect::<PathBuf>()
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").components().collect::<PathBuf>()
 }
 
 fn workspace_clean() -> PathBuf {
@@ -76,10 +68,7 @@ pub fn rust_binary_available() -> bool {
 /// For tests: `false` (after printing a notice) when the target is Rust and its binary does not exist yet.
 pub fn skip_unless_available(test: &str) -> bool {
     if target() == Target::Rust && !rust_binary_available() {
-        eprintln!(
-            "SKIPPED {test}: the Rust server binary {} does not exist",
-            rust_binary().display()
-        );
+        eprintln!("SKIPPED {test}: the Rust server binary {} does not exist", rust_binary().display());
         return false;
     }
     true
@@ -112,10 +101,8 @@ fn tail_text(tail: &Tail) -> String {
 /// Kill the child and everything in its process group, then reap it.
 fn kill_group(child: &mut Child) {
     if let Some(pid) = child.id() {
-        let _ = std::process::Command::new("kill")
-            .args(["-KILL", "--", &format!("-{pid}")])
-            .stderr(Stdio::null())
-            .status();
+        let _ =
+            std::process::Command::new("kill").args(["-KILL", "--", &format!("-{pid}")]).stderr(Stdio::null()).status();
     }
     let _ = child.start_kill();
     for _ in 0..200 {
@@ -134,19 +121,12 @@ impl Server {
 
     /// Start a server of the current target.
     pub async fn start_with(opts: Options) -> Server {
-        let template = if opts.fresh_db {
-            None
-        } else {
-            template_db().await
-        };
+        let template = if opts.fresh_db { None } else { template_db().await };
         Server::spawn(target(), &opts, template.as_deref()).await
     }
 
     async fn spawn(target: Target, opts: &Options, template: Option<&Path>) -> Server {
-        let tmp = tempfile::Builder::new()
-            .prefix("kanban-testkit-")
-            .tempdir()
-            .expect("temporary folder");
+        let tmp = tempfile::Builder::new().prefix("kanban-testkit-").tempdir().expect("temporary folder");
         let root = tmp.path().to_path_buf();
         for d in ["data", "config", "logs", "workspace", "uploads", "claude"] {
             std::fs::create_dir_all(root.join(d)).expect("create folder");
@@ -154,19 +134,14 @@ impl Server {
         if let Some(t) = template {
             std::fs::copy(t, root.join("data/kanban.db")).expect("copy template database");
         }
-        let ai_roots =
-            std::env::join_paths([root.clone(), std::env::temp_dir()]).expect("KANBAN_AI_ROOTS");
+        let ai_roots = std::env::join_paths([root.clone(), std::env::temp_dir()]).expect("KANBAN_AI_ROOTS");
 
         let mut cmd = match target {
             Target::Python => {
                 let server_dir = workspace_clean().join("../server");
                 let server_dir = std::fs::canonicalize(&server_dir).unwrap_or(server_dir);
                 let python = server_dir.join(".venv/bin/python");
-                assert!(
-                    python.is_file(),
-                    "Python virtualenv missing: {}",
-                    python.display()
-                );
+                assert!(python.is_file(), "Python virtualenv missing: {}", python.display());
                 let mut c = Command::new(python);
                 c.arg("main.py").current_dir(server_dir);
                 c
@@ -194,25 +169,16 @@ impl Server {
         for (k, v) in &opts.env {
             cmd.env(k, v);
         }
-        cmd.stdin(if opts.secret.is_some() {
-            Stdio::piped()
-        } else {
-            Stdio::null()
-        })
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .process_group(0)
-        .kill_on_drop(true);
+        cmd.stdin(if opts.secret.is_some() { Stdio::piped() } else { Stdio::null() })
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .process_group(0)
+            .kill_on_drop(true);
 
-        let mut child = cmd
-            .spawn()
-            .unwrap_or_else(|e| panic!("cannot start the server: {e}"));
+        let mut child = cmd.spawn().unwrap_or_else(|e| panic!("cannot start the server: {e}"));
         if let Some(secret) = &opts.secret {
             let mut stdin = child.stdin.take().expect("stdin");
-            stdin
-                .write_all(format!("{secret}\n").as_bytes())
-                .await
-                .expect("write the secret");
+            stdin.write_all(format!("{secret}\n").as_bytes()).await.expect("write the secret");
             stdin.flush().await.expect("flush the secret");
             // the server reads one line; closing stdin afterwards is harmless
             drop(stdin);
@@ -241,13 +207,8 @@ impl Server {
             }
         });
 
-        let mut server = Server {
-            tmp: Some(tmp),
-            child: Some(child),
-            port: 0,
-            base: String::new(),
-            secret: opts.secret.clone(),
-        };
+        let mut server =
+            Server { tmp: Some(tmp), child: Some(child), port: 0, base: String::new(), secret: opts.secret.clone() };
         match tokio::time::timeout(STARTUP_TIMEOUT, rx.recv()).await {
             Ok(Some(port)) => {
                 server.port = port;
@@ -255,10 +216,7 @@ impl Server {
                 server
             }
             Ok(None) => {
-                let status = server
-                    .child
-                    .as_mut()
-                    .and_then(|c| c.try_wait().ok().flatten());
+                let status = server.child.as_mut().and_then(|c| c.try_wait().ok().flatten());
                 let log = tail_text(&tail);
                 drop(server);
                 panic!("the server exited before READY ({status:?}); last output:\n{log}");
@@ -266,9 +224,7 @@ impl Server {
             Err(_) => {
                 let log = tail_text(&tail);
                 drop(server);
-                panic!(
-                    "the server printed no READY line within {STARTUP_TIMEOUT:?}; last output:\n{log}"
-                );
+                panic!("the server printed no READY line within {STARTUP_TIMEOUT:?}; last output:\n{log}");
             }
         }
     }
@@ -285,10 +241,7 @@ impl Server {
 
     /// The process id of the server.
     pub fn pid(&self) -> u32 {
-        self.child
-            .as_ref()
-            .and_then(|c| c.id())
-            .expect("server running")
+        self.child.as_ref().and_then(|c| c.id()).expect("server running")
     }
 
     /// The temporary root folder.
@@ -323,11 +276,7 @@ impl Server {
 
     /// A client; it sends `X-Kanban-Secret` when the server was started with a secret.
     pub fn client(&self) -> Client {
-        let headers = self
-            .secret
-            .iter()
-            .map(|s| ("X-Kanban-Secret".to_string(), s.clone()))
-            .collect();
+        let headers = self.secret.iter().map(|s| ("X-Kanban-Secret".to_string(), s.clone())).collect();
         Client::new(&self.base, headers)
     }
 
@@ -379,11 +328,7 @@ async fn template_db() -> Option<PathBuf> {
 async fn build_template() -> Option<PathBuf> {
     let head_file = workspace_clean().join("contract/alembic-head.txt");
     let head = std::fs::read_to_string(&head_file).ok()?;
-    let key: String = head
-        .trim()
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric())
-        .collect();
+    let key: String = head.trim().chars().filter(|c| c.is_ascii_alphanumeric()).collect();
     let dir = workspace_clean().join("target/testkit");
     std::fs::create_dir_all(&dir).ok()?;
     let final_path = dir.join(format!("template-{key}.db"));

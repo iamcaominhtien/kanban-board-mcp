@@ -23,24 +23,19 @@ pub struct ApiError {
     pub status: StatusCode,
     pub detail: Value,
     pub headers: Vec<(String, String)>,
+    /// Set when a database call failed (see `DbFailure`).
+    pub db_failure: Option<String>,
 }
 
 impl ApiError {
     /// `HTTPException(status_code=status, detail=detail)`.
     pub fn new(status: StatusCode, detail: impl Into<Value>) -> Self {
-        Self {
-            status,
-            detail: detail.into(),
-            headers: Vec::new(),
-        }
+        Self { status, detail: detail.into(), headers: Vec::new(), db_failure: None }
     }
 
     /// `HTTPException(status_code=code, detail=detail)` with the status as a number.
     pub fn code(code: u16, detail: impl Into<Value>) -> Self {
-        Self::new(
-            StatusCode::from_u16(code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-            detail,
-        )
+        Self::new(StatusCode::from_u16(code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), detail)
     }
 
     /// 400.
@@ -70,20 +65,13 @@ impl ApiError {
 
     /// 422 as FastAPI's request validation answers: one `{type, loc, msg}` entry.
     pub fn validation(loc: &[&str], msg: impl Into<String>, kind: &str) -> Self {
-        Self::new(
-            StatusCode::UNPROCESSABLE_ENTITY,
-            json!([{"type": kind, "loc": loc, "msg": msg.into()}]),
-        )
+        Self::new(StatusCode::UNPROCESSABLE_ENTITY, json!([{"type": kind, "loc": loc, "msg": msg.into()}]))
     }
 
     /// 500 for an unexpected failure: logged, answered as Starlette does.
     pub fn internal(err: impl std::fmt::Display) -> Self {
         tracing::error!("Unhandled error: {err}");
-        Self {
-            status: StatusCode::INTERNAL_SERVER_ERROR,
-            detail: Value::Null,
-            headers: Vec::new(),
-        }
+        Self { status: StatusCode::INTERNAL_SERVER_ERROR, detail: Value::Null, headers: Vec::new(), db_failure: None }
     }
 
     /// Add a response header.
@@ -113,15 +101,17 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let mut headers = HeaderMap::new();
         for (name, value) in &self.headers {
-            if let (Ok(name), Ok(value)) = (
-                HeaderName::try_from(name.as_str()),
-                HeaderValue::try_from(value.as_str()),
-            ) {
+            if let (Ok(name), Ok(value)) = (HeaderName::try_from(name.as_str()), HeaderValue::try_from(value.as_str()))
+            {
                 headers.insert(name, value);
             }
         }
         if self.status == StatusCode::INTERNAL_SERVER_ERROR && self.detail.is_null() {
-            return (self.status, headers, "Internal Server Error").into_response();
+            let mut response = (self.status, headers, "Internal Server Error").into_response();
+            if let Some(failure) = self.db_failure {
+                response.extensions_mut().insert(DbFailure(failure));
+            }
+            return response;
         }
         (self.status, headers, Json(json!({"detail": self.detail}))).into_response()
     }
@@ -137,12 +127,24 @@ macro_rules! internal_from {
         }
     )*};
 }
-internal_from!(
-    std::io::Error,
-    serde_json::Error,
-    std::fmt::Error,
-    tokio::task::JoinError
-);
+internal_from!(std::io::Error, serde_json::Error, std::fmt::Error, tokio::task::JoinError);
+
+/// What a 500 response carries when a database call failed: the app turns a lost connection to a server database
+/// into its "cannot reach the database" answer.
+#[derive(Debug, Clone)]
+pub struct DbFailure(pub String);
+
+impl From<sea_orm::DbErr> for ApiError {
+    fn from(err: sea_orm::DbErr) -> Self {
+        tracing::error!("Database error: {err}");
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            detail: Value::Null,
+            headers: Vec::new(),
+            db_failure: Some(err.to_string()),
+        }
+    }
+}
 
 /// A JSON body, answered with FastAPI's 422 when it cannot be read (`Json<T>` of axum answers 400/415/422 with a
 /// plain text body, which the app does not understand).
@@ -160,11 +162,7 @@ where
         let bytes = match axum::body::Bytes::from_request(req, state).await {
             Ok(bytes) => bytes,
             Err(err) => {
-                return Err(ApiError::validation(
-                    &["body"],
-                    err.to_string(),
-                    "value_error",
-                ));
+                return Err(ApiError::validation(&["body"], err.to_string(), "value_error"));
             }
         };
         if bytes.is_empty() {
@@ -194,39 +192,22 @@ fn body_error<E: std::fmt::Display>(err: &serde_path_to_error::Error<E>) -> ApiE
             }
             if let Some(rest) = indexes {
                 for index in rest.split(['[', ']']).filter(|s| !s.is_empty()) {
-                    loc.push(
-                        index
-                            .parse::<u64>()
-                            .map(Value::from)
-                            .unwrap_or_else(|_| json!(index)),
-                    );
+                    loc.push(index.parse::<u64>().map(Value::from).unwrap_or_else(|_| json!(index)));
                 }
             }
         }
     }
-    let (kind, msg) = if let Some(field) = msg
-        .strip_prefix("missing field `")
-        .and_then(|m| m.split('`').next())
-    {
+    let (kind, msg) = if let Some(field) = msg.strip_prefix("missing field `").and_then(|m| m.split('`').next()) {
         loc.push(json!(field));
         ("missing", "Field required".to_string())
     } else if msg.starts_with("unknown field") {
-        (
-            "extra_forbidden",
-            "Extra inputs are not permitted".to_string(),
-        )
-    } else if msg.starts_with("expected")
-        || msg.starts_with("EOF")
-        || msg.contains("at line") && loc.len() == 1
-    {
+        ("extra_forbidden", "Extra inputs are not permitted".to_string())
+    } else if msg.starts_with("expected") || msg.starts_with("EOF") || msg.contains("at line") && loc.len() == 1 {
         ("json_invalid", format!("JSON decode error: {msg}"))
     } else {
         ("value_error", msg)
     };
-    ApiError::new(
-        StatusCode::UNPROCESSABLE_ENTITY,
-        json!([{"type": kind, "loc": loc, "msg": msg}]),
-    )
+    ApiError::new(StatusCode::UNPROCESSABLE_ENTITY, json!([{"type": kind, "loc": loc, "msg": msg}]))
 }
 
 /// Query parameters, answered with FastAPI's 422 when one cannot be read.
@@ -250,14 +231,8 @@ where
 
 fn query_error(err: &QueryRejection) -> ApiError {
     let text = err.body_text();
-    let msg = text
-        .strip_prefix("Failed to deserialize query string: ")
-        .unwrap_or(&text)
-        .to_string();
-    if let Some(field) = msg
-        .strip_prefix("missing field `")
-        .and_then(|m| m.split('`').next())
-    {
+    let msg = text.strip_prefix("Failed to deserialize query string: ").unwrap_or(&text).to_string();
+    if let Some(field) = msg.strip_prefix("missing field `").and_then(|m| m.split('`').next()) {
         return ApiError::validation(&["query", field], "Field required", "missing");
     }
     ApiError::validation(&["query"], msg, "value_error")

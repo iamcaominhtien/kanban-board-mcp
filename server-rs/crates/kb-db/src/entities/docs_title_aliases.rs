@@ -23,9 +23,5 @@ impl ActiveModelBehavior for ActiveModel {}
 /// A new row with the defaults of the Python model `DocsTitleAlias`.
 /// Set before saving: `page_id`, `old_title`.
 pub fn new() -> ActiveModel {
-    ActiveModel {
-        id: Set(kb_base::time::uuid4()),
-        page_id: NotSet,
-        old_title: NotSet,
-    }
+    ActiveModel { id: Set(kb_base::time::uuid4()), page_id: NotSet, old_title: NotSet }
 }

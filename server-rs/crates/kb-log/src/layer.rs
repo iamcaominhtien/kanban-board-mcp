@@ -32,10 +32,7 @@ impl LogWriter {
         max_bytes: u64,
         backup_count: u32,
     ) -> std::io::Result<Self> {
-        Ok(Self {
-            file: Mutex::new(RotatingFile::open(path, max_bytes, backup_count)?),
-            prefix,
-        })
+        Ok(Self { file: Mutex::new(RotatingFile::open(path, max_bytes, backup_count)?), prefix })
     }
 
     /// Write one record stamped with the current local time.
@@ -99,7 +96,6 @@ impl<S: Subscriber> Layer<S> for FileLayer {
         } else {
             visitor.message + &visitor.fields
         };
-        self.writer
-            .log(Level::from_tracing(meta.level()), meta.target(), &message);
+        self.writer.log(Level::from_tracing(meta.level()), meta.target(), &message);
     }
 }

@@ -1,3 +1,57 @@
-fn main() {
-    println!("Hello, world!");
+//! The board's HTTP server: REST, the event stream and MCP over HTTP. The desktop app starts it, reads the
+//! `READY port=N` line from its standard output and writes the API secret to its standard input.
+//!
+//! `--routes` prints the table of REST routes as JSON and exits (the route coverage check reads it).
+
+use std::net::{Ipv4Addr, SocketAddr};
+use std::time::Instant;
+
+#[allow(unsafe_code)]
+fn set_env(name: &str, value: &str) {
+    // Only called from `main` before the runtime starts: no other thread reads the environment yet.
+    unsafe { std::env::set_var(name, value) };
+}
+
+fn main() -> std::process::ExitCode {
+    let t0 = Instant::now();
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.iter().any(|a| a == "--routes") {
+        let (_, table) = kb_app::routes().into_parts();
+        let table: Vec<serde_json::Value> =
+            table.into_iter().map(|(method, path)| serde_json::json!({"method": method, "path": path})).collect();
+        println!("{}", serde_json::Value::Array(table));
+        return std::process::ExitCode::SUCCESS;
+    }
+    kb_base::api_secret::init();
+    if std::env::var("KANBAN_RUNNER").unwrap_or_default().is_empty() {
+        set_env("KANBAN_RUNNER", "process");
+    }
+    kb_log::setup_logging(false);
+
+    let listener = match std::net::TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0))) {
+        Ok(listener) => listener,
+        Err(err) => {
+            eprintln!("Cannot open a port on 127.0.0.1: {err}");
+            return std::process::ExitCode::FAILURE;
+        }
+    };
+    let port = listener.local_addr().map(|a| a.port()).unwrap_or(0);
+    kb_app::startup_mark(t0, &format!("socket-bound-port={port}"));
+    set_env("KANBAN_BOARD_URL", &format!("http://127.0.0.1:{port}"));
+
+    let runtime = match tokio::runtime::Builder::new_multi_thread().enable_all().build() {
+        Ok(runtime) => runtime,
+        Err(err) => {
+            eprintln!("Cannot start the runtime: {err}");
+            return std::process::ExitCode::FAILURE;
+        }
+    };
+    match runtime.block_on(kb_app::serve(listener, t0)) {
+        Ok(()) => std::process::ExitCode::SUCCESS,
+        Err(err) => {
+            tracing::error!(target: "kanban.http", "The server stopped: {err}");
+            eprintln!("The server stopped: {err}");
+            std::process::ExitCode::FAILURE
+        }
+    }
 }

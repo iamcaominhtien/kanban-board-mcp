@@ -22,13 +22,7 @@ impl Resp {
     /// The body parsed as JSON; panics with the body text when it is not JSON.
     pub fn json(&self) -> Value {
         serde_json::from_slice(&self.body).unwrap_or_else(|e| {
-            panic!(
-                "{} {} -> {}: body is not JSON ({e}): {}",
-                self.method,
-                self.path,
-                self.status,
-                self.text()
-            )
+            panic!("{} {} -> {}: body is not JSON ({e}): {}", self.method, self.path, self.status, self.text())
         })
     }
 
@@ -66,16 +60,9 @@ pub struct Client {
 
 impl Client {
     pub(crate) fn new(base: &str, headers: Vec<(String, String)>) -> Client {
-        let http = reqwest::Client::builder()
-            .no_proxy()
-            .timeout(Duration::from_secs(120))
-            .build()
-            .expect("reqwest client");
-        Client {
-            http,
-            base: base.to_string(),
-            headers,
-        }
+        let http =
+            reqwest::Client::builder().no_proxy().timeout(Duration::from_secs(120)).build().expect("reqwest client");
+        Client { http, base: base.to_string(), headers }
     }
 
     /// A client that sends this header on every request (e.g. the actor header).
@@ -98,29 +85,15 @@ impl Client {
 
     fn builder(&self, method: &str, path: &str) -> reqwest::RequestBuilder {
         let m = reqwest::Method::from_bytes(method.to_uppercase().as_bytes()).expect("http method");
-        self.http
-            .request(m, format!("{}{}", self.base, path))
-            .headers(self.header_map())
+        self.http.request(m, format!("{}{}", self.base, path)).headers(self.header_map())
     }
 
     async fn send(&self, method: &str, path: &str, rb: reqwest::RequestBuilder) -> Resp {
-        let r = rb
-            .send()
-            .await
-            .unwrap_or_else(|e| panic!("{method} {path}: request failed: {e}"));
+        let r = rb.send().await.unwrap_or_else(|e| panic!("{method} {path}: request failed: {e}"));
         let status = r.status().as_u16();
         let headers = r.headers().clone();
-        let body = r
-            .bytes()
-            .await
-            .unwrap_or_else(|e| panic!("{method} {path}: reading the body failed: {e}"));
-        Resp {
-            status,
-            headers,
-            body,
-            method: method.to_uppercase(),
-            path: path.to_string(),
-        }
+        let body = r.bytes().await.unwrap_or_else(|e| panic!("{method} {path}: reading the body failed: {e}"));
+        Resp { status, headers, body, method: method.to_uppercase(), path: path.to_string() }
     }
 
     async fn json_call(&self, method: &str, path: &str, body: Option<Value>) -> Resp {
@@ -195,13 +168,7 @@ impl Client {
     }
 
     /// Any method, extra headers (they win over the client's), raw body.
-    pub async fn request(
-        &self,
-        method: &str,
-        path: &str,
-        headers: &[(&str, &str)],
-        body: Option<Vec<u8>>,
-    ) -> Resp {
+    pub async fn request(&self, method: &str, path: &str, headers: &[(&str, &str)], body: Option<Vec<u8>>) -> Resp {
         let mut rb = self.builder(method, path);
         for (n, v) in headers {
             rb = rb.header(*n, *v);
@@ -223,10 +190,7 @@ impl Client {
             .await
             .expect("GET /events");
         assert_eq!(r.status().as_u16(), 200, "GET /events");
-        Events {
-            stream: Box::pin(r.bytes_stream()),
-            buf: String::new(),
-        }
+        Events { stream: Box::pin(r.bytes_stream()), buf: String::new() }
     }
 }
 
@@ -255,8 +219,7 @@ impl Events {
             }
             match tokio::time::timeout_at(deadline, self.stream.next()).await {
                 Ok(Some(Ok(chunk))) => {
-                    self.buf
-                        .push_str(&String::from_utf8_lossy(&chunk).replace("\r\n", "\n"));
+                    self.buf.push_str(&String::from_utf8_lossy(&chunk).replace("\r\n", "\n"));
                 }
                 _ => return None,
             }

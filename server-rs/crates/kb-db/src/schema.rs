@@ -33,15 +33,7 @@ pub static CHAIN: LazyLock<Vec<Revision>> = LazyLock::new(|| {
             let id = parts.next().unwrap_or("");
             let down = parts.next().unwrap_or("-");
             let file = parts.next().unwrap_or("");
-            Revision {
-                id,
-                down: if down == "-" {
-                    Vec::new()
-                } else {
-                    down.split(',').collect()
-                },
-                file,
-            }
+            Revision { id, down: if down == "-" { Vec::new() } else { down.split(',').collect() }, file }
         })
         .collect()
 });
@@ -90,9 +82,7 @@ pub async fn table_names<C: ConnectionTrait>(conn: &C) -> Result<Vec<String>, Db
         }
         _ => "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",
     };
-    let rows = conn
-        .query_all_raw(Statement::from_string(backend, query))
-        .await?;
+    let rows = conn.query_all_raw(Statement::from_string(backend, query)).await?;
     let mut names = Vec::with_capacity(rows.len());
     for row in rows {
         names.push(row.try_get::<String>("", "name")?);
@@ -108,12 +98,7 @@ pub async fn has_table<C: ConnectionTrait>(conn: &C, name: &str) -> Result<bool,
 /// The revisions the database is stamped with (normally one).
 pub async fn current_revisions<C: ConnectionTrait>(conn: &C) -> Result<Vec<String>, DbErr> {
     let backend = conn.get_database_backend();
-    let rows = conn
-        .query_all_raw(Statement::from_string(
-            backend,
-            "SELECT version_num FROM alembic_version",
-        ))
-        .await?;
+    let rows = conn.query_all_raw(Statement::from_string(backend, "SELECT version_num FROM alembic_version")).await?;
     let mut out = Vec::with_capacity(rows.len());
     for row in rows {
         out.push(row.try_get::<String>("", "version_num")?);
@@ -126,37 +111,20 @@ pub async fn schema_state<C: ConnectionTrait>(conn: &C) -> Result<SchemaState, D
     let mut names = table_names(conn).await?;
     names.retain(|n| n != changes::TABLE);
     if names.is_empty() {
-        return Ok(SchemaState {
-            state: "empty",
-            revision: None,
-            tables: 0,
-        });
+        return Ok(SchemaState { state: "empty", revision: None, tables: 0 });
     }
     if !names.iter().any(|n| n == "alembic_version") {
-        return Ok(SchemaState {
-            state: "foreign",
-            revision: None,
-            tables: names.len(),
-        });
+        return Ok(SchemaState { state: "foreign", revision: None, tables: names.len() });
     }
     let revision = current_revisions(conn).await?.into_iter().next();
-    Ok(SchemaState {
-        state: "board",
-        revision,
-        tables: names.len() - 1,
-    })
+    Ok(SchemaState { state: "board", revision, tables: names.len() - 1 })
 }
 
 fn statements(schema: &'static str) -> impl Iterator<Item = &'static str> {
-    schema
-        .split(";\n\n")
-        .map(|chunk| chunk.trim().trim_end_matches(';').trim())
-        .filter(|chunk| {
-            // a chunk that is only comment lines is the file's header
-            chunk
-                .lines()
-                .any(|line| !line.trim().is_empty() && !line.trim_start().starts_with("--"))
-        })
+    schema.split(";\n\n").map(|chunk| chunk.trim().trim_end_matches(';').trim()).filter(|chunk| {
+        // a chunk that is only comment lines is the file's header
+        chunk.lines().any(|line| !line.trim().is_empty() && !line.trim_start().starts_with("--"))
+    })
 }
 
 /// Make the app's tables on an empty database and stamp it at the newest migration. Links between tables are not
@@ -171,11 +139,8 @@ pub async fn create_schema<C: ConnectionTrait>(conn: &C) -> Result<(), DbErr> {
     let mut has_version_table = false;
     for statement in statements(schema) {
         // the comment line above the first statement of a file
-        let statement: String = statement
-            .lines()
-            .filter(|line| !line.trim_start().starts_with("--"))
-            .collect::<Vec<_>>()
-            .join("\n");
+        let statement: String =
+            statement.lines().filter(|line| !line.trim_start().starts_with("--")).collect::<Vec<_>>().join("\n");
         if statement.contains("alembic_version") {
             has_version_table = true;
         }
@@ -190,8 +155,7 @@ pub async fn create_schema<C: ConnectionTrait>(conn: &C) -> Result<(), DbErr> {
     }
     if backend == DbBackend::Sqlite {
         // the SQLite chain made this row in a migration; on a server database it is made on first use
-        conn.execute_unprepared("INSERT INTO idea_counter (id, counter) VALUES (1, 0)")
-            .await?;
+        conn.execute_unprepared("INSERT INTO idea_counter (id, counter) VALUES (1, 0)").await?;
     } else {
         changes::create(conn).await?;
     }
@@ -237,38 +201,15 @@ mod tests {
         assert!(!known_revision("0123456789ab"));
         // every revision but the first follows one that exists
         for rev in CHAIN.iter().skip(1) {
-            assert!(
-                !rev.down.is_empty() && rev.down.iter().all(|d| CHAIN.iter().any(|r| r.id == *d)),
-                "{rev:?}"
-            );
+            assert!(!rev.down.is_empty() && rev.down.iter().all(|d| CHAIN.iter().any(|r| r.id == *d)), "{rev:?}");
         }
     }
 
     #[test]
     fn the_snapshots_split_into_statements() {
-        assert_eq!(
-            statements(SQLITE_SCHEMA)
-                .filter(|s| s.contains("CREATE TABLE"))
-                .count(),
-            78
-        );
-        assert_eq!(
-            statements(SQLITE_SCHEMA)
-                .filter(|s| s.contains("CREATE VIRTUAL TABLE"))
-                .count(),
-            3
-        );
-        assert_eq!(
-            statements(POSTGRES_SCHEMA)
-                .filter(|s| s.contains("CREATE TABLE"))
-                .count(),
-            78
-        );
-        assert_eq!(
-            statements(MYSQL_SCHEMA)
-                .filter(|s| s.contains("CREATE TABLE"))
-                .count(),
-            78
-        );
+        assert_eq!(statements(SQLITE_SCHEMA).filter(|s| s.contains("CREATE TABLE")).count(), 78);
+        assert_eq!(statements(SQLITE_SCHEMA).filter(|s| s.contains("CREATE VIRTUAL TABLE")).count(), 3);
+        assert_eq!(statements(POSTGRES_SCHEMA).filter(|s| s.contains("CREATE TABLE")).count(), 78);
+        assert_eq!(statements(MYSQL_SCHEMA).filter(|s| s.contains("CREATE TABLE")).count(), 78);
     }
 }

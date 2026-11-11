@@ -18,35 +18,30 @@ async fn open(path: &Path, read_only: bool) -> SqliteConnection {
 /// Fold the WAL into the main file so that copying `kanban.db` alone is complete.
 pub async fn checkpoint(path: &Path) {
     let mut c = open(path, false).await;
-    sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
-        .execute(&mut c)
-        .await
-        .expect("wal checkpoint");
+    sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)").execute(&mut c).await.expect("wal checkpoint");
     let _ = c.close().await;
 }
 
 /// Every table -> rows as objects, tables sorted by name, rows sorted by all columns. Blobs are hex strings.
 pub async fn dump(path: &Path) -> Value {
     let mut c = open(path, true).await;
-    let tables: Vec<String> = sqlx::query(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
-    )
-    .fetch_all(&mut c)
-    .await
-    .expect("list tables")
-    .iter()
-    .map(|r| r.get::<String, _>(0))
-    .collect();
+    let tables: Vec<String> =
+        sqlx::query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+            .fetch_all(&mut c)
+            .await
+            .expect("list tables")
+            .iter()
+            .map(|r| r.get::<String, _>(0))
+            .collect();
     let mut out = Map::new();
     for t in tables {
-        let cols: Vec<String> =
-            sqlx::query(sqlx::AssertSqlSafe(format!("PRAGMA table_info(\"{t}\")")))
-                .fetch_all(&mut c)
-                .await
-                .expect("table_info")
-                .iter()
-                .map(|r| r.get::<String, _>("name"))
-                .collect();
+        let cols: Vec<String> = sqlx::query(sqlx::AssertSqlSafe(format!("PRAGMA table_info(\"{t}\")")))
+            .fetch_all(&mut c)
+            .await
+            .expect("table_info")
+            .iter()
+            .map(|r| r.get::<String, _>("name"))
+            .collect();
         let pairs: Vec<String> = cols
             .iter()
             .map(|n| {
@@ -60,11 +55,7 @@ pub async fn dump(path: &Path) -> Value {
         let sql = format!(
             "SELECT json_object({}) FROM \"{t}\" ORDER BY {}",
             pairs.join(", "),
-            if order.is_empty() {
-                "1".to_string()
-            } else {
-                order.join(", ")
-            }
+            if order.is_empty() { "1".to_string() } else { order.join(", ") }
         );
         let rows: Vec<Value> = sqlx::query(sqlx::AssertSqlSafe(sql))
             .fetch_all(&mut c)

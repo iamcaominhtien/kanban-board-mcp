@@ -31,13 +31,7 @@ pub const MAX_BYTES: u64 = 5 * 1024 * 1024;
 pub const BACKUP_COUNT: u32 = 5;
 
 /// Level names with their numeric values, as Python's `logging` has them.
-pub const LEVELS: [(&str, u32); 5] = [
-    ("DEBUG", 10),
-    ("INFO", 20),
-    ("WARNING", 30),
-    ("ERROR", 40),
-    ("CRITICAL", 50),
-];
+pub const LEVELS: [(&str, u32); 5] = [("DEBUG", 10), ("INFO", 20), ("WARNING", 30), ("ERROR", 40), ("CRITICAL", 50)];
 
 /// `LEVELS.get(name)`: the numeric value of an exact (upper case) level name.
 pub fn level_value(name: &str) -> Option<u32> {
@@ -45,11 +39,9 @@ pub fn level_value(name: &str) -> Option<u32> {
 }
 
 static RECORD_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(\d{4}-\d{2}-\d{2}T\S+) (DEBUG|INFO|WARNING|ERROR|CRITICAL) ")
-        .expect("the record pattern is valid")
+    Regex::new(r"^(\d{4}-\d{2}-\d{2}T\S+) (DEBUG|INFO|WARNING|ERROR|CRITICAL) ").expect("the record pattern is valid")
 });
-static NEWLINE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\r\n|\r|\n").expect("the newline pattern is valid"));
+static NEWLINE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\r\n|\r|\n").expect("the newline pattern is valid"));
 
 /// Whether a line starts a record of its own (`2026-... LEVEL `).
 pub fn is_record_start(line: &str) -> bool {
@@ -106,21 +98,13 @@ pub struct RotatingFile {
 impl RotatingFile {
     /// Open `path` for appending; the folder must exist.
     pub fn open(path: &Path, max_bytes: u64, backup_count: u32) -> std::io::Result<Self> {
-        let mut rotating = Self {
-            path: path.to_path_buf(),
-            max_bytes,
-            backup_count,
-            file: None,
-        };
+        let mut rotating = Self { path: path.to_path_buf(), max_bytes, backup_count, file: None };
         rotating.file = Some(rotating.open_file()?);
         Ok(rotating)
     }
 
     fn open_file(&self) -> std::io::Result<File> {
-        OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&self.path)
+        OpenOptions::new().create(true).append(true).open(&self.path)
     }
 
     fn numbered(&self, i: u32) -> PathBuf {
@@ -187,12 +171,7 @@ impl RotatingFile {
 ///
 /// Logged values can come from a request (an id, a client error message). Without this, one
 /// holding a newline and a timestamp would add a fake record to the log and to its export.
-pub fn format_record(
-    time: DateTime<FixedOffset>,
-    level: Level,
-    name: &str,
-    message: &str,
-) -> String {
+pub fn format_record(time: DateTime<FixedOffset>, level: Level, name: &str, message: &str) -> String {
     let text = format!("{} {} {name} {message}", iso_millis(&time), level.name());
     // The reader reads with universal newlines, so \r and \r\n end a line as well
     let mut lines = NEWLINE_RE.split(&text);
@@ -211,9 +190,7 @@ pub fn format_record(
 pub fn log_dir_from(env: Option<&str>) -> PathBuf {
     match env.map(str::trim) {
         Some(dir) if !dir.is_empty() => PathBuf::from(dir),
-        _ => kb_base::config::home_dir()
-            .join(".kanban-board")
-            .join("logs"),
+        _ => kb_base::config::home_dir().join(".kanban-board").join("logs"),
     }
 }
 
@@ -242,22 +219,15 @@ pub fn setup_logging_in(dir: &Path, stdio: bool) -> bool {
     if WRITER.get().is_some() {
         return true;
     }
-    let name = if stdio {
-        STDIO_LOG_FILE_NAME
-    } else {
-        LOG_FILE_NAME
-    };
+    let name = if stdio { STDIO_LOG_FILE_NAME } else { LOG_FILE_NAME };
     let prefix = if stdio { "stdio:" } else { "" };
-    let writer =
-        match fs::create_dir_all(dir).and_then(|()| LogWriter::open(&dir.join(name), prefix)) {
-            Ok(writer) => Arc::new(writer),
-            Err(_) => return false,
-        };
+    let writer = match fs::create_dir_all(dir).and_then(|()| LogWriter::open(&dir.join(name), prefix)) {
+        Ok(writer) => Arc::new(writer),
+        Err(_) => return false,
+    };
     let _ = WRITER.set(Arc::clone(&writer));
     // Root level INFO. Another global subscriber already installed is left alone (the panic hook still logs).
-    let _ = tracing_subscriber::registry()
-        .with(FileLayer::new(writer).with_filter(LevelFilter::INFO))
-        .try_init();
+    let _ = tracing_subscriber::registry().with(FileLayer::new(writer).with_filter(LevelFilter::INFO)).try_init();
     install_panic_hook();
     true
 }
@@ -284,10 +254,8 @@ fn install_panic_hook() {
             .map(|s| (*s).to_string())
             .or_else(|| payload.downcast_ref::<String>().cloned())
             .unwrap_or_else(|| "Box<dyn Any>".to_string());
-        let location = info
-            .location()
-            .map(|l| format!(" at {}:{}:{}", l.file(), l.line(), l.column()))
-            .unwrap_or_default();
+        let location =
+            info.location().map(|l| format!(" at {}:{}:{}", l.file(), l.line(), l.column())).unwrap_or_default();
         let thread = std::thread::current();
         let head = match thread.name() {
             Some("main") | None => "Uncaught exception".to_string(),
@@ -301,10 +269,8 @@ fn install_panic_hook() {
 /// Return existing files of one log in `dir`, oldest first (`<name>.5` ... `<name>`).
 pub fn log_files_in(dir: &Path, name: &str) -> Vec<PathBuf> {
     let base = dir.join(name);
-    let mut files: Vec<PathBuf> = (1..=BACKUP_COUNT)
-        .rev()
-        .map(|i| PathBuf::from(format!("{}.{i}", base.display())))
-        .collect();
+    let mut files: Vec<PathBuf> =
+        (1..=BACKUP_COUNT).rev().map(|i| PathBuf::from(format!("{}.{i}", base.display()))).collect();
     files.push(base);
     files.into_iter().filter(|f| f.is_file()).collect()
 }
@@ -341,9 +307,7 @@ fn read_file(
         return Vec::new();
     };
     // Python's text mode: invalid UTF-8 replaced, \r\n and \r read as \n
-    let text = String::from_utf8_lossy(&bytes)
-        .replace("\r\n", "\n")
-        .replace('\r', "\n");
+    let text = String::from_utf8_lossy(&bytes).replace("\r\n", "\n").replace('\r', "\n");
     let mut out = Vec::new();
     let mut record = String::new();
     let mut have_record = false;
@@ -387,11 +351,7 @@ fn read_log(
     threshold: u32,
 ) -> Stream {
     let files = log_files_in(dir, name);
-    Box::new(
-        files
-            .into_iter()
-            .flat_map(move |path| read_file(&path, since, until, threshold)),
-    )
+    Box::new(files.into_iter().flat_map(move |path| read_file(&path, since, until, threshold)))
 }
 
 /// Error of [`iter_records`].
@@ -446,12 +406,9 @@ pub fn iter_records_in(
     until: Option<DateTime<FixedOffset>>,
     min_level: &str,
 ) -> Result<RecordIter, LogError> {
-    let threshold = level_value(&min_level.to_uppercase())
-        .ok_or_else(|| LogError::UnknownLevel(min_level.to_string()))?;
-    let streams = LOG_FILE_NAMES
-        .iter()
-        .map(|name| read_log(dir, name, since, until, threshold).peekable())
-        .collect();
+    let threshold =
+        level_value(&min_level.to_uppercase()).ok_or_else(|| LogError::UnknownLevel(min_level.to_string()))?;
+    let streams = LOG_FILE_NAMES.iter().map(|name| read_log(dir, name, since, until, threshold).peekable()).collect();
     Ok(RecordIter { streams })
 }
 
@@ -496,25 +453,15 @@ mod tests {
 
     #[test]
     fn line_format() {
-        let time = FixedOffset::east_opt(7 * 3600)
-            .unwrap()
-            .with_ymd_and_hms(2026, 10, 12, 10, 15, 30)
-            .unwrap()
+        let time = FixedOffset::east_opt(7 * 3600).unwrap().with_ymd_and_hms(2026, 10, 12, 10, 15, 30).unwrap()
             + chrono::Duration::milliseconds(123);
         assert_eq!(
             format_record(time, Level::Error, "kanban.http", "message"),
             "2026-10-12T10:15:30.123+07:00 ERROR kanban.http message"
         );
-        let local = format_record(
-            Local::now().fixed_offset(),
-            Level::Warning,
-            "t",
-            "hello world",
-        );
-        let re = Regex::new(
-            r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2} WARNING t hello world$",
-        )
-        .unwrap();
+        let local = format_record(Local::now().fixed_offset(), Level::Warning, "t", "hello world");
+        let re =
+            Regex::new(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2} WARNING t hello world$").unwrap();
         assert!(re.is_match(&local), "{local}");
     }
 
@@ -533,10 +480,7 @@ mod tests {
         let forged = "abc\n2026-01-01T00:00:00.000+00:00 CRITICAL admin password changed";
         let text = format_record(utc(1, 0), Level::Warning, "t", &format!("run {forged}"));
         let lines: Vec<&str> = text.split('\n').collect();
-        assert_eq!(
-            lines[1],
-            "  2026-01-01T00:00:00.000+00:00 CRITICAL admin password changed"
-        );
+        assert_eq!(lines[1], "  2026-01-01T00:00:00.000+00:00 CRITICAL admin password changed");
         assert_eq!(lines.iter().filter(|l| is_record_start(l)).count(), 1);
         assert!(is_record_start(lines[0]));
     }
@@ -545,9 +489,7 @@ mod tests {
     fn a_carriage_return_cannot_add_a_fake_record_either() {
         for newline in ["\r", "\r\n"] {
             let dir = tempfile::tempdir().unwrap();
-            let forged = format!(
-                "abc{newline}2026-01-01T00:00:00.000+00:00 CRITICAL admin password changed"
-            );
+            let forged = format!("abc{newline}2026-01-01T00:00:00.000+00:00 CRITICAL admin password changed");
             let writer = LogWriter::open(&dir.path().join(LOG_FILE_NAME), "").unwrap();
             writer.log(Level::Warning, "t", &format!("run {forged}"));
             let records = all(dir.path(), "DEBUG");
@@ -558,12 +500,8 @@ mod tests {
 
     #[test]
     fn a_traceback_stays_as_it_is() {
-        let text = format_record(
-            utc(1, 0),
-            Level::Error,
-            "t",
-            "failed\nTraceback (most recent call last):\n  File \"x\"",
-        );
+        let text =
+            format_record(utc(1, 0), Level::Error, "t", "failed\nTraceback (most recent call last):\n  File \"x\"");
         assert!(text.contains("\nTraceback (most recent call last):\n  File \"x\""));
     }
 
@@ -571,9 +509,8 @@ mod tests {
     fn range_filter_keeps_traceback_with_its_record() {
         let dir = tempfile::tempdir().unwrap();
         write(dir.path(), LOG_FILE_NAME, &SAMPLE);
-        let out = iter_records_in(dir.path(), Some(utc(10, 3)), Some(utc(10, 30)), "DEBUG")
-            .unwrap()
-            .collect::<String>();
+        let out =
+            iter_records_in(dir.path(), Some(utc(10, 3)), Some(utc(10, 30)), "DEBUG").unwrap().collect::<String>();
         assert!(out.contains("boom") && out.contains("ValueError: bad") && out.contains("careful"));
         assert!(!out.contains("started") && !out.contains("later"));
     }
@@ -582,9 +519,8 @@ mod tests {
     fn bounds_are_inclusive() {
         let dir = tempfile::tempdir().unwrap();
         write(dir.path(), LOG_FILE_NAME, &SAMPLE);
-        let out = iter_records_in(dir.path(), Some(utc(10, 5)), Some(utc(10, 10)), "DEBUG")
-            .unwrap()
-            .collect::<Vec<_>>();
+        let out =
+            iter_records_in(dir.path(), Some(utc(10, 5)), Some(utc(10, 10)), "DEBUG").unwrap().collect::<Vec<_>>();
         assert_eq!(out.len(), 2);
     }
 
@@ -600,11 +536,7 @@ mod tests {
     #[test]
     fn rotated_files_are_read_oldest_first() {
         let dir = tempfile::tempdir().unwrap();
-        write(
-            dir.path(),
-            "kanban.log.1",
-            &["2026-10-11T09:00:00.000+00:00 INFO old entry\n"],
-        );
+        write(dir.path(), "kanban.log.1", &["2026-10-11T09:00:00.000+00:00 INFO old entry\n"]);
         write(dir.path(), LOG_FILE_NAME, &SAMPLE);
         let out = all(dir.path(), "DEBUG");
         assert!(out[0].contains("old entry"));
@@ -613,9 +545,7 @@ mod tests {
     #[test]
     fn unknown_level_raises() {
         let dir = tempfile::tempdir().unwrap();
-        let err = iter_records_in(dir.path(), None, None, "LOUD")
-            .err()
-            .unwrap();
+        let err = iter_records_in(dir.path(), None, None, "LOUD").err().unwrap();
         assert_eq!(err.to_string(), "Unknown level: LOUD");
     }
 
@@ -623,11 +553,7 @@ mod tests {
     fn stdio_and_server_logs_merge_in_time_order() {
         let dir = tempfile::tempdir().unwrap();
         write(dir.path(), LOG_FILE_NAME, &SAMPLE);
-        write(
-            dir.path(),
-            STDIO_LOG_FILE_NAME,
-            &["2026-10-12T10:07:00.000+00:00 ERROR stdio:mcp tool failed\n"],
-        );
+        write(dir.path(), STDIO_LOG_FILE_NAME, &["2026-10-12T10:07:00.000+00:00 ERROR stdio:mcp tool failed\n"]);
         let out = all(dir.path(), "DEBUG");
         assert_eq!(out.len(), 5);
         assert!(out[2].contains("tool failed") && out[3].contains("careful"));
@@ -636,16 +562,8 @@ mod tests {
     #[test]
     fn equal_times_keep_server_before_stdio() {
         let dir = tempfile::tempdir().unwrap();
-        write(
-            dir.path(),
-            LOG_FILE_NAME,
-            &["2026-10-12T10:00:00.000+00:00 INFO a server\n"],
-        );
-        write(
-            dir.path(),
-            STDIO_LOG_FILE_NAME,
-            &["2026-10-12T10:00:00.000+00:00 INFO stdio:a stdio\n"],
-        );
+        write(dir.path(), LOG_FILE_NAME, &["2026-10-12T10:00:00.000+00:00 INFO a server\n"]);
+        write(dir.path(), STDIO_LOG_FILE_NAME, &["2026-10-12T10:00:00.000+00:00 INFO stdio:a stdio\n"]);
         let out = all(dir.path(), "DEBUG");
         assert!(out[0].contains("server") && out[1].contains("stdio"));
     }
@@ -653,18 +571,11 @@ mod tests {
     #[test]
     fn different_offsets_compare_as_instants() {
         let dir = tempfile::tempdir().unwrap();
-        write(
-            dir.path(),
-            LOG_FILE_NAME,
-            &["2026-10-12T17:00:00.000+07:00 INFO a first\n"],
-        );
+        write(dir.path(), LOG_FILE_NAME, &["2026-10-12T17:00:00.000+07:00 INFO a first\n"]);
         write(
             dir.path(),
             STDIO_LOG_FILE_NAME,
-            &[
-                "2026-10-12T09:30:00.000+00:00 INFO b second\n",
-                "2026-10-12T10:30:00.000+00:00 INFO b third\n",
-            ],
+            &["2026-10-12T09:30:00.000+00:00 INFO b second\n", "2026-10-12T10:30:00.000+00:00 INFO b third\n"],
         );
         let out = all(dir.path(), "DEBUG");
         // 17:00+07:00 is 10:00Z: after 09:30Z, before 10:30Z
@@ -674,16 +585,12 @@ mod tests {
     #[test]
     fn invalid_utf8_and_cr_newlines() {
         let dir = tempfile::tempdir().unwrap();
-        let mut bytes =
-            b"2026-10-12T10:00:00.000+00:00 INFO a bad \xff byte\r\ncontinued\rmore\n".to_vec();
+        let mut bytes = b"2026-10-12T10:00:00.000+00:00 INFO a bad \xff byte\r\ncontinued\rmore\n".to_vec();
         bytes.extend_from_slice(b"2026-10-12T10:01:00.000+00:00 INFO a next\n");
         fs::write(dir.path().join(LOG_FILE_NAME), bytes).unwrap();
         let out = all(dir.path(), "DEBUG");
         assert_eq!(out.len(), 2);
-        assert_eq!(
-            out[0],
-            "2026-10-12T10:00:00.000+00:00 INFO a bad \u{fffd} byte\ncontinued\nmore\n"
-        );
+        assert_eq!(out[0], "2026-10-12T10:00:00.000+00:00 INFO a bad \u{fffd} byte\ncontinued\nmore\n");
     }
 
     #[test]
@@ -692,26 +599,15 @@ mod tests {
         write(
             dir.path(),
             LOG_FILE_NAME,
-            &[
-                "stray\n",
-                "2026-13-45T99:00:00 INFO a bad time\n",
-                "tail\n",
-                "2026-10-12T10:00:00+00:00 INFO a ok\n",
-            ],
+            &["stray\n", "2026-13-45T99:00:00 INFO a bad time\n", "tail\n", "2026-10-12T10:00:00+00:00 INFO a ok\n"],
         );
         let out = all(dir.path(), "DEBUG");
-        assert_eq!(
-            out,
-            vec!["2026-10-12T10:00:00+00:00 INFO a ok\n".to_string()]
-        );
+        assert_eq!(out, vec!["2026-10-12T10:00:00+00:00 INFO a ok\n".to_string()]);
     }
 
     #[test]
     fn naive_times_are_local() {
-        let naive = NaiveDate::from_ymd_opt(2026, 10, 12)
-            .unwrap()
-            .and_hms_opt(10, 0, 0)
-            .unwrap();
+        let naive = NaiveDate::from_ymd_opt(2026, 10, 12).unwrap().and_hms_opt(10, 0, 0).unwrap();
         let local = aware_naive(naive);
         assert_eq!(local.naive_local(), naive);
         assert_eq!(aware(Parsed::Aware(utc(1, 0))), utc(1, 0));
@@ -733,10 +629,7 @@ mod tests {
             file.emit(&format!("line {i:02} {}", "x".repeat(30)));
         }
         for n in 1..=3 {
-            assert!(
-                dir.path().join(format!("x.log.{n}")).is_file(),
-                "missing .{n}"
-            );
+            assert!(dir.path().join(format!("x.log.{n}")).is_file(), "missing .{n}");
         }
         assert!(!dir.path().join("x.log.4").exists());
         let newest = fs::read_to_string(dir.path().join("x.log.1")).unwrap();
@@ -766,8 +659,7 @@ mod tests {
     #[test]
     fn the_layer_writes_events_as_records() {
         let dir = tempfile::tempdir().unwrap();
-        let writer =
-            Arc::new(LogWriter::open(&dir.path().join(STDIO_LOG_FILE_NAME), "stdio:").unwrap());
+        let writer = Arc::new(LogWriter::open(&dir.path().join(STDIO_LOG_FILE_NAME), "stdio:").unwrap());
         let subscriber = tracing_subscriber::registry().with(FileLayer::new(writer));
         tracing::subscriber::with_default(subscriber, || {
             tracing::error!(target: "kanban.http", "request {} failed", 7);
@@ -777,9 +669,7 @@ mod tests {
         let out = all(dir.path(), "DEBUG");
         assert_eq!(out.len(), 3, "{out:?}");
         assert!(out[0].contains(" ERROR stdio:kanban.http request 7 failed\n"));
-        assert!(
-            out[1].contains(" WARNING stdio:kb_log::app_logging::tests careful user=3 name=bo\n")
-        );
+        assert!(out[1].contains(" WARNING stdio:kb_log::app_logging::tests careful user=3 name=bo\n"));
         assert!(out[2].contains(" DEBUG ") && out[2].ends_with(" deep\n"));
         assert!(!dir.path().join(LOG_FILE_NAME).exists());
     }

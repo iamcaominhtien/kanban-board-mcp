@@ -57,11 +57,7 @@ impl<'a> Pattern<'a> {
         let Some(masks) = &self.masks else {
             return lcs_dp(self.chars, text);
         };
-        let full: u64 = if len == 64 {
-            u64::MAX
-        } else {
-            (1u64 << len) - 1
-        };
+        let full: u64 = if len == 64 { u64::MAX } else { (1u64 << len) - 1 };
         let mut s = full;
         for c in text {
             let matches = masks.get(c).copied().unwrap_or(0);
@@ -77,11 +73,7 @@ impl<'a> Pattern<'a> {
 fn indel_norm_sim(pattern: &Pattern, text: &[char]) -> f64 {
     let maximum = pattern.chars.len() + text.len();
     let dist = maximum - 2 * pattern.lcs(text);
-    let norm_dist = if maximum == 0 {
-        0.0
-    } else {
-        dist as f64 / maximum as f64
-    };
+    let norm_dist = if maximum == 0 { 0.0 } else { dist as f64 / maximum as f64 };
     1.0 - norm_dist
 }
 
@@ -156,11 +148,7 @@ fn partial_ratio_chars(s1: &[char], s2: &[char]) -> f64 {
     if s1.is_empty() && s2.is_empty() {
         return 100.0;
     }
-    let (shorter, longer) = if s1.len() <= s2.len() {
-        (s1, s2)
-    } else {
-        (s2, s1)
-    };
+    let (shorter, longer) = if s1.len() <= s2.len() { (s1, s2) } else { (s2, s1) };
     let mut res = partial_ratio_impl(shorter, longer);
     if res != 100.0 && s1.len() == s2.len() {
         let res2 = partial_ratio_impl(longer, shorter);
@@ -183,10 +171,7 @@ pub fn partial_ratio_cutoff(a: &str, b: &str, score_cutoff: Option<f64>) -> f64 
 
 /// `str.split()`: split on Python whitespace, dropping empty parts.
 fn split_sequence(s: &[char]) -> Vec<Vec<char>> {
-    s.split(|&c| is_py_space(c))
-        .filter(|t| !t.is_empty())
-        .map(<[char]>::to_vec)
-        .collect()
+    s.split(|&c| is_py_space(c)).filter(|t| !t.is_empty()).map(<[char]>::to_vec).collect()
 }
 
 /// `" ".join(tokens)`.
@@ -208,10 +193,7 @@ fn sorted_joined(tokens: &[Vec<char>]) -> Vec<char> {
 }
 
 fn token_sort_ratio_chars(a: &[char], b: &[char]) -> f64 {
-    ratio_chars(
-        &sorted_joined(&split_sequence(a)),
-        &sorted_joined(&split_sequence(b)),
-    )
+    ratio_chars(&sorted_joined(&split_sequence(a)), &sorted_joined(&split_sequence(b)))
 }
 
 /// `fuzz.token_sort_ratio`: `ratio` after sorting the words of each string.
@@ -225,11 +207,7 @@ pub fn token_sort_ratio_cutoff(a: &str, b: &str, score_cutoff: Option<f64>) -> f
 }
 
 fn norm_distance(dist: usize, lensum: usize) -> f64 {
-    if lensum == 0 {
-        100.0
-    } else {
-        100.0 - 100.0 * dist as f64 / lensum as f64
-    }
+    if lensum == 0 { 100.0 } else { 100.0 - 100.0 * dist as f64 / lensum as f64 }
 }
 
 fn token_set_ratio_chars(a: &[char], b: &[char]) -> f64 {
@@ -279,10 +257,7 @@ pub fn token_ratio(a: &str, b: &str) -> f64 {
 
 /// `fuzz.partial_token_sort_ratio`.
 pub fn partial_token_sort_ratio(a: &str, b: &str) -> f64 {
-    partial_ratio_chars(
-        &sorted_joined(&split_sequence(&chars(a))),
-        &sorted_joined(&split_sequence(&chars(b))),
-    )
+    partial_ratio_chars(&sorted_joined(&split_sequence(&chars(a))), &sorted_joined(&split_sequence(&chars(b))))
 }
 
 /// `fuzz.partial_token_set_ratio`.
@@ -295,10 +270,7 @@ pub fn partial_token_set_ratio(a: &str, b: &str) -> f64 {
     if tokens_a.intersection(&tokens_b).next().is_some() {
         return 100.0;
     }
-    partial_ratio_chars(
-        &join_tokens(tokens_a.difference(&tokens_b)),
-        &join_tokens(tokens_b.difference(&tokens_a)),
-    )
+    partial_ratio_chars(&join_tokens(tokens_a.difference(&tokens_b)), &join_tokens(tokens_b.difference(&tokens_a)))
 }
 
 fn partial_token_ratio_chars(a: &[char], b: &[char]) -> f64 {
@@ -316,10 +288,7 @@ fn partial_token_ratio_chars(a: &[char], b: &[char]) -> f64 {
     if split_a.len() == diff_ab.len() && split_b.len() == diff_ba.len() {
         return result;
     }
-    result.max(partial_ratio_chars(
-        &join_tokens(diff_ab),
-        &join_tokens(diff_ba),
-    ))
+    result.max(partial_ratio_chars(&join_tokens(diff_ab), &join_tokens(diff_ba)))
 }
 
 /// `fuzz.partial_token_ratio`: the larger of `partial_token_set_ratio` and `partial_token_sort_ratio`.
@@ -344,11 +313,7 @@ pub fn wratio(a: &str, b: &str) -> f64 {
     }
     let len1 = s1.len() as f64;
     let len2 = s2.len() as f64;
-    let len_ratio = if len1 > len2 {
-        len1 / len2
-    } else {
-        len2 / len1
-    };
+    let len_ratio = if len1 > len2 { len1 / len2 } else { len2 / len1 };
     let end_ratio = ratio_chars(&s1, &s2);
     if len_ratio < 1.5 {
         return end_ratio.max(token_ratio_chars(&s1, &s2) * UNBASE_SCALE);
@@ -365,9 +330,5 @@ pub fn wratio_cutoff(a: &str, b: &str, score_cutoff: Option<f64>) -> f64 {
 
 /// `fuzz.QRatio`: `ratio`, but 0 when either string is empty.
 pub fn qratio(a: &str, b: &str) -> f64 {
-    if a.is_empty() || b.is_empty() {
-        0.0
-    } else {
-        ratio(a, b)
-    }
+    if a.is_empty() || b.is_empty() { 0.0 } else { ratio(a, b) }
 }

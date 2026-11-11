@@ -136,9 +136,7 @@ impl Target {
     }
 
     fn port_or_default(&self) -> u16 {
-        self.port
-            .filter(|p| *p != 0)
-            .unwrap_or_else(|| default_port(&self.engine))
+        self.port.filter(|p| *p != 0).unwrap_or_else(|| default_port(&self.engine))
     }
 
     /// Where it is, without the password: the file, or user@host:port/database.
@@ -146,17 +144,8 @@ impl Target {
         if self.is_sqlite() {
             return self.path.clone();
         }
-        let user = if self.user.is_empty() {
-            String::new()
-        } else {
-            format!("{}@", self.user)
-        };
-        format!(
-            "{user}{}:{}/{}",
-            self.host,
-            self.port_or_default(),
-            self.name
-        )
+        let user = if self.user.is_empty() { String::new() } else { format!("{}@", self.user) };
+        format!("{user}{}:{}/{}", self.host, self.port_or_default(), self.name)
     }
 
     /// The connection URL as the Python server rendered it (`URL.render_as_string`), with the password or `***`.
@@ -164,21 +153,13 @@ impl Target {
         if self.is_sqlite() {
             return format!("sqlite+aiosqlite:///{}", self.path);
         }
-        let driver = if self.engine == "postgresql" {
-            "postgresql+asyncpg"
-        } else {
-            "mysql+aiomysql"
-        };
+        let driver = if self.engine == "postgresql" { "postgresql+asyncpg" } else { "mysql+aiomysql" };
         let mut out = format!("{driver}://");
         if !self.user.is_empty() {
             out.push_str(&quote(&self.user));
             if let Some(password) = self.password.as_deref().filter(|p| !p.is_empty()) {
                 out.push(':');
-                out.push_str(&if hide_password {
-                    "***".to_string()
-                } else {
-                    quote(password)
-                });
+                out.push_str(&if hide_password { "***".to_string() } else { quote(password) });
             }
             out.push('@');
         }
@@ -215,10 +196,7 @@ impl Target {
 
     /// The same target with this password.
     pub fn with_password(&self, password: Option<String>) -> Target {
-        Target {
-            password,
-            ..self.clone()
-        }
+        Target { password, ..self.clone() }
     }
 }
 
@@ -241,11 +219,7 @@ fn unquote(text: &str) -> String {
     let mut out = Vec::with_capacity(bytes.len());
     let mut i = 0;
     while i < bytes.len() {
-        if bytes[i] == b'%'
-            && i + 2 < bytes.len()
-            && text.is_char_boundary(i + 1)
-            && text.is_char_boundary(i + 3)
-        {
+        if bytes[i] == b'%' && i + 2 < bytes.len() && text.is_char_boundary(i + 1) && text.is_char_boundary(i + 3) {
             if let Ok(byte) = u8::from_str_radix(&text[i + 1..i + 3], 16) {
                 out.push(byte);
                 i += 3;
@@ -273,11 +247,7 @@ const NOT_A_URL: &str = "Could not parse SQLAlchemy URL from given URL string";
 
 fn make_url(text: &str) -> Result<ParsedUrl, String> {
     let (name, rest) = text.split_once("://").ok_or(NOT_A_URL)?;
-    if name.is_empty()
-        || !name
-            .chars()
-            .all(|c| c.is_alphanumeric() || c == '_' || c == '+')
-    {
+    if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '+') {
         return Err(NOT_A_URL.into());
     }
     let (rest, query) = match rest.split_once('?') {
@@ -286,9 +256,7 @@ fn make_url(text: &str) -> Result<ParsedUrl, String> {
     };
     // the authority ends at the first '/', but a user name and a password may hold anything except '@'
     let (credentials, location) = match rest.rfind('@') {
-        Some(at) if !rest[..at].contains('/') || rest[..at].contains(':') => {
-            (Some(&rest[..at]), &rest[at + 1..])
-        }
+        Some(at) if !rest[..at].contains('/') || rest[..at].contains(':') => (Some(&rest[..at]), &rest[at + 1..]),
         _ => (None, rest),
     };
     let (username, password) = match credentials {
@@ -312,10 +280,9 @@ fn make_url(text: &str) -> Result<ParsedUrl, String> {
     };
     let port = match port.filter(|p| !p.is_empty()) {
         None => None,
-        Some(port) => Some(
-            port.parse::<u16>()
-                .map_err(|_| format!("invalid literal for int() with base 10: '{port}'"))?,
-        ),
+        Some(port) => {
+            Some(port.parse::<u16>().map_err(|_| format!("invalid literal for int() with base 10: '{port}'"))?)
+        }
     };
     let query = query
         .map(|q| {
@@ -340,17 +307,9 @@ fn make_url(text: &str) -> Result<ParsedUrl, String> {
 }
 
 fn ssl_from_query(query: &[(String, String)]) -> Result<String, TargetError> {
-    let find = |key: &str| {
-        query
-            .iter()
-            .find(|(k, v)| k == key && !v.is_empty())
-            .map(|(_, v)| v.clone())
-    };
-    let raw = find("sslmode")
-        .or_else(|| find("ssl-mode"))
-        .or_else(|| find("ssl_mode"))
-        .unwrap_or_default()
-        .to_lowercase();
+    let find = |key: &str| query.iter().find(|(k, v)| k == key && !v.is_empty()).map(|(_, v)| v.clone());
+    let raw =
+        find("sslmode").or_else(|| find("ssl-mode")).or_else(|| find("ssl_mode")).unwrap_or_default().to_lowercase();
     if raw.is_empty() {
         return Ok("prefer".into());
     }
@@ -360,9 +319,7 @@ fn ssl_from_query(query: &[(String, String)]) -> Result<String, TargetError> {
         "require" | "required" => "require",
         "verify-ca" | "verify_ca" | "verify-full" | "verify_identity" => "verify-full",
         _ => {
-            return err(format!(
-                "Unknown SSL mode “{raw}” in the connection string."
-            ));
+            return err(format!("Unknown SSL mode “{raw}” in the connection string."));
         }
     };
     Ok(mode.into())
@@ -375,22 +332,12 @@ pub fn from_url(text: &str) -> Result<Target, TargetError> {
     if text.is_empty() {
         return err("The connection string is empty.");
     }
-    let url = make_url(text)
-        .map_err(|exc| TargetError(format!("This is not a connection string: {exc}")))?;
-    let scheme = url
-        .drivername
-        .split('+')
-        .next()
-        .unwrap_or("")
-        .to_lowercase();
+    let url = make_url(text).map_err(|exc| TargetError(format!("This is not a connection string: {exc}")))?;
+    let scheme = url.drivername.split('+').next().unwrap_or("").to_lowercase();
     if scheme == "sqlite" {
         return match url.database.as_deref() {
             None | Some(":memory:") => err("A SQLite connection string needs a file path."),
-            Some(database) => Ok(Target::sqlite(
-                app_config::expanduser(database)
-                    .to_string_lossy()
-                    .into_owned(),
-            )),
+            Some(database) => Ok(Target::sqlite(app_config::expanduser(database).to_string_lossy().into_owned())),
         };
     }
     let engine = match scheme.as_str() {
@@ -403,9 +350,7 @@ pub fn from_url(text: &str) -> Result<Target, TargetError> {
             );
         }
         _ => {
-            return err(format!(
-                "“{scheme}” is not supported. Use SQLite, PostgreSQL or MySQL/MariaDB."
-            ));
+            return err(format!("“{scheme}” is not supported. Use SQLite, PostgreSQL or MySQL/MariaDB."));
         }
     };
     let Some(host) = url.host else {
@@ -418,11 +363,7 @@ pub fn from_url(text: &str) -> Result<Target, TargetError> {
         engine: engine.into(),
         path: String::new(),
         host,
-        port: Some(
-            url.port
-                .filter(|p| *p != 0)
-                .unwrap_or_else(|| default_port(engine)),
-        ),
+        port: Some(url.port.filter(|p| *p != 0).unwrap_or_else(|| default_port(engine))),
         name,
         user: url.username.unwrap_or_default(),
         password: url.password,
@@ -461,9 +402,7 @@ pub fn from_fields(data: &Map<String, Value>) -> Result<Target, TargetError> {
         if path.is_empty() {
             return err("A SQLite database needs a file path.");
         }
-        return Ok(Target::sqlite(
-            app_config::expanduser(&path).to_string_lossy().into_owned(),
-        ));
+        return Ok(Target::sqlite(app_config::expanduser(&path).to_string_lossy().into_owned()));
     }
     let host = field_text(data, "host").trim().to_string();
     let name = field_text(data, "name").trim().to_string();
@@ -483,13 +422,9 @@ pub fn from_fields(data: &Map<String, Value>) -> Result<Target, TargetError> {
         .ok_or_else(|| TargetError("The port must be a number.".into()))?,
         _ => default_port(&engine),
     };
-    let ssl = Some(field_text(data, "ssl"))
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "prefer".into());
+    let ssl = Some(field_text(data, "ssl")).filter(|s| !s.is_empty()).unwrap_or_else(|| "prefer".into());
     if !SSL_MODES.contains(&ssl.as_str()) {
-        return err(
-            "The secure connection setting must be one of ('off', 'prefer', 'require', 'verify-full').",
-        );
+        return err("The secure connection setting must be one of ('off', 'prefer', 'require', 'verify-full').");
     }
     Ok(Target {
         engine,
@@ -519,10 +454,7 @@ pub fn env_target() -> Result<Option<Target>, TargetError> {
     }
     let mut target = from_url(&raw)?;
     let env_password = env(ENV_PASSWORD);
-    if !target.is_sqlite()
-        && target.password.as_deref().is_none_or(str::is_empty)
-        && !env_password.is_empty()
-    {
+    if !target.is_sqlite() && target.password.as_deref().is_none_or(str::is_empty) && !env_password.is_empty() {
         target = target.with_password(Some(env_password));
     }
     Ok(Some(target))
@@ -554,10 +486,7 @@ pub fn resolve(sqlite_path: &Path) -> Result<(Target, &'static str), TargetError
     if let Some(target) = saved_target() {
         return Ok((target, "settings"));
     }
-    Ok((
-        Target::sqlite(sqlite_path.to_string_lossy().into_owned()),
-        "default",
-    ))
+    Ok((Target::sqlite(sqlite_path.to_string_lossy().into_owned()), "default"))
 }
 
 /// Remember the database in Settings. The password is stored encrypted, never as text; SQLite clears it.
@@ -586,11 +515,7 @@ pub fn password_store() -> &'static str {
 
 /// This process's name on a PostgreSQL server.
 pub fn application_name(role_override: Option<&str>) -> String {
-    format!(
-        "{APP_NAME_PREFIX} {} {}",
-        role_override.unwrap_or_else(|| role()),
-        &PROCESS_TOKEN[..8]
-    )
+    format!("{APP_NAME_PREFIX} {} {}", role_override.unwrap_or_else(|| role()), &PROCESS_TOKEN[..8])
 }
 
 /// A connection pool for `target`, with the settings each engine needs to share the database well.
@@ -600,10 +525,7 @@ pub fn application_name(role_override: Option<&str>) -> String {
 /// timeout does not surface as an error in the board) and renews connections every 30 minutes.
 ///
 /// The pool connects lazily, as SQLAlchemy's engine does: making it never fails because the server is away.
-pub async fn make_engine(
-    target: &Target,
-    role_override: Option<&str>,
-) -> Result<DatabaseConnection, DbErr> {
+pub async fn make_engine(target: &Target, role_override: Option<&str>) -> Result<DatabaseConnection, DbErr> {
     if target.is_sqlite() {
         let path = target.path.clone();
         let mut options = ConnectOptions::new("sqlite::memory:");
@@ -663,11 +585,7 @@ pub async fn make_engine(
     let mut options = ConnectOptions::new("mysql://localhost/placeholder");
     common_pool(&mut options);
     options.map_sqlx_mysql_opts(move |_| {
-        let mut o = MySqlConnectOptions::new()
-            .host(&host)
-            .port(port)
-            .database(&name)
-            .charset("utf8mb4");
+        let mut o = MySqlConnectOptions::new().host(&host).port(port).database(&name).charset("utf8mb4");
         if !user.is_empty() {
             o = o.username(&user);
         }
@@ -685,8 +603,7 @@ pub async fn make_engine(
     // gap locks that make two writers wait on each other for rows neither touches.
     options.after_connect(|conn| {
         Box::pin(async move {
-            conn.execute_unprepared("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
-                .await?;
+            conn.execute_unprepared("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED").await?;
             Ok(())
         })
     });
@@ -711,59 +628,28 @@ mod tests {
 
     #[test]
     fn reads_connection_strings() {
-        let t = from_url("postgresql+asyncpg://bob:p%40ss@db.example.com/board?sslmode=require")
-            .unwrap();
+        let t = from_url("postgresql+asyncpg://bob:p%40ss@db.example.com/board?sslmode=require").unwrap();
         assert_eq!(
-            (
-                t.engine.as_str(),
-                t.host.as_str(),
-                t.port,
-                t.name.as_str(),
-                t.user.as_str()
-            ),
+            (t.engine.as_str(), t.host.as_str(), t.port, t.name.as_str(), t.user.as_str()),
             ("postgresql", "db.example.com", Some(5432), "board", "bob")
         );
         assert_eq!(t.password.as_deref(), Some("p@ss"));
         assert_eq!(t.ssl, "require");
         assert_eq!(t.display(), "bob@db.example.com:5432/board");
-        assert_eq!(
-            t.url(true),
-            "postgresql+asyncpg://bob:***@db.example.com:5432/board"
-        );
-        assert_eq!(
-            t.url(false),
-            "postgresql+asyncpg://bob:p%40ss@db.example.com:5432/board"
-        );
+        assert_eq!(t.url(true), "postgresql+asyncpg://bob:***@db.example.com:5432/board");
+        assert_eq!(t.url(false), "postgresql+asyncpg://bob:p%40ss@db.example.com:5432/board");
         let m = from_url("mariadb://root@127.0.0.1:3307/kanban").unwrap();
         assert_eq!((m.engine.as_str(), m.port), ("mysql", Some(3307)));
-        assert_eq!(
-            m.url(true),
-            "mysql+aiomysql://root@127.0.0.1:3307/kanban?charset=utf8mb4"
-        );
-        assert_eq!(
-            from_url("sqlite:////tmp/x/kanban.db").unwrap().path,
-            "/tmp/x/kanban.db"
-        );
-        assert_eq!(
-            from_url("").unwrap_err().0,
-            "The connection string is empty."
-        );
-        assert_eq!(
-            from_url("sqlite://").unwrap_err().0,
-            "A SQLite connection string needs a file path."
-        );
+        assert_eq!(m.url(true), "mysql+aiomysql://root@127.0.0.1:3307/kanban?charset=utf8mb4");
+        assert_eq!(from_url("sqlite:////tmp/x/kanban.db").unwrap().path, "/tmp/x/kanban.db");
+        assert_eq!(from_url("").unwrap_err().0, "The connection string is empty.");
+        assert_eq!(from_url("sqlite://").unwrap_err().0, "A SQLite connection string needs a file path.");
         assert_eq!(
             from_url("oracle://h/db").unwrap_err().0,
             "“oracle” is not supported. Use SQLite, PostgreSQL or MySQL/MariaDB."
         );
-        assert_eq!(
-            from_url("postgresql:///db").unwrap_err().0,
-            "The connection string has no host."
-        );
-        assert_eq!(
-            from_url("postgresql://h").unwrap_err().0,
-            "The connection string has no database name."
-        );
+        assert_eq!(from_url("postgresql:///db").unwrap_err().0, "The connection string has no host.");
+        assert_eq!(from_url("postgresql://h").unwrap_err().0, "The connection string has no database name.");
         assert_eq!(
             from_url("nonsense").unwrap_err().0,
             "This is not a connection string: Could not parse SQLAlchemy URL from given URL string"
@@ -777,35 +663,24 @@ mod tests {
     #[test]
     fn reads_the_settings_form() {
         let form = |v: Value| v.as_object().cloned().unwrap();
-        let t = from_fields(&form(json!({"engine": "MariaDB", "host": " h ", "name": "n", "port": "3310", "user": "u", "password": "pw"}))).unwrap();
+        let t = from_fields(&form(
+            json!({"engine": "MariaDB", "host": " h ", "name": "n", "port": "3310", "user": "u", "password": "pw"}),
+        ))
+        .unwrap();
         assert_eq!(
-            (
-                t.engine.as_str(),
-                t.host.as_str(),
-                t.port,
-                t.password.as_deref(),
-                t.ssl.as_str()
-            ),
+            (t.engine.as_str(), t.host.as_str(), t.port, t.password.as_deref(), t.ssl.as_str()),
             ("mysql", "h", Some(3310), Some("pw"), "prefer")
         );
         assert_eq!(
-            from_fields(&form(json!({"engine": "postgresql", "name": "n"})))
-                .unwrap_err()
-                .0,
+            from_fields(&form(json!({"engine": "postgresql", "name": "n"}))).unwrap_err().0,
             "Enter the server’s host name."
         );
         assert_eq!(
-            from_fields(&form(json!({"engine": "postgresql", "host": "h"})))
-                .unwrap_err()
-                .0,
+            from_fields(&form(json!({"engine": "postgresql", "host": "h"}))).unwrap_err().0,
             "Enter the database name."
         );
         assert_eq!(
-            from_fields(&form(
-                json!({"engine": "postgresql", "host": "h", "name": "n", "port": "x"})
-            ))
-            .unwrap_err()
-            .0,
+            from_fields(&form(json!({"engine": "postgresql", "host": "h", "name": "n", "port": "x"}))).unwrap_err().0,
             "The port must be a number."
         );
         assert_eq!(
@@ -813,16 +688,10 @@ mod tests {
             "Choose SQLite, PostgreSQL or MySQL/MariaDB."
         );
         assert_eq!(
-            from_fields(&form(json!({"engine": "sqlite"})))
-                .unwrap_err()
-                .0,
+            from_fields(&form(json!({"engine": "sqlite"}))).unwrap_err().0,
             "A SQLite database needs a file path."
         );
-        let public = from_fields(&form(
-            json!({"engine": "postgresql", "host": "h", "name": "n"}),
-        ))
-        .unwrap()
-        .public();
+        let public = from_fields(&form(json!({"engine": "postgresql", "host": "h", "name": "n"}))).unwrap().public();
         assert_eq!(
             kb_base::pyjson::dumps(&Value::Object(public)),
             r#"{"engine": "postgresql", "host": "h", "port": 5432, "name": "n", "user": "", "ssl": "prefer"}"#

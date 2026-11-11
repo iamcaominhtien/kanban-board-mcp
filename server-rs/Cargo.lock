@@ -1188,6 +1188,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "http-range-header"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9171a2ea8a68358193d15dd5d70c1c10a2afc3e7e4c5bc92bc9f025cebd7359c"
+
+[[package]]
 name = "httparse"
 version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1461,18 +1467,67 @@ version = "5.0.0"
 [[package]]
 name = "kanban-server"
 version = "5.0.0"
+dependencies = [
+ "kb-app",
+ "kb-base",
+ "kb-log",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "kb-ai"
 version = "5.0.0"
+dependencies = [
+ "axum",
+ "kb-base",
+ "kb-db",
+ "serde",
+ "serde_json",
+ "testkit",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "kb-app"
 version = "5.0.0"
+dependencies = [
+ "axum",
+ "bytes",
+ "futures",
+ "kb-ai",
+ "kb-assist",
+ "kb-base",
+ "kb-board",
+ "kb-db",
+ "kb-dbkit",
+ "kb-docs",
+ "kb-draw",
+ "kb-ideas",
+ "kb-log",
+ "kb-notify",
+ "serde_json",
+ "testkit",
+ "tokio",
+ "tower-http",
+ "tracing",
+]
 
 [[package]]
 name = "kb-assist"
 version = "5.0.0"
+dependencies = [
+ "axum",
+ "kb-base",
+ "kb-db",
+ "serde",
+ "serde_json",
+ "testkit",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "kb-base"
@@ -1483,6 +1538,7 @@ dependencies = [
  "fernet",
  "keyring",
  "regex",
+ "sea-orm",
  "serde",
  "serde_json",
  "serde_path_to_error",
@@ -1496,6 +1552,16 @@ dependencies = [
 [[package]]
 name = "kb-board"
 version = "5.0.0"
+dependencies = [
+ "axum",
+ "kb-base",
+ "kb-db",
+ "serde",
+ "serde_json",
+ "testkit",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "kb-db"
@@ -1517,18 +1583,54 @@ dependencies = [
 [[package]]
 name = "kb-dbkit"
 version = "5.0.0"
+dependencies = [
+ "axum",
+ "kb-base",
+ "kb-db",
+ "serde",
+ "serde_json",
+ "testkit",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "kb-docs"
 version = "5.0.0"
+dependencies = [
+ "axum",
+ "kb-base",
+ "kb-db",
+ "serde",
+ "serde_json",
+ "testkit",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "kb-doctext"
 version = "5.0.0"
+dependencies = [
+ "kb-base",
+ "kb-db",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "kb-draw"
 version = "5.0.0"
+dependencies = [
+ "axum",
+ "kb-base",
+ "kb-db",
+ "serde",
+ "serde_json",
+ "testkit",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "kb-fuzzy"
@@ -1541,6 +1643,16 @@ dependencies = [
 [[package]]
 name = "kb-ideas"
 version = "5.0.0"
+dependencies = [
+ "axum",
+ "kb-base",
+ "kb-db",
+ "serde",
+ "serde_json",
+ "testkit",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "kb-log"
@@ -1561,6 +1673,16 @@ version = "5.0.0"
 [[package]]
 name = "kb-notify"
 version = "5.0.0"
+dependencies = [
+ "axum",
+ "kb-base",
+ "kb-db",
+ "serde",
+ "serde_json",
+ "testkit",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "kb-skills"
@@ -3224,13 +3346,23 @@ checksum = "4cfcf7e2740e6fc6d4d688b4ef00650406bb94adf4731e43c096c3a19fe40840"
 dependencies = [
  "bitflags",
  "bytes",
+ "futures-core",
  "futures-util",
  "http",
  "http-body",
+ "http-body-util",
+ "http-range-header",
+ "httpdate",
+ "mime",
+ "mime_guess",
+ "percent-encoding",
  "pin-project-lite",
+ "tokio",
+ "tokio-util",
  "tower",
  "tower-layer",
  "tower-service",
+ "tracing",
  "url",
 ]
 

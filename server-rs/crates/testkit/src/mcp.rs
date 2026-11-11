@@ -18,8 +18,7 @@ pub struct ToolResult {
 impl ToolResult {
     /// The text parsed as JSON; panics with the text when it is not JSON.
     pub fn json(&self) -> Value {
-        serde_json::from_str(&self.text)
-            .unwrap_or_else(|e| panic!("tool text is not JSON ({e}): {}", self.text))
+        serde_json::from_str(&self.text).unwrap_or_else(|e| panic!("tool text is not JSON ({e}): {}", self.text))
     }
 }
 
@@ -33,11 +32,7 @@ pub struct Mcp {
 
 impl Mcp {
     pub(crate) fn new(client: Client) -> Mcp {
-        Mcp {
-            client,
-            bearer: None,
-            next_id: Arc::new(AtomicU64::new(1)),
-        }
+        Mcp { client, bearer: None, next_id: Arc::new(AtomicU64::new(1)) }
     }
 
     /// Send `Authorization: Bearer <token>` (an AI run's token) with every request.
@@ -50,30 +45,14 @@ impl Mcp {
     pub async fn request_raw(&self, method: &str, params: Value) -> Value {
         let id = self.next_id.fetch_add(1, Ordering::SeqCst);
         let body = json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params});
-        let mut headers = vec![
-            ("accept", "application/json, text/event-stream"),
-            ("content-type", "application/json"),
-        ];
+        let mut headers = vec![("accept", "application/json, text/event-stream"), ("content-type", "application/json")];
         let auth = self.bearer.as_ref().map(|t| format!("Bearer {t}"));
         if let Some(a) = &auth {
             headers.push(("authorization", a));
         }
-        let resp = self
-            .client
-            .request(
-                "POST",
-                "/mcp/",
-                &headers,
-                Some(serde_json::to_vec(&body).expect("json")),
-            )
-            .await;
+        let resp = self.client.request("POST", "/mcp/", &headers, Some(serde_json::to_vec(&body).expect("json"))).await;
         let text = resp.text();
-        let ctype = resp
-            .headers
-            .get("content-type")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("")
-            .to_string();
+        let ctype = resp.headers.get("content-type").and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
         if ctype.starts_with("text/event-stream") {
             let data: Vec<String> = text
                 .replace("\r\n", "\n")
@@ -87,18 +66,11 @@ impl Mcp {
                     (!d.is_empty()).then(|| d.join("\n"))
                 })
                 .collect();
-            let last = data
-                .last()
-                .unwrap_or_else(|| panic!("MCP {method}: no data in SSE reply: {text}"));
-            serde_json::from_str(last)
-                .unwrap_or_else(|e| panic!("MCP {method}: bad SSE JSON ({e}): {text}"))
+            let last = data.last().unwrap_or_else(|| panic!("MCP {method}: no data in SSE reply: {text}"));
+            serde_json::from_str(last).unwrap_or_else(|e| panic!("MCP {method}: bad SSE JSON ({e}): {text}"))
         } else {
-            serde_json::from_str(&text).unwrap_or_else(|e| {
-                panic!(
-                    "MCP {method}: status {}, reply is not JSON ({e}): {text}",
-                    resp.status
-                )
-            })
+            serde_json::from_str(&text)
+                .unwrap_or_else(|e| panic!("MCP {method}: status {}, reply is not JSON ({e}): {text}", resp.status))
         }
     }
 
@@ -108,10 +80,7 @@ impl Mcp {
         if let Some(err) = reply.get("error") {
             panic!("MCP {method} failed: {err}");
         }
-        reply
-            .get("result")
-            .cloned()
-            .unwrap_or_else(|| panic!("MCP {method}: no result in {reply}"))
+        reply.get("result").cloned().unwrap_or_else(|| panic!("MCP {method}: no result in {reply}"))
     }
 
     /// `initialize` with a plain client description.
@@ -131,24 +100,14 @@ impl Mcp {
 
     /// `tools/call`.
     pub async fn call_tool(&self, name: &str, arguments: Value) -> ToolResult {
-        let raw = self
-            .request("tools/call", json!({"name": name, "arguments": arguments}))
-            .await;
+        let raw = self.request("tools/call", json!({"name": name, "arguments": arguments})).await;
         let text = raw
             .get("content")
             .and_then(Value::as_array)
             .map(|blocks| {
-                blocks
-                    .iter()
-                    .filter_map(|b| b.get("text").and_then(Value::as_str))
-                    .collect::<Vec<_>>()
-                    .join("\n")
+                blocks.iter().filter_map(|b| b.get("text").and_then(Value::as_str)).collect::<Vec<_>>().join("\n")
             })
             .unwrap_or_default();
-        ToolResult {
-            is_error: raw.get("isError").and_then(Value::as_bool).unwrap_or(false),
-            text,
-            raw,
-        }
+        ToolResult { is_error: raw.get("isError").and_then(Value::as_bool).unwrap_or(false), text, raw }
     }
 }

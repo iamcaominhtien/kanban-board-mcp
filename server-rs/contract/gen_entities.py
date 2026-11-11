@@ -238,6 +238,60 @@ def generate() -> None:
     for t in SQLModel.metadata.sorted_tables:
         mod.append(f'    "{t.name}",')
     mod += ["];", ""]
+    mod += [
+        "/// A column of a table, as the Python metadata described it.",
+        "#[derive(Debug, Clone, Copy, PartialEq, Eq)]",
+        "pub struct ColumnMeta {",
+        "    pub name: &'static str,",
+        "    /// \"str\" | \"int\" | \"bigint\" | \"float\" | \"bool\".",
+        "    pub kind: &'static str,",
+        "    pub nullable: bool,",
+        "    pub primary_key: bool,",
+        "    /// A long text (LONGTEXT on MySQL); false for keys and indexed columns, which are VARCHAR(255) there.",
+        "    pub long_text: bool,",
+        "    /// The column this one points at (`table`, `column`); the database does not enforce it.",
+        "    pub foreign_key: Option<(&'static str, &'static str)>,",
+        "}",
+        "",
+        "/// A table: its columns in order.",
+        "#[derive(Debug, Clone, Copy, PartialEq, Eq)]",
+        "pub struct TableMeta {",
+        "    pub name: &'static str,",
+        "    pub columns: &'static [ColumnMeta],",
+        "}",
+        "",
+        "impl TableMeta {",
+        "    /// The column called `name`.",
+        "    pub fn column(&self, name: &str) -> Option<&'static ColumnMeta> {",
+        "        self.columns.iter().find(|c| c.name == name)",
+        "    }",
+        "}",
+        "",
+        "/// The table called `name`.",
+        "pub fn table_meta(name: &str) -> Option<&'static TableMeta> {",
+        "    META.iter().find(|t| t.name == name)",
+        "}",
+        "",
+        "/// Every table with its columns, in the order of `TABLES` (parents before children).",
+        "pub const META: &[TableMeta] = &[",
+    ]
+    for t in SQLModel.metadata.sorted_tables:
+        mod.append("    TableMeta {")
+        mod.append(f'        name: "{t.name}",')
+        mod.append("        columns: &[")
+        for c in t.columns:
+            rt = rust_type(c).replace("Option<", "").replace(">", "")
+            kind = {"String": "str", "i32": "int", "i64": "bigint", "f64": "float", "bool": "bool"}[rt]
+            fks = sorted(c.foreign_keys, key=lambda f: f.target_fullname)
+            fk = f'Some(("{fks[0].column.table.name}", "{fks[0].column.name}"))' if fks else "None"
+            long_text = "true" if type(c.type).__name__ == "LongText" else "false"
+            mod.append(
+                f'            ColumnMeta {{ name: "{c.name}", kind: "{kind}", nullable: {str(bool(c.nullable)).lower()}, '
+                f"primary_key: {str(bool(c.primary_key)).lower()}, long_text: {long_text}, foreign_key: {fk} }},"
+            )
+        mod.append("        ],")
+        mod.append("    },")
+    mod += ["];", ""]
     (OUT / "mod.rs").write_text("\n".join(mod), encoding="utf-8")
     print(f"{len(names)} entities written to {OUT}")
     for m in missing_defaults:

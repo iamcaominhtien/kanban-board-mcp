@@ -47,10 +47,7 @@ pub struct Token {
 /// `var.set(value)`: the value of type `T` for the rest of this task.
 pub fn set<T: Any + Send + Sync>(value: T) -> Token {
     let key = TypeId::of::<T>();
-    let previous = VALUES
-        .try_with(|v| v.borrow_mut().insert(key, Arc::new(value)))
-        .ok()
-        .flatten();
+    let previous = VALUES.try_with(|v| v.borrow_mut().insert(key, Arc::new(value))).ok().flatten();
     Token { key, previous }
 }
 
@@ -73,11 +70,7 @@ pub fn clear<T: Any + Send + Sync>() {
 /// `var.get()`: the value of type `T` set in this task, or `None` (the caller supplies the default).
 pub fn get<T: Any + Send + Sync + Clone>() -> Option<T> {
     VALUES
-        .try_with(|v| {
-            v.borrow()
-                .get(&TypeId::of::<T>())
-                .and_then(|value| value.downcast_ref::<T>().cloned())
-        })
+        .try_with(|v| v.borrow().get(&TypeId::of::<T>()).and_then(|value| value.downcast_ref::<T>().cloned()))
         .ok()
         .flatten()
 }

@@ -21,6 +21,7 @@ tracing = { workspace = true }
 uuid = { workspace = true }
 fernet = { version = "0.2", default-features = false, features = ["rustcrypto"] }
 regex = { workspace = true }
+sea-orm = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3", features = ["apple-native"] }

@@ -24,10 +24,5 @@ impl ActiveModelBehavior for ActiveModel {}
 /// A new row with the defaults of the Python model `DocsAiIgnore`.
 /// Set before saving: `page_id`, `key`.
 pub fn new() -> ActiveModel {
-    ActiveModel {
-        page_id: NotSet,
-        key: NotSet,
-        by: Set("user".to_string()),
-        at: Set(kb_base::time::now_iso()),
-    }
+    ActiveModel { page_id: NotSet, key: NotSet, by: Set("user".to_string()), at: Set(kb_base::time::now_iso()) }
 }

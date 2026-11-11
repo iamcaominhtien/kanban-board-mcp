@@ -24,10 +24,5 @@ impl ActiveModelBehavior for ActiveModel {}
 /// A new row with the defaults of the Python model `DocsAiHealth`.
 /// Set before saving: `project_id`.
 pub fn new() -> ActiveModel {
-    ActiveModel {
-        project_id: NotSet,
-        data: Set("{}".to_string()),
-        checked_at: Set(None),
-        digest_at: Set(None),
-    }
+    ActiveModel { project_id: NotSet, data: Set("{}".to_string()), checked_at: Set(None), digest_at: Set(None) }
 }

@@ -20,8 +20,5 @@ impl ActiveModelBehavior for ActiveModel {}
 
 /// A new row with the defaults of the Python model `IdeaCounter`.
 pub fn new() -> ActiveModel {
-    ActiveModel {
-        id: NotSet,
-        counter: Set(0),
-    }
+    ActiveModel { id: NotSet, counter: Set(0) }
 }

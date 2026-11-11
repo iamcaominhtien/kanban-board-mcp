@@ -17,17 +17,9 @@ fn setup_logs_events_panics_and_is_safe_twice() {
     assert!(text.contains(" ERROR kanban.http hello world\n"), "{text}");
     assert!(!text.contains("below the root level"));
     assert!(text.contains(" CRITICAL t fatal\n"));
-    assert!(
-        text.contains(" CRITICAL uncaught Uncaught exception"),
-        "{text}"
-    );
+    assert!(text.contains(" CRITICAL uncaught Uncaught exception"), "{text}");
     assert!(text.contains("kaboom") && text.contains("setup.rs"));
-    assert_eq!(
-        iter_records_in(&log, None, None, "CRITICAL")
-            .unwrap()
-            .count(),
-        2
-    );
+    assert_eq!(iter_records_in(&log, None, None, "CRITICAL").unwrap().count(), 2);
 }
 
 #[test]

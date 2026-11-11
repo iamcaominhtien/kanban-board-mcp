@@ -1,0 +1,109 @@
+//! The four middlewares of the app (`main.py`).
+
+use std::time::{Duration, Instant};
+
+use axum::Json;
+use axum::extract::Request;
+use axum::http::{Method, StatusCode};
+use axum::middleware::Next;
+use axum::response::{IntoResponse, Response};
+use serde_json::{Map, Value, json};
+
+use kb_base::error::DbFailure;
+use kb_base::{activity, api_secret, ctx};
+use kb_db::database;
+
+const DB_FREE_PATHS: [&str; 8] =
+    ["/database", "/version", "/settings", "/events", "/logs", "/mcp-clients", "/assets", "/drawio"];
+
+fn unreachable_response(state: Map<String, Value>) -> Response {
+    let mut detail = Map::new();
+    detail.insert("code".into(), json!("database_unreachable"));
+    detail.extend(state);
+    (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"detail": detail}))).into_response()
+}
+
+fn looks_like_a_lost_connection(message: &str) -> bool {
+    let text = message.to_lowercase();
+    ["connection", "timed out", "pool", "io error", "broken pipe"].iter().any(|word| text.contains(word))
+}
+
+/// While the database does not answer, every request that needs it gets one quick 503 the app turns into its
+/// reconnect screen, instead of waiting for a connection timeout each.
+pub async fn database_unreachable(request: Request, next: Next) -> Response {
+    let path = request.uri().path().to_string();
+    // the app's own files (the built UI) need no database
+    let is_file = path.rsplit('/').next().is_some_and(|last| last.contains('.'));
+    if let Some(state) = database::unreachable() {
+        if !is_file && !DB_FREE_PATHS.iter().any(|p| path.starts_with(p)) {
+            let wants_html = request
+                .headers()
+                .get("accept")
+                .and_then(|v| v.to_str().ok())
+                .is_some_and(|accept| accept.starts_with("text/html"));
+            if path == "/" || wants_html {
+                return next.run(request).await;
+            }
+            return unreachable_response(state);
+        }
+    }
+    let response = next.run(request).await;
+    if let Some(DbFailure(message)) = response.extensions().get::<DbFailure>() {
+        if !database::is_sqlite() && looks_like_a_lost_connection(message) {
+            database::check_reachable(Duration::from_secs(3)).await;
+            if let Some(state) = database::unreachable() {
+                return unreachable_response(state);
+            }
+        }
+    }
+    response
+}
+
+/// Refuse a request that changes something unless it comes with the secret the desktop app gave its window
+/// (`api_secret`). Nothing is checked when the server was not started by the app.
+pub async fn require_the_apps_secret(request: Request, next: Next) -> Response {
+    let given = request.headers().get(api_secret::HEADER).and_then(|v| v.to_str().ok());
+    if request.method() != Method::OPTIONS
+        && !api_secret::allows(request.method().as_str(), request.uri().path(), given)
+    {
+        return (StatusCode::FORBIDDEN, Json(json!({"detail": api_secret::refusal(request.uri().path())})))
+            .into_response();
+    }
+    next.run(request).await
+}
+
+/// Attribute REST calls to the board user, or to `X-Actor` when the header is sent. Each request runs with a
+/// context of its own (`kb_base::ctx`).
+pub async fn record_activity_actor(request: Request, next: Next) -> Response {
+    // read the headers first: a borrow of the request must not live across the await
+    let (actor, origin) = {
+        let header = |name: &str| {
+            request.headers().get(name).and_then(|v| v.to_str().ok()).map(|v| v.trim().to_string()).unwrap_or_default()
+        };
+        (header("x-actor").chars().take(80).collect::<String>(), header("x-origin"))
+    };
+    ctx::scope(async move {
+        let token = activity::set_actor(Some(if actor.is_empty() { activity::HUMAN_ACTOR } else { &actor }));
+        let origin_token = activity::set_origin(Some(origin.as_str()));
+        let response = next.run(request).await;
+        ctx::reset(origin_token);
+        ctx::reset(token);
+        response
+    })
+    .await
+}
+
+/// Log failed requests (4xx at WARNING, 5xx at ERROR) with timing.
+pub async fn log_requests(request: Request, next: Next) -> Response {
+    let started = Instant::now();
+    let method = request.method().clone();
+    let path = request.uri().path().to_string();
+    let response = next.run(request).await;
+    let status = response.status().as_u16();
+    if status >= 500 {
+        tracing::error!(target: "kanban.http", "{method} {path} -> {status} ({}ms)", started.elapsed().as_millis());
+    } else if status >= 400 {
+        tracing::warn!(target: "kanban.http", "{method} {path} -> {status} ({}ms)", started.elapsed().as_millis());
+    }
+    response
+}

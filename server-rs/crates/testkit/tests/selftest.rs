@@ -38,17 +38,11 @@ async fn mcp_tools_and_get_projects() {
     }
     let s = Server::start().await;
     let c = s.client();
-    c.post("/projects", project("Alpha", "ALP"))
-        .await
-        .assert_status(201);
+    c.post("/projects", project("Alpha", "ALP")).await.assert_status(201);
     let mcp = s.mcp();
     mcp.initialize().await;
     let tools = mcp.list_tools().await;
-    assert_eq!(
-        tools["tools"].as_array().expect("tools").len(),
-        13,
-        "{tools}"
-    );
+    assert_eq!(tools["tools"].as_array().expect("tools").len(), 13, "{tools}");
     let r = mcp.call_tool("get_projects", json!({})).await;
     assert!(!r.is_error, "{}", r.text);
     assert!(r.text.contains("Alpha"), "{}", r.text);
@@ -61,13 +55,9 @@ async fn sse_invalidate_and_dump_db() {
     }
     let s = Server::start().await;
     let c = s.client();
-    c.post("/projects", project("Alpha", "ALP"))
-        .await
-        .assert_status(201);
+    c.post("/projects", project("Alpha", "ALP")).await.assert_status(201);
     let mut ev = s.events().await;
-    c.post("/projects", project("Beta", "BET"))
-        .await
-        .assert_status(201);
+    c.post("/projects", project("Beta", "BET")).await.assert_status(201);
     let mut seen = Vec::new();
     while let Some(e) = ev.next(Duration::from_secs(5)).await {
         seen.push(e.clone());
@@ -75,17 +65,11 @@ async fn sse_invalidate_and_dump_db() {
             break;
         }
     }
-    assert!(
-        seen.iter().any(|e| e.contains("invalidate")),
-        "events: {seen:?}"
-    );
+    assert!(seen.iter().any(|e| e.contains("invalidate")), "events: {seen:?}");
     let dump = s.dump_db().await;
     let rows = dump["project"].as_array().expect("project table");
     assert_eq!(rows.len(), 2, "{dump}");
-    let names: Vec<_> = rows
-        .iter()
-        .map(|r| r["name"].as_str().unwrap_or(""))
-        .collect();
+    let names: Vec<_> = rows.iter().map(|r| r["name"].as_str().unwrap_or("")).collect();
     assert!(names.contains(&"Alpha") && names.contains(&"Beta"));
 }
 
@@ -94,18 +78,11 @@ async fn secret_is_required_for_changes() {
     if !skip_unless_available("secret_is_required_for_changes") {
         return;
     }
-    let s = Server::start_with(Options {
-        secret: Some("s3cret-value".into()),
-        ..Options::default()
-    })
-    .await;
+    let s = Server::start_with(Options { secret: Some("s3cret-value".into()), ..Options::default() }).await;
     let bare = s.client_without_secret();
     let denied = bare.post("/projects", project("Alpha", "ALP")).await;
     assert_eq!(denied.status, 403, "{}", denied.text());
-    s.client()
-        .post("/projects", project("Alpha", "ALP"))
-        .await
-        .assert_status(201);
+    s.client().post("/projects", project("Alpha", "ALP")).await.assert_status(201);
     bare.get("/projects").await.assert_status(200);
 }
 
@@ -117,10 +94,7 @@ async fn two_servers_and_cleanup() {
     let (a, b) = tokio::join!(Server::start(), Server::start());
     assert_ne!(a.port(), b.port());
     assert_ne!(a.dir(), b.dir());
-    a.client()
-        .post("/projects", project("Only A", "OAA"))
-        .await
-        .assert_status(201);
+    a.client().post("/projects", project("Only A", "OAA")).await.assert_status(201);
     let in_b = b.client().get("/projects").await.json();
     assert_eq!(in_b.as_array().expect("list").len(), 0, "{in_b}");
     let (pa, pb) = (a.pid(), b.pid());
@@ -128,10 +102,7 @@ async fn two_servers_and_cleanup() {
     a.stop().await;
     drop(b);
     for (pid, dir) in [(pa, da), (pb, db)] {
-        assert!(
-            !std::path::Path::new(&format!("/proc/{pid}")).exists(),
-            "process {pid} remains"
-        );
+        assert!(!std::path::Path::new(&format!("/proc/{pid}")).exists(), "process {pid} remains");
         assert!(!dir.exists(), "{} remains", dir.display());
     }
 }

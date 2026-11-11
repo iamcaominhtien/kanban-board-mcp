@@ -28,24 +28,17 @@ static CACHED_KEYCHAIN: LazyLock<Mutex<Option<String>>> = LazyLock::new(|| Mutex
 fn key_file() -> PathBuf {
     match std::env::var("KANBAN_AI_KEY_FILE") {
         Ok(path) if !path.is_empty() => PathBuf::from(path),
-        _ => crate::config::home_dir()
-            .join(".kanban-board")
-            .join("ai-secret.key"),
+        _ => crate::config::home_dir().join(".kanban-board").join("ai-secret.key"),
     }
 }
 
 /// keychain (desktop app) | file.
 pub fn store_kind() -> &'static str {
-    if std::env::var("KANBAN_SECRET_STORE").is_ok_and(|v| v == "keychain") {
-        "keychain"
-    } else {
-        "file"
-    }
+    if std::env::var("KANBAN_SECRET_STORE").is_ok_and(|v| v == "keychain") { "keychain" } else { "file" }
 }
 
 fn fernet_of(key: &str) -> Result<Fernet, String> {
-    Fernet::new(key.trim())
-        .ok_or_else(|| "Fernet key must be 32 url-safe base64-encoded bytes.".to_string())
+    Fernet::new(key.trim()).ok_or_else(|| "Fernet key must be 32 url-safe base64-encoded bytes.".to_string())
 }
 
 /// The encryption key from the OS keychain; a key file left from before moves into the keychain once.
@@ -62,10 +55,7 @@ fn keychain_fernet() -> Result<Fernet, SecretStoreError> {
             let path = key_file();
             let stored = if path.is_file() {
                 let bytes = std::fs::read(&path).map_err(|_| denied())?;
-                String::from_utf8(bytes)
-                    .map_err(|_| denied())?
-                    .trim()
-                    .to_string()
+                String::from_utf8(bytes).map_err(|_| denied())?.trim().to_string()
             } else {
                 Fernet::generate_key()
             };
@@ -92,10 +82,7 @@ fn fernet() -> Result<Fernet, SecretStoreError> {
     }
     let path = key_file();
     let fail = |err: String| {
-        SecretStoreError(format!(
-            "Could not open the key store at {}: {err}. Nothing was saved.",
-            path.display()
-        ))
+        SecretStoreError(format!("Could not open the key store at {}: {err}. Nothing was saved.", path.display()))
     };
     if path.is_file() {
         let bytes = std::fs::read(&path).map_err(|e| fail(e.to_string()))?;
@@ -114,8 +101,7 @@ fn fernet() -> Result<Fernet, SecretStoreError> {
         options.mode(0o600);
     }
     let mut file = options.open(&path).map_err(|e| fail(e.to_string()))?;
-    file.write_all(key.as_bytes())
-        .map_err(|e| fail(e.to_string()))?;
+    file.write_all(key.as_bytes()).map_err(|e| fail(e.to_string()))?;
     fernet_of(&key).map_err(fail)
 }
 
@@ -138,9 +124,7 @@ pub fn last4(value: &str) -> String {
 }
 
 static PATTERNS: LazyLock<Vec<(Regex, &'static str)>> = LazyLock::new(|| {
-    let build = |pattern: &str| {
-        Regex::new(pattern).expect("a redaction pattern written in the code compiles")
-    };
+    let build = |pattern: &str| Regex::new(pattern).expect("a redaction pattern written in the code compiles");
     vec![
         (build(r"\b(sk-(?:ant-)?[A-Za-z0-9_\-]{8,})"), "sk-••••"),
         (build(r"\b(gh[pousr]_[A-Za-z0-9]{12,})"), "gh_••••"),
@@ -148,14 +132,9 @@ static PATTERNS: LazyLock<Vec<(Regex, &'static str)>> = LazyLock::new(|| {
         (build(r"\bAIza[0-9A-Za-z_\-]{20,}"), "AIza••••"),
         // a run's MCP token
         (build(r"\bkbr_[A-Za-z0-9_\-]{8,}"), "kbr_••••"),
+        (build(r"(?i)\b(bearer)\s+[A-Za-z0-9._~+/=\-]{8,}"), "${1} ••••••••"),
         (
-            build(r"(?i)\b(bearer)\s+[A-Za-z0-9._~+/=\-]{8,}"),
-            "${1} ••••••••",
-        ),
-        (
-            build(
-                r"(?im)\b([A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD|PASSWD)[A-Z0-9_]*)\s*([=:])\s*\S+",
-            ),
+            build(r"(?im)\b([A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD|PASSWD)[A-Z0-9_]*)\s*([=:])\s*\S+"),
             "${1}${2}••••••••",
         ),
     ]
@@ -177,16 +156,7 @@ pub fn redact_obj(value: &Value) -> Value {
         Value::Array(items) => Value::Array(items.iter().map(redact_obj).collect()),
         Value::Object(map) => Value::Object(
             map.iter()
-                .map(|(k, v)| {
-                    (
-                        k.clone(),
-                        if secret_key(k) {
-                            Value::String("••••••••".into())
-                        } else {
-                            redact_obj(v)
-                        },
-                    )
-                })
+                .map(|(k, v)| (k.clone(), if secret_key(k) { Value::String("••••••••".into()) } else { redact_obj(v) }))
                 .collect(),
         ),
         other => other.clone(),
@@ -195,9 +165,7 @@ pub fn redact_obj(value: &Value) -> Value {
 
 fn secret_key(key: &str) -> bool {
     let low = key.to_lowercase();
-    ["api_key", "apikey", "password", "secret", "authorization"]
-        .iter()
-        .any(|w| low.contains(w))
+    ["api_key", "apikey", "password", "secret", "authorization"].iter().any(|w| low.contains(w))
 }
 
 #[cfg(test)]
@@ -208,10 +176,7 @@ mod tests {
     #[test]
     fn redacts_keys_and_secret_looking_values() {
         assert_eq!(redact("key sk-ant-abcdefgh12345 end"), "key sk-•••• end");
-        assert_eq!(
-            redact("Authorization: Bearer abcdefgh.ijk"),
-            "Authorization: Bearer ••••••••"
-        );
+        assert_eq!(redact("Authorization: Bearer abcdefgh.ijk"), "Authorization: Bearer ••••••••");
         assert_eq!(redact("MY_API_KEY = hunter2 x"), "MY_API_KEY=•••••••• x");
         assert_eq!(redact("token kbr_abcdefgh123"), "token kbr_••••");
         assert_eq!(

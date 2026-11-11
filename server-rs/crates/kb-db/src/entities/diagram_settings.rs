@@ -22,9 +22,5 @@ impl ActiveModelBehavior for ActiveModel {}
 
 /// A new row with the defaults of the Python model `DiagramSettings`.
 pub fn new() -> ActiveModel {
-    ActiveModel {
-        id: NotSet,
-        mode: Set("self-hosted".to_string()),
-        url: Set("".to_string()),
-    }
+    ActiveModel { id: NotSet, mode: Set("self-hosted".to_string()), url: Set("".to_string()) }
 }

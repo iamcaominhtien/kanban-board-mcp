@@ -53,3 +53,62 @@ does, including the odd cases, and do not improve behavior on the way.
 - Golden vectors: when a pure function must give exactly what the Python one gives (scores, slugs, parsed text), add a
   generator `contract/golden/gen_<name>.py` (run with `server/.venv/bin/python` from `server/`) that writes
   `contract/golden/<name>.json`, commit both, and assert against the JSON in a Rust test.
+
+## The database (`kb-db`)
+
+- `database.async_session()` / `Depends(get_session)` is `kb_db::session()`: a `Session` that implements SeaORM's
+  `ConnectionTrait`, so every query takes `&session`. It follows the Python server's transaction rules: reads run
+  without a transaction until the first write, the first write opens one, `session.commit().await?` makes it
+  permanent, and dropping the session without a commit rolls back. Commit exactly where the Python code commits.
+  There is no unit of work: where Python changes an attribute of a loaded row and commits, write the UPDATE
+  (`row.into_active_model()`, set the changed columns, `.update(&session)`). `session.flush()` and
+  `session.refresh(row)` need no call (an insert or update returns the stored row).
+- Tables are the generated entities `kb_db::entities::<table>` (`Model`, `Entity`, `Column`, `ActiveModel`).
+  `entities::<table>::new()` is an `ActiveModel` with the defaults the Python model gives a new row (ids, times,
+  `"[]"`...): start from it and set what the Python code sets. Do not edit the generated files; if one is wrong, say
+  so in your report.
+- Columns are what the database holds: times are ISO strings, lists and objects are JSON text. Parse and write them
+  with `serde_json` / `kb_base::pyjson` exactly where the Python code calls `json.loads` / `json.dumps`.
+- Foreign keys are **not** enforced on any engine and the code relies on it. Table metadata (columns, kinds, what
+  points at what) is in `kb_db::entities::META` for code that walked `SQLModel.metadata`.
+- Queries must run on SQLite, PostgreSQL and MySQL: use the SeaORM query builder. For the few hand-written
+  statements use `kb_db::sql::statement(backend, "... ? ...", values)` (it renumbers placeholders for PostgreSQL),
+  and branch on `session.dialect()` (`"sqlite" | "postgresql" | "mysql"`) exactly where the Python code branches on
+  `dialect.name`. `kb_db::database::insert_missing` is `database.insert_missing`; `kb_db::sql::bump_counter` is
+  `dbkit.sql.bump_counter`. `IntegrityError` is `DbErr::sql_err()` giving `SqlErr::UniqueConstraintViolation`.
+- `kb_db::database::{is_sqlite, get_db_path, get_data_dir, current_target}` are the functions of `database.py`.
+
+## REST routes
+
+- A router file `api/foo.py` becomes `src/api/foo.rs` in the area's crate and exposes `pub fn routes() -> Routes`
+  (`kb_base::Routes`): `.get("/projects/{project_id}", handler)`, `.nest("/prefix", inner)`. The crate's
+  `api::routes()` merges its files in the order `main.py` includes the routers; `kb-app` already merges every crate.
+- Keep the path exactly as FastAPI has it, with one exception: at the same position of a path, every route must use
+  the **same parameter name** (axum refuses `/a/{x}` next to `/a/{y}/b`). Pick one name per position.
+- Request and response models (`ProjectCreate`, `ProjectRead`... in `models.py` from line 2031, or declared in the
+  router file) become `serde` structs in the area crate, next to the code that uses them, with the same field names,
+  order and defaults. A response model lists exactly its fields in its order (FastAPI drops anything else).
+  `Optional` fields that the Python model defaults to `None` are `Option<T>` with `#[serde(default)]`; a Python
+  `model_dump(exclude_none=True)` / `exclude_unset=True` must be reproduced (for `exclude_unset`, use
+  `Option<Option<T>>` or a `serde_json::Map` to tell "absent" from "null").
+- Status codes as declared (`status_code=201` and so on); a handler that returns `None` with 204 has no body.
+- After a change the Python handler calls `events.publish("invalidate", ...)`: call it at the same point.
+- The actor of a request is `kb_base::activity::current_actor()`.
+- When Python calls into an area that is above this crate in the dependency order (a late `import` inside a
+  function, e.g. tickets calling the AI team), declare a hook in this crate: a trait with the functions needed and a
+  `static HOOK: OnceLock<Box<dyn Trait>>` with a `set_...` function; call through it and do nothing when it is not
+  set. Say which hooks you added in your report; the upper crate's port will fill them.
+
+## Tests
+
+- Port the area's pytest files to `crates/<crate>/tests/<same name>.rs`, one `#[tokio::test]` per Python test with
+  the same name and the same assertions, going through the real server with `testkit` (`testkit::Server::start()`,
+  `.client()`, `.mcp()`, `.events()`): see `crates/testkit/tests/selftest.rs`. A test that calls service functions
+  directly and cannot be expressed through HTTP or MCP becomes a unit test of the Rust module.
+- Run the ported file against the Python reference first: `PARITY_TARGET=python cargo test -p <crate> --test <file>`.
+  It must pass there (that proves the test was ported faithfully). Then build the server
+  (`cargo build -p kanban-server`, in your own `CARGO_TARGET_DIR`, and set `KANBAN_SERVER_BIN` to that binary) and
+  make it pass with `PARITY_TARGET=rust`. A test that fails on Python is a wrong port of the test, not a reason to
+  change the test until it passes on Rust.
+- A reply compared across both servers: compare parsed JSON (key order and spacing of a JSON *response* do not
+  matter; the bytes of what is *stored* do).

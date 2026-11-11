@@ -43,13 +43,9 @@ pub async fn mark<C: ConnectionTrait>(conn: &C) -> Result<(), DbErr> {
         DbBackend::MySql => "INSERT INTO kanban_change (origin, at) VALUES (?, ?)",
         _ => return Ok(()),
     };
-    conn.execute_raw(Statement::from_sql_and_values(
-        backend,
-        sql,
-        [origin().into(), kb_base::time::epoch().into()],
-    ))
-    .await
-    .map(|_| ())
+    conn.execute_raw(Statement::from_sql_and_values(backend, sql, [origin().into(), kb_base::time::epoch().into()]))
+        .await
+        .map(|_| ())
 }
 
 /// The id of the newest change another process wrote (0 when none).
@@ -59,42 +55,22 @@ pub async fn latest_from_others<C: ConnectionTrait>(conn: &C) -> Result<i64, DbE
         DbBackend::Postgres => "SELECT max(id) AS newest FROM kanban_change WHERE origin != $1",
         _ => "SELECT max(id) AS newest FROM kanban_change WHERE origin != ?",
     };
-    let row = conn
-        .query_one_raw(Statement::from_sql_and_values(
-            backend,
-            sql,
-            [origin().into()],
-        ))
-        .await?;
-    Ok(row
-        .and_then(|r| r.try_get::<Option<i64>>("", "newest").ok().flatten())
-        .unwrap_or(0))
+    let row = conn.query_one_raw(Statement::from_sql_and_values(backend, sql, [origin().into()])).await?;
+    Ok(row.and_then(|r| r.try_get::<Option<i64>>("", "newest").ok().flatten()).unwrap_or(0))
 }
 
 /// Keep only the newest rows; nobody reads further back.
 pub async fn trim(conn: &DatabaseConnection) -> Result<(), DbErr> {
     let backend = conn.get_database_backend();
     let txn = conn.begin().await?;
-    let row = txn
-        .query_one_raw(Statement::from_string(
-            backend,
-            "SELECT max(id) AS newest FROM kanban_change",
-        ))
-        .await?;
-    let newest = row
-        .and_then(|r| r.try_get::<Option<i64>>("", "newest").ok().flatten())
-        .unwrap_or(0);
+    let row = txn.query_one_raw(Statement::from_string(backend, "SELECT max(id) AS newest FROM kanban_change")).await?;
+    let newest = row.and_then(|r| r.try_get::<Option<i64>>("", "newest").ok().flatten()).unwrap_or(0);
     if newest != 0 {
         let sql = match backend {
             DbBackend::Postgres => "DELETE FROM kanban_change WHERE id < $1",
             _ => "DELETE FROM kanban_change WHERE id < ?",
         };
-        txn.execute_raw(Statement::from_sql_and_values(
-            backend,
-            sql,
-            [(newest - KEEP_ROWS).into()],
-        ))
-        .await?;
+        txn.execute_raw(Statement::from_sql_and_values(backend, sql, [(newest - KEEP_ROWS).into()])).await?;
     }
     txn.commit().await
 }

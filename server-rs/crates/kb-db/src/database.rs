@@ -10,8 +10,7 @@ use std::time::{Duration, Instant};
 
 use sea_orm::sqlx::{self, ConnectOptions as _, Connection as _};
 use sea_orm::{
-    ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbBackend, DbErr, EntityTrait,
-    Statement, TransactionTrait,
+    ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbBackend, DbErr, EntityTrait, Statement, TransactionTrait,
 };
 use serde_json::{Map, Value, json};
 
@@ -59,9 +58,7 @@ pub const RETRY_S: u64 = 8;
 
 fn read<T>(f: impl FnOnce(&State) -> T) -> T {
     let guard = STATE.read().unwrap_or_else(|e| e.into_inner());
-    f(guard
-        .as_ref()
-        .expect("database::setup runs before anything uses the database"))
+    f(guard.as_ref().expect("database::setup runs before anything uses the database"))
 }
 
 /// `Path(text).resolve()`: absolute, with symlinks of the existing part followed.
@@ -87,10 +84,7 @@ fn resolve_db_path() -> PathBuf {
     let from_env = std::env::var("KANBAN_DB_PATH").unwrap_or_default();
     if !from_env.is_empty() {
         let path = PathBuf::from(&from_env);
-        if let Some(parent) = std::path::absolute(&path)
-            .ok()
-            .and_then(|p| p.parent().map(Path::to_path_buf))
-        {
+        if let Some(parent) = std::path::absolute(&path).ok().and_then(|p| p.parent().map(Path::to_path_buf)) {
             let _ = std::fs::create_dir_all(parent);
         }
         return resolve_path(&path);
@@ -107,17 +101,11 @@ fn resolve_target(db_path: &Path) -> Result<(Target, &'static str), TargetError>
         Ok(found) => Ok(found),
         Err(err) => {
             // A broken KANBAN_DATABASE_URL must not silently fall back to another database
-            if !std::env::var(targets::ENV_URL)
-                .unwrap_or_default()
-                .is_empty()
-            {
+            if !std::env::var(targets::ENV_URL).unwrap_or_default().is_empty() {
                 return Err(err);
             }
             tracing::error!("The saved database setting cannot be used; using SQLite: {err}");
-            Ok((
-                Target::sqlite(db_path.to_string_lossy().into_owned()),
-                "default",
-            ))
+            Ok((Target::sqlite(db_path.to_string_lossy().into_owned()), "default"))
         }
     }
 }
@@ -128,12 +116,7 @@ pub async fn setup() -> Result<(), DatabaseError> {
     let db_path = resolve_db_path();
     let (target, source) = resolve_target(&db_path)?;
     let conn = targets::make_engine(&target, None).await?;
-    *STATE.write().unwrap_or_else(|e| e.into_inner()) = Some(State {
-        db_path,
-        target,
-        source,
-        conn,
-    });
+    *STATE.write().unwrap_or_else(|e| e.into_inner()) = Some(State { db_path, target, source, conn });
     Ok(())
 }
 
@@ -164,12 +147,7 @@ pub fn get_db_path() -> PathBuf {
 
 /// The data folder: attachments, AI run logs and the SQLite file live here whichever database is in use.
 pub fn get_data_dir() -> PathBuf {
-    read(|s| {
-        s.db_path
-            .parent()
-            .map(Path::to_path_buf)
-            .unwrap_or_default()
-    })
+    read(|s| s.db_path.parent().map(Path::to_path_buf).unwrap_or_default())
 }
 
 /// The database in use (with its password; never print it, use `display()`).
@@ -202,11 +180,7 @@ where
     C: ConnectionTrait,
     A: ActiveModelTrait + Send,
 {
-    <A::Entity as EntityTrait>::insert(row)
-        .on_conflict_do_nothing()
-        .exec_without_returning(conn)
-        .await
-        .map(|_| ())
+    <A::Entity as EntityTrait>::insert(row).on_conflict_do_nothing().exec_without_returning(conn).await.map(|_| ())
 }
 
 /// Bring the database in use up to the newest schema.
@@ -266,12 +240,7 @@ pub async fn init_db() -> Result<(), DatabaseError> {
 
 async fn set_target(target: Target, source: &'static str, db_path: PathBuf) -> Result<(), DbErr> {
     let conn = targets::make_engine(&target, None).await?;
-    *STATE.write().unwrap_or_else(|e| e.into_inner()) = Some(State {
-        db_path,
-        target,
-        source,
-        conn,
-    });
+    *STATE.write().unwrap_or_else(|e| e.into_inner()) = Some(State { db_path, target, source, conn });
     Ok(())
 }
 
@@ -290,14 +259,10 @@ pub async fn reinit_db(new_db_path: Option<PathBuf>) -> Result<(), DatabaseError
 /// Point the app at `target` now and remember it in Settings (the wizard's Switch). Refused while
 /// `KANBAN_DATABASE_URL` is set: the environment wins.
 pub async fn use_target(target: &Target) -> Result<(), DatabaseError> {
-    if !std::env::var(targets::ENV_URL)
-        .unwrap_or_default()
-        .is_empty()
-    {
+    if !std::env::var(targets::ENV_URL).unwrap_or_default().is_empty() {
         return Err(SchemaError {
             code: "locked",
-            message: "KANBAN_DATABASE_URL is set, so the database cannot be changed from here."
-                .into(),
+            message: "KANBAN_DATABASE_URL is set, so the database cannot be changed from here.".into(),
         }
         .into());
     }
@@ -306,10 +271,7 @@ pub async fn use_target(target: &Target) -> Result<(), DatabaseError> {
     match reinit_db(None).await {
         Ok(()) => Ok(()),
         Err(err) => {
-            let _ = app_config::set_section(
-                targets::CONFIG_KEY,
-                if old.is_empty() { None } else { Some(old) },
-            );
+            let _ = app_config::set_section(targets::CONFIG_KEY, if old.is_empty() { None } else { Some(old) });
             reinit_db(None).await?;
             Err(err)
         }
@@ -322,10 +284,7 @@ pub async fn use_target(target: &Target) -> Result<(), DatabaseError> {
 
 /// The "cannot reach the database" state, or `None` when the database answers.
 pub fn unreachable() -> Option<Map<String, Value>> {
-    UNREACHABLE
-        .read()
-        .unwrap_or_else(|e| e.into_inner())
-        .clone()
+    UNREACHABLE.read().unwrap_or_else(|e| e.into_inner()).clone()
 }
 
 fn set_unreachable(value: Option<Map<String, Value>>) {
@@ -335,10 +294,7 @@ fn set_unreachable(value: Option<Map<String, Value>>) {
 /// What decides the database: the environment variable and the saved choice (never shown).
 fn settings_key() -> String {
     let saved = app_config::get_section(targets::CONFIG_KEY);
-    pyjson::Dumps::new().sort_keys(true).dump(&json!([
-        std::env::var(targets::ENV_URL).unwrap_or_default(),
-        saved
-    ]))
+    pyjson::Dumps::new().sort_keys(true).dump(&json!([std::env::var(targets::ENV_URL).unwrap_or_default(), saved]))
 }
 
 fn is_connection_error(err: &DatabaseError) -> bool {
@@ -357,13 +313,7 @@ fn is_connection_error(err: &DatabaseError) -> bool {
 
 /// The first line of an error, 300 characters at most.
 fn first_line(err: &dyn std::fmt::Display) -> String {
-    err.to_string()
-        .lines()
-        .next()
-        .unwrap_or("")
-        .chars()
-        .take(300)
-        .collect()
+    err.to_string().lines().next().unwrap_or("").chars().take(300).collect()
 }
 
 fn unreachable_entry(error: String) -> Map<String, Value> {
@@ -392,10 +342,7 @@ pub async fn init_db_or_wait() -> Result<(), DatabaseError> {
                 return Err(err);
             }
             let entry = unreachable_entry(first_line(&err));
-            tracing::error!(
-                "The database cannot be reached: {}",
-                entry["error"].as_str().unwrap_or("")
-            );
+            tracing::error!("The database cannot be reached: {}", entry["error"].as_str().unwrap_or(""));
             set_unreachable(Some(entry));
         }
     }
@@ -426,8 +373,7 @@ pub async fn check_reachable(timeout: Duration) -> Value {
     let conn = conn();
     let ping = async {
         let backend = conn.get_database_backend();
-        conn.query_one_raw(Statement::from_string(backend, "SELECT 1"))
-            .await
+        conn.query_one_raw(Statement::from_string(backend, "SELECT 1")).await
     };
     let outcome = match tokio::time::timeout(timeout, ping).await {
         Ok(Ok(_)) => Ok(()),
@@ -440,11 +386,7 @@ pub async fn check_reachable(timeout: Duration) -> Value {
             json!({"ok": true, "latency_ms": started.elapsed().as_millis() as u64})
         }
         Err(error) => {
-            let error = if error.is_empty() {
-                "Error".to_string()
-            } else {
-                error
-            };
+            let error = if error.is_empty() { "Error".to_string() } else { error };
             let mut guard = UNREACHABLE.write().unwrap_or_else(|e| e.into_inner());
             match guard.as_mut() {
                 Some(entry) => {
@@ -525,25 +467,19 @@ pub async fn watch_database(path: Option<PathBuf>, interval: Duration, grace: Du
                         .create_if_missing(false)
                         .busy_timeout(Duration::from_secs(1))
                         .disable_statement_logging();
-                    let connection = sqlx::SqliteConnection::connect_with(&options)
-                        .await
-                        .map_err(|e| e.to_string())?;
+                    let connection = sqlx::SqliteConnection::connect_with(&options).await.map_err(|e| e.to_string())?;
                     watcher = Some((db_path.clone(), connection));
                 }
                 let (_, connection) = watcher.as_mut().ok_or("no watcher connection")?;
-                let version: i64 = sqlx::query_scalar("PRAGMA data_version")
-                    .fetch_one(connection)
-                    .await
-                    .map_err(|e| e.to_string())?;
+                let version: i64 =
+                    sqlx::query_scalar("PRAGMA data_version").fetch_one(connection).await.map_err(|e| e.to_string())?;
                 Ok((version, db_path.to_string_lossy().into_owned(), false))
             } else {
                 if let Some((_, old)) = watcher.take() {
                     let _ = old.close().await;
                 }
                 let conn = conn();
-                let version = changes::latest_from_others(&conn)
-                    .await
-                    .map_err(|e| e.to_string())?;
+                let version = changes::latest_from_others(&conn).await.map_err(|e| e.to_string())?;
                 Ok((version, current_target().url(true), true))
             }
         }

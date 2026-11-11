@@ -12,8 +12,8 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use sea_orm::{
-    ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbBackend, DbErr, ExecResult,
-    QueryResult, Statement, TransactionTrait,
+    ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbBackend, DbErr, ExecResult, QueryResult, Statement,
+    TransactionTrait,
 };
 use tokio::sync::Mutex;
 
@@ -29,11 +29,7 @@ pub struct Session {
 /// Whether a statement only reads (it does not need a transaction of its own).
 fn reads_only(sql: &str) -> bool {
     let head = sql.trim_start().trim_start_matches('(').trim_start();
-    let word: String = head
-        .chars()
-        .take_while(|c| c.is_ascii_alphabetic())
-        .collect::<String>()
-        .to_ascii_uppercase();
+    let word: String = head.chars().take_while(|c| c.is_ascii_alphabetic()).collect::<String>().to_ascii_uppercase();
     match word.as_str() {
         "SELECT" | "VALUES" | "EXPLAIN" | "SHOW" | "DESCRIBE" => true,
         // a PRAGMA that sets something still needs no transaction
@@ -50,11 +46,7 @@ fn reads_only(sql: &str) -> bool {
 impl Session {
     /// A session on `conn` (use `kb_db::session()` for the database in use).
     pub fn new(conn: DatabaseConnection) -> Self {
-        Self {
-            conn,
-            txn: Mutex::new(None),
-            wrote: AtomicBool::new(false),
-        }
+        Self { conn, txn: Mutex::new(None), wrote: AtomicBool::new(false) }
     }
 
     /// The pool this session runs on.

@@ -22,9 +22,5 @@ impl ActiveModelBehavior for ActiveModel {}
 /// A new row with the defaults of the Python model `NotifyPrefs`.
 /// Set before saving: `recipient`.
 pub fn new() -> ActiveModel {
-    ActiveModel {
-        recipient: NotSet,
-        prefs: Set("{}".to_string()),
-        updated_at: Set(kb_base::time::now_iso()),
-    }
+    ActiveModel { recipient: NotSet, prefs: Set("{}".to_string()), updated_at: Set(kb_base::time::now_iso()) }
 }

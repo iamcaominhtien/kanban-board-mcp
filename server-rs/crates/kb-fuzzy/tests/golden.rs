@@ -35,10 +35,7 @@ struct Golden {
 }
 
 fn load() -> Golden {
-    let path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../contract/golden/fuzzy.json"
-    );
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../contract/golden/fuzzy.json");
     let text = std::fs::read_to_string(path).expect("golden file fuzzy.json exists");
     serde_json::from_str(&text).expect("golden file parses")
 }
@@ -68,10 +65,7 @@ fn scorers_match_rapidfuzz() {
         let got = scorer(&case.scorer)(&case.a, &case.b);
         *counts.entry(case.scorer.clone()).or_default() += 1;
         if (got - case.score).abs() > 1e-9 {
-            failures.push(format!(
-                "{}({:?}, {:?}): expected {} got {}",
-                case.scorer, case.a, case.b, case.score, got
-            ));
+            failures.push(format!("{}({:?}, {:?}): expected {} got {}", case.scorer, case.a, case.b, case.score, got));
         }
     }
     assert!(
@@ -82,10 +76,7 @@ fn scorers_match_rapidfuzz() {
         &failures[..failures.len().min(10)]
     );
     for name in ["ratio", "partial_ratio", "token_sort_ratio", "WRatio"] {
-        assert!(
-            counts.get(name).copied().unwrap_or(0) >= 1000,
-            "too few {name} cases"
-        );
+        assert!(counts.get(name).copied().unwrap_or(0) >= 1000, "too few {name} cases");
     }
 }
 
@@ -94,26 +85,14 @@ fn extract_one_matches_rapidfuzz() {
     let golden = load();
     assert!(!golden.extract_one.is_empty());
     for case in &golden.extract_one {
-        let got = process::extract_one(
-            &case.query,
-            &case.choices,
-            scorer(&case.scorer),
-            case.score_cutoff,
-        );
-        let label = format!(
-            "{} {:?} {:?} cutoff {:?}",
-            case.scorer, case.query, case.choices, case.score_cutoff
-        );
+        let got = process::extract_one(&case.query, &case.choices, scorer(&case.scorer), case.score_cutoff);
+        let label = format!("{} {:?} {:?} cutoff {:?}", case.scorer, case.query, case.choices, case.score_cutoff);
         match (&case.result, got) {
             (None, None) => {}
             (Some(want), Some((choice, score, index))) => {
                 assert_eq!(choice, want.choice, "{label}");
                 assert_eq!(index, want.index, "{label}");
-                assert!(
-                    (score - want.score).abs() <= 1e-9,
-                    "{label}: {score} vs {}",
-                    want.score
-                );
+                assert!((score - want.score).abs() <= 1e-9, "{label}: {score} vs {}", want.score);
             }
             (want, got) => panic!("{label}: expected {:?} got {:?}", want.is_some(), got),
         }
