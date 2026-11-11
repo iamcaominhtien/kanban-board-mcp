@@ -12,11 +12,19 @@ workspace = true
 [dependencies]
 kb-base = { workspace = true }
 kb-db = { workspace = true }
+kb-files = { workspace = true }
+async-trait = { workspace = true }
 axum = { workspace = true }
+futures = { workspace = true }
+regex = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]
 testkit = { workspace = true }
+tempfile = "3"
+# the same sqlx as testkit and the entities: tests add rows to a server's SQLite file and read dumps of it
+sqlx = { version = "0.9", default-features = false, features = ["sqlite", "runtime-tokio"] }

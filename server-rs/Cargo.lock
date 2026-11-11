@@ -1658,12 +1658,19 @@ dependencies = [
 name = "kb-dbkit"
 version = "5.0.0"
 dependencies = [
+ "async-trait",
  "axum",
+ "futures",
  "kb-base",
  "kb-db",
+ "kb-files",
+ "regex",
  "serde",
  "serde_json",
+ "sqlx",
+ "tempfile",
  "testkit",
+ "thiserror",
  "tokio",
  "tracing",
 ]
@@ -1699,13 +1706,24 @@ dependencies = [
 name = "kb-draw"
 version = "5.0.0"
 dependencies = [
+ "async-trait",
  "axum",
+ "base64 0.22.1",
+ "bytes",
+ "flate2",
+ "futures",
  "kb-base",
  "kb-db",
+ "kb-doctext",
+ "kb-files",
+ "regex",
  "serde",
  "serde_json",
+ "sqlx",
+ "tempfile",
  "testkit",
  "tokio",
+ "tokio-tungstenite",
  "tracing",
 ]
 

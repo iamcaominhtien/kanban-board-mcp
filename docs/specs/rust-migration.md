@@ -1,6 +1,6 @@
 # Moving the server from Python to Rust
 
-Status: **in progress** (started 2026-11-11). This page is the plan and the progress checklist. Update the checklist in
+Status: **paused** (started 2026-11-11; see Progress). This page is the plan and the progress checklist. Update the checklist in
 the same commit as the work, so a later session can continue from it.
 
 ## Why
@@ -100,6 +100,22 @@ routes are all served, `cargo fmt` and `clippy -D warnings` are clean, and the c
 - PDF text extraction (`pypdf` to `pdf-extract`) can differ on complex PDFs; measured on the fixtures.
 
 ## Progress
+
+**Paused on 2026-11-11 at the owner's request.** The branch builds and every finished port is verified; 65 of the 496
+routes are served. Three ports had just been started and were stopped; they restart from their briefs, not from
+what is on disk (only two unreferenced helper files exist: `kb-dbkit/src/move_db/defaults.rs` and
+`kb-draw/src/html_entities.rs`, both generated tables):
+
+- tickets, part 1 (the core of `services/tickets.py` to line 800, `ticket_guide`, `ticket_waves`, `proofs`, the core
+  routes of `api/tickets.py` and the upload routes), then part 2 (comments, criteria, sub-tasks, work log, test cases,
+  blocks, links, branches);
+- diagrams and sketches (`kb-draw`);
+- the database kit (`kb-dbkit`).
+
+To resume: start the test databases if the multi-database tests are wanted (`server-rs/scripts/dev-databases.sh start
+/var/tmp/kanban-dev-databases`), run `uv sync` in `server/` for the Python reference, and continue with the unchecked
+boxes below in the order of `server-rs/PORTING.md`'s crate list.
+
 
 Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 
