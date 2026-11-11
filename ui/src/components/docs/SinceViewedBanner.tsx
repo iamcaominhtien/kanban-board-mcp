@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { usePageSettled } from './pageSettled';
 import { useDocsDiff, useDocsSeen, useDocsStepDiffs, useDocsVersions, useMarkDocsSeen } from '../../api/docs';
 import type { DocsPage } from '../../types/docs';
 import { Icon } from './Icon';
@@ -175,7 +176,8 @@ export function SinceViewedBanner({ page, since, onCompare }: SinceViewedBannerP
   const { seen, behind, markSeen, marks, setMarks } = since;
   const edits = since.edits ?? [];
   const [open, setOpen] = useState(false);
-  const versionsQ = useDocsVersions(page.id);
+  const settled = usePageSettled();
+  const versionsQ = useDocsVersions(settled ? page.id : null);
 
   useEffect(() => setOpen(false), [page.id]);
 

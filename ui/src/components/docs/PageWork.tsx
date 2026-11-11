@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { usePageSettled } from './pageSettled';
 import { LIVE_STATES, usePageWork, type PageWorkTicket } from '../../api/docsWork';
 
 const STATE_WORD: Record<string, string> = {
@@ -23,7 +24,8 @@ function elapsed(from: string | null, now: number): string {
  * Renders nothing when no AI is working.
  */
 export function PageWork({ pageId, onOpenTicket }: { pageId: string; onOpenTicket: (ticketId: string) => void }) {
-  const work = usePageWork(pageId).data;
+  const settled = usePageSettled();
+  const work = usePageWork(settled ? pageId : null).data;
   const live = (work?.tickets ?? []).filter((t): t is PageWorkTicket & { run: NonNullable<PageWorkTicket['run']> } =>
     Boolean(t.run && LIVE_STATES.includes(t.run.state)),
   );

@@ -1,5 +1,16 @@
 import type { Element } from 'hast';
-import { Children, createContext, isValidElement, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  Children,
+  createContext,
+  isValidElement,
+  memo,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import ReactMarkdown, { defaultUrlTransform, type Components } from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
@@ -10,6 +21,7 @@ import { resolveOrigin } from '../../api/resolveOrigin';
 import { useResolveRefs } from '../../api/docs';
 import type { DocsRefRequest } from '../../types/docs';
 import { escapeStrayDollars } from '../../utils/mathDollars';
+import { splitMarkdown } from '../../utils/markdownChunks';
 import { markNeedsInput, NEEDS_INPUT_SCHEME } from '../../utils/writeRules';
 import {
   linkifyDocs,
@@ -94,6 +106,14 @@ export interface DocsMarkdownProps {
   onReplaceSection?: RefChipProps['onReplaceSection'];
   /** Source line text -> version that added it: marks those blocks "Changed in vN" (since last viewed). */
   changedIn?: Map<string, number>;
+  /**
+   * Render a long page piece by piece (utils/markdownChunks): the top shows at once and the rest follows frame by
+   * frame, so opening a 4,000-line page neither waits for the whole page nor blocks typing and scrolling. While pieces
+   * are still coming the root carries `data-rendering`.
+   */
+  progressive?: boolean;
+  /** Called once every piece is on the page (at once when not progressive). */
+  onRendered?: () => void;
 }
 
 type RefResult = NonNullable<ReturnType<typeof useResolveRefs>['data']>[number];
@@ -276,6 +296,50 @@ function sectionOf(from: HTMLElement, href: string): HTMLElement | null {
   return null;
 }
 
+const REMARK_PLUGINS = [remarkGfm, remarkMath, remarkDocs];
+// KaTeX runs after sanitize: its own markup would be stripped, and its input is only the sanitized math code.
+const REHYPE_PLUGINS = [
+  [rehypeSanitize, SCHEMA],
+  [rehypeKatex, { throwOnError: false, strict: 'ignore' }],
+] as NonNullable<Parameters<typeof ReactMarkdown>[0]['rehypePlugins']>;
+
+function docsUrlTransform(url: string): string {
+  return url.startsWith(REF_SCHEME) ||
+    url.startsWith(TICKET_SCHEME) ||
+    url.startsWith(DIAGRAM_SCHEME) ||
+    url.startsWith(SKETCH_SCHEME) ||
+    url.startsWith(CANVAS_SCHEME) ||
+    url.startsWith(NEEDS_INPUT_SCHEME)
+    ? url
+    : defaultUrlTransform(url);
+}
+
+/**
+ * One piece of the page. Parsing it (remark, rehype, sanitize, KaTeX) is the cost of rendering, and ReactMarkdown does
+ * it on every render: a piece renders again only when its text, the component map or the "Changed in" marks change.
+ * The chips update through ChipCtx without it.
+ */
+const MarkdownPiece = memo(function MarkdownPiece({
+  text,
+  components,
+}: {
+  text: string;
+  components: Components;
+  /** Not read here: a new map of marks must render the piece again (`changedProps` reads it). */
+  changedIn?: Map<string, number>;
+}) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={REMARK_PLUGINS}
+      rehypePlugins={REHYPE_PLUGINS}
+      urlTransform={docsUrlTransform}
+      components={components}
+    >
+      {text}
+    </ReactMarkdown>
+  );
+});
+
 /**
  * Reader for a Docs page: the board's dk-md typography with callouts, tables, code, task lists and reference chips.
  * @param props.children - Markdown source of the page.
@@ -287,6 +351,8 @@ function sectionOf(from: HTMLElement, href: string): HTMLElement | null {
  * @param props.onRestorePage - Called with a page id when a deleted referenced page is restored.
  * @param props.onReplaceSection - Called when a stale section reference is replaced.
  * @param props.changedIn - Marks blocks whose source lines were added by a later version ("Changed in vN").
+ * @param props.progressive - Render a long page piece by piece.
+ * @param props.onRendered - Called once the whole page is on the page.
  */
 export function DocsMarkdown({
   children,
@@ -298,6 +364,8 @@ export function DocsMarkdown({
   onRestorePage,
   onReplaceSection,
   changedIn,
+  progressive = false,
+  onRendered,
 }: DocsMarkdownProps) {
   const cleaned = (children ?? '').replace(/\/api\/uploads\//g, '/uploads/');
   const linked = useMemo(
@@ -572,42 +640,38 @@ export function DocsMarkdown({
     [],
   );
 
-  // Parsing the Markdown (remark, rehype, sanitize, KaTeX) is the cost of rendering a long page, and ReactMarkdown
-  // does it on every render: the parsed tree is kept until the text or the "Changed in" marks change. The chips
-  // update through ChipCtx without it.
-  const tree = useMemo(
-    () => (
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath, remarkDocs]}
-        // KaTeX runs after sanitize: its own markup would be stripped, and its input is only the sanitized math code.
-        rehypePlugins={[
-          [rehypeSanitize, SCHEMA],
-          [rehypeKatex, { throwOnError: false, strict: 'ignore' }],
-        ]}
-        urlTransform={(url) =>
-          url.startsWith(REF_SCHEME) ||
-          url.startsWith(TICKET_SCHEME) ||
-          url.startsWith(DIAGRAM_SCHEME) ||
-          url.startsWith(SKETCH_SCHEME) ||
-          url.startsWith(CANVAS_SCHEME) ||
-          url.startsWith(NEEDS_INPUT_SCHEME)
-            ? url
-            : defaultUrlTransform(url)
-        }
-        components={components}
-      >
-        {linked.markdown}
-      </ReactMarkdown>
-    ),
-    // `changedIn` and `lines` are read by `changedProps` while the tree is built
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [linked.markdown, components, changedIn, lines],
+  // The page in pieces (one when not progressive), and how many are on the page yet: a new text starts over
+  const pieces = useMemo(
+    () => (progressive ? splitMarkdown(linked.markdown) : [{ text: linked.markdown, start: 0 }]),
+    [progressive, linked.markdown],
   );
+  const [shown, setShown] = useState({ of: pieces, count: 1 });
+  const count = shown.of === pieces ? shown.count : 1;
+  const done = count >= pieces.length;
+  const rendered = useRef(onRendered);
+  rendered.current = onRendered;
+  useEffect(() => {
+    if (done) {
+      rendered.current?.();
+      return;
+    }
+    // after the browser has painted what is there: one piece per frame, with input handled in between
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const frame = requestAnimationFrame(() => {
+      timer = setTimeout(() => setShown({ of: pieces, count: count + 1 }), 0);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, [done, count, pieces]);
 
   return (
     <ChipCtx.Provider value={chips}>
-      <div className="dk-md" data-preview-scope>
-        {tree}
+      <div className="dk-md" data-preview-scope data-rendering={done ? undefined : ''}>
+        {pieces.slice(0, count).map((p) => (
+          <MarkdownPiece key={p.start} text={p.text} components={components} changedIn={changedIn} />
+        ))}
       </div>
     </ChipCtx.Provider>
   );

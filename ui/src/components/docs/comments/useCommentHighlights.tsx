@@ -68,6 +68,8 @@ export function useCommentHighlights({ root, threads, activeId, revision, onSele
 
     const layout = () => {
       frame = 0;
+      // a long page still coming in piece by piece (DocsMarkdown, progressive): its last piece lays them all out once
+      if (root.querySelector('[data-rendering]')) return;
       const blocks = collectBlocks(root);
       entries = [];
       for (const t of threads) {
