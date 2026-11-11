@@ -114,11 +114,27 @@ def heading_anchors(markdown: str) -> list[dict[str, Any]]:
     The same page is read for many requests (an agent reading a ticket reads the headings of every page that links it;
     a page open reads those of the pages it links), so the result is kept per text (`_headings_cached`) and each call
     gets its own copy."""
-    return [dict(h) for h in _headings_cached(markdown)]
+    return [dict(h) for h in _headings(markdown)]
+
+
+# Short texts (ticket descriptions, comments, criteria: hundreds of them are read to find the tickets that mention a
+# page) are kept apart, in a larger cache, so they do not push the pages out of theirs.
+SHORT_TEXT = 2048
+
+
+def _headings(markdown: str) -> tuple[dict[str, Any], ...]:
+    if len(markdown) < SHORT_TEXT:
+        return _headings_short(markdown)
+    return _headings_cached(markdown)
 
 
 @functools.lru_cache(maxsize=64)
 def _headings_cached(markdown: str) -> tuple[dict[str, Any], ...]:
+    return tuple(_parse_headings(markdown))
+
+
+@functools.lru_cache(maxsize=4096)
+def _headings_short(markdown: str) -> tuple[dict[str, Any], ...]:
     return tuple(_parse_headings(markdown))
 
 
@@ -147,12 +163,23 @@ def _parse_headings(markdown: str) -> list[dict[str, Any]]:
 def _prose_lines(markdown: str) -> tuple[tuple[str, str | None, str], ...]:
     """(line, current section slug, raw line) for lines outside code fences. Kept per text, like the headings: the
     tuples cannot be changed by a caller."""
+    if len(markdown) < SHORT_TEXT:
+        return _prose_lines_short(markdown)
     return _prose_lines_cached(markdown)
 
 
 @functools.lru_cache(maxsize=32)
 def _prose_lines_cached(markdown: str) -> tuple[tuple[str, str | None, str], ...]:
-    anchors = {a["text"]: a["slug"] for a in _headings_cached(markdown)}
+    return _parse_prose_lines(markdown)
+
+
+@functools.lru_cache(maxsize=4096)
+def _prose_lines_short(markdown: str) -> tuple[tuple[str, str | None, str], ...]:
+    return _parse_prose_lines(markdown)
+
+
+def _parse_prose_lines(markdown: str) -> tuple[tuple[str, str | None, str], ...]:
+    anchors = {a["text"]: a["slug"] for a in _headings(markdown)}
     section: str | None = None
     in_fence = False
     out: list[tuple[str, str | None, str]] = []

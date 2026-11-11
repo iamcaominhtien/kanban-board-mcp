@@ -317,3 +317,56 @@ async def test_another_apps_change_hidden_by_the_runners_still_refreshes_tickets
         task.cancel()
         events.unsubscribe(q)
         writer.close()
+
+
+async def test_an_mcp_tool_announces_what_it_wrote(tmp_path, monkeypatch):
+    """An MCP mutation names the tables it wrote: a ticket refetches the tickets and the Docs a ticket reaches, a
+    Docs page the Docs, a table with no topic everything, and a write the app does not show nothing."""
+    from sqlmodel import SQLModel
+    from sqlmodel.ext.asyncio.session import AsyncSession
+
+    from kanban_mcp import common
+    from models import Notification, Ticket
+
+    engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'mcp.db'}")
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
+    got: list[tuple[str, list[str] | None]] = []
+
+    async def fake_publish(event, topics=None):
+        got.append((event, sorted(topics) if topics else None))
+
+    monkeypatch.setattr(events, "publish", fake_publish)
+
+    def tool(*rows):
+        @common.notify_on_success
+        async def write():
+            async with AsyncSession(engine) as session:
+                for row in rows:
+                    session.add(row())
+                await session.commit()
+            return {"ok": True}
+
+        return write
+
+    try:
+        await tool(lambda: Ticket(id="T-1", project_id="p", title="t"))()
+        assert got[-1] == ("invalidate", ["ticket_docs", "tickets"])
+        await tool(lambda: Project(name="New", prefix="NEW", color="#336699"))()
+        assert got[-1] == ("invalidate", None)
+        before, published = len(got), events._published
+        await tool(
+            lambda: Notification(
+                id="n1",
+                recipient="me",
+                event_id=1,
+                last_event_id=1,
+                kind="mention",
+                group_key="g",
+            )
+        )()
+        assert len(got) == before and events._published == published + 1
+        assert common.topics_for({"docs_page", "docs_version"}) == {"docs"}
+        assert common.topics_for({"*"}) is None
+    finally:
+        await engine.dispose()

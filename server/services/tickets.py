@@ -315,6 +315,32 @@ async def get_ticket(session: AsyncSession, ticket_id: str) -> Ticket | None:
     return await session.get(Ticket, ticket_id)
 
 
+async def _for_edit(session: AsyncSession, ticket_id: str) -> Ticket | None:
+    """The ticket, read after the database's write lock is taken, for a change of it.
+
+    A ticket keeps its comments, criteria, sub-tasks and logs as JSON lists, and a change rewrites the whole list:
+    two writers that read the ticket before either wrote (two AIs commenting at once, an AI and a person) would each
+    write their list, and the second would drop what the first added, while both were told it worked. Taking the lock
+    first puts them in line: the second reads the ticket once the first has written it. Across processes too (the AI
+    runner, an editor's MCP server): SQLite's lock (``BEGIN IMMEDIATE``) or the row's (``SELECT … FOR UPDATE``).
+    """
+    await session.flush()
+    conn = await session.connection()
+    if conn.dialect.name != "sqlite":
+        return await session.get(
+            Ticket, ticket_id, populate_existing=True, with_for_update=True
+        )
+    began = False
+    raw = await conn.get_raw_connection()
+    if not raw.driver_connection.in_transaction:  # after a write of this transaction, the lock is held already
+        await conn.exec_driver_sql("BEGIN IMMEDIATE")
+        began = True
+    ticket = await session.get(Ticket, ticket_id, populate_existing=True)
+    if ticket is None and began:
+        await conn.exec_driver_sql("ROLLBACK")  # nothing to change: let the next writer in
+    return ticket
+
+
 MAX_NEW_CRITERIA = 50
 
 
@@ -506,7 +532,7 @@ async def update_ticket(
             is blocked by open acceptance criteria or test cases or by a ticket that is
             not done yet, or if the assignee is not a project member.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
 
@@ -755,7 +781,7 @@ async def _sync_idea(
 
 async def delete_ticket(session: AsyncSession, ticket_id: str) -> bool:
     """Delete a ticket; return False if it does not exist."""
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return False
     from services import idea_promote
@@ -854,7 +880,7 @@ async def add_comment(
     Returns:
         The updated ticket, or None if it does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     text = _clean_text(text, "Comment", MAX_COMMENT)
@@ -899,7 +925,7 @@ async def delete_comment(
     Returns:
         The updated ticket, or None if the ticket or comment does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     comments = _loads(ticket.comments)
@@ -929,7 +955,7 @@ async def restore_comment(
     Returns:
         The updated ticket, or None if the ticket or comment does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     comments = _loads(ticket.comments)
@@ -962,7 +988,7 @@ async def update_comment(
     Returns:
         The updated ticket, or None if the ticket or comment does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     text = _clean_text(text, "Comment", MAX_COMMENT)
@@ -1004,7 +1030,7 @@ async def add_acceptance_criterion(
     Returns:
         The updated ticket, or None if it does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     text = _clean_text(text, "Acceptance criterion", MAX_AC_TEXT)
@@ -1031,7 +1057,7 @@ async def toggle_acceptance_criterion(
     Returns:
         The updated ticket, or None if the ticket or item does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     acs = _loads(ticket.acceptance_criteria)
@@ -1066,7 +1092,7 @@ async def delete_acceptance_criterion(
     Returns:
         The updated ticket, or None if the ticket or item does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     acs = _loads(ticket.acceptance_criteria)
@@ -1098,7 +1124,7 @@ async def add_sub_task(
     Returns:
         The updated ticket, or None if it does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     text = _clean_text(text, "Sub-task", MAX_SUB_TASK_TEXT)
@@ -1125,7 +1151,7 @@ async def toggle_sub_task(
     Returns:
         The updated ticket, or None if the ticket or item does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     items = _loads(ticket.sub_tasks)
@@ -1160,7 +1186,7 @@ async def delete_sub_task(
     Returns:
         The updated ticket, or None if the ticket or item does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     items = _loads(ticket.sub_tasks)
@@ -1278,7 +1304,7 @@ async def add_work_log(
     Returns:
         The updated ticket, or None if it does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     _validate_work_log_fields(author=author, role=role, note=note, kind=kind)
@@ -1344,7 +1370,7 @@ async def update_work_log(
     Returns:
         The updated ticket, or None if the ticket or entry does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     _validate_work_log_fields(author=author, role=role, note=note, kind=kind)
@@ -1405,7 +1431,7 @@ async def delete_work_log(
     Returns:
         The updated ticket, or None if the ticket or item does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     logs = _loads(ticket.work_log)
@@ -1463,7 +1489,7 @@ async def add_test_case(
     Returns:
         The updated ticket, or None if it does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     title = _clean_text(title, "Test case title", MAX_TITLE)
@@ -1557,7 +1583,7 @@ async def update_test_case(
     Returns:
         The updated ticket, or None if the ticket or test case does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     if title is not None:
@@ -1627,7 +1653,7 @@ async def delete_test_case(
     Returns:
         The updated ticket, or None if the ticket or item does not exist.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     tcs = _loads(ticket.test_cases)
@@ -1738,8 +1764,8 @@ async def link_block(
     """
     if blocker_id == blocked_id:
         raise ValueError("A ticket cannot block itself")
-    blocker = await session.get(Ticket, blocker_id)
-    blocked = await session.get(Ticket, blocked_id)
+    blocker = await _for_edit(session, blocker_id)
+    blocked = await _for_edit(session, blocked_id)
     if blocker is None or blocked is None:
         return None
     if blocker.project_id != blocked.project_id:
@@ -1783,8 +1809,8 @@ async def unlink_block(
     Returns:
         `(blocker, blocked)`, or None if either ticket does not exist.
     """
-    blocker = await session.get(Ticket, blocker_id)
-    blocked = await session.get(Ticket, blocked_id)
+    blocker = await _for_edit(session, blocker_id)
+    blocked = await _for_edit(session, blocked_id)
     if blocker is None or blocked is None:
         return None
 
@@ -1864,8 +1890,8 @@ async def add_ticket_link(
             f"Valid types: {sorted(VALID_RELATION_TYPES)}"
         )
 
-    ticket = await session.get(Ticket, ticket_id)
-    target = await session.get(Ticket, target_id)
+    ticket = await _for_edit(session, ticket_id)
+    target = await _for_edit(session, target_id)
     if ticket is None or target is None:
         raise ValueError("One or both tickets not found")
 
@@ -1927,7 +1953,7 @@ async def remove_ticket_link(
     Returns:
         True if removed, False if the ticket or link was not found.
     """
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return False
 
@@ -2525,7 +2551,7 @@ async def reopen_ticket(
     actor: str | None = None,
 ) -> Ticket | None:
     """Reopen a ticket that was Done or Won't Do, moving it to To Do."""
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
 
@@ -2671,7 +2697,7 @@ async def set_pending(
     actor: str | None = None,
 ) -> Ticket | None:
     """Flag a ticket as Pending."""
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
 
@@ -2760,7 +2786,7 @@ async def clear_pending(
     actor: str | None = None,
 ) -> Ticket | None:
     """Clear the Pending flag on a ticket (Resume)."""
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
 
@@ -2827,7 +2853,7 @@ async def clear_pending(
 
 async def undo_reopen(session: AsyncSession, ticket_id: str) -> Ticket | None:
     """Revert the latest reopen: back to the status it came from, count and history rolled back."""
-    ticket = await session.get(Ticket, ticket_id)
+    ticket = await _for_edit(session, ticket_id)
     if ticket is None:
         return None
     history = _loads(getattr(ticket, "reopen_history", "[]"))

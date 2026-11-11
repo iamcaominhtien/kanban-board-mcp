@@ -100,6 +100,13 @@ async def publish(event: str, topics: Iterable[str] | None = None) -> None:
         q.put_nowait(event)
 
 
+def mark_announced() -> None:
+    """Count a change of this process as announced without telling anyone (nothing the app shows changed): the
+    database watcher then does not announce it as another process's."""
+    global _published
+    _published += 1
+
+
 async def publish_typed(kind: str, payload: dict) -> None:
     """Broadcast a typed event (AI v2): `{"type": kind, ...payload}`. The app patches its cache from it instead of
     refetching; `kind` is `ai.step`, `ai.run`, `ai.agent`, `ai.message` or `ai.resources`.

@@ -20,6 +20,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 import config as app_config
 
+from . import sqlite_gate
+
 ENGINES = ("sqlite", "postgresql", "mysql")
 SSL_MODES = ("off", "prefer", "require", "verify-full")
 DEFAULT_PORTS = {"postgresql": 5432, "mysql": 3306}
@@ -351,10 +353,13 @@ def make_engine(target: Target, *, role: str | None = None) -> AsyncEngine:
     timeout does not surface as an error in the board) and renews connections every 30 minutes.
     """
     if target.is_sqlite:
+        # One SQLite call at a time in the process, and writers in line (dbkit/sqlite_gate.py).
         engine = create_async_engine(
             target.url(),
             echo=False,
-            connect_args={"timeout": SQLITE_BUSY_TIMEOUT_S},
+            async_creator=sqlite_gate.connector(
+                target.path, timeout=SQLITE_BUSY_TIMEOUT_S
+            ),
         )
         _tune_sqlite(engine.sync_engine)
         return engine

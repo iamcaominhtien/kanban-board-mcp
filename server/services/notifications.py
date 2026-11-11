@@ -3219,6 +3219,7 @@ async def backfill_waiting() -> int:
 
 
 RECONCILE_EVERY_S = 15.0
+RECONCILE_MAX_PAUSE_S = 3.0  # the longest a busy board waits between two passes
 
 
 async def _loop() -> None:
@@ -3238,11 +3239,16 @@ async def _loop() -> None:
             except asyncio.TimeoutError:
                 pass
             t = loop.time()
+            pause = 0.25  # many changes at once are one check
             if dirty.is_set() or t - last_full >= RECONCILE_EVERY_S:
                 dirty.clear()
                 last_full = t
                 await reconcile()
                 await wake_snoozed()
+                # A pass reads every open row (a quarter of a second on a big board). While AIs change the board
+                # without a pause, it runs at most a tenth of the time: a row closes a little later, the board
+                # keeps its CPU for the requests.
+                pause = min(max(pause, 10 * (loop.time() - t)), RECONCILE_MAX_PAUSE_S)
             if t - last_remind >= REMIND_EVERY_S:
                 last_remind = t
                 await remind_unanswered()
@@ -3250,7 +3256,7 @@ async def _loop() -> None:
                 last_hour = t
                 await write_day_cards()
                 await prune()
-            await asyncio.sleep(0.25)  # many changes at once are one check
+            await asyncio.sleep(pause)
         except asyncio.CancelledError:
             raise
         except Exception:  # noqa: BLE001

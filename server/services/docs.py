@@ -13,7 +13,8 @@ import unicodedata
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import or_
+from sqlalchemy import event, or_
+from sqlalchemy.orm import Session
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -1069,6 +1070,7 @@ async def _commit_version(
     commit: bool = True,
 ) -> dict[str, Any]:
     previous = await _latest_version(session, page)
+    renamed = previous is None or title != page.title
     page.version += 1
     page.status = "published"
     page.title = title
@@ -1095,7 +1097,11 @@ async def _commit_version(
     )
     await reindex_links(session, page, markdown)
     await session.flush()
-    await refresh_link_targets(session, page.project_id)
+    if renamed:
+        # Where a [[link]] leads depends on the pages' titles and places, not on their content: other pages' links
+        # only move when a page appears or changes title. (It reads every link of the project, while this
+        # transaction holds the write lock: half a second on a big project, for each publish.)
+        await refresh_link_targets(session, page.project_id)
     await docs_search.reindex(session, [page.id])
     from services import (
         docs_comments,
@@ -1771,10 +1777,38 @@ async def _tickets_mentioning_pages(
     return list(result.all())
 
 
+_MENTIONS_KEY = "docs_ticket_mentions"
+
+
+def _forget_mentions(session: Session, *_args: Any) -> None:
+    session.info.pop(_MENTIONS_KEY, None)
+
+
+# A session's mentions are kept until it writes: after a flush, a commit or a rollback they are read again.
+for _name in ("after_flush", "after_commit", "after_soft_rollback"):
+    event.listen(Session, _name, _forget_mentions)
+
+
 async def _ticket_mentions(
     session: AsyncSession, project_id: str
 ) -> list[dict[str, Any]]:
-    """Every [[page]] mention in ticket descriptions/comments, resolved to a page."""
+    """Every [[page]] mention in ticket descriptions/comments, resolved to a page.
+
+    Opening a page asks for them three times (its stats, its backlinks, the work on it), and each time reads and
+    parses every ticket that mentions a page: they are kept for the rest of the session, until it writes.
+    """
+    sync = session.sync_session
+    if sync.new or sync.dirty or sync.deleted:
+        return await _read_ticket_mentions(session, project_id)
+    memo = sync.info.setdefault(_MENTIONS_KEY, {})
+    if project_id not in memo:
+        memo[project_id] = await _read_ticket_mentions(session, project_id)
+    return [dict(m) for m in memo[project_id]]
+
+
+async def _read_ticket_mentions(
+    session: AsyncSession, project_id: str
+) -> list[dict[str, Any]]:
     tickets = await _tickets_mentioning_pages(session, project_id)
     if not tickets:
         return []
