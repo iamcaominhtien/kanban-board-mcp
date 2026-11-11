@@ -1,5 +1,5 @@
 import type { Element } from 'hast';
-import { Children, isValidElement, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Children, createContext, isValidElement, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 import ReactMarkdown, { defaultUrlTransform, type Components } from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
@@ -94,6 +94,71 @@ export interface DocsMarkdownProps {
   onReplaceSection?: RefChipProps['onReplaceSection'];
   /** Source line text -> version that added it: marks those blocks "Changed in vN" (since last viewed). */
   changedIn?: Map<string, number>;
+}
+
+type RefResult = NonNullable<ReturnType<typeof useResolveRefs>['data']>[number];
+
+/** What the reference chips show and do. It reaches them through a context, so the parsed page (the slow part of
+ *  rendering a long page) is not built again when the references resolve or a callback above changes. */
+interface ChipContext {
+  pages: Map<string, RefResult>;
+  tickets: Map<string, RefResult>;
+  projectId: string;
+  projectName?: string;
+  peek: ReturnType<typeof useDocsPeek>;
+  onOpenPage?: DocsMarkdownProps['onOpenPage'];
+  onOpenTicket?: DocsMarkdownProps['onOpenTicket'];
+  onCreatePage?: DocsMarkdownProps['onCreatePage'];
+  onRestorePage?: DocsMarkdownProps['onRestorePage'];
+  onReplaceSection?: DocsMarkdownProps['onReplaceSection'];
+}
+
+const ChipCtx = createContext<ChipContext | null>(null);
+
+function TicketRefChip({ ticketKey }: { ticketKey: string }) {
+  const c = useContext(ChipCtx)!;
+  return (
+    <RefChip
+      kind="ticket"
+      label={ticketKey}
+      result={c.tickets.get(ticketKey)}
+      projectId={c.projectId}
+      onOpenTicket={c.onOpenTicket}
+    />
+  );
+}
+
+function PageRefChip({
+  label,
+  pageTitle,
+  anchor,
+  custom,
+  refKey,
+}: {
+  label: string;
+  pageTitle?: string;
+  anchor?: string | null;
+  custom: boolean;
+  refKey: string | null;
+}) {
+  const c = useContext(ChipCtx)!;
+  return (
+    <RefChip
+      kind="page"
+      label={label}
+      pageTitle={pageTitle}
+      anchor={anchor}
+      custom={custom}
+      result={refKey != null ? c.pages.get(refKey) : undefined}
+      projectId={c.projectId}
+      projectName={c.projectName}
+      onOpenPage={c.onOpenPage}
+      onPeek={c.peek ?? undefined}
+      onCreatePage={c.onCreatePage}
+      onRestorePage={c.onRestorePage}
+      onReplaceSection={c.onReplaceSection}
+    />
+  );
 }
 
 function textOf(node: ReactNode): string {
@@ -240,46 +305,50 @@ export function DocsMarkdown({
     [cleaned],
   );
   const resolved = useResolveRefs(projectId, linked.refs.length ? linked.refs : NO_REFS);
-  const pages = new Map<string, NonNullable<typeof resolved.data>[number]>();
-  const tickets = new Map<string, NonNullable<typeof resolved.data>[number]>();
-  linked.refs.forEach((ref, i) => {
-    const res = resolved.data?.[i];
-    if (!res) return;
-    if (ref.kind === 'page') pages.set(pageRefKey(ref), res);
-    else tickets.set(ref.key, res);
-  });
+  const { pages, tickets } = useMemo(() => {
+    const byPage = new Map<string, RefResult>();
+    const byTicket = new Map<string, RefResult>();
+    linked.refs.forEach((ref, i) => {
+      const res = resolved.data?.[i];
+      if (!res) return;
+      if (ref.kind === 'page') byPage.set(pageRefKey(ref), res);
+      else byTicket.set(ref.key, res);
+    });
+    return { pages: byPage, tickets: byTicket };
+  }, [linked.refs, resolved.data]);
 
+  const peek = useDocsPeek();
+  const chips = useMemo<ChipContext>(
+    () => ({
+      pages,
+      tickets,
+      projectId,
+      projectName,
+      peek,
+      onOpenPage,
+      onOpenTicket,
+      onCreatePage,
+      onRestorePage,
+      onReplaceSection,
+    }),
+    [
+      pages,
+      tickets,
+      projectId,
+      projectName,
+      peek,
+      onOpenPage,
+      onOpenTicket,
+      onCreatePage,
+      onRestorePage,
+      onReplaceSection,
+    ],
+  );
   // The component map must keep one identity across renders: a new function per render makes React remount
   // every chip (and close its hover card) whenever anything above re-renders.
-  const peek = useDocsPeek();
-  const live = useRef({
-    peek,
-    projectId,
-    projectName,
-    onOpenPage,
-    onOpenTicket,
-    onCreatePage,
-    onRestorePage,
-    onReplaceSection,
-    pages,
-    tickets,
-    changedIn,
-    lines: cleaned.split('\n'),
-  });
-  live.current = {
-    peek,
-    projectId,
-    projectName,
-    onOpenPage,
-    onOpenTicket,
-    onCreatePage,
-    onRestorePage,
-    onReplaceSection,
-    pages,
-    tickets,
-    changedIn,
-    lines: cleaned.split('\n'),
-  };
+  const lines = useMemo(() => cleaned.split('\n'), [cleaned]);
+  const live = useRef({ changedIn, lines });
+  live.current = { changedIn, lines };
   // Props that flag a block as changed since the viewer last looked, from its source lines (hast position).
   const changedProps = (node: Element | undefined): BlockMark => {
     const { changedIn: map, lines } = live.current;
@@ -459,35 +528,19 @@ export function DocsMarkdown({
         if (href?.startsWith(NEEDS_INPUT_SCHEME)) return <span className="dk-needs-input">{inner}</span>;
         if (href?.startsWith(TICKET_SCHEME)) {
           const key = href.slice(TICKET_SCHEME.length);
-          return (
-            <RefChip
-              kind="ticket"
-              label={key}
-              result={live.current.tickets.get(key)}
-              projectId={live.current.projectId}
-              onOpenTicket={live.current.onOpenTicket}
-            />
-          );
+          return <TicketRefChip ticketKey={key} />;
         }
         if (href?.startsWith(REF_SCHEME)) {
           const ref = parseDocRef(href);
           const label = textOf(inner);
           const dflt = ref ? (ref.anchor ? `${ref.title} › ${ref.anchor}` : ref.title) : label;
           return (
-            <RefChip
-              kind="page"
+            <PageRefChip
               label={label}
               pageTitle={ref?.title}
               anchor={ref?.anchor}
               custom={!!ref && label !== dflt}
-              result={ref ? live.current.pages.get(pageRefKey(ref)) : undefined}
-              projectId={live.current.projectId}
-              projectName={live.current.projectName}
-              onOpenPage={live.current.onOpenPage}
-              onPeek={live.current.peek ?? undefined}
-              onCreatePage={live.current.onCreatePage}
-              onRestorePage={live.current.onRestorePage}
-              onReplaceSection={live.current.onReplaceSection}
+              refKey={ref ? pageRefKey(ref) : null}
             />
           );
         }
@@ -519,8 +572,11 @@ export function DocsMarkdown({
     [],
   );
 
-  return (
-    <div className="dk-md" data-preview-scope>
+  // Parsing the Markdown (remark, rehype, sanitize, KaTeX) is the cost of rendering a long page, and ReactMarkdown
+  // does it on every render: the parsed tree is kept until the text or the "Changed in" marks change. The chips
+  // update through ChipCtx without it.
+  const tree = useMemo(
+    () => (
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath, remarkDocs]}
         // KaTeX runs after sanitize: its own markup would be stripped, and its input is only the sanitized math code.
@@ -542,6 +598,17 @@ export function DocsMarkdown({
       >
         {linked.markdown}
       </ReactMarkdown>
-    </div>
+    ),
+    // `changedIn` and `lines` are read by `changedProps` while the tree is built
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [linked.markdown, components, changedIn, lines],
+  );
+
+  return (
+    <ChipCtx.Provider value={chips}>
+      <div className="dk-md" data-preview-scope>
+        {tree}
+      </div>
+    </ChipCtx.Provider>
   );
 }

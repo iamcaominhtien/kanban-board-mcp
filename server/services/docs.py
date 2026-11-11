@@ -1390,6 +1390,18 @@ def _follow_alias(
     return None
 
 
+class _PageIndex:
+    """The live pages by id and by lower-cased title, built once for a batch of `_resolve_page_ref` calls (rebuilding
+    them for each reference was most of the cost of resolving a long page's links)."""
+
+    def __init__(self, pages: list[DocsPage]) -> None:
+        self.pages = pages
+        self.by_id = {p.id: p for p in pages}
+        self.by_title: dict[str, list[DocsPage]] = {}
+        for p in pages:
+            self.by_title.setdefault(p.title.lower(), []).append(p)
+
+
 async def _resolve_page_ref(
     pages: list[DocsPage],
     deleted: list[DocsPage],
@@ -1400,9 +1412,13 @@ async def _resolve_page_ref(
     old_titles: dict[str, str] | None = None,
     *,
     by_slug: bool = False,
+    index: _PageIndex | None = None,
 ) -> dict[str, Any]:
+    """Resolve one reference; `index` is a `_PageIndex` of `pages` when the caller resolves many."""
     needle = title.strip().lower()
-    by_id = {p.id: p for p in pages}
+    if index is None or index.pages is not pages:
+        index = _PageIndex(pages)
+    by_id = index.by_id
 
     def depth(p: DocsPage) -> int:
         d, cur = 0, p
@@ -1418,7 +1434,7 @@ async def _resolve_page_ref(
             parts.insert(0, cur.title)
         return "/".join(parts)
 
-    matches = [p for p in pages if p.title.lower() == needle]
+    matches = list(index.by_title.get(needle, []))
     status = "ok"
     if not matches and "/" in needle:
         matches = [p for p in pages if path_of(p).lower().endswith(needle)]
@@ -1491,6 +1507,40 @@ async def _headings_by_page(
     }
 
 
+async def _anchor_headings(
+    session: AsyncSession,
+    pages: list[DocsPage],
+    deleted: list[DocsPage],
+    refs: list[tuple[str, str | None, bool]],
+    aliases: dict[str, dict[str, str]] | None = None,
+    old_titles: dict[str, str] | None = None,
+) -> dict[str, list[dict[str, Any]]]:
+    """`_headings_by_page` for only the pages that references with an anchor land on, the only headings
+    `_resolve_page_ref` reads: loading and parsing every page of a big space made each page open slow.
+
+    Args:
+        refs: ``(title, anchor, by_slug)`` of each reference.
+    """
+    targets: set[str] = set()
+    index = _PageIndex(pages)
+    for title, anchor, by_slug in refs:
+        if anchor:
+            res = await _resolve_page_ref(
+                pages,
+                deleted,
+                title,
+                None,
+                {},
+                aliases,
+                old_titles,
+                by_slug=by_slug,
+                index=index,
+            )
+            if res.get("page_id"):
+                targets.add(res["page_id"])
+    return await _headings_by_page(session, [p for p in pages if p.id in targets])
+
+
 async def resolve_refs(
     session: AsyncSession,
     project_id: str,
@@ -1515,10 +1565,21 @@ async def resolve_refs(
     await _project(session, project_id)
     pages = await _all_pages(session, project_id)
     deleted = await _all_pages(session, project_id, deleted=True)
-    headings = await _headings_by_page(session, pages)
     aliases = await _aliases_by_page(session, [p.id for p in pages])
     renamed = (
         await _title_aliases(session, [p.id for p in pages]) if from_ticket else None
+    )
+    headings = await _anchor_headings(
+        session,
+        pages,
+        deleted,
+        [
+            (r.get("title", ""), r.get("anchor"), bool(r.get("by_slug")))
+            for r in refs
+            if r.get("kind") != "ticket"
+        ],
+        aliases,
+        renamed,
     )
     keys = [r["key"] for r in refs if r.get("kind") == "ticket" and r.get("key")]
     tickets: dict[str, Ticket] = {}
@@ -1527,6 +1588,7 @@ async def resolve_refs(
             select(Ticket).where(Ticket.project_id == project_id, Ticket.id.in_(keys))  # type: ignore[attr-defined]
         )
         tickets = {t.id: t for t in rows.all()}
+    index = _PageIndex(pages)
     out: list[dict[str, Any]] = []
     for r in refs:
         if r.get("kind") == "ticket":
@@ -1549,6 +1611,7 @@ async def resolve_refs(
                 aliases,
                 renamed,
                 by_slug=bool(r.get("by_slug")),
+                index=index,
             )
             out.append({"kind": "page", **res})
     return out
@@ -1609,7 +1672,6 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
     ids = [p.id for p in pages + deleted]
     if not ids:
         return
-    headings = await _headings_by_page(session, pages)
     aliases = await _aliases_by_page(session, [p.id for p in pages])
     rows = await session.exec(
         select(DocsLink).where(
@@ -1617,7 +1679,16 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
             DocsLink.target_title.is_not(None),  # type: ignore[union-attr]
         )
     )
-    for link in rows.all():
+    links = list(rows.all())
+    headings = await _anchor_headings(
+        session,
+        pages,
+        deleted,
+        [(link.target_title or "", link.target_anchor, False) for link in links],
+        aliases,
+    )
+    index = _PageIndex(pages)
+    for link in links:
         res = await _resolve_page_ref(
             pages,
             deleted,
@@ -1625,6 +1696,7 @@ async def refresh_link_targets(session: AsyncSession, project_id: str) -> None:
             link.target_anchor,
             headings,
             aliases,
+            index=index,
         )
         new_target = res.get("page_id")
         if new_target != link.target_page_id:
@@ -1707,50 +1779,62 @@ async def _ticket_mentions(
     if not tickets:
         return []
     pages = await _all_pages(session, project_id)
-    headings = await _headings_by_page(session, pages)
     aliases = await _aliases_by_page(session, [p.id for p in pages])
     renamed = await _title_aliases(session, [p.id for p in pages])
+    mentions = [
+        (t, origin, detail, ref)
+        for t in tickets
+        for origin, detail, body in _ticket_texts(t)
+        if "[[" in body
+        for ref in page_ref_contexts(body)
+    ]
+    headings = await _anchor_headings(
+        session,
+        pages,
+        [],
+        [(ref["title"], ref["anchor"], False) for _t, _o, _d, ref in mentions],
+        aliases,
+        renamed,
+    )
+    index = _PageIndex(pages)
     out: list[dict[str, Any]] = []
-    for t in tickets:
-        for origin, detail, body in _ticket_texts(t):
-            if "[[" not in body:
-                continue
-            for ref in page_ref_contexts(body):
-                res = await _resolve_page_ref(
-                    pages, [], ref["title"], ref["anchor"], headings, aliases, renamed
-                )
-                if res.get("page_id"):
-                    context, excerpt = ref["context"], ref["excerpt"]
-                    old = ref["title"]
-                    if "/" not in old and res["title"].lower() != old.lower():
-                        # written with an old title: show the new one
-                        context = context.replace(old, res["title"], 1)
-                        excerpt = excerpt.replace(f"[[{old}", f"[[{res['title']}", 1)
-                    out.append(
-                        {
-                            "ticket": t,
-                            "origin": origin,
-                            "detail": detail,
-                            "page_id": res["page_id"],
-                            "section": res.get("section"),
-                            "context": context,
-                            "excerpt": excerpt,
-                            "anchor": ref["anchor"],
-                        }
-                    )
+    for t, origin, detail, ref in mentions:
+        res = await _resolve_page_ref(
+            pages,
+            [],
+            ref["title"],
+            ref["anchor"],
+            headings,
+            aliases,
+            renamed,
+            index=index,
+        )
+        if res.get("page_id"):
+            context, excerpt = ref["context"], ref["excerpt"]
+            old = ref["title"]
+            if "/" not in old and res["title"].lower() != old.lower():
+                # written with an old title: show the new one
+                context = context.replace(old, res["title"], 1)
+                excerpt = excerpt.replace(f"[[{old}", f"[[{res['title']}", 1)
+            out.append(
+                {
+                    "ticket": t,
+                    "origin": origin,
+                    "detail": detail,
+                    "page_id": res["page_id"],
+                    "section": res.get("section"),
+                    "context": context,
+                    "excerpt": excerpt,
+                    "anchor": ref["anchor"],
+                }
+            )
     return out
 
 
-async def _page_row_context(
-    session: AsyncSession, link: DocsLink, src: DocsPage
-) -> dict[str, Any]:
-    contents = await docs_search._contents(session, [src])
+def _page_row_context(link: DocsLink, refs: list[dict[str, Any]]) -> dict[str, Any]:
+    """The sentence a page's [[link]] sits in; `refs` is `page_ref_contexts` of the source page."""
     wanted = (link.target_title or "").lower()
-    refs = [
-        r
-        for r in page_ref_contexts(contents.get(src.id, ""))
-        if r["title"].lower() == wanted
-    ]
+    refs = [r for r in refs if r["title"].lower() == wanted]
     for r in refs:
         if r["section"] == link.source_section:
             return r
@@ -1767,7 +1851,12 @@ async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
     )
     seen: set[tuple[str, str | None]] = set()
     pages_out = []
-    for link in rows.all():
+    links = list(rows.all())
+    wanted = {(link.target_title or "").lower() for link in links}
+    # each source page is read and parsed once, not once per link (a long page links to the same page many times),
+    # and only its references to this page get their sentence cut out
+    parsed: dict[str, tuple[list[dict[str, Any]], list[dict[str, Any]]]] = {}
+    for link in links:
         src = await session.get(DocsPage, link.source_page_id)
         if src is None or src.deleted_at or src.id == page.id:
             continue
@@ -1776,13 +1865,28 @@ async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
             continue
         seen.add(key)
         parent = await session.get(DocsPage, src.parent_id) if src.parent_id else None
-        ctx = await _page_row_context(session, link, src)
+        if src.id not in parsed:
+            markdown = (await docs_search._contents(session, [src])).get(src.id, "")
+            # the headings `_section_label` reads: those of the published content only
+            parsed[src.id] = (
+                page_ref_contexts(markdown, wanted),
+                heading_anchors(markdown) if src.version > 0 else [],
+            )
+        refs, headings = parsed[src.id]
+        ctx = _page_row_context(link, refs)
+        label = (
+            next(
+                (h["text"] for h in headings if h["slug"] == link.source_section),
+                link.source_section,
+            )
+            if link.source_section
+            else None
+        )
         pages_out.append(
             {
                 "page_id": src.id,
                 "title": src.title,
-                "in": await _section_label(session, src, link.source_section)
-                or (parent.title if parent else None),
+                "in": label or (parent.title if parent else None),
                 "snippet": link.snippet,
                 "origin": "page",
                 "context": ctx["context"],
@@ -1790,6 +1894,13 @@ async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
                 "target_anchor": link.target_anchor,
             }
         )
+    return {"pages": pages_out, "tickets": await ticket_backlinks(session, page)}
+
+
+async def ticket_backlinks(
+    session: AsyncSession, page: DocsPage
+) -> list[dict[str, Any]]:
+    """The tickets half of `backlinks`: tickets that mention the page, are linked to it by hand or show its canvas."""
     tickets_out: list[dict[str, Any]] = []
     seen_tickets: set[tuple[str, str, str]] = set()
     for m in await _ticket_mentions(session, page.project_id):
@@ -1834,7 +1945,7 @@ async def backlinks(session: AsyncSession, page_id: str) -> dict[str, Any]:
             )
     if page.kind == "canvas":
         await _canvas_backlinks(session, page, tickets_out, seen_tickets)
-    return {"pages": pages_out, "tickets": tickets_out}
+    return tickets_out
 
 
 async def _canvas_backlinks(session, page: DocsPage, tickets_out, seen_tickets) -> None:
@@ -1980,13 +2091,33 @@ async def docs_for_ticket(
         and pages
         and "[[" in " ".join(t for _o, _d, t in _ticket_texts(ticket))
     ):
-        headings = await _headings_by_page(session, pages)
         aliases = await _aliases_by_page(session, [p.id for p in pages])
         renamed = await _title_aliases(session, [p.id for p in pages])
+        headings = await _anchor_headings(
+            session,
+            pages,
+            [],
+            [
+                (ref["title"], ref["anchor"], False)
+                for _o, _d, body in _ticket_texts(ticket)
+                if "[[" in body
+                for ref in page_ref_contexts(body)
+            ],
+            aliases,
+            renamed,
+        )
+        index = _PageIndex(pages)
         for origin, detail, body in _ticket_texts(ticket):
             for ref in page_ref_contexts(body) if "[[" in body else []:
                 res = await _resolve_page_ref(
-                    pages, [], ref["title"], ref["anchor"], headings, aliases, renamed
+                    pages,
+                    [],
+                    ref["title"],
+                    ref["anchor"],
+                    headings,
+                    aliases,
+                    renamed,
+                    index=index,
                 )
                 if res.get("page_id"):
                     row(

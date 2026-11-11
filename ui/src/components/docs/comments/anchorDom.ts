@@ -16,19 +16,40 @@ export interface BlockText {
 }
 
 /**
+ * `el.closest(sel)` for the many text-node parents of one page, testing each element once: calling `closest` for
+ * every text node of a long page was most of the cost of placing the comment highlights.
+ * @param sel - Selector to look for.
+ */
+function closestOf(sel: string): (el: Element | null) => Element | null {
+  const known = new Map<Element, Element | null>();
+  const find = (el: Element | null): Element | null => {
+    if (!el) return null;
+    let hit = known.get(el);
+    if (hit === undefined) {
+      hit = el.matches(sel) ? el : find(el.parentElement);
+      known.set(el, hit);
+    }
+    return hit;
+  };
+  return find;
+}
+
+/**
  * Read the rendered page into text blocks (paragraph, list item, heading, table cell, code block).
  * @param root - Element holding the rendered page body.
  * @returns Blocks in page order.
  */
 export function collectBlocks(root: HTMLElement): BlockText[] {
+  const skipOf = closestOf(SKIP_SEL);
+  const blockOf = closestOf(BLOCK_SEL);
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode: (n) => (n.parentElement?.closest(SKIP_SEL) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+    acceptNode: (n) => (skipOf(n.parentElement) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
   });
   const byEl = new Map<Element, { node: Text }[]>();
   const order: Element[] = [];
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
     const node = n as Text;
-    const el = node.parentElement?.closest(BLOCK_SEL);
+    const el = blockOf(node.parentElement);
     if (!el || !root.contains(el)) continue;
     if (!byEl.has(el)) {
       byEl.set(el, []);
@@ -111,7 +132,13 @@ interface PageText {
   sections: (string | null)[];
 }
 
+/** `pageText` of each `collectBlocks` result: a layout looks up every open thread in the same blocks, and building the
+ *  text of a long page once per thread made each layout slow. */
+const pageTexts = new WeakMap<BlockText[], PageText>();
+
 function pageText(blocks: BlockText[]): PageText {
+  const known = pageTexts.get(blocks);
+  if (known) return known;
   let text = '';
   const map: PageText['map'] = [];
   const sections: PageText['sections'] = [];
@@ -122,10 +149,12 @@ function pageText(blocks: BlockText[]): PageText {
       sections.push(b.section);
     }
     text += b.text;
-    map.push(...b.map);
+    for (const m of b.map) map.push(m);
     for (let k = 0; k < b.text.length; k++) sections.push(b.section);
   });
-  return { text, map, sections };
+  const out = { text, map, sections };
+  pageTexts.set(blocks, out);
+  return out;
 }
 
 /**

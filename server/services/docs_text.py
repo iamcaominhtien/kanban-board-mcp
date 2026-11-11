@@ -297,11 +297,20 @@ def count_page_links(markdown: str, title: str) -> int:
     return rewrite_page_links(markdown, title, title)[1]
 
 
-def page_ref_contexts(markdown: str) -> list[dict[str, Any]]:
-    """Every [[page]] reference with the sentence it sits in (for 'Referenced by' and ticket mentions)."""
+def page_ref_contexts(
+    markdown: str, titles: set[str] | None = None
+) -> list[dict[str, Any]]:
+    """Every [[page]] reference with the sentence it sits in (for 'Referenced by' and ticket mentions).
+
+    Args:
+        markdown: Content to scan.
+        titles: Keep only references to these (lower-cased) titles; None keeps all.
+    """
     out: list[dict[str, Any]] = []
     for line, section, _raw in _prose_lines(markdown):
         for m in _REF.finditer(line):
+            if titles is not None and m.group(1).strip().lower() not in titles:
+                continue
             out.append(
                 {
                     "title": m.group(1).strip(),
