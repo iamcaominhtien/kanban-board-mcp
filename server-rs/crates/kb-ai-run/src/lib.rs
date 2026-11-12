@@ -35,6 +35,7 @@ pub mod signin;
 pub mod stream;
 pub mod teams;
 pub mod touches;
+pub mod zones;
 
 /// Fill the slots of lower crates that this crate's modules back (once, at startup; a later call replaces the
 /// earlier one, except the hooks of the board and of the canvases, which keep the first):

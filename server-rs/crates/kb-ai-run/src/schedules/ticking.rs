@@ -141,7 +141,7 @@ pub fn deadline(s: &ai_schedule::Model, slot: DateTime<Utc>) -> Result<DateTime<
         let tz = zone(Some(&s.tz))?;
         // on the clock of the zone: the window's end today, or tomorrow when that has passed
         let local = slot.with_timezone(&tz).naive_local();
-        let mut fold = fold_of(tz, slot);
+        let mut fold = fold_of(&tz, slot);
         let mut w = local
             .with_hour(h)
             .and_then(|w| w.with_minute(m))
@@ -152,7 +152,7 @@ pub fn deadline(s: &ai_schedule::Model, slot: DateTime<Utc>) -> Result<DateTime<
             w += Duration::days(1);
             fold = false;
         }
-        end = wall_to_utc(tz, w, fold);
+        end = wall_to_utc(&tz, w, fold);
     }
     Ok(end)
 }

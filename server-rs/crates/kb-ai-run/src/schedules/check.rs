@@ -400,9 +400,9 @@ pub async fn assess_with(
                 Some(at) if at <= now => {
                     // the same time of day on the first day it has not passed yet
                     let local = at.with_timezone(&tz).naive_local();
-                    let mut fold = fold_of(tz, at);
+                    let mut fold = fold_of(&tz, at);
                     let mut nxt = now.with_timezone(&tz).date_naive().and_time(local.time());
-                    while wall_to_utc(tz, nxt, fold) <= now {
+                    while wall_to_utc(&tz, nxt, fold) <= now {
                         nxt += Duration::days(1);
                         fold = false;
                     }
@@ -410,7 +410,7 @@ pub async fn assess_with(
                         "error",
                         format!(
                             "That time has passed. Next free time: {}, {}.",
-                            fmt_day(wall_to_utc(tz, nxt, fold), &s.tz)?,
+                            fmt_day(wall_to_utc(&tz, nxt, fold), &s.tz)?,
                             nxt.format("%H:%M")
                         ),
                         "when",

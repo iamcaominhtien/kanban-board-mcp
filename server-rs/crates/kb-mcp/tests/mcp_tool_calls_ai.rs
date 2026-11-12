@@ -30,7 +30,13 @@ const NOW: &str = "2026-11-12T08:00:00.000000+00:00";
 enum Step {
     /// A call: its name in the golden file, who makes it (a run, or `""` for a person), the tool, its arguments
     /// (`$name` stands for an id kept earlier), and the value of the result to keep (`name`, JSON pointer).
-    Call { name: &'static str, who: &'static str, tool: &'static str, arguments: Value, keep: Option<(&'static str, &'static str)> },
+    Call {
+        name: &'static str,
+        who: &'static str,
+        tool: &'static str,
+        arguments: Value,
+        keep: Option<(&'static str, &'static str)>,
+    },
     /// A statement run on the server's database (`$name` in the parameters as above).
     Sql(&'static str, Vec<Value>),
     /// A call of the REST API: method, path (`$name` filled), body.
@@ -62,6 +68,47 @@ fn fill(value: &Value, ids: &HashMap<String, String>) -> Value {
         Value::Object(map) => Value::Object(map.iter().map(|(k, v)| (k.clone(), fill(v, ids))).collect()),
         other => other.clone(),
     }
+}
+
+/// What `normalize` leaves that changes from one run of the test to the next: the ids the board makes for lessons,
+/// notes and schedules (`lsn_...`), and what depends on today: the weekday and day of a slot, how far away it is
+/// ("in 3 d"), the day card's date and time.
+fn steady(value: &Value) -> Value {
+    use std::sync::OnceLock;
+    static RULES: OnceLock<Vec<(regex::Regex, &'static str)>> = OnceLock::new();
+    static ID: OnceLock<regex::Regex> = OnceLock::new();
+    fn walk(value: &Value, ids: &mut HashMap<String, usize>) -> Value {
+        let rules = RULES.get_or_init(|| {
+            [
+                (r"\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2}(?: (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))?\b", "<day>"),
+                (r"\bin \d+ (?:min|h|d)(?: \d+ (?:min|h|m))?\b", "in <n>"),
+                (r"user:\d{4}-\d{2}-\d{2}", "user:<date>"),
+                (r"· \d\d:\d\d ·", "· <hm> ·"),
+            ]
+            .into_iter()
+            .map(|(pattern, with)| (regex::Regex::new(pattern).expect("a pattern"), with))
+            .collect()
+        });
+        let id = ID.get_or_init(|| regex::Regex::new(r"\b(lsn|mem|sch)_[0-9a-f]{12}\b").expect("a pattern"));
+        match value {
+            Value::String(text) => {
+                let mut out = text.clone();
+                for (pattern, with) in rules {
+                    out = pattern.replace_all(&out, *with).into_owned();
+                }
+                let out = id.replace_all(&out, |c: &regex::Captures| {
+                    let next = ids.len() + 1;
+                    let n = *ids.entry(c[0].to_string()).or_insert(next);
+                    format!("<{}:{n}>", &c[1])
+                });
+                Value::String(out.into_owned())
+            }
+            Value::Array(items) => Value::Array(items.iter().map(|v| walk(v, ids)).collect()),
+            Value::Object(map) => Value::Object(map.iter().map(|(k, v)| (k.clone(), walk(v, ids))).collect()),
+            other => other.clone(),
+        }
+    }
+    walk(value, &mut HashMap::new())
 }
 
 /// The token of a run as a test names it.
@@ -238,7 +285,12 @@ impl Fx {
                     self.exec(sql, &params).await;
                 }
                 Step::Rest(method, path, body) => {
-                    let path = path.split('/').map(|s| fill(&json!(s), &self.ids)).map(|v| v.as_str().unwrap_or_default().to_string()).collect::<Vec<_>>().join("/");
+                    let path = path
+                        .split('/')
+                        .map(|s| fill(&json!(s), &self.ids))
+                        .map(|v| v.as_str().unwrap_or_default().to_string())
+                        .collect::<Vec<_>>()
+                        .join("/");
                     let c = self.server.client();
                     let body = fill(&body, &self.ids);
                     let reply = match method {
@@ -264,7 +316,7 @@ impl Fx {
     }
 
     fn check(&self, golden: &str) {
-        let normalized = normalize(&Value::Object(self.got.clone()));
+        let normalized = steady(&normalize(&Value::Object(self.got.clone())));
         check_golden(golden, normalized.as_object().expect("an object"));
     }
 }
@@ -297,18 +349,48 @@ fn ai_run_calls() -> Vec<Step> {
                 "SQLite", {"label": "Postgres", "description": "for a team", "recommended": true},
                 {"text": "MySQL"}, "", 5, {"label": ""}, "a", "b", "c"]}),
         ),
-        call("ask: a parameter it does not use", "dev", "ai_run", json!({"action": "ask", "question": "Again?", "to": "x"})),
+        call(
+            "ask: a parameter it does not use",
+            "dev",
+            "ai_run",
+            json!({"action": "ask", "question": "Again?", "to": "x"}),
+        ),
         // --- message
         call("message: nothing", "dev", "ai_run", json!({"action": "message"})),
         call("message: no text", "dev", "ai_run", json!({"action": "message", "to": "$t2"})),
         call("message: no target", "dev", "ai_run", json!({"action": "message", "text": "hello"})),
         call("message: blank text", "dev", "ai_run", json!({"action": "message", "to": "$t2", "text": "  "})),
         call("message: to its own ticket", "dev", "ai_run", json!({"action": "message", "to": "$t1", "text": "hello"})),
-        call("message: too many hand-offs", "deep", "ai_run", json!({"action": "message", "to": "$t2", "text": "hello"})),
-        call("message: a ticket that does not exist", "dev", "ai_run", json!({"action": "message", "to": "RUN-99", "text": "hello"})),
-        call("message: a ticket nobody works on", "dev", "ai_run", json!({"action": "message", "to": "$t2", "text": "hello"})),
-        call("message: a page that does not exist", "dev", "ai_run", json!({"action": "message", "to": "docs:nope", "text": "hello"})),
-        call("message: as the assistant, a ticket that does not exist", "assistant", "ai_run", json!({"action": "message", "to": "RUN-98", "text": "hello"})),
+        call(
+            "message: too many hand-offs",
+            "deep",
+            "ai_run",
+            json!({"action": "message", "to": "$t2", "text": "hello"}),
+        ),
+        call(
+            "message: a ticket that does not exist",
+            "dev",
+            "ai_run",
+            json!({"action": "message", "to": "RUN-99", "text": "hello"}),
+        ),
+        call(
+            "message: a ticket nobody works on",
+            "dev",
+            "ai_run",
+            json!({"action": "message", "to": "$t2", "text": "hello"}),
+        ),
+        call(
+            "message: a page that does not exist",
+            "dev",
+            "ai_run",
+            json!({"action": "message", "to": "docs:nope", "text": "hello"}),
+        ),
+        call(
+            "message: as the assistant, a ticket that does not exist",
+            "assistant",
+            "ai_run",
+            json!({"action": "message", "to": "RUN-98", "text": "hello"}),
+        ),
         // --- history
         call("history: its own ticket", "dev", "ai_run", json!({"action": "history"})),
         call("history: no ticket at all", "noticket", "ai_run", json!({"action": "history"})),
@@ -316,16 +398,21 @@ fn ai_run_calls() -> Vec<Step> {
         call("history: another ticket", "dev", "ai_run", json!({"action": "history", "to": "$t2"})),
         call("history: a ticket that does not exist", "dev", "ai_run", json!({"action": "history", "to": "RUN-99"})),
         Step::Sql(
-            "INSERT INTO ai_session_history (id, ticket_id, member_id, title, summary, session_ids, run_ids, created_at, closed_by) \
-             VALUES ('hist_1', ?, ?, 'Login work', 'Fixed the form', '[\"s1\"]', '[\"run_dev\"]', '2026-11-12T08:00:00.000000+00:00', 'An Nguyen')",
-            vec![json!("$t1"), json!("$dev")],
+            "INSERT INTO ai_session_history (id, project_id, ticket_id, member_id, title, summary, session_ids, run_ids, started_at, ended_at, created_by, summarised_by) \
+             VALUES ('hist_1', ?, ?, ?, 'Login work', 'Fixed the form', '[\"s1\"]', '[\"run_dev\"]', '2026-11-12T07:00:00.000000+00:00', '2026-11-12T08:00:00.000000+00:00', 'An Nguyen', 'person')",
+            vec![json!("$p"), json!("$t1"), json!("$dev")],
         ),
         call("history: with a closed conversation", "dev", "ai_run", json!({"action": "history"})),
         // --- reply
         call("reply: a run with no ticket", "noticket", "ai_run", json!({"action": "reply", "text": "yes"})),
         call("reply: no text", "dev", "ai_run", json!({"action": "reply"})),
         call("reply: nobody wrote", "dev", "ai_run", json!({"action": "reply", "text": "Here it is"})),
-        call("reply: a message that does not exist", "dev", "ai_run", json!({"action": "reply", "text": "Here", "message_id": "nope"})),
+        call(
+            "reply: a message that does not exist",
+            "dev",
+            "ai_run",
+            json!({"action": "reply", "text": "Here", "message_id": "nope"}),
+        ),
         // --- team and runs
         call("team: its team", "dev", "ai_run", json!({"action": "team"})),
         call("team: a team without a role", "helper", "ai_run", json!({"action": "team"})),
@@ -364,10 +451,25 @@ fn knowledge_calls() -> Vec<Step> {
         // --- outside a run: what every action needs
         call("arguments: no arguments", "", "knowledge", json!({})),
         call("arguments: unknown action", "", "knowledge", json!({"action": "burn"})),
-        call("arguments: scope unknown", "", "knowledge", json!({"action": "memory", "project_id": "$p", "scope": "team"})),
-        call("arguments: kind unknown", "", "knowledge", json!({"action": "remember", "project_id": "$p", "kind": "dream"})),
+        call(
+            "arguments: scope unknown",
+            "",
+            "knowledge",
+            json!({"action": "memory", "project_id": "$p", "scope": "team"}),
+        ),
+        call(
+            "arguments: kind unknown",
+            "",
+            "knowledge",
+            json!({"action": "remember", "project_id": "$p", "kind": "dream"}),
+        ),
         call("arguments: start text", "", "knowledge", json!({"action": "read", "project_id": "$p", "start": "x"})),
-        call("arguments: unknown argument", "", "knowledge", json!({"action": "index", "project_id": "$p", "limit": 1})),
+        call(
+            "arguments: unknown argument",
+            "",
+            "knowledge",
+            json!({"action": "index", "project_id": "$p", "limit": 1}),
+        ),
         call("index: no project", "", "knowledge", json!({"action": "index"})),
         call("search: no project", "", "knowledge", json!({"action": "search", "query": "x"})),
         call("read: no project", "", "knowledge", json!({"action": "read", "doc_id": "x"})),
@@ -378,34 +480,91 @@ fn knowledge_calls() -> Vec<Step> {
         call("index: a project that does not exist", "", "knowledge", json!({"action": "index", "project_id": "nope"})),
         call("search: no query", "", "knowledge", json!({"action": "search", "project_id": "$p"})),
         call("search: a blank query", "", "knowledge", json!({"action": "search", "project_id": "$p", "query": "  "})),
-        call("search: nothing found", "", "knowledge", json!({"action": "search", "project_id": "$p", "query": "migrations"})),
-        call("search: only one-letter words", "", "knowledge", json!({"action": "search", "project_id": "$p", "query": "a b"})),
+        call(
+            "search: nothing found",
+            "",
+            "knowledge",
+            json!({"action": "search", "project_id": "$p", "query": "migrations"}),
+        ),
+        call(
+            "search: only one-letter words",
+            "",
+            "knowledge",
+            json!({"action": "search", "project_id": "$p", "query": "a b"}),
+        ),
         call("read: no document", "", "knowledge", json!({"action": "read", "project_id": "$p"})),
-        call("read: a document that does not exist", "", "knowledge", json!({"action": "read", "project_id": "$p", "doc_id": "nope"})),
+        call(
+            "read: a document that does not exist",
+            "",
+            "knowledge",
+            json!({"action": "read", "project_id": "$p", "doc_id": "nope"}),
+        ),
         // --- the knowledge base: a document added where no tool can
         Step::Sql(
-            "INSERT INTO ai_knowledge_doc (id, project_id, store, title, kind, source_name, summary, keywords, text, size, created_at, updated_at) \
-             VALUES ('doc_1', ?, 'project', 'Release checklist', 'text', 'release.md', 'How a release goes out', '[\"release\"]', ?, 60, '2026-11-12T08:00:00.000000+00:00', '2026-11-12T08:00:00.000000+00:00')",
+            "INSERT INTO ai_knowledge_doc (id, project_id, store, title, kind, source_name, summary, keywords, answers, private, tokens, text, created_at) \
+             VALUES ('doc_1', ?, 'project', 'Release checklist', 'text', 'release.md', 'How a release goes out', '[\"release\"]', '[]', 0, 20, ?, '2026-11-12T08:00:00.000000+00:00')",
             vec![json!("$p"), json!("Tag the release, build the wheel and upload it to the index. Then announce it.")],
         ),
-        Step::Sql("CREATE VIRTUAL TABLE IF NOT EXISTS kb_fts USING fts5(doc_id UNINDEXED, project_id UNINDEXED, store UNINDEXED, title, summary, keywords, body, tokenize = 'unicode61 remove_diacritics 2')", vec![]),
+        Step::Sql(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS kb_fts USING fts5(doc_id UNINDEXED, project_id UNINDEXED, store UNINDEXED, title, summary, keywords, body, tokenize = 'unicode61 remove_diacritics 2')",
+            vec![],
+        ),
         Step::Sql(
             "INSERT INTO kb_fts (doc_id, project_id, store, title, summary, keywords, body) VALUES ('doc_1', ?, 'project', 'Release checklist', 'How a release goes out', 'release', 'Tag the release, build the wheel and upload it to the index. Then announce it.')",
             vec![json!("$p")],
         ),
         call("index: with a document", "", "knowledge", json!({"action": "index", "project_id": "$p"})),
-        call("search: a hit", "", "knowledge", json!({"action": "search", "project_id": "$p", "query": "release wheel"})),
-        call("search: a hit for another project", "", "knowledge", json!({"action": "search", "project_id": "nope", "query": "release"})),
+        call(
+            "search: a hit",
+            "",
+            "knowledge",
+            json!({"action": "search", "project_id": "$p", "query": "release wheel"}),
+        ),
+        call(
+            "search: a hit for another project",
+            "",
+            "knowledge",
+            json!({"action": "search", "project_id": "nope", "query": "release"}),
+        ),
         call("read: the document", "", "knowledge", json!({"action": "read", "project_id": "$p", "doc_id": "doc_1"})),
-        call("read: from a character", "", "knowledge", json!({"action": "read", "project_id": "$p", "doc_id": "doc_1", "start": 20})),
-        call("read: from a negative start", "", "knowledge", json!({"action": "read", "project_id": "$p", "doc_id": "doc_1", "start": -5})),
-        call("read: past the end", "", "knowledge", json!({"action": "read", "project_id": "$p", "doc_id": "doc_1", "start": 5000})),
-        call("read: from the other project", "", "knowledge", json!({"action": "read", "project_id": "nope", "doc_id": "doc_1"})),
+        call(
+            "read: from a character",
+            "",
+            "knowledge",
+            json!({"action": "read", "project_id": "$p", "doc_id": "doc_1", "start": 20}),
+        ),
+        call(
+            "read: from a negative start",
+            "",
+            "knowledge",
+            json!({"action": "read", "project_id": "$p", "doc_id": "doc_1", "start": -5}),
+        ),
+        call(
+            "read: past the end",
+            "",
+            "knowledge",
+            json!({"action": "read", "project_id": "$p", "doc_id": "doc_1", "start": 5000}),
+        ),
+        call(
+            "read: from the other project",
+            "",
+            "knowledge",
+            json!({"action": "read", "project_id": "nope", "doc_id": "doc_1"}),
+        ),
         // --- the memory, outside a run
-        Step::Rest("PUT", "/projects/$p/ai/knowledge/instructions".into(), json!({"instructions": "Tests: uv run pytest."})),
+        Step::Rest(
+            "PUT",
+            "/projects/$p/ai/knowledge/instructions".into(),
+            json!({"instructions": "Tests: uv run pytest."}),
+        ),
         call("memory: empty", "", "knowledge", json!({"action": "memory", "project_id": "$p"})),
         call("remember: no text", "", "knowledge", json!({"action": "remember", "project_id": "$p"})),
-        call("remember: a blank text", "", "knowledge", json!({"action": "remember", "project_id": "$p", "text": "  "})),
+        call(
+            "remember: a blank text",
+            "",
+            "knowledge",
+            json!({"action": "remember", "project_id": "$p", "text": "  "}),
+        ),
         keep(
             "remember: a lesson",
             "",
@@ -420,10 +579,30 @@ fn knowledge_calls() -> Vec<Step> {
             "knowledge",
             json!({"action": "remember", "project_id": "$p", "text": "Migrations need uv run alembic revision --autogenerate."}),
         ),
-        call("remember: a lesson from a ticket", "", "knowledge", json!({"action": "remember", "project_id": "$p", "scope": "project", "ticket_id": "$t1", "text": "Keep titles short."})),
-        call("remember: a role note outside a run", "", "knowledge", json!({"action": "remember", "project_id": "$p", "scope": "role", "text": "x"})),
-        call("remember: a ticket note without a ticket", "", "knowledge", json!({"action": "remember", "project_id": "$p", "scope": "ticket", "text": "x"})),
-        call("remember: a ticket note, a ticket that does not exist", "", "knowledge", json!({"action": "remember", "project_id": "$p", "scope": "ticket", "ticket_id": "RUN-99", "text": "x"})),
+        call(
+            "remember: a lesson from a ticket",
+            "",
+            "knowledge",
+            json!({"action": "remember", "project_id": "$p", "scope": "project", "ticket_id": "$t1", "text": "Keep titles short."}),
+        ),
+        call(
+            "remember: a role note outside a run",
+            "",
+            "knowledge",
+            json!({"action": "remember", "project_id": "$p", "scope": "role", "text": "x"}),
+        ),
+        call(
+            "remember: a ticket note without a ticket",
+            "",
+            "knowledge",
+            json!({"action": "remember", "project_id": "$p", "scope": "ticket", "text": "x"}),
+        ),
+        call(
+            "remember: a ticket note, a ticket that does not exist",
+            "",
+            "knowledge",
+            json!({"action": "remember", "project_id": "$p", "scope": "ticket", "ticket_id": "RUN-99", "text": "x"}),
+        ),
         keep(
             "remember: a ticket note",
             "",
@@ -432,49 +611,159 @@ fn knowledge_calls() -> Vec<Step> {
             "note",
             "/note/id",
         ),
-        call("remember: the same note again", "", "knowledge", json!({"action": "remember", "project_id": "$p", "scope": "ticket", "ticket_id": "$t1", "text": "the bug only shows with two TABS open."})),
-        call("remember: a note in lower case ids", "", "knowledge", json!({"action": "remember", "project_id": "$p", "scope": "ticket", "ticket_id": "run-2", "kind": "feedback", "text": "  A  long   note\n with   spaces  "})),
-        call("remember: a note of another project's ticket", "", "knowledge", json!({"action": "remember", "project_id": "nope", "scope": "ticket", "ticket_id": "$t1", "text": "x"})),
+        call(
+            "remember: the same note again",
+            "",
+            "knowledge",
+            json!({"action": "remember", "project_id": "$p", "scope": "ticket", "ticket_id": "$t1", "text": "the bug only shows with two TABS open."}),
+        ),
+        call(
+            "remember: a note in lower case ids",
+            "",
+            "knowledge",
+            json!({"action": "remember", "project_id": "$p", "scope": "ticket", "ticket_id": "run-2", "kind": "feedback", "text": "  A  long   note\n with   spaces  "}),
+        ),
+        call(
+            "remember: a note of another project's ticket",
+            "",
+            "knowledge",
+            json!({"action": "remember", "project_id": "nope", "scope": "ticket", "ticket_id": "$t1", "text": "x"}),
+        ),
         call("memory: all of it", "", "knowledge", json!({"action": "memory", "project_id": "$p"})),
-        call("memory: one ticket's notes", "", "knowledge", json!({"action": "memory", "project_id": "$p", "ticket_id": "$t1"})),
-        call("memory: project scope", "", "knowledge", json!({"action": "memory", "project_id": "$p", "scope": "project"})),
-        call("memory: ticket scope", "", "knowledge", json!({"action": "memory", "project_id": "$p", "scope": "ticket"})),
+        call(
+            "memory: one ticket's notes",
+            "",
+            "knowledge",
+            json!({"action": "memory", "project_id": "$p", "ticket_id": "$t1"}),
+        ),
+        call(
+            "memory: project scope",
+            "",
+            "knowledge",
+            json!({"action": "memory", "project_id": "$p", "scope": "project"}),
+        ),
+        call(
+            "memory: ticket scope",
+            "",
+            "knowledge",
+            json!({"action": "memory", "project_id": "$p", "scope": "ticket"}),
+        ),
         call("memory: role scope", "", "knowledge", json!({"action": "memory", "project_id": "$p", "scope": "role"})),
         call("forget: no note", "", "knowledge", json!({"action": "forget", "project_id": "$p"})),
-        call("forget: a note that does not exist", "", "knowledge", json!({"action": "forget", "project_id": "$p", "note_id": "nope"})),
-        call("forget: a note of another project", "", "knowledge", json!({"action": "forget", "project_id": "nope", "note_id": "$note"})),
+        call(
+            "forget: a note that does not exist",
+            "",
+            "knowledge",
+            json!({"action": "forget", "project_id": "$p", "note_id": "nope"}),
+        ),
+        call(
+            "forget: a note of another project",
+            "",
+            "knowledge",
+            json!({"action": "forget", "project_id": "nope", "note_id": "$note"}),
+        ),
         call("forget: the note", "", "knowledge", json!({"action": "forget", "project_id": "$p", "note_id": "$note"})),
-        call("forget: the note again", "", "knowledge", json!({"action": "forget", "project_id": "$p", "note_id": "$note"})),
+        call(
+            "forget: the note again",
+            "",
+            "knowledge",
+            json!({"action": "forget", "project_id": "$p", "note_id": "$note"}),
+        ),
         // --- in a run: its own project, its role's notes and its ticket's
         call("run: index", "dev", "knowledge", json!({"action": "index"})),
         call("run: search", "dev", "knowledge", json!({"action": "search", "query": "release"})),
         call("run: read", "dev", "knowledge", json!({"action": "read", "doc_id": "doc_1", "start": 4})),
         call("run: another project is ignored", "dev", "knowledge", json!({"action": "index", "project_id": "nope"})),
         call("run: memory", "dev", "knowledge", json!({"action": "memory"})),
-        keep("run: remember a role note", "dev", "knowledge", json!({"action": "remember", "text": "Run the linter first."}), "rolenote", "/note/id"),
-        call("run: the same role note", "dev", "knowledge", json!({"action": "remember", "text": "run the linter first."})),
-        call("run: a feedback note", "dev", "knowledge", json!({"action": "remember", "kind": "feedback", "text": "A person wants small commits."})),
-        call("run: replace a note", "dev", "knowledge", json!({"action": "remember", "note_id": "$rolenote", "text": "Run the linter and the tests first."})),
-        call("run: replace a note that does not exist", "dev", "knowledge", json!({"action": "remember", "note_id": "nope", "text": "x"})),
-        call("run: a ticket note of its own ticket", "dev", "knowledge", json!({"action": "remember", "scope": "ticket", "text": "This ticket has two tabs."})),
-        call("run: a ticket note of another ticket", "dev", "knowledge", json!({"action": "remember", "scope": "ticket", "ticket_id": "$t2", "text": "That one is quiet."})),
-        call("run: a ticket note, a ticket that does not exist", "dev", "knowledge", json!({"action": "remember", "scope": "ticket", "ticket_id": "RUN-99", "text": "x"})),
-        call("run: a lesson", "dev", "knowledge", json!({"action": "remember", "scope": "project", "text": "Review before merge."})),
+        keep(
+            "run: remember a role note",
+            "dev",
+            "knowledge",
+            json!({"action": "remember", "text": "Run the linter first."}),
+            "rolenote",
+            "/note/id",
+        ),
+        call(
+            "run: the same role note",
+            "dev",
+            "knowledge",
+            json!({"action": "remember", "text": "run the linter first."}),
+        ),
+        call(
+            "run: a feedback note",
+            "dev",
+            "knowledge",
+            json!({"action": "remember", "kind": "feedback", "text": "A person wants small commits."}),
+        ),
+        call(
+            "run: replace a note",
+            "dev",
+            "knowledge",
+            json!({"action": "remember", "note_id": "$rolenote", "text": "Run the linter and the tests first."}),
+        ),
+        call(
+            "run: replace a note that does not exist",
+            "dev",
+            "knowledge",
+            json!({"action": "remember", "note_id": "nope", "text": "x"}),
+        ),
+        call(
+            "run: a ticket note of its own ticket",
+            "dev",
+            "knowledge",
+            json!({"action": "remember", "scope": "ticket", "text": "This ticket has two tabs."}),
+        ),
+        call(
+            "run: a ticket note of another ticket",
+            "dev",
+            "knowledge",
+            json!({"action": "remember", "scope": "ticket", "ticket_id": "$t2", "text": "That one is quiet."}),
+        ),
+        call(
+            "run: a ticket note, a ticket that does not exist",
+            "dev",
+            "knowledge",
+            json!({"action": "remember", "scope": "ticket", "ticket_id": "RUN-99", "text": "x"}),
+        ),
+        call(
+            "run: a lesson",
+            "dev",
+            "knowledge",
+            json!({"action": "remember", "scope": "project", "text": "Review before merge."}),
+        ),
         call("run: memory after the notes", "dev", "knowledge", json!({"action": "memory"})),
         call("run: memory, role scope", "dev", "knowledge", json!({"action": "memory", "scope": "role"})),
         call("run: memory, ticket scope", "dev", "knowledge", json!({"action": "memory", "scope": "ticket"})),
         call("run: memory, project scope", "dev", "knowledge", json!({"action": "memory", "scope": "project"})),
-        call("run: a team without a role keeps its own notes", "helper", "knowledge", json!({"action": "remember", "text": "I have no role."})),
+        call(
+            "run: a team without a role keeps its own notes",
+            "helper",
+            "knowledge",
+            json!({"action": "remember", "text": "I have no role."}),
+        ),
         call("run: that team's memory", "helper", "knowledge", json!({"action": "memory"})),
         call("run: forget a note", "dev", "knowledge", json!({"action": "forget", "note_id": "$rolenote"})),
         call("run: forget without a note", "dev", "knowledge", json!({"action": "forget"})),
         call("run: an ended run", "ended", "knowledge", json!({"action": "index"})),
         // --- notes switched off for the project
-        Step::Sql("UPDATE ai_project_settings SET ops = '{\"ai_notes\": false}' WHERE project_id = ?", vec![json!("$p")]),
+        Step::Sql(
+            "UPDATE ai_project_settings SET ops = '{\"ai_notes\": false}' WHERE project_id = ?",
+            vec![json!("$p")],
+        ),
         call("off: a role note", "dev", "knowledge", json!({"action": "remember", "text": "x"})),
         call("off: forget", "", "knowledge", json!({"action": "forget", "project_id": "$p", "note_id": "nope"})),
-        call("off: a lesson is still proposed", "", "knowledge", json!({"action": "remember", "project_id": "$p", "scope": "project", "text": "Another lesson."})),
-        call("off: memory is still read", "", "knowledge", json!({"action": "memory", "project_id": "$p", "scope": "project"})),
+        call(
+            "off: a lesson is still proposed",
+            "",
+            "knowledge",
+            json!({"action": "remember", "project_id": "$p", "scope": "project", "text": "Another lesson."}),
+        ),
+        call(
+            "off: memory is still read",
+            "",
+            "knowledge",
+            json!({"action": "memory", "project_id": "$p", "scope": "project"}),
+        ),
     ]
 }
 
@@ -504,7 +793,12 @@ fn board_wait_calls() -> Vec<Step> {
         call("wait: a negative timeout counts as one second", "", "board_wait", json!({"since": 0, "timeout_s": -5})),
         call("wait: a cursor from the future", "", "board_wait", json!({"since": 99, "timeout_s": 1})),
         // a lesson proposed over MCP tells the owners
-        call("lesson: proposed", "", "knowledge", json!({"action": "remember", "project_id": "$p", "text": "Wait for the board."})),
+        call(
+            "lesson: proposed",
+            "",
+            "knowledge",
+            json!({"action": "remember", "project_id": "$p", "text": "Wait for the board."}),
+        ),
         call("wait: the event", "", "board_wait", json!({"since": 0, "timeout_s": 2})),
         call("wait: only this project", "", "board_wait", json!({"since": 0, "timeout_s": 2, "project_id": "$p"})),
         call("wait: another project", "", "board_wait", json!({"since": 0, "timeout_s": 1, "project_id": "nope"})),
@@ -525,7 +819,197 @@ async fn the_board_wait_tool_answers_as_python_does() {
 // ------------------------------------------------------------------------------------------------------ schedules
 
 fn schedule_calls() -> Vec<Step> {
-    vec![]
+    let once = json!({"member_id": "$dev", "kind": "once", "run_at": "2031-01-01T09:00", "tz": "UTC", "instruction": "Check the build"});
+    let repeat = json!({"member_id": "$dev", "kind": "repeat", "days": [0, 2, 4], "time": "08:30", "tz": "Asia/Ho_Chi_Minh", "ends": "after", "ends_after": 3, "notify": ["failed", "finished"]});
+    vec![
+        call("arguments: no arguments", "", "ai_schedules", json!({})),
+        call("arguments: unknown action", "", "ai_schedules", json!({"action": "stop"})),
+        call("arguments: fields a list", "", "ai_schedules", json!({"action": "list", "fields": [1]})),
+        call(
+            "arguments: unknown argument",
+            "",
+            "ai_schedules",
+            json!({"action": "list", "project_id": "$p", "limit": 3}),
+        ),
+        call("list: no project", "", "ai_schedules", json!({"action": "list"})),
+        call("list: nothing yet", "", "ai_schedules", json!({"action": "list", "project_id": "$p"})),
+        call(
+            "list: a project that does not exist",
+            "",
+            "ai_schedules",
+            json!({"action": "list", "project_id": "nope"}),
+        ),
+        call(
+            "list: one unknown field",
+            "",
+            "ai_schedules",
+            json!({"action": "list", "project_id": "$p", "fields": {"colour": 1}}),
+        ),
+        call(
+            "list: two unknown fields",
+            "",
+            "ai_schedules",
+            json!({"action": "list", "project_id": "$p", "fields": {"zeta": 1, "alpha": 2, "kind": "once"}}),
+        ),
+        call("preview: no project", "", "ai_schedules", json!({"action": "preview"})),
+        call("create: no project", "", "ai_schedules", json!({"action": "create"})),
+        call("get: no schedule", "", "ai_schedules", json!({"action": "get"})),
+        call("update: no schedule", "", "ai_schedules", json!({"action": "update", "fields": {"kind": "once"}})),
+        call("pause: no schedule", "", "ai_schedules", json!({"action": "pause"})),
+        call("resume: no schedule", "", "ai_schedules", json!({"action": "resume"})),
+        call("delete: no schedule", "", "ai_schedules", json!({"action": "delete"})),
+        call("run_now: no schedule", "", "ai_schedules", json!({"action": "run_now"})),
+        call(
+            "get: a schedule that does not exist",
+            "",
+            "ai_schedules",
+            json!({"action": "get", "schedule_id": "nope"}),
+        ),
+        call(
+            "update: a schedule that does not exist",
+            "",
+            "ai_schedules",
+            json!({"action": "update", "schedule_id": "nope", "fields": {"instruction": "x"}}),
+        ),
+        call(
+            "pause: a schedule that does not exist",
+            "",
+            "ai_schedules",
+            json!({"action": "pause", "schedule_id": "nope"}),
+        ),
+        call(
+            "delete: a schedule that does not exist",
+            "",
+            "ai_schedules",
+            json!({"action": "delete", "schedule_id": "nope"}),
+        ),
+        call(
+            "run_now: a schedule that does not exist",
+            "",
+            "ai_schedules",
+            json!({"action": "run_now", "schedule_id": "nope"}),
+        ),
+        call("create: nothing to go on", "", "ai_schedules", json!({"action": "create", "project_id": "$p"})),
+        call(
+            "create: no team",
+            "",
+            "ai_schedules",
+            json!({"action": "create", "project_id": "$p", "ticket_id": "$t1", "fields": {"kind": "once", "run_at": "2031-01-01T09:00"}}),
+        ),
+        call(
+            "create: a ticket that does not exist",
+            "",
+            "ai_schedules",
+            json!({"action": "create", "project_id": "$p", "ticket_id": "RUN-99", "fields": once}),
+        ),
+        call(
+            "create: a time in the past",
+            "",
+            "ai_schedules",
+            json!({"action": "create", "project_id": "$p", "ticket_id": "$t1", "fields": {"member_id": "$dev", "kind": "once", "run_at": "2020-01-01T09:00", "tz": "UTC"}}),
+        ),
+        call(
+            "create: a zone that does not exist",
+            "",
+            "ai_schedules",
+            json!({"action": "create", "project_id": "$p", "ticket_id": "$t1", "fields": {"member_id": "$dev", "kind": "once", "run_at": "2031-01-01T09:00", "tz": "Mars/Base"}}),
+        ),
+        call(
+            "create: a repeat without days",
+            "",
+            "ai_schedules",
+            json!({"action": "create", "project_id": "$p", "ticket_id": "$t1", "fields": {"member_id": "$dev", "kind": "repeat", "time": "08:30"}}),
+        ),
+        call(
+            "preview: a once",
+            "",
+            "ai_schedules",
+            json!({"action": "preview", "project_id": "$p", "ticket_id": "$t1", "fields": once}),
+        ),
+        call(
+            "preview: a repeat",
+            "",
+            "ai_schedules",
+            json!({"action": "preview", "project_id": "$p", "ticket_id": "$t1", "fields": repeat}),
+        ),
+        call("preview: nothing", "", "ai_schedules", json!({"action": "preview", "project_id": "$p"})),
+        keep(
+            "create: a once",
+            "",
+            "ai_schedules",
+            json!({"action": "create", "project_id": "$p", "ticket_id": "$t1", "fields": once}),
+            "s1",
+            "/id",
+        ),
+        keep(
+            "create: a repeat, the ticket in the fields",
+            "",
+            "ai_schedules",
+            json!({"action": "create", "project_id": "$p", "fields": {"ticket_id": "$t2", "member_id": "$helper", "kind": "repeat", "days": [1], "time": "07:00", "tz": "UTC"}}),
+            "s2",
+            "/id",
+        ),
+        call("list: both", "", "ai_schedules", json!({"action": "list", "project_id": "$p"})),
+        call(
+            "list: one ticket's",
+            "",
+            "ai_schedules",
+            json!({"action": "list", "project_id": "$p", "ticket_id": "$t1"}),
+        ),
+        call("get: the once", "", "ai_schedules", json!({"action": "get", "schedule_id": "$s1"})),
+        call(
+            "preview: a change to the once",
+            "",
+            "ai_schedules",
+            json!({"action": "preview", "project_id": "$p", "schedule_id": "$s1", "fields": {"time": "10:00", "kind": "repeat", "days": [3]}}),
+        ),
+        call("update: no fields", "", "ai_schedules", json!({"action": "update", "schedule_id": "$s1"})),
+        call(
+            "update: the instruction",
+            "",
+            "ai_schedules",
+            json!({"action": "update", "schedule_id": "$s1", "fields": {"instruction": "Check the build and the tests"}}),
+        ),
+        call(
+            "update: a bad kind",
+            "",
+            "ai_schedules",
+            json!({"action": "update", "schedule_id": "$s1", "fields": {"kind": "sometimes"}}),
+        ),
+        call(
+            "update: an unknown field",
+            "",
+            "ai_schedules",
+            json!({"action": "update", "schedule_id": "$s1", "fields": {"colour": "red"}}),
+        ),
+        call("pause: the once", "", "ai_schedules", json!({"action": "pause", "schedule_id": "$s1"})),
+        call("pause: again", "", "ai_schedules", json!({"action": "pause", "schedule_id": "$s1"})),
+        call("resume: the once", "", "ai_schedules", json!({"action": "resume", "schedule_id": "$s1"})),
+        call("delete: the repeat", "", "ai_schedules", json!({"action": "delete", "schedule_id": "$s2"})),
+        call("delete: the repeat again", "", "ai_schedules", json!({"action": "delete", "schedule_id": "$s2"})),
+        call("list: after the delete", "", "ai_schedules", json!({"action": "list", "project_id": "$p"})),
+        // --- from a run
+        call("run: list", "dev", "ai_schedules", json!({"action": "list", "project_id": "$p"})),
+        call("run: create", "dev", "ai_schedules", json!({"action": "create", "project_id": "$p", "fields": once})),
+        call("run: delete", "dev", "ai_schedules", json!({"action": "delete", "schedule_id": "$s1"})),
+        call("ended run: list", "ended", "ai_schedules", json!({"action": "list", "project_id": "$p"})),
+        call("board ai: list", "chat", "ai_schedules", json!({"action": "list", "project_id": "$p"})),
+        call("board ai: get", "chat", "ai_schedules", json!({"action": "get", "schedule_id": "$s1"})),
+        call(
+            "board ai: preview",
+            "chat",
+            "ai_schedules",
+            json!({"action": "preview", "project_id": "$p", "ticket_id": "$t1", "fields": once}),
+        ),
+        call(
+            "board ai: create",
+            "chat",
+            "ai_schedules",
+            json!({"action": "create", "project_id": "$p", "fields": once}),
+        ),
+        call("board ai: pause", "chat", "ai_schedules", json!({"action": "pause", "schedule_id": "$s1"})),
+        call("board ai: run_now", "chat", "ai_schedules", json!({"action": "run_now", "schedule_id": "$s1"})),
+    ]
 }
 
 #[tokio::test]

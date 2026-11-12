@@ -91,7 +91,7 @@ pub fn reset_wait_in<Z: TimeZone>(text: &str, now: DateTime<Utc>, local: &Z) -> 
     if !(1..=12).contains(&h) || minute > 59 {
         return None;
     }
-    let zone = m.name("tz").and_then(|tz| tz.as_str().parse::<chrono_tz::Tz>().ok());
+    let zone = m.name("tz").and_then(|tz| crate::zones::Zone::named(tz.as_str()));
     let now: NaiveDateTime = match zone {
         Some(zone) => now.with_timezone(&zone).naive_local(),
         None => now.with_timezone(local).naive_local(), // zone None: this computer's own

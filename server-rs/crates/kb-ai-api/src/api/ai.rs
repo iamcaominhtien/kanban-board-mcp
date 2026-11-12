@@ -10,9 +10,9 @@ use kb_ai_know::roles as svc_roles;
 use kb_ai_run::runs::RunError;
 use kb_ai_run::{compact, health as svc_health, resources as svc_resources, runs as svc_runs, session_history};
 use kb_ai_run::{teams as svc_teams, touches as svc_touches};
+use kb_ai_work::activity as svc_activity_roles;
 use kb_ai_work::flow::{self as svc_flow, FlowOpts};
 use kb_ai_work::timeline::{self as svc_timeline, TimelineOpts};
-use kb_ai_work::activity as svc_activity_roles;
 use kb_base::error::{Body, Path, Query};
 use kb_base::{ApiError, ApiResult, Routes, activity, events, pyjson, pytext, time as kbtime};
 use kb_db::Session;
@@ -242,10 +242,7 @@ struct PauseBody {
 }
 
 /// Pause: new work queues; the current run finishes, or is cancelled when asked.
-async fn post_pause(
-    Path(member_id): Path<String>,
-    Body(body): Body<PauseBody>,
-) -> ApiResult<Json<Map<String, Value>>> {
+async fn post_pause(Path(member_id): Path<String>, Body(body): Body<PauseBody>) -> ApiResult<Json<Map<String, Value>>> {
     let session = kb_db::session();
     team_of(&session, &member_id).await?;
     svc_teams::set_paused(&session, &member_id, true, &by(), body.cancel_current, body.reason.as_deref())
@@ -397,7 +394,12 @@ fn set_column(settings: &mut ai_project_settings::Model, key: &str, value: &Valu
     let empty = value.is_null();
     let cannot_be_empty = matches!(
         key,
-        "board_max_parallel" | "board_at_cap" | "run_memory_limit_mb" | "permission_mode" | "lessons_mode" | "lessons_max"
+        "board_max_parallel"
+            | "board_at_cap"
+            | "run_memory_limit_mb"
+            | "permission_mode"
+            | "lessons_mode"
+            | "lessons_max"
     );
     if empty && cannot_be_empty {
         let spaced = key.replace('_', " ");
@@ -479,10 +481,7 @@ fn yes() -> bool {
 }
 
 /// The kill switch: nothing new starts; running runs are cancelled unless asked to finish.
-async fn post_pause_all(
-    Path(project_id): Path<String>,
-    Body(body): Body<PauseAllBody>,
-) -> ApiResult<Json<Value>> {
+async fn post_pause_all(Path(project_id): Path<String>, Body(body): Body<PauseAllBody>) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
     project_exists(&session, &project_id).await?;
     let mut settings = get_settings(&session, &project_id).await?;
@@ -743,10 +742,7 @@ async fn get_run(Path(run_id): Path<String>, Query(query): Query<RunQuery>) -> A
     let run = run_of(&session, &run_id).await?;
     let mut out = svc_runs::to_dict(&run);
     out.insert("agents".into(), json!(svc_steps::agents(&session, &run_id).await?));
-    out.insert(
-        "steps".into(),
-        json!(svc_steps::read(&session, &run_id, 0, limit_of(query.steps), None, true).await?),
-    );
+    out.insert("steps".into(), json!(svc_steps::read(&session, &run_id, 0, limit_of(query.steps), None, true).await?));
     Ok(Json(Value::Object(out)))
 }
 
@@ -876,8 +872,7 @@ async fn post_answer(Path(run_id): Path<String>, Body(body): Body<TextBody>) -> 
 async fn post_message(Path(run_id): Path<String>, Body(body): Body<TextBody>) -> ApiResult<Json<Map<String, Value>>> {
     let session = kb_db::session();
     run_of(&session, &run_id).await?;
-    let out =
-        svc_runs::send_message(&run_id, &body.text, &by(), None, true).await.map_err(|e| run_value(e, 422))?;
+    let out = svc_runs::send_message(&run_id, &body.text, &by(), None, true).await.map_err(|e| run_value(e, 422))?;
     Ok(Json(out))
 }
 
@@ -935,7 +930,9 @@ async fn get_live(Path(project_id): Path<String>, Query(query): Query<LiveQuery>
         (limit.unsigned_abs() as usize).min(out.len())
     };
     let steps = out.split_off(start);
-    Ok(Json(json!({"runs": rows.iter().map(|r| Value::Object(svc_runs::to_dict(r))).collect::<Vec<_>>(), "steps": steps})))
+    Ok(Json(
+        json!({"runs": rows.iter().map(|r| Value::Object(svc_runs::to_dict(r))).collect::<Vec<_>>(), "steps": steps}),
+    ))
 }
 
 /// What each team's lead and roles do now, when they last worked, runs and steps today (no money: cost is per run).
@@ -957,10 +954,9 @@ async fn get_team_activity(Path(member_id): Path<String>) -> ApiResult<Json<Valu
     let (member, profile) = team_of(&session, &member_id).await?;
     let team = svc_teams::describe(&session, &member, &profile, None).await.map_err(team_failure)?;
     let keys: Vec<String> = match team.get("roles") {
-        Some(Value::Array(roles)) => roles
-            .iter()
-            .map(|r| r.get("key").and_then(Value::as_str).unwrap_or_default().to_string())
-            .collect(),
+        Some(Value::Array(roles)) => {
+            roles.iter().map(|r| r.get("key").and_then(Value::as_str).unwrap_or_default().to_string()).collect()
+        }
         _ => Vec::new(),
     };
     Ok(Json(svc_activity_roles::team_activity(&session, &member_id, &keys).await?))
@@ -1037,13 +1033,8 @@ async fn get_timeline(Path(project_id): Path<String>, Query(query): Query<Window
     let since = datetime_query("since", query.since.as_deref())?;
     let until = datetime_query("until", query.until.as_deref())?;
     project_exists(&session, &project_id).await?;
-    let opts = TimelineOpts {
-        range_key: query.range,
-        since,
-        until,
-        ticket_id: query.ticket_id,
-        team_id: query.team_id,
-    };
+    let opts =
+        TimelineOpts { range_key: query.range, since, until, ticket_id: query.ticket_id, team_id: query.team_id };
     Ok(Json(svc_timeline::timeline(&session, &project_id, &opts).await?))
 }
 
@@ -1053,8 +1044,7 @@ async fn get_flow_map(Path(project_id): Path<String>, Query(query): Query<Window
     let since = datetime_query("since", query.since.as_deref())?;
     let until = datetime_query("until", query.until.as_deref())?;
     project_exists(&session, &project_id).await?;
-    let opts =
-        FlowOpts { range_key: query.range, since, until, ticket_id: query.ticket_id, team_id: query.team_id };
+    let opts = FlowOpts { range_key: query.range, since, until, ticket_id: query.ticket_id, team_id: query.team_id };
     Ok(Json(svc_flow::flow_map(&session, &project_id, &opts).await?))
 }
 

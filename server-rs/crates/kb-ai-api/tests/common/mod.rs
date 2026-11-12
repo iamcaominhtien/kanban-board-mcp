@@ -3,6 +3,8 @@
 //! the sign-in terminal.
 #![allow(dead_code)]
 
+pub mod rec;
+
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 

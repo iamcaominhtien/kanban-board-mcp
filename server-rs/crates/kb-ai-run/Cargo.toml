@@ -21,6 +21,7 @@ kb-notify = { workspace = true }
 async-trait = { workspace = true }
 chrono = { workspace = true }
 chrono-tz = { workspace = true }
+jiff = { workspace = true }
 portable-pty = "0.9"
 regex = { workspace = true }
 # the runner process posts the board's events to the API (`runner/main.py`'s httpx client)

@@ -241,10 +241,9 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - Carried over from Python unchanged in schedules: `update` with `null` for a column that cannot be empty is a 500;
   a time zone name that is a folder of the tz database (`Europe`) is a 500 and not "Unknown time zone"; a slot in
   `ask` whose team is available is set again on every tick.
-- Time zone rules: the Rust server carries its own tz database (`chrono-tz`, 2025b today); Python read the
-  system's on macOS and Linux (2026e here) and the `tzdata` package on Windows. A zone whose rules changed between
-  the two (`Europe/Chisinau` in 2026) gives other slots. Decide before the switch: read the system's zone files
-  where there are some and keep the carried copy for Windows.
+- Time zones are read as `zoneinfo` reads them (`kb_ai_run::zones`): the system's database first, and a copy carried
+  in the program for a name the system does not have and for Windows (Python carried the `tzdata` package). The
+  vectors include a zone whose rules changed in 2026.
 - Python 3.12 adds floats with a compensated sum; `kb_ai_run::pynum` has it. Check the other places that add costs
   (`kb-ai` quota and budget) and move the helper to `kb-base`.
 - Tests that need the UI not to be built read the index page as the recorded 404 (`Resp::is_ui_index` in

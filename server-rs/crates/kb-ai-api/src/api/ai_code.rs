@@ -85,10 +85,7 @@ struct RemoveBody {
 }
 
 /// Remove the ticket's worktree and give its port back.
-async fn post_remove_worktree(
-    Path(ticket_id): Path<String>,
-    Body(body): Body<RemoveBody>,
-) -> ApiResult<Json<Value>> {
+async fn post_remove_worktree(Path(ticket_id): Path<String>, Body(body): Body<RemoveBody>) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
     let row = svc_worktrees::remove(&session, &ticket_id, body.force).await.map_err(conflict)?;
     Ok(Json(svc_worktrees::to_dict(&row, None)))
@@ -144,8 +141,8 @@ async fn post_cleanup(Path(project_id): Path<String>) -> ApiResult<Json<Value>> 
     let (mut removed, mut kept): (Vec<String>, Vec<Value>) = (Vec::new(), Vec::new());
     for row in rows {
         let found = ticket::Entity::find_by_id(row.ticket_id.as_str()).one(&session).await?;
-        let finished = row.state == "merged"
-            || found.as_ref().is_some_and(|t| matches!(t.status.as_str(), "done" | "wont_do"));
+        let finished =
+            row.state == "merged" || found.as_ref().is_some_and(|t| matches!(t.status.as_str(), "done" | "wont_do"));
         if !finished {
             continue;
         }
@@ -185,10 +182,7 @@ struct HandoverBody {
 }
 
 /// Merge here instead (or open a PR, or leave the branch) for this one ticket.
-async fn patch_handover(
-    Path(ticket_id): Path<String>,
-    Body(body): Body<HandoverBody>,
-) -> ApiResult<Json<Value>> {
+async fn patch_handover(Path(ticket_id): Path<String>, Body(body): Body<HandoverBody>) -> ApiResult<Json<Value>> {
     let (session, mut row) = worktree_row(&ticket_id).await?;
     row.handover = match body.route {
         Route::Auto => None,

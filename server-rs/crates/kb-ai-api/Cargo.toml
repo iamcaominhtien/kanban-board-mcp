@@ -20,6 +20,7 @@ kb-ai-scan = { workspace = true }
 async-trait = { workspace = true }
 chrono = { workspace = true }
 tempfile = "3"
+serde_urlencoded = "0.7"
 axum = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -8,7 +8,6 @@
 use std::collections::BTreeSet;
 
 use chrono::{DateTime, Datelike, Duration, LocalResult, NaiveDate, NaiveDateTime, Offset, TimeZone, Utc};
-use chrono_tz::Tz;
 use kb_ai::store::{isoformat_parts, loads, py_int};
 use kb_base::{pyjson, pytext, time};
 use kb_db::entities::ai_schedule;
@@ -16,22 +15,17 @@ use serde_json::{Value, json};
 
 use super::{DAY_NAMES, Error, refuse};
 use crate::clock;
+use crate::zones::Zone;
 
 /// The time zone, or ScheduleError (`ZoneInfo(name or "UTC")`).
-pub fn zone(name: Option<&str>) -> Result<Tz, Error> {
+pub fn zone(name: Option<&str>) -> Result<Zone, Error> {
     let key = name.filter(|n| !n.is_empty()).unwrap_or("UTC");
-    match key.parse::<Tz>() {
-        Ok(tz) => Ok(tz),
+    match Zone::named(key) {
+        Some(tz) => Ok(tz),
         // a name that is a folder of the time zone database ("Europe"): Python fails on it with an `OSError`, which
         // nothing catches
-        Err(_)
-            if chrono_tz::TZ_VARIANTS
-                .iter()
-                .any(|tz| tz.name().strip_prefix(key).is_some_and(|rest| rest.starts_with('/'))) =>
-        {
-            Err(Error::Other(format!("[Errno 21] Is a directory: {key:?}")))
-        }
-        Err(_) => refuse("invalid", format!("Unknown time zone: {key}.")),
+        None if Zone::is_folder(key) => Err(Error::Other(format!("[Errno 21] Is a directory: {key:?}"))),
+        None => refuse("invalid", format!("Unknown time zone: {key}.")),
     }
 }
 
@@ -69,7 +63,7 @@ pub fn tz_label(name: &str, at: Option<DateTime<Utc>>) -> Result<String, Error> 
 
 /// The offset (seconds east of UTC) Python gives a wall time that the zone skips: the one before the gap (`fold` 0)
 /// or the one after it (`fold` 1).
-fn gap_offset(tz: Tz, wall: NaiveDateTime, fold: bool) -> i32 {
+fn gap_offset(tz: &Zone, wall: NaiveDateTime, fold: bool) -> i32 {
     // the nearest wall time that exists, a quarter of an hour at a time (a zone may skip a whole day)
     for step in 1..=200 {
         let near = if fold { wall + Duration::minutes(15 * step) } else { wall - Duration::minutes(15 * step) };
@@ -85,7 +79,7 @@ fn gap_offset(tz: Tz, wall: NaiveDateTime, fold: bool) -> i32 {
 }
 
 /// `wall.replace(tzinfo=tz, fold=fold).astimezone(UTC)`.
-pub(crate) fn wall_to_utc(tz: Tz, wall: NaiveDateTime, fold: bool) -> DateTime<Utc> {
+pub(crate) fn wall_to_utc(tz: &Zone, wall: NaiveDateTime, fold: bool) -> DateTime<Utc> {
     match tz.from_local_datetime(&wall) {
         LocalResult::Single(dt) => dt.with_timezone(&Utc),
         LocalResult::Ambiguous(first, second) => (if fold { second } else { first }).with_timezone(&Utc),
@@ -94,8 +88,8 @@ pub(crate) fn wall_to_utc(tz: Tz, wall: NaiveDateTime, fold: bool) -> DateTime<U
 }
 
 /// The `fold` Python gives `at.astimezone(tz)`: true for the second coming of a wall time that comes twice.
-pub(crate) fn fold_of(tz: Tz, at: DateTime<Utc>) -> bool {
-    match tz.from_local_datetime(&at.with_timezone(&tz).naive_local()) {
+pub(crate) fn fold_of(tz: &Zone, at: DateTime<Utc>) -> bool {
+    match tz.from_local_datetime(&at.with_timezone(tz).naive_local()) {
         LocalResult::Ambiguous(_, second) => second.with_timezone(&Utc) == at,
         _ => false,
     }
@@ -107,7 +101,7 @@ pub fn once_at(s: &ai_schedule::Model) -> Result<Option<DateTime<Utc>>, Error> {
     let Some((local, offset)) = isoformat_parts(run_at) else { return Ok(None) };
     Ok(Some(match offset {
         Some(offset) => Utc.from_utc_datetime(&(local - Duration::seconds(i64::from(offset)))),
-        None => wall_to_utc(zone(Some(&s.tz))?, local, false),
+        None => wall_to_utc(&zone(Some(&s.tz))?, local, false),
     }))
 }
 
@@ -154,7 +148,7 @@ pub fn slots(s: &ai_schedule::Model, after: DateTime<Utc>, n: usize) -> Result<V
             continue;
         }
         let Some(wall) = day.and_hms_opt(h, m, 0) else { continue };
-        let at = wall_to_utc(tz, wall, false);
+        let at = wall_to_utc(&tz, wall, false);
         if at <= after {
             continue;
         }

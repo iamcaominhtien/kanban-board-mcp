@@ -186,11 +186,8 @@ async fn read(
     let notes: &[Value] = summary["notes"].as_array().map(Vec::as_slice).unwrap_or_default();
     if let Some(ctx) = ctx {
         let (own_scope, own_key) = memory::own_scope(role, &ctx.member_id);
-        let mine: Vec<Value> = notes
-            .iter()
-            .filter(|n| n["scope"] == own_scope && n["scope_key"] == own_key.as_str())
-            .map(short)
-            .collect();
+        let mine: Vec<Value> =
+            notes.iter().filter(|n| n["scope"] == own_scope && n["scope_key"] == own_key.as_str()).map(short).collect();
         let on_ticket: Vec<Value> = notes
             .iter()
             .filter(|n| n["scope"] == "ticket" && ctx.ticket_id.as_deref().is_some_and(|t| n["scope_key"] == t))
@@ -225,7 +222,8 @@ async fn read(
             "ticket" => Some(&["ticket_notes"]),
             _ => None,
         };
-        out = out.into_iter().filter(|(k, _)| keep.is_none_or(|keep| keep.contains(&k.as_str())) || k == "cap").collect();
+        out =
+            out.into_iter().filter(|(k, _)| keep.is_none_or(|keep| keep.contains(&k.as_str())) || k == "cap").collect();
     }
     // a live outside agent (haiku) read the memory, wrote good lessons and asked the person before proposing them,
     // three times: it is told here, where it decides, that a proposal changes nothing until a person keeps it

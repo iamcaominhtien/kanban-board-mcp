@@ -1,0 +1,431 @@
+{
+  "GET board": {
+    "status": 200,
+    "json": {
+      "tickets": {}
+    }
+  },
+  "GET board: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET overview": {
+    "status": 200,
+    "json": {
+      "active": [],
+      "paused_all": false,
+      "paused_reason": null,
+      "project_id": "<uuid:1>",
+      "runs": {},
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "health": "ok",
+          "id": "<uuid:2>",
+          "name": "Dev An",
+          "queued": 0,
+          "slots_in_use": 0,
+          "status": {
+            "code": "idle",
+            "detail": null,
+            "label": "Idle"
+          }
+        }
+      ]
+    }
+  },
+  "GET overview paused": {
+    "status": 200,
+    "json": {
+      "active": [],
+      "paused_all": true,
+      "paused_reason": "stop",
+      "project_id": "<uuid:1>",
+      "runs": {},
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "health": "ok",
+          "id": "<uuid:2>",
+          "name": "Dev An",
+          "queued": 0,
+          "slots_in_use": 0,
+          "status": {
+            "code": "paused_all",
+            "detail": "stop",
+            "label": "AI paused"
+          }
+        }
+      ]
+    }
+  },
+  "GET overview: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET settings": {
+    "status": 200,
+    "json": {
+      "audit_retention_days": 90,
+      "board_at_cap": "pause",
+      "board_daily_cap": null,
+      "board_max_parallel": 4,
+      "board_monthly_budget": null,
+      "board_runs_per_day": null,
+      "board_tokens_per_day": null,
+      "deny_list": [],
+      "lessons_max": 40,
+      "lessons_mode": "auto",
+      "ops": {},
+      "paused_all": false,
+      "paused_at": null,
+      "paused_reason": null,
+      "permission_mode": "bypass",
+      "project_id": "<uuid:1>",
+      "reports_cost": false,
+      "run_memory_limit_mb": 4096
+    }
+  },
+  "GET settings after": {
+    "status": 200,
+    "json": {
+      "audit_retention_days": null,
+      "board_at_cap": "stop",
+      "board_daily_cap": null,
+      "board_max_parallel": 3,
+      "board_monthly_budget": 100.0,
+      "board_runs_per_day": 20,
+      "board_tokens_per_day": 1000,
+      "deny_list": [],
+      "lessons_max": 10,
+      "lessons_mode": "review",
+      "ops": {
+        "live_messages": false
+      },
+      "paused_all": false,
+      "paused_at": null,
+      "paused_reason": null,
+      "permission_mode": "auto",
+      "project_id": "<uuid:1>",
+      "reports_cost": false,
+      "run_memory_limit_mb": 2048
+    }
+  },
+  "GET settings: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "PATCH settings": {
+    "status": 200,
+    "json": {
+      "audit_retention_days": 30,
+      "board_at_cap": "stop",
+      "board_daily_cap": 12.5,
+      "board_max_parallel": 3,
+      "board_monthly_budget": 100.0,
+      "board_runs_per_day": 20,
+      "board_tokens_per_day": 1000,
+      "deny_list": [
+        "Bash(git push --force*)",
+        "Read(.env)"
+      ],
+      "lessons_max": 10,
+      "lessons_mode": "review",
+      "ops": {
+        "live_messages": false
+      },
+      "paused_all": false,
+      "paused_at": null,
+      "paused_reason": null,
+      "permission_mode": "auto",
+      "project_id": "<uuid:1>",
+      "reports_cost": false,
+      "run_memory_limit_mb": 2048
+    }
+  },
+  "PATCH settings: at the cap": {
+    "status": 422,
+    "json": {
+      "detail": "At the cap: pause or stop."
+    }
+  },
+  "PATCH settings: at_cap null": {
+    "status": 422,
+    "json": {
+      "detail": "Board at cap cannot be empty."
+    }
+  },
+  "PATCH settings: cap is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "board_daily_cap"
+        ]
+      ]
+    }
+  },
+  "PATCH settings: deny_list holds a number": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "deny_list",
+          0
+        ]
+      ]
+    }
+  },
+  "PATCH settings: deny_list is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "deny_list"
+        ]
+      ]
+    }
+  },
+  "PATCH settings: lessons mode": {
+    "status": 422,
+    "json": {
+      "detail": "Lessons are kept auto or after review."
+    }
+  },
+  "PATCH settings: lessons_max null": {
+    "status": 422,
+    "json": {
+      "detail": "Lessons max cannot be empty."
+    }
+  },
+  "PATCH settings: limits null": {
+    "status": 200,
+    "json": {
+      "audit_retention_days": null,
+      "board_at_cap": "stop",
+      "board_daily_cap": null,
+      "board_max_parallel": 3,
+      "board_monthly_budget": 100.0,
+      "board_runs_per_day": 20,
+      "board_tokens_per_day": 1000,
+      "deny_list": [],
+      "lessons_max": 10,
+      "lessons_mode": "review",
+      "ops": {
+        "live_messages": false
+      },
+      "paused_all": false,
+      "paused_at": null,
+      "paused_reason": null,
+      "permission_mode": "auto",
+      "project_id": "<uuid:1>",
+      "reports_cost": false,
+      "run_memory_limit_mb": 2048
+    }
+  },
+  "PATCH settings: memory null": {
+    "status": 422,
+    "json": {
+      "detail": "Run memory limit mb cannot be empty."
+    }
+  },
+  "PATCH settings: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "PATCH settings: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "PATCH settings: nothing": {
+    "status": 200,
+    "json": {
+      "audit_retention_days": 90,
+      "board_at_cap": "pause",
+      "board_daily_cap": null,
+      "board_max_parallel": 4,
+      "board_monthly_budget": null,
+      "board_runs_per_day": null,
+      "board_tokens_per_day": null,
+      "deny_list": [],
+      "lessons_max": 40,
+      "lessons_mode": "auto",
+      "ops": {},
+      "paused_all": false,
+      "paused_at": null,
+      "paused_reason": null,
+      "permission_mode": "bypass",
+      "project_id": "<uuid:1>",
+      "reports_cost": false,
+      "run_memory_limit_mb": 4096
+    }
+  },
+  "PATCH settings: ops is a list": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "ops"
+        ]
+      ]
+    }
+  },
+  "PATCH settings: parallel null": {
+    "status": 422,
+    "json": {
+      "detail": "Board max parallel cannot be empty."
+    }
+  },
+  "PATCH settings: permission mode": {
+    "status": 422,
+    "json": {
+      "detail": "The permission mode is bypass or auto."
+    }
+  },
+  "PATCH settings: permission_mode null": {
+    "status": 422,
+    "json": {
+      "detail": "Permission mode cannot be empty."
+    }
+  },
+  "POST pause-all": {
+    "status": 200,
+    "json": {
+      "audit_retention_days": null,
+      "board_at_cap": "stop",
+      "board_daily_cap": null,
+      "board_max_parallel": 3,
+      "board_monthly_budget": 100.0,
+      "board_runs_per_day": 20,
+      "board_tokens_per_day": 1000,
+      "deny_list": [],
+      "lessons_max": 10,
+      "lessons_mode": "review",
+      "ops": {
+        "live_messages": false
+      },
+      "paused_all": true,
+      "paused_at": "<time>",
+      "paused_reason": "stop",
+      "permission_mode": "auto",
+      "project_id": "<uuid:1>",
+      "reports_cost": false,
+      "run_memory_limit_mb": 2048
+    }
+  },
+  "POST pause-all: default reason": {
+    "status": 200,
+    "json": {
+      "audit_retention_days": null,
+      "board_at_cap": "stop",
+      "board_daily_cap": null,
+      "board_max_parallel": 3,
+      "board_monthly_budget": 100.0,
+      "board_runs_per_day": 20,
+      "board_tokens_per_day": 1000,
+      "deny_list": [],
+      "lessons_max": 10,
+      "lessons_mode": "review",
+      "ops": {
+        "live_messages": false
+      },
+      "paused_all": true,
+      "paused_at": "<time>",
+      "paused_reason": "Paused by user",
+      "permission_mode": "auto",
+      "project_id": "<uuid:1>",
+      "reports_cost": false,
+      "run_memory_limit_mb": 2048
+    }
+  },
+  "POST pause-all: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "POST pause-all: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "POST resume-all": {
+    "status": 200,
+    "json": {
+      "audit_retention_days": null,
+      "board_at_cap": "stop",
+      "board_daily_cap": null,
+      "board_max_parallel": 3,
+      "board_monthly_budget": 100.0,
+      "board_runs_per_day": 20,
+      "board_tokens_per_day": 1000,
+      "deny_list": [],
+      "lessons_max": 10,
+      "lessons_mode": "review",
+      "ops": {
+        "live_messages": false
+      },
+      "paused_all": false,
+      "paused_at": null,
+      "paused_reason": null,
+      "permission_mode": "auto",
+      "project_id": "<uuid:1>",
+      "reports_cost": false,
+      "run_memory_limit_mb": 2048
+    }
+  },
+  "POST resume-all again": {
+    "status": 200,
+    "json": {
+      "audit_retention_days": null,
+      "board_at_cap": "stop",
+      "board_daily_cap": null,
+      "board_max_parallel": 3,
+      "board_monthly_budget": 100.0,
+      "board_runs_per_day": 20,
+      "board_tokens_per_day": 1000,
+      "deny_list": [],
+      "lessons_max": 10,
+      "lessons_mode": "review",
+      "ops": {
+        "live_messages": false
+      },
+      "paused_all": false,
+      "paused_at": null,
+      "paused_reason": null,
+      "permission_mode": "auto",
+      "project_id": "<uuid:1>",
+      "reports_cost": false,
+      "run_memory_limit_mb": 2048
+    }
+  },
+  "POST resume-all: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  }
+}

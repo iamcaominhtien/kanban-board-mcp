@@ -3630,6 +3630,294 @@
    },
    {
     "s": {
+     "tz": "Europe/Chisinau",
+     "time": "00:00",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-03-27T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-03-27T22:00:00+00:00",
+      "2026-03-28T22:00:00+00:00",
+      "2026-03-29T21:00:00+00:00",
+      "2026-03-30T21:00:00+00:00",
+      "2026-03-31T21:00:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "00:30",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-03-27T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-03-27T22:30:00+00:00",
+      "2026-03-28T22:30:00+00:00",
+      "2026-03-29T21:30:00+00:00",
+      "2026-03-30T21:30:00+00:00",
+      "2026-03-31T21:30:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "01:30",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-03-27T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-03-27T23:30:00+00:00",
+      "2026-03-28T23:30:00+00:00",
+      "2026-03-29T22:30:00+00:00",
+      "2026-03-30T22:30:00+00:00",
+      "2026-03-31T22:30:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "02:00",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-03-27T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-03-28T00:00:00+00:00",
+      "2026-03-29T00:00:00+00:00",
+      "2026-03-29T23:00:00+00:00",
+      "2026-03-30T23:00:00+00:00",
+      "2026-03-31T23:00:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "02:30",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-03-27T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-03-28T00:30:00+00:00",
+      "2026-03-29T00:30:00+00:00",
+      "2026-03-29T23:30:00+00:00",
+      "2026-03-30T23:30:00+00:00",
+      "2026-03-31T23:30:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "03:00",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-03-27T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-03-28T01:00:00+00:00",
+      "2026-03-29T01:00:00+00:00",
+      "2026-03-30T00:00:00+00:00",
+      "2026-03-31T00:00:00+00:00",
+      "2026-04-01T00:00:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "12:00",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-03-27T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-03-28T10:00:00+00:00",
+      "2026-03-29T09:00:00+00:00",
+      "2026-03-30T09:00:00+00:00",
+      "2026-03-31T09:00:00+00:00",
+      "2026-04-01T09:00:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "23:59",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-03-27T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-03-27T21:59:00+00:00",
+      "2026-03-28T21:59:00+00:00",
+      "2026-03-29T20:59:00+00:00",
+      "2026-03-30T20:59:00+00:00",
+      "2026-03-31T20:59:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "00:00",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-10-23T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-10-23T21:00:00+00:00",
+      "2026-10-24T21:00:00+00:00",
+      "2026-10-25T22:00:00+00:00",
+      "2026-10-26T22:00:00+00:00",
+      "2026-10-27T22:00:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "00:30",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-10-23T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-10-23T21:30:00+00:00",
+      "2026-10-24T21:30:00+00:00",
+      "2026-10-25T22:30:00+00:00",
+      "2026-10-26T22:30:00+00:00",
+      "2026-10-27T22:30:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "01:30",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-10-23T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-10-23T22:30:00+00:00",
+      "2026-10-24T22:30:00+00:00",
+      "2026-10-25T23:30:00+00:00",
+      "2026-10-26T23:30:00+00:00",
+      "2026-10-27T23:30:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "02:00",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-10-23T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-10-23T23:00:00+00:00",
+      "2026-10-24T23:00:00+00:00",
+      "2026-10-26T00:00:00+00:00",
+      "2026-10-27T00:00:00+00:00",
+      "2026-10-28T00:00:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "02:30",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-10-23T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-10-23T23:30:00+00:00",
+      "2026-10-24T23:30:00+00:00",
+      "2026-10-26T00:30:00+00:00",
+      "2026-10-27T00:30:00+00:00",
+      "2026-10-28T00:30:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "03:00",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-10-23T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-10-24T00:00:00+00:00",
+      "2026-10-25T00:00:00+00:00",
+      "2026-10-26T01:00:00+00:00",
+      "2026-10-27T01:00:00+00:00",
+      "2026-10-28T01:00:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "12:00",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-10-23T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-10-24T09:00:00+00:00",
+      "2026-10-25T10:00:00+00:00",
+      "2026-10-26T10:00:00+00:00",
+      "2026-10-27T10:00:00+00:00",
+      "2026-10-28T10:00:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
+     "tz": "Europe/Chisinau",
+     "time": "23:59",
+     "days": "[0, 1, 2, 3, 4, 5, 6]"
+    },
+    "after": "2026-10-23T10:00:00+00:00",
+    "n": 5,
+    "out": {
+     "ok": [
+      "2026-10-23T20:59:00+00:00",
+      "2026-10-24T20:59:00+00:00",
+      "2026-10-25T21:59:00+00:00",
+      "2026-10-26T21:59:00+00:00",
+      "2026-10-27T21:59:00+00:00"
+     ]
+    }
+   },
+   {
+    "s": {
      "tz": "Asia/Beirut",
      "time": "00:00",
      "days": "[0, 1, 2, 3, 4, 5, 6]"
@@ -16672,7 +16960,7 @@
      "started_by": "user",
      "instruction": "",
      "reply_comment_id": null,
-     "queued_at": "2026-11-12T18:01:22.324994+00:00",
+     "queued_at": "2026-11-12T18:12:24.147224+00:00",
      "started_at": null,
      "ended_at": null,
      "last_output_at": null,
@@ -16748,7 +17036,7 @@
      "started_by": "user",
      "instruction": "",
      "reply_comment_id": null,
-     "queued_at": "2026-11-12T18:01:22.325320+00:00",
+     "queued_at": "2026-11-12T18:12:24.147567+00:00",
      "started_at": null,
      "ended_at": null,
      "last_output_at": null,
@@ -16814,7 +17102,7 @@
      "started_by": "user",
      "instruction": "",
      "reply_comment_id": null,
-     "queued_at": "2026-11-12T18:01:22.325476+00:00",
+     "queued_at": "2026-11-12T18:12:24.147720+00:00",
      "started_at": null,
      "ended_at": null,
      "last_output_at": null,
@@ -16873,7 +17161,7 @@
      "started_by": "user",
      "instruction": "",
      "reply_comment_id": null,
-     "queued_at": "2026-11-12T18:01:22.325629+00:00",
+     "queued_at": "2026-11-12T18:12:24.147941+00:00",
      "started_at": null,
      "ended_at": null,
      "last_output_at": null,
@@ -16941,7 +17229,7 @@
      "started_by": "user",
      "instruction": "",
      "reply_comment_id": null,
-     "queued_at": "2026-11-12T18:01:22.325762+00:00",
+     "queued_at": "2026-11-12T18:12:24.148071+00:00",
      "started_at": null,
      "ended_at": null,
      "last_output_at": null,
@@ -17000,7 +17288,7 @@
      "started_by": "user",
      "instruction": "",
      "reply_comment_id": null,
-     "queued_at": "2026-11-12T18:01:22.325929+00:00",
+     "queued_at": "2026-11-12T18:12:24.148184+00:00",
      "started_at": null,
      "ended_at": null,
      "last_output_at": null,
@@ -17065,7 +17353,7 @@
      "started_by": "user",
      "instruction": "",
      "reply_comment_id": null,
-     "queued_at": "2026-11-12T18:01:22.326074+00:00",
+     "queued_at": "2026-11-12T18:12:24.148304+00:00",
      "started_at": null,
      "ended_at": null,
      "last_output_at": null,
@@ -17132,7 +17420,7 @@
      "started_by": "user",
      "instruction": "",
      "reply_comment_id": null,
-     "queued_at": "2026-11-12T18:01:22.326206+00:00",
+     "queued_at": "2026-11-12T18:12:24.148428+00:00",
      "started_at": null,
      "ended_at": null,
      "last_output_at": null,
@@ -17797,8 +18085,8 @@
      "permission_mode": "bypass",
      "lessons_mode": "auto",
      "ops": "{}",
-     "project_id": "p-sch",
      "board_daily_cap": null,
+     "project_id": "p-sch",
      "paused_at": null,
      "board_tokens_per_day": null,
      "board_runs_per_day": null,
@@ -17817,8 +18105,8 @@
      "permission_mode": "bypass",
      "lessons_mode": "auto",
      "ops": "{}",
-     "project_id": "p-sch-off",
      "board_daily_cap": null,
+     "project_id": "p-sch-off",
      "paused_at": null,
      "board_tokens_per_day": null,
      "board_runs_per_day": null,
@@ -17834,8 +18122,8 @@
      "name": "An Nguyen",
      "color": "#3B82F6",
      "kind": "human",
-     "role": "admin",
      "project_id": "p-sch",
+     "role": "admin",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17843,8 +18131,8 @@
      "name": "Binh",
      "color": "#3B82F6",
      "kind": "human",
-     "role": "member",
      "project_id": "p-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17852,8 +18140,8 @@
      "name": "Vy",
      "color": "#3B82F6",
      "kind": "human",
-     "role": "viewer",
      "project_id": "p-sch",
+     "role": "viewer",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17861,8 +18149,8 @@
      "name": "Bot Vy",
      "color": "#3B82F6",
      "kind": "ai_removed",
-     "role": "viewer",
      "project_id": "p-sch",
+     "role": "viewer",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17870,8 +18158,8 @@
      "name": "An Nguyen",
      "color": "#3B82F6",
      "kind": "human",
-     "role": "viewer",
      "project_id": "p-sch-other",
+     "role": "viewer",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17879,8 +18167,8 @@
      "name": "Dev Team",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17888,8 +18176,8 @@
      "name": "QA Team",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17897,8 +18185,8 @@
      "name": "Paused Team",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17906,8 +18194,8 @@
      "name": "Inbox Team",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17915,8 +18203,8 @@
      "name": "Signed-out Team",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17924,8 +18212,8 @@
      "name": "Key Team",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17933,8 +18221,8 @@
      "name": "Closed Team",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17942,8 +18230,8 @@
      "name": "Retired Team",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17951,8 +18239,8 @@
      "name": "Busy Team",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17960,8 +18248,8 @@
      "name": "Capped Team",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17969,8 +18257,8 @@
      "name": "Cloud Team",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17978,8 +18266,8 @@
      "name": "Gone Team",
      "color": "#2E6F40",
      "kind": "ai_removed",
-     "role": "member",
      "project_id": "p-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17987,8 +18275,8 @@
      "name": "No Profile",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -17996,8 +18284,8 @@
      "name": "Other Team",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-sch-other",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -18005,8 +18293,8 @@
      "name": "Off Team",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-sch-off",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     }
    ],
@@ -18016,8 +18304,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-sch",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -18049,8 +18337,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-sch",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -18082,8 +18370,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-sch",
+     "description": "",
      "permission_mode": "bypass",
      "paused": true,
      "mcp_last_used_at": null,
@@ -18115,8 +18403,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-sch",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -18148,8 +18436,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-sch",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -18181,8 +18469,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-sch",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -18214,8 +18502,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-sch",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -18247,8 +18535,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-sch",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -18280,8 +18568,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-sch",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -18313,8 +18601,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-sch",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -18346,8 +18634,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-sch",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -18379,8 +18667,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-sch",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -18412,8 +18700,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-sch-other",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -18445,8 +18733,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-sch-off",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -33780,8 +34068,8 @@
      "permission_mode": "bypass",
      "lessons_mode": "auto",
      "ops": "{}",
-     "project_id": "p-edit-sch",
      "board_daily_cap": null,
+     "project_id": "p-edit-sch",
      "paused_at": null,
      "board_tokens_per_day": null,
      "board_runs_per_day": null,
@@ -33797,8 +34085,8 @@
      "name": "An Nguyen",
      "color": "#3B82F6",
      "kind": "human",
-     "role": "admin",
      "project_id": "p-edit-sch",
+     "role": "admin",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -33806,8 +34094,8 @@
      "name": "Binh",
      "color": "#3B82F6",
      "kind": "human",
-     "role": "member",
      "project_id": "p-edit-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -33815,8 +34103,8 @@
      "name": "Vy",
      "color": "#3B82F6",
      "kind": "human",
-     "role": "viewer",
      "project_id": "p-edit-sch",
+     "role": "viewer",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -33824,8 +34112,8 @@
      "name": "Edit Team",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-edit-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     },
     {
@@ -33833,8 +34121,8 @@
      "name": "Edit QA",
      "color": "#2E6F40",
      "kind": "ai",
-     "role": "member",
      "project_id": "p-edit-sch",
+     "role": "member",
      "created_at": "2025-01-01T00:00:00+00:00"
     }
    ],
@@ -33844,8 +34132,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-edit-sch",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -33877,8 +34165,8 @@
      "config": "{}",
      "scope": "assigned",
      "account_id": null,
-     "description": "",
      "project_id": "p-edit-sch",
+     "description": "",
      "permission_mode": "bypass",
      "paused": false,
      "mcp_last_used_at": null,
@@ -34026,7 +34314,7 @@
       "days": "[0,1,2,3,4]",
       "review": "{}",
       "paused_reason": null,
-      "id": "sch_c089e4301cb0",
+      "id": "sch_ed0d89b0bb97",
       "time": "02:00",
       "limits": "{}",
       "failures_in_row": 0,
@@ -34046,16 +34334,16 @@
       "kind": "repeat",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.202040+00:00",
+      "created_at": "2026-11-12T18:12:27.511646+00:00",
       "window_end": null,
       "instruction": "",
-      "updated_at": "2026-11-12T18:01:25.202060+00:00"
+      "updated_at": "2026-11-12T18:12:27.511678+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_ed0d89b0bb97",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34109,7 +34397,7 @@
       "days": "[0,1,2,3,4]",
       "review": "{}",
       "paused_reason": null,
-      "id": "sch_5b2bc68b8f58",
+      "id": "sch_455186b16ec6",
       "time": "02:00",
       "limits": "{\"retries\": 0}",
       "failures_in_row": 0,
@@ -34129,16 +34417,16 @@
       "kind": "once",
       "ends_on": null,
       "notify_people": "[\"An Nguyen\"]",
-      "created_at": "2026-11-12T18:01:25.219423+00:00",
+      "created_at": "2026-11-12T18:12:27.551562+00:00",
       "window_end": null,
       "instruction": "Once only.",
-      "updated_at": "2026-11-12T18:01:25.219447+00:00"
+      "updated_at": "2026-11-12T18:12:27.551592+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34147,7 +34435,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_ed0d89b0bb97",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34202,7 +34490,7 @@
       "days": "[5, 6]",
       "review": "{}",
       "paused_reason": null,
-      "id": "sch_54c5fdb00d93",
+      "id": "sch_2b3454d5ead0",
       "time": "07:05",
       "limits": "{}",
       "failures_in_row": 0,
@@ -34222,16 +34510,16 @@
       "kind": "repeat",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.233619+00:00",
+      "created_at": "2026-11-12T18:12:27.589433+00:00",
       "window_end": null,
       "instruction": "",
-      "updated_at": "2026-11-12T18:01:25.233637+00:00"
+      "updated_at": "2026-11-12T18:12:27.589459+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34240,7 +34528,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34249,7 +34537,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_ed0d89b0bb97",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34306,7 +34594,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34315,7 +34603,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34324,7 +34612,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_ed0d89b0bb97",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34390,7 +34678,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34399,7 +34687,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34408,7 +34696,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_ed0d89b0bb97",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34466,7 +34754,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34475,7 +34763,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34484,7 +34772,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_ed0d89b0bb97",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34543,7 +34831,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34552,7 +34840,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34561,7 +34849,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_ed0d89b0bb97",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34620,7 +34908,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34629,7 +34917,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34638,7 +34926,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_ed0d89b0bb97",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34688,7 +34976,7 @@
       "days": "[0,1,2,3,4]",
       "review": "{}",
       "paused_reason": null,
-      "id": "sch_e6c1d5c02d41",
+      "id": "sch_b4b610775714",
       "time": "02:00",
       "limits": "{}",
       "failures_in_row": 0,
@@ -34708,16 +34996,16 @@
       "kind": "repeat",
       "ends_on": "2026-03-01",
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.305433+00:00",
+      "created_at": "2026-11-12T18:12:27.700912+00:00",
       "window_end": null,
       "instruction": "",
-      "updated_at": "2026-11-12T18:01:25.305455+00:00"
+      "updated_at": "2026-11-12T18:12:27.700933+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34726,7 +35014,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34735,21 +35023,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
        "next_run_at": null,
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T02:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -34797,7 +35085,7 @@
       "days": "[0,1,2,3,4]",
       "review": "{}",
       "paused_reason": null,
-      "id": "sch_35eb250894ea",
+      "id": "sch_dd23678ec62b",
       "time": "02:00",
       "limits": "{}",
       "failures_in_row": 0,
@@ -34817,25 +35105,16 @@
       "kind": "repeat",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.322485+00:00",
+      "created_at": "2026-11-12T18:12:27.732090+00:00",
       "window_end": null,
       "instruction": "",
-      "updated_at": "2026-11-12T18:01:25.322503+00:00"
+      "updated_at": "2026-11-12T18:12:27.732117+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34844,7 +35123,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34853,7 +35132,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_b4b610775714",
+       "state": "ended",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": null,
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34862,12 +35150,12 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
-       "state": "ended",
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": null,
+       "next_run_at": "2026-03-09T02:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -34924,7 +35212,7 @@
       "days": "[0,1,2,3,4]",
       "review": "{}",
       "paused_reason": null,
-      "id": "sch_f81247221086",
+      "id": "sch_8406f641351d",
       "time": "02:00",
       "limits": "{}",
       "failures_in_row": 0,
@@ -34944,25 +35232,16 @@
       "kind": "once",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.340585+00:00",
+      "created_at": "2026-11-12T18:12:27.772109+00:00",
       "window_end": null,
       "instruction": "",
-      "updated_at": "2026-11-12T18:01:25.340606+00:00"
+      "updated_at": "2026-11-12T18:12:27.772129+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34971,7 +35250,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34980,16 +35259,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -34998,12 +35277,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T02:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -35080,16 +35368,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35098,7 +35377,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35107,16 +35386,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35125,12 +35404,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T02:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -35190,7 +35478,7 @@
       "days": "[0, 3]",
       "review": "{}",
       "paused_reason": null,
-      "id": "sch_c089e4301cb0",
+      "id": "sch_ed0d89b0bb97",
       "time": "23:15",
       "limits": "{}",
       "failures_in_row": 0,
@@ -35210,25 +35498,16 @@
       "kind": "repeat",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.202040+00:00",
+      "created_at": "2026-11-12T18:12:27.511646+00:00",
       "window_end": null,
       "instruction": "",
-      "updated_at": "2026-11-12T18:01:25.382416+00:00"
+      "updated_at": "2026-11-12T18:12:27.818436+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35237,7 +35516,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35246,16 +35525,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35264,12 +35543,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -35325,16 +35613,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35343,7 +35622,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35352,16 +35631,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35370,12 +35649,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -35431,16 +35719,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35449,7 +35728,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35458,16 +35737,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35476,12 +35755,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -35536,7 +35824,7 @@
       "days": "[0, 3]",
       "review": "{}",
       "paused_reason": null,
-      "id": "sch_c089e4301cb0",
+      "id": "sch_ed0d89b0bb97",
       "time": "23:15",
       "limits": "{}",
       "failures_in_row": 0,
@@ -35556,25 +35844,16 @@
       "kind": "repeat",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.202040+00:00",
+      "created_at": "2026-11-12T18:12:27.511646+00:00",
       "window_end": null,
       "instruction": "By the board's own user.",
-      "updated_at": "2026-11-12T18:01:25.419469+00:00"
+      "updated_at": "2026-11-12T18:12:27.850898+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35583,7 +35862,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35592,16 +35871,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35610,12 +35889,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -35671,16 +35959,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35689,7 +35968,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35698,16 +35977,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35716,12 +35995,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -35777,16 +36065,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35795,7 +36074,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35804,16 +36083,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35822,12 +36101,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -35883,7 +36171,7 @@
       "days": "[0, 3]",
       "review": "{}",
       "paused_reason": null,
-      "id": "sch_c089e4301cb0",
+      "id": "sch_ed0d89b0bb97",
       "time": "23:15",
       "limits": "{}",
       "failures_in_row": 0,
@@ -35903,25 +36191,16 @@
       "kind": "repeat",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.202040+00:00",
+      "created_at": "2026-11-12T18:12:27.511646+00:00",
       "window_end": null,
       "instruction": "By the board's own user.",
-      "updated_at": "2026-11-12T18:01:25.447724+00:00"
+      "updated_at": "2026-11-12T18:12:27.886417+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35930,7 +36209,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35939,16 +36218,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -35957,12 +36236,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -36026,16 +36314,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36044,7 +36323,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36053,16 +36332,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36071,12 +36350,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -36140,16 +36428,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36158,7 +36437,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36167,16 +36446,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36185,12 +36464,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -36246,16 +36534,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36264,7 +36543,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36273,16 +36552,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36291,12 +36570,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -36348,16 +36636,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36366,7 +36645,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36375,16 +36654,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36393,12 +36672,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -36450,16 +36738,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36468,7 +36747,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36477,16 +36756,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36495,12 +36774,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -36552,16 +36840,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36570,7 +36849,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36579,16 +36858,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36597,12 +36876,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -36657,16 +36945,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36675,7 +36954,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36684,16 +36963,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36702,12 +36981,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -36761,7 +37049,7 @@
       "days": "[0, 3]",
       "review": "{}",
       "paused_reason": "Paused by An Nguyen",
-      "id": "sch_c089e4301cb0",
+      "id": "sch_ed0d89b0bb97",
       "time": "23:15",
       "limits": "{}",
       "failures_in_row": 0,
@@ -36781,25 +37069,16 @@
       "kind": "repeat",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.202040+00:00",
+      "created_at": "2026-11-12T18:12:27.511646+00:00",
       "window_end": null,
       "instruction": "By the board's own user.",
-      "updated_at": "2026-11-12T18:01:25.507754+00:00"
+      "updated_at": "2026-11-12T18:12:27.976576+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36808,7 +37087,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36817,16 +37096,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
-       "state": "paused",
-       "paused_reason": "Paused by An Nguyen",
+       "id": "sch_8406f641351d",
+       "state": "active",
+       "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36835,12 +37114,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "paused",
+       "paused_reason": "Paused by An Nguyen",
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -36895,7 +37183,7 @@
       "days": "[0, 3]",
       "review": "{}",
       "paused_reason": "Paused by An Nguyen",
-      "id": "sch_c089e4301cb0",
+      "id": "sch_ed0d89b0bb97",
       "time": "06:00",
       "limits": "{}",
       "failures_in_row": 0,
@@ -36915,25 +37203,16 @@
       "kind": "repeat",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.202040+00:00",
+      "created_at": "2026-11-12T18:12:27.511646+00:00",
       "window_end": null,
       "instruction": "By the board's own user.",
-      "updated_at": "2026-11-12T18:01:25.527981+00:00"
+      "updated_at": "2026-11-12T18:12:27.995156+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36942,7 +37221,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36951,16 +37230,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
-       "state": "paused",
-       "paused_reason": "Paused by An Nguyen",
+       "id": "sch_8406f641351d",
+       "state": "active",
+       "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -36969,12 +37248,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "paused",
+       "paused_reason": "Paused by An Nguyen",
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -37028,7 +37316,7 @@
       "days": "[0, 3]",
       "review": "{}",
       "paused_reason": "Holiday",
-      "id": "sch_c089e4301cb0",
+      "id": "sch_ed0d89b0bb97",
       "time": "06:00",
       "limits": "{}",
       "failures_in_row": 0,
@@ -37048,25 +37336,16 @@
       "kind": "repeat",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.202040+00:00",
+      "created_at": "2026-11-12T18:12:27.511646+00:00",
       "window_end": null,
       "instruction": "By the board's own user.",
-      "updated_at": "2026-11-12T18:01:25.536469+00:00"
+      "updated_at": "2026-11-12T18:12:28.002455+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37075,7 +37354,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37084,16 +37363,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
-       "state": "paused",
-       "paused_reason": "Holiday",
+       "id": "sch_8406f641351d",
+       "state": "active",
+       "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T22:15:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37102,12 +37381,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "paused",
+       "paused_reason": "Holiday",
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T22:15:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -37161,7 +37449,7 @@
       "days": "[0, 3]",
       "review": "{}",
       "paused_reason": null,
-      "id": "sch_c089e4301cb0",
+      "id": "sch_ed0d89b0bb97",
       "time": "06:00",
       "limits": "{}",
       "failures_in_row": 0,
@@ -37181,25 +37469,16 @@
       "kind": "repeat",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.202040+00:00",
+      "created_at": "2026-11-12T18:12:27.511646+00:00",
       "window_end": null,
       "instruction": "By the board's own user.",
-      "updated_at": "2026-11-12T18:01:25.546299+00:00"
+      "updated_at": "2026-11-12T18:12:28.009959+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37208,7 +37487,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37217,16 +37496,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T05:00:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37235,12 +37514,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T05:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -37294,7 +37582,7 @@
       "days": "[5, 6]",
       "review": "{}",
       "paused_reason": "Paused by Binh",
-      "id": "sch_54c5fdb00d93",
+      "id": "sch_2b3454d5ead0",
       "time": "07:05",
       "limits": "{}",
       "failures_in_row": 0,
@@ -37314,25 +37602,16 @@
       "kind": "repeat",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.233619+00:00",
+      "created_at": "2026-11-12T18:12:27.589433+00:00",
       "window_end": null,
       "instruction": "",
-      "updated_at": "2026-11-12T18:01:25.555385+00:00"
+      "updated_at": "2026-11-12T18:12:28.017882+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "paused",
        "paused_reason": "Paused by Binh",
        "failures_in_row": 0,
@@ -37341,7 +37620,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37350,16 +37629,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T05:00:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37368,12 +37647,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T05:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -37427,7 +37715,7 @@
       "days": "[5, 6]",
       "review": "{}",
       "paused_reason": null,
-      "id": "sch_54c5fdb00d93",
+      "id": "sch_2b3454d5ead0",
       "time": "07:05",
       "limits": "{}",
       "failures_in_row": 0,
@@ -37447,25 +37735,16 @@
       "kind": "repeat",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.233619+00:00",
+      "created_at": "2026-11-12T18:12:27.589433+00:00",
       "window_end": null,
       "instruction": "",
-      "updated_at": "2026-11-12T18:01:25.565121+00:00"
+      "updated_at": "2026-11-12T18:12:28.024955+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37474,7 +37753,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37483,16 +37762,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T05:00:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37501,12 +37780,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T05:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -37561,16 +37849,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37579,7 +37858,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37588,16 +37867,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T05:00:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37606,12 +37885,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T05:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -37666,7 +37954,7 @@
       "days": "[0,1,2,3,4]",
       "review": "{}",
       "paused_reason": null,
-      "id": "sch_5b2bc68b8f58",
+      "id": "sch_455186b16ec6",
       "time": "02:00",
       "limits": "{\"retries\": 0}",
       "failures_in_row": 0,
@@ -37686,25 +37974,16 @@
       "kind": "once",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.219423+00:00",
+      "created_at": "2026-11-12T18:12:27.551562+00:00",
       "window_end": null,
       "instruction": "Once only.",
-      "updated_at": "2026-11-12T18:01:25.592673+00:00"
+      "updated_at": "2026-11-12T18:12:28.051064+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37713,7 +37992,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37722,16 +38001,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T05:00:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37740,12 +38019,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T05:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -37793,16 +38081,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37811,7 +38090,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37820,30 +38099,39 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T05:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_e6c1d5c02d41",
-       "state": "ended",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": null,
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_f81247221086",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
        "next_run_at": "2026-03-09T08:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_b4b610775714",
+       "state": "ended",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": null,
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_dd23678ec62b",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T05:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -37898,16 +38186,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37916,7 +38195,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -37925,30 +38204,39 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T05:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_e6c1d5c02d41",
-       "state": "ended",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": null,
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_f81247221086",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
        "next_run_at": "2026-03-09T08:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_b4b610775714",
+       "state": "ended",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": null,
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_dd23678ec62b",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T05:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -38003,7 +38291,7 @@
       "days": "[0,1,2,3,4]",
       "review": "{}",
       "paused_reason": null,
-      "id": "sch_5b2bc68b8f58",
+      "id": "sch_455186b16ec6",
       "time": "02:00",
       "limits": "{\"retries\": 0}",
       "failures_in_row": 0,
@@ -38023,25 +38311,16 @@
       "kind": "once",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.219423+00:00",
+      "created_at": "2026-11-12T18:12:27.551562+00:00",
       "window_end": null,
       "instruction": "Once only.",
-      "updated_at": "2026-11-12T18:01:25.627532+00:00"
+      "updated_at": "2026-11-12T18:12:28.080111+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -38050,7 +38329,7 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_5b2bc68b8f58",
+       "id": "sch_455186b16ec6",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -38059,16 +38338,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T05:00:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -38077,12 +38356,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T05:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -38131,16 +38419,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -38149,16 +38428,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T05:00:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -38167,12 +38446,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T05:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -38229,16 +38517,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -38247,16 +38526,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T05:00:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -38265,12 +38544,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T05:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -38327,16 +38615,7 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_54c5fdb00d93",
+       "id": "sch_2b3454d5ead0",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -38345,16 +38624,16 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T05:00:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -38363,12 +38642,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T05:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -38421,25 +38709,16 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T05:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -38448,12 +38727,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T05:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -38512,7 +38800,7 @@
       "days": "[0, 3]",
       "review": "{}",
       "paused_reason": null,
-      "id": "sch_c089e4301cb0",
+      "id": "sch_ed0d89b0bb97",
       "time": "06:00",
       "limits": "{}",
       "failures_in_row": 0,
@@ -38532,34 +38820,25 @@
       "kind": "repeat",
       "ends_on": null,
       "notify_people": "[]",
-      "created_at": "2026-11-12T18:01:25.202040+00:00",
+      "created_at": "2026-11-12T18:12:27.511646+00:00",
       "window_end": null,
       "instruction": "By the board's own user.",
-      "updated_at": "2026-11-12T18:01:25.546299+00:00"
+      "updated_at": "2026-11-12T18:12:28.009959+00:00"
      }
     },
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T05:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -38568,12 +38847,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T05:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -38633,25 +38921,16 @@
     "after": {
      "schedules": [
       {
-       "id": "sch_35eb250894ea",
+       "id": "sch_8406f641351d",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "next_run_at": "2026-03-09T08:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_c089e4301cb0",
-       "state": "active",
-       "paused_reason": null,
-       "failures_in_row": 0,
-       "runs_count": 0,
-       "next_run_at": "2026-03-09T05:00:00+00:00",
-       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
-      },
-      {
-       "id": "sch_e6c1d5c02d41",
+       "id": "sch_b4b610775714",
        "state": "ended",
        "paused_reason": null,
        "failures_in_row": 0,
@@ -38660,12 +38939,21 @@
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       },
       {
-       "id": "sch_f81247221086",
+       "id": "sch_dd23678ec62b",
        "state": "active",
        "paused_reason": null,
        "failures_in_row": 0,
        "runs_count": 0,
-       "next_run_at": "2026-03-09T08:00:00+00:00",
+       "next_run_at": "2026-03-09T02:00:00+00:00",
+       "ticket_seen_at": "2026-03-05T00:00:00+00:00"
+      },
+      {
+       "id": "sch_ed0d89b0bb97",
+       "state": "active",
+       "paused_reason": null,
+       "failures_in_row": 0,
+       "runs_count": 0,
+       "next_run_at": "2026-03-09T05:00:00+00:00",
        "ticket_seen_at": "2026-03-05T00:00:00+00:00"
       }
      ],
@@ -38745,8 +39033,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-ontime",
       "board_daily_cap": null,
+      "project_id": "p-st-ontime",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -38762,8 +39050,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-ontime",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -38771,8 +39059,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-ontime",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -38780,8 +39068,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-ontime",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -38791,8 +39079,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-ontime",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -40219,8 +40507,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-late",
       "board_daily_cap": null,
+      "project_id": "p-st-late",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -40236,8 +40524,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-late",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -40245,8 +40533,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-late",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -40254,8 +40542,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-late",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -40265,8 +40553,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-late",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -40664,8 +40952,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-later",
       "board_daily_cap": null,
+      "project_id": "p-st-later",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -40681,8 +40969,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-later",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -40690,8 +40978,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-later",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -40699,8 +40987,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-later",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -40710,8 +40998,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-later",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -41109,8 +41397,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-missed",
       "board_daily_cap": null,
+      "project_id": "p-st-missed",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -41126,8 +41414,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-missed",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -41135,8 +41423,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-missed",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -41144,8 +41432,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-missed",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -41155,8 +41443,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-missed",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -41428,8 +41716,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-edge",
       "board_daily_cap": null,
+      "project_id": "p-st-edge",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -41445,8 +41733,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-edge",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -41454,8 +41742,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-edge",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -41463,8 +41751,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-edge",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -41474,8 +41762,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-edge",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -41717,8 +42005,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-window",
       "board_daily_cap": null,
+      "project_id": "p-st-window",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -41734,8 +42022,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-window",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -41743,8 +42031,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-window",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -41752,8 +42040,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-window",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -41763,8 +42051,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-window",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -42147,8 +42435,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-paused",
       "board_daily_cap": null,
+      "project_id": "p-st-paused",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -42164,8 +42452,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-paused",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -42173,8 +42461,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-paused",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -42182,8 +42470,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-paused",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -42193,8 +42481,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-paused",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -42741,8 +43029,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-gaveup",
       "board_daily_cap": null,
+      "project_id": "p-st-gaveup",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -42758,8 +43046,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-gaveup",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -42767,8 +43055,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-gaveup",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -42776,8 +43064,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-gaveup",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -42787,8 +43075,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-gaveup",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -43170,8 +43458,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-skiprule",
       "board_daily_cap": null,
+      "project_id": "p-st-skiprule",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -43187,8 +43475,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-skiprule",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -43196,8 +43484,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-skiprule",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -43205,8 +43493,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-skiprule",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -43216,8 +43504,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-skiprule",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -43439,8 +43727,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-askrule",
       "board_daily_cap": null,
+      "project_id": "p-st-askrule",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -43456,8 +43744,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-askrule",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -43465,8 +43753,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-askrule",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -43474,8 +43762,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-askrule",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -43485,8 +43773,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-askrule",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -44522,8 +44810,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-backup",
       "board_daily_cap": null,
+      "project_id": "p-st-backup",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -44539,8 +44827,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-backup",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -44548,8 +44836,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-backup",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -44557,8 +44845,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-backup",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -44566,8 +44854,8 @@
       "name": "Qa Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-backup",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -44575,8 +44863,8 @@
       "name": "Ops Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-backup",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -44586,8 +44874,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-backup",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -44619,8 +44907,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-backup",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -44652,8 +44940,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-backup",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -45614,8 +45902,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-closed",
       "board_daily_cap": null,
+      "project_id": "p-st-closed",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -45631,8 +45919,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-closed",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -45640,8 +45928,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-closed",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -45649,8 +45937,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-closed",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -45660,8 +45948,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-closed",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -46754,8 +47042,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-pausedslot",
       "board_daily_cap": null,
+      "project_id": "p-st-pausedslot",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -46771,8 +47059,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-pausedslot",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -46780,8 +47068,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-pausedslot",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -46789,8 +47077,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-pausedslot",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -46800,8 +47088,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-pausedslot",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -47289,8 +47577,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-viewer",
       "board_daily_cap": null,
+      "project_id": "p-st-viewer",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -47306,8 +47594,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-viewer",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -47315,8 +47603,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-viewer",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -47324,8 +47612,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-viewer",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -47335,8 +47623,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-viewer",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -47636,8 +47924,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-conflict",
       "board_daily_cap": null,
+      "project_id": "p-st-conflict",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -47653,8 +47941,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-conflict",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -47662,8 +47950,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-conflict",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -47671,8 +47959,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-conflict",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -47682,8 +47970,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-conflict",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -48287,8 +48575,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-removed",
       "board_daily_cap": null,
+      "project_id": "p-st-removed",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -48304,8 +48592,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-removed",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -48313,8 +48601,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-removed",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -48322,8 +48610,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-removed",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -48331,8 +48619,8 @@
       "name": "Qa Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-removed",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -48342,8 +48630,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-removed",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -48375,8 +48663,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-removed",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -48761,8 +49049,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-retry",
       "board_daily_cap": null,
+      "project_id": "p-st-retry",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -48778,8 +49066,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-retry",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -48787,8 +49075,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-retry",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -48796,8 +49084,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-retry",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -48807,8 +49095,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-retry",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -49525,8 +49813,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-noretry",
       "board_daily_cap": null,
+      "project_id": "p-st-noretry",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -49542,8 +49830,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-noretry",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -49551,8 +49839,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-noretry",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -49560,8 +49848,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-noretry",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -49571,8 +49859,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-noretry",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -51608,8 +51896,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-retrypaused",
       "board_daily_cap": null,
+      "project_id": "p-st-retrypaused",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -51625,8 +51913,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-retrypaused",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -51634,8 +51922,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-retrypaused",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -51643,8 +51931,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-retrypaused",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -51652,8 +51940,8 @@
       "name": "Qa Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-retrypaused",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -51661,8 +51949,8 @@
       "name": "Ops Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-retrypaused",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -51672,8 +51960,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-retrypaused",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -51705,8 +51993,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-retrypaused",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -51738,8 +52026,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-retrypaused",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -53488,8 +53776,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-cancelled",
       "board_daily_cap": null,
+      "project_id": "p-st-cancelled",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -53505,8 +53793,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-cancelled",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -53514,8 +53802,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-cancelled",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -53523,8 +53811,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-cancelled",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -53532,8 +53820,8 @@
       "name": "Qa Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-cancelled",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -53541,8 +53829,8 @@
       "name": "Ops Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-cancelled",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -53550,8 +53838,8 @@
       "name": "Sec Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-cancelled",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -53561,8 +53849,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-cancelled",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -53594,8 +53882,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-cancelled",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -53627,8 +53915,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-cancelled",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -53660,8 +53948,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-cancelled",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -54995,7 +55283,7 @@
         "catch_up": false,
         "member_id": "cancelled-sec",
         "runs": [
-         "run_151ab2c52a00"
+         "run_b279b86e88a7"
         ],
         "attempts": 1,
         "note": null,
@@ -55169,7 +55457,7 @@
         "catch_up": false,
         "member_id": "cancelled-sec",
         "runs": [
-         "run_151ab2c52a00"
+         "run_b279b86e88a7"
         ],
         "attempts": 1,
         "note": "The run was lost.",
@@ -55266,7 +55554,7 @@
         "title": "CANCELLED-4 scheduled run failed: The run was lost.",
         "body": "",
         "target_kind": "run",
-        "target_id": "run_151ab2c52a00",
+        "target_id": "run_b279b86e88a7",
         "ticket_id": "CANCELLED-4",
         "member_id": "cancelled-sec",
         "data": {
@@ -55314,8 +55602,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-queue",
       "board_daily_cap": null,
+      "project_id": "p-st-queue",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -55331,8 +55619,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-queue",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -55340,8 +55628,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-queue",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -55349,8 +55637,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-queue",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -55360,8 +55648,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-queue",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -55890,8 +56178,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-asks",
       "board_daily_cap": null,
+      "project_id": "p-st-asks",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -55907,8 +56195,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-asks",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -55916,8 +56204,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-asks",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -55925,8 +56213,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-asks",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -55936,8 +56224,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-asks",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -56595,8 +56883,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-overtime",
       "board_daily_cap": null,
+      "project_id": "p-st-overtime",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -56612,8 +56900,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-overtime",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -56621,8 +56909,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-overtime",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -56630,8 +56918,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-overtime",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -56639,8 +56927,8 @@
       "name": "Qa Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-overtime",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -56650,8 +56938,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-overtime",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -56683,8 +56971,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-overtime",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -57665,8 +57953,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-overcost",
       "board_daily_cap": null,
+      "project_id": "p-st-overcost",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -57682,8 +57970,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-overcost",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -57691,8 +57979,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-overcost",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -57700,8 +57988,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-overcost",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -57711,8 +57999,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-overcost",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -58359,8 +58647,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-again",
       "board_daily_cap": null,
+      "project_id": "p-st-again",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -58376,8 +58664,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-again",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -58385,8 +58673,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-again",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -58394,8 +58682,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-again",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -58405,8 +58693,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-again",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -58724,8 +59012,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-once",
       "board_daily_cap": null,
+      "project_id": "p-st-once",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -58741,8 +59029,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-once",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -58750,8 +59038,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-once",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -58759,8 +59047,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-once",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -58770,8 +59058,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-once",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -59291,8 +59579,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-lastrun",
       "board_daily_cap": null,
+      "project_id": "p-st-lastrun",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -59308,8 +59596,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-lastrun",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -59317,8 +59605,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-lastrun",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -59326,8 +59614,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-lastrun",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -59337,8 +59625,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-lastrun",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -59978,8 +60266,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-runnow",
       "board_daily_cap": null,
+      "project_id": "p-st-runnow",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -59995,8 +60283,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-runnow",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -60004,8 +60292,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-runnow",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -60013,8 +60301,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-runnow",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -60022,8 +60310,8 @@
       "name": "Qa Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-runnow",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -60031,8 +60319,8 @@
       "name": "Ops Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-runnow",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -60040,8 +60328,8 @@
       "name": "Vy",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "viewer",
       "project_id": "p-st-runnow",
+      "role": "viewer",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -60051,8 +60339,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-runnow",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -60084,8 +60372,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-runnow",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -60117,8 +60405,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-runnow",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -61599,8 +61887,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-quiet",
       "board_daily_cap": null,
+      "project_id": "p-st-quiet",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -61616,8 +61904,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-quiet",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -61625,8 +61913,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-quiet",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -61634,8 +61922,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-quiet",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -61643,8 +61931,8 @@
       "name": "Qa Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-quiet",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -61654,8 +61942,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-quiet",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -61687,8 +61975,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-quiet",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -62492,8 +62780,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-foreign",
       "board_daily_cap": null,
+      "project_id": "p-st-foreign",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -62509,8 +62797,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-foreign",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -62518,8 +62806,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-foreign",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -62527,8 +62815,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-foreign",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -62536,8 +62824,8 @@
       "name": "Far Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-elsewhere",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -62547,8 +62835,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-foreign",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -62580,8 +62868,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-elsewhere",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -63078,8 +63366,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-norestart",
       "board_daily_cap": null,
+      "project_id": "p-st-norestart",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -63095,8 +63383,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-norestart",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -63104,8 +63392,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-norestart",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -63113,8 +63401,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-norestart",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -63124,8 +63412,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-norestart",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,
@@ -63647,8 +63935,8 @@
       "permission_mode": "bypass",
       "lessons_mode": "auto",
       "ops": "{}",
-      "project_id": "p-st-badzone",
       "board_daily_cap": null,
+      "project_id": "p-st-badzone",
       "paused_at": null,
       "board_tokens_per_day": null,
       "board_runs_per_day": null,
@@ -63664,8 +63952,8 @@
       "name": "An Nguyen",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "admin",
       "project_id": "p-st-badzone",
+      "role": "admin",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -63673,8 +63961,8 @@
       "name": "Binh",
       "color": "#3B82F6",
       "kind": "human",
-      "role": "member",
       "project_id": "p-st-badzone",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      },
      {
@@ -63682,8 +63970,8 @@
       "name": "Dev Team",
       "color": "#2E6F40",
       "kind": "ai",
-      "role": "member",
       "project_id": "p-st-badzone",
+      "role": "member",
       "created_at": "2025-01-01T00:00:00+00:00"
      }
     ],
@@ -63693,8 +63981,8 @@
       "config": "{}",
       "scope": "assigned",
       "account_id": null,
-      "description": "",
       "project_id": "p-st-badzone",
+      "description": "",
       "permission_mode": "bypass",
       "paused": false,
       "mcp_last_used_at": null,

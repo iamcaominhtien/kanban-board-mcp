@@ -18,11 +18,18 @@ pub enum Kind {
     Object,
     /// `list[str]`.
     StrList,
+    /// `list[int]`.
+    IntList,
 }
 
 /// One entry of the 422 list.
 fn problem(key: &str, kind: &str, msg: &str) -> Value {
     json!({"type": kind, "loc": ["body", key], "msg": msg})
+}
+
+/// One entry of the 422 list, for the item of a list.
+fn problem_at(key: &str, index: usize, kind: &str, msg: &str) -> Value {
+    json!({"type": kind, "loc": ["body", key, index], "msg": msg})
 }
 
 /// The `model_dump(exclude_unset=True)` of a model made of `spec`: its fields that were sent, in the model's order.
@@ -46,31 +53,40 @@ pub fn fields(mut body: Map<String, Value>, spec: &[(&str, Kind)]) -> ApiResult<
                 } else if let Some(f) = n.as_f64().filter(|f| f.fract() == 0.0 && f.abs() < 9.0e15) {
                     out.insert((*key).to_string(), json!(f as i64));
                 } else {
-                    errors.push(problem(key, "int_from_float", "Input should be a valid integer, got a number with a fractional part"));
+                    errors.push(problem(
+                        key,
+                        "int_from_float",
+                        "Input should be a valid integer, got a number with a fractional part",
+                    ));
                 }
             }
             (Kind::Float, Value::Number(n)) => {
                 out.insert((*key).to_string(), json!(n.as_f64().unwrap_or(0.0)));
             }
-            (Kind::StrList, Value::Array(items)) => {
-                if items.iter().all(Value::is_string) {
+            (Kind::StrList, Value::Array(items)) => match items.iter().position(|item| !item.is_string()) {
+                None => {
                     out.insert((*key).to_string(), value);
-                } else {
-                    errors.push(problem(key, "string_type", "Input should be a valid string"));
+                }
+                Some(at) => errors.push(problem_at(key, at, "string_type", "Input should be a valid string")),
+            },
+            (Kind::IntList, Value::Array(items)) => {
+                match items.iter().position(|item| !(item.is_i64() || item.is_u64())) {
+                    None => {
+                        out.insert((*key).to_string(), value);
+                    }
+                    Some(at) => errors.push(problem_at(key, at, "int_type", "Input should be a valid integer")),
                 }
             }
             (Kind::Str, _) => errors.push(problem(key, "string_type", "Input should be a valid string")),
             (Kind::Int, _) => errors.push(problem(key, "int_type", "Input should be a valid integer")),
             (Kind::Float, _) => errors.push(problem(key, "float_type", "Input should be a valid number")),
             (Kind::Object, _) => errors.push(problem(key, "dict_type", "Input should be a valid dictionary")),
-            (Kind::StrList, _) => errors.push(problem(key, "list_type", "Input should be a valid list")),
+            (Kind::StrList | Kind::IntList, _) => {
+                errors.push(problem(key, "list_type", "Input should be a valid list"))
+            }
         }
     }
-    if errors.is_empty() {
-        Ok(out)
-    } else {
-        Err(ApiError::unprocessable(Value::Array(errors)))
-    }
+    if errors.is_empty() { Ok(out) } else { Err(ApiError::unprocessable(Value::Array(errors))) }
 }
 
 /// A SQL `LIMIT` from a query parameter that may be negative (SQLite reads a negative limit as no limit).

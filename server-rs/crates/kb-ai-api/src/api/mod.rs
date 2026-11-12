@@ -10,9 +10,10 @@ pub mod ai_hooks;
 pub mod ai_knowledge;
 pub mod ai_power;
 pub mod ai_tools;
+pub mod schedules;
 
 /// Every route of this area (the app merges them, in the order `main.py` includes the routers): accounts, `ai`, hooks,
-/// knowledge, code, tools, board, power. `schedules` is ported with the schedules service.
+/// knowledge, code, tools, board, power.
 pub fn routes() -> Routes {
     Routes::new()
         .merge(ai_accounts::routes())
@@ -23,4 +24,7 @@ pub fn routes() -> Routes {
         .merge(ai_tools::routes())
         .merge(ai_board::routes())
         .merge(ai_power::routes())
+        // `main.py` includes it second, after the projects' router: no route the app registers before this crate can
+        // take one of its paths, so its place here is the same
+        .merge(schedules::routes())
 }

@@ -16,14 +16,12 @@ use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use futures::{SinkExt, StreamExt};
-use kb_ai::audit;
 use kb_ai_run::accounts::{self as svc_accounts, AccountError};
 use kb_ai_run::{cli, signin, teams as svc_teams, touches};
 use kb_base::error::{Body, Path, Query};
 use kb_base::{ApiError, ApiResult, Routes, activity, pyjson, pytext};
 use kb_db::Session;
-use kb_db::entities::{ai_account, ai_team};
-use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use kb_db::entities::ai_account;
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 

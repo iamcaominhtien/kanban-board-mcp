@@ -344,9 +344,7 @@ async fn post_pack_import(
 ) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
     project_exists(&session, &project_id).await?;
-    Ok(Json(
-        svc_packs::import_pack(&session, &project_id, &Value::Object(body), &by()).await.map_err(pack_422)?,
-    ))
+    Ok(Json(svc_packs::import_pack(&session, &project_id, &Value::Object(body), &by()).await.map_err(pack_422)?))
 }
 
 // --------------------------------------------------------------------------- the repository scan
@@ -380,10 +378,7 @@ fn yes() -> bool {
 }
 
 /// Scan by code, suggest, and try the commands once in a scratch worktree. Nothing is created.
-async fn post_scan(
-    Path(project_id): Path<String>,
-    Body(body): Body<ScanBody>,
-) -> ApiResult<(StatusCode, Json<Value>)> {
+async fn post_scan(Path(project_id): Path<String>, Body(body): Body<ScanBody>) -> ApiResult<(StatusCode, Json<Value>)> {
     let session = kb_db::session();
     project_exists(&session, &project_id).await?;
     let opts = ScanOptions {

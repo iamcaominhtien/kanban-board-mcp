@@ -3,7 +3,8 @@
 
 use axum::Json;
 use axum::extract::DefaultBodyLimit;
-use axum::extract::multipart::{Multipart, MultipartRejection};
+use axum::extract::multipart::Multipart;
+use axum::extract::{FromRequest, Request};
 use axum::http::StatusCode;
 use axum::routing::post;
 use kb_ai::store::save;
@@ -109,10 +110,7 @@ async fn get_kb_search(
 
 /// The 422 of a form field.
 fn form_error(field: &str, kind: &str, msg: &str) -> ApiError {
-    ApiError::new(
-        StatusCode::UNPROCESSABLE_ENTITY,
-        json!([{"type": kind, "loc": ["body", field], "msg": msg}]),
-    )
+    ApiError::new(StatusCode::UNPROCESSABLE_ENTITY, json!([{"type": kind, "loc": ["body", field], "msg": msg}]))
 }
 
 /// A form field read as a `bool` (Pydantic's text forms).
@@ -124,40 +122,70 @@ fn form_bool(field: &str, text: &str) -> ApiResult<bool> {
     }
 }
 
-/// Add a document: a file (PDF, image, text, code) or pasted text. Everything becomes text on the way in.
-async fn post_kb(
-    Path(project_id): Path<String>,
-    multipart: Result<Multipart, MultipartRejection>,
-) -> ApiResult<(StatusCode, Json<Map<String, Value>>)> {
+/// The fields of the form of `post_kb`.
+struct KbForm {
+    file: Option<(String, Vec<u8>)>,
+    title: String,
+    text: String,
+    store: String,
+    private: bool,
+}
+
+/// The form of a request: multipart (what the app sends) or URL-encoded (a form with no file), as FastAPI reads both.
+async fn read_form(request: Request) -> ApiResult<KbForm> {
     let parse_error = || ApiError::bad_request("There was an error parsing the body");
-    let mut multipart = multipart.map_err(|_| ApiError::unprocessable(json!([{"type": "missing", "loc": ["body"], "msg": "Field required"}])))?;
-    let mut file: Option<(String, Vec<u8>)> = None;
-    let (mut title, mut text) = (String::new(), String::new());
-    let mut store = "project".to_string();
-    let mut private = false;
-    while let Some(mut field) = multipart.next_field().await.map_err(|_| parse_error())? {
-        let name = field.name().unwrap_or_default().to_string();
-        match name.as_str() {
-            "file" if field.file_name().is_some() => {
+    let mut form =
+        KbForm { file: None, title: String::new(), text: String::new(), store: "project".to_string(), private: false };
+    let urlencoded = request
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.to_lowercase().starts_with("application/x-www-form-urlencoded"));
+    let mut fields: Vec<(String, String)> = Vec::new();
+    if urlencoded {
+        let bytes = axum::body::to_bytes(request.into_body(), usize::MAX).await.map_err(|_| parse_error())?;
+        fields = serde_urlencoded::from_bytes(&bytes).map_err(|_| parse_error())?;
+    } else {
+        let mut multipart = Multipart::from_request(request, &()).await.map_err(|_| {
+            ApiError::unprocessable(json!([{"type": "missing", "loc": ["body"], "msg": "Field required"}]))
+        })?;
+        while let Some(mut field) = multipart.next_field().await.map_err(|_| parse_error())? {
+            let name = field.name().unwrap_or_default().to_string();
+            if name == "file" && field.file_name().is_some() {
                 let filename = field.file_name().unwrap_or("").to_string();
                 let mut data: Vec<u8> = Vec::new();
                 while let Some(chunk) = field.chunk().await.map_err(|_| parse_error())? {
                     data.extend_from_slice(&chunk);
                 }
-                file = Some((filename, data));
+                form.file = Some((filename, data));
+            } else {
+                fields.push((name, field.text().await.map_err(|_| parse_error())?));
             }
-            "title" => title = field.text().await.map_err(|_| parse_error())?,
-            "text" => text = field.text().await.map_err(|_| parse_error())?,
+        }
+    }
+    for (name, value) in fields {
+        match name.as_str() {
+            "title" => form.title = value,
+            "text" => form.text = value,
             "store" => {
-                store = field.text().await.map_err(|_| parse_error())?;
-                if store != "project" && store != "shared" {
+                if value != "project" && value != "shared" {
                     return Err(form_error("store", "literal_error", "Input should be 'project' or 'shared'"));
                 }
+                form.store = value;
             }
-            "private" => private = form_bool("private", &field.text().await.map_err(|_| parse_error())?)?,
+            "private" => form.private = form_bool("private", &value)?,
             _ => {}
         }
     }
+    Ok(form)
+}
+
+/// Add a document: a file (PDF, image, text, code) or pasted text. Everything becomes text on the way in.
+async fn post_kb(
+    Path(project_id): Path<String>,
+    request: Request,
+) -> ApiResult<(StatusCode, Json<Map<String, Value>>)> {
+    let KbForm { file, title, text, store, private } = read_form(request).await?;
     let session = kb_db::session();
     project_exists(&session, &project_id).await?;
     if store == "shared" && !svc_kb::stores_for(&session, &project_id).await?.contains(&"shared") {
@@ -247,10 +275,7 @@ struct KbPatch {
 
 /// Putting a document into the shared store says who will be able to read it. Only who added a document changes who
 /// sees it; the shared store takes a document only from a project that opted in to it.
-async fn patch_kb_doc(
-    Path(doc_id): Path<String>,
-    Body(body): Body<KbPatch>,
-) -> ApiResult<Json<Map<String, Value>>> {
+async fn patch_kb_doc(Path(doc_id): Path<String>, Body(body): Body<KbPatch>) -> ApiResult<Json<Map<String, Value>>> {
     let session = kb_db::session();
     let person = by();
     let mut doc = visible_doc(&session, &doc_id, &person).await?;

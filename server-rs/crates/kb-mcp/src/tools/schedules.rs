@@ -54,8 +54,7 @@ pub async fn ai_schedules(args: Map<String, Value>) -> ToolResult {
     }
     let actor = activity::current_actor();
     let by = if actor.is_empty() { activity::HUMAN_ACTOR.to_string() } else { actor };
-    let unknown: BTreeSet<&str> =
-        fields.keys().map(String::as_str).filter(|key| !svc::FIELDS.contains(key)).collect();
+    let unknown: BTreeSet<&str> = fields.keys().map(String::as_str).filter(|key| !svc::FIELDS.contains(key)).collect();
     if !unknown.is_empty() {
         return Err(ToolError::Value(format!(
             "Unknown field{} in fields: {}. Use: {}.",
