@@ -41,9 +41,29 @@ async fn test_the_card_says_what_the_board_uses() {
     assert_eq!(
         keys,
         [
-            "ai_members", "at_head", "data_folder", "display", "engine", "env_var", "label", "latency_ms", "locked",
-            "move", "password_saved", "password_store", "projects", "reachable", "revision", "settings", "size",
-            "source", "sqlite_file", "tables", "tickets", "unreachable", "version",
+            "ai_members",
+            "at_head",
+            "data_folder",
+            "display",
+            "engine",
+            "env_var",
+            "label",
+            "latency_ms",
+            "locked",
+            "move",
+            "password_saved",
+            "password_store",
+            "projects",
+            "reachable",
+            "revision",
+            "settings",
+            "size",
+            "source",
+            "sqlite_file",
+            "tables",
+            "tickets",
+            "unreachable",
+            "version",
         ]
     );
     let db = s.db_path().to_string_lossy().into_owned();
@@ -212,7 +232,10 @@ async fn test_copy_stops_the_ai_proposes_the_board_applies_and_checks() {
     let state_file = s.db_path().with_file_name("db-move.json");
     std::fs::write(&state_file, state.to_string()).expect("state file");
     let job = client.get("/database/move").await.json();
-    assert_eq!((&job["id"], &job["state"], &job["resume_at"]), (&json!("abcdef012345"), &json!("interrupted"), &json!("ai_account")));
+    assert_eq!(
+        (&job["id"], &job["state"], &job["resume_at"]),
+        (&json!("abcdef012345"), &json!("interrupted"), &json!("ai_account"))
+    );
     assert_eq!(job["tables_total"], 77);
 
     let r = client.post("/database/move/resume", json!({})).await;
@@ -229,7 +252,10 @@ async fn test_copy_stops_the_ai_proposes_the_board_applies_and_checks() {
     assert_eq!((&stop["error"], &stop["code"]), (&json!("Data too long for column 'name' at row 1"), &json!("")));
     assert_eq!((&stop["source_type"], &stop["target_type"]), (&json!("VARCHAR"), &json!("VARCHAR")));
     assert_eq!((&stop["source_engine"], &stop["target_engine"]), (&json!("SQLite"), &json!("SQLite")));
-    assert_eq!((&stop["target_nullable"], &stop["target_default"], &stop["value_null"]), (&json!(false), &Value::Null, &json!(false)));
+    assert_eq!(
+        (&stop["target_nullable"], &stop["target_default"], &stop["value_null"]),
+        (&json!(false), &Value::Null, &json!(false))
+    );
     assert_eq!(stop["target_indexes"], json!([]));
     assert_eq!(job["resume_at"], "project");
     // the copy's progress was written down as it went
@@ -307,7 +333,8 @@ async fn test_a_target_with_tables_must_be_confirmed_by_name() {
     let r = client.post("/database/move/apply", json!({"statements": []})).await;
     assert_eq!((r.status, r.json()["detail"].clone()), (404, none));
 
-    let check = client.post("/database/move/check", json!({"engine": "sqlite", "path": target.to_string_lossy()})).await.json();
+    let check =
+        client.post("/database/move/check", json!({"engine": "sqlite", "path": target.to_string_lossy()})).await.json();
     assert_eq!(check["report"]["state"], "foreign");
     assert_eq!(
         check["report"]["findings"],
@@ -322,22 +349,35 @@ async fn test_a_target_with_tables_must_be_confirmed_by_name() {
     );
     // steps that the move is not ready for
     let r = client.post("/database/move/pause", json!({})).await;
-    assert_eq!((r.status, r.json()["detail"].clone()), (409, json!({"code": "state", "message": "Nothing is being copied."})));
+    assert_eq!(
+        (r.status, r.json()["detail"].clone()),
+        (409, json!({"code": "state", "message": "Nothing is being copied."}))
+    );
     let r = client.post("/database/move/resume", json!({})).await;
-    assert_eq!((r.status, r.json()["detail"].clone()), (409, json!({"code": "state", "message": "The move is ready."})));
+    assert_eq!(
+        (r.status, r.json()["detail"].clone()),
+        (409, json!({"code": "state", "message": "The move is ready."}))
+    );
     let r = client.post("/database/move/switch", json!({})).await;
     assert_eq!(
         (r.status, r.json()["detail"].clone()),
         (409, json!({"code": "state", "message": "Verify the copy before switching."}))
     );
     let r = client.post("/database/move/ask", json!({})).await;
-    assert_eq!((r.status, r.json()["detail"].clone()), (409, json!({"code": "state", "message": "The copy has not stopped."})));
+    assert_eq!(
+        (r.status, r.json()["detail"].clone()),
+        (409, json!({"code": "state", "message": "The copy has not stopped."}))
+    );
     let r = client.post("/database/move/apply", json!({"statements": ["ALTER TABLE project ADD x INT"]})).await;
-    assert_eq!((r.status, r.json()["detail"].clone()), (409, json!({"code": "state", "message": "The copy has not stopped."})));
+    assert_eq!(
+        (r.status, r.json()["detail"].clone()),
+        (409, json!({"code": "state", "message": "The copy has not stopped."}))
+    );
     let r = client.post("/database/move/start", json!({"mode": "move"})).await;
     assert_eq!((r.status, r.json()["detail"].clone()), (422, json!("mode is copy or empty")));
 
-    let wrong = client.post("/database/move/start", json!({"mode": "copy", "empty_first": true, "confirm": "nope"})).await;
+    let wrong =
+        client.post("/database/move/start", json!({"mode": "copy", "empty_first": true, "confirm": "nope"})).await;
     assert_eq!(wrong.status, 422);
     assert_eq!(wrong.json()["detail"], json!({"code": "confirm", "message": "Type busy.db to confirm."}));
     // without emptying it, the copy is refused when it starts
@@ -345,7 +385,8 @@ async fn test_a_target_with_tables_must_be_confirmed_by_name() {
     assert_eq!(r.status, 200);
     let job = wait(&client, &["verified", "failed"]).await;
     assert_eq!(job["error"], json!({"code": "target_not_empty", "message": "The target already has 1 tables."}));
-    let ok = client.post("/database/move/start", json!({"mode": "empty", "empty_first": true, "confirm": "busy.db"})).await;
+    let ok =
+        client.post("/database/move/start", json!({"mode": "empty", "empty_first": true, "confirm": "busy.db"})).await;
     assert_eq!(ok.status, 200);
     let job = wait(&client, &["verified", "failed"]).await;
     assert_eq!(job["state"], "verified");
@@ -414,7 +455,8 @@ async fn test_switch_after_a_copy_to_a_sqlite_file() {
     assert_eq!((&switched["database"]["source"], &switched["database"]["projects"]), (&json!("default"), &json!(1)));
     assert_eq!(switched["database"]["move"]["state"], "switched");
     let config: Value =
-        serde_json::from_str(&std::fs::read_to_string(s.config_dir().join("config.json")).expect("config")).expect("json");
+        serde_json::from_str(&std::fs::read_to_string(s.config_dir().join("config.json")).expect("config"))
+            .expect("json");
     assert_eq!(config["database"], json!({"engine": "sqlite"}));
     // the board still reads and writes
     let second = client.post("/projects", json!({"name": "After", "prefix": "AFT", "color": "#2E6F40"})).await;

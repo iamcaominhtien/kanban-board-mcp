@@ -1,6 +1,5 @@
-//! `api/tickets.py`, the core of it: the two upload routes, and the routes that list, count, create, read, update,
-//! delete and move a ticket. The routes of the sub-entities (reopen, pending, comments, acceptance criteria,
-//! sub-tasks, work log, test cases, the activity feed, blocks, links, branches) are ported with their services.
+//! `api/tickets.py`, lines 1-440: the two upload routes, and the routes that list, count, create, read, update,
+//! delete and move a ticket.
 
 use axum::Json;
 use axum::extract::DefaultBodyLimit;
@@ -11,39 +10,19 @@ use kb_base::error::{Body, Path, Query};
 use kb_base::{ApiError, ApiResult, Routes, activity, events};
 use kb_db::entities::ticket;
 use kb_files::{pathlib, uploads};
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 use serde_json::{Map, Value, json};
 
+use super::{QueryBool, bad_request, given, not_found, read};
 use crate::hooks::{self, NewAssignee};
 use crate::schemas::TicketRead;
 use crate::tickets::schemas::{
     AttachmentUploadResponse, DescriptionImageUploadResponse, StatusBody, TicketCreateBody, TicketUpdate,
 };
-use crate::tickets::{
-    Error, NewTicket, create_ticket, delete_ticket, get_ticket, lane_counts, list_tickets, update_ticket,
-};
+use crate::tickets::{NewTicket, create_ticket, delete_ticket, get_ticket, lane_counts, list_tickets, update_ticket};
 
-/// `except ValueError as exc: raise HTTPException(status_code=400, detail=str(exc))`; anything else is a 500.
-pub(crate) fn bad_request(err: Error) -> ApiError {
-    match err {
-        Error::Value(message) => ApiError::bad_request(message),
-        Error::Db(err) => err.into(),
-        Error::NoResult(message) | Error::Other(message) => ApiError::internal(message),
-    }
-}
-
-/// `_read`.
-pub(crate) fn read(ticket: ticket::Model) -> ApiResult<Json<TicketRead>> {
-    Ok(Json(TicketRead::from_ticket(ticket)?))
-}
-
-/// `_404`.
-pub(crate) fn not_found() -> ApiError {
-    ApiError::not_found("Ticket not found")
-}
-
-/// The routes of this file.
-pub fn routes() -> Routes {
+/// The routes of this part.
+pub(super) fn routes() -> Routes {
     Routes::new()
         // the forms carry a file: the body limit of the extractors is lifted, the handlers cap what they keep
         .add("POST", "/uploads/images", post(upload_description_image).layer(DefaultBodyLimit::disable()))
@@ -202,31 +181,6 @@ async fn upload_attachment(
 // ---------------------------------------------------------------------------
 // Core CRUD
 // ---------------------------------------------------------------------------
-
-/// A `bool` query value as Pydantic reads it.
-#[derive(Debug, Clone, Copy)]
-struct QueryBool(bool);
-
-impl<'de> Deserialize<'de> for QueryBool {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let text = String::deserialize(deserializer)?;
-        match text.to_lowercase().as_str() {
-            "1" | "true" | "t" | "yes" | "y" | "on" => Ok(QueryBool(true)),
-            "0" | "false" | "f" | "no" | "n" | "off" => Ok(QueryBool(false)),
-            _ => Err(serde::de::Error::custom("Input should be a valid boolean, unable to interpret input")),
-        }
-    }
-}
-
-/// A query value that was given, an empty one included (`status=` is the status `""`, not no status; an empty
-/// value is not a bool).
-fn given<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
-where
-    D: Deserializer<'de>,
-    T: Deserialize<'de>,
-{
-    T::deserialize(deserializer).map(Some)
-}
 
 /// The query of `GET /projects/{project_id}/tickets`.
 #[derive(Debug, Deserialize)]

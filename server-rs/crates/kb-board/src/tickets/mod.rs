@@ -1,5 +1,5 @@
-//! Tickets (`services/tickets.py`), part 1: the ticket itself. The Python file is one module; here each part is a
-//! file named for what it holds, in the order of the Python file:
+//! Tickets (`services/tickets.py`). The Python file is one module; here each part is a file named for what it holds,
+//! in the order of the Python file:
 //!
 //! - `mod.rs` (lines 1-46): the JSON columns (`_loads`, `_dumps`), the error type, and what the whole area shares;
 //! - `validate.rs` (lines 48-212): limits, `[[doc references]]` and `@mentions` in a text, the field validators and
@@ -8,12 +8,19 @@
 //! - `core.rs` (lines 245-446): list, lane counts, get, create;
 //! - `update.rs` (lines 449-753): the audited partial update with the status rules;
 //! - `delete.rs` (lines 756-796): deleting a ticket and what pointed at it;
+//! - `comments.rs` (lines 804-988): comments, who they notify, soft delete and restore;
+//! - `criteria.rs` (lines 995-1082): acceptance criteria;
+//! - `sub_tasks.rs` (lines 1089-1176): the checklist of sub-tasks;
+//! - `work_log.rs` (lines 1187-1423): the work log (debug notes) with attachments and links;
+//! - `test_cases.rs` (lines 1430-1645): test cases;
+//! - `activities.rs` (lines 1647-1697): the project's activity feed;
+//! - `blocks.rs` (lines 1704-1808): blocks / blocked by;
+//! - `links.rs` (lines 1814-1966): the other relations between two tickets;
+//! - `branches.rs` (lines 1972-2495): branches, the commit graph and commit details of the linked repository;
+//! - `reopen.rs` (lines 2494-2862): reopen, undo reopen, the Pending flag and resume;
 //! - `schemas.rs`: the request models of the core routes (`models.py` and `api/tickets.py`).
-//!
-//! The sub-entities (comments, criteria, sub-tasks, work log, test cases, blocks, links, branches, reopen, pending:
-//! lines 799-2862) are ported after this; the helpers they need are `pub(crate)` here.
 
-use kb_base::pyjson;
+use kb_base::{pyjson, pytext};
 use kb_db::Session;
 use kb_db::entities::ticket;
 use kb_db::sea_orm::{ActiveModelTrait, DbErr, IntoActiveModel, Iterable, ModelTrait};
@@ -21,19 +28,47 @@ use serde_json::Value;
 
 use crate::git_repo::GitError;
 
+pub mod activities;
+pub mod blocks;
+pub mod branches;
+pub mod comments;
 pub mod core;
+pub mod criteria;
 pub mod delete;
+pub mod links;
+pub mod reopen;
 pub mod schemas;
 pub mod search;
+pub mod sub_tasks;
+pub mod test_cases;
 pub mod update;
 pub mod validate;
+pub mod work_log;
 
 pub use self::core::{MAX_NEW_CRITERIA, NewTicket, create_ticket, get_ticket, lane_counts, list_tickets};
+pub use activities::{ActivityEventRead, get_project_activities};
+pub use blocks::{link_block, unlink_block};
+pub use branches::{
+    BranchChanges, NewBranch, VALID_BRANCH_STATUSES, add_branch, checkout_branch, default_base_branch, delete_branch,
+    get_branch_graph, get_commit_detail, list_branches, update_branch,
+};
+pub use comments::{add_comment, delete_comment, restore_comment, update_comment};
+pub use criteria::{add_acceptance_criterion, delete_acceptance_criterion, toggle_acceptance_criterion};
 pub use delete::delete_ticket;
+pub use links::{VALID_RELATION_TYPES, add_ticket_link, remove_ticket_link};
+pub use reopen::{
+    MAX_REASON_LEN, PendingReason, ReopenOptions, clear_pending, reopen_ticket, set_pending, undo_reopen,
+};
 pub use schemas::{TicketCreateBody, TicketUpdate};
+pub use sub_tasks::{add_sub_task, delete_sub_task, toggle_sub_task};
+pub use test_cases::{NewTestCase, TestCaseChanges, add_test_case, delete_test_case, update_test_case};
 pub use update::update_ticket;
 pub use validate::{
     MAX_AC_TEXT, MAX_COMMENT, MAX_ESTIMATE, MAX_SUB_TASK_TEXT, MAX_TAG_LEN, MAX_TAGS, MAX_TITLE, mention_ids,
+};
+pub use work_log::{
+    MAX_WORK_LOG_NOTE, NewWorkLog, WORK_LOG_KINDS, WORK_LOG_ROLES, WorkLogChanges, add_work_log, delete_work_log,
+    update_work_log,
 };
 
 /// What a function of this module fails with.
@@ -117,6 +152,54 @@ pub(crate) async fn save(
     row.update(session).await
 }
 
+/// `session.add(ticket)`, `await session.commit()`, `await session.refresh(ticket)`: the changed ticket stored and
+/// made permanent. Returns the row as stored.
+pub(crate) async fn commit(
+    session: &Session,
+    before: &ticket::Model,
+    after: ticket::Model,
+) -> Result<ticket::Model, Error> {
+    let ticket = save(session, before, after).await?;
+    session.commit().await?;
+    Ok(ticket)
+}
+
+/// `value.get(key)` of an item of a JSON column: the value under `key`, or null (`None`) when it has none.
+pub(crate) fn field<'a>(item: &'a Value, key: &str) -> &'a Value {
+    item.get(key).unwrap_or(&Value::Null)
+}
+
+/// `item[key] = value` on an item of a JSON column (an item that is not an object is left as it is; Python fails
+/// on it).
+pub(crate) fn put(item: &mut Value, key: &str, value: Value) {
+    if let Some(object) = item.as_object_mut() {
+        object.insert(key.to_string(), value);
+    }
+}
+
+/// `str(value)` of a value read from a JSON column, as an f-string prints it: text as it is, anything else as
+/// Python shows the object (`None`, `True`, `1.5`, `['a', 'b']`, `{'k': 1}`).
+pub(crate) fn py_str(value: &Value) -> String {
+    match value {
+        Value::String(text) => text.clone(),
+        other => py_repr(other),
+    }
+}
+
+/// `repr(value)` of a value read from a JSON column.
+pub(crate) fn py_repr(value: &Value) -> String {
+    match value {
+        Value::String(text) => pytext::repr(text),
+        Value::Array(items) => format!("[{}]", items.iter().map(py_repr).collect::<Vec<_>>().join(", ")),
+        Value::Object(object) => {
+            let pairs: Vec<String> =
+                object.iter().map(|(key, value)| format!("{}: {}", pytext::repr(key), py_repr(value))).collect();
+            format!("{{{}}}", pairs.join(", "))
+        }
+        scalar => pyjson::py_str(scalar),
+    }
+}
+
 /// The eight columns of the Pending flag, cleared.
 pub(crate) fn clear_pending_flags(ticket: &mut ticket::Model) {
     ticket.pending = false;
@@ -181,5 +264,21 @@ pub(crate) fn blank_ticket(id: &str) -> ticket::Model {
         review_requested_from: None,
         created_at: String::new(),
         updated_at: String::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn a_stored_value_prints_as_python_prints_it() {
+        assert_eq!(py_str(&json!("it's")), "it's");
+        assert_eq!(py_str(&Value::Null), "None");
+        assert_eq!(py_str(&json!(true)), "True");
+        assert_eq!(py_str(&json!(2.0)), "2.0");
+        assert_eq!(py_str(&json!(["a", 1, null, "it's"])), r#"['a', 1, None, "it's"]"#);
+        assert_eq!(py_str(&json!({"k": [false], "n": 1.5})), "{'k': [False], 'n': 1.5}");
     }
 }

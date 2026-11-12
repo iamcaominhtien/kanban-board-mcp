@@ -194,10 +194,7 @@ pub fn validate(png: &[u8], source: &[u8]) -> Result<Info> {
         return Err(DocsError::new(
             422,
             "too_many_layers",
-            format!(
-                "A drawing has 1 to {MAX_LAYERS} layers (this one has {}). Merge some layers.",
-                layers.len()
-            ),
+            format!("A drawing has 1 to {MAX_LAYERS} layers (this one has {}). Merge some layers.", layers.len()),
         )
         .with("layer_count", layers.len() as u64)
         .with("limit_layers", MAX_LAYERS as u64)
@@ -304,12 +301,10 @@ fn is_live(deleted_at: &Option<String>) -> bool {
 pub async fn get_row(session: &Session, sketch_id: &str, deleted_ok: bool) -> Result<sketch::Model> {
     match sketch::Entity::find_by_id(sketch_id).one(session).await? {
         Some(s) if deleted_ok || is_live(&s.deleted_at) => Ok(s),
-        _ => Err(DocsError::new(
-            404,
-            "sketch_not_found",
-            "Sketch not found. It was deleted, or you do not have access.",
-        )
-        .into()),
+        _ => {
+            Err(DocsError::new(404, "sketch_not_found", "Sketch not found. It was deleted, or you do not have access.")
+                .into())
+        }
     }
 }
 
@@ -358,7 +353,12 @@ pub async fn create_sketch(
     project_id: Option<&str>,
 ) -> Result<Map<String, Value>> {
     if !OWNER_KINDS.contains(&owner_kind) {
-        return Err(DocsError::new(422, "invalid_owner", "owner_kind must be one of ('idea', 'ticket', 'doc', 'comment')").into());
+        return Err(DocsError::new(
+            422,
+            "invalid_owner",
+            "owner_kind must be one of ('idea', 'ticket', 'doc', 'comment')",
+        )
+        .into());
     }
     if pytext::strip(owner_id).is_empty() {
         return Err(DocsError::new(422, "invalid_owner", "owner_id is required").into());
@@ -659,8 +659,7 @@ pub async fn export_to_files(session: &Session, sketch_id: &str, path: &str) -> 
     };
     let png_dir = png_target.rsplit_once('/').map_or("", |(d, _)| d);
     let png_dir = if png_dir.is_empty() { "/" } else { png_dir };
-    let source_target =
-        util::path_str(&format!("{png_dir}/{}.sketch.json", kb_files::pathlib::stem(&png_target)));
+    let source_target = util::path_str(&format!("{png_dir}/{}.sketch.json", kb_files::pathlib::stem(&png_target)));
     let (png_file, source_file) = (png_path(&s.id), source_path(&s.id));
     let missing = || DocsError::new(404, "sketch_file_missing", "The drawing's file is missing from the data folder.");
     if !png_file.exists() || !source_file.exists() {
@@ -704,7 +703,9 @@ pub async fn create_from_files(
     }
     if project_of(session, owner_kind, owner_id, None).await?.is_none() {
         let what = if owner_kind == "ticket" { "ticket" } else { "Docs page" };
-        return Err(DocsError::new(404, "owner_not_found", format!("No {what} with id {}.", pytext::repr(owner_id))).into());
+        return Err(
+            DocsError::new(404, "owner_not_found", format!("No {what} with id {}.", pytext::repr(owner_id))).into()
+        );
     }
     let png = read_local(path, "picture")?;
     let source = match source_path.filter(|p| !p.is_empty()) {

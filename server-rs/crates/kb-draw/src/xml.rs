@@ -166,7 +166,16 @@ impl Reader {
         if s.first() == Some(&'\u{feff}') {
             s.remove(0);
         }
-        Reader { s, i: 0, stack: Vec::new(), root: None, bindings: Vec::new(), data: String::new(), after_end: false, tag_start: 0 }
+        Reader {
+            s,
+            i: 0,
+            stack: Vec::new(),
+            root: None,
+            bindings: Vec::new(),
+            data: String::new(),
+            after_end: false,
+            tag_start: 0,
+        }
     }
 
     fn at(&self, i: usize) -> Option<char> {
@@ -216,12 +225,9 @@ impl Reader {
 
     fn read(mut self) -> Res<Element> {
         self.prolog()?;
-        loop {
-            // content of the open elements
-            self.content()?;
-            if self.stack.is_empty() {
-                break;
-            }
+        // content of the open elements
+        self.content()?;
+        if !self.stack.is_empty() {
             // the input ended inside an element
             return self.fail("no element found", self.s.len());
         }
@@ -376,7 +382,9 @@ impl Reader {
                 }
                 let ok = match name.as_str() {
                     "version" => c.is_ascii_digit() || c == '.',
-                    "encoding" => c.is_ascii_alphabetic() || (k > value_at && (c.is_ascii_digit() || "._-".contains(c))),
+                    "encoding" => {
+                        c.is_ascii_alphabetic() || (k > value_at && (c.is_ascii_digit() || "._-".contains(c)))
+                    }
                     _ => c.is_ascii_alphabetic(),
                 };
                 if !ok {
@@ -430,7 +438,11 @@ impl Reader {
                 *k += 1;
             }
             let Some(q) = s.at(*k).filter(|c| *c == '\'' || *c == '"') else {
-                return if s.at(*k).is_none() { s.fail("no element found", s.s.len()) } else { s.fail("syntax error", *k) };
+                return if s.at(*k).is_none() {
+                    s.fail("no element found", s.s.len())
+                } else {
+                    s.fail("syntax error", *k)
+                };
             };
             *k += 1;
             let mut out = String::new();
@@ -684,7 +696,7 @@ impl Reader {
         let unclosed = if in_attribute { self.tag_start } else { start };
         let mut k = start + 1;
         match self.at(k) {
-            None => return self.fail("unclosed token", unclosed),
+            None => self.fail("unclosed token", unclosed),
             Some('#') => {
                 k += 1;
                 let hex = matches!(self.at(k), Some('x'));
@@ -913,7 +925,11 @@ impl Reader {
                     out.push(':');
                     *k += 1;
                     if !self.at(*k).is_some_and(is_name_start) {
-                        return if self.at(*k).is_none() { self.fail("unclosed token", tag_start) } else { self.invalid(*k) };
+                        return if self.at(*k).is_none() {
+                            self.fail("unclosed token", tag_start)
+                        } else {
+                            self.invalid(*k)
+                        };
                     }
                 }
                 Some(c) if (out.is_empty() && is_name_start(c)) || (!out.is_empty() && is_name_char(c)) => {

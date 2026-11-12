@@ -25,6 +25,7 @@ from defusedxml import ElementTree as SafeET  # noqa: E402
 
 from services import diagram_model as dm  # noqa: E402
 from services import diagrams as dg  # noqa: E402
+from services import sketches as sk  # noqa: E402
 from services.docs_text import DocsError  # noqa: E402
 import html  # noqa: E402
 
@@ -480,6 +481,59 @@ SVGS = {
 }
 
 
+def make_png(width: int, height: int) -> bytes:
+    import struct
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        body = kind + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
+
+    raw = b"".join(b"\x00" + b"\xff\xff\xff\xff" * width for _ in range(height))
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(raw))
+        + chunk(b"IEND", b"")
+    )
+
+
+SKETCH_SOURCES = [
+    b"", b"{", b"{}", b"[]", b"null", b"1", b'"x"', b"{nope", b'{"a":1,}', b"[1,]", b'{"a" 1}', b'{"a":1 "b":2}', b'{"a":"x',
+    b'{"a":"\\q"}', b'{"a":"\\u12"}', b'{"a":"\x01"}', b"{\"a\": 1} x", b"  ", b"\xef\xbb\xbf{}", b"\xff", b"{\"a\": \"\xc3\"}",
+    b"{\"a\": \"\xe2\x82\"}", b"\xc3\x28", b"\xe2\x82\x28", b"[NaN]", b"nul", b"tru", b"-", b"-x", b"01", b"1.", b'{"format":"kanban-sketch","version":1,"layers":[{}],"width":8,"height":6}',
+    b'{"format":"kanban-sketch","version":1.0,"layers":[{}],"width":8.0,"height":6}',
+    b'{"format":"kanban-sketch","version":true,"layers":[{}],"width":8,"height":6}',
+    b'{"format":"kanban-sketch","version":"1","layers":[{}],"width":8,"height":6}',
+    b'{"format":"kanban-sketch","version":[1,{"a":null}],"layers":[{}],"width":8,"height":6}',
+    b'{"format":"kanban-sketch","version":2.5,"layers":[{}],"width":8,"height":6}',
+    b'{"format":"kanban-sketch","version":1e2,"layers":[{}],"width":8,"height":6}',
+    b'{"format":"kanban-sketch","layers":[{}],"width":8,"height":6}',
+    b'{"format":"kanban-sketch","version":1,"layers":[],"width":8,"height":6}',
+    b'{"format":"kanban-sketch","version":1,"layers":{},"width":8,"height":6}',
+    b'{"format":"kanban-sketch","version":1,"layers":[{}],"width":"8","height":6}',
+    b'{"format":"kanban-sketch","version":1,"layers":[{}],"width":8,"height":7}',
+    b'{"format":"kanban-sketch","version":1,"layers":[{}],"height":6}',
+    b'{"format":"other","version":1,"layers":[{}],"width":8,"height":6}',
+    b'{"version":1,"layers":[{}],"width":8,"height":6,"format":"kanban-sketch","format":"x"}',
+    b'{"format":"kanban-sketch","version":1,"layers":[{},{},{},{},{},{},{},{},{},{},{}],"width":8,"height":6}',
+    b'{"format":"kanban-sketch","version":1,"layers":[1,2],"width":8,"height":6,"pad":"\xc3\xa9\\ud83d\\ude00"}',
+    b' \n\t{"format":"kanban-sketch","version":1,"layers":[{}],"width":8,"height":6}\r\n',
+    b'{"format":"kanban-sketch"\n,\n"version":1\n\n\n  "layers":[]}',
+]
+
+
+def sketch_cases() -> dict:
+    png = make_png(8, 6)
+    out = {"png_hex": png.hex(), "validate": [], "png_size": [], "flat_source": sk.flat_source(png).decode()}
+    for src in SKETCH_SOURCES:
+        out["validate"].append({"source_hex": src.hex(), **run(sk.validate, png, src)})
+    for blob in [b"", b"x" * 40, png[:32], png[:33], png, b"\x89PNG\r\n\x1a\n" + b"\0" * 4 + b"IHDX" + b"\0" * 20, make_png(4097, 1)[:200], make_png(0, 0)]:
+        out["png_size"].append({"hex": blob.hex(), **run(lambda b: list(sk.png_size(b)), blob)})
+    out["flat_source_error"] = run(sk.flat_source, b"nope")
+    out["titles"] = [[t, sk._title(t), sk._title(t, "Fb")] for t in [None, "", "  a[b]c\n", "x" * 300, "é" * 250, "[[]]"]]
+    return out
+
+
 def main() -> None:
     cases = [case(n, s) for n, s in SOURCES.items()]
     svg_cases = [{"name": n, "svg": s, "sanitize_svg": run(dg.sanitize_svg, s)} for n, s in SVGS.items()]
@@ -489,6 +543,7 @@ def main() -> None:
         "xml": [xml_case(t) for t in XML_CASES + mutations()],
         "xml_write": xml_write_cases(),
         "helpers": helpers(),
+        "sketch": sketch_cases(),
     }
     OUT.write_text(json.dumps(data, ensure_ascii=True, separators=(",", ":")) + "\n", encoding="utf-8")
     print(f"wrote {OUT} ({OUT.stat().st_size} bytes; {len(cases)} cases, {len(XML_CASES)} xml)")

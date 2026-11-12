@@ -28,9 +28,7 @@ fn named(name: &str) -> Option<&'static str> {
 
 fn charref() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    RE.get_or_init(|| {
-        Regex::new(r"&(#[0-9]+;?|#[xX][0-9a-fA-F]+;?|[^\t\n\x0c <&#;]{1,32};?)").expect("static pattern")
-    })
+    RE.get_or_init(|| Regex::new(r"&(#[0-9]+;?|#[xX][0-9a-fA-F]+;?|[^\t\n\x0c <&#;]{1,32};?)").expect("static pattern"))
 }
 
 fn replace_charref(s: &str) -> String {

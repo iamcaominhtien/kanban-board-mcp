@@ -1,7 +1,5 @@
-//! `tests/test_ticket_validation.py`, the tests of the ticket's own fields and of the parent rules. Left for the
-//! routes they need: `test_block_rules`, `test_text_fields_must_not_be_blank` and
-//! `test_delete_ticket_leaves_no_dangling_references` (blocks, links, comments, criteria, test cases; the last one is
-//! checked on rows a test adds in `tickets_routes.rs`), and the two `test_mcp_*` tests (the MCP tools).
+//! `tests/test_ticket_validation.py`: the ticket's own fields, the parent rules, the block rules, the texts that must
+//! not be blank and what a deleted ticket leaves behind. The two `test_mcp_*` tests wait for the MCP tools.
 
 mod common;
 
@@ -130,4 +128,67 @@ async fn test_parent_rules() {
     assert_eq!(patch(child.clone(), Value::Null).await, 200);
     let r = c.post(&format!("/projects/{}/tickets", id(&p)), json!({"title": "x", "parent_id": o})).await;
     assert_eq!(r.status, 400);
+}
+
+#[tokio::test]
+async fn test_block_rules() {
+    if !skip_unless_available("test_block_rules") {
+        return;
+    }
+    let s = Server::start().await;
+    let c = s.client();
+    let (p, a) = _ticket(&c, "t", "ACT").await;
+    let a = id(&a);
+    let b = _second(&c, &id(&p), "b", json!({})).await;
+    let d = _second(&c, &id(&p), "d", json!({})).await;
+    let other_p = c.post("/projects", json!({"name": "O", "prefix": "OTH", "color": "#123456"})).await.json();
+    let o = _second(&c, &id(&other_p), "o", json!({})).await;
+    assert_eq!(c.post_empty(&format!("/tickets/{a}/blocks/{o}")).await.status, 400); // cross-project
+    assert_eq!(c.post_empty(&format!("/tickets/{a}/blocks/{b}")).await.status, 200);
+    assert_eq!(c.post_empty(&format!("/tickets/{b}/blocks/{a}")).await.status, 400); // direct cycle
+    assert_eq!(c.post_empty(&format!("/tickets/{b}/blocks/{d}")).await.status, 200);
+    assert_eq!(c.post_empty(&format!("/tickets/{d}/blocks/{a}")).await.status, 400); // transitive cycle
+}
+
+#[tokio::test]
+async fn test_text_fields_must_not_be_blank() {
+    if !skip_unless_available("test_text_fields_must_not_be_blank") {
+        return;
+    }
+    let s = Server::start().await;
+    let c = s.client();
+    let (_, t) = _ticket(&c, "t", "ACT").await;
+    let i = id(&t);
+    assert_eq!(c.post(&format!("/tickets/{i}/comments"), json!({"text": "  ", "author": "x"})).await.status, 400);
+    let long = "y".repeat(50001);
+    assert_eq!(c.post(&format!("/tickets/{i}/comments"), json!({"text": long, "author": "x"})).await.status, 400);
+    assert_eq!(c.post(&format!("/tickets/{i}/acceptance-criteria"), json!({"text": " "})).await.status, 400);
+    assert_eq!(c.post(&format!("/tickets/{i}/test-cases"), json!({"title": " "})).await.status, 400);
+    let ok = c.post(&format!("/tickets/{i}/comments"), json!({"text": " hi ", "author": "x"})).await;
+    assert!(ok.status == 200 && ok.json()["comments"][0]["text"] == "hi");
+    let cid = id(&ok.json()["comments"][0]);
+    assert_eq!(c.patch(&format!("/tickets/{i}/comments/{cid}"), json!({"text": ""})).await.status, 400);
+    let tc = id(&c.post(&format!("/tickets/{i}/test-cases"), json!({"title": "tc"})).await.json()["test_cases"][0]);
+    assert_eq!(c.patch(&format!("/tickets/{i}/test-cases/{tc}"), json!({"title": " "})).await.status, 400);
+}
+
+#[tokio::test]
+async fn test_delete_ticket_leaves_no_dangling_references() {
+    if !skip_unless_available("test_delete_ticket_leaves_no_dangling_references") {
+        return;
+    }
+    let s = Server::start().await;
+    let c = s.client();
+    let (p, parent) = _ticket(&c, "t", "ACT").await;
+    let parent = id(&parent);
+    let child = _second(&c, &id(&p), "child", json!({"parent_id": parent})).await;
+    let peer = _second(&c, &id(&p), "peer", json!({})).await;
+    c.post_empty(&format!("/tickets/{parent}/blocks/{peer}")).await;
+    c.post(&format!("/tickets/{parent}/links"), json!({"target_id": peer, "relation_type": "relates_to"})).await;
+    assert_eq!(c.delete(&format!("/tickets/{parent}")).await.status, 204);
+    let ch = get_ticket(&c, &child).await;
+    assert!(ch["parent_id"].is_null());
+    let pr = get_ticket(&c, &peer).await;
+    assert_eq!(pr["blocked_by"], json!([]));
+    assert_eq!(pr["links"], json!([]));
 }

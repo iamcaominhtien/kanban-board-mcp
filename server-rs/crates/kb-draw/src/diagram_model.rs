@@ -305,7 +305,12 @@ impl Drawing {
                 _ => Ok(default),
             }
         };
-        Ok(Some(Geometry { x: num("x", 0.0)?, y: num("y", 0.0)?, w: num("width", DEFAULT_W)?, h: num("height", DEFAULT_H)? }))
+        Ok(Some(Geometry {
+            x: num("x", 0.0)?,
+            y: num("y", 0.0)?,
+            w: num("width", DEFAULT_W)?,
+            h: num("height", DEFAULT_H)?,
+        }))
     }
 }
 
@@ -369,13 +374,20 @@ pub fn fmt_g(value: f64) -> String {
         return if value.is_sign_negative() { "-0".into() } else { "0".into() };
     }
     if !value.is_finite() {
-        return if value.is_nan() { "nan".into() } else if value > 0.0 { "inf".into() } else { "-inf".into() };
+        return if value.is_nan() {
+            "nan".into()
+        } else if value > 0.0 {
+            "inf".into()
+        } else {
+            "-inf".into()
+        };
     }
     let sci = format!("{value:.5e}");
     let (mantissa, exp) = sci.split_once('e').unwrap_or((&sci, "0"));
     let exp: i32 = exp.parse().unwrap_or(0);
     if !(-4..6).contains(&exp) {
-        let mantissa = if mantissa.contains('.') { mantissa.trim_end_matches('0').trim_end_matches('.') } else { mantissa };
+        let mantissa =
+            if mantissa.contains('.') { mantissa.trim_end_matches('0').trim_end_matches('.') } else { mantissa };
         let sign = if exp < 0 { '-' } else { '+' };
         return format!("{mantissa}e{sign}{:02}", exp.abs());
     }

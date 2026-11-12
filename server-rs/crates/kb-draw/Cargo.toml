@@ -14,10 +14,8 @@ kb-base = { workspace = true }
 kb-db = { workspace = true }
 kb-doctext = { workspace = true }
 kb-files = { workspace = true }
-async-trait = { workspace = true }
 axum = { workspace = true }
 base64 = { workspace = true }
-bytes = { workspace = true }
 futures = { workspace = true }
 regex = { workspace = true }
 serde = { workspace = true }

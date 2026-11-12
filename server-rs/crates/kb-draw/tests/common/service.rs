@@ -5,14 +5,16 @@ use std::future::Future;
 use std::sync::{Once, OnceLock};
 
 use kb_db::entities::project;
-use kb_db::sea_orm::ActiveValue::Set;
 use kb_db::sea_orm::ActiveModelTrait;
+use kb_db::sea_orm::ActiveValue::Set;
 
 static RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
 static INIT: Once = Once::new();
 
 fn runtime() -> &'static tokio::runtime::Runtime {
-    RUNTIME.get_or_init(|| tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().expect("runtime"))
+    RUNTIME.get_or_init(|| {
+        tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().expect("runtime")
+    })
 }
 
 /// Make the folders and the database (once) and run `fut` in a request-like context.
@@ -28,8 +30,6 @@ pub fn run<F: Future>(fut: F) -> F::Output {
             std::env::set_var("KANBAN_UPLOADS_DIR", dir.join("uploads"));
             std::env::set_var("KANBAN_DRAWIO_DIR", dir.join("none"));
             std::env::remove_var("KANBAN_DATABASE_URL");
-            std::env::remove_var("KANBAN_DIAGRAM_EXPORT");
-            std::env::remove_var("KANBAN_EXPORT_CMD");
         }
         runtime().block_on(async {
             kb_db::database::setup().await.expect("database setup");

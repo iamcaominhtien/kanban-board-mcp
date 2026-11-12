@@ -15,7 +15,8 @@ use kb_db::sea_orm::sqlx::sqlite::{SqliteConnection, SqliteRow};
 use kb_db::sea_orm::sqlx::{
     self, AssertSqlSafe, ConnectOptions as _, Connection as _, Decode, Row as _, TypeInfo as _, ValueRef as _,
 };
-use kb_db::sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, QueryResult, Value as DbValue};
+use kb_db::sea_orm::{ConnectionTrait, DbBackend, DbErr, QueryResult, Value as DbValue};
+use kb_db::targets::{self, ConnectionOptions, Target};
 use kb_db::{changes, sql};
 
 use super::errors::db_err;
@@ -151,7 +152,13 @@ pub(crate) trait Reader: Send {
 
     /// The first value of the first row (`.scalar()`): `Cell::Null` when there is no row.
     async fn scalar(&mut self, sql: &str, params: Vec<DbValue>) -> Result<Cell, DbErr> {
-        Ok(self.rows(sql, params).await?.into_iter().next().and_then(|row| row.into_iter().next()).unwrap_or(Cell::Null))
+        Ok(self
+            .rows(sql, params)
+            .await?
+            .into_iter()
+            .next()
+            .and_then(|row| row.into_iter().next())
+            .unwrap_or(Cell::Null))
     }
 }
 
@@ -170,8 +177,8 @@ impl<C: ConnectionTrait + Sync> Reader for Sea<'_, C> {
     }
 }
 
-/// `engine.connect()` for one connection of our own, outside the pool: a server that is away is an error at once
-/// (the pool would wait and try again), and the connection is closed, not reused, when it is dropped.
+/// `engine.connect()` for one connection of our own, outside any pool: a server that is away is an error at once
+/// (a pool would wait and try again), and the connection is closed, not reused, when it is dropped.
 pub(crate) enum Direct {
     Sqlite(SqliteConnection),
     Postgres(PgConnection),
@@ -179,29 +186,28 @@ pub(crate) enum Direct {
 }
 
 impl Direct {
-    /// Open a connection with the settings `targets::make_engine` gave the pool.
-    pub(crate) async fn connect(engine: &DatabaseConnection) -> Result<Direct, DbErr> {
+    /// Open a connection to `target` with the settings `targets::make_engine` gives the connections of its pool.
+    pub(crate) async fn connect(target: &Target, role: &str) -> Result<Direct, DbErr> {
         let opened = async {
-            Ok::<Direct, sqlx::Error>(match engine.get_database_backend() {
-                DbBackend::Postgres => {
-                    let options = engine.get_postgres_connection_pool().connect_options();
-                    Direct::Postgres(options.as_ref().clone().disable_statement_logging().connect().await?)
+            Ok::<Direct, sqlx::Error>(match targets::connection_options(target, Some(role)) {
+                ConnectionOptions::Postgres(options) => {
+                    Direct::Postgres(options.disable_statement_logging().connect().await?)
                 }
-                DbBackend::MySql => {
-                    let options = engine.get_mysql_connection_pool().connect_options();
-                    Direct::MySql(options.as_ref().clone().disable_statement_logging().connect().await?)
+                ConnectionOptions::MySql(options) => {
+                    let mut conn = options.disable_statement_logging().connect().await?;
+                    // Each statement sees what was committed before it, as on PostgreSQL (the pool's setting)
+                    sqlx::raw_sql("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED").execute(&mut conn).await?;
+                    Direct::MySql(conn)
                 }
-                _ => {
-                    let options = engine.get_sqlite_connection_pool().connect_options();
-                    Direct::Sqlite(options.as_ref().clone().disable_statement_logging().connect().await?)
+                ConnectionOptions::Sqlite(options) => {
+                    Direct::Sqlite(options.disable_statement_logging().connect().await?)
                 }
             })
         };
+        let failed = |err: sqlx::Error| DbErr::Conn(kb_db::sea_orm::RuntimeErr::SqlxError(std::sync::Arc::new(err)));
         match tokio::time::timeout(CONNECT_TIMEOUT, opened).await {
-            Ok(conn) => conn.map_err(|err| DbErr::Conn(kb_db::sea_orm::RuntimeErr::SqlxError(std::sync::Arc::new(err)))),
-            Err(_) => Err(DbErr::Conn(kb_db::sea_orm::RuntimeErr::SqlxError(std::sync::Arc::new(sqlx::Error::Io(
-                std::io::Error::new(std::io::ErrorKind::TimedOut, "timeout"),
-            ))))),
+            Ok(conn) => conn.map_err(failed),
+            Err(_) => Err(failed(sqlx::Error::Io(std::io::Error::new(std::io::ErrorKind::TimedOut, "timeout")))),
         }
     }
 
@@ -292,8 +298,8 @@ impl Reader for Direct {
 }
 
 /// `_snapshot(engine)`: a connection that reads one consistent moment of the source until it is closed.
-pub(crate) async fn snapshot(engine: &DatabaseConnection) -> Result<Direct, DbErr> {
-    let mut conn = Direct::connect(engine).await?;
+pub(crate) async fn snapshot(source: &Target) -> Result<Direct, DbErr> {
+    let mut conn = Direct::connect(source, "copy").await?;
     match conn.backend() {
         // a read transaction: later commits by the board are not seen
         DbBackend::Sqlite => conn.execute("BEGIN").await?,
@@ -327,7 +333,9 @@ pub(crate) async fn table_names<R: Reader + ?Sized>(reader: &mut R) -> Result<Ve
             "SELECT table_name FROM information_schema.tables \
              WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE' ORDER BY table_name"
         }
-        _ => "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name",
+        _ => {
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite~_%' ESCAPE '~' ORDER BY name"
+        }
     };
     let rows = reader.rows(query, Vec::new()).await?;
     Ok(rows.into_iter().filter_map(|row| row.into_iter().next()).map(|name| name.py_str()).collect())
@@ -532,9 +540,10 @@ pub(crate) async fn column_facts<R: Reader + ?Sized>(
 /// (`_target_version(engine)`).
 pub(crate) async fn server_version<R: Reader + ?Sized>(reader: &mut R) -> String {
     let (name, version) = match reader.backend() {
-        DbBackend::Postgres => {
-            ("PostgreSQL", reader.scalar("SHOW server_version", Vec::new()).await.map(|v| v.py_str()).unwrap_or_default())
-        }
+        DbBackend::Postgres => (
+            "PostgreSQL",
+            reader.scalar("SHOW server_version", Vec::new()).await.map(|v| v.py_str()).unwrap_or_default(),
+        ),
         DbBackend::MySql => {
             let version = reader.scalar("SELECT VERSION()", Vec::new()).await.map(|v| v.py_str()).unwrap_or_default();
             (if version.to_lowercase().contains("mariadb") { "MariaDB" } else { "MySQL" }, version)

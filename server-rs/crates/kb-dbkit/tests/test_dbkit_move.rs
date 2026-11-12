@@ -11,7 +11,10 @@ mod common;
 
 use std::path::Path;
 
-use common::{FTS_TABLES, assert_same_dump, board, board_tables, dump_sqlite, own_database, server_urls, sqlite_exec, sqlite_scalar, wipe};
+use common::{
+    FTS_TABLES, assert_same_dump, board, board_tables, dump_sqlite, own_database, server_urls, sqlite_exec,
+    sqlite_scalar, wipe,
+};
 use kb_db::sea_orm::{ConnectionTrait, DatabaseTransaction, DbErr};
 use kb_db::targets::{self, Target};
 use kb_dbkit::move_db::{Error, Mover};
@@ -62,7 +65,8 @@ async fn test_sqlite_to_sqlite_copies_and_proves_it() {
     let dst = target(&tmp.path().join("copy.db"));
     let result = move_board(&src, &dst, false).await;
     assert_eq!(result["ok"], true, "{}", result["checks"]);
-    let keys: Vec<&str> = result["checks"].as_array().expect("checks").iter().filter_map(|c| c["key"].as_str()).collect();
+    let keys: Vec<&str> =
+        result["checks"].as_array().expect("checks").iter().filter_map(|c| c["key"].as_str()).collect();
     assert_eq!(keys, ["counts", "content", "links", "counters", "search"]);
     assert_same_dump("copy", &rows(Path::new(&src.path)).await, &rows(Path::new(&dst.path)).await);
     // the copy's docs search works (the index was copied)
@@ -130,7 +134,10 @@ async fn test_a_stop_names_the_table_row_and_column_and_resume_finishes() {
     assert_eq!(stop.target_type.as_deref(), Some("VARCHAR"));
     assert_eq!(stop.target_nullable, Some(false));
     assert!(stop.target_version.starts_with("SQLite 3."), "{}", stop.target_version);
-    assert_eq!((stop.source_engine.as_str(), stop.target_engine.as_str(), stop.code.as_str()), ("SQLite", "SQLite", ""));
+    assert_eq!(
+        (stop.source_engine.as_str(), stop.target_engine.as_str(), stop.code.as_str()),
+        ("SQLite", "SQLite", "")
+    );
     // tables before it are complete, the one it stopped in is empty (resume re-reads it from the start)
     let done: Vec<&str> = m.tables().iter().filter(|s| s.state == "done").map(|s| s.name).collect();
     assert!(done.contains(&"project") && !done.contains(&"idea_ticket"));

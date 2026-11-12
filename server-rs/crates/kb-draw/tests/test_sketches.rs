@@ -66,7 +66,9 @@ async fn test_create_read_and_files_are_in_the_uploads_folder() {
     // stored like any attachment: inside the uploads folder, so a backup of the data folder carries them
     let folder = uploads(&s);
     assert_eq!(std::fs::read(folder.join(format!("{id}.png"))).expect("png file"), png(8, 6, 0));
-    let stored: Value = serde_json::from_slice(&std::fs::read(folder.join(format!("{id}.sketch.json"))).expect("source file")).expect("json");
+    let stored: Value =
+        serde_json::from_slice(&std::fs::read(folder.join(format!("{id}.sketch.json"))).expect("source file"))
+            .expect("json");
     assert!(!stored["layers"].as_array().expect("layers").is_empty());
     let got = raw_get(&s, &format!("/sketches/{id}/png"), &[]).await;
     assert!(got.status == 200 && got.header("content-type") == "image/png");
@@ -141,11 +143,22 @@ async fn test_update_bumps_version_and_replaces_the_files() {
     let pid = pid(&c).await;
     let sk = make(&s, Some(&pid), "doc", "page-1").await;
     let id = sk["id"].as_str().expect("id").to_string();
-    let r = form(&s, "PUT", &format!("/sketches/{id}"), &[("base_version", "1"), ("title", "Renamed")], files(16, 12, 2), &[]).await;
+    let r = form(
+        &s,
+        "PUT",
+        &format!("/sketches/{id}"),
+        &[("base_version", "1"), ("title", "Renamed")],
+        files(16, 12, 2),
+        &[],
+    )
+    .await;
     assert_eq!(r.status, 200, "{}", r.text());
     let out = r.json();
     assert!(out["version"] == 2 && out["title"] == "Renamed");
-    assert_eq!((out["width"].clone(), out["height"].clone(), out["layer_count"].clone()), (json!(16), json!(12), json!(2)));
+    assert_eq!(
+        (out["width"].clone(), out["height"].clone(), out["layer_count"].clone()),
+        (json!(16), json!(12), json!(2))
+    );
     assert_eq!(raw_get(&s, &format!("/sketches/{id}/png"), &[]).await.body, png(16, 12, 0));
     let tmp: Vec<_> = std::fs::read_dir(uploads(&s))
         .expect("sketches folder")
@@ -167,7 +180,9 @@ async fn test_conflict_when_someone_saved_in_the_meantime() {
     let sk = make(&s, Some(&pid), "doc", "page-1").await;
     let id = sk["id"].as_str().expect("id").to_string();
     // Mia saves version 2 while the first person still holds version 1
-    let ok = form(&s, "PUT", &format!("/sketches/{id}"), &[("base_version", "1")], files(10, 10, 1), &[("x-actor", "Mia")]).await;
+    let ok =
+        form(&s, "PUT", &format!("/sketches/{id}"), &[("base_version", "1")], files(10, 10, 1), &[("x-actor", "Mia")])
+            .await;
     assert_eq!(ok.status, 200);
     let r = form(&s, "PUT", &format!("/sketches/{id}"), &[("base_version", "1")], files(20, 20, 1), &[]).await;
     assert_eq!(r.status, 409);
@@ -177,7 +192,9 @@ async fn test_conflict_when_someone_saved_in_the_meantime() {
     // nothing of the rejected save was written
     assert_eq!(raw_get(&s, &format!("/sketches/{id}/png"), &[]).await.body, png(10, 10, 0));
     // "Replace theirs"
-    let r = form(&s, "PUT", &format!("/sketches/{id}"), &[("base_version", "1"), ("force", "true")], files(20, 20, 1), &[]).await;
+    let r =
+        form(&s, "PUT", &format!("/sketches/{id}"), &[("base_version", "1"), ("force", "true")], files(20, 20, 1), &[])
+            .await;
     assert!(r.status == 200 && r.json()["version"] == 3);
     assert_eq!(raw_get(&s, &format!("/sketches/{id}/png"), &[]).await.body, png(20, 20, 0));
 }
@@ -285,7 +302,15 @@ async fn test_malformed_files_are_refused() {
         assert_eq!(r.json()["detail"]["code"], "invalid_sketch");
     }
     // a part that is missing
-    let r = form(&s, "POST", "/sketches", &fields, vec![("png".into(), "d.png".into(), "image/png".into(), png(8, 6, 0))], &[]).await;
+    let r = form(
+        &s,
+        "POST",
+        "/sketches",
+        &fields,
+        vec![("png".into(), "d.png".into(), "image/png".into(), png(8, 6, 0))],
+        &[],
+    )
+    .await;
     assert_eq!(r.status, 422);
 }
 
@@ -436,7 +461,15 @@ async fn post_get_and_list_sketches_answer_the_same() {
     )
     .await;
     assert_eq!(r.json()["title"], "a b");
-    let r = form(&s, "POST", "/sketches", &[("owner_kind", "doc"), ("owner_id", "page-2"), ("project_id", &pid)], files(8, 6, 1), &[]).await;
+    let r = form(
+        &s,
+        "POST",
+        "/sketches",
+        &[("owner_kind", "doc"), ("owner_id", "page-2"), ("project_id", &pid)],
+        files(8, 6, 1),
+        &[],
+    )
+    .await;
     assert_eq!(r.json()["title"], "Sketch");
     // `draft_chat` is accepted and changes nothing
     let r = form(
@@ -464,7 +497,8 @@ async fn post_get_and_list_sketches_answer_the_same() {
     // the errors
     let r = c.get("/sketches/sk_00000000").await;
     assert_eq!(r.status, 404);
-    let not_found = json!({"code": "sketch_not_found", "message": "Sketch not found. It was deleted, or you do not have access."});
+    let not_found =
+        json!({"code": "sketch_not_found", "message": "Sketch not found. It was deleted, or you do not have access."});
     assert_eq!(r.json()["detail"]["code"], not_found["code"]);
     assert_eq!(r.json()["detail"]["message"], not_found["message"]);
     let r = form(&s, "POST", "/sketches", &[("owner_kind", "pizza"), ("owner_id", "x")], files(8, 6, 1), &[]).await;
@@ -475,7 +509,15 @@ async fn post_get_and_list_sketches_answer_the_same() {
     );
     let r = form(&s, "POST", "/sketches", &[("owner_kind", "doc"), ("owner_id", "  ")], files(8, 6, 1), &[]).await;
     assert_eq!(detail(&r), json!({"code": "invalid_owner", "message": "owner_id is required"}));
-    let r = form(&s, "POST", "/sketches", &[("owner_kind", "doc"), ("owner_id", "x"), ("project_id", "nope")], files(8, 6, 1), &[]).await;
+    let r = form(
+        &s,
+        "POST",
+        "/sketches",
+        &[("owner_kind", "doc"), ("owner_id", "x"), ("project_id", "nope")],
+        files(8, 6, 1),
+        &[],
+    )
+    .await;
     assert_eq!(r.status, 404);
     assert_eq!(detail(&r), json!({"code": "project_not_found", "message": "Project not found"}));
     // a missing part or field is named
@@ -519,7 +561,10 @@ async fn validation_of_the_files_answers_the_same() {
     let r = attempt(png(8, 6, 0), source(8, 6, 1, json!({"version": null}))).await;
     assert_eq!(detail(&r), json!({"code": "invalid_sketch", "message": "Unsupported sketch source version None."}));
     let r = attempt(png(8, 6, 0), source(9, 6, 1, json!({}))).await;
-    assert_eq!(detail(&r), json!({"code": "invalid_sketch", "message": "The size in the source does not match the picture."}));
+    assert_eq!(
+        detail(&r),
+        json!({"code": "invalid_sketch", "message": "The size in the source does not match the picture."})
+    );
     let r = attempt(png(8, 6, 0), b"{nope".to_vec()).await;
     assert_eq!(
         detail(&r),
@@ -552,7 +597,8 @@ async fn validation_of_the_files_answers_the_same() {
         json!({"code": "too_many_layers", "message": "A drawing has 1 to 10 layers (this one has 11). Merge some layers.", "layer_count": 11, "limit_layers": 10})
     );
     // too large: the numbers are in the answer
-    let wide = "This drawing is too large to save. The limit is 4096 \u{d7} 4096 px and 10 MB. Crop it or shrink the canvas.";
+    let wide =
+        "This drawing is too large to save. The limit is 4096 \u{d7} 4096 px and 10 MB. Crop it or shrink the canvas.";
     let r = attempt(png(4097, 10, 0), source(4097, 10, 1, json!({}))).await;
     assert_eq!(r.status, 413);
     assert_eq!(
@@ -588,20 +634,33 @@ async fn put_copy_delete_restore_routes_answer_the_same() {
     member(&c, &pid, "Mia", "member").await;
     let sk = make(&s, Some(&pid), "doc", "page-1").await;
     let id = sk["id"].as_str().expect("id").to_string();
-    let not_found = json!({"code": "sketch_not_found", "message": "Sketch not found. It was deleted, or you do not have access."});
+    let not_found =
+        json!({"code": "sketch_not_found", "message": "Sketch not found. It was deleted, or you do not have access."});
 
     // put: a new version with a new title, the sizes follow the files
-    let r = form(&s, "PUT", &format!("/sketches/{id}"), &[("base_version", "1"), ("title", "  Two  ")], files(16, 12, 2), &[]).await;
+    let r = form(
+        &s,
+        "PUT",
+        &format!("/sketches/{id}"),
+        &[("base_version", "1"), ("title", "  Two  ")],
+        files(16, 12, 2),
+        &[],
+    )
+    .await;
     assert_eq!(r.status, 200);
-    let mut want = expected(Some(&pid), "doc", "page-1", 2, json!({"title": "Two", "width": 16, "height": 12, "layer_count": 2}));
+    let mut want =
+        expected(Some(&pid), "doc", "page-1", 2, json!({"title": "Two", "width": 16, "height": 12, "layer_count": 2}));
     want["png_bytes"] = json!(png(16, 12, 0).len());
     want["source_bytes"] = json!(source(16, 12, 2, json!({})).len());
     read(&r.json(), want);
     // an empty title keeps the old one
-    let r = form(&s, "PUT", &format!("/sketches/{id}"), &[("base_version", "2"), ("title", "")], files(16, 12, 2), &[]).await;
+    let r = form(&s, "PUT", &format!("/sketches/{id}"), &[("base_version", "2"), ("title", "")], files(16, 12, 2), &[])
+        .await;
     assert_eq!(r.json()["title"], "Two");
     // by a member: the editor of the version changes
-    let r = form(&s, "PUT", &format!("/sketches/{id}"), &[("base_version", "3")], files(8, 6, 1), &[("x-actor", "Mia")]).await;
+    let r =
+        form(&s, "PUT", &format!("/sketches/{id}"), &[("base_version", "3")], files(8, 6, 1), &[("x-actor", "Mia")])
+            .await;
     assert_eq!(r.json()["updated_by"], "Mia");
     assert_eq!(r.json()["version"], 4);
     // conflicts: the numbers of the newer version
@@ -618,7 +677,10 @@ async fn put_copy_delete_restore_routes_answer_the_same() {
         "PUT",
         &format!("/sketches/{id}"),
         &[("base_version", "3")],
-        vec![("png".into(), "x.png".into(), "image/png".into(), b"x".to_vec()), ("source".into(), "x.json".into(), "application/json".into(), b"x".to_vec())],
+        vec![
+            ("png".into(), "x.png".into(), "image/png".into(), b"x".to_vec()),
+            ("source".into(), "x.json".into(), "application/json".into(), b"x".to_vec()),
+        ],
         &[],
     )
     .await;
@@ -629,12 +691,21 @@ async fn put_copy_delete_restore_routes_answer_the_same() {
     assert_eq!(problems(&r.detail()), vec![("int_parsing".to_string(), json!(["body", "base_version"]))]);
     let r = form(&s, "PUT", &format!("/sketches/{id}"), &[], files(8, 6, 1), &[]).await;
     assert_eq!(problems(&r.detail()), vec![("missing".to_string(), json!(["body", "base_version"]))]);
-    let r = form(&s, "PUT", &format!("/sketches/{id}"), &[("base_version", "4"), ("force", "perhaps")], files(8, 6, 1), &[]).await;
+    let r = form(
+        &s,
+        "PUT",
+        &format!("/sketches/{id}"),
+        &[("base_version", "4"), ("force", "perhaps")],
+        files(8, 6, 1),
+        &[],
+    )
+    .await;
     assert_eq!(problems(&r.detail()), vec![("bool_parsing".to_string(), json!(["body", "force"]))]);
     let r = form(&s, "PUT", "/sketches/sk_00000000", &[("base_version", "1")], files(8, 6, 1), &[]).await;
     assert_eq!(r.status, 404);
     assert_eq!(detail(&r), not_found);
-    let r = form(&s, "PUT", &format!("/sketches/{id}"), &[("base_version", "4")], files(8, 6, 1), &[("x-actor", "Vi")]).await;
+    let r = form(&s, "PUT", &format!("/sketches/{id}"), &[("base_version", "4")], files(8, 6, 1), &[("x-actor", "Vi")])
+        .await;
     assert_eq!(r.status, 403);
     assert_eq!(
         detail(&r),
@@ -646,10 +717,15 @@ async fn put_copy_delete_restore_routes_answer_the_same() {
     assert_eq!(r.status, 201);
     let cp = r.json();
     assert_eq!(cp["title"], "Two copy");
-    assert_eq!((cp["version"].clone(), cp["owner_id"].clone(), cp["created_by"].clone()), (json!(1), json!("page-1"), json!("user")));
+    assert_eq!(
+        (cp["version"].clone(), cp["owner_id"].clone(), cp["created_by"].clone()),
+        (json!(1), json!("page-1"), json!("user"))
+    );
     let cid = cp["id"].as_str().expect("id").to_string();
     // only one of the two files given: the saved ones are copied
-    let r = form(&s, "POST", &format!("/sketches/{id}/copy"), &[("title", "Half")], vec![files(30, 20, 1).remove(0)], &[]).await;
+    let r =
+        form(&s, "POST", &format!("/sketches/{id}/copy"), &[("title", "Half")], vec![files(30, 20, 1).remove(0)], &[])
+            .await;
     assert_eq!(r.status, 201);
     let hid = r.json()["id"].as_str().expect("id").to_string();
     assert_eq!(raw_get(&s, &format!("/sketches/{hid}/png"), &[]).await.body, png(8, 6, 0));

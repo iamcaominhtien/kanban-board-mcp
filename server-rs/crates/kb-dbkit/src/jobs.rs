@@ -97,11 +97,7 @@ struct Handles {
 
 impl Handles {
     fn of(mover: &Mover) -> Self {
-        Self {
-            tables: mover.tables_handle(),
-            paused: mover.paused_handle(),
-            stop_reason: mover.stop_reason_handle(),
-        }
+        Self { tables: mover.tables_handle(), paused: mover.paused_handle(), stop_reason: mover.stop_reason_handle() }
     }
 }
 
@@ -198,10 +194,9 @@ impl Job {
         let rows_done: i64 = tables.iter().map(|t| if t.state != "done" { t.copied } else { t.rows }).sum();
         let done = tables.iter().filter(|t| t.state == "done").count();
         self.inner(|i| {
-            let elapsed = i
-                .started_at
-                .filter(|s| *s != 0.0)
-                .map(|started| round_to((i.finished_at.filter(|f| *f != 0.0).unwrap_or_else(time::epoch)) - started, 1));
+            let elapsed = i.started_at.filter(|s| *s != 0.0).map(|started| {
+                round_to((i.finished_at.filter(|f| *f != 0.0).unwrap_or_else(time::epoch)) - started, 1)
+            });
             let left = match elapsed {
                 Some(elapsed) if elapsed != 0.0 && rows_done != 0 && i.state == "copying" && rows_total > rows_done => {
                     Some(round_to(elapsed * (rows_total - rows_done) as f64 / rows_done as f64, 0))
@@ -365,7 +360,9 @@ impl Job {
                 let (message, code) = clean_any(&exc);
                 self.inner(|i| {
                     i.state = "failed";
-                    i.error = Some(json!({"code": if code.is_empty() { "error".to_string() } else { code }, "message": message}));
+                    i.error = Some(
+                        json!({"code": if code.is_empty() { "error".to_string() } else { code }, "message": message}),
+                    );
                 });
             }
         }
@@ -659,8 +656,11 @@ async fn restore(data: &Value) -> Option<Arc<Job>> {
         i.state = "interrupted";
     });
     let mover = job.make_mover().await.ok()?;
-    let done: Vec<&str> =
-        data.get("done").and_then(Value::as_array).map(|d| d.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
+    let done: Vec<&str> = data
+        .get("done")
+        .and_then(Value::as_array)
+        .map(|d| d.iter().filter_map(Value::as_str).collect())
+        .unwrap_or_default();
     let first_left = mover.with_tables(|tables| {
         for t in tables.iter_mut() {
             if done.contains(&t.name) {
@@ -713,8 +713,11 @@ pub async fn new(target: Target) -> Result<Arc<Job>, JobError> {
         old.close_mover().await;
     }
     if database::target_source() == "environment" {
-        return Err(JobError::new("locked", "KANBAN_DATABASE_URL is set, so the database cannot be changed from here.")
-            .status(423));
+        return Err(JobError::new(
+            "locked",
+            "KANBAN_DATABASE_URL is set, so the database cannot be changed from here.",
+        )
+        .status(423));
     }
     let job = Job::new(target);
     set_job(Some(job.clone()));

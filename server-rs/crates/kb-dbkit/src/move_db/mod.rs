@@ -27,9 +27,9 @@ mod verify;
 
 pub use errors::{Error, MoveError, Stop, clean_any, clean_error, clean_text, error_column};
 pub(crate) use errors::{raw_error, sqlx_of as raw_sqlx};
+pub(crate) use mover::described;
 pub use mover::{
     BATCH_BYTES, BATCH_ROWS, Event, FTS_TABLES, Mover, NOT_COPIED, Plan, Progress, SAMPLE_ROWS, TableState, app_tables,
     model_default, sample_seed, summary_line,
 };
-pub(crate) use mover::described;
 pub use values::{Cell, coerce, commas, row_bytes, same};

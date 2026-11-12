@@ -22,6 +22,26 @@ async fn a_new_database_gets_the_schema_and_sessions_follow_the_python_rules() {
     database::setup().await.unwrap();
     assert!(!database::is_sqlite());
     assert_eq!(database::target_source(), "environment");
+    // every pooled connection reads what was committed, not a snapshot (five at once, so the pool opens several)
+    let checks: Vec<_> = (0..5)
+        .map(|_| {
+            tokio::spawn(async {
+                use kb_db::sea_orm::{ConnectionTrait, Statement, TransactionTrait};
+                let txn = database::conn().begin().await.unwrap();
+                let backend = txn.get_database_backend();
+                let row = txn
+                    .query_one_raw(Statement::from_string(backend, "SELECT @@tx_isolation AS level"))
+                    .await
+                    .unwrap()
+                    .unwrap();
+                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+                row.try_get::<String>("", "level").unwrap()
+            })
+        })
+        .collect();
+    for check in checks {
+        assert_eq!(check.await.unwrap(), "READ-COMMITTED");
+    }
     common::drop_everything().await;
     database::init_db().await.unwrap();
     common::scenario().await;

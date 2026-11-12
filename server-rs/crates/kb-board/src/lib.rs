@@ -1,6 +1,5 @@
-//! The board: projects, members, the project's git repository, the ticket workspaces, the data backup and the log
-//! export (of the tickets, the ticket itself is here and its sub-entities are ported next; settings come with the
-//! MCP clients).
+//! The board: projects, members, the project's git repository, tickets with everything they hold, the ticket
+//! workspaces, the data backup and the log export (settings come with the MCP clients).
 
 pub mod api;
 pub mod git_repo;

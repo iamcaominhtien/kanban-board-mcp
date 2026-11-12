@@ -54,7 +54,6 @@ pub(crate) fn doc_ref_entries(old: Option<&str>, new: Option<&str>, source: &str
 
 /// Append the doc references a text edit added or removed to the ticket's activity (the caller commits): a
 /// [[Page]] in a comment or a test case is a reference as much as one in the description (TicketDocRefs E).
-#[allow(dead_code)] // called by the comments and test cases of the second half of `tickets.py`
 pub(crate) fn record_doc_refs(
     ticket: &mut ticket::Model,
     old: Option<&str>,

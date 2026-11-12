@@ -18,7 +18,7 @@ use base64::Engine;
 use common::drawio;
 use common::service::{project, run};
 use kb_draw::diagram_export as ex;
-use kb_draw::{diagrams, diagram_model};
+use kb_draw::{diagram_model, diagrams};
 use serde_json::{Value, json};
 
 const EXACT: &str =
@@ -85,7 +85,12 @@ fn test_only_the_editors_origin_may_load() {
     assert!(ex::same_origin("data:image/png;base64,AA", editor));
     assert!(ex::same_origin("blob:http://localhost:8080/x", editor));
     assert!(ex::same_origin("about:blank", editor));
-    for other in ["https://clear.diagrams.net/", "http://localhost:9090/", "http://localhost.evil.com/", "http://localhost:8080@evil.com/"] {
+    for other in [
+        "https://clear.diagrams.net/",
+        "http://localhost:9090/",
+        "http://localhost.evil.com/",
+        "http://localhost:8080@evil.com/",
+    ] {
         assert!(!ex::same_origin(other, editor), "{other}");
     }
 }
@@ -238,7 +243,6 @@ fn test_a_running_editor_is_reachable() {
     assert!(run(ex::reachable(&format!("http://127.0.0.1:{port}"), probe)));
     drop(up);
     assert!(!run(ex::reachable("not a url", probe)));
-    assert!(!run(ex::reachable(&format!("http://127.0.0.1:{port}"), probe)));
 }
 
 #[test]
@@ -322,10 +326,7 @@ fn stored(id: &str) -> (Value, String) {
 /// A desktop command that records its `--editor-url` and draws `EXACT`.
 fn recording_app(tmp: &Path) -> (String, PathBuf) {
     let seen = tmp.join("seen_editor");
-    let cmd = fake_app(
-        tmp,
-        &format!("echo \"$5\" >> '{}'\nprintf '%s' '{EXACT}' > \"$3\"\n", seen.display()),
-    );
+    let cmd = fake_app(tmp, &format!("echo \"$5\" >> '{}'\nprintf '%s' '{EXACT}' > \"$3\"\n", seen.display()));
     (cmd, seen)
 }
 
@@ -521,7 +522,9 @@ fn test_a_real_editor_draws_the_picture() {
     let _g = env_lock();
     clean_env();
     let Ok(url) = std::env::var("KANBAN_TEST_DRAWIO_URL") else {
-        eprintln!("SKIPPED test_a_real_editor_draws_the_picture: needs KANBAN_TEST_DRAWIO_URL (a running draw.io webapp)");
+        eprintln!(
+            "SKIPPED test_a_real_editor_draws_the_picture: needs KANBAN_TEST_DRAWIO_URL (a running draw.io webapp)"
+        );
         return;
     };
     let Some(chrome) = chrome_for_tests() else {

@@ -179,3 +179,36 @@ pub async fn get_ticket(c: &Client, ticket_id: &str) -> Value {
     r.assert_status(200);
     r.json()
 }
+
+/// `c.patch(path)` of the Python tests: a PATCH without a body (the toggle routes).
+pub async fn patch_empty(c: &Client, path: &str) -> testkit::Resp {
+    c.request("PATCH", path, &[], None).await
+}
+
+/// Whether the server serves the Docs routes. The Python server always does; the Rust server does once `kb-docs`
+/// is ported. A test that needs a Docs page runs its Docs part only where this is true. Asked of the route that
+/// makes a page: a body without a title is refused (422) where the route is served, and unknown (404, or 405 when
+/// only another method of the path is served) where it is not.
+pub async fn docs_served(c: &Client, project_id: &str) -> bool {
+    let r = c.post(&format!("/projects/{project_id}/docs/pages"), json!({})).await;
+    r.status != 404 && r.status != 405
+}
+
+/// A git repository with one commit on `branch` (the `repo_dir` fixture of the Python tests).
+pub fn repo_dir(branch: &str, user: &str) -> tempfile::TempDir {
+    let dir = tempfile::tempdir().expect("temporary folder");
+    git(dir.path(), &["init", "-b", branch]);
+    git(dir.path(), &["config", "user.email", "t@example.com"]);
+    git(dir.path(), &["config", "user.name", user]);
+    std::fs::write(dir.path().join("a.txt"), "a").expect("write a.txt");
+    git(dir.path(), &["add", "."]);
+    git(dir.path(), &["commit", "-m", "init"]);
+    dir
+}
+
+/// `subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True).stdout`.
+pub fn git(cwd: &std::path::Path, args: &[&str]) -> String {
+    let out = std::process::Command::new("git").args(args).current_dir(cwd).output().expect("git runs");
+    assert!(out.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&out.stderr));
+    String::from_utf8_lossy(&out.stdout).into_owned()
+}

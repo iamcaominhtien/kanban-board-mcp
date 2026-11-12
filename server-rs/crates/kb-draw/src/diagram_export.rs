@@ -238,11 +238,9 @@ impl Cdp {
             let reply = self.state.lock().unwrap_or_else(|e| e.into_inner()).pending.remove(&id);
             if let Some(reply) = reply {
                 let result = match msg.get("error") {
-                    Some(error) => Err(error
-                        .get("message")
-                        .and_then(Value::as_str)
-                        .unwrap_or("devtools error")
-                        .to_string()),
+                    Some(error) => {
+                        Err(error.get("message").and_then(Value::as_str).unwrap_or("devtools error").to_string())
+                    }
                     None => Ok(msg.get("result").cloned().unwrap_or_else(|| json!({}))),
                 };
                 let _ = reply.send(result);
@@ -361,9 +359,7 @@ async fn drive_chrome(
             }
         }
     };
-    let url = tokio::time::timeout(Duration::from_secs(20), endpoint)
-        .await
-        .map_err(|_| "timed out".to_string())??;
+    let url = tokio::time::timeout(Duration::from_secs(20), endpoint).await.map_err(|_| "timed out".to_string())??;
     let mut config = WebSocketConfig::default();
     config.max_message_size = Some(64 * 1024 * 1024);
     config.max_frame_size = Some(64 * 1024 * 1024);
@@ -395,9 +391,7 @@ async fn drive_chrome(
     let result = async {
         let target = cdp.call("Target.createTarget", json!({"url": "about:blank"}), None).await?;
         let target = target["targetId"].as_str().unwrap_or_default().to_string();
-        let attached = cdp
-            .call("Target.attachToTarget", json!({"targetId": target, "flatten": true}), None)
-            .await?;
+        let attached = cdp.call("Target.attachToTarget", json!({"targetId": target, "flatten": true}), None).await?;
         let session = attached["sessionId"].as_str().unwrap_or_default().to_string();
         let session = Some(session.as_str());
         cdp.call("Page.enable", json!({}), session).await?;
@@ -495,11 +489,8 @@ async fn export_with_command(command: &[String], source: &str, editor: &str, tim
 /// "tion failed: -2").
 pub fn why(stderr: &[u8], limit: usize) -> String {
     let text = String::from_utf8_lossy(stderr).into_owned();
-    let lines: Vec<String> = pytext::splitlines(&text)
-        .into_iter()
-        .map(|l| pytext::strip(l).to_string())
-        .filter(|l| !l.is_empty())
-        .collect();
+    let lines: Vec<String> =
+        pytext::splitlines(&text).into_iter().map(|l| pytext::strip(l).to_string()).filter(|l| !l.is_empty()).collect();
     let own: Vec<&String> = lines.iter().filter(|l| l.starts_with("export-svg failed:")).collect();
     if let Some(last) = own.last() {
         let rest = pytext::strip(&last["export-svg failed:".len()..]);

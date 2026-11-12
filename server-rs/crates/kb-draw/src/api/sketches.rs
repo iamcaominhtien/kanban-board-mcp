@@ -29,11 +29,7 @@ pub fn routes() -> Routes {
         .get("/sketches", get_sketches)
         .add("POST", "/sketches", post(post_sketch).layer(DefaultBodyLimit::disable()))
         .get("/sketches/{sketch_id}", get_sketch)
-        .add(
-            "PUT",
-            "/sketches/{sketch_id}",
-            axum::routing::put(put_sketch).layer(DefaultBodyLimit::disable()),
-        )
+        .add("PUT", "/sketches/{sketch_id}", axum::routing::put(put_sketch).layer(DefaultBodyLimit::disable()))
         .add("POST", "/sketches/{sketch_id}/copy", post(post_sketch_copy).layer(DefaultBodyLimit::disable()))
         .delete("/sketches/{sketch_id}", del_sketch)
         .post("/sketches/{sketch_id}/restore", post_restore_sketch)
@@ -70,10 +66,8 @@ async fn read_form(multipart: Result<Multipart, MultipartRejection>) -> Form {
 
 /// FastAPI's answer to a form that lacks required parts: one `missing` entry for each.
 fn missing(names: &[&str]) -> ApiError {
-    let list: Vec<Value> = names
-        .iter()
-        .map(|n| json!({"type": "missing", "loc": ["body", n], "msg": "Field required"}))
-        .collect();
+    let list: Vec<Value> =
+        names.iter().map(|n| json!({"type": "missing", "loc": ["body", n], "msg": "Field required"})).collect();
     ApiError::new(StatusCode::UNPROCESSABLE_ENTITY, Value::Array(list))
 }
 
@@ -83,7 +77,8 @@ impl Form {
     }
 
     fn missing_of(&self, texts: &[&str], files: &[&str]) -> Vec<String> {
-        let mut out: Vec<String> = texts.iter().filter(|n| !self.fields.contains_key(**n)).map(|n| n.to_string()).collect();
+        let mut out: Vec<String> =
+            texts.iter().filter(|n| !self.fields.contains_key(**n)).map(|n| n.to_string()).collect();
         out.extend(files.iter().filter(|n| !self.files.contains_key(**n)).map(|n| n.to_string()));
         out
     }
@@ -127,10 +122,15 @@ async fn get_sketches(headers: HeaderMap, RawQuery(query): RawQuery) -> ApiResul
     let (owner_kind, owner_id) = match (owner_kind, owner_id) {
         (Ok(k), Ok(i)) => (k, i),
         (k, i) => {
-            let names: Vec<&str> =
-                [("owner_kind", k.is_err()), ("owner_id", i.is_err())].iter().filter(|(_, bad)| *bad).map(|(n, _)| *n).collect();
-            let list: Vec<Value> =
-                names.iter().map(|n| json!({"type": "missing", "loc": ["query", n], "msg": "Field required"})).collect();
+            let names: Vec<&str> = [("owner_kind", k.is_err()), ("owner_id", i.is_err())]
+                .iter()
+                .filter(|(_, bad)| *bad)
+                .map(|(n, _)| *n)
+                .collect();
+            let list: Vec<Value> = names
+                .iter()
+                .map(|n| json!({"type": "missing", "loc": ["query", n], "msg": "Field required"}))
+                .collect();
             return Err(ApiError::new(StatusCode::UNPROCESSABLE_ENTITY, Value::Array(list)));
         }
     };

@@ -24,11 +24,8 @@ impl Mover {
                 let info = self.snap()?.rows(&format!("PRAGMA table_info({fts})"), Vec::new()).await?;
                 let cols: Vec<String> = info.iter().filter_map(|r| r.get(1).map(Cell::py_str)).collect();
                 let rows = self.snap()?.rows(&format!("SELECT {} FROM {fts}", cols.join(", ")), Vec::new()).await?;
-                let insert = format!(
-                    "INSERT INTO {fts} ({}) VALUES ({})",
-                    cols.join(", "),
-                    vec!["?"; cols.len()].join(", ")
-                );
+                let insert =
+                    format!("INSERT INTO {fts} ({}) VALUES ({})", cols.join(", "), vec!["?"; cols.len()].join(", "));
                 for row in rows {
                     let values = row.iter().map(|v| v.to_db_value("str"));
                     txn.execute_raw(Statement::from_sql_and_values(DbBackend::Sqlite, &insert, values)).await?;
@@ -57,8 +54,9 @@ async fn rebuild_kb(txn: &DatabaseTransaction) -> Result<(), Error> {
             other => other.py_str(),
         };
         let keywords = Some(text(5)).filter(|k| !k.is_empty()).unwrap_or_else(|| "[]".to_string());
-        let keywords: Vec<String> = serde_json::from_str(&keywords)
-            .map_err(|err| DbErr::Custom(format!("ai_knowledge_doc.keywords of {} is not a list of words: {err}", text(0))))?;
+        let keywords: Vec<String> = serde_json::from_str(&keywords).map_err(|err| {
+            DbErr::Custom(format!("ai_knowledge_doc.keywords of {} is not a list of words: {err}", text(0)))
+        })?;
         let values = [
             d[0].to_db_value("str"),
             text(1).into(),

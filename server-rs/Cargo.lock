@@ -1549,6 +1549,7 @@ dependencies = [
 name = "kb-app"
 version = "5.0.0"
 dependencies = [
+ "async-trait",
  "axum",
  "bytes",
  "futures",
@@ -1559,6 +1560,7 @@ dependencies = [
  "kb-db",
  "kb-dbkit",
  "kb-docs",
+ "kb-doctext",
  "kb-draw",
  "kb-files",
  "kb-ideas",
@@ -1709,10 +1711,8 @@ dependencies = [
 name = "kb-draw"
 version = "5.0.0"
 dependencies = [
- "async-trait",
  "axum",
  "base64 0.22.1",
- "bytes",
  "caseless",
  "flate2",
  "futures",

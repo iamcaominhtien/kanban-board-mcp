@@ -30,7 +30,6 @@ pub const ITEM_KINDS: [&str; 3] = ["ticket", "comment", "doc"];
 pub const SELF_HOSTED_DEFAULT: &str = "http://localhost:8080";
 pub const PUBLIC_URL: &str = "https://embed.diagrams.net";
 
-
 fn diagram_ref() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| Regex::new(r"\(diagram:(dg_[0-9a-f]{8})\)").expect("static pattern"))
@@ -286,7 +285,11 @@ fn is_live(deleted_at: &Option<String>) -> bool {
 }
 
 /// The diagram as the API returns it (no source or SVG body).
-pub async fn out(session: &Session, d: &diagram::Model, v: Option<&diagram_version::Model>) -> Result<Map<String, Value>> {
+pub async fn out(
+    session: &Session,
+    d: &diagram::Model,
+    v: Option<&diagram_version::Model>,
+) -> Result<Map<String, Value>> {
     let role = role_of(session, &d.project_id).await?;
     let fetched;
     let ver = match v {
@@ -359,7 +362,9 @@ pub async fn create_diagram(session: &Session, project_id: &str, new: NewDiagram
     let clean_svg = sanitize_svg(&new.svg)?;
     if let Some(kind) = &new.item_kind {
         if !ITEM_KINDS.contains(&kind.as_str()) {
-            return Err(DocsError::new(422, "invalid_item", "item_kind must be one of ('ticket', 'comment', 'doc')").into());
+            return Err(
+                DocsError::new(422, "invalid_item", "item_kind must be one of ('ticket', 'comment', 'doc')").into()
+            );
         }
     }
     let actor = activity::current_actor();
@@ -579,10 +584,9 @@ pub fn parse_pins(raw: Option<&str>) -> Map<String, Value> {
         _ => "{}",
     };
     match pyjson::loads(raw) {
-        Some(Value::Object(map)) => map
-            .into_iter()
-            .filter(|(_, v)| v.is_i64() || v.is_u64() || v.is_boolean())
-            .collect(),
+        Some(Value::Object(map)) => {
+            map.into_iter().filter(|(_, v)| v.is_i64() || v.is_u64() || v.is_boolean()).collect()
+        }
         _ => Map::new(),
     }
 }
@@ -669,7 +673,10 @@ pub async fn get_settings(session: &Session, origin: Option<&str>) -> Result<Map
     let mut out = Map::new();
     out.insert("mode".into(), json!(mode));
     out.insert("url".into(), json!(url));
-    out.insert("effective_url".into(), json!(effective.as_deref().filter(|e| !e.is_empty()).map(|e| e.trim_end_matches('/'))));
+    out.insert(
+        "effective_url".into(),
+        json!(effective.as_deref().filter(|e| !e.is_empty()).map(|e| e.trim_end_matches('/'))),
+    );
     out.insert("default_self_hosted_url".into(), json!(SELF_HOSTED_DEFAULT));
     out.insert("public_url".into(), json!(PUBLIC_URL));
     out.insert("built_in_available".into(), json!(built_in));

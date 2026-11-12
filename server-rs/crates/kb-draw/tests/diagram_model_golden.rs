@@ -117,7 +117,11 @@ fn the_xml_reader_reads_and_fails_as_expat_does() {
             }
             (Ok(root), None, Some(want)) => {
                 assert_eq!(&tree(&root), want, "{source:?}");
-                assert_eq!(json!(xml::tostring(&root, &diagram_model::REGISTERED_NAMESPACES)), case["tostring"], "{source:?}: tostring");
+                assert_eq!(
+                    json!(xml::tostring(&root, &diagram_model::REGISTERED_NAMESPACES)),
+                    case["tostring"],
+                    "{source:?}: tostring"
+                );
             }
             (Ok(_), Some(want), _) => off.push(format!("{source:?}: want the error {want}, got a tree")),
             (Err(e), None, _) => off.push(format!("{source:?}: want a tree, got {e}")),
@@ -210,5 +214,55 @@ fn small_helpers_match() {
             (Ok(()), None) => {}
             _ => panic!("forbid_dtd {row}: got {got:?}"),
         }
+    }
+}
+
+fn hex(text: &str) -> Vec<u8> {
+    (0..text.len() / 2).map(|i| u8::from_str_radix(&text[2 * i..2 * i + 2], 16).expect("hex")).collect()
+}
+
+/// A Python result of a sketch function against what the Rust function returned.
+fn same_sketch_result(what: &str, want: &Value, got: Result<Value, kb_draw::Error>) {
+    match (want.get("ok"), want.get("error"), got) {
+        (Some(ok), _, Ok(v)) => assert_eq!(&v, ok, "{what}"),
+        (_, Some(err), Err(kb_draw::Error::Docs(d))) => {
+            assert_eq!(json!(d.status), err["status"], "{what}");
+            assert_eq!(json!(d.code), err["code"], "{what}");
+            assert_eq!(json!(d.message), err["message"], "{what}");
+            assert_eq!(Value::Object(d.extra), err["extra"], "{what}");
+        }
+        (_, _, other) => panic!("{what}: want {want}, got {other:?}"),
+    }
+}
+
+#[test]
+fn sketches_validate_files_and_write_sources_as_python_does() {
+    let data = golden();
+    let sk = &data["sketch"];
+    let png = hex(sk["png_hex"].as_str().expect("png"));
+    for case in sk["validate"].as_array().expect("validate") {
+        let source = hex(case["source_hex"].as_str().expect("source"));
+        let got = kb_draw::sketches::validate(&png, &source)
+            .map(|i| json!({"width": i.width, "height": i.height, "layer_count": i.layer_count}));
+        same_sketch_result(&format!("validate {:?}", String::from_utf8_lossy(&source)), case, got);
+    }
+    for case in sk["png_size"].as_array().expect("png_size") {
+        let bytes = hex(case["hex"].as_str().expect("hex"));
+        let got = kb_draw::sketches::png_size(&bytes).map(|(w, h)| json!([w, h])).map_err(kb_draw::Error::Docs);
+        same_sketch_result("png_size", case, got);
+    }
+    assert_eq!(
+        String::from_utf8(kb_draw::sketches::flat_source(&png).expect("flat source")).expect("utf-8"),
+        sk["flat_source"].as_str().expect("flat_source")
+    );
+    same_sketch_result(
+        "flat_source of junk",
+        &sk["flat_source_error"],
+        kb_draw::sketches::flat_source(b"nope").map(|_| Value::Null).map_err(kb_draw::Error::Docs),
+    );
+    for row in sk["titles"].as_array().expect("titles") {
+        let t = row[0].as_str();
+        assert_eq!(json!(kb_draw::sketches::title(t, "Sketch")), row[1], "title {row}");
+        assert_eq!(json!(kb_draw::sketches::title(t, "Fb")), row[2], "title {row}");
     }
 }

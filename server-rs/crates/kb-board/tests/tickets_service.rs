@@ -1,4 +1,4 @@
-//! The parts of `services/tickets.py` (lines 1-800) that no REST route reaches, in one process with its own
+//! The parts of `services/tickets.py` that no REST route reaches, in one process with its own
 //! database: a ticket created with acceptance criteria and a creator (what the MCP tools pass), the project that
 //! does not exist, and the calls into the AI team and the Idea Space (the hooks of `kb_board::hooks`), which the
 //! Python code imports late.
@@ -10,7 +10,12 @@ use kb_base::ApiResult;
 use kb_board::hooks::{self, AiRunsHook, IdeaPromoteHook, NewAssignee};
 use kb_board::projects::create_project;
 use kb_board::schemas::ProjectCreate;
-use kb_board::tickets::{Error, NewTicket, TicketUpdate, create_ticket, delete_ticket, get_ticket, update_ticket};
+use kb_board::tickets::{
+    Error, NewBranch, NewTestCase, NewTicket, NewWorkLog, PendingReason, ReopenOptions, TestCaseChanges, TicketUpdate,
+    add_branch, add_comment, add_test_case, add_ticket_link, add_work_log, clear_pending, create_ticket, delete_ticket,
+    get_project_activities, get_ticket, list_branches, reopen_ticket, set_pending, undo_reopen, update_test_case,
+    update_ticket,
+};
 use kb_db::entities::{story, ticket};
 use kb_db::sea_orm::{DbErr, EntityTrait};
 use kb_db::{Session, database};
@@ -243,4 +248,130 @@ async fn scenario(root: &std::path::Path) {
     assert_eq!(get_ticket(&database::session(), "SVC-2").await.expect("query"), None);
     assert!(!delete_ticket(&database::session(), "SVC-2").await.expect("gone"));
     assert!(calls().is_empty());
+
+    sub_entities(root, pid).await;
+}
+
+/// The second half of `services/tickets.py` (lines 800-2862), what no REST route passes: a comment's extra keys
+/// (`meta`, an AI member's reply), a test case a Board AI suggested, a branch of the repository that is adopted, the
+/// Python defaults of the argument structs, and the Idea Space told of a reopen and of its undo.
+async fn sub_entities(root: &std::path::Path, pid: &str) {
+    let session = database::session;
+    let held = create_ticket(&session(), pid, NewTicket::new("Holds things")).await.expect("ticket");
+    let open = create_ticket(&session(), pid, NewTicket::new("Stays open")).await.expect("ticket");
+    let (id, open) = (held.id.as_str(), open.id.as_str());
+    // a comment with extra keys: stored after the comment's own, a key of its own name replaces the value in place
+    let meta = json!({"ai": {"member_id": "m1"}, "author": "Robo", "reply_to": "c0"});
+    let t =
+        add_comment(&session(), id, " An answer ", "user", meta.as_object()).await.expect("comment").expect("found");
+    let comments: Value = serde_json::from_str(&t.comments).expect("json");
+    let keys: Vec<&String> = comments[0].as_object().expect("comment").keys().collect();
+    assert_eq!(
+        keys,
+        ["id", "text", "author", "at", "edited_at", "deleted_at", "mentions", "notified", "ai", "reply_to"]
+    );
+    assert_eq!((&comments[0]["text"], &comments[0]["author"]), (&json!("An answer"), &json!("Robo")));
+    assert_eq!(add_comment(&session(), "SVC-404", "x", "user", None).await.expect("none"), None);
+
+    // a test case a Board AI suggested, with the defaults of `add_test_case`
+    let new = NewTestCase { suggested_by: Some("Board AI"), ..NewTestCase::new("Suggested") };
+    let t = add_test_case(&session(), id, new).await.expect("test case").expect("found");
+    let cases: Value = serde_json::from_str(&t.test_cases).expect("json");
+    assert_eq!(cases[0]["suggested_by"], "Board AI");
+    assert_eq!(
+        (&cases[0]["status"], &cases[0]["code"], &cases[0]["test_data_files"]),
+        (&json!("pending"), &json!("TC-1"), &json!([]))
+    );
+    // a status the routes refuse is what the tools may pass: stored as given
+    let changes = TestCaseChanges { status: Some("blocked"), ..TestCaseChanges::default() };
+    let tc = cases[0]["id"].as_str().expect("id").to_string();
+    let t = update_test_case(&session(), id, &tc, changes).await.expect("update").expect("found");
+    assert!(t.test_cases.contains(r#""status": "blocked""#));
+
+    // the work log: a kind and a role the routes refuse before the service does
+    let refused = add_work_log(&session(), id, NewWorkLog::new("a", "Wizard", "n")).await;
+    assert_eq!(
+        message(refused.map(|t| t.expect("found"))),
+        "Invalid role 'Wizard'. Valid roles: ['PM', 'Developer', 'BA', 'Tester', 'Designer', 'Other']"
+    );
+    let new = NewWorkLog { kind: "weird", ..NewWorkLog::new("a", "PM", "n") };
+    assert_eq!(
+        message(add_work_log(&session(), id, new).await.map(|t| t.expect("found"))),
+        "Invalid kind 'weird'. Valid kinds: ['investigation', 'fix_attempt', 'root_cause', 'blocked', 'resolved']"
+    );
+    let new = NewWorkLog { attachments: Some(&[json!("x")]), ..NewWorkLog::new("a", "PM", "n") };
+    assert_eq!(
+        message(add_work_log(&session(), id, new).await.map(|t| t.expect("found"))),
+        "Each attachment must be an object"
+    );
+
+    // a status and a relation the routes refuse before the service does
+    let new = NewBranch { status: "closed", ..NewBranch::new("x") };
+    assert_eq!(
+        message(add_branch(&session(), id, new).await.map(|t| t.expect("found"))),
+        "Invalid branch status 'closed'. Valid statuses: ['archived', 'baseline', 'merged', 'open', 'stale']"
+    );
+    match add_ticket_link(&session(), id, open, "blocks").await {
+        Err(Error::Value(m)) => assert_eq!(
+            m,
+            "Invalid relation type 'blocks'. Valid types: ['caused_by', 'causes', 'duplicated_by', 'duplicates', 'relates_to']"
+        ),
+        other => panic!("{other:?}"),
+    }
+    let refused = set_pending(&session(), id, PendingReason::new("weather")).await;
+    assert_eq!(message(refused.map(|t| t.expect("found"))), "Invalid reason_type 'weather'");
+
+    // a branch that is already in the repository: refused, or recorded as it is when adopted
+    let repo = root.join("repo");
+    std::fs::create_dir_all(&repo).expect("mkdir");
+    let git = |args: &[&str]| {
+        let out = std::process::Command::new("git").args(args).current_dir(&repo).output().expect("git runs");
+        assert!(out.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&out.stderr));
+    };
+    git(&["init", "-q", "-b", "main"]);
+    git(&["config", "user.email", "t@example.com"]);
+    git(&["config", "user.name", "T"]);
+    std::fs::write(repo.join("a.txt"), "a").expect("write");
+    git(&["add", "."]);
+    git(&["commit", "-qm", "init"]);
+    git(&["checkout", "-q", "-b", "agent/work"]);
+    std::fs::write(repo.join("b.txt"), "b").expect("write");
+    git(&["add", "."]);
+    git(&["commit", "-qm", "work"]);
+    git(&["checkout", "-q", "main"]);
+    let repo_path = TicketUpdate::of("repo_path", json!(repo.to_string_lossy()));
+    update_ticket(&session(), id, &repo_path).await.expect("repo").expect("found");
+    let refused = add_branch(&session(), id, NewBranch::new("agent/work")).await;
+    assert_eq!(message(refused.map(|t| t.expect("found"))), "Branch 'agent/work' already exists");
+    let new = NewBranch { adopt: true, ..NewBranch::new("agent/work") };
+    let t = add_branch(&session(), id, new).await.expect("adopted").expect("found");
+    let branches: Value = serde_json::from_str(&t.branches).expect("json");
+    assert_eq!(
+        (&branches[0]["name"], &branches[0]["ahead_count"], &branches[0]["branch_from"]),
+        (&json!("agent/work"), &json!(1), &json!("main"))
+    );
+    // adopting a branch that is not there creates it
+    let new = NewBranch { adopt: true, ..NewBranch::new("agent/new") };
+    add_branch(&session(), id, new).await.expect("created").expect("found");
+    let listed = list_branches(&session(), id).await.expect("list").expect("found");
+    assert_eq!(listed.iter().map(|b| b["in_repo"].clone()).collect::<Vec<_>>(), [json!(true), json!(true)]);
+
+    // a reopen and its undo tell the Idea Space, before the commit, with the ticket as it then is
+    calls();
+    update_ticket(&session(), id, &TicketUpdate::status("done")).await.expect("done").expect("found");
+    calls();
+    reopen_ticket(&session(), id, ReopenOptions::default()).await.expect("reopened").expect("found");
+    assert_eq!(calls(), [format!("status_change {id} done->todo stored=todo committed=done")]);
+    undo_reopen(&session(), id).await.expect("undone").expect("found");
+    assert_eq!(calls(), [format!("status_change {id} todo->done stored=done committed=todo")]);
+    // a reopen that is refused tells no one, and leaves nothing behind
+    let refused = reopen_ticket(&session(), open, ReopenOptions::default()).await;
+    assert_eq!(message(refused.map(|t| t.expect("found"))), "Only tickets in Done or Won't Do can be reopened");
+    assert!(calls().is_empty());
+    assert_eq!(
+        clear_pending(&session(), id, None, false, None).await.expect("not pending").expect("found").status,
+        "done"
+    );
+    let events = get_project_activities(&session(), pid, 2).await;
+    assert_eq!(events.expect("events").len(), 2);
 }

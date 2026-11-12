@@ -166,11 +166,8 @@ fn parse(text: &str) -> Result<Map<String, Value>, AssistError> {
         Ok(Value::Object(data)) => data,
         _ => return Err(AssistError("The AI's answer could not be read. Ask again.".into())),
     };
-    let statements: Vec<String> = list_of(&data, "statements")
-        .iter()
-        .map(pyjson::py_str)
-        .filter(|s| !pytext::strip(s).is_empty())
-        .collect();
+    let statements: Vec<String> =
+        list_of(&data, "statements").iter().map(pyjson::py_str).filter(|s| !pytext::strip(s).is_empty()).collect();
     let mut out = Map::new();
     out.insert("cause".into(), json!(text_of(data.get("cause"))));
     out.insert("statements".into(), json!(statements));
@@ -284,7 +281,10 @@ mod tests {
             check(&["ALTER TABLE project ADD a INT; ALTER TABLE project ADD b INT"]).unwrap_err(),
             "One statement at a time: split it at the semicolon."
         );
-        assert_eq!(check(&["ALTER TABLE project DROP COLUMN name"]).unwrap_err().split(':').next().unwrap(), "This statement would remove or rename something");
+        assert_eq!(
+            check(&["ALTER TABLE project DROP COLUMN name"]).unwrap_err().split(':').next().unwrap(),
+            "This statement would remove or rename something"
+        );
         assert_eq!(check(&[" ", "--x"]).unwrap_err(), "There is no statement to apply.");
     }
 
@@ -305,7 +305,8 @@ mod tests {
 
     #[test]
     fn the_bundle_names_no_value() {
-        let stop = Stop { table: "project".into(), row: 3, copied: 2, total: 9, value_length: Some(300), ..Stop::default() };
+        let stop =
+            Stop { table: "project".into(), row: 3, copied: 2, total: 9, value_length: Some(300), ..Stop::default() };
         let plan = json!({"problems": [{"table": "t", "column": "c", "title": "x", "detail": "d"}]});
         let shown = bundle(&stop, plan.as_object());
         assert_eq!(shown["stopped_at_row"], 3);

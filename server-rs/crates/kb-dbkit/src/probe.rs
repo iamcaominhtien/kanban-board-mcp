@@ -7,6 +7,7 @@
 //! is made inside a transaction that is rolled back).
 
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
 use kb_base::{pytext, time};
@@ -17,8 +18,8 @@ use kb_db::targets::{self, Target};
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::move_db::{Cell, commas};
 use crate::move_db::raw::{self, Direct, Reader, version_tuple};
+use crate::move_db::{Cell, commas};
 
 pub const PG_MIN: i64 = 140000;
 pub const MYSQL_MIN: [u64; 2] = [8, 0];
@@ -133,6 +134,23 @@ fn first_300(text: &str) -> String {
     pytext::strip(text).chars().take(300).collect()
 }
 
+/// Whether a refused connection is worded as Python's own event loop worded it. The server ran on another event
+/// loop than the `kanban-db` script, and the two say a refused connection differently; `cli` turns this on.
+static ASYNCIO_WORDS: AtomicBool = AtomicBool::new(false);
+
+/// Word a refused connection as the `kanban-db` script did (see `ASYNCIO_WORDS`).
+pub(crate) fn use_asyncio_words() {
+    ASYNCIO_WORDS.store(true, Ordering::Relaxed);
+}
+
+/// The address a connection was tried on, as Python prints a socket address.
+fn address(addr: &std::net::SocketAddr) -> String {
+    match addr {
+        std::net::SocketAddr::V4(a) => format!("('{}', {})", a.ip(), a.port()),
+        std::net::SocketAddr::V6(a) => format!("('{}', {}, 0, 0)", a.ip(), a.port()),
+    }
+}
+
 /// What the Python driver said when a connection could not be made (`str(exc)`): the words go into the finding.
 async fn raw_message(err: &DbErr, target: &Target) -> String {
     let Some(inner) = crate::move_db::raw_sqlx(err) else {
@@ -161,10 +179,25 @@ async fn raw_message(err: &DbErr, target: &Target) -> String {
                 };
                 return format!("[Errno {errno}] {reason}");
             }
-            // `str(OSError)`: "[Errno 111] Connection refused"
-            match io.raw_os_error() {
-                Some(errno) => format!("[Errno {errno}] {}", text.split(" (os error").next().unwrap_or(&text)),
-                None => text,
+            let Some(errno) = io.raw_os_error() else {
+                return text;
+            };
+            if !ASYNCIO_WORDS.load(Ordering::Relaxed) {
+                // `str(OSError)` as the server's event loop raised it: "[Errno 111] Connection refused"
+                return format!("[Errno {errno}] {}", text.split(" (os error").next().unwrap_or(&text));
+            }
+            // and as the script's event loop raised it: "[Errno 111] Connect call failed ('127.0.0.1', 5432)"
+            let port = target.port.unwrap_or_else(|| targets::default_port(&target.engine));
+            let tried: Vec<String> = match tokio::net::lookup_host((target.host.as_str(), port)).await {
+                Ok(found) => {
+                    found.map(|addr| format!("[Errno {errno}] Connect call failed {}", address(&addr))).collect()
+                }
+                Err(_) => Vec::new(),
+            };
+            match tried.len() {
+                0 => text,
+                1 => tried[0].clone(),
+                _ => format!("Multiple exceptions: {}", tried.join(", ")),
             }
         }
         other => other.to_string(),
@@ -268,12 +301,10 @@ async fn schema_of(conn: &mut Direct, report: &mut Report) -> Result<(), DbErr> 
         return Ok(());
     }
     if state.state == "foreign" {
-        report
-            .add("empty", "warn", format!("Not empty · {} tables that are not a Kanban board", state.tables))
-            .detail(
-                "The board will not write into a database that already holds something, because it cannot tell what \
+        report.add("empty", "warn", format!("Not empty · {} tables that are not a Kanban board", state.tables)).detail(
+            "The board will not write into a database that already holds something, because it cannot tell what \
                  is yours. Choose another database, or empty this one in the next step.",
-            );
+        );
         return Ok(());
     }
     let rev = state.revision.clone().unwrap_or_default();
@@ -398,8 +429,7 @@ async fn probe_sqlite(target: &Target, report: &mut Report) {
     }
     let probe_target = Target::sqlite(path.to_string_lossy().into_owned());
     let checked = async {
-        let engine = targets::make_engine(&probe_target, None).await?;
-        let mut conn = Direct::connect(&engine).await?;
+        let mut conn = Direct::connect(&probe_target, "probe").await?;
         let outcome = async {
             let check = conn.scalar("PRAGMA quick_check", Vec::new()).await?;
             if check.as_str() != Some("ok") {
@@ -410,15 +440,32 @@ async fn probe_sqlite(target: &Target, report: &mut Report) {
         }
         .await;
         conn.close().await;
-        let _ = engine.close().await;
         outcome
     }
     .await;
     if let Err(err) = checked {
         // not a database file
-        let (message, _) = crate::move_db::raw_error(&err);
-        report.add("integrity", "error", "This file is not a SQLite database").detail(message);
+        report.add("integrity", "error", "This file is not a SQLite database").detail(sqlite_error_text(&err));
     }
+}
+
+/// `str(exc)` of the error SQLAlchemy raised when a SQLite file could not be opened:
+/// "(sqlite3.DatabaseError) file is not a database", then where to read about that kind of error.
+fn sqlite_error_text(err: &DbErr) -> String {
+    let (message, _) = crate::move_db::raw_error(err);
+    let code = match crate::move_db::raw_sqlx(err) {
+        Some(sqlx::Error::Database(db)) => db.code().and_then(|c| c.parse::<i32>().ok()).unwrap_or(1) & 0xff,
+        _ => return message,
+    };
+    // how Python's sqlite3 names SQLite's result codes, and SQLAlchemy's page for each name
+    let (class, page) = match code {
+        11 | 26 => ("DatabaseError", "4xp6"),
+        19 | 20 => ("IntegrityError", "gkpj"),
+        2 | 12 => ("InternalError", "2j85"),
+        18 => ("DataError", "9h9h"),
+        _ => ("OperationalError", "e3q8"),
+    };
+    format!("(sqlite3.{class}) {message}\n(Background on this error at: https://sqlalche.me/e/20/{page})")
 }
 
 async fn can_create_pg(conn: &mut Direct, target: &Target, report: &mut Report) -> Result<(), DbErr> {
@@ -507,8 +554,7 @@ async fn probe_mysql(conn: &mut Direct, target: &Target, report: &mut Report) ->
     report.version = format!("{label} {}", dotted(&nums[..nums.len().min(3)]));
     let need = if maria { MARIADB_MIN } else { MYSQL_MIN };
     if &nums[..nums.len().min(2)] < need.as_slice() {
-        let title =
-            format!("Server too old · {}. The board needs {label} {} or newer.", report.version, dotted(&need));
+        let title = format!("Server too old · {}. The board needs {label} {} or newer.", report.version, dotted(&need));
         report.add("version", "error", title).detail("Nothing can be done from here; upgrade the server.");
     } else {
         let title = format!("Version · {} (needs {} or newer)", report.version, dotted(&need));
@@ -584,10 +630,9 @@ pub async fn test(target: &Target) -> Result<Report, DbErr> {
         probe_sqlite(target, &mut report).await;
         return Ok(report);
     }
-    let engine = targets::make_engine(target, Some("probe")).await?;
     let started = Instant::now();
     // every way a connection fails
-    let connected = tokio::time::timeout(std::time::Duration::from_secs(12), Direct::connect(&engine)).await;
+    let connected = tokio::time::timeout(std::time::Duration::from_secs(12), Direct::connect(target, "probe")).await;
     let mut conn = match connected {
         Ok(Ok(conn)) => conn,
         failed => {
@@ -601,7 +646,6 @@ pub async fn test(target: &Target) -> Result<Report, DbErr> {
             }
             report.add(key, "error", title).detail(detail).fix(fix);
             report.reached = false;
-            let _ = engine.close().await;
             return Ok(report);
         }
     };
@@ -630,8 +674,7 @@ pub async fn test(target: &Target) -> Result<Report, DbErr> {
         }
         schema_of(&mut conn, &mut report).await?;
         if report.other_apps != 0 {
-            let title =
-                format!("Another board is connected · {} other app(s) use this database", report.other_apps);
+            let title = format!("Another board is connected · {} other app(s) use this database", report.other_apps);
             report
                 .add("others", "info", title)
                 .detail("Several apps may share one database; live updates between them can take a moment.");
@@ -640,7 +683,6 @@ pub async fn test(target: &Target) -> Result<Report, DbErr> {
     }
     .await;
     conn.close().await;
-    let _ = engine.close().await;
     probed?;
     Ok(report)
 }
@@ -660,8 +702,18 @@ mod tests {
         assert_eq!(
             dict.keys().map(String::as_str).collect::<Vec<_>>(),
             [
-                "target", "findings", "reached", "version", "latency_ms", "state", "tables", "revision", "tickets",
-                "secure", "other_apps", "ok"
+                "target",
+                "findings",
+                "reached",
+                "version",
+                "latency_ms",
+                "state",
+                "tables",
+                "revision",
+                "tickets",
+                "secure",
+                "other_apps",
+                "ok"
             ]
         );
         assert_eq!(dict["findings"][0]["fix_label"], "Copy the statement");

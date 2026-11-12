@@ -135,18 +135,20 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - [x] projects, members, git (`services/projects.py`, `members.py`, `git_repo.py`, `docs_access.py`, `api/projects.py`,
       `members.py`)
 - [ ] settings (`api/settings.py`; it calls `mcp_clients`, so it goes with the skills and MCP clients)
-- [~] workspace (`services/workspace.py`, `api/workspace.py`)
-- [ ] tickets (`services/tickets.py`, `ticket_guide.py`, `ticket_waves.py`, `proofs.py`, `api/tickets.py`)
+- [x] workspace (`services/workspace.py`, `api/workspace.py`)
+- [x] tickets, part 1: the ticket itself, search, uploads (`services/tickets.py` to line 800, `ticket_guide.py`,
+      `ticket_waves.py`, `proofs.py`, the core routes of `api/tickets.py`)
+- [~] tickets, part 2: comments, criteria, sub-tasks, work log, test cases, blocks, links, branches, reopen, pending
 - [x] notifications (`services/notifications.py`, `api/notifications.py`; the notification checks inside the docs and
       ticket suites are ported with those areas)
-- [~] data and logs (`api/data.py`, `api/logs.py`)
+- [x] data and logs (`api/data.py`, `api/logs.py`)
 
 ### P3 Docs, drawings, ideas (`kb-docs`, `kb-draw`, `kb-ideas`)
 
 - [x] the low-level Docs text modules (`docs_text`, `docs_anchors`, `docs_checklist`, `docs_edit`, `docs_templates`,
       `docs_guide` in `kb-doctext`)
 - [ ] docs (`services/docs.py`, `docs_comments.py`, `docs_search.py`, `docs_import.py`, `docs_work.py`, `api/docs.py`)
-- [~] diagrams and sketches (`services/diagram*.py`, `sketches.py`, `api/diagrams.py`, `sketches.py`)
+- [x] diagrams and sketches (`services/diagram*.py`, `sketches.py`, `api/diagrams.py`, `sketches.py`)
 - [ ] canvases, screenshots (`services/canvas*.py`, `screenshots.py`, `visual_guides.py`, `api/canvases.py`)
 - [ ] ideas (`services/idea_*.py`, `api/idea_space.py`, `idea_tickets.py`)
 
@@ -166,8 +168,23 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 
 ### P6 Database kit and migrations (`kb-dbkit`, `kb-db`)
 
-- [~] `dbkit/probe.py`, `move.py`, `jobs.py`, `assist.py`, `cli.py`, `api/database.py`
+- [x] `dbkit/probe.py`, `move.py`, `jobs.py`, `assist.py`, `cli.py`, `api/database.py` (a database made by the Rust
+      server on PostgreSQL or MySQL is identical to one made by the Python server)
 - [ ] Migration runner that keeps `alembic_version`; the 80 revisions; a new database from the snapshot, stamped head
+
+### Open issues (to close before the switch)
+
+- MySQL only: the float columns are `FLOAT` (single precision) there. The Python driver read them as text (`0.1`); the
+  Rust driver reads the 4-byte value (`0.10000000149`). Decide: a float type for the entities that reads as Python
+  did, or widen the columns in the first Rust migration.
+- `GET /database/command` still prints the `uv run python -m dbkit.cli` command; the Rust CLI is
+  `kb_dbkit::cli::main` and needs a binary entry (`kanban-server db ...`).
+- Hooks still without an implementation (their areas are not ported): `kb_board::hooks::{AiTeamsHook, AiRunsHook,
+  IdeaPromoteHook}`, `kb_dbkit::hooks::{AssistantHook, DocsSearchHook}`, `kb_draw::hooks::CanvasRaster`. Registered in
+  `kb-app/src/hooks.rs`.
+- Tests waiting for another port: the two data-import tests that need an older database (migrations),
+  `test_data_path_validation` on Rust (`api/settings.py`), the `test_mcp_*` tests (MCP), the wave-5 idea tests.
+- A JSON body that leaves out several required fields names only the first in the 422; FastAPI lists all.
 
 ### P7 Switch
 

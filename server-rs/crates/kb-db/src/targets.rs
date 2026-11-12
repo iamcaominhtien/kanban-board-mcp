@@ -601,13 +601,84 @@ pub async fn make_engine(target: &Target, role_override: Option<&str>) -> Result
     });
     // Each statement sees what was committed before it, as on PostgreSQL; MySQL's default (REPEATABLE READ) takes
     // gap locks that make two writers wait on each other for rows neither touches.
-    options.after_connect(|conn| {
-        Box::pin(async move {
-            conn.execute_unprepared("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED").await?;
-            Ok(())
+    // Set on every connection the pool opens (the pool's own hook: `ConnectOptions::after_connect` runs once, on
+    // one connection).
+    options.map_sqlx_mysql_pool_opts(|pool| {
+        pool.after_connect(|conn, _meta| {
+            Box::pin(async move {
+                sea_orm::sqlx::Executor::execute(conn, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
+                    .await?;
+                Ok(())
+            })
         })
     });
     Database::connect(options).await
+}
+
+/// The settings of one connection to `target`, outside any pool: what `make_engine` gives each connection of its
+/// pool (the file and its pragmas, or the server, the user, the SSL mode, the character set and this process's name).
+///
+/// For code that needs a connection of its own (the connection test, the snapshot a copy reads from): opening one
+/// fails at once when the server is away, where a pool waits and tries again.
+#[derive(Debug, Clone)]
+pub enum ConnectionOptions {
+    Sqlite(SqliteConnectOptions),
+    Postgres(PgConnectOptions),
+    MySql(MySqlConnectOptions),
+}
+
+/// The connection settings of `target` (see `ConnectionOptions`). On MySQL the caller sets the isolation level it
+/// wants (`make_engine` uses READ COMMITTED).
+pub fn connection_options(target: &Target, role_override: Option<&str>) -> ConnectionOptions {
+    if target.is_sqlite() {
+        return ConnectionOptions::Sqlite(
+            SqliteConnectOptions::new()
+                .filename(&target.path)
+                .create_if_missing(true)
+                .foreign_keys(false)
+                .busy_timeout(Duration::from_secs(SQLITE_BUSY_TIMEOUT_S))
+                .synchronous(SqliteSynchronous::Normal)
+                .pragma("temp_store", "MEMORY")
+                .pragma("cache_size", "-16000"),
+        );
+    }
+    let password = target.password.as_deref().filter(|p| !p.is_empty());
+    if target.engine == "postgresql" {
+        let mut o = PgConnectOptions::new_without_pgpass()
+            .host(&target.host)
+            .port(target.port_or_default())
+            .database(&target.name)
+            .application_name(&application_name(role_override));
+        if !target.user.is_empty() {
+            o = o.username(&target.user);
+        }
+        if let Some(password) = password {
+            o = o.password(password);
+        }
+        return ConnectionOptions::Postgres(o.ssl_mode(match target.ssl.as_str() {
+            "off" => PgSslMode::Disable,
+            "require" => PgSslMode::Require,
+            "verify-full" => PgSslMode::VerifyFull,
+            _ => PgSslMode::Prefer,
+        }));
+    }
+    let mut o = MySqlConnectOptions::new()
+        .host(&target.host)
+        .port(target.port_or_default())
+        .database(&target.name)
+        .charset("utf8mb4");
+    if !target.user.is_empty() {
+        o = o.username(&target.user);
+    }
+    if let Some(password) = password {
+        o = o.password(password);
+    }
+    // the Python driver had no "prefer": a plain connection, and the connection test says so
+    ConnectionOptions::MySql(o.ssl_mode(match target.ssl.as_str() {
+        "require" => MySqlSslMode::Required,
+        "verify-full" => MySqlSslMode::VerifyIdentity,
+        _ => MySqlSslMode::Disabled,
+    }))
 }
 
 fn common_pool(options: &mut ConnectOptions) {
@@ -658,6 +729,37 @@ mod tests {
             from_url("mysql://h/db?sslmode=maybe").unwrap_err().0,
             "Unknown SSL mode “maybe” in the connection string."
         );
+    }
+
+    #[test]
+    fn one_connection_gets_the_settings_of_the_pool() {
+        use sea_orm::sqlx::ConnectOptions as _;
+        let pg = from_url("postgresql://bob:pw@db.example.com:5433/board?sslmode=require").unwrap();
+        match connection_options(&pg, Some("probe")) {
+            ConnectionOptions::Postgres(o) => {
+                assert_eq!((o.get_host(), o.get_port(), o.get_database()), ("db.example.com", 5433, Some("board")));
+                assert_eq!(o.get_username(), "bob");
+                assert!(matches!(o.get_ssl_mode(), PgSslMode::Require));
+                assert_eq!(o.get_application_name(), Some(application_name(Some("probe")).as_str()));
+            }
+            other => panic!("{other:?}"),
+        }
+        let my = from_url("mysql://app:pw@mysql.internal/kanban").unwrap();
+        match connection_options(&my, None) {
+            ConnectionOptions::MySql(o) => {
+                assert_eq!((o.get_host(), o.get_port(), o.get_database()), ("mysql.internal", 3306, Some("kanban")));
+                assert_eq!((o.get_username(), o.get_charset()), ("app", "utf8mb4"));
+                assert!(matches!(o.get_ssl_mode(), MySqlSslMode::Disabled));
+            }
+            other => panic!("{other:?}"),
+        }
+        match connection_options(&Target::sqlite("/tmp/x/kanban.db"), None) {
+            ConnectionOptions::Sqlite(o) => {
+                assert_eq!(o.get_filename(), std::path::Path::new("/tmp/x/kanban.db"));
+                assert_eq!(o.to_url_lossy().scheme(), "sqlite");
+            }
+            other => panic!("{other:?}"),
+        }
     }
 
     #[test]

@@ -60,7 +60,10 @@ pub async fn own_database(url: &str, name: &str) -> String {
     let backend = conn.get_database_backend();
     if backend == DbBackend::Postgres {
         let found = conn
-            .query_one_raw(Statement::from_string(backend, format!("SELECT 1 FROM pg_database WHERE datname = '{name}'")))
+            .query_one_raw(Statement::from_string(
+                backend,
+                format!("SELECT 1 FROM pg_database WHERE datname = '{name}'"),
+            ))
             .await
             .expect("pg_database");
         if found.is_none() {
@@ -69,14 +72,16 @@ pub async fn own_database(url: &str, name: &str) -> String {
                 .expect("CREATE DATABASE");
         }
     } else {
-        conn.execute_unprepared(&format!("CREATE DATABASE IF NOT EXISTS `{name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_bin"))
-            .await
-            .unwrap_or_else(|e| {
-                panic!(
-                    "CREATE DATABASE {name}: {e}\nThe test user needs: \
+        conn.execute_unprepared(&format!(
+            "CREATE DATABASE IF NOT EXISTS `{name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_bin"
+        ))
+        .await
+        .unwrap_or_else(|e| {
+            panic!(
+                "CREATE DATABASE {name}: {e}\nThe test user needs: \
                      GRANT ALL ON `kanban\\_dbkit\\_%`.* TO 'kanban'@'127.0.0.1';"
-                )
-            });
+            )
+        });
     }
     let _ = conn.close().await;
     let own = with_database(url, name);
@@ -143,7 +148,7 @@ fn column_value(table: &TableMeta, column: &ColumnMeta, i: usize, first_long: bo
         };
     }
     match column.kind {
-        "bool" => json!(i % 2 == 0),
+        "bool" => json!(i.is_multiple_of(2)),
         "int" | "bigint" => match i {
             0 => json!(i32::MAX),
             1 => json!(i32::MIN),
@@ -196,7 +201,7 @@ pub fn row_values(table: &TableMeta, i: usize) -> Vec<Value> {
                     return key_value(table, column, i);
                 }
                 return match column.kind {
-                    "bool" => json!(i % 3 == 0),
+                    "bool" => json!(i.is_multiple_of(3)),
                     "int" | "bigint" => json!(i as i64),
                     "float" => json!(i as f64 * 0.5),
                     _ => json!(format!("{} {i}", column.name)),
@@ -275,7 +280,10 @@ pub async fn fill(path: &Path) {
     let mut c = sqlite(path).await;
     sqlx::query("BEGIN IMMEDIATE").execute(&mut c).await.expect("begin");
     for table in META {
-        sqlx::query(sqlx::AssertSqlSafe(format!("DELETE FROM \"{}\"", table.name))).execute(&mut c).await.expect("delete");
+        sqlx::query(sqlx::AssertSqlSafe(format!("DELETE FROM \"{}\"", table.name)))
+            .execute(&mut c)
+            .await
+            .expect("delete");
         let names: Vec<&str> = table.columns.iter().map(|c| c.name).collect();
         let rows = if table.name == BULK_TABLE { ROWS + BULK_ROWS } else { ROWS };
         for i in 0..rows {
@@ -332,7 +340,11 @@ pub async fn fill(path: &Path) {
             &mut c,
             "ai_run_fts",
             &["run_id", "project_id", "body"],
-            &[json!(format!("ai_run:id:{i}")), json!(format!("project:id:{i}")), json!(format!("transcript {i} 🎯 {VIETNAMESE}"))],
+            &[
+                json!(format!("ai_run:id:{i}")),
+                json!(format!("project:id:{i}")),
+                json!(format!("transcript {i} 🎯 {VIETNAMESE}")),
+            ],
         )
         .await;
     }
@@ -384,7 +396,12 @@ pub async fn dump_sqlite(path: &Path) -> Map<String, Value> {
             .collect();
         let pairs: Vec<String> = cols
             .iter()
-            .map(|n| format!("'{}', CASE WHEN typeof(\"{n}\")='blob' THEN hex(\"{n}\") ELSE \"{n}\" END", n.replace('\'', "''")))
+            .map(|n| {
+                format!(
+                    "'{}', CASE WHEN typeof(\"{n}\")='blob' THEN hex(\"{n}\") ELSE \"{n}\" END",
+                    n.replace('\'', "''")
+                )
+            })
             .collect();
         let order: Vec<String> = cols.iter().map(|n| format!("\"{n}\"")).collect();
         let sql = format!(
@@ -466,6 +483,65 @@ pub async fn dump_server(url: &str) -> Map<String, Value> {
     }
     let _ = conn.close().await;
     out
+}
+
+/// How a PostgreSQL or MySQL database is made: every column with its type, whether it may be empty and its default,
+/// every index, and (MySQL) each table's engine and collation. One line per fact, sorted.
+pub async fn dump_server_schema(url: &str) -> Vec<String> {
+    let conn = admin(url).await;
+    let backend = conn.get_database_backend();
+    let queries: &[&str] = if backend == DbBackend::Postgres {
+        &[
+            "SELECT concat_ws(' ', 'column', table_name, column_name, data_type, character_maximum_length, \
+             is_nullable, column_default) FROM information_schema.columns \
+             WHERE table_schema = current_schema() ORDER BY table_name, ordinal_position",
+            "SELECT concat_ws(' ', 'index', indexdef) FROM pg_indexes WHERE schemaname = current_schema() \
+             ORDER BY indexname",
+            "SELECT concat_ws(' ', 'constraint', conrelid::regclass, conname, contype, pg_get_constraintdef(oid)) \
+             FROM pg_constraint WHERE connamespace = current_schema()::regnamespace ORDER BY conname",
+        ]
+    } else {
+        &[
+            "SELECT CAST(CONCAT_WS(' ', 'column', table_name, column_name, column_type, is_nullable, \
+             IFNULL(column_default, 'NULL'), extra, IFNULL(collation_name, '-')) AS CHAR) \
+             FROM information_schema.columns WHERE table_schema = DATABASE() ORDER BY table_name, ordinal_position",
+            "SELECT CAST(CONCAT_WS(' ', 'index', table_name, index_name, non_unique, seq_in_index, column_name, \
+             IFNULL(sub_part, '-')) AS CHAR) FROM information_schema.statistics \
+             WHERE table_schema = DATABASE() ORDER BY table_name, index_name, seq_in_index",
+            "SELECT CAST(CONCAT_WS(' ', 'table', table_name, engine, table_collation) AS CHAR) \
+             FROM information_schema.tables WHERE table_schema = DATABASE() ORDER BY table_name",
+        ]
+    };
+    let mut out = Vec::new();
+    for query in queries {
+        for row in
+            conn.query_all_raw(Statement::from_string(backend, *query)).await.unwrap_or_else(|e| panic!("{query}: {e}"))
+        {
+            out.push(row.try_get_by_index::<String>(0).expect("text"));
+        }
+    }
+    let _ = conn.close().await;
+    out
+}
+
+/// How a SQLite file is made: the statement of every table, index and trigger, with its spaces squeezed and the
+/// parts of a table's definition sorted (the Python migrations wrote a table's FOREIGN KEY clauses in an order that
+/// changes from run to run).
+pub async fn dump_sqlite_schema(path: &Path) -> Vec<String> {
+    let mut c = sqlite(path).await;
+    let rows = sqlx::query("SELECT type || ' ' || name || ' ' || coalesce(sql, '') FROM sqlite_master ORDER BY name")
+        .fetch_all(&mut c)
+        .await
+        .expect("sqlite_master");
+    let _ = c.close().await;
+    rows.iter()
+        .map(|r| {
+            let squeezed = r.get::<String, _>(0).split_whitespace().collect::<Vec<_>>().join(" ");
+            let mut parts: Vec<&str> = squeezed.strip_suffix(" )").unwrap_or(&squeezed).split(", ").collect();
+            parts[1..].sort_unstable();
+            parts.join(", ")
+        })
+        .collect()
 }
 
 /// Assert two dumps hold the same tables with the same rows, naming the first table and row that differ (a whole

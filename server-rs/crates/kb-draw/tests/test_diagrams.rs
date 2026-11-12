@@ -332,11 +332,16 @@ async fn test_the_shipped_editor_is_served_and_is_the_default() {
     assert_eq!(got["effective_url"], json!(editor));
     assert_eq!(got["built_in_version"], "32.6.9");
     assert_eq!(got["sends_drawings_to_third_party"], false);
-    assert_eq!(c.get("/diagrams/editor-check").await.json(), json!({"mode": "built-in", "url": editor, "reachable": true}));
+    assert_eq!(
+        c.get("/diagrams/editor-check").await.json(),
+        json!({"mode": "built-in", "url": editor, "reachable": true})
+    );
     let page = c.get("/drawio/?embed=1&proto=json").await;
     assert!(page.status == 200 && page.text().contains("<title>Shipped editor</title>"));
     let js = c.get("/drawio/js/app.min.js").await;
-    assert!(js.status == 200 && js.headers["content-type"].to_str().expect("content type").starts_with("text/javascript"));
+    assert!(
+        js.status == 200 && js.headers["content-type"].to_str().expect("content type").starts_with("text/javascript")
+    );
     // nothing outside the editor's folder comes out (a normalised path may land on the UI's own fallback page)
     for escape in ["/drawio/../secret.txt", "/drawio/%2e%2e/secret.txt"] {
         assert!(!c.get(escape).await.text().contains("not the editor's"), "{escape}");
@@ -542,7 +547,10 @@ async fn settings_routes_answer_the_same() {
     public["effective_url"] = json!("https://embed.diagrams.net");
     public["sends_drawings_to_third_party"] = json!(true);
     assert_eq!(r.json(), public);
-    assert_eq!(c.get("/diagrams/editor-check").await.json(), json!({"mode": "public", "url": "https://embed.diagrams.net", "reachable": true}));
+    assert_eq!(
+        c.get("/diagrams/editor-check").await.json(),
+        json!({"mode": "public", "url": "https://embed.diagrams.net", "reachable": true})
+    );
 
     // the errors
     let r = c.put("/diagrams/settings", json!({"mode": "other"})).await;
@@ -611,7 +619,17 @@ async fn read_update_delete_routes_answer_the_same() {
     // read: the summary drafted from the labels, the source on request
     let r = c.get(&format!("/diagrams/{id}")).await;
     assert_eq!(r.status, 200);
-    read(&r.json(), expected("Auth flow", 1, 1, false, "admin", json!({"suggested_summary": "Contains: Client, API gateway, yes."})));
+    read(
+        &r.json(),
+        expected(
+            "Auth flow",
+            1,
+            1,
+            false,
+            "admin",
+            json!({"suggested_summary": "Contains: Client, API gateway, yes."}),
+        ),
+    );
     let r = c.get(&format!("/diagrams/{id}?source=1")).await;
     assert_eq!(r.json()["source"], SOURCE);
     // a viewer reads, and cannot edit
@@ -636,7 +654,10 @@ async fn read_update_delete_routes_answer_the_same() {
 
     // update: a new version, the label and summary changed
     let r = c
-        .put(&format!("/diagrams/{id}"), json!({"base_version": 1, "source": EMPTY, "svg": SVG, "label": "V2", "summary": " Two "}))
+        .put(
+            &format!("/diagrams/{id}"),
+            json!({"base_version": 1, "source": EMPTY, "svg": SVG, "label": "V2", "summary": " Two "}),
+        )
         .await;
     assert_eq!(r.status, 200);
     let mut two = expected("V2", 2, 2, true, "admin", json!({"summary": "Two", "size_bytes": EMPTY.len()}));
@@ -651,7 +672,8 @@ async fn read_update_delete_routes_answer_the_same() {
     assert_eq!(r.json()["updated_by"], "Mia");
     assert_eq!(r.json()["role"], "member");
     // the same when the label is given empty
-    let r = c.put(&format!("/diagrams/{id}"), json!({"base_version": 3, "source": SOURCE, "svg": SVG, "label": ""})).await;
+    let r =
+        c.put(&format!("/diagrams/{id}"), json!({"base_version": 3, "source": SOURCE, "svg": SVG, "label": ""})).await;
     assert_eq!(r.json()["label"], "Diagram");
     // the errors
     let r = c.put(&format!("/diagrams/{id}"), json!({"base_version": 1, "source": SOURCE, "svg": SVG})).await;
@@ -662,7 +684,11 @@ async fn read_update_delete_routes_answer_the_same() {
     assert_eq!(d["latest_version"], 4);
     assert_eq!(d["latest_author"], "user");
     assert!(d["latest_at"].as_str().expect("latest_at").contains('T'));
-    let r = s.client().header("x-actor", "Vi").put(&format!("/diagrams/{id}"), json!({"base_version": 4, "source": SOURCE, "svg": SVG})).await;
+    let r = s
+        .client()
+        .header("x-actor", "Vi")
+        .put(&format!("/diagrams/{id}"), json!({"base_version": 4, "source": SOURCE, "svg": SVG}))
+        .await;
     assert_eq!(r.status, 403);
     assert_eq!(r.json()["detail"]["code"], "read_only");
     let r = c.put(&format!("/diagrams/{id}"), json!({"base_version": 4, "source": "nope", "svg": SVG})).await;
@@ -686,7 +712,10 @@ async fn read_update_delete_routes_answer_the_same() {
     assert_eq!(list[0]["note"], Value::Null);
     assert_eq!(list[1]["author"], "Mia");
     assert_eq!(list[3]["size_bytes"], SOURCE.len());
-    assert_eq!(normalize(&list[3]), json!({"version": 1, "author": "user", "note": null, "created_at": "<time>", "size_bytes": SOURCE.len()}));
+    assert_eq!(
+        normalize(&list[3]),
+        json!({"version": 1, "author": "user", "note": null, "created_at": "<time>", "size_bytes": SOURCE.len()})
+    );
     let r = c.get("/diagrams/dg_00000000/versions").await;
     assert_eq!(r.status, 404);
     assert_eq!(detail(&r), not_found);
@@ -726,7 +755,8 @@ async fn svg_and_download_routes_answer_the_same() {
     let d = make(&c, &pid, json!({"label": "Ünï flow/2"})).await;
     let id = d["id"].as_str().expect("id").to_string();
     c.put(&format!("/diagrams/{id}"), json!({"base_version": 1, "source": EMPTY, "svg": SVG})).await.assert_status(200);
-    let header = |r: &testkit::Resp, name: &str| r.headers.get(name).and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+    let header =
+        |r: &testkit::Resp, name: &str| r.headers.get(name).and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
 
     let r = c.get(&format!("/diagrams/{id}/svg")).await;
     assert_eq!(r.status, 200);

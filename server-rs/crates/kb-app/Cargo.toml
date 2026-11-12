@@ -12,6 +12,8 @@ workspace = true
 [dependencies]
 kb-base = { workspace = true }
 kb-db = { workspace = true }
+kb-doctext = { workspace = true }
+async-trait = { workspace = true }
 kb-log = { path = "../kb-log" }
 kb-files = { path = "../kb-files" }
 axum = { workspace = true }

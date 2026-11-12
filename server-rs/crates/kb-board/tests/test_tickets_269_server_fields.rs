@@ -1,7 +1,7 @@
-//! `tests/test_tickets_269_server_fields.py` (issue #269), the row a ticket's own fields carry: whose review a
-//! ticket in Review waits for. Left for their routes: `test_a_test_case_keeps_files_by_field_and_who_ran_and_decided_it`
-//! (test cases) and `test_doc_references_in_comments_test_cases_and_linked_docs_reach_activity` (comments, test
-//! cases, Docs pages).
+//! `tests/test_tickets_269_server_fields.py` (issue #269), the design rows that needed data from the server: whose
+//! review a ticket in Review waits for, a test case's files beside its Expected result and Notes and who started or
+//! decided it, and a doc reference added or removed anywhere on a ticket (a comment, a test case, Linked docs)
+//! written in its Activity.
 
 mod common;
 
@@ -52,4 +52,89 @@ async fn test_a_person_names_whose_review_a_ticket_waits_for() {
     let out = c.patch(&format!("/tickets/{tid}"), json!({"review_requested_from": null})).await;
     assert_eq!(out.status, 200, "{}", out.text());
     assert_eq!(out.json()["review_requested_from"], Value::Null);
+}
+
+// --- 6. Test case files and who ran / decided it ------------------------------------------------------------------
+
+#[tokio::test]
+async fn test_a_test_case_keeps_files_by_field_and_who_ran_and_decided_it() {
+    if !skip_unless_available("test_a_test_case_keeps_files_by_field_and_who_ran_and_decided_it") {
+        return;
+    }
+    let s = Server::start().await;
+    let c = s.client();
+    let (pid, _) = _project(&c).await;
+    let tid = _ticket(&c, &pid).await;
+    let an = c.clone().header("X-Actor", "An Nguyen");
+    let t = an.post(&format!("/tickets/{tid}/test-cases"), json!({"title": "Drop moves the card"})).await.json();
+    let tc = t["test_cases"][0].clone();
+    let shot = json!({"id": "f1", "name": "expected.png", "url": "/uploads/expected.png", "size": 10});
+    let rec = json!({"id": "f2", "name": "ghost.mov", "url": "/uploads/ghost.mov", "size": 20});
+    let t = c
+        .clone()
+        .header("X-Actor", "Ha My")
+        .patch(
+            &format!("/tickets/{tid}/test-cases/{}", id(&tc)),
+            json!({"status": "running", "expected_files": [shot]}),
+        )
+        .await
+        .json();
+    let tc = t["test_cases"][0].clone();
+    assert!(tc["expected_files"] == json!([shot]) && tc["notes_files"] == json!([]));
+    assert!(tc["started_by"] == "Ha My" && !tc["started_at"].as_str().expect("started_at").is_empty());
+    let t = c
+        .clone()
+        .header("X-Actor", "Tuan Vo")
+        .patch(&format!("/tickets/{tid}/test-cases/{}", id(&tc)), json!({"status": "fail", "notes_files": [rec]}))
+        .await
+        .json();
+    let tc = t["test_cases"][0].clone();
+    assert!(tc["status_by"] == "Tuan Vo" && !tc["status_at"].as_str().expect("status_at").is_empty());
+    assert!(tc["notes_files"] == json!([rec]) && tc["expected_files"] == json!([shot]));
+    // the person who started it stays the one who started it
+    assert_eq!(tc["started_by"], "Ha My");
+}
+
+// --- 7. Doc references in Activity --------------------------------------------------------------------------------
+
+/// `(field, from, to, ref)` of the doc reference entries.
+fn _refs(t: &Value) -> Vec<(Value, Value, Value, Value)> {
+    t["activity_log"]
+        .as_array()
+        .expect("activity_log")
+        .iter()
+        .filter(|e| e["field"] == "doc_ref_added" || e["field"] == "doc_ref_removed")
+        .map(|e| (e["field"].clone(), e["from"].clone(), e["to"].clone(), e["ref"].clone()))
+        .collect()
+}
+
+/// The comment and the test case of the Python test. Its last part (a page linked by hand under Linked docs) is
+/// left to the Docs port: it needs the Docs routes, and as written it no longer holds on the Python server, which
+/// answers `already_linked: "mention"` and adds nothing when a test case of the ticket already names the page.
+#[tokio::test]
+async fn test_doc_references_in_comments_test_cases_and_linked_docs_reach_activity() {
+    if !skip_unless_available("test_doc_references_in_comments_test_cases_and_linked_docs_reach_activity") {
+        return;
+    }
+    let s = Server::start().await;
+    let c = s.client();
+    let (pid, _) = _project(&c).await;
+    let tid = _ticket(&c, &pid).await;
+    // a comment
+    let t = c
+        .post(&format!("/tickets/{tid}/comments"), json!({"text": "See [[API#Endpoints]]", "author": "An Nguyen"}))
+        .await
+        .json();
+    let added = |key: &str, place: &str| (json!("doc_ref_added"), Value::Null, json!(key), json!(place));
+    let removed = |key: &str, place: &str| (json!("doc_ref_removed"), json!(key), Value::Null, json!(place));
+    assert!(_refs(&t).contains(&added("API#Endpoints", "a comment")));
+    let comment = t["comments"].as_array().expect("comments").last().expect("a comment").clone();
+    let t = c.patch(&format!("/tickets/{tid}/comments/{}", id(&comment)), json!({"text": "No link now"})).await.json();
+    assert!(_refs(&t).contains(&removed("API#Endpoints", "a comment")));
+    // a test case
+    let t = c
+        .post(&format!("/tickets/{tid}/test-cases"), json!({"title": "List", "expected_result": "As in [[API]]"}))
+        .await
+        .json();
+    assert!(_refs(&t).contains(&added("API", "test case TC-1")));
 }

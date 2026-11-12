@@ -193,7 +193,9 @@ fn plain_response(content: String, media_type: &str, extra: &[(&str, String)]) -
     let mut response = (StatusCode::OK, content).into_response();
     let headers = response.headers_mut();
     headers.insert(header::CONTENT_TYPE, HeaderValue::from_str(media_type).unwrap_or(HeaderValue::from_static("")));
-    for (name, value) in SVG_HEADERS.iter().map(|(n, v)| (*n, v.to_string())).chain(extra.iter().map(|(n, v)| (*n, v.clone()))) {
+    for (name, value) in
+        SVG_HEADERS.iter().map(|(n, v)| (*n, v.to_string())).chain(extra.iter().map(|(n, v)| (*n, v.clone())))
+    {
         if let (Ok(name), Ok(value)) = (header::HeaderName::try_from(name), HeaderValue::from_str(&value)) {
             headers.insert(name, value);
         }

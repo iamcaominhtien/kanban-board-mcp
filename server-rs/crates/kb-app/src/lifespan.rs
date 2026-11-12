@@ -16,6 +16,7 @@ pub struct Running {
 
 /// Bring the database up and start the background work.
 pub async fn startup() -> Result<Running, DatabaseError> {
+    crate::hooks::install();
     database::setup().await?;
     database::init_db_or_wait().await?;
     let follow = tokio::spawn(database::follow_settings(Duration::from_secs(2)));

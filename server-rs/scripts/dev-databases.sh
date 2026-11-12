@@ -42,7 +42,8 @@ case "$cmd" in
     mariadb --socket="$dir/run/mysql.sock" -u root -e "
       CREATE DATABASE IF NOT EXISTS kanban_test CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
       CREATE USER IF NOT EXISTS 'kanban'@'127.0.0.1' IDENTIFIED BY 'kanban';
-      GRANT ALL ON kanban_test.* TO 'kanban'@'127.0.0.1';"
+      GRANT ALL ON kanban_test.* TO 'kanban'@'127.0.0.1';
+      GRANT ALL ON \`kanban\\_dbkit\\_%\`.* TO 'kanban'@'127.0.0.1';"
     echo "postgresql://kanban@127.0.0.1:$pg_port/kanban_test?sslmode=disable"
     echo "mysql://kanban:kanban@127.0.0.1:$my_port/kanban_test?sslmode=disable"
     ;;

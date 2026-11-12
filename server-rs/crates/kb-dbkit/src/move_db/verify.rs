@@ -81,11 +81,7 @@ impl Mover {
         }))
     }
 
-    async fn compare_samples(
-        &mut self,
-        dst: &DatabaseConnection,
-        sample: usize,
-    ) -> Result<(Vec<Value>, i64), Error> {
+    async fn compare_samples(&mut self, dst: &DatabaseConnection, sample: usize) -> Result<(Vec<Value>, i64), Error> {
         let mut mismatched: Vec<Value> = Vec::new();
         let mut compared = 0;
         for t in app_tables() {
@@ -93,7 +89,8 @@ impl Mover {
             if pk.is_empty() {
                 continue;
             }
-            let pk_at: Vec<usize> = t.columns.iter().enumerate().filter(|(_, c)| c.primary_key).map(|(i, _)| i).collect();
+            let pk_at: Vec<usize> =
+                t.columns.iter().enumerate().filter(|(_, c)| c.primary_key).map(|(i, _)| i).collect();
             let source_backend = self.snap()?.backend();
             let random = if source_backend == DbBackend::MySql { "rand()" } else { "random()" };
             let rows = self
@@ -232,36 +229,34 @@ async fn orphans<R: Reader + ?Sized>(
 async fn rows_by_key(dst: &DatabaseConnection, t: &TableMeta, keys: &[&Vec<Cell>]) -> Result<Vec<Vec<Cell>>, DbErr> {
     let backend = dst.get_database_backend();
     let pk = primary_key(t);
-        let mut params: Vec<DbValue> = Vec::with_capacity(keys.len() * pk.len());
-        let condition = if pk.len() == 1 {
-            for key in keys {
-                params.push(key[0].to_db_value(pk[0].kind));
+    let mut params: Vec<DbValue> = Vec::with_capacity(keys.len() * pk.len());
+    let condition = if pk.len() == 1 {
+        for key in keys {
+            params.push(key[0].to_db_value(pk[0].kind));
+        }
+        format!("{} IN ({})", quote(backend, pk[0].name), vec!["?"; keys.len()].join(", "))
+    } else {
+        for key in keys {
+            for (value, column) in key.iter().zip(&pk) {
+                params.push(value.to_db_value(column.kind));
             }
-            format!("{} IN ({})", quote(backend, pk[0].name), vec!["?"; keys.len()].join(", "))
-        } else {
-            for key in keys {
-                for (value, column) in key.iter().zip(&pk) {
-                    params.push(value.to_db_value(column.kind));
-                }
-            }
-            let one = format!("({})", vec!["?"; pk.len()].join(", "));
-            format!(
-                "({}) IN ({})",
-                pk.iter().map(|c| quote(backend, c.name)).collect::<Vec<_>>().join(", "),
-                vec![one; keys.len()].join(", ")
-            )
-        };
-        let statement = format!("SELECT {} FROM {} WHERE {condition}", column_list(backend, t), quote(backend, t.name));
-        Sea(dst).rows(&statement, params).await
-    }
-
+        }
+        let one = format!("({})", vec!["?"; pk.len()].join(", "));
+        format!(
+            "({}) IN ({})",
+            pk.iter().map(|c| quote(backend, c.name)).collect::<Vec<_>>().join(", "),
+            vec![one; keys.len()].join(", ")
+        )
+    };
+    let statement = format!("SELECT {} FROM {} WHERE {condition}", column_list(backend, t), quote(backend, t.name));
+    Sea(dst).rows(&statement, params).await
+}
 
 async fn sequences_ok(dst: &DatabaseConnection) -> Result<bool, Error> {
     let mut dst = Sea(dst);
     for t in app_tables() {
         let Some(pk) = serial_key(t) else { continue };
-        let seq =
-            dst.scalar("SELECT pg_get_serial_sequence(?, ?)", vec![t.name.into(), pk.name.into()]).await?;
+        let seq = dst.scalar("SELECT pg_get_serial_sequence(?, ?)", vec![t.name.into(), pk.name.into()]).await?;
         let Cell::Text(seq) = seq else { continue };
         let top = dst.scalar(&format!("SELECT max(\"{}\") FROM \"{}\"", pk.name, t.name), Vec::new()).await?;
         let last = dst.scalar(&format!("SELECT last_value FROM {seq}"), Vec::new()).await?;

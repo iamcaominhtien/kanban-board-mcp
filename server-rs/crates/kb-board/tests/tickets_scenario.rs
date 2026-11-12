@@ -1,14 +1,20 @@
-//! One scenario through the ticket routes (create, update, move, delete), then what the database holds: the
-//! `project`, `story` and `ticket` tables of `testkit`'s `dump_db`, ids and times normalized, must be the same on both
-//! servers. This checks the stored bytes: the JSON columns as `json.dumps` writes them and the activity log.
+//! Two scenarios through the ticket routes, then what the database holds: the `project`, `story` and `ticket` tables
+//! of `testkit`'s `dump_db`, ids and times normalized, must be the same on both servers. This checks the stored
+//! bytes: the JSON columns as `json.dumps` writes them and the activity log.
 //!
-//! The dump of the Python server is kept in `contract/golden/ticket_scenario.json`, and each server is compared with
-//! it. To write it again after the scenario changes:
+//! - the first scenario is the ticket itself: create, update, move, delete;
+//! - the second is everything a ticket holds: comments, acceptance criteria, sub-tasks, the work log, test cases,
+//!   blocks, links, branches, reopen and pending.
+//!
+//! The dump of the Python server is kept in `contract/golden/ticket_scenario.json` (the first scenario at the top
+//! level, the second under `second`), and each server is compared with it. To write it again after a scenario changes:
 //! `PARITY_TARGET=python KANBAN_WRITE_GOLDEN=1 cargo test -p kb-board --test tickets_scenario`.
 
 mod common;
 
-use common::{exec, id, member, new_ticket, project};
+use std::sync::Mutex;
+
+use common::{exec, id, member, new_ticket, patch_empty, project};
 use serde_json::{Map, Value, json};
 use testkit::{Client, Server, Target, normalize, skip_unless_available, target};
 
@@ -126,23 +132,36 @@ fn tables(dump: &Value) -> Value {
     normalize(&Value::Object(out))
 }
 
-#[tokio::test]
-async fn the_same_scenario_leaves_the_same_rows() {
-    if !skip_unless_available("the_same_scenario_leaves_the_same_rows") {
-        return;
-    }
-    let s = Server::start().await;
-    scenario(&s).await;
-    let got = tables(&s.dump_db().await);
-    assert_eq!(got["ticket"].as_array().expect("tickets").len(), 7);
+/// The golden file is one file for both tests: one of them reads or writes it at a time.
+static GOLDEN_FILE: Mutex<()> = Mutex::new(());
 
+/// Compare the tables with the part of the golden file under `key` (the top level when there is none), after
+/// writing that part when the golden file is being written.
+fn check(got: &Value, key: Option<&str>) {
+    let _one_at_a_time = GOLDEN_FILE.lock().unwrap_or_else(|e| e.into_inner());
+    let read = || -> Value {
+        let text = std::fs::read_to_string(GOLDEN).expect("golden file ticket_scenario.json exists");
+        serde_json::from_str(&text).expect("golden file parses")
+    };
     if std::env::var("KANBAN_WRITE_GOLDEN").is_ok_and(|v| v == "1") {
         assert_eq!(target(), Target::Python, "the golden file is what the Python server stores");
-        let text = serde_json::to_string_pretty(&got).expect("json") + "\n";
+        let mut golden = read();
+        match key {
+            Some(key) => golden[key] = got.clone(),
+            None => {
+                for table in ["project", "story", "ticket"] {
+                    golden[table] = got[table].clone();
+                }
+            }
+        }
+        let text = serde_json::to_string_pretty(&golden).expect("json") + "\n";
         std::fs::write(GOLDEN, text).expect("write the golden file");
     }
-    let text = std::fs::read_to_string(GOLDEN).expect("golden file ticket_scenario.json exists");
-    let expected: Value = serde_json::from_str(&text).expect("golden file parses");
+    let golden = read();
+    let expected = match key {
+        Some(key) => &golden[key],
+        None => &golden,
+    };
     for table in ["project", "story", "ticket"] {
         let (got, expected) = (got[table].as_array().expect("rows"), expected[table].as_array().expect("rows"));
         assert_eq!(got.len(), expected.len(), "{table}");
@@ -153,4 +172,287 @@ async fn the_same_scenario_leaves_the_same_rows() {
             assert_eq!(got, expected, "{table}");
         }
     }
+}
+
+#[tokio::test]
+async fn the_same_scenario_leaves_the_same_rows() {
+    if !skip_unless_available("the_same_scenario_leaves_the_same_rows") {
+        return;
+    }
+    let s = Server::start().await;
+    scenario(&s).await;
+    let got = tables(&s.dump_db().await);
+    assert_eq!(got["ticket"].as_array().expect("tickets").len(), 7);
+    check(&got, None);
+}
+
+/// A request that must be answered with `status`.
+async fn call(c: &Client, status: u16, method: &str, path: &str, body: Value) -> Value {
+    let r = match body {
+        Value::Null => c.request(method, path, &[], None).await,
+        body => {
+            let bytes = serde_json::to_vec(&body).expect("json");
+            c.request(method, path, &[("content-type", "application/json")], Some(bytes)).await
+        }
+    };
+    assert_eq!(r.status, status, "{method} {path}: {}", r.text());
+    serde_json::from_slice(&r.body).unwrap_or(Value::Null)
+}
+
+/// The id of the last item of a list field of a ticket.
+fn last(ticket: &Value, field: &str) -> String {
+    id(ticket[field].as_array().expect("list").last().expect("an item"))
+}
+
+async fn second_scenario(s: &Server) {
+    let c = s.client();
+    let an = c.clone().header("X-Actor", "An Nguyen");
+    let pid = id(&project(&c, "Kanban Board", "KAN").await);
+    let other = id(&project(&c, "Other", "OTH").await);
+    let bao = member(&c, &pid, "Bao", "member").await;
+    let ha = member(&c, &pid, "Hà My", "admin").await;
+    let n = Value::Null;
+    new_ticket(
+        &an,
+        &pid,
+        json!({"title": "Đăng nhập bằng Google", "assignee": bao["id"], "description": "As [[Spec]]"}),
+    )
+    .await;
+    new_ticket(&c, &pid, json!({"title": "Parent", "status": "todo"})).await;
+    new_ticket(&c, &pid, json!({"title": "Child", "parent_id": "KAN-2"})).await;
+    new_ticket(&c, &pid, json!({"title": "Peer"})).await;
+    new_ticket(&c, &other, json!({"title": "Elsewhere"})).await;
+    let t = "/tickets/KAN-1";
+
+    // comments: mentions, a reply, an edit (and one that changes nothing), a delete and a restore, refusals
+    let text = format!("Xem [[Spec#Mục tiêu]] nhé @[Hà My](member:{}) \"quoted\" <b> \\ 😀", id(&ha));
+    let first = last(&call(&c, 200, "POST", &format!("{t}/comments"), json!({"text": text})).await, "comments");
+    let body =
+        json!({"text": "  A reply by Bao  ", "author": "bao", "reply_to": first, "ai_intent": "ask", "ai_fast": false});
+    let reply = last(&call(&c, 200, "POST", &format!("{t}/comments"), body).await, "comments");
+    call(&an, 200, "POST", &format!("{t}/comments"), json!({"text": "To delete [[Old page]]", "author": id(&ha)}))
+        .await;
+    call(&c, 400, "POST", &format!("{t}/comments"), json!({"text": "  "})).await;
+    call(&an, 200, "PATCH", &format!("{t}/comments/{first}"), json!({"text": "Now [[Spec]] only"})).await;
+    call(&c, 200, "PATCH", &format!("{t}/comments/{first}"), json!({"text": " Now [[Spec]] only "})).await;
+    call(&c, 404, "PATCH", &format!("{t}/comments/nope"), json!({"text": "x"})).await;
+    call(&c, 200, "DELETE", &format!("{t}/comments/{reply}"), n.clone()).await;
+    call(&c, 200, "DELETE", &format!("{t}/comments/nope"), n.clone()).await;
+    let third = last(&crate::common::get_ticket(&c, "KAN-1").await, "comments");
+    call(&c, 200, "DELETE", &format!("{t}/comments/{third}"), n.clone()).await;
+    call(&c, 200, "POST", &format!("{t}/comments/{third}/restore"), n.clone()).await;
+    call(&c, 404, "POST", &format!("{t}/comments/{third}/restore"), n.clone()).await;
+
+    // acceptance criteria and sub-tasks: added, toggled twice and once, deleted
+    for path in ["acceptance-criteria", "sub-tasks"] {
+        let field = path.replace('-', "_");
+        let one = last(
+            &call(&an, 200, "POST", &format!("{t}/{path}"), json!({"text": "  Đạt 100% [[Spec]]  "})).await,
+            &field,
+        );
+        let two = last(&call(&c, 200, "POST", &format!("{t}/{path}"), json!({"text": "x".repeat(250)})).await, &field);
+        let three = last(&call(&c, 200, "POST", &format!("{t}/{path}"), json!({"text": "To remove"})).await, &field);
+        call(&c, 400, "POST", &format!("{t}/{path}"), json!({"text": ""})).await;
+        patch_empty(&c, &format!("{t}/{path}/{one}/toggle")).await.assert_status(200);
+        patch_empty(&an, &format!("{t}/{path}/{two}/toggle")).await.assert_status(200);
+        patch_empty(&c, &format!("{t}/{path}/{two}/toggle")).await.assert_status(200);
+        patch_empty(&c, &format!("{t}/{path}/nope/toggle")).await.assert_status(200);
+        call(&c, 200, "DELETE", &format!("{t}/{path}/{three}"), n.clone()).await;
+        call(&c, 200, "DELETE", &format!("{t}/{path}/nope"), n.clone()).await;
+    }
+    let ac = id(&crate::common::get_ticket(&c, "KAN-1").await["acceptance_criteria"][0]);
+
+    // branches (no repository is linked: the record alone), test cases, the work log with its links
+    let body = json!({"name": "feature/đăng-nhập", "branch_from": "develop", "status": "open", "ahead_count": 2, "behind_count": 1.0,
+        "pr_url": "https://example.com/pr/1", "commit_hash": "abc1234", "linked_ticket_id": "KAN-4"});
+    let branch = last(&call(&an, 201, "POST", &format!("{t}/branches"), body).await, "branches");
+    let extra = last(
+        &call(&c, 201, "POST", &format!("{t}/branches"), json!({"name": "to-delete", "status": "baseline"})).await,
+        "branches",
+    );
+    call(&c, 400, "POST", &format!("{t}/branches"), json!({"name": "wt", "create_worktree": true})).await;
+    let body = json!({"name": "feature/login", "status": "merged", "branch_from": "main", "pr_url": "", "ahead_count": 0,
+        "worktree_path": "/tmp/wt/login"});
+    call(&c, 200, "PATCH", &format!("{t}/branches/{branch}"), body).await;
+    call(
+        &an,
+        200,
+        "PATCH",
+        &format!("{t}/branches/{branch}"),
+        json!({"remove_worktree": true, "commit_hash": "def5678"}),
+    )
+    .await;
+    call(&c, 200, "PATCH", &format!("{t}/branches/{extra}"), json!({"worktree_path": " ", "linked_ticket_id": ""}))
+        .await;
+    call(&c, 404, "PATCH", &format!("{t}/branches/nope"), json!({"name": "x"})).await;
+    call(&c, 200, "DELETE", &format!("{t}/branches/{extra}?remove_worktree=true&delete_git_branch=true"), n.clone())
+        .await;
+    call(&c, 200, "DELETE", &format!("{t}/branches/nope"), n.clone()).await;
+    call(&c, 400, "POST", &format!("{t}/branches/{branch}/checkout"), n.clone()).await;
+
+    let body = json!({"title": "  Mở trang đăng nhập  ", "description": "Theo [[Spec#Đăng nhập]]", "expected_result": "Thấy nút Google",
+        "criterion_id": ac, "assignee": bao["id"], "test_data_files": [{"id": "f1", "name": "dữ liệu.csv", "url": "/uploads/d.csv", "size": 3}]});
+    let tc1 = last(&call(&c, 200, "POST", &format!("{t}/test-cases"), body).await, "test_cases");
+    let body = json!({"title": "Runs", "status": "running", "notes": "long notes [[Notes]]", "note": "short", "proof": "[[Proof]]"});
+    let tc2 = last(&call(&an, 200, "POST", &format!("{t}/test-cases"), body).await, "test_cases");
+    let tc3 = last(
+        &call(
+            &c,
+            200,
+            "POST",
+            &format!("{t}/test-cases"),
+            json!({"title": "Passed", "status": "pass", "note": "only a note"}),
+        )
+        .await,
+        "test_cases",
+    );
+    call(&c, 400, "POST", &format!("{t}/test-cases"), json!({"title": "x", "criterion_id": "nope"})).await;
+    call(&c, 200, "DELETE", &format!("{t}/test-cases/{tc3}"), n.clone()).await;
+    call(&c, 200, "POST", &format!("{t}/test-cases"), json!({"title": "After a delete", "status": "fail"})).await;
+    call(&an, 200, "PATCH", &format!("{t}/test-cases/{tc1}"), json!({"status": "running"})).await;
+    let body = json!({"status": "pass", "title": "Mở trang", "description": "Theo [[Spec]]", "expected_result": "", "notes": "ok",
+        "proof": "ảnh.png", "note": "n", "assignee": "", "criterion_id": "", "test_data_files": [],
+        "expected_files": [{"id": "e", "n": 1.0}], "notes_files": [{"id": "n", "ok": true, "none": null}]});
+    call(&c, 200, "PATCH", &format!("{t}/test-cases/{tc1}"), body).await;
+    call(&c, 200, "PATCH", &format!("{t}/test-cases/{tc2}"), json!({"status": "running", "title": "Runs"})).await;
+    call(&an, 200, "PATCH", &format!("{t}/test-cases/{tc2}"), json!({"status": "fail"})).await;
+    call(&c, 200, "PATCH", &format!("{t}/test-cases/nope"), json!({"status": "pass"})).await;
+    call(&c, 400, "PATCH", &format!("{t}/test-cases/{tc2}"), json!({"title": " "})).await;
+
+    let body = json!({"author": "Hà My", "role": "Tester", "note": "  Tìm thấy lỗi ở [[Spec]]  ", "kind": "root_cause", "pinned": true,
+        "linked_branch": "feature/login", "linked_test_case": tc2,
+        "attachments": [{"name": "  trace.log ", "url": "/uploads/trace.log", "size": 12, "type": "text/plain", "extra": true},
+            {"id": "att-2", "name": "ảnh.png", "url": "/uploads/a.png", "size": 1.5}]});
+    let log1 = last(&call(&c, 200, "POST", &format!("{t}/work-log"), body).await, "work_log");
+    let log2 = last(
+        &call(
+            &an,
+            200,
+            "POST",
+            &format!("{t}/work-log"),
+            json!({"author": "user", "role": "Other", "note": "y".repeat(300)}),
+        )
+        .await,
+        "work_log",
+    );
+    call(
+        &c,
+        400,
+        "POST",
+        &format!("{t}/work-log"),
+        json!({"author": "A", "role": "PM", "note": "n", "linked_branch": "nope"}),
+    )
+    .await;
+    call(
+        &c,
+        200,
+        "PATCH",
+        &format!("{t}/work-log/{log1}"),
+        json!({"note": " Sửa xong ", "kind": "resolved", "author": "Bao", "role": "Developer"}),
+    )
+    .await;
+    call(
+        &c,
+        200,
+        "PATCH",
+        &format!("{t}/work-log/{log1}"),
+        json!({"linked_branch": "", "linked_test_case": "TC-1", "pinned": false, "attachments": []}),
+    )
+    .await;
+    call(&c, 404, "PATCH", &format!("{t}/work-log/nope"), json!({"note": "x"})).await;
+    call(&c, 200, "DELETE", &format!("{t}/work-log/{log2}"), n.clone()).await;
+    call(&c, 200, "DELETE", &format!("{t}/work-log/nope"), n.clone()).await;
+
+    // blocks and links, made and removed, with what is refused in between
+    call(&c, 200, "POST", "/tickets/KAN-1/blocks/KAN-2", n.clone()).await;
+    call(&c, 200, "POST", "/tickets/KAN-1/blocks/KAN-2", n.clone()).await;
+    call(&an, 200, "POST", "/tickets/KAN-2/blocks/KAN-4", n.clone()).await;
+    call(&c, 400, "POST", "/tickets/KAN-4/blocks/KAN-1", n.clone()).await;
+    call(&c, 400, "POST", "/tickets/KAN-1/blocks/OTH-1", n.clone()).await;
+    call(&c, 200, "POST", "/tickets/KAN-1/blocks/KAN-4", n.clone()).await;
+    call(&c, 200, "DELETE", "/tickets/KAN-1/blocks/KAN-4", n.clone()).await;
+    call(&c, 200, "DELETE", "/tickets/KAN-4/blocks/KAN-3", n.clone()).await;
+    call(&c, 200, "DELETE", "/tickets/KAN-3/blocks/KAN-3", n.clone()).await;
+    let link = |target: &str, relation: &str| json!({"target_id": target, "relation_type": relation});
+    let causes = call(&an, 201, "POST", "/tickets/KAN-1/links", link("KAN-2", "causes")).await;
+    call(&c, 201, "POST", "/tickets/KAN-1/links", link("KAN-2", "causes")).await;
+    call(&c, 201, "POST", "/tickets/KAN-1/links", link("KAN-4", "duplicated_by")).await;
+    call(&c, 201, "POST", "/tickets/KAN-4/links", link("KAN-1", "relates_to")).await;
+    call(&c, 201, "POST", "/tickets/KAN-2/links", link("KAN-1", "caused_by")).await;
+    call(&c, 400, "POST", "/tickets/KAN-1/links", link("OTH-1", "relates_to")).await;
+    call(&c, 400, "POST", "/tickets/KAN-1/links", link("KAN-1", "relates_to")).await;
+    call(&c, 200, "DELETE", &format!("/tickets/KAN-1/links/{}", id(&causes)), n.clone()).await;
+    call(&c, 404, "DELETE", &format!("/tickets/KAN-1/links/{}", id(&causes)), n.clone()).await;
+
+    // pending: set, changed, resumed with a comment; a blocker that finishes prompts the waiting ticket
+    let put = "/tickets/KAN-3/pending";
+    call(&c, 400, "PUT", put, json!({"reason_type": "ticket", "ticket_id": "KAN-3"})).await;
+    call(
+        &an,
+        200,
+        "PUT",
+        put,
+        json!({"reason_type": "party", "party": "  Khách hàng  ", "note": " chờ phản hồi ", "ticket_id": "KAN-4"}),
+    )
+    .await;
+    call(&c, 200, "PUT", put, json!({"reason_type": "person", "member_id": bao["id"], "actor": "Bao"})).await;
+    call(
+        &c,
+        200,
+        "PUT",
+        put,
+        json!({"reason_type": "ticket", "ticket_id": "KAN-4", "add_blocked_by": true, "actor": null}),
+    )
+    .await;
+    call(&c, 200, "PATCH", "/tickets/KAN-4", json!({"status": "wont_do", "wont_do_reason": "not needed"})).await;
+    call(
+        &c,
+        200,
+        "POST",
+        "/tickets/KAN-3/resume",
+        json!({"reason": "  KAN-4 xong rồi  ", "add_comment": true, "actor": "Hà My"}),
+    )
+    .await;
+    call(&c, 409, "POST", "/tickets/KAN-3/resume", n.clone()).await;
+    call(&c, 200, "PUT", put, json!({"reason_type": "ticket", "ticket_id": "OTH-1"})).await;
+    call(&c, 200, "DELETE", put, n.clone()).await;
+    call(&c, 200, "PUT", "/tickets/KAN-2/pending", json!({"reason_type": "party", "party": "Legal"})).await;
+    call(&c, 200, "DELETE", "/tickets/KAN-2/pending", json!({"add_comment": true})).await;
+    call(&c, 200, "PUT", "/tickets/KAN-2/pending", json!({"reason_type": "ticket", "ticket_id": "KAN-1"})).await;
+
+    // reopen: with everything reset, undone, again; a child with its parent; closing a ticket others wait for
+    call(&c, 409, "POST", "/tickets/KAN-1/reopen", json!({})).await;
+    call(&c, 200, "PATCH", "/tickets/KAN-1", json!({"status": "wont_do", "wont_do_reason": "Thôi"})).await;
+    call(&c, 200, "POST", "/tickets/KAN-1/reopen", json!({"reason": "  Cần làm lại  ", "actor": "Linh Phạm"})).await;
+    call(&c, 200, "POST", "/tickets/KAN-1/reopen/undo", n.clone()).await;
+    call(&c, 409, "POST", "/tickets/KAN-1/reopen/undo", n.clone()).await;
+    call(&an, 200, "POST", "/tickets/KAN-1/reopen", json!({"reset_ac": true, "reset_tests": true, "unassign": true}))
+        .await;
+    call(&c, 200, "PATCH", "/tickets/KAN-1/status", json!({"status": "done"})).await;
+    call(&c, 400, "POST", "/tickets/KAN-1/reopen", json!({"reason": "x".repeat(241)})).await;
+    call(&c, 200, "POST", "/tickets/KAN-1/reopen", json!({"actor": null, "reason": "x".repeat(240)})).await;
+    call(&c, 200, "PATCH", "/tickets/KAN-3/status", json!({"status": "done"})).await;
+    call(&c, 200, "PATCH", "/tickets/KAN-2", json!({"status": "wont_do", "wont_do_reason": "parent dropped"})).await;
+    call(
+        &c,
+        200,
+        "POST",
+        "/tickets/KAN-3/reopen",
+        json!({"reopen_parent": true, "actor": "Bao", "reason": "child first"}),
+    )
+    .await;
+    call(&c, 200, "POST", "/tickets/KAN-2/reopen/undo", n.clone()).await;
+    call(&c, 422, "PUT", "/tickets/KAN-2/pending", json!({"reason_type": "party", "party": "X"})).await;
+}
+
+#[tokio::test]
+async fn the_second_scenario_leaves_the_same_rows() {
+    if !skip_unless_available("the_second_scenario_leaves_the_same_rows") {
+        return;
+    }
+    let s = Server::start().await;
+    second_scenario(&s).await;
+    let got = tables(&s.dump_db().await);
+    assert_eq!(got["ticket"].as_array().expect("tickets").len(), 5);
+    check(&got, Some("second"));
 }

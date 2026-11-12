@@ -7,6 +7,7 @@ use std::time::Instant;
 
 use futures::StreamExt;
 use futures::future::BoxFuture;
+use kb_db::changes;
 use kb_db::entities::{ColumnMeta, META, TableMeta};
 use kb_db::schema::{self, SchemaState};
 use kb_db::sea_orm::{
@@ -14,7 +15,6 @@ use kb_db::sea_orm::{
     Value as DbValue,
 };
 use kb_db::targets::{self, Target};
-use kb_db::changes;
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 
@@ -147,7 +147,11 @@ pub(crate) fn remove_sqlite_file(path: &str) {
 /// Why a table's copy ended early (inside `copy_rows`, before the stop is described).
 enum CopyFail {
     /// One row would not go in: how many went in before it, the row, and what the database said.
-    Row { copied: i64, values: Vec<Cell>, err: DbErr },
+    Row {
+        copied: i64,
+        values: Vec<Cell>,
+        err: DbErr,
+    },
     Other(Error),
 }
 
@@ -163,8 +167,8 @@ pub struct Mover {
     pub target: Target,
     on_progress: Option<Progress>,
     pub batch_rows: usize,
-    /// The pools of both ends, made when they are first used (making a pool of a SQLite file opens the file).
-    src: Option<DatabaseConnection>,
+    /// The target's pool, made when it is first used (making a pool of a SQLite file opens the file). The source is
+    /// only ever read through its snapshot, and each look at the target is a connection of its own.
     dst: Option<DatabaseConnection>,
     pub(crate) snap: Option<Direct>,
     tables: Arc<Mutex<Vec<TableState>>>,
@@ -186,7 +190,6 @@ impl Mover {
             target,
             on_progress,
             batch_rows: BATCH_ROWS,
-            src: None,
             dst: None,
             snap: None,
             tables: Arc::new(Mutex::new(app_tables().iter().map(|t| TableState::new(t.name)).collect())),
@@ -195,14 +198,6 @@ impl Mover {
             started: None,
             created_target: false,
         })
-    }
-
-    /// The source's pool (`self.src`).
-    pub(crate) async fn src(&mut self) -> Result<DatabaseConnection, Error> {
-        if self.src.is_none() {
-            self.src = Some(targets::make_engine(&self.source, Some("copy")).await?);
-        }
-        self.src.clone().ok_or_else(|| Error::Other("The source is not open.".into()))
     }
 
     /// The target's pool (`self.dst`).
@@ -216,8 +211,7 @@ impl Mover {
     /// Read the source from one consistent moment.
     pub async fn open(&mut self) -> Result<(), Error> {
         if self.snap.is_none() {
-            let src = self.src().await?;
-            self.snap = Some(raw::snapshot(&src).await?);
+            self.snap = Some(raw::snapshot(&self.source).await?);
         }
         Ok(())
     }
@@ -226,9 +220,6 @@ impl Mover {
     pub async fn close(&mut self) {
         if let Some(snap) = self.snap.take() {
             snap.close().await;
-        }
-        if let Some(src) = self.src.take() {
-            let _ = src.close().await;
         }
         if let Some(dst) = self.dst.take() {
             let _ = dst.close().await;
@@ -355,11 +346,8 @@ impl Mover {
         extra.sort();
         let tables = self.tables();
         let counted = |name: &str| tables.iter().find(|s| s.name == name).map(|s| s.rows).unwrap_or(0);
-        let size = if self.source.is_sqlite() {
-            std::fs::metadata(&self.source.path).ok().map(|m| m.len())
-        } else {
-            None
-        };
+        let size =
+            if self.source.is_sqlite() { std::fs::metadata(&self.source.path).ok().map(|m| m.len()) } else { None };
         let mut source = described(&self.source);
         source.insert("size".into(), json!(size));
         source.insert("tables".into(), json!(tables.len()));
@@ -471,8 +459,8 @@ impl Mover {
     // -- the target --------------------------------------------------------
 
     /// What the target holds now.
-    pub async fn target_state(&mut self) -> Result<SchemaState, Error> {
-        let mut conn = Direct::connect(&self.dst().await?).await?;
+    pub async fn target_state(&self) -> Result<SchemaState, Error> {
+        let mut conn = Direct::connect(&self.target, "copy").await?;
         let state = raw::schema_state(&mut conn).await;
         conn.close().await;
         Ok(state?)
@@ -519,12 +507,11 @@ impl Mover {
         if self.target.is_sqlite() {
             return Ok(());
         }
-        let dst = self.dst().await?;
-        let mut conn = Direct::connect(&dst).await?;
+        let mut conn = Direct::connect(&self.target, "copy").await?;
         let names = raw::table_names(&mut conn).await;
         conn.close().await;
         let names = names?;
-        let txn = dst.begin().await?;
+        let txn = self.dst().await?.begin().await?;
         if self.target.engine == "mysql" {
             txn.execute_unprepared("SET FOREIGN_KEY_CHECKS = 0").await?;
             for name in &names {
@@ -552,10 +539,9 @@ impl Mover {
             txn.commit().await?;
             return Ok(());
         }
-        let dst = self.dst().await?;
         // a server that is away says so at once
-        Direct::connect(&dst).await?.close().await;
-        let txn = dst.begin().await?;
+        Direct::connect(&self.target, "copy").await?.close().await;
+        let txn = self.dst().await?.begin().await?;
         schema::create_schema(&txn).await?;
         txn.commit().await?;
         Ok(())
@@ -567,9 +553,9 @@ impl Mover {
         if self.target.is_sqlite() {
             return Ok(());
         }
+        Direct::connect(&self.target, "copy").await?.close().await;
         let dst = self.dst().await?;
         let backend = dst.get_database_backend();
-        Direct::connect(&dst).await?.close().await;
         let txn = dst.begin().await?;
         let ours = app_tables().iter().rev().map(|t| t.name).chain(["alembic_version", changes::TABLE]);
         for name in ours {
@@ -662,7 +648,8 @@ impl Mover {
         let txn = dst.begin().await?;
         txn.execute_unprepared(&format!("DELETE FROM {}", quote(target_backend, table.name))).await?;
         let source_backend = snap.backend();
-        let select = format!("SELECT {} FROM {}", column_list(source_backend, table), quote(source_backend, table.name));
+        let select =
+            format!("SELECT {} FROM {}", column_list(source_backend, table), quote(source_backend, table.name));
         let mut stream = snap.stream(&select);
         let mut batch: Vec<Vec<Cell>> = Vec::new();
         let mut size = 0;
@@ -756,7 +743,8 @@ impl Mover {
         if column.is_none() {
             column = guess_column(table, values, &message);
         }
-        let value = column.as_deref().and_then(|name| table.columns.iter().position(|c| c.name == name)).map(|i| &values[i]);
+        let value =
+            column.as_deref().and_then(|name| table.columns.iter().position(|c| c.name == name)).map(|i| &values[i]);
         let total = self.with_tables(|tables| tables[index].rows);
         let mut stop = Stop {
             table: table.name.to_string(),
@@ -774,11 +762,7 @@ impl Mover {
             ..Stop::default()
         };
         // only for the explanation: a database that cannot say leaves these empty
-        let connected = match self.dst().await {
-            Ok(dst) => Direct::connect(&dst).await.ok(),
-            Err(_) => None,
-        };
-        if let Some(mut conn) = connected {
+        if let Ok(mut conn) = Direct::connect(&self.target, "copy").await {
             stop.target_version = raw::server_version(&mut conn).await;
             if let Some(column) = column.as_deref() {
                 stop.target_type = raw::column_type(&mut conn, table.name, column).await.ok().flatten();
@@ -813,9 +797,8 @@ impl Mover {
         let txn = self.dst().await?.begin().await?;
         for t in app_tables() {
             let Some(pk) = serial_key(t) else { continue };
-            let seq = Sea(&txn)
-                .scalar("SELECT pg_get_serial_sequence(?, ?)", vec![t.name.into(), pk.name.into()])
-                .await?;
+            let seq =
+                Sea(&txn).scalar("SELECT pg_get_serial_sequence(?, ?)", vec![t.name.into(), pk.name.into()]).await?;
             if let Cell::Text(seq) = seq {
                 let top = format!("SELECT MAX(\"{}\") FROM \"{}\"", pk.name, t.name);
                 Sea(&txn)
@@ -843,7 +826,7 @@ impl Mover {
     }
 
     /// Something that changes when anyone writes to the source (to tell whether a copy is still current).
-    pub async fn source_fingerprint(&mut self) -> Result<String, Error> {
+    pub async fn source_fingerprint(&self) -> Result<String, Error> {
         if self.source.is_sqlite() {
             let mut parts = Vec::new();
             for suffix in ["", "-wal"] {
@@ -859,7 +842,7 @@ impl Mover {
             }
             return Ok(parts.join("|"));
         }
-        let mut conn = Direct::connect(&self.src().await?).await?;
+        let mut conn = Direct::connect(&self.source, "copy").await?;
         let top = conn.scalar("SELECT max(id) FROM kanban_change", Vec::new()).await;
         conn.close().await;
         Ok(top.ok().and_then(|v| v.as_i64()).unwrap_or(0).to_string())
@@ -987,7 +970,10 @@ mod tests {
         values[0] = Cell::Text("id".into());
         values[1] = Cell::Text("a long name".into());
         assert_eq!(guess_column(table, &values, "Data too long").as_deref(), Some("name"));
-        assert_eq!(guess_column(table, &values, "NOT NULL constraint failed: project.prefix").as_deref(), Some("prefix"));
+        assert_eq!(
+            guess_column(table, &values, "NOT NULL constraint failed: project.prefix").as_deref(),
+            Some("prefix")
+        );
         assert_eq!(guess_column(table, &values, "disk full"), None);
     }
 }

@@ -172,8 +172,8 @@ async fn test(out: &Out, url: &str) -> Result<i32, Fail> {
 }
 
 /// The table an interrupted copy stopped in: tables are copied in order and each one completely or not at all.
-async fn first_unfinished(m: &mut Mover) -> Result<Option<&'static str>, move_db::Error> {
-    let mut conn = Direct::connect(&m.dst().await?).await?;
+async fn first_unfinished(m: &Mover) -> Result<Option<&'static str>, move_db::Error> {
+    let mut conn = Direct::connect(&m.target, "copy").await?;
     let mut found = None;
     for (t, state) in app_tables().iter().zip(m.tables()) {
         let n = match raw::count(&mut conn, t.name).await {
@@ -234,7 +234,11 @@ async fn migrate(out: &Out, args: &Migrate) -> Result<i32, Fail> {
                             .unwrap_or_else(|e| e.into_inner())
                             .as_ref()
                             .and_then(|t| {
-                                t.lock().unwrap_or_else(|e| e.into_inner()).iter().find(|s| s.name == table).map(|s| s.rows)
+                                t.lock()
+                                    .unwrap_or_else(|e| e.into_inner())
+                                    .iter()
+                                    .find(|s| s.name == table)
+                                    .map(|s| s.rows)
                             })
                             .unwrap_or(0);
                         out.print(format!("{table:<26}{} / {}", commas(rows), commas(rows)));
@@ -496,11 +500,7 @@ fn parse(args: &[String]) -> Result<Command, Exit> {
                 // in the order they were typed
                 let typed: Vec<&str> =
                     rest.iter().map(String::as_str).filter(|a| extra.contains(a) && *a != url.as_str()).collect();
-                return Err(usage_error(
-                    USAGE,
-                    "kanban-db",
-                    &format!("unrecognized arguments: {}", typed.join(" ")),
-                ));
+                return Err(usage_error(USAGE, "kanban-db", &format!("unrecognized arguments: {}", typed.join(" "))));
             }
             Ok(if cmd == "test" { Command::Test((*url).clone()) } else { Command::Use((*url).clone()) })
         }
@@ -575,7 +575,10 @@ fn parse_migrate(rest: &[String]) -> Result<Migrate, Exit> {
                 return Err(usage_error(
                     MIGRATE_USAGE,
                     prog,
-                    &format!("argument {option}: ignored explicit argument {}", pytext::repr(&inline.unwrap_or_default())),
+                    &format!(
+                        "argument {option}: ignored explicit argument {}",
+                        pytext::repr(&inline.unwrap_or_default())
+                    ),
                 ));
             }
             None
@@ -590,8 +593,11 @@ fn parse_migrate(rest: &[String]) -> Result<Migrate, Exit> {
             _ => found.yes_empty = value,
         }
     }
-    let missing: Vec<&str> =
-        [("--from", source.is_none()), ("--to", target.is_none())].iter().filter(|(_, m)| *m).map(|(n, _)| *n).collect();
+    let missing: Vec<&str> = [("--from", source.is_none()), ("--to", target.is_none())]
+        .iter()
+        .filter(|(_, m)| *m)
+        .map(|(n, _)| *n)
+        .collect();
     if !missing.is_empty() {
         return Err(usage_error(
             MIGRATE_USAGE,
@@ -609,6 +615,7 @@ fn parse_migrate(rest: &[String]) -> Result<Migrate, Exit> {
 
 /// Run the command line, writing to `out`. `args` are the words after the program's name.
 pub async fn run(args: Vec<String>, out: Out) -> i32 {
+    probe::use_asyncio_words();
     let command = match parse(&args) {
         Ok(command) => command,
         Err(exit) => {
@@ -665,7 +672,10 @@ mod tests {
             }))
         );
         let err = |text: &str| parse(&words(text)).unwrap_err();
-        assert_eq!(err("").err, "usage: kanban-db [-h] {test,migrate,use} ...\nkanban-db: error: the following arguments are required: cmd\n");
+        assert_eq!(
+            err("").err,
+            "usage: kanban-db [-h] {test,migrate,use} ...\nkanban-db: error: the following arguments are required: cmd\n"
+        );
         assert_eq!(err("").code, 2);
         assert_eq!(
             err("bogus").err,

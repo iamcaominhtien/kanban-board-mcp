@@ -88,10 +88,7 @@ fn chunk(kind: &[u8], data: &[u8]) -> Vec<u8> {
 pub fn png(width: u32, height: u32, extra: usize) -> Vec<u8> {
     let mut raw = Vec::new();
     for _ in 0..height {
-        raw.push(0);
-        for _ in 0..width {
-            raw.extend_from_slice(&[0xff, 0xff, 0xff, 0xff]);
-        }
+        raw.extend(std::iter::once(0u8).chain(std::iter::repeat_n(0xff, 4 * width as usize)));
     }
     let mut out = b"\x89PNG\r\n\x1a\n".to_vec();
     let mut header = Vec::new();
@@ -113,8 +110,9 @@ pub fn png(width: u32, height: u32, extra: usize) -> Vec<u8> {
 
 /// `source(width, height, layers, **kw)`: the editable source of a drawing, `json.dumps`'d.
 pub fn source(width: u32, height: u32, layers: usize, extra: Value) -> Vec<u8> {
-    let layer_list: Vec<Value> =
-        (0..layers).map(|i| json!({"id": format!("l{i}"), "name": format!("Layer {i}"), "visible": true, "opacity": 1})).collect();
+    let layer_list: Vec<Value> = (0..layers)
+        .map(|i| json!({"id": format!("l{i}"), "name": format!("Layer {i}"), "visible": true, "opacity": 1}))
+        .collect();
     let mut doc = json!({
         "format": "kanban-sketch", "version": 1, "width": width, "height": height, "background": "white",
         "layers": layer_list,
@@ -136,8 +134,9 @@ pub struct Reply {
 
 impl Reply {
     pub fn json(&self) -> Value {
-        serde_json::from_slice(&self.body)
-            .unwrap_or_else(|e| panic!("{}: body is not JSON ({e}): {}", self.status, String::from_utf8_lossy(&self.body)))
+        serde_json::from_slice(&self.body).unwrap_or_else(|e| {
+            panic!("{}: body is not JSON ({e}): {}", self.status, String::from_utf8_lossy(&self.body))
+        })
     }
 
     pub fn text(&self) -> String {
@@ -160,7 +159,12 @@ pub type FilePart = (String, String, String, Vec<u8>);
 pub fn files(width: u32, height: u32, layers: usize) -> Vec<FilePart> {
     vec![
         ("png".into(), "drawing.png".into(), "image/png".into(), png(width, height, 0)),
-        ("source".into(), "drawing.sketch.json".into(), "application/json".into(), source(width, height, layers, json!({}))),
+        (
+            "source".into(),
+            "drawing.sketch.json".into(),
+            "application/json".into(),
+            source(width, height, layers, json!({})),
+        ),
     ]
 }
 
@@ -183,7 +187,10 @@ pub async fn form(
         multipart = multipart.part(field, part);
     }
     let mut rb = http
-        .request(reqwest::Method::from_bytes(method.as_bytes()).expect("method"), format!("{}{path}", server.base_url()))
+        .request(
+            reqwest::Method::from_bytes(method.as_bytes()).expect("method"),
+            format!("{}{path}", server.base_url()),
+        )
         .multipart(multipart);
     for (n, v) in headers {
         rb = rb.header(*n, *v);

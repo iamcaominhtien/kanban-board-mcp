@@ -24,6 +24,7 @@ macro_rules! literal {
         }
     };
 }
+pub(crate) use literal;
 
 literal! {
     /// `Literal["bug", "feature", "task", "chore", "story"]`.

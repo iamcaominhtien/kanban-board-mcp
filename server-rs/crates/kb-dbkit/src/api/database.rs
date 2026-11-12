@@ -142,9 +142,10 @@ async fn database_info() -> ApiResult<Map<String, Value>> {
     let target = database::current_target();
     let sqlite_file = database::get_db_path();
     let stat = std::fs::metadata(&sqlite_file).ok();
-    let modified = stat.as_ref().and_then(|m| m.modified().ok()).and_then(|t| {
-        t.duration_since(std::time::UNIX_EPOCH).ok().map(|d| d.as_secs_f64())
-    });
+    let modified = stat
+        .as_ref()
+        .and_then(|m| m.modified().ok())
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok().map(|d| d.as_secs_f64()));
     let mut info = Map::new();
     info.insert("engine".into(), json!(target.engine));
     info.insert("label".into(), json!(target.label()));
@@ -329,7 +330,9 @@ async fn post_start(Body(body): Body<StartBody>) -> ApiResult<Json<Value>> {
             job.target.name.clone()
         };
         if kb_base::pytext::strip(body.confirm.as_deref().unwrap_or("")) != expected {
-            return Err(ApiError::unprocessable(json!({"code": "confirm", "message": format!("Type {expected} to confirm.")})));
+            return Err(ApiError::unprocessable(
+                json!({"code": "confirm", "message": format!("Type {expected} to confirm.")}),
+            ));
         }
     }
     job.start(&body.mode, body.empty_first).await.map_err(raise)?;

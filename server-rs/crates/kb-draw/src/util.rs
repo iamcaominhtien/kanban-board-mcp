@@ -9,7 +9,13 @@ use serde_json::Value;
 pub fn path_str(text: &str) -> String {
     let parts = kb_files::pathlib::parts(text);
     let joined = parts.join("/");
-    if kb_files::pathlib::is_absolute(text) { format!("/{joined}") } else if joined.is_empty() { ".".into() } else { joined }
+    if kb_files::pathlib::is_absolute(text) {
+        format!("/{joined}")
+    } else if joined.is_empty() {
+        ".".into()
+    } else {
+        joined
+    }
 }
 
 /// `OSError.strerror`: the operating system's own words (`Permission denied`), without Rust's ` (os error 13)`.
@@ -290,7 +296,9 @@ impl JsonReader<'_> {
             match serde_json::from_str::<Value>(&text) {
                 Ok(v) => v,
                 // a whole number too big for 64 bits: kept as a float, as Rust has no bigger number
-                Err(_) => text.parse::<f64>().ok().and_then(serde_json::Number::from_f64).map_or(Value::Null, Value::Number),
+                Err(_) => {
+                    text.parse::<f64>().ok().and_then(serde_json::Number::from_f64).map_or(Value::Null, Value::Number)
+                }
             }
         };
         Ok((value, j))
@@ -320,7 +328,11 @@ pub fn utf8_error_message(bytes: &[u8]) -> Option<String> {
     let (end, reason) = match err.error_len() {
         Some(n) => {
             let first = bytes[start];
-            if first >= 0x80 && !(0xc2..=0xf4).contains(&first) { (start + 1, "invalid start byte") } else { (start + n, "invalid continuation byte") }
+            if first >= 0x80 && !(0xc2..=0xf4).contains(&first) {
+                (start + 1, "invalid start byte")
+            } else {
+                (start + n, "invalid continuation byte")
+            }
         }
         None => (bytes.len(), "unexpected end of data"),
     };
@@ -337,7 +349,10 @@ pub fn py_repr(value: &Value) -> String {
         Value::String(s) => pytext::repr(s),
         Value::Array(items) => format!("[{}]", items.iter().map(py_repr).collect::<Vec<_>>().join(", ")),
         Value::Object(map) => {
-            format!("{{{}}}", map.iter().map(|(k, v)| format!("{}: {}", pytext::repr(k), py_repr(v))).collect::<Vec<_>>().join(", "))
+            format!(
+                "{{{}}}",
+                map.iter().map(|(k, v)| format!("{}: {}", pytext::repr(k), py_repr(v))).collect::<Vec<_>>().join(", ")
+            )
         }
         other => kb_base::pyjson::py_str(other),
     }

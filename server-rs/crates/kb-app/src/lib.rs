@@ -3,6 +3,7 @@
 
 pub mod cors;
 pub mod files;
+pub mod hooks;
 pub mod lifespan;
 pub mod middleware;
 pub mod sse;
