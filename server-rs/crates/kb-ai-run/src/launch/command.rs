@@ -32,7 +32,7 @@ fn text_of(value: &Value) -> String {
 }
 
 /// `_kv_dict`: a dict of texts from a dict, or from a list of `{key, value}` rows (what the settings form saves).
-fn kv_dict(value: &Value) -> Map<String, Value> {
+pub fn kv_dict(value: &Value) -> Map<String, Value> {
     let mut out = Map::new();
     match value {
         Value::Object(map) => {

@@ -382,10 +382,10 @@ pub fn to_local(value: &serde_json::Value) -> serde_json::Value {
     }
 }
 
-/// A text this process made, as the golden file writes it: `<ROOT>`, `<TMP>` and `<TODAY>` in place of this
-/// process's folders and of today's date.
+/// A text this process made, as the golden file writes it: `<ROOT>` and `<TMP>` in place of this process's folders
+/// (a test whose rows hold `<TODAY>` puts that back itself).
 pub fn golden_text(text: &str) -> String {
-    text.replace(&*folder().to_string_lossy(), "<ROOT>").replace(&tmp_text(), "<TMP>").replace(&today(), "<TODAY>")
+    text.replace(&*folder().to_string_lossy(), "<ROOT>").replace(&tmp_text(), "<TMP>")
 }
 
 /// A value this process made, as the golden file writes it (`golden_text`).
