@@ -1,0 +1,858 @@
+{
+  "GET live: running": {
+    "status": 200,
+    "json": {
+      "runs": [
+        {
+          "account_id": null,
+          "answer": null,
+          "diagnosis": null,
+          "effort": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "exit_code": null,
+          "instruction": "",
+          "kind": "team",
+          "last_output_at": "<time>",
+          "live": true,
+          "member_id": "<uuid:1>",
+          "mode": "work",
+          "number": 1,
+          "paused": false,
+          "project_id": "<uuid:2>",
+          "question": null,
+          "queued_at": "<time>",
+          "report": {},
+          "restarts": [],
+          "retries": [],
+          "session_id": "<uuid:3>",
+          "session_name": "KAN-1",
+          "started_at": "<time>",
+          "started_by": "user",
+          "state": "running",
+          "stop_code": null,
+          "summary": null,
+          "target": null,
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "trigger": "run_button",
+          "waiting_reason": null
+        }
+      ]
+    }
+  },
+  "GET overview: running": {
+    "status": 200,
+    "json": {
+      "active": [
+        {
+          "member_id": "<uuid:1>",
+          "run_id": "<run:1>",
+          "state": "running",
+          "ticket_id": "KAN-1"
+        }
+      ],
+      "paused_all": false,
+      "paused_reason": null,
+      "project_id": "<uuid:2>",
+      "runs": {
+        "running": 1
+      },
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "health": "ok",
+          "name": "Dev An",
+          "queued": 0,
+          "slots_in_use": 1,
+          "status": {
+            "code": "running",
+            "detail": "KAN-1",
+            "label": "Running",
+            "ticket_id": "KAN-1"
+          }
+        }
+      ]
+    }
+  },
+  "GET resources: running": {
+    "status": 200,
+    "json": {
+      "limits": {
+        "auto_restarts": 2,
+        "board_max_parallel": 4,
+        "run_memory_limit_mb": 4096
+      },
+      "project_id": "<uuid:1>",
+      "runs": [
+        {
+          "cpu_pct": 0.0,
+          "ended_at": null,
+          "ended_reason": null,
+          "extra_mb": 0.0,
+          "live": true,
+          "member_color": "#2E6F40",
+          "member_id": "<uuid:2>",
+          "member_name": "Dev An",
+          "number": 1,
+          "readable": true,
+          "restarts": [],
+          "roles_working": [
+            "reviewer"
+          ],
+          "run_id": "<run:1>",
+          "started_at": "<time>",
+          "state": "running",
+          "stop_code": null,
+          "ticket_id": "KAN-1",
+          "ticket_title": "Fix add()"
+        }
+      ]
+    }
+  },
+  "GET run: restarted": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "answer": null,
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": null,
+      "ended_by": null,
+      "ended_reason": null,
+      "exit_code": null,
+      "instruction": "",
+      "kind": "team",
+      "last_output_at": "<time>",
+      "live": true,
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 1,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": null,
+      "queued_at": "<time>",
+      "report": {},
+      "restarts": [
+        {
+          "at": "<time>",
+          "by": "user",
+          "limit_mb": 4096,
+          "n": 1
+        }
+      ],
+      "retries": [],
+      "session_id": "<uuid:3>",
+      "session_name": "KAN-1",
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "running",
+      "stop_code": null,
+      "summary": null,
+      "target": null,
+      "ticket_id": "KAN-1",
+      "tokens_cached": null,
+      "trigger": "run_button",
+      "waiting_reason": null
+    }
+  },
+  "GET run: running": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "answer": null,
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": null,
+      "ended_by": null,
+      "ended_reason": null,
+      "exit_code": null,
+      "instruction": "",
+      "kind": "team",
+      "last_output_at": "<time>",
+      "live": true,
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 1,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": null,
+      "queued_at": "<time>",
+      "report": {},
+      "restarts": [],
+      "retries": [],
+      "session_id": "<uuid:3>",
+      "session_name": "KAN-1",
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "running",
+      "stop_code": null,
+      "summary": null,
+      "target": null,
+      "ticket_id": "KAN-1",
+      "tokens_cached": null,
+      "trigger": "run_button",
+      "waiting_reason": null
+    }
+  },
+  "GET run: stopped by the kill switch": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "answer": null,
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": "<time>",
+      "ended_by": "user",
+      "ended_reason": "freeze",
+      "exit_code": null,
+      "instruction": "",
+      "kind": "team",
+      "last_output_at": "<time>",
+      "live": false,
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 2,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": null,
+      "queued_at": "<time>",
+      "report": {},
+      "restarts": [],
+      "retries": [],
+      "session_id": "<uuid:3>",
+      "session_name": "KAN-1",
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "cancelled",
+      "stop_code": null,
+      "summary": null,
+      "target": null,
+      "ticket_id": "KAN-1",
+      "tokens_cached": null,
+      "trigger": "run_button",
+      "waiting_reason": null
+    }
+  },
+  "GET team: paused": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "account_ref": null,
+      "assigned": [
+        {
+          "status": "todo",
+          "title": "Fix add()"
+        }
+      ],
+      "cap_per_run": null,
+      "checked_at": "<time>",
+      "cli_path": "<tmp>/bin/claude",
+      "color": "#2E6F40",
+      "config": {
+        "disallowed_tools": [],
+        "hooks": [],
+        "mcp_servers": [],
+        "plugins": [],
+        "skills": []
+      },
+      "created_at": "<time>",
+      "created_by": "user",
+      "daily_budget": null,
+      "description": "",
+      "effort": null,
+      "health": "ok",
+      "health_detail": null,
+      "kind": "ai",
+      "last_run": {
+        "ended_at": "<time>",
+        "number": 1,
+        "state": "cancelled",
+        "ticket_id": "KAN-1"
+      },
+      "max_parallel": 2,
+      "max_runs_per_day": null,
+      "mcp_last_used_at": null,
+      "monthly_cap": null,
+      "name": "Dev An",
+      "pack_key": "standard",
+      "pack_name": "Standard feature",
+      "paused": true,
+      "paused_at": "<time>",
+      "paused_reason": "lunch",
+      "permission_mode": "bypass",
+      "persona": "",
+      "project_id": "<uuid:1>",
+      "provider": "claude-code",
+      "queued": 0,
+      "roles": [
+        {
+          "description": "A failing test before the fix",
+          "effort": "medium",
+          "key": "dev",
+          "name": "Dev (TDD)",
+          "prompt": "You are Dev on this project. Write the failing test first and run it, then make the smallest change that makes it pass, then run the suite. Keep the change as small as the criteria allow; never reformat a file you did not touch; commit on your ticket's branch. You are not the reviewer of your own work and you may not change an acceptance criterion, only propose one. A Docs page you write or change on how the parts fit together or what happens in which order (the architecture, a data flow, a sequence between devices or services) carries a draw.io Diagram of it beside the words; add or update it (skill `kanban-board:drawio-diagrams`: change only the shapes you mean, look at docs_read(picture) before you save). Your craft: the skill `kanban-board:role-dev`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
+          "tools": null,
+          "writes": "worktree"
+        },
+        {
+          "description": "Reads the diff, never the transcript",
+          "effort": "medium",
+          "key": "reviewer",
+          "name": "Reviewer",
+          "prompt": "You are the Reviewer. You get the diff, the acceptance criteria and the hand-over note, never the other AI's transcript, so you judge the change fresh. Check every criterion against the code, run the tests the depth asks for, and answer: pass, or exactly what to change and why. Do not repeat an objection you already made once it was answered; you never change code. Your craft: the skill `kanban-board:role-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
+          "tools": null,
+          "writes": "nothing"
+        },
+        {
+          "description": "Runs it, does not read it",
+          "effort": "low",
+          "key": "qa",
+          "name": "QA",
+          "prompt": "You are QA on this project. You check that the product works; you do not fix it. Turn the criteria into test cases, run the suite and the app, attach proof (output, screenshots) to each test case, and report exactly what passed and what did not. A failure gets a clear repro, not a guess at the cause. Your craft: the skill `kanban-board:role-qa`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
+          "tools": null,
+          "writes": "tests"
+        }
+      ],
+      "running": [],
+      "scope": "assigned",
+      "slots_in_use": 0,
+      "status": {
+        "code": "paused",
+        "detail": "lunch",
+        "label": "Paused"
+      },
+      "tokens_per_day": null,
+      "updated_at": "<time>",
+      "usage": {
+        "cost_today": 0,
+        "runs_today": 1,
+        "tokens_today": 0
+      },
+      "working_dir": "<tmp>/repo"
+    }
+  },
+  "GET touches: what the person did": {
+    "status": 200,
+    "json": {
+      "all_kinds": [
+        {
+          "key": "answer",
+          "label": "Answered a team's question"
+        },
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand"
+        },
+        {
+          "key": "stop",
+          "label": "Stopped a run"
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run"
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead"
+        },
+        {
+          "key": "edit",
+          "label": "Edited a ticket while a run worked on it"
+        },
+        {
+          "key": "signin",
+          "label": "Signed an account in again"
+        },
+        {
+          "key": "pause",
+          "label": "Paused or resumed"
+        }
+      ],
+      "items": [
+        {
+          "at": "<time>",
+          "details": "“Use pytest.”",
+          "kind": "message",
+          "label": "Sent a message to the lead",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:1>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "user"
+        },
+        {
+          "at": "<time>",
+          "details": "Resumed all the project's AI",
+          "kind": "pause",
+          "label": "Paused or resumed",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": null,
+          "team_id": null,
+          "team_ids": [],
+          "team_name": "All teams",
+          "team_names": [],
+          "ticket_id": null,
+          "via": null,
+          "who": "user"
+        },
+        {
+          "at": "<time>",
+          "details": "Run #3",
+          "kind": "run_by_hand",
+          "label": "Started a run by hand",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:1>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "user"
+        },
+        {
+          "at": "<time>",
+          "details": "Paused all the project's AI",
+          "kind": "pause",
+          "label": "Paused or resumed",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": null,
+          "team_id": null,
+          "team_ids": [],
+          "team_name": "All teams",
+          "team_names": [],
+          "ticket_id": null,
+          "via": null,
+          "who": "user"
+        },
+        {
+          "at": "<time>",
+          "details": "Resumed Dev An",
+          "kind": "pause",
+          "label": "Paused or resumed",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": null,
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": null,
+          "via": null,
+          "who": "user"
+        },
+        {
+          "at": "<time>",
+          "details": "Run #2",
+          "kind": "run_by_hand",
+          "label": "Started a run by hand",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:2>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "user"
+        },
+        {
+          "at": "<time>",
+          "details": "Paused Dev An",
+          "kind": "pause",
+          "label": "Paused or resumed",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": null,
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": null,
+          "via": null,
+          "who": "user"
+        },
+        {
+          "at": "<time>",
+          "details": "Run #1",
+          "kind": "run_by_hand",
+          "label": "Started a run by hand",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:3>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "user"
+        }
+      ],
+      "kinds": [
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand",
+          "total": 3
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead",
+          "total": 1
+        },
+        {
+          "key": "pause",
+          "label": "Paused or resumed",
+          "total": 4
+        }
+      ],
+      "range": "7d",
+      "since": "<time>",
+      "teams": [
+        {
+          "name": "Dev An",
+          "per_10_runs": 20.0,
+          "removed": false,
+          "runs": 3,
+          "touches": 6
+        }
+      ],
+      "totals": {
+        "avoidable": 0,
+        "needed": 0,
+        "per_ticket": 4.0,
+        "runs": 3,
+        "tickets": 1,
+        "touches": 8,
+        "unmarked": 8
+      },
+      "truncated": false
+    }
+  },
+  "POST answer: nothing asked": {
+    "status": 409,
+    "json": {
+      "detail": "This run is not waiting for an answer."
+    }
+  },
+  "POST message: into the live run": {
+    "status": 200,
+    "json": {
+      "delivered": "live",
+      "run_id": "<run:1>"
+    }
+  },
+  "POST pause-all: cancels what runs": {
+    "status": 200,
+    "json": {
+      "audit_retention_days": 90,
+      "board_at_cap": "pause",
+      "board_daily_cap": null,
+      "board_max_parallel": 4,
+      "board_monthly_budget": null,
+      "board_runs_per_day": null,
+      "board_tokens_per_day": null,
+      "deny_list": [],
+      "lessons_max": 40,
+      "lessons_mode": "auto",
+      "ops": {},
+      "paused_all": true,
+      "paused_at": "<time>",
+      "paused_reason": "freeze",
+      "permission_mode": "bypass",
+      "project_id": "<uuid:1>",
+      "reports_cost": false,
+      "run_memory_limit_mb": 4096
+    }
+  },
+  "POST pause: cancel the current run": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "account_ref": null,
+      "assigned": [
+        {
+          "status": "todo",
+          "title": "Fix add()"
+        }
+      ],
+      "cap_per_run": null,
+      "checked_at": "<time>",
+      "cli_path": "<tmp>/bin/claude",
+      "color": "#2E6F40",
+      "config": {
+        "disallowed_tools": [],
+        "hooks": [],
+        "mcp_servers": [],
+        "plugins": [],
+        "skills": []
+      },
+      "created_at": "<time>",
+      "created_by": "user",
+      "daily_budget": null,
+      "description": "",
+      "effort": null,
+      "health": "ok",
+      "health_detail": null,
+      "kind": "ai",
+      "last_run": {
+        "ended_at": "<time>",
+        "number": 1,
+        "state": "cancelled",
+        "ticket_id": "KAN-1"
+      },
+      "max_parallel": 2,
+      "max_runs_per_day": null,
+      "mcp_last_used_at": null,
+      "monthly_cap": null,
+      "name": "Dev An",
+      "pack_key": "standard",
+      "pack_name": "Standard feature",
+      "paused": true,
+      "paused_at": "<time>",
+      "paused_reason": "lunch",
+      "permission_mode": "bypass",
+      "persona": "",
+      "project_id": "<uuid:1>",
+      "provider": "claude-code",
+      "queued": 0,
+      "roles": [
+        {
+          "description": "A failing test before the fix",
+          "effort": "medium",
+          "key": "dev",
+          "name": "Dev (TDD)",
+          "prompt": "You are Dev on this project. Write the failing test first and run it, then make the smallest change that makes it pass, then run the suite. Keep the change as small as the criteria allow; never reformat a file you did not touch; commit on your ticket's branch. You are not the reviewer of your own work and you may not change an acceptance criterion, only propose one. A Docs page you write or change on how the parts fit together or what happens in which order (the architecture, a data flow, a sequence between devices or services) carries a draw.io Diagram of it beside the words; add or update it (skill `kanban-board:drawio-diagrams`: change only the shapes you mean, look at docs_read(picture) before you save). Your craft: the skill `kanban-board:role-dev`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
+          "tools": null,
+          "writes": "worktree"
+        },
+        {
+          "description": "Reads the diff, never the transcript",
+          "effort": "medium",
+          "key": "reviewer",
+          "name": "Reviewer",
+          "prompt": "You are the Reviewer. You get the diff, the acceptance criteria and the hand-over note, never the other AI's transcript, so you judge the change fresh. Check every criterion against the code, run the tests the depth asks for, and answer: pass, or exactly what to change and why. Do not repeat an objection you already made once it was answered; you never change code. Your craft: the skill `kanban-board:role-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
+          "tools": null,
+          "writes": "nothing"
+        },
+        {
+          "description": "Runs it, does not read it",
+          "effort": "low",
+          "key": "qa",
+          "name": "QA",
+          "prompt": "You are QA on this project. You check that the product works; you do not fix it. Turn the criteria into test cases, run the suite and the app, attach proof (output, screenshots) to each test case, and report exactly what passed and what did not. A failure gets a clear repro, not a guess at the cause. Your craft: the skill `kanban-board:role-qa`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
+          "tools": null,
+          "writes": "tests"
+        }
+      ],
+      "running": [],
+      "scope": "assigned",
+      "slots_in_use": 0,
+      "status": {
+        "code": "paused",
+        "detail": "lunch",
+        "label": "Paused"
+      },
+      "tokens_per_day": null,
+      "updated_at": "<time>",
+      "usage": {
+        "cost_today": 0,
+        "runs_today": 1,
+        "tokens_today": 0
+      },
+      "working_dir": "<tmp>/repo"
+    }
+  },
+  "POST restart": {
+    "status": 200,
+    "json": {
+      "restarting": true
+    }
+  },
+  "POST resume": {
+    "note": {
+      "paused": false,
+      "status": 200
+    }
+  },
+  "POST resume-all": {
+    "status": 200,
+    "json": {
+      "audit_retention_days": 90,
+      "board_at_cap": "pause",
+      "board_daily_cap": null,
+      "board_max_parallel": 4,
+      "board_monthly_budget": null,
+      "board_runs_per_day": null,
+      "board_tokens_per_day": null,
+      "deny_list": [],
+      "lessons_max": 40,
+      "lessons_mode": "auto",
+      "ops": {},
+      "paused_all": false,
+      "paused_at": null,
+      "paused_reason": null,
+      "permission_mode": "bypass",
+      "project_id": "<uuid:1>",
+      "reports_cost": false,
+      "run_memory_limit_mb": 4096
+    }
+  },
+  "POST retry: it has not ended": {
+    "status": 409,
+    "json": {
+      "detail": "The run is still going."
+    }
+  },
+  "POST run: a paused team": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "answer": null,
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": null,
+      "ended_by": null,
+      "ended_reason": null,
+      "exit_code": null,
+      "instruction": "",
+      "kind": "team",
+      "last_output_at": null,
+      "live": false,
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 2,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": null,
+      "queued_at": "<time>",
+      "report": {},
+      "restarts": [],
+      "retries": [],
+      "session_id": null,
+      "session_name": "KAN-1",
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "stop_code": null,
+      "summary": null,
+      "target": null,
+      "ticket_id": "KAN-1",
+      "tokens_cached": null,
+      "trigger": "run_button",
+      "waiting_reason": null
+    }
+  },
+  "POST run: everything is paused": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "answer": null,
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": null,
+      "ended_by": null,
+      "ended_reason": null,
+      "exit_code": null,
+      "instruction": "",
+      "kind": "team",
+      "last_output_at": null,
+      "live": false,
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 3,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": null,
+      "queued_at": "<time>",
+      "report": {},
+      "restarts": [],
+      "retries": [],
+      "session_id": null,
+      "session_name": "KAN-1",
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "stop_code": null,
+      "summary": null,
+      "target": null,
+      "ticket_id": "KAN-1",
+      "tokens_cached": null,
+      "trigger": "run_button",
+      "waiting_reason": null
+    }
+  },
+  "the run after the kill switch is": {
+    "note": {
+      "reason": "freeze",
+      "state": "cancelled"
+    }
+  },
+  "the run after the note is": {
+    "note": {
+      "state": "finished"
+    }
+  },
+  "the run after the pause is": {
+    "note": {
+      "reason": "Dev An was paused by user",
+      "state": "cancelled"
+    }
+  },
+  "the run is": {
+    "note": {
+      "state": "running"
+    }
+  }
+}

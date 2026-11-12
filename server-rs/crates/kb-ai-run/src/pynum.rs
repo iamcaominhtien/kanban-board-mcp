@@ -3,24 +3,7 @@
 
 use serde_json::{Value, json};
 
-/// `sum(values)` of floats as Python 3.12 adds them (Neumaier's compensated sum).
-pub fn sum(values: impl IntoIterator<Item = f64>) -> f64 {
-    let (mut total, mut c) = (0.0f64, 0.0f64);
-    for x in values {
-        let t = total + x;
-        if total.abs() >= x.abs() {
-            c += (total - t) + x;
-        } else {
-            c += (x - t) + total;
-        }
-        total = t;
-    }
-    // (the compensation never turns an infinite or overflowed sum into a NaN)
-    if c != 0.0 && c.is_finite() {
-        total += c;
-    }
-    total
-}
+pub use kb_base::pynum::sum;
 
 /// `round(x, digits)`: the nearest value with that many decimals of the exact number, a tie going to the even
 /// digit.

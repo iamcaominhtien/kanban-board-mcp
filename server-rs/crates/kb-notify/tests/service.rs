@@ -155,6 +155,9 @@ async fn the_service_functions_of_the_notification_centre() {
         std::env::set_var("KANBAN_CONFIG_DIR", dir.path().join("config"));
         std::env::set_var("KANBAN_DB_PATH", dir.path().join("data").join("kanban.db"));
         std::env::remove_var("KANBAN_DATABASE_URL");
+        // the loop this test starts writes the cards of the day by the computer's clock (from 18:00 on a working
+        // day): it runs in a zone where it is morning, whenever the test runs
+        std::env::set_var("TZ", testkit::morning_zone());
     }
     database::setup().await.expect("setup");
     database::init_db().await.expect("init_db");

@@ -738,8 +738,10 @@ async fn the_day_card_counts_the_day_from_the_runs_and_the_log() {
         ],
     )
     .await;
-    let local_wait = chrono::DateTime::parse_from_rfc3339(&at(-3600)).expect("time").with_timezone(&chrono::Local);
-    let local_tomorrow = tomorrow.with_timezone(&chrono::Local);
+    // (the server's own clock: `testkit` gives it a zone of its own)
+    let zone = chrono::FixedOffset::east_opt(testkit::server_hours_east() as i32 * 3600).expect("offset");
+    let local_wait = chrono::DateTime::parse_from_rfc3339(&at(-3600)).expect("time").with_timezone(&zone);
+    let local_tomorrow = tomorrow.with_timezone(&zone);
 
     let r = c.get("/notifications/day-card?preview=1").await;
     r.assert_status(200);

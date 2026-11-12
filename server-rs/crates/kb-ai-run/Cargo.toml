@@ -20,7 +20,6 @@ kb-draw = { workspace = true }
 kb-notify = { workspace = true }
 async-trait = { workspace = true }
 chrono = { workspace = true }
-chrono-tz = { workspace = true }
 jiff = { workspace = true }
 portable-pty = "0.9"
 regex = { workspace = true }
@@ -38,6 +37,7 @@ tracing = { workspace = true }
 nix = { version = "0.31", features = ["signal", "process", "fs"] }
 
 [dev-dependencies]
+chrono-tz = { workspace = true }
 fake-claude = { path = "../fake-claude" }
 axum = { workspace = true }
 sha2 = "0.10"

@@ -1,0 +1,1490 @@
+{
+  "GET messages": {
+    "status": 200,
+    "json": [
+      {
+        "at": "<time>",
+        "delivered_at": null,
+        "direction": "in",
+        "peer": "user",
+        "text": "Please add a test."
+      },
+      {
+        "at": "<time>",
+        "delivered_at": null,
+        "direction": "out",
+        "peer": "user",
+        "text": "Added."
+      }
+    ]
+  },
+  "GET messages after": {
+    "status": 200,
+    "json": [
+      {
+        "at": "<time>",
+        "delivered_at": null,
+        "direction": "in",
+        "peer": "user",
+        "text": "Please add a test too."
+      }
+    ]
+  },
+  "GET messages: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Run not found"
+    }
+  },
+  "GET project runs": {
+    "status": 200,
+    "json": [
+      {
+        "account_id": null,
+        "answer": null,
+        "context_used": null,
+        "context_window": null,
+        "cost_usd": 0.0,
+        "diagnosis": null,
+        "effort": null,
+        "ended_at": "<time>",
+        "ended_by": null,
+        "ended_reason": null,
+        "exit_code": null,
+        "instruction": "",
+        "kind": "team",
+        "last_output_at": "<time>",
+        "live": false,
+        "member_id": "<uuid:1>",
+        "mode": "work",
+        "number": 1,
+        "paused": false,
+        "project_id": "<uuid:2>",
+        "question": {
+          "text": "Which database?"
+        },
+        "queued_at": "<time>",
+        "report": {},
+        "restarts": [],
+        "retries": [],
+        "session_id": null,
+        "session_name": null,
+        "started_at": "<time>",
+        "started_by": "user",
+        "state": "finished",
+        "stop_code": null,
+        "summary": "Fixed add().",
+        "target": null,
+        "ticket_id": "KAN-3",
+        "tokens_cached": null,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "trigger": "assign",
+        "waiting_reason": null
+      },
+      {
+        "account_id": null,
+        "answer": null,
+        "context_used": null,
+        "context_window": null,
+        "cost_usd": 0.01,
+        "diagnosis": null,
+        "effort": null,
+        "ended_at": "<time>",
+        "ended_by": null,
+        "ended_reason": null,
+        "exit_code": 0,
+        "instruction": "Fix add()",
+        "kind": "team",
+        "last_output_at": "<time>",
+        "live": false,
+        "member_id": "<uuid:1>",
+        "mode": "work",
+        "number": 1,
+        "paused": false,
+        "project_id": "<uuid:2>",
+        "question": null,
+        "queued_at": "<time>",
+        "report": {
+          "branch": "ai/test",
+          "lessons": [
+            "Run pytest -q from the server folder."
+          ],
+          "open_items": [],
+          "status": "done",
+          "summary": "Fixed add(); tests pass.",
+          "tests": {
+            "command": "pytest -q",
+            "failed": 0,
+            "passed": 4
+          }
+        },
+        "restarts": [],
+        "retries": [],
+        "session_id": "<uuid:3>",
+        "session_name": "KAN-2",
+        "started_at": "<time>",
+        "started_by": "user",
+        "state": "finished",
+        "stop_code": null,
+        "summary": "Fixed add(); tests pass.",
+        "target": null,
+        "ticket_id": "KAN-2",
+        "tokens_cached": 0,
+        "tokens_in": 100,
+        "tokens_out": 20,
+        "trigger": "run_button",
+        "waiting_reason": null
+      }
+    ]
+  },
+  "GET project runs: finished or failed": {
+    "status": 200,
+    "json": [
+      {
+        "account_id": null,
+        "answer": null,
+        "context_used": null,
+        "context_window": null,
+        "cost_usd": 0.0,
+        "diagnosis": null,
+        "effort": null,
+        "ended_at": "<time>",
+        "ended_by": null,
+        "ended_reason": null,
+        "exit_code": null,
+        "instruction": "",
+        "kind": "team",
+        "last_output_at": "<time>",
+        "live": false,
+        "member_id": "<uuid:1>",
+        "mode": "work",
+        "number": 1,
+        "paused": false,
+        "project_id": "<uuid:2>",
+        "question": {
+          "text": "Which database?"
+        },
+        "queued_at": "<time>",
+        "report": {},
+        "restarts": [],
+        "retries": [],
+        "session_id": null,
+        "session_name": null,
+        "started_at": "<time>",
+        "started_by": "user",
+        "state": "finished",
+        "stop_code": null,
+        "summary": "Fixed add().",
+        "target": null,
+        "ticket_id": "KAN-3",
+        "tokens_cached": null,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "trigger": "assign",
+        "waiting_reason": null
+      },
+      {
+        "account_id": null,
+        "answer": null,
+        "context_used": null,
+        "context_window": null,
+        "cost_usd": 0.01,
+        "diagnosis": null,
+        "effort": null,
+        "ended_at": "<time>",
+        "ended_by": null,
+        "ended_reason": null,
+        "exit_code": 0,
+        "instruction": "Fix add()",
+        "kind": "team",
+        "last_output_at": "<time>",
+        "live": false,
+        "member_id": "<uuid:1>",
+        "mode": "work",
+        "number": 1,
+        "paused": false,
+        "project_id": "<uuid:2>",
+        "question": null,
+        "queued_at": "<time>",
+        "report": {
+          "branch": "ai/test",
+          "lessons": [
+            "Run pytest -q from the server folder."
+          ],
+          "open_items": [],
+          "status": "done",
+          "summary": "Fixed add(); tests pass.",
+          "tests": {
+            "command": "pytest -q",
+            "failed": 0,
+            "passed": 4
+          }
+        },
+        "restarts": [],
+        "retries": [],
+        "session_id": "<uuid:3>",
+        "session_name": "KAN-2",
+        "started_at": "<time>",
+        "started_by": "user",
+        "state": "finished",
+        "stop_code": null,
+        "summary": "Fixed add(); tests pass.",
+        "target": null,
+        "ticket_id": "KAN-2",
+        "tokens_cached": 0,
+        "tokens_in": 100,
+        "tokens_out": 20,
+        "trigger": "run_button",
+        "waiting_reason": null
+      }
+    ]
+  },
+  "GET project runs: limit 1": {
+    "status": 200,
+    "json": [
+      {
+        "account_id": null,
+        "answer": null,
+        "context_used": null,
+        "context_window": null,
+        "cost_usd": 0.0,
+        "diagnosis": null,
+        "effort": null,
+        "ended_at": "<time>",
+        "ended_by": null,
+        "ended_reason": null,
+        "exit_code": null,
+        "instruction": "",
+        "kind": "team",
+        "last_output_at": "<time>",
+        "live": false,
+        "member_id": "<uuid:1>",
+        "mode": "work",
+        "number": 1,
+        "paused": false,
+        "project_id": "<uuid:2>",
+        "question": {
+          "text": "Which database?"
+        },
+        "queued_at": "<time>",
+        "report": {},
+        "restarts": [],
+        "retries": [],
+        "session_id": null,
+        "session_name": null,
+        "started_at": "<time>",
+        "started_by": "user",
+        "state": "finished",
+        "stop_code": null,
+        "summary": "Fixed add().",
+        "target": null,
+        "ticket_id": "KAN-3",
+        "tokens_cached": null,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "trigger": "assign",
+        "waiting_reason": null
+      }
+    ]
+  },
+  "GET project runs: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET project runs: running": {
+    "status": 200,
+    "json": []
+  },
+  "GET run": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "agents": [
+        {
+          "agent_type": "reviewer",
+          "claude_id": null,
+          "ended_at": "<time>",
+          "last_text": "Looks good.",
+          "run_id": "<run:1>",
+          "spans": [
+            {
+              "end": "<time>",
+              "start": "<time>"
+            }
+          ],
+          "started_at": "<time>"
+        }
+      ],
+      "answer": null,
+      "context_used": null,
+      "context_window": null,
+      "cost_usd": 0.0,
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": "<time>",
+      "ended_by": null,
+      "ended_reason": null,
+      "exit_code": null,
+      "instruction": "",
+      "kind": "team",
+      "last_output_at": "<time>",
+      "live": false,
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 1,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": {
+        "text": "Which database?"
+      },
+      "queued_at": "<time>",
+      "report": {},
+      "restarts": [],
+      "retries": [],
+      "session_id": null,
+      "session_name": null,
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "finished",
+      "steps": [
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {
+            "added": 1,
+            "path": "calc.py",
+            "removed": 1
+          },
+          "has_output": false,
+          "kind": "edit",
+          "parent_tool_id": null,
+          "run_id": "<run:1>",
+          "seq": 1,
+          "title": "Edited calc.py",
+          "tool": "Edit",
+          "tool_id": null
+        },
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {
+            "command": "pytest -q",
+            "exit_code": 0
+          },
+          "has_output": true,
+          "kind": "command",
+          "parent_tool_id": null,
+          "run_id": "<run:1>",
+          "seq": 2,
+          "title": "Ran pytest -q",
+          "tool": "Bash",
+          "tool_id": null
+        },
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {},
+          "has_output": false,
+          "kind": "text",
+          "parent_tool_id": null,
+          "run_id": "<run:1>",
+          "seq": 3,
+          "title": "Done.",
+          "tool": "",
+          "tool_id": null
+        },
+        {
+          "agent_id": "agent1",
+          "at": "<time>",
+          "detail": {},
+          "has_output": false,
+          "kind": "text",
+          "parent_tool_id": null,
+          "run_id": "<run:1>",
+          "seq": 4,
+          "title": "Looks good.",
+          "tool": "",
+          "tool_id": null
+        },
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {},
+          "has_output": false,
+          "kind": "end",
+          "parent_tool_id": null,
+          "run_id": "<run:1>",
+          "seq": 5,
+          "title": "Finished",
+          "tool": "",
+          "tool_id": null
+        }
+      ],
+      "stop_code": null,
+      "summary": "Fixed add().",
+      "target": null,
+      "ticket_id": "KAN-3",
+      "tokens_cached": null,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "trigger": "assign",
+      "waiting_reason": null
+    }
+  },
+  "GET run: no steps": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "agents": [
+        {
+          "agent_type": "reviewer",
+          "claude_id": null,
+          "ended_at": "<time>",
+          "last_text": "Looks good.",
+          "run_id": "<run:1>",
+          "spans": [
+            {
+              "end": "<time>",
+              "start": "<time>"
+            }
+          ],
+          "started_at": "<time>"
+        }
+      ],
+      "answer": null,
+      "context_used": null,
+      "context_window": null,
+      "cost_usd": 0.0,
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": "<time>",
+      "ended_by": null,
+      "ended_reason": null,
+      "exit_code": null,
+      "instruction": "",
+      "kind": "team",
+      "last_output_at": "<time>",
+      "live": false,
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 1,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": {
+        "text": "Which database?"
+      },
+      "queued_at": "<time>",
+      "report": {},
+      "restarts": [],
+      "retries": [],
+      "session_id": null,
+      "session_name": null,
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "finished",
+      "steps": [],
+      "stop_code": null,
+      "summary": "Fixed add().",
+      "target": null,
+      "ticket_id": "KAN-3",
+      "tokens_cached": null,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "trigger": "assign",
+      "waiting_reason": null
+    }
+  },
+  "GET run: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Run not found"
+    }
+  },
+  "GET run: steps is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "steps"
+        ]
+      ]
+    }
+  },
+  "GET run: two steps": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "agents": [
+        {
+          "agent_type": "reviewer",
+          "claude_id": null,
+          "ended_at": "<time>",
+          "last_text": "Looks good.",
+          "run_id": "<run:1>",
+          "spans": [
+            {
+              "end": "<time>",
+              "start": "<time>"
+            }
+          ],
+          "started_at": "<time>"
+        }
+      ],
+      "answer": null,
+      "context_used": null,
+      "context_window": null,
+      "cost_usd": 0.0,
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": "<time>",
+      "ended_by": null,
+      "ended_reason": null,
+      "exit_code": null,
+      "instruction": "",
+      "kind": "team",
+      "last_output_at": "<time>",
+      "live": false,
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 1,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": {
+        "text": "Which database?"
+      },
+      "queued_at": "<time>",
+      "report": {},
+      "restarts": [],
+      "retries": [],
+      "session_id": null,
+      "session_name": null,
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "finished",
+      "steps": [
+        {
+          "agent_id": "agent1",
+          "at": "<time>",
+          "detail": {},
+          "has_output": false,
+          "kind": "text",
+          "parent_tool_id": null,
+          "run_id": "<run:1>",
+          "seq": 4,
+          "title": "Looks good.",
+          "tool": "",
+          "tool_id": null
+        },
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {},
+          "has_output": false,
+          "kind": "end",
+          "parent_tool_id": null,
+          "run_id": "<run:1>",
+          "seq": 5,
+          "title": "Finished",
+          "tool": "",
+          "tool_id": null
+        }
+      ],
+      "stop_code": null,
+      "summary": "Fixed add().",
+      "target": null,
+      "ticket_id": "KAN-3",
+      "tokens_cached": null,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "trigger": "assign",
+      "waiting_reason": null
+    }
+  },
+  "GET sessions": {
+    "status": 200,
+    "json": []
+  },
+  "GET sessions after": {
+    "status": 200,
+    "json": [
+      {
+        "created_by": "user",
+        "ended_at": "<time>",
+        "member_id": "<uuid:1>",
+        "run_ids": [
+          "<run:1>",
+          "<run:2>",
+          "<run:3>"
+        ],
+        "session_ids": [
+          "<uuid:2>"
+        ],
+        "started_at": "<time>",
+        "summarised_by": "haiku",
+        "summary": "Fixed add(); tests pass.",
+        "ticket_id": "KAN-2",
+        "title": "Fix add()"
+      }
+    ]
+  },
+  "GET step output": {
+    "status": 200,
+    "json": {
+      "agent_id": null,
+      "at": "<time>",
+      "detail": {
+        "command": "pytest -q",
+        "exit_code": 0
+      },
+      "has_output": true,
+      "kind": "command",
+      "output": "4 passed\n",
+      "parent_tool_id": null,
+      "run_id": "<run:1>",
+      "seq": 2,
+      "title": "Ran pytest -q",
+      "tool": "Bash",
+      "tool_id": null
+    }
+  },
+  "GET step output: a step with none": {
+    "status": 200,
+    "json": {
+      "agent_id": null,
+      "at": "<time>",
+      "detail": {
+        "added": 1,
+        "path": "calc.py",
+        "removed": 1
+      },
+      "has_output": false,
+      "kind": "edit",
+      "output": null,
+      "parent_tool_id": null,
+      "run_id": "<run:1>",
+      "seq": 1,
+      "title": "Edited calc.py",
+      "tool": "Edit",
+      "tool_id": null
+    }
+  },
+  "GET step output: no such run": {
+    "status": 404,
+    "json": {
+      "detail": "Run not found"
+    }
+  },
+  "GET step output: no such step": {
+    "status": 404,
+    "json": {
+      "detail": "Step not found"
+    }
+  },
+  "GET steps": {
+    "status": 200,
+    "json": [
+      {
+        "agent_id": null,
+        "at": "<time>",
+        "detail": {
+          "added": 1,
+          "path": "calc.py",
+          "removed": 1
+        },
+        "has_output": false,
+        "kind": "edit",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 1,
+        "title": "Edited calc.py",
+        "tool": "Edit",
+        "tool_id": null
+      },
+      {
+        "agent_id": null,
+        "at": "<time>",
+        "detail": {
+          "command": "pytest -q",
+          "exit_code": 0
+        },
+        "has_output": true,
+        "kind": "command",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 2,
+        "title": "Ran pytest -q",
+        "tool": "Bash",
+        "tool_id": null
+      },
+      {
+        "agent_id": null,
+        "at": "<time>",
+        "detail": {},
+        "has_output": false,
+        "kind": "text",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 3,
+        "title": "Done.",
+        "tool": "",
+        "tool_id": null
+      },
+      {
+        "agent_id": "agent1",
+        "at": "<time>",
+        "detail": {},
+        "has_output": false,
+        "kind": "text",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 4,
+        "title": "Looks good.",
+        "tool": "",
+        "tool_id": null
+      },
+      {
+        "agent_id": null,
+        "at": "<time>",
+        "detail": {},
+        "has_output": false,
+        "kind": "end",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 5,
+        "title": "Finished",
+        "tool": "",
+        "tool_id": null
+      }
+    ]
+  },
+  "GET steps: a role": {
+    "status": 200,
+    "json": [
+      {
+        "agent_id": "agent1",
+        "at": "<time>",
+        "detail": {},
+        "has_output": false,
+        "kind": "text",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 4,
+        "title": "Looks good.",
+        "tool": "",
+        "tool_id": null
+      }
+    ]
+  },
+  "GET steps: after 1, limit 2": {
+    "status": 200,
+    "json": [
+      {
+        "agent_id": null,
+        "at": "<time>",
+        "detail": {
+          "command": "pytest -q",
+          "exit_code": 0
+        },
+        "has_output": true,
+        "kind": "command",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 2,
+        "title": "Ran pytest -q",
+        "tool": "Bash",
+        "tool_id": null
+      },
+      {
+        "agent_id": null,
+        "at": "<time>",
+        "detail": {},
+        "has_output": false,
+        "kind": "text",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 3,
+        "title": "Done.",
+        "tool": "",
+        "tool_id": null
+      }
+    ]
+  },
+  "GET steps: after is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "after"
+        ]
+      ]
+    }
+  },
+  "GET steps: an agent that is not there": {
+    "status": 200,
+    "json": []
+  },
+  "GET steps: limit past the cap": {
+    "status": 200,
+    "json": [
+      {
+        "agent_id": null,
+        "at": "<time>",
+        "detail": {
+          "added": 1,
+          "path": "calc.py",
+          "removed": 1
+        },
+        "has_output": false,
+        "kind": "edit",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 1,
+        "title": "Edited calc.py",
+        "tool": "Edit",
+        "tool_id": null
+      },
+      {
+        "agent_id": null,
+        "at": "<time>",
+        "detail": {
+          "command": "pytest -q",
+          "exit_code": 0
+        },
+        "has_output": true,
+        "kind": "command",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 2,
+        "title": "Ran pytest -q",
+        "tool": "Bash",
+        "tool_id": null
+      },
+      {
+        "agent_id": null,
+        "at": "<time>",
+        "detail": {},
+        "has_output": false,
+        "kind": "text",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 3,
+        "title": "Done.",
+        "tool": "",
+        "tool_id": null
+      },
+      {
+        "agent_id": "agent1",
+        "at": "<time>",
+        "detail": {},
+        "has_output": false,
+        "kind": "text",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 4,
+        "title": "Looks good.",
+        "tool": "",
+        "tool_id": null
+      },
+      {
+        "agent_id": null,
+        "at": "<time>",
+        "detail": {},
+        "has_output": false,
+        "kind": "end",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 5,
+        "title": "Finished",
+        "tool": "",
+        "tool_id": null
+      }
+    ]
+  },
+  "GET steps: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Run not found"
+    }
+  },
+  "GET steps: the lead": {
+    "status": 200,
+    "json": [
+      {
+        "agent_id": null,
+        "at": "<time>",
+        "detail": {
+          "added": 1,
+          "path": "calc.py",
+          "removed": 1
+        },
+        "has_output": false,
+        "kind": "edit",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 1,
+        "title": "Edited calc.py",
+        "tool": "Edit",
+        "tool_id": null
+      },
+      {
+        "agent_id": null,
+        "at": "<time>",
+        "detail": {
+          "command": "pytest -q",
+          "exit_code": 0
+        },
+        "has_output": true,
+        "kind": "command",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 2,
+        "title": "Ran pytest -q",
+        "tool": "Bash",
+        "tool_id": null
+      },
+      {
+        "agent_id": null,
+        "at": "<time>",
+        "detail": {},
+        "has_output": false,
+        "kind": "text",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 3,
+        "title": "Done.",
+        "tool": "",
+        "tool_id": null
+      },
+      {
+        "agent_id": null,
+        "at": "<time>",
+        "detail": {},
+        "has_output": false,
+        "kind": "end",
+        "parent_tool_id": null,
+        "run_id": "<run:1>",
+        "seq": 5,
+        "title": "Finished",
+        "tool": "",
+        "tool_id": null
+      }
+    ]
+  },
+  "GET ticket runs": {
+    "status": 200,
+    "json": [
+      {
+        "account_id": null,
+        "answer": null,
+        "context_used": null,
+        "context_window": null,
+        "cost_usd": 0.01,
+        "diagnosis": null,
+        "effort": null,
+        "ended_at": "<time>",
+        "ended_by": null,
+        "ended_reason": null,
+        "exit_code": 0,
+        "instruction": "Fix add()",
+        "kind": "team",
+        "last_output_at": "<time>",
+        "live": false,
+        "member_id": "<uuid:1>",
+        "mode": "work",
+        "number": 1,
+        "paused": false,
+        "project_id": "<uuid:2>",
+        "question": null,
+        "queued_at": "<time>",
+        "report": {
+          "branch": "ai/test",
+          "lessons": [
+            "Run pytest -q from the server folder."
+          ],
+          "open_items": [],
+          "status": "done",
+          "summary": "Fixed add(); tests pass.",
+          "tests": {
+            "command": "pytest -q",
+            "failed": 0,
+            "passed": 4
+          }
+        },
+        "restarts": [],
+        "retries": [],
+        "session_id": "<uuid:3>",
+        "session_name": "KAN-2",
+        "started_at": "<time>",
+        "started_by": "user",
+        "state": "finished",
+        "stop_code": null,
+        "summary": "Fixed add(); tests pass.",
+        "target": null,
+        "ticket_id": "KAN-2",
+        "tokens_cached": 0,
+        "tokens_in": 100,
+        "tokens_out": 20,
+        "trigger": "run_button",
+        "waiting_reason": null
+      }
+    ]
+  },
+  "GET ticket runs after the retry": {
+    "status": 200,
+    "json": [
+      {
+        "account_id": null,
+        "answer": null,
+        "context_used": null,
+        "context_window": null,
+        "cost_usd": 0.01,
+        "diagnosis": null,
+        "effort": null,
+        "ended_at": "<time>",
+        "ended_by": null,
+        "ended_reason": null,
+        "exit_code": 0,
+        "instruction": "user says:\nPlease add a test too.",
+        "kind": "team",
+        "last_output_at": "<time>",
+        "live": false,
+        "member_id": "<uuid:1>",
+        "mode": "work",
+        "number": 3,
+        "paused": false,
+        "project_id": "<uuid:2>",
+        "question": null,
+        "queued_at": "<time>",
+        "report": {
+          "branch": "ai/test",
+          "lessons": [
+            "Run pytest -q from the server folder."
+          ],
+          "open_items": [],
+          "status": "done",
+          "summary": "Fixed add(); tests pass.",
+          "tests": {
+            "command": "pytest -q",
+            "failed": 0,
+            "passed": 4
+          }
+        },
+        "restarts": [],
+        "retries": [],
+        "session_id": "<uuid:3>",
+        "session_name": "KAN-2",
+        "started_at": "<time>",
+        "started_by": "user",
+        "state": "finished",
+        "stop_code": null,
+        "summary": "Fixed add(); tests pass.",
+        "target": null,
+        "ticket_id": "KAN-2",
+        "tokens_cached": 0,
+        "tokens_in": 100,
+        "tokens_out": 20,
+        "trigger": "message",
+        "waiting_reason": null
+      },
+      {
+        "account_id": null,
+        "answer": null,
+        "context_used": null,
+        "context_window": null,
+        "cost_usd": 0.01,
+        "diagnosis": null,
+        "effort": null,
+        "ended_at": "<time>",
+        "ended_by": null,
+        "ended_reason": null,
+        "exit_code": 0,
+        "instruction": "Fix add()",
+        "kind": "team",
+        "last_output_at": "<time>",
+        "live": false,
+        "member_id": "<uuid:1>",
+        "mode": "work",
+        "number": 2,
+        "paused": false,
+        "project_id": "<uuid:2>",
+        "question": null,
+        "queued_at": "<time>",
+        "report": {
+          "branch": "ai/test",
+          "lessons": [
+            "Run pytest -q from the server folder."
+          ],
+          "open_items": [],
+          "status": "done",
+          "summary": "Fixed add(); tests pass.",
+          "tests": {
+            "command": "pytest -q",
+            "failed": 0,
+            "passed": 4
+          }
+        },
+        "restarts": [],
+        "retries": [],
+        "session_id": "<uuid:3>",
+        "session_name": "KAN-2",
+        "started_at": "<time>",
+        "started_by": "user",
+        "state": "finished",
+        "stop_code": null,
+        "summary": "Fixed add(); tests pass.",
+        "target": null,
+        "ticket_id": "KAN-2",
+        "tokens_cached": 0,
+        "tokens_in": 100,
+        "tokens_out": 20,
+        "trigger": "retry",
+        "waiting_reason": null
+      },
+      {
+        "account_id": null,
+        "answer": null,
+        "context_used": null,
+        "context_window": null,
+        "cost_usd": 0.01,
+        "diagnosis": null,
+        "effort": null,
+        "ended_at": "<time>",
+        "ended_by": null,
+        "ended_reason": null,
+        "exit_code": 0,
+        "instruction": "Fix add()",
+        "kind": "team",
+        "last_output_at": "<time>",
+        "live": false,
+        "member_id": "<uuid:1>",
+        "mode": "work",
+        "number": 1,
+        "paused": false,
+        "project_id": "<uuid:2>",
+        "question": null,
+        "queued_at": "<time>",
+        "report": {
+          "branch": "ai/test",
+          "lessons": [
+            "Run pytest -q from the server folder."
+          ],
+          "open_items": [],
+          "status": "done",
+          "summary": "Fixed add(); tests pass.",
+          "tests": {
+            "command": "pytest -q",
+            "failed": 0,
+            "passed": 4
+          }
+        },
+        "restarts": [],
+        "retries": [],
+        "session_id": "<uuid:3>",
+        "session_name": "KAN-2",
+        "started_at": "<time>",
+        "started_by": "user",
+        "state": "finished",
+        "stop_code": null,
+        "summary": "Fixed add(); tests pass.",
+        "target": null,
+        "ticket_id": "KAN-2",
+        "tokens_cached": 0,
+        "tokens_in": 100,
+        "tokens_out": 20,
+        "trigger": "run_button",
+        "waiting_reason": null
+      }
+    ]
+  },
+  "GET ticket runs: limit 0": {
+    "status": 200,
+    "json": []
+  },
+  "GET ticket runs: limit text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "limit"
+        ]
+      ]
+    }
+  },
+  "GET ticket runs: no such ticket": {
+    "status": 200,
+    "json": []
+  },
+  "POST answer: empty": {
+    "status": 409,
+    "json": {
+      "detail": "Write an answer first."
+    }
+  },
+  "POST answer: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "POST answer: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Run not found"
+    }
+  },
+  "POST answer: nothing asked": {
+    "status": 409,
+    "json": {
+      "detail": "This run is not waiting for an answer."
+    }
+  },
+  "POST cancel: it has ended": {
+    "status": 409,
+    "json": {
+      "detail": "Run #1 already ended (finished)."
+    }
+  },
+  "POST cancel: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Run not found"
+    }
+  },
+  "POST compact: no such ticket": {
+    "status": 409,
+    "json": {
+      "detail": "There is no conversation of the team on this ticket yet."
+    }
+  },
+  "POST compact: nothing to compact": {
+    "status": 409,
+    "json": {
+      "detail": "Claude Code did not compact the conversation."
+    }
+  },
+  "POST message": {
+    "status": 200,
+    "json": {
+      "delivered": "new_run",
+      "run_id": "<run:1>"
+    }
+  },
+  "POST message: empty": {
+    "status": 422,
+    "json": {
+      "detail": "Write a message first."
+    }
+  },
+  "POST message: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "POST message: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Run not found"
+    }
+  },
+  "POST restart: it has ended": {
+    "status": 409,
+    "json": {
+      "detail": "Only a running run can be restarted."
+    }
+  },
+  "POST restart: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Run not found"
+    }
+  },
+  "POST retry": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "answer": null,
+      "context_used": null,
+      "context_window": null,
+      "cost_usd": 0.0,
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": null,
+      "ended_by": null,
+      "ended_reason": null,
+      "exit_code": null,
+      "instruction": "Fix add()",
+      "kind": "team",
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 2,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": null,
+      "queued_at": "<time>",
+      "report": {},
+      "restarts": [],
+      "retries": [],
+      "session_id": "<uuid:3>",
+      "session_name": "KAN-2",
+      "started_by": "user",
+      "stop_code": null,
+      "summary": null,
+      "target": null,
+      "ticket_id": "KAN-2",
+      "tokens_cached": null,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "trigger": "retry",
+      "waiting_reason": null
+    }
+  },
+  "POST retry: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Run not found"
+    }
+  },
+  "POST run": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "answer": null,
+      "context_used": null,
+      "context_window": null,
+      "cost_usd": 0.0,
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": null,
+      "ended_by": null,
+      "ended_reason": null,
+      "exit_code": null,
+      "instruction": "Fix add()",
+      "kind": "team",
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 1,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": null,
+      "queued_at": "<time>",
+      "report": {},
+      "restarts": [],
+      "retries": [],
+      "session_id": null,
+      "session_name": "KAN-2",
+      "started_by": "user",
+      "stop_code": null,
+      "summary": null,
+      "target": null,
+      "ticket_id": "KAN-2",
+      "tokens_cached": null,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "trigger": "run_button",
+      "waiting_reason": null
+    }
+  },
+  "POST run: bad mode": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "mode"
+        ]
+      ]
+    }
+  },
+  "POST run: instruction is a number": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "instruction"
+        ]
+      ]
+    }
+  },
+  "POST run: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "POST run: no such ticket": {
+    "status": 422,
+    "json": {
+      "detail": "Ticket not found."
+    }
+  },
+  "POST run: no team": {
+    "status": 422,
+    "json": {
+      "detail": "Pick a team: the ticket has no AI assignee and the project has no team yet."
+    }
+  },
+  "POST run: unknown team": {
+    "status": 422,
+    "json": {
+      "detail": "Assignee must be a member of this project"
+    }
+  },
+  "POST sessions/new": {
+    "status": 200,
+    "json": {
+      "created_by": "user",
+      "ended_at": "<time>",
+      "member_id": "<uuid:1>",
+      "run_ids": [
+        "<run:1>",
+        "<run:2>",
+        "<run:3>"
+      ],
+      "session_ids": [
+        "<uuid:2>"
+      ],
+      "started_at": "<time>",
+      "summarised_by": "haiku",
+      "summary": "Fixed add(); tests pass.",
+      "ticket_id": "KAN-2",
+      "title": "Fix add()"
+    }
+  },
+  "POST sessions/new: no such ticket": {
+    "status": 409,
+    "json": {
+      "detail": "Ticket not found."
+    }
+  },
+  "POST sessions/new: nothing to close": {
+    "status": 409,
+    "json": {
+      "detail": "Nothing to close: the team has not worked on this ticket since it was last started over."
+    }
+  },
+  "the run ended as": {
+    "note": {
+      "state": "finished"
+    }
+  }
+}

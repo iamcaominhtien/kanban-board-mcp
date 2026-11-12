@@ -44,6 +44,29 @@ pub struct Options {
     pub fresh_db: bool,
 }
 
+/// How many hours east of UTC the servers under test are told they are (`TZ`): a zone in which it is about nine in
+/// the morning when the test process starts. The board does things by the clock of the computer (from 18:00 on a
+/// working day it writes each person's card of the day into the notifications), so a test that counts rows would
+/// pass or fail by the hour it runs at. In this zone a server under test never reaches the evening. A test that
+/// expects a local time of the server in an answer counts with this offset.
+pub fn server_hours_east() -> i64 {
+    static EAST: std::sync::OnceLock<i64> = std::sync::OnceLock::new();
+    *EAST.get_or_init(|| {
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+        let hour = (now / 3600 % 24) as i64;
+        // local = UTC + east, with east in -12..=14
+        let east = 9 - hour;
+        if east < -12 { east + 24 } else { east }
+    })
+}
+
+/// The `TZ` value of `server_hours_east` (POSIX writes the hours to add to local time to get UTC: the sign is the
+/// other way round). A test that runs the board's code in its own process, and is the only test of its process,
+/// sets it for itself before anything reads the clock.
+pub fn morning_zone() -> String {
+    format!("KBT{}", -server_hours_east())
+}
+
 fn workspace() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").components().collect::<PathBuf>()
 }
@@ -162,7 +185,8 @@ impl Server {
             .env("KANBAN_DIAGRAM_EXPORT", "off")
             .env("KANBAN_DRAWIO_DIR", root.join("none"))
             .env("KANBAN_AI_ROOTS", ai_roots)
-            .env("PYTHONUNBUFFERED", "1");
+            .env("PYTHONUNBUFFERED", "1")
+            .env("TZ", morning_zone());
         if opts.secret.is_some() {
             cmd.env("KANBAN_API_SECRET_STDIN", "1");
         }

@@ -50,7 +50,7 @@ pub async fn build_day_card(
     let failed: Vec<&ai_run::Model> = runs.iter().filter(|r| r.state == "failed" || r.state == "timed_out").collect();
     // `round(sum(cost or 0), 2)`: a sum of zeros is the integer 0, not 0.0
     let spent = if runs.iter().any(|r| r.cost_usd != 0.0) {
-        let total: f64 = runs.iter().map(|r| r.cost_usd).sum();
+        let total = kb_base::pynum::sum(runs.iter().map(|r| r.cost_usd));
         let rounded = format!("{total:.2}").parse::<f64>().unwrap_or(total);
         json!(rounded)
     } else {

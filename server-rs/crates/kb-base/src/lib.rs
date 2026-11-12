@@ -8,6 +8,7 @@ pub mod ctx;
 pub mod error;
 pub mod events;
 pub mod pyjson;
+pub mod pynum;
 pub mod pypath;
 pub mod pytext;
 pub mod routes;

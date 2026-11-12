@@ -2,6 +2,7 @@
 //! person does to them, the live panel, the Timeline and Flow, "You stepped in" and Health.
 
 use axum::Json;
+use axum::extract::RawQuery;
 use axum::http::StatusCode;
 use chrono::{DateTime, FixedOffset, TimeZone, Utc};
 use kb_ai::store::{active_runs, get_profile, get_settings, loads, save};
@@ -982,6 +983,13 @@ async fn get_recent(Path(project_id): Path<String>, Query(query): Query<RecentQu
     Ok(Json(svc_activity_roles::recent(&session, &project_id, query.team_id.as_deref(), limit).await?))
 }
 
+/// Whether the query string names `name` with no value (`since=`): `Option<String>` reads that as absent, Pydantic's
+/// `Optional[datetime]` refuses it.
+fn named_empty(raw: Option<&str>, name: &str) -> bool {
+    let pairs: Vec<(String, String)> = serde_urlencoded::from_str(raw.unwrap_or_default()).unwrap_or_default();
+    pairs.iter().any(|(key, value)| key == name && value.is_empty())
+}
+
 /// The query of the Timeline and the Flow map.
 #[derive(Debug, Deserialize)]
 struct WindowQuery {
@@ -1028,10 +1036,14 @@ fn datetime_query(name: &str, value: Option<&str>) -> ApiResult<Option<DateTime<
 }
 
 /// The Timeline: a sequence diagram of the teams' runs in a window (the whole project, one team or one ticket).
-async fn get_timeline(Path(project_id): Path<String>, Query(query): Query<WindowQuery>) -> ApiResult<Json<Value>> {
+async fn get_timeline(
+    Path(project_id): Path<String>,
+    RawQuery(raw): RawQuery,
+    Query(query): Query<WindowQuery>,
+) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
-    let since = datetime_query("since", query.since.as_deref())?;
-    let until = datetime_query("until", query.until.as_deref())?;
+    let since = datetime_query("since", query.since.as_deref().or(named_empty(raw.as_deref(), "since").then_some("")))?;
+    let until = datetime_query("until", query.until.as_deref().or(named_empty(raw.as_deref(), "until").then_some("")))?;
     project_exists(&session, &project_id).await?;
     let opts =
         TimelineOpts { range_key: query.range, since, until, ticket_id: query.ticket_id, team_id: query.team_id };
@@ -1039,10 +1051,14 @@ async fn get_timeline(Path(project_id): Path<String>, Query(query): Query<Window
 }
 
 /// Flow, the Map: the person, the teams (with their roles) and the tickets worked, and the edges between them.
-async fn get_flow_map(Path(project_id): Path<String>, Query(query): Query<WindowQuery>) -> ApiResult<Json<Value>> {
+async fn get_flow_map(
+    Path(project_id): Path<String>,
+    RawQuery(raw): RawQuery,
+    Query(query): Query<WindowQuery>,
+) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
-    let since = datetime_query("since", query.since.as_deref())?;
-    let until = datetime_query("until", query.until.as_deref())?;
+    let since = datetime_query("since", query.since.as_deref().or(named_empty(raw.as_deref(), "since").then_some("")))?;
+    let until = datetime_query("until", query.until.as_deref().or(named_empty(raw.as_deref(), "until").then_some("")))?;
     project_exists(&session, &project_id).await?;
     let opts = FlowOpts { range_key: query.range, since, until, ticket_id: query.ticket_id, team_id: query.team_id };
     Ok(Json(svc_flow::flow_map(&session, &project_id, &opts).await?))

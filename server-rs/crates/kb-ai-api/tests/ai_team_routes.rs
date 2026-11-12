@@ -42,7 +42,6 @@ async fn make_team(f: &Fixture, pid: &str, name: &str, extra: Value) -> Value {
         "name": name,
         "working_dir": repo(f).to_string_lossy(),
         "cli_path": f.bin.join("claude").to_string_lossy(),
-        "model": "haiku",
     });
     for (key, value) in extra.as_object().expect("extra") {
         body[key] = value.clone();
@@ -103,7 +102,7 @@ async fn team_routes() {
     rec.check("POST teams: no name", &c.post(&url, json!({"working_dir": dir})).await);
     rec.check("POST teams: bad effort", &c.post(&url, made(json!({"effort": "extreme"}))).await);
     rec.check("POST teams: bad permission mode", &c.post(&url, made(json!({"permission_mode": "ask"}))).await);
-    let team = c.post(&url, made(json!({"model": "haiku", "daily_budget": 5, "description": "Writes code"}))).await;
+    let team = c.post(&url, made(json!({"daily_budget": 5, "description": "Writes code"}))).await;
     rec.check("POST teams", &team);
     team.assert_status(201);
     let team = team.json();
@@ -130,7 +129,7 @@ async fn team_routes() {
         &c.patch(
             &one,
             json!({"pack_key": "feature_ui", "effort": "high", "permission_mode": "auto",
-                   "config": {"roles": [{"key": "qa", "off": true}, {"key": "security", "model": "opus"}]}}),
+                   "config": {"roles": [{"key": "qa", "off": true}, {"key": "security", "model": "stand-in"}]}}),
         )
         .await,
     );
@@ -276,7 +275,7 @@ async fn settings_routes() {
 // ---------------------------------------------------------------------------
 
 /// What a run holds that is a measurement, not behavior.
-const MEASURED: [&str; 3] = ["pid", "peak_rss_mb", "last_rss_mb"];
+const MEASURED: [&str; 6] = ["pid", "peak_rss_mb", "last_rss_mb", "steps_count", "files", "model"];
 
 #[tokio::test]
 async fn run_routes() {
@@ -285,7 +284,9 @@ async fn run_routes() {
     let c = &f.c;
     sign_in(&f);
     let mut rec = Rec::new("ai_team_routes", name, &[&tmp(&f)]);
+    // the ids of the steps follow those of the steps the stand-in CLI's run wrote, and how many it wrote varies
     rec.ignore(&MEASURED);
+    rec.ignore(&["id"]);
     let (pid, _an) = project(c).await;
     let t0 = ticket(c, &pid, "No team yet", "todo").await;
     rec.check("POST run: no team", &c.post(&format!("/tickets/{t0}/ai/run"), json!({})).await);
@@ -303,12 +304,80 @@ async fn run_routes() {
     rec.check_hiding("POST run", &started, &["state", "started_at", "last_output_at", "live"]);
     started.assert_status(200);
     let finished = wait_run(c, &t1, &["finished", "failed"]).await;
-    let rid = id(&finished);
+    let real = id(&finished);
     rec.note("the run ended as", json!({"state": finished["state"]}));
     rec.check("GET ticket runs", &c.get(&format!("/tickets/{t1}/ai/runs")).await);
     rec.check("GET ticket runs: limit 0", &c.get(&format!("/tickets/{t1}/ai/runs?limit=0")).await);
     rec.check("GET ticket runs: limit text", &c.get(&format!("/tickets/{t1}/ai/runs?limit=many")).await);
     rec.check("GET ticket runs: no such ticket", &c.get("/tickets/nope/ai/runs").await);
+    // what a run writes is a matter of timing (the stand-in CLI's lines and the hooks race), so the steps are read
+    // from a run the test writes itself: four steps of the lead, one of a role, an output, two notes
+    let t2 = ticket(c, &pid, "Written by hand", "todo").await;
+    let rid = common::run(&f.server, &pid, &team_id, &t2, "finished", None).await;
+    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.6f+00:00").to_string();
+    exec(
+        &f.server,
+        "UPDATE ai_run SET steps_count = 5, started_at = ?, ended_at = ?, queued_at = ?, last_output_at = ?, \
+         summary = ?, question = ? WHERE id = ?",
+        &[
+            json!(now),
+            json!(now),
+            json!(now),
+            json!(now),
+            json!("Fixed add()."),
+            json!("{\"text\": \"Which database?\"}"),
+            json!(rid),
+        ],
+    )
+    .await;
+    common::insert(
+        &f.server,
+        "ai_run_agent",
+        &json!({"id": "agent1", "run_id": rid, "agent_type": "reviewer", "started_at": now, "ended_at": now,
+                "steps_count": 1, "last_text": "Looks good."}),
+    )
+    .await;
+    let steps = [
+        (
+            1,
+            Value::Null,
+            "edit",
+            "Edit",
+            "Edited calc.py",
+            json!({"path": "calc.py", "added": 1, "removed": 1}),
+            Value::Null,
+        ),
+        (
+            2,
+            Value::Null,
+            "command",
+            "Bash",
+            "Ran pytest -q",
+            json!({"command": "pytest -q", "exit_code": 0}),
+            json!("4 passed\n"),
+        ),
+        (3, Value::Null, "text", "", "Done.", json!({}), Value::Null),
+        (4, json!("agent1"), "text", "", "Looks good.", json!({}), Value::Null),
+        (5, Value::Null, "end", "", "Finished", json!({}), Value::Null),
+    ];
+    for (seq, agent, kind, tool, title, detail, output) in steps {
+        common::insert(
+            &f.server,
+            "ai_run_step",
+            &json!({"run_id": rid, "seq": seq, "at": now, "agent_id": agent, "kind": kind, "tool": tool,
+                    "title": title, "detail": detail.to_string(), "output": output}),
+        )
+        .await;
+    }
+    for (n, direction, text) in [(1, "in", "Please add a test."), (2, "out", "Added.")] {
+        common::insert(
+            &f.server,
+            "ai_run_message",
+            &json!({"id": format!("msg_{n:012x}"), "run_id": rid, "direction": direction, "peer": "user",
+                    "text": text, "at": now}),
+        )
+        .await;
+    }
     let runs = format!("/projects/{pid}/ai/runs");
     rec.check("GET project runs", &c.get(&runs).await);
     rec.check("GET project runs: finished or failed", &c.get(&format!("{runs}?state=finished,failed")).await);
@@ -319,15 +388,18 @@ async fn run_routes() {
     rec.check("GET run", &c.get(&one).await);
     rec.check("GET run: two steps", &c.get(&format!("{one}?steps=2")).await);
     rec.check("GET run: no steps", &c.get(&format!("{one}?steps=0")).await);
+    rec.check("GET run: steps is text", &c.get(&format!("{one}?steps=all")).await);
     rec.check("GET run: not found", &c.get("/ai/runs/nope").await);
     rec.check("GET steps", &c.get(&format!("{one}/steps")).await);
     rec.check("GET steps: after 1, limit 2", &c.get(&format!("{one}/steps?after=1&limit=2")).await);
     rec.check("GET steps: the lead", &c.get(&format!("{one}/steps?agent=lead")).await);
+    rec.check("GET steps: a role", &c.get(&format!("{one}/steps?agent=agent1")).await);
     rec.check("GET steps: an agent that is not there", &c.get(&format!("{one}/steps?agent=nope")).await);
     rec.check("GET steps: limit past the cap", &c.get(&format!("{one}/steps?limit=100000")).await);
     rec.check("GET steps: after is text", &c.get(&format!("{one}/steps?after=x")).await);
     rec.check("GET steps: not found", &c.get("/ai/runs/nope/steps").await);
-    rec.check("GET step output", &c.get(&format!("{one}/steps/1/output")).await);
+    rec.check("GET step output", &c.get(&format!("{one}/steps/2/output")).await);
+    rec.check("GET step output: a step with none", &c.get(&format!("{one}/steps/1/output")).await);
     rec.check("GET step output: no such step", &c.get(&format!("{one}/steps/99999/output")).await);
     rec.check("GET step output: no such run", &c.get("/ai/runs/nope/steps/1/output").await);
     rec.check("GET messages", &c.get(&format!("{one}/messages")).await);
@@ -344,33 +416,19 @@ async fn run_routes() {
     rec.check("POST message: not found", &c.post("/ai/runs/nope/message", json!({"text": "x"})).await);
     rec.check("POST message: empty", &c.post(&format!("{one}/message"), json!({"text": "  "})).await);
     rec.check("POST message: no body", &c.post_empty(&format!("{one}/message")).await);
-    rec.check("POST message", &c.post(&format!("{one}/message"), json!({"text": "Please add a test too."})).await);
-    rec.check("GET messages after", &c.get(&format!("{one}/messages")).await);
     // the same ticket again
     rec.check("POST retry: not found", &c.post_empty("/ai/runs/nope/retry").await);
-    let retry = c.post_empty(&format!("{one}/retry")).await;
+    let retry = c.post_empty(&format!("/ai/runs/{real}/retry")).await;
     rec.check_hiding("POST retry", &retry, &["state", "started_at", "last_output_at", "live"]);
-    let second = wait_run(c, &t1, &["finished", "failed"]).await;
-    rec.check_hiding("POST retry: it ended", &c.get(&format!("/tickets/{t1}/ai/runs")).await, &["steps_count"]);
-    let _ = second;
-    // what the page of the project shows
-    rec.check("GET board", &c.get(&format!("/projects/{pid}/ai/board")).await);
-    rec.check("GET overview", &c.get(&format!("/projects/{pid}/ai/overview")).await);
-    rec.check("GET live", &c.get(&format!("/projects/{pid}/ai/live")).await);
-    rec.check("GET live: limit 0", &c.get(&format!("/projects/{pid}/ai/live?limit=0")).await);
-    rec.check("GET live: no such project", &c.get("/projects/nope/ai/live").await);
-    rec.check("GET resources", &c.get(&format!("/projects/{pid}/ai/resources")).await);
-    rec.check("GET resources: no such project", &c.get("/projects/nope/ai/resources").await);
-    rec.check("GET project activity", &c.get(&format!("/projects/{pid}/ai/team/activity")).await);
-    rec.check("GET project activity: no such project", &c.get("/projects/nope/ai/team/activity").await);
-    rec.check("GET team activity", &c.get(&format!("/ai/teams/{team_id}/activity")).await);
-    rec.check("GET team activity: not found", &c.get("/ai/teams/nope/activity").await);
-    let recent = format!("/projects/{pid}/ai/recent");
-    rec.check("GET recent", &c.get(&recent).await);
-    rec.check("GET recent: limit 0", &c.get(&format!("{recent}?limit=0")).await);
-    rec.check("GET recent: one team", &c.get(&format!("{recent}?team_id={team_id}&limit=100")).await);
-    rec.check("GET recent: another team", &c.get(&format!("{recent}?team_id=nope")).await);
-    rec.check("GET recent: no such project", &c.get("/projects/nope/ai/recent").await);
+    wait_run(c, &t1, &["finished", "failed"]).await;
+    rec.check(
+        "POST message",
+        &c.post(&format!("/ai/runs/{real}/message"), json!({"text": "Please add a test too."})).await,
+    );
+    // a note to a run that has ended starts a new run on the ticket
+    wait_run(c, &t1, &["finished", "failed"]).await;
+    rec.check("GET messages after", &c.get(&format!("/ai/runs/{real}/messages")).await);
+    rec.check("GET ticket runs after the retry", &c.get(&format!("/tickets/{t1}/ai/runs")).await);
     // sessions
     rec.check("GET sessions", &c.get(&format!("/tickets/{t1}/ai/sessions")).await);
     rec.check("POST compact: nothing to compact", &c.post_empty(&format!("/tickets/{t1}/ai/compact")).await);
@@ -379,5 +437,368 @@ async fn run_routes() {
     rec.check("POST sessions/new", &c.post_empty(&format!("/tickets/{t1}/ai/sessions/new")).await);
     rec.check("POST sessions/new: nothing to close", &c.post_empty(&format!("/tickets/{t1}/ai/sessions/new")).await);
     rec.check("GET sessions after", &c.get(&format!("/tickets/{t1}/ai/sessions")).await);
+    rec.finish();
+}
+
+/// A run the test writes itself (what a run writes is a matter of timing, so the pages that show runs are read from
+/// runs whose rows are known): `at` is the minute it started, counted back from now.
+#[allow(clippy::too_many_arguments)]
+async fn hand_run(
+    f: &Fixture,
+    pid: &str,
+    team: &str,
+    ticket_id: &str,
+    number: i64,
+    state: &str,
+    trigger: &str,
+    started_by: &str,
+    minutes_ago: i64,
+    lasted: Option<i64>,
+) -> String {
+    let at = |minutes: i64| {
+        (chrono::Utc::now() - chrono::Duration::minutes(minutes)).format("%Y-%m-%dT%H:%M:%S%.6f+00:00").to_string()
+    };
+    let run_id = format!("run_{}", common::unique());
+    let ended = lasted.map(|m| at(minutes_ago - m));
+    common::insert(
+        &f.server,
+        "ai_run",
+        &json!({
+            "id": run_id, "project_id": pid, "kind": "team", "ticket_id": ticket_id, "member_id": team,
+            "number": number, "mode": "work", "trigger": trigger, "state": state, "started_by": started_by,
+            "instruction": "Fix add()", "queued_at": at(minutes_ago), "started_at": at(minutes_ago),
+            "ended_at": ended, "last_output_at": at(minutes_ago - lasted.unwrap_or(1)),
+            "summary": if state == "finished" { json!("Fixed add(); tests pass.") } else { Value::Null },
+            "report": "{}", "files": "[]", "tokens_in": 100, "tokens_out": 50, "cost_usd": 0.02, "metered": false,
+            "paused": false, "restarts": "[]", "retries": "[]", "steps_count": 3, "live": false, "depth": 0,
+        }),
+    )
+    .await;
+    for (seq, kind, tool, title, detail) in [
+        (1, "edit", "Edit", "Edited calc.py", json!({"path": "calc.py", "added": 1, "removed": 1})),
+        (2, "command", "Bash", "Ran pytest -q", json!({"command": "pytest -q", "exit_code": 0})),
+        (3, "text", "", "Done.", json!({})),
+    ] {
+        common::insert(
+            &f.server,
+            "ai_run_step",
+            &json!({"run_id": run_id, "seq": seq, "at": at(minutes_ago - seq), "kind": kind, "tool": tool,
+                    "title": title, "detail": detail.to_string()}),
+        )
+        .await;
+    }
+    run_id
+}
+
+/// The pages of the project (the board's chips, the overview, the live panel, activity, the Timeline, the Flow map,
+/// "You stepped in" and Health) over runs the test writes itself: a run a person started, a retry that failed, a run
+/// that is going, and a run that waits for an answer.
+#[tokio::test]
+async fn page_routes() {
+    let name = "page_routes";
+    let Some(f) = start(name, true, &[]).await else { return };
+    let c = &f.c;
+    sign_in(&f);
+    let mut rec = Rec::new("ai_team_routes", name, &[&tmp(&f)]);
+    // how long a run has been going, and the buckets of the window that its minutes fall into, move with the clock
+    rec.ignore(&["elapsed_s", "density"]);
+    let (pid, _an) = project(c).await;
+    let other = c.post("/projects", json!({"name": "Other", "prefix": "OTH", "color": "#2E6F40"})).await;
+    other.assert_status(201);
+    let pid2 = id(&other.json());
+    let team = make_team(&f, &pid, "Dev An", json!({})).await;
+    let team_id = id(&team);
+    let t1 = ticket(c, &pid, "Fix add()", "todo").await;
+    let t2 = ticket(c, &pid, "Write the docs", "todo").await;
+    let first = hand_run(&f, &pid, &team_id, &t1, 1, "finished", "run_button", "An Nguyen", 50, Some(5)).await;
+    let retry = hand_run(&f, &pid, &team_id, &t1, 2, "failed", "retry", "An Nguyen", 30, Some(2)).await;
+    let _going = hand_run(&f, &pid, &team_id, &t2, 1, "running", "assign", "user", 10, None).await;
+    let asking = hand_run(&f, &pid, &team_id, &t2, 2, "needs_input", "assign", "user", 4, None).await;
+    exec(
+        &f.server,
+        "UPDATE ai_run SET question = ? WHERE id = ?",
+        &[json!("{\"text\": \"Which database?\"}"), json!(asking)],
+    )
+    .await;
+    common::insert(
+        &f.server,
+        "ai_run_message",
+        &json!({"id": "msg_000000000001", "run_id": first, "direction": "in", "peer": "An Nguyen",
+                "text": "Please add a test.", "at": (chrono::Utc::now() - chrono::Duration::minutes(48)).format("%Y-%m-%dT%H:%M:%S%.6f+00:00").to_string()}),
+    )
+    .await;
+    // what the page of the project shows
+    rec.check("GET board", &c.get(&format!("/projects/{pid}/ai/board")).await);
+    rec.check("GET overview", &c.get(&format!("/projects/{pid}/ai/overview")).await);
+    rec.check("GET live", &c.get(&format!("/projects/{pid}/ai/live")).await);
+    rec.check("GET live: limit 0", &c.get(&format!("/projects/{pid}/ai/live?limit=0")).await);
+    rec.check("GET live: no such project", &c.get("/projects/nope/ai/live").await);
+    rec.check_hiding(
+        "GET resources",
+        &c.get(&format!("/projects/{pid}/ai/resources")).await,
+        &["machine", "cli_rss_mb", "at"],
+    );
+    rec.check("GET resources: no such project", &c.get("/projects/nope/ai/resources").await);
+    rec.check_hiding("GET project activity", &c.get(&format!("/projects/{pid}/ai/team/activity")).await, &["day"]);
+    rec.check("GET project activity: no such project", &c.get("/projects/nope/ai/team/activity").await);
+    rec.check_hiding("GET team activity", &c.get(&format!("/ai/teams/{team_id}/activity")).await, &["day"]);
+    rec.check("GET team activity: not found", &c.get("/ai/teams/nope/activity").await);
+    let recent = format!("/projects/{pid}/ai/recent");
+    rec.check("GET recent", &c.get(&recent).await);
+    rec.check("GET recent: limit 0", &c.get(&format!("{recent}?limit=0")).await);
+    rec.check("GET recent: one team", &c.get(&format!("{recent}?team_id={team_id}&limit=100")).await);
+    rec.check("GET recent: another team", &c.get(&format!("{recent}?team_id=nope")).await);
+    rec.check("GET recent: no such project", &c.get("/projects/nope/ai/recent").await);
+    // the Timeline, the Flow map, "You stepped in" and Health
+    let timeline = format!("/projects/{pid}/ai/team/timeline");
+    rec.check("GET timeline", &c.get(&timeline).await);
+    for range in ["hour", "24h", "7d", "forever"] {
+        rec.check(&format!("GET timeline: {range}"), &c.get(&format!("{timeline}?range={range}")).await);
+    }
+    rec.check("GET timeline: one ticket", &c.get(&format!("{timeline}?ticket_id={t1}")).await);
+    rec.check("GET timeline: one team", &c.get(&format!("{timeline}?team_id={team_id}&range=24h")).await);
+    rec.check("GET timeline: another team", &c.get(&format!("{timeline}?team_id=nope&range=24h")).await);
+    rec.check(
+        "GET timeline: a window",
+        &c.get(&format!("{timeline}?since=2020-01-01T00:00:00Z&until=2020-01-02T00:00:00%2B02:00")).await,
+    );
+    rec.check("GET timeline: since is text", &c.get(&format!("{timeline}?since=yesterday")).await);
+    rec.check("GET timeline: until is empty", &c.get(&format!("{timeline}?until=")).await);
+    rec.check("GET timeline: no such project", &c.get("/projects/nope/ai/team/timeline").await);
+    let flow = format!("/projects/{pid}/ai/team/flow");
+    rec.check("GET flow", &c.get(&flow).await);
+    for range in ["hour", "24h", "7d", "all", "forever"] {
+        rec.check(&format!("GET flow: {range}"), &c.get(&format!("{flow}?range={range}")).await);
+    }
+    rec.check("GET flow: one ticket", &c.get(&format!("{flow}?ticket_id={t1}&range=all")).await);
+    rec.check("GET flow: one team", &c.get(&format!("{flow}?team_id={team_id}&range=all")).await);
+    rec.check("GET flow: a window", &c.get(&format!("{flow}?since=2020-01-01T00:00:00Z")).await);
+    rec.check("GET flow: until is text", &c.get(&format!("{flow}?until=tomorrow")).await);
+    rec.check("GET flow: no such project", &c.get("/projects/nope/ai/team/flow").await);
+    rec.check("GET flow scopes", &c.get(&format!("{flow}/scopes")).await);
+    rec.check("GET flow scopes: no such project", &c.get("/projects/nope/ai/team/flow/scopes").await);
+    let touches = format!("/projects/{pid}/ai/team/touches");
+    rec.check("GET touches", &c.get(&touches).await);
+    for query in ["range=24h", "range=30d", "range=forever", "kind=edit", "mark=needed", "mark=avoidable", "kind=nope"]
+    {
+        rec.check(&format!("GET touches: {query}"), &c.get(&format!("{touches}?{query}")).await);
+    }
+    rec.check(&"GET touches: one team".to_string(), &c.get(&format!("{touches}?team_id={team_id}")).await);
+    rec.check("GET touches: no such project", &c.get("/projects/nope/ai/team/touches").await);
+    rec.check("PUT mark: no such project", &c.put("/projects/nope/ai/team/touches/mark", json!({"key": "k"})).await);
+    rec.check("PUT mark: no key", &c.put(&format!("{touches}/mark"), json!({})).await);
+    rec.check(
+        "PUT mark: a mark that is not one",
+        &c.put(&format!("{touches}/mark"), json!({"key": "k", "mark": "maybe"})).await,
+    );
+    rec.check(
+        "PUT mark: no such touch",
+        &c.put(&format!("{touches}/mark"), json!({"key": "nope", "mark": "needed"})).await,
+    );
+    let touch = format!("run:{first}");
+    let marks = format!("{touches}/mark");
+    rec.check("PUT mark: needed", &c.put(&marks, json!({"key": touch, "mark": "needed"})).await);
+    rec.check("POST lesson: not avoidable", &c.post(&format!("{touches}/lesson"), json!({"key": touch})).await);
+    rec.check("PUT mark: avoidable", &c.put(&marks, json!({"key": touch, "mark": "avoidable"})).await);
+    rec.check("GET touches: marked", &c.get(&format!("{touches}?mark=avoidable")).await);
+    rec.check(
+        "PUT mark: another project",
+        &c.put(&format!("/projects/{pid2}/ai/team/touches/mark"), json!({"key": touch, "mark": "needed"})).await,
+    );
+    rec.check(
+        "POST lesson: too long",
+        &c.post(&format!("{touches}/lesson"), json!({"key": touch, "text": "x".repeat(700)})).await,
+    );
+    rec.check(
+        "POST lesson",
+        &c.post(&format!("{touches}/lesson"), json!({"key": touch, "text": "Say which database in the ticket."})).await,
+    );
+    rec.check("POST lesson: again", &c.post(&format!("{touches}/lesson"), json!({"key": touch})).await);
+    rec.check("PUT mark: take it away", &c.put(&marks, json!({"key": touch, "mark": null})).await);
+    let retried = format!("retry:{retry}");
+    rec.check("PUT mark: a retry", &c.put(&marks, json!({"key": retried, "mark": "avoidable"})).await);
+    rec.check(
+        "POST lesson: from a retry, a draft",
+        &c.post(&format!("{touches}/lesson"), json!({"key": retried})).await,
+    );
+    rec.check("GET touches: after", &c.get(&touches).await);
+    rec.check(
+        "POST lesson: no such project",
+        &c.post("/projects/nope/ai/team/touches/lesson", json!({"key": "k"})).await,
+    );
+    rec.check("POST lesson: no key", &c.post(&format!("{touches}/lesson"), json!({})).await);
+    rec.check("POST lesson: no such touch", &c.post(&format!("{touches}/lesson"), json!({"key": "nope"})).await);
+    let health = format!("/projects/{pid}/ai/team/health");
+    rec.check("GET health", &c.get(&health).await);
+    rec.check("GET health: 30d", &c.get(&format!("{health}?range=30d")).await);
+    rec.check("GET health: 3d", &c.get(&format!("{health}?range=3d")).await);
+    rec.check("GET health: no such project", &c.get("/projects/nope/ai/team/health").await);
+    rec.finish();
+}
+
+// ---------------------------------------------------------------------------
+// runs in flight
+// ---------------------------------------------------------------------------
+
+/// A lead that asks a question and waits: what a person does with a run that needs an answer.
+#[tokio::test]
+async fn asking_run_routes() {
+    let name = "asking_run_routes";
+    let fake = [("FAKE_CLAUDE_MODE", "v2_ask"), ("FAKE_CLAUDE_V2_WAIT_MESSAGE", "1"), ("FAKE_CLAUDE_WAIT", "3")];
+    let Some(f) = start(name, true, &fake).await else { return };
+    let c = &f.c;
+    sign_in(&f);
+    let mut rec = Rec::new("ai_team_routes", name, &[&tmp(&f)]);
+    rec.ignore(&MEASURED);
+    rec.ignore(&["id", "steps", "agents", "cost_usd", "tokens_in", "tokens_out", "context_used", "context_window"]);
+    let (pid, _an) = project(c).await;
+    let team = make_team(&f, &pid, "Dev An", json!({})).await;
+    let t1 = ticket(c, &pid, "Fix add()", "todo").await;
+    c.post(&format!("/tickets/{t1}/ai/run"), json!({})).await.assert_status(200);
+    let asking = wait_run(c, &t1, &["needs_input", "failed", "finished"]).await;
+    rec.note("the run waits as", json!({"state": asking["state"]}));
+    let rid = id(&asking);
+    let one = format!("/ai/runs/{rid}");
+    rec.check("GET run: asking", &c.get(&one).await);
+    rec.check("GET overview: a run waits", &c.get(&format!("/projects/{pid}/ai/overview")).await);
+    rec.check("GET board: a question", &c.get(&format!("/projects/{pid}/ai/board")).await);
+    rec.check("GET live: asking", &c.get(&format!("/projects/{pid}/ai/live")).await);
+    rec.check("GET team: with a run waiting", &c.get(&format!("/ai/teams/{}", id(&team))).await);
+    rec.check(
+        "POST run: a lead is already on the ticket",
+        &c.post(&format!("/tickets/{t1}/ai/run"), json!({"instruction": "Use SQLite"})).await,
+    );
+    rec.check("POST restart: it waits for an answer", &c.post_empty(&format!("{one}/restart")).await);
+    rec.check("POST retry: it has not ended", &c.post_empty(&format!("{one}/retry")).await);
+    rec.check("POST answer", &c.post(&format!("{one}/answer"), json!({"text": "PostgreSQL"})).await);
+    let asked = wait_run(c, &t1, &["needs_input", "failed", "finished"]).await;
+    rec.note("the run then waits as", json!({"state": asked["state"]}));
+    rec.check("GET messages: the answer", &c.get(&format!("{one}/messages")).await);
+    rec.check("POST cancel", &c.post_empty(&format!("{one}/cancel")).await);
+    rec.check("POST cancel: again", &c.post_empty(&format!("{one}/cancel")).await);
+    rec.check("GET run: cancelled", &c.get(&one).await);
+    rec.check("GET overview: nothing waits", &c.get(&format!("/projects/{pid}/ai/overview")).await);
+    rec.check("POST retry: a cancelled run", &c.post_empty(&format!("{one}/retry")).await);
+    rec.finish();
+}
+
+/// A lead that works and waits for a note: restart, a note into the live run, stopping it with the team's pause and
+/// with the project's kill switch.
+#[tokio::test]
+async fn running_run_routes() {
+    let name = "running_run_routes";
+    let fake = [("FAKE_CLAUDE_MODE", "v2"), ("FAKE_CLAUDE_V2_WAIT_MESSAGE", "1"), ("FAKE_CLAUDE_WAIT", "60")];
+    let Some(f) = start(name, true, &fake).await else { return };
+    let c = &f.c;
+    sign_in(&f);
+    let mut rec = Rec::new("ai_team_routes", name, &[&tmp(&f)]);
+    rec.ignore(&MEASURED);
+    rec.ignore(&[
+        "id",
+        "steps",
+        "agents",
+        "cost_usd",
+        "tokens_in",
+        "tokens_out",
+        "context_used",
+        "context_window",
+        "rss_mb",
+        "history",
+    ]);
+    let (pid, _an) = project(c).await;
+    let team = make_team(&f, &pid, "Dev An", json!({})).await;
+    let team_id = id(&team);
+    let t1 = ticket(c, &pid, "Fix add()", "todo").await;
+    c.post(&format!("/tickets/{t1}/ai/run"), json!({})).await.assert_status(200);
+    let running = wait_run(c, &t1, &["running", "failed", "finished"]).await;
+    rec.note("the run is", json!({"state": running["state"]}));
+    let rid = id(&running);
+    let one = format!("/ai/runs/{rid}");
+    // the lead has written its first lines and waits for a note
+    let end = tokio::time::Instant::now() + Duration::from_secs(60);
+    loop {
+        let steps = c.get(&format!("{one}/steps")).await.json();
+        if steps.as_array().is_some_and(|s| s.iter().any(|x| x["kind"] == "text")) {
+            break;
+        }
+        assert!(tokio::time::Instant::now() < end, "the lead wrote nothing");
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    rec.check("GET run: running", &c.get(&one).await);
+    rec.check("GET overview: running", &c.get(&format!("/projects/{pid}/ai/overview")).await);
+    rec.check("GET live: running", &c.get(&format!("/projects/{pid}/ai/live")).await);
+    rec.check_hiding(
+        "GET resources: running",
+        &c.get(&format!("/projects/{pid}/ai/resources")).await,
+        &["machine", "cli_rss_mb", "at", "uptime_s", "age_s"],
+    );
+    rec.check("POST retry: it has not ended", &c.post_empty(&format!("{one}/retry")).await);
+    rec.check("POST answer: nothing asked", &c.post(&format!("{one}/answer"), json!({"text": "Yes"})).await);
+    rec.check("POST restart", &c.post_empty(&format!("{one}/restart")).await);
+    // the CLI starts again inside the same run
+    let end = tokio::time::Instant::now() + Duration::from_secs(60);
+    loop {
+        let run = c.get(&one).await.json();
+        if run["state"] == "running" && run["restarts"].as_array().is_some_and(|r| !r.is_empty()) {
+            break;
+        }
+        assert!(tokio::time::Instant::now() < end, "the run never came back: {}", run["state"]);
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    rec.check("GET run: restarted", &c.get(&one).await);
+    // pausing the team with its current run
+    rec.check(
+        "POST pause: cancel the current run",
+        &c.post(&format!("/ai/teams/{team_id}/pause"), json!({"cancel_current": true, "reason": "lunch"})).await,
+    );
+    let cancelled = wait_run(c, &t1, &["cancelled", "failed", "finished"]).await;
+    rec.note("the run after the pause is", json!({"state": cancelled["state"], "reason": cancelled["ended_reason"]}));
+    rec.check("GET team: paused", &c.get(&format!("/ai/teams/{team_id}")).await);
+    rec.check("POST run: a paused team", &c.post(&format!("/tickets/{t1}/ai/run"), json!({})).await);
+    // (the team starts the run that waited as soon as it is resumed: its slots are a race, only that it is on is not)
+    let resumed = c.post_empty(&format!("/ai/teams/{team_id}/resume")).await;
+    rec.note("POST resume", json!({"status": resumed.status, "paused": resumed.json()["paused"]}));
+    // the kill switch (the run that waited behind the pause started when the team was resumed)
+    let again = c.get(&format!("/tickets/{t1}/ai/runs")).await.json();
+    let again = id(&again[0]);
+    let end = tokio::time::Instant::now() + Duration::from_secs(60);
+    loop {
+        let run = c.get(&format!("/ai/runs/{again}")).await.json();
+        if run["state"] == "running" {
+            break;
+        }
+        assert!(tokio::time::Instant::now() < end, "the run never started: {}", run["state"]);
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    rec.check(
+        "POST pause-all: cancels what runs",
+        &c.post(&format!("/projects/{pid}/ai/pause-all"), json!({"reason": "freeze"})).await,
+    );
+    let stopped = wait_run(c, &t1, &["cancelled", "failed", "finished"]).await;
+    rec.note("the run after the kill switch is", json!({"state": stopped["state"], "reason": stopped["ended_reason"]}));
+    rec.check("GET run: stopped by the kill switch", &c.get(&format!("/ai/runs/{again}")).await);
+    rec.check("POST run: everything is paused", &c.post(&format!("/tickets/{t1}/ai/run"), json!({})).await);
+    rec.check("POST resume-all", &c.post_empty(&format!("/projects/{pid}/ai/resume-all")).await);
+    // a note into a live run: the stand-in lead hears it and finishes
+    // (the run that waited behind the kill switch starts when it is lifted)
+    let last = c.get(&format!("/tickets/{t1}/ai/runs")).await.json();
+    let last = id(&last[0]);
+    let end = tokio::time::Instant::now() + Duration::from_secs(60);
+    loop {
+        let steps = c.get(&format!("/ai/runs/{last}/steps")).await.json();
+        let run = c.get(&format!("/ai/runs/{last}")).await.json();
+        if run["state"] == "running" && steps.as_array().is_some_and(|s| s.iter().any(|x| x["kind"] == "text")) {
+            break;
+        }
+        assert!(tokio::time::Instant::now() < end, "the last run never worked: {}", run["state"]);
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    rec.check(
+        "POST message: into the live run",
+        &c.post(&format!("/ai/runs/{last}/message"), json!({"text": "Use pytest."})).await,
+    );
+    let ended = wait_run(c, &t1, &["finished", "failed", "cancelled"]).await;
+    rec.note("the run after the note is", json!({"state": ended["state"]}));
+    rec.check("GET touches: what the person did", &c.get(&format!("/projects/{pid}/ai/team/touches")).await);
     rec.finish();
 }

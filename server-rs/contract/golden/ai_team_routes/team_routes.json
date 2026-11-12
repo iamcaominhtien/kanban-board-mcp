@@ -285,7 +285,7 @@
       "max_parallel": 2,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "standard",
@@ -376,7 +376,7 @@
           },
           {
             "key": "security",
-            "model": "opus"
+            "model": "stand-in"
           }
         ],
         "skills": []
@@ -399,7 +399,7 @@
       "max_parallel": 3,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "feature_ui",
@@ -467,7 +467,7 @@
           "description": "Finds what an attacker could use, and proves it",
           "effort": "high",
           "key": "security",
-          "model": "opus",
+          "model": "stand-in",
           "name": "Security reviewer",
           "prompt": "You are the Security reviewer on this project. You review a change, or an area, for what an attacker could use: follow untrusted input to where it is used, prove each finding with a safe local test (in the ticket's scratch folder, never committed), rate it by what an attacker gains, and say how to fix it. You never change the product's code, attack a real system, use real credentials or send data anywhere. End with `VERDICT: PASS` or `VERDICT: CHANGES`. Your craft: the skill `kanban-board:role-security-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
           "tools": null,
@@ -520,7 +520,7 @@
           },
           {
             "key": "security",
-            "model": "opus"
+            "model": "stand-in"
           }
         ],
         "skills": []
@@ -538,7 +538,7 @@
       "max_parallel": 3,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "feature_ui",
@@ -606,7 +606,7 @@
           "description": "Finds what an attacker could use, and proves it",
           "effort": "high",
           "key": "security",
-          "model": "opus",
+          "model": "stand-in",
           "name": "Security reviewer",
           "prompt": "You are the Security reviewer on this project. You review a change, or an area, for what an attacker could use: follow untrusted input to where it is used, prove each finding with a safe local test (in the ticket's scratch folder, never committed), rate it by what an attacker gains, and say how to fix it. You never change the product's code, attack a real system, use real credentials or send data anywhere. End with `VERDICT: PASS` or `VERDICT: CHANGES`. Your craft: the skill `kanban-board:role-security-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
           "tools": null,
@@ -662,7 +662,7 @@
         "max_parallel": 2,
         "max_runs_per_day": null,
         "mcp_last_used_at": null,
-        "model": "haiku",
+        "model": "sonnet",
         "monthly_cap": null,
         "name": "Dev An",
         "pack_key": "standard",
@@ -753,7 +753,7 @@
             },
             {
               "key": "security",
-              "model": "opus"
+              "model": "stand-in"
             }
           ],
           "skills": []
@@ -776,7 +776,7 @@
         "max_parallel": 3,
         "max_runs_per_day": null,
         "mcp_last_used_at": null,
-        "model": "haiku",
+        "model": "sonnet",
         "monthly_cap": null,
         "name": "Dev An",
         "pack_key": "feature_ui",
@@ -844,7 +844,7 @@
             "description": "Finds what an attacker could use, and proves it",
             "effort": "high",
             "key": "security",
-            "model": "opus",
+            "model": "stand-in",
             "name": "Security reviewer",
             "prompt": "You are the Security reviewer on this project. You review a change, or an area, for what an attacker could use: follow untrusted input to where it is used, prove each finding with a safe local test (in the ticket's scratch folder, never committed), rate it by what an attacker gains, and say how to fix it. You never change the product's code, attack a real system, use real credentials or send data anywhere. End with `VERDICT: PASS` or `VERDICT: CHANGES`. Your craft: the skill `kanban-board:role-security-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
             "tools": null,
@@ -1087,7 +1087,7 @@
           },
           {
             "key": "security",
-            "model": "opus"
+            "model": "stand-in"
           }
         ],
         "skills": []
@@ -1105,7 +1105,7 @@
       "max_parallel": 3,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "feature_ui",
@@ -1173,7 +1173,7 @@
           "description": "Finds what an attacker could use, and proves it",
           "effort": "high",
           "key": "security",
-          "model": "opus",
+          "model": "stand-in",
           "name": "Security reviewer",
           "prompt": "You are the Security reviewer on this project. You review a change, or an area, for what an attacker could use: follow untrusted input to where it is used, prove each finding with a safe local test (in the ticket's scratch folder, never committed), rate it by what an attacker gains, and say how to fix it. You never change the product's code, attack a real system, use real credentials or send data anywhere. End with `VERDICT: PASS` or `VERDICT: CHANGES`. Your craft: the skill `kanban-board:role-security-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
           "tools": null,
@@ -1248,7 +1248,7 @@
           },
           {
             "key": "security",
-            "model": "opus"
+            "model": "stand-in"
           }
         ],
         "skills": []
@@ -1266,7 +1266,7 @@
       "max_parallel": 3,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "feature_ui",
@@ -1334,7 +1334,7 @@
           "description": "Finds what an attacker could use, and proves it",
           "effort": "high",
           "key": "security",
-          "model": "opus",
+          "model": "stand-in",
           "name": "Security reviewer",
           "prompt": "You are the Security reviewer on this project. You review a change, or an area, for what an attacker could use: follow untrusted input to where it is used, prove each finding with a safe local test (in the ticket's scratch folder, never committed), rate it by what an attacker gains, and say how to fix it. You never change the product's code, attack a real system, use real credentials or send data anywhere. End with `VERDICT: PASS` or `VERDICT: CHANGES`. Your craft: the skill `kanban-board:role-security-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
           "tools": null,
@@ -1405,7 +1405,7 @@
       "max_parallel": 2,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "standard",
@@ -1490,7 +1490,7 @@
           },
           {
             "key": "security",
-            "model": "opus"
+            "model": "stand-in"
           }
         ],
         "skills": []
@@ -1508,7 +1508,7 @@
       "max_parallel": 2,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "feature_ui",
@@ -1576,7 +1576,7 @@
           "description": "Finds what an attacker could use, and proves it",
           "effort": "high",
           "key": "security",
-          "model": "opus",
+          "model": "stand-in",
           "name": "Security reviewer",
           "prompt": "You are the Security reviewer on this project. You review a change, or an area, for what an attacker could use: follow untrusted input to where it is used, prove each finding with a safe local test (in the ticket's scratch folder, never committed), rate it by what an attacker gains, and say how to fix it. You never change the product's code, attack a real system, use real credentials or send data anywhere. End with `VERDICT: PASS` or `VERDICT: CHANGES`. Your craft: the skill `kanban-board:role-security-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
           "tools": null,
@@ -1623,7 +1623,7 @@
           },
           {
             "key": "security",
-            "model": "opus"
+            "model": "stand-in"
           }
         ],
         "skills": []
@@ -1641,7 +1641,7 @@
       "max_parallel": 3,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "feature_ui",
@@ -1709,7 +1709,7 @@
           "description": "Finds what an attacker could use, and proves it",
           "effort": "high",
           "key": "security",
-          "model": "opus",
+          "model": "stand-in",
           "name": "Security reviewer",
           "prompt": "You are the Security reviewer on this project. You review a change, or an area, for what an attacker could use: follow untrusted input to where it is used, prove each finding with a safe local test (in the ticket's scratch folder, never committed), rate it by what an attacker gains, and say how to fix it. You never change the product's code, attack a real system, use real credentials or send data anywhere. End with `VERDICT: PASS` or `VERDICT: CHANGES`. Your craft: the skill `kanban-board:role-security-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
           "tools": null,
@@ -1756,7 +1756,7 @@
           },
           {
             "key": "security",
-            "model": "opus"
+            "model": "stand-in"
           }
         ],
         "skills": []
@@ -1774,7 +1774,7 @@
       "max_parallel": 3,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "feature_ui",
@@ -1842,7 +1842,7 @@
           "description": "Finds what an attacker could use, and proves it",
           "effort": "high",
           "key": "security",
-          "model": "opus",
+          "model": "stand-in",
           "name": "Security reviewer",
           "prompt": "You are the Security reviewer on this project. You review a change, or an area, for what an attacker could use: follow untrusted input to where it is used, prove each finding with a safe local test (in the ticket's scratch folder, never committed), rate it by what an attacker gains, and say how to fix it. You never change the product's code, attack a real system, use real credentials or send data anywhere. End with `VERDICT: PASS` or `VERDICT: CHANGES`. Your craft: the skill `kanban-board:role-security-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
           "tools": null,
@@ -1889,7 +1889,7 @@
           },
           {
             "key": "security",
-            "model": "opus"
+            "model": "stand-in"
           }
         ],
         "skills": []
@@ -1907,7 +1907,7 @@
       "max_parallel": 3,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "feature_ui",
@@ -1975,7 +1975,7 @@
           "description": "Finds what an attacker could use, and proves it",
           "effort": "high",
           "key": "security",
-          "model": "opus",
+          "model": "stand-in",
           "name": "Security reviewer",
           "prompt": "You are the Security reviewer on this project. You review a change, or an area, for what an attacker could use: follow untrusted input to where it is used, prove each finding with a safe local test (in the ticket's scratch folder, never committed), rate it by what an attacker gains, and say how to fix it. You never change the product's code, attack a real system, use real credentials or send data anywhere. End with `VERDICT: PASS` or `VERDICT: CHANGES`. Your craft: the skill `kanban-board:role-security-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
           "tools": null,
@@ -2096,7 +2096,7 @@
           },
           {
             "key": "security",
-            "model": "opus"
+            "model": "stand-in"
           }
         ],
         "skills": []
@@ -2114,7 +2114,7 @@
       "max_parallel": 3,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "feature_ui",
@@ -2182,7 +2182,7 @@
           "description": "Finds what an attacker could use, and proves it",
           "effort": "high",
           "key": "security",
-          "model": "opus",
+          "model": "stand-in",
           "name": "Security reviewer",
           "prompt": "You are the Security reviewer on this project. You review a change, or an area, for what an attacker could use: follow untrusted input to where it is used, prove each finding with a safe local test (in the ticket's scratch folder, never committed), rate it by what an attacker gains, and say how to fix it. You never change the product's code, attack a real system, use real credentials or send data anywhere. End with `VERDICT: PASS` or `VERDICT: CHANGES`. Your craft: the skill `kanban-board:role-security-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
           "tools": null,
@@ -2243,7 +2243,7 @@
       "max_parallel": 2,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "standard",
@@ -2458,7 +2458,7 @@
           },
           {
             "key": "security",
-            "model": "opus"
+            "model": "stand-in"
           }
         ],
         "skills": []
@@ -2476,7 +2476,7 @@
       "max_parallel": 3,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "feature_ui",
@@ -2544,7 +2544,7 @@
           "description": "Finds what an attacker could use, and proves it",
           "effort": "high",
           "key": "security",
-          "model": "opus",
+          "model": "stand-in",
           "name": "Security reviewer",
           "prompt": "You are the Security reviewer on this project. You review a change, or an area, for what an attacker could use: follow untrusted input to where it is used, prove each finding with a safe local test (in the ticket's scratch folder, never committed), rate it by what an attacker gains, and say how to fix it. You never change the product's code, attack a real system, use real credentials or send data anywhere. End with `VERDICT: PASS` or `VERDICT: CHANGES`. Your craft: the skill `kanban-board:role-security-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
           "tools": null,
@@ -2610,7 +2610,7 @@
           },
           {
             "key": "security",
-            "model": "opus"
+            "model": "stand-in"
           }
         ],
         "skills": []
@@ -2628,7 +2628,7 @@
       "max_parallel": 3,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "feature_ui",
@@ -2696,7 +2696,7 @@
           "description": "Finds what an attacker could use, and proves it",
           "effort": "high",
           "key": "security",
-          "model": "opus",
+          "model": "stand-in",
           "name": "Security reviewer",
           "prompt": "You are the Security reviewer on this project. You review a change, or an area, for what an attacker could use: follow untrusted input to where it is used, prove each finding with a safe local test (in the ticket's scratch folder, never committed), rate it by what an attacker gains, and say how to fix it. You never change the product's code, attack a real system, use real credentials or send data anywhere. End with `VERDICT: PASS` or `VERDICT: CHANGES`. Your craft: the skill `kanban-board:role-security-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
           "tools": null,
@@ -2743,7 +2743,7 @@
           },
           {
             "key": "security",
-            "model": "opus"
+            "model": "stand-in"
           }
         ],
         "skills": []
@@ -2761,7 +2761,7 @@
       "max_parallel": 3,
       "max_runs_per_day": null,
       "mcp_last_used_at": null,
-      "model": "haiku",
+      "model": "sonnet",
       "monthly_cap": null,
       "name": "Dev An",
       "pack_key": "feature_ui",
@@ -2829,7 +2829,7 @@
           "description": "Finds what an attacker could use, and proves it",
           "effort": "high",
           "key": "security",
-          "model": "opus",
+          "model": "stand-in",
           "name": "Security reviewer",
           "prompt": "You are the Security reviewer on this project. You review a change, or an area, for what an attacker could use: follow untrusted input to where it is used, prove each finding with a safe local test (in the ticket's scratch folder, never committed), rate it by what an attacker gains, and say how to fix it. You never change the product's code, attack a real system, use real credentials or send data anywhere. End with `VERDICT: PASS` or `VERDICT: CHANGES`. Your craft: the skill `kanban-board:role-security-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
           "tools": null,

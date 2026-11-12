@@ -281,7 +281,9 @@ pub async fn snapshot(project_id: &str) -> Result<Map<String, Value>, DbErr> {
     });
     // `sum(...)` of nothing, or of runs without a number, is the integer 0 in Python, and `round` keeps it one
     let measured = rows.iter().any(|r| is_live(r) && (r["cli_rss_mb"].is_number() || r["extra_mb"].is_number()));
-    let ai_mb: f64 = rows.iter().filter(|r| is_live(r)).map(|r| number(r, "cli_rss_mb") + number(r, "extra_mb")).sum();
+    let ai_mb = kb_base::pynum::sum(
+        rows.iter().filter(|r| is_live(r)).map(|r| number(r, "cli_rss_mb") + number(r, "extra_mb")),
+    );
     machine.insert("ai_rss_mb".into(), if measured { json!(round_to(ai_mb, 1)) } else { json!(0) });
     machine.insert("cli_count".into(), json!(rows.iter().filter(|r| is_live(r)).count()));
     let mut out = Map::new();

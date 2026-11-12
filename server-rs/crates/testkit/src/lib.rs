@@ -14,4 +14,6 @@ mod server;
 pub use client::{Client, Events, Resp};
 pub use mcp::{Mcp, ToolResult};
 pub use normalize::normalize;
-pub use server::{Options, Server, Target, rust_binary_available, skip_unless_available, target};
+pub use server::{
+    Options, Server, Target, morning_zone, rust_binary_available, server_hours_east, skip_unless_available, target,
+};

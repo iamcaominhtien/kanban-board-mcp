@@ -39,7 +39,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
       }
     ],
     "isError": false
@@ -48,7 +48,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
       }
     ],
     "isError": false
@@ -57,7 +57,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
       }
     ],
     "isError": false
@@ -66,7 +66,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
       }
     ],
     "isError": false
@@ -75,7 +75,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
       }
     ],
     "isError": false
@@ -93,7 +93,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": [\n    {\n      \"id\": 1,\n      \"project_id\": null,\n      \"kind\": \"day_card\",\n      \"op\": \"new\",\n      \"needs\": false,\n      \"target_kind\": \"day\",\n      \"target_id\": \"user:<date>\",\n      \"ticket_id\": null,\n      \"page_id\": null,\n      \"member_id\": null,\n      \"actor\": null,\n      \"title\": \"Today on your boards\",\n      \"body\": \"<day> · <hm> · 0 projects\",\n      \"data\": {\n        \"since\": \"<time>\",\n        \"until\": \"<time>\",\n        \"finished\": 0,\n        \"failed\": 0,\n        \"failed_runs\": [],\n        \"waiting\": 0,\n        \"waiting_ids\": [],\n        \"snoozed\": 0,\n        \"spent\": 0,\n        \"projects\": 0,\n        \"lines\": [\n          {\n            \"kind\": \"quiet\",\n            \"text\": \"A quiet day: nothing ran and nothing waits for you.\"\n          }\n        ],\n        \"quiet\": true\n      },\n      \"recipients\": [\n        \"user\"\n      ],\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
       }
     ],
     "isError": false
@@ -102,7 +102,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": [\n    {\n      \"id\": 1,\n      \"project_id\": null,\n      \"kind\": \"day_card\",\n      \"op\": \"new\",\n      \"needs\": false,\n      \"target_kind\": \"day\",\n      \"target_id\": \"user:<date>\",\n      \"ticket_id\": null,\n      \"page_id\": null,\n      \"member_id\": null,\n      \"actor\": null,\n      \"title\": \"Today on your boards\",\n      \"body\": \"<day> · <hm> · 0 projects\",\n      \"data\": {\n        \"since\": \"<time>\",\n        \"until\": \"<time>\",\n        \"finished\": 0,\n        \"failed\": 0,\n        \"failed_runs\": [],\n        \"waiting\": 0,\n        \"waiting_ids\": [],\n        \"snoozed\": 0,\n        \"spent\": 0,\n        \"projects\": 0,\n        \"lines\": [\n          {\n            \"kind\": \"quiet\",\n            \"text\": \"A quiet day: nothing ran and nothing waits for you.\"\n          }\n        ],\n        \"quiet\": true\n      },\n      \"recipients\": [\n        \"user\"\n      ],\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
       }
     ],
     "isError": false
@@ -111,7 +111,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": true,\n  \"events\": []\n}"
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": true,\n  \"events\": []\n}"
       }
     ],
     "isError": false
@@ -148,7 +148,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 2,\n  \"cursor_too_old\": false,\n  \"events\": [\n    {\n      \"id\": 1,\n      \"project_id\": null,\n      \"kind\": \"day_card\",\n      \"op\": \"new\",\n      \"needs\": false,\n      \"target_kind\": \"day\",\n      \"target_id\": \"user:<date>\",\n      \"ticket_id\": null,\n      \"page_id\": null,\n      \"member_id\": null,\n      \"actor\": null,\n      \"title\": \"Today on your boards\",\n      \"body\": \"<day> · <hm> · 0 projects\",\n      \"data\": {\n        \"since\": \"<time>\",\n        \"until\": \"<time>\",\n        \"finished\": 0,\n        \"failed\": 0,\n        \"failed_runs\": [],\n        \"waiting\": 0,\n        \"waiting_ids\": [],\n        \"snoozed\": 0,\n        \"spent\": 0,\n        \"projects\": 0,\n        \"lines\": [\n          {\n            \"kind\": \"quiet\",\n            \"text\": \"A quiet day: nothing ran and nothing waits for you.\"\n          }\n        ],\n        \"quiet\": true\n      },\n      \"recipients\": [\n        \"user\"\n      ],\n      \"created_at\": \"<time>\"\n    },\n    {\n      \"id\": 2,\n      \"project_id\": \"<uuid:1>\",\n      \"kind\": \"lesson\",\n      \"op\": \"new\",\n      \"needs\": false,\n      \"target_kind\": \"lesson\",\n      \"target_id\": \"<lsn:1>\",\n      \"ticket_id\": null,\n      \"page_id\": null,\n      \"member_id\": null,\n      \"actor\": null,\n      \"title\": \"A lesson proposed by user\",\n      \"body\": \"Wait for the board.\",\n      \"data\": {},\n      \"recipients\": [\n        \"user\"\n      ],\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
+        "text": "{\n  \"head\": 2,\n  \"cursor_too_old\": false,\n  \"events\": [\n    {\n      \"id\": 2,\n      \"project_id\": \"<uuid:1>\",\n      \"kind\": \"lesson\",\n      \"op\": \"new\",\n      \"needs\": false,\n      \"target_kind\": \"lesson\",\n      \"target_id\": \"<lsn:1>\",\n      \"ticket_id\": null,\n      \"page_id\": null,\n      \"member_id\": null,\n      \"actor\": null,\n      \"title\": \"A lesson proposed by user\",\n      \"body\": \"Wait for the board.\",\n      \"data\": {},\n      \"recipients\": [\n        \"user\"\n      ],\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
       }
     ],
     "isError": false

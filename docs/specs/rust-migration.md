@@ -167,7 +167,8 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
       `ticket_branches`, the five idea tools)
 - [x] `docs_read` and `docs_write` with every action (pages, comments, import, diagrams, sketches, canvases, pictures,
       guides)
-- [ ] `ai_run`, `ai_schedules`, `knowledge`, `board_wait` (with the AI team)
+- [x] `ai_run`, `ai_schedules`, `knowledge`, `board_wait` (200 recorded calls equal Python's; all 13 tools and the 5
+      idea tools are served)
 - [x] `mcp_stdio.py`, `mcp_bridge.py` (byte-equal to the Python programs)
 - [x] `services/mcp_clients.py`, `shared_skills.py`, `role_skills.py`, skill assets (`kb-skills`; the skill folders are
       embedded unchanged)
@@ -227,7 +228,9 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - On Windows `kb-ai-run` has only been type-checked in part (no Windows C toolchain here): it compiles first in CI.
 - `kb_assist::seams::Runs::wake_new_assignee` gives no error: a failure to start the run of a page's new assignee is
   logged, where Python answers 500.
-- `mcp_docs_scenario` failed once in many runs on its `notification` comparison (timing): look at it if it returns.
+- The servers under test run in a time zone where it is morning (`testkit::morning_zone`, the `TZ` variable): from
+  18:00 on a working day the board writes each person's card of the day, and tests that count notification rows
+  failed in the evening on both servers.
 - The template database of `testkit` no longer carries the workspace settings of the server that made it (three
   recorded MCP files held a stale folder because of it and were recorded again).
 - The UI end-to-end check (`server-rs/e2e`, `node run.mjs --target both`): 137 core steps pass on both servers. What

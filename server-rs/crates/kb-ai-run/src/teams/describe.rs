@@ -78,7 +78,7 @@ async fn usage_today(session: &Session, member_id: &str) -> Result<Value, Error>
         .all(session)
         .await?;
     // `sum(r.cost_usd or 0 for r in rows)`: an int 0 while no run has a cost, as Python's sum gives
-    let cost: f64 = rows.iter().map(|r| r.cost_usd).sum();
+    let cost = kb_base::pynum::sum(rows.iter().map(|r| r.cost_usd));
     let cost = if rows.iter().all(|r| r.cost_usd == 0.0) { json!(0) } else { json!(round4(cost)) };
     let tokens: i64 = rows.iter().map(|r| i64::from(r.tokens_in) + i64::from(r.tokens_out)).sum();
     Ok(json!({"runs_today": rows.len(), "cost_today": cost, "tokens_today": tokens}))
