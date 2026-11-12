@@ -23,6 +23,9 @@ kb-board = { path = "crates/kb-board" }
 kb-ideas = { path = "crates/kb-ideas" }
 kb-skills = { path = "crates/kb-skills" }
 kb-ai = { path = "crates/kb-ai" }
+kb-ai-know = { path = "crates/kb-ai-know" }
+kb-ai-work = { path = "crates/kb-ai-work" }
+kb-ai-run = { path = "crates/kb-ai-run" }
 kb-assist = { path = "crates/kb-assist" }
 kb-dbkit = { path = "crates/kb-dbkit" }
 kb-mcp = { path = "crates/kb-mcp" }

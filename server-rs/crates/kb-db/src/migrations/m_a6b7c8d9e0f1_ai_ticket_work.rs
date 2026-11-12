@@ -9,7 +9,8 @@ use super::ops::{self, StepResult};
 /// `upgrade()` of revision `a6b7c8d9e0f1`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
     ops::exec(conn, r"DROP INDEX ux_ai_run_ticket_hold").await?;
-    // batch_alter_table("ai_run"): Alembic rebuilt the table for these columns; the table is the same with ADD COLUMN
+    // batch_alter_table("ai_run"): Alembic rebuilt the table for these columns (their default is written as an
+    // expression); ADD COLUMN gives the same table
     ops::exec(conn, r"ALTER TABLE ai_run ADD COLUMN paused BOOLEAN DEFAULT 0 NOT NULL").await?;
     ops::exec(conn, r"ALTER TABLE ai_run ADD COLUMN paused_at VARCHAR").await?;
     ops::exec(conn, r"ALTER TABLE ai_run ADD COLUMN behind_run_id VARCHAR").await?;

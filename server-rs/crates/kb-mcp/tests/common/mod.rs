@@ -237,3 +237,37 @@ pub async fn tools(mcp: &testkit::Mcp) -> Map<String, Value> {
         .map(|tool| (tool["name"].as_str().expect("a name").to_string(), tool.clone()))
         .collect()
 }
+
+/// `_ticket(c, title, prefix, **kw)` of the Python tests (`test_activity.py`): a project and a ticket in it, made
+/// through the REST API. Returns the project and the ticket.
+pub async fn rest_ticket(client: &testkit::Client, title: &str, prefix: &str, extra: Value) -> (Value, Value) {
+    let made = client.post("/projects", json!({"name": prefix, "prefix": prefix, "color": "#123456"})).await;
+    made.assert_status(201);
+    let project = made.json();
+    let ticket = rest_ticket_in(client, &project["id"], title, extra).await;
+    (project, ticket)
+}
+
+/// A ticket in a project, made through the REST API.
+pub async fn rest_ticket_in(client: &testkit::Client, project_id: &Value, title: &str, extra: Value) -> Value {
+    let mut body = json!({"title": title});
+    for (key, value) in extra.as_object().expect("an object") {
+        body[key] = value.clone();
+    }
+    let path = format!("/projects/{}/tickets", project_id.as_str().expect("a project id"));
+    let made = client.post(&path, body).await;
+    made.assert_status(201);
+    made.json()
+}
+
+/// Python truthiness of a JSON value (`if value:`).
+pub fn truthy(value: &Value) -> bool {
+    match value {
+        Value::Null => false,
+        Value::Bool(b) => *b,
+        Value::Number(n) => n.as_f64().is_some_and(|f| f != 0.0),
+        Value::String(s) => !s.is_empty(),
+        Value::Array(a) => !a.is_empty(),
+        Value::Object(o) => !o.is_empty(),
+    }
+}

@@ -23,4 +23,5 @@ tracing = { workspace = true }
 url = "2"
 
 [dev-dependencies]
+flate2 = "1"
 tempfile = "3"

@@ -8,13 +8,19 @@ use super::ops::{self, StepResult};
 
 /// `upgrade()` of revision `f1a2b3c4d5e6`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    ops::exec(conn, r"CREATE TABLE idea_counter (
+    ops::exec(
+        conn,
+        r"CREATE TABLE idea_counter (
 	id INTEGER NOT NULL, 
 	counter INTEGER DEFAULT '0' NOT NULL, 
 	PRIMARY KEY (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"INSERT INTO idea_counter (id, counter) VALUES (1, 0)").await?;
-    ops::exec(conn, r"CREATE TABLE idea_ticket (
+    ops::exec(
+        conn,
+        r"CREATE TABLE idea_ticket (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	title VARCHAR NOT NULL, 
@@ -39,7 +45,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	updated_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_idea_ticket_project_id ON idea_ticket (project_id)").await?;
     Ok(())
 }

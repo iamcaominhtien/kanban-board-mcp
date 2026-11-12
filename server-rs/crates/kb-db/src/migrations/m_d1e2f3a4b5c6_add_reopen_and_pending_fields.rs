@@ -8,7 +8,8 @@ use super::ops::{self, StepResult};
 
 /// `upgrade()` of revision `d1e2f3a4b5c6`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    // batch_alter_table("ticket"): Alembic rebuilt the table for these columns; the table is the same with ADD COLUMN
+    // batch_alter_table("ticket"): Alembic rebuilt the table for these columns (their default is written as an
+    // expression); ADD COLUMN gives the same table
     ops::exec(conn, r"ALTER TABLE ticket ADD COLUMN reopen_count INTEGER DEFAULT '0' NOT NULL").await?;
     ops::exec(conn, r"ALTER TABLE ticket ADD COLUMN last_reopened_at VARCHAR").await?;
     ops::exec(conn, r"ALTER TABLE ticket ADD COLUMN last_reopened_by VARCHAR").await?;

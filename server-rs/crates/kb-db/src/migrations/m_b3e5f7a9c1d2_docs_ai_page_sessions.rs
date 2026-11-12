@@ -8,7 +8,9 @@ use super::ops::{self, StepResult};
 
 /// `upgrade()` of revision `b3e5f7a9c1d2`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    ops::exec(conn, r"CREATE TABLE docs_ai_session (
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_ai_session (
 	scope VARCHAR NOT NULL, 
 	member_id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
@@ -17,7 +19,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	updated_at VARCHAR NOT NULL, 
 	PRIMARY KEY (scope, member_id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_ai_session_project_id ON docs_ai_session (project_id)").await?;
     Ok(())
 }

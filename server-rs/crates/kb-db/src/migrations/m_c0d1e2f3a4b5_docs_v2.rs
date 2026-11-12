@@ -15,14 +15,18 @@ use super::ops::{self, StepResult};
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
     ops::exec(conn, r"ALTER TABLE project ADD COLUMN docs_enabled BOOLEAN DEFAULT 1 NOT NULL").await?;
     ops::exec(conn, r"ALTER TABLE docs_link ADD COLUMN origin VARCHAR DEFAULT 'page' NOT NULL").await?;
-    ops::exec(conn, r"CREATE TABLE docs_anchor_aliases (
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_anchor_aliases (
 	id VARCHAR NOT NULL, 
 	page_id VARCHAR NOT NULL, 
 	old_slug VARCHAR NOT NULL, 
 	new_slug VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(page_id) REFERENCES docs_page (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_anchor_aliases_page_id ON docs_anchor_aliases (page_id)").await?;
     // Full-text index. SQLite builds without FTS5 skip it: search falls back to LIKE matching.
     if create_fts(conn).await {
@@ -75,7 +79,8 @@ async fn backfill<C: ConnectionTrait>(conn: &C) -> StepResult {
 // written out here.
 
 static REF: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\[\[([^\]\[|#\n]{1,200})(?:#([^\]\[|\n]{1,200}))?(?:\|([^\]\[\n]{1,200}))?\]\]").expect("a valid pattern")
+    Regex::new(r"\[\[([^\]\[|#\n]{1,200})(?:#([^\]\[|\n]{1,200}))?(?:\|([^\]\[\n]{1,200}))?\]\]")
+        .expect("a valid pattern")
 });
 static LINK: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\[([^\]\[\n]{1,300})\]\(([^()\n]{0,500})\)").expect("a valid pattern"));

@@ -269,15 +269,21 @@ async fn test_invalid_enum_values_are_rejected_before_any_work() {
 
 // --------------------------------------------------------------------------- behaviour the descriptions promise
 
-/// The project half of the Python test (its ticket half is ported with `manage_ticket`).
 #[tokio::test]
 async fn test_create_ticket_and_update_project_cover_what_the_descriptions_offer() {
     let s = common::start().await;
-    let mcp = s.mcp();
-    let p = call(&mcp, "manage_project", json!({"action": "create", "name": "Test", "prefix": "TST"})).await;
+    let (mcp, c) = (s.mcp(), s.client());
+    let (p, _) = common::rest_ticket(&c, "t", "ACT", json!({})).await;
     let member =
         call(&mcp, "manage_project", json!({"action": "add_member", "project_id": p["id"], "name": "Bao"})).await;
-    assert!(member["id"].is_string());
+    let created = call(
+        &mcp,
+        "manage_ticket",
+        json!({"action": "create", "project_id": p["id"], "title": "with owner", "assignee": member["id"],
+               "start_date": "2026-01-02", "due_date": "2026-02-01"}),
+    )
+    .await;
+    assert!(created["assignee"] == member["id"] && created["start_date"] == "2026-01-02", "{created}");
     let project =
         call(&mcp, "manage_project", json!({"action": "update", "project_id": p["id"], "name": "Renamed"})).await;
     assert_eq!(project["name"], "Renamed");
@@ -285,6 +291,212 @@ async fn test_create_ticket_and_update_project_cover_what_the_descriptions_offer
         call_err(&mcp, "manage_project", json!({"action": "update", "project_id": "no-such-project", "name": "x"}))
             .await;
     assert!(refused.contains("not found"), "{refused}");
+}
+
+#[tokio::test]
+async fn test_list_tickets_is_paginated_and_compact() {
+    let s = common::start().await;
+    let (mcp, c) = (s.mcp(), s.client());
+    let (p, _) = common::rest_ticket(&c, "first", "ACT", json!({})).await;
+    for n in 0..4 {
+        common::rest_ticket_in(&c, &p["id"], &format!("t{n}"), json!({"description": "long ".repeat(50)})).await;
+    }
+    let page = call(&mcp, "list_tickets", json!({"project_id": p["id"], "limit": 2})).await;
+    assert_eq!((&page["total"], &page["count"], &page["offset"], &page["has_more"]), (&json!(5), &json!(2), &json!(0), &json!(true)));
+    let rest = call(&mcp, "list_tickets", json!({"project_id": p["id"], "limit": 2, "offset": 4})).await;
+    assert_eq!((&rest["count"], &rest["has_more"]), (&json!(1), &json!(false)));
+    let summary = page["tickets"][0].as_object().expect("a summary");
+    for key in ["id", "title", "status", "priority", "blocked_by", "acceptance_criteria", "test_cases"] {
+        assert!(summary.contains_key(key), "{key}");
+    }
+    assert!(!summary.contains_key("description") && !summary.contains_key("activity_log"));
+    let full = call(&mcp, "list_tickets", json!({"project_id": p["id"], "detail": true, "limit": 1})).await;
+    assert!(full["tickets"][0].get("description").is_some() && full["tickets"][0].get("activity_log").is_none());
+}
+
+#[tokio::test]
+async fn test_activity_log_is_opt_in_and_branches_have_no_camel_case_twins() {
+    let s = common::start().await;
+    let (mcp, c) = (s.mcp(), s.client());
+    let (_, t) = common::rest_ticket(&c, "t", "ACT", json!({})).await;
+    let id = t["id"].as_str().expect("an id");
+    c.patch(&format!("/tickets/{id}"), json!({"priority": "high"})).await.assert_status(200);
+    c.post(&format!("/tickets/{id}/branches"), json!({"name": "feat/a", "branch_from": "main"})).await.assert_status(201);
+    let plain = call(&mcp, "get_ticket", json!({"ticket_id": id})).await;
+    // recent entries only
+    assert!(plain["activity_log"].as_array().expect("log").len() <= 10);
+    let all = call(&mcp, "get_ticket", json!({"ticket_id": id, "activity_limit": -1})).await;
+    assert_eq!(all["activity_log"].as_array().expect("log").len() as u64, plain["activity_total"].as_u64().expect("total"));
+    let commented =
+        call(&mcp, "ticket_items", json!({"ticket_id": id, "item": "comment", "action": "add", "text": "hi", "author": "Claude"}))
+            .await;
+    assert!(commented.get("activity_log").is_none());
+    let branch = plain["branches"][0].as_object().expect("a branch");
+    assert!(branch.contains_key("pr_url") && !branch.contains_key("prUrl") && !branch.contains_key("branchFrom"));
+}
+
+#[tokio::test]
+async fn test_sub_item_errors_list_the_valid_ids() {
+    let s = common::start().await;
+    let (mcp, c) = (s.mcp(), s.client());
+    let (_, t) = common::rest_ticket(&c, "t", "ACT", json!({})).await;
+    let id = &t["id"];
+    let created =
+        call(&mcp, "ticket_items", json!({"ticket_id": id, "item": "comment", "action": "add", "text": "hello", "author": "Claude"}))
+            .await;
+    let cid = created["comments"][0]["id"].as_str().expect("an id").to_string();
+    // used to "succeed" silently
+    let text =
+        call_err(&mcp, "ticket_items", json!({"ticket_id": id, "item": "comment", "action": "delete", "item_id": "wrong-id"}))
+            .await;
+    assert!(text.contains(&cid) && text.contains("get_ticket"), "{text}");
+    let got = call(&mcp, "get_ticket", json!({"ticket_id": id})).await;
+    assert_eq!(got["comments"].as_array().expect("comments").len(), 1);
+    let text =
+        call_err(&mcp, "ticket_items", json!({"ticket_id": id, "item": "criterion", "action": "toggle", "item_id": "nope"}))
+            .await;
+    assert!(text.contains("not found"), "{text}");
+}
+
+#[tokio::test]
+async fn test_test_cases_and_branches_can_be_addressed_by_code_and_name() {
+    let s = common::start().await;
+    let (mcp, c) = (s.mcp(), s.client());
+    let (_, t) = common::rest_ticket(&c, "t", "ACT", json!({})).await;
+    let i = &t["id"];
+    call(&mcp, "ticket_items", json!({"ticket_id": i, "item": "test_case", "action": "add", "title": "works"})).await;
+    // by code, not UUID
+    let updated = call(
+        &mcp,
+        "ticket_items",
+        json!({"ticket_id": i, "item": "test_case", "action": "update", "item_id": "TC-1", "status": "pass"}),
+    )
+    .await;
+    assert_eq!(updated["test_cases"][0]["status"], "pass");
+    call(&mcp, "ticket_branches", json!({"ticket_id": i, "action": "add", "name": "feat/x"})).await;
+    // by name
+    let renamed = call(
+        &mcp,
+        "ticket_branches",
+        json!({"ticket_id": i, "action": "update", "branch": "feat/x", "pr_url": "https://example.com/pr/1"}),
+    )
+    .await;
+    assert_eq!(renamed["branches"][0]["pr_url"], "https://example.com/pr/1");
+    let after = call(&mcp, "ticket_branches", json!({"ticket_id": i, "action": "delete", "branch": "feat/x"})).await;
+    assert_eq!(after["branches"], json!([]));
+}
+
+#[tokio::test]
+async fn test_failures_are_raised_for_idea_tools_too() {
+    let s = full_mcp().await;
+    let mcp = s.mcp();
+    for (tool, arguments) in [
+        ("get_idea_ticket", json!({"ticket_id": "IDEA-999"})),
+        ("list_idea_assumptions", json!({"ticket_id": "IDEA-999"})),
+        ("get_idea_activity_trail", json!({"ticket_id": "IDEA-999"})),
+    ] {
+        let text = call_err(&mcp, tool, arguments).await;
+        assert!(text.contains("not found"), "{tool}: {text}");
+    }
+}
+
+#[tokio::test]
+async fn test_unlink_explains_that_each_side_of_a_link_has_its_own_id() {
+    let s = common::start().await;
+    let (mcp, c) = (s.mcp(), s.client());
+    let (p, a) = common::rest_ticket(&c, "t", "ACT", json!({})).await;
+    let b = common::rest_ticket_in(&c, &p["id"], "b", json!({})).await;
+    let link = call(
+        &mcp,
+        "manage_ticket",
+        json!({"action": "link", "ticket_id": a["id"], "target_id": b["id"], "relation_type": "relates_to"}),
+    )
+    .await;
+    // the other side of the link
+    let text =
+        call_err(&mcp, "manage_ticket", json!({"action": "unlink", "ticket_id": b["id"], "link_id": link["id"]})).await;
+    assert!(text.contains("different id on each"), "{text}");
+    let removed =
+        call(&mcp, "manage_ticket", json!({"action": "unlink", "ticket_id": a["id"], "link_id": link["id"]})).await;
+    assert_eq!(removed, json!({"removed": link["id"]}));
+}
+
+#[tokio::test]
+async fn test_get_ticket_can_return_only_the_recent_activity() {
+    let s = common::start().await;
+    let (mcp, c) = (s.mcp(), s.client());
+    let (_, t) = common::rest_ticket(&c, "t", "ACT", json!({})).await;
+    let i = t["id"].as_str().expect("an id");
+    for n in 0..5 {
+        c.patch(&format!("/tickets/{i}"), json!({"title": format!("t{n}")})).await.assert_status(200);
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    }
+    let tos = |ticket: &Value| -> Vec<Value> {
+        ticket["activity_log"].as_array().expect("log").iter().map(|e| e["to"].clone()).collect()
+    };
+    // default: the most recent entries
+    let plain = call(&mcp, "get_ticket", json!({"ticket_id": i})).await;
+    let shown = plain["activity_log"].as_array().expect("log");
+    assert!(!shown.is_empty() && shown.len() <= 10);
+    assert!(plain["activity_total"].as_u64().expect("total") >= 6 && shown[shown.len() - 1]["to"] == "t4");
+
+    let everything = call(&mcp, "get_ticket", json!({"ticket_id": i, "activity_limit": -1})).await;
+    let all = everything["activity_log"].as_array().expect("log");
+    let total = all.len() as u64;
+    assert!(total >= 6 && everything["activity_total"].as_u64() == Some(total));
+
+    // the newest two, oldest first
+    let latest = call(&mcp, "get_ticket", json!({"ticket_id": i, "activity_limit": 2})).await;
+    assert_eq!(tos(&latest), [json!("t3"), json!("t4")]);
+    assert_eq!(latest["activity_total"].as_u64(), Some(total));
+
+    // leave it out entirely
+    let none = call(&mcp, "get_ticket", json!({"ticket_id": i, "activity_limit": 0})).await;
+    assert_eq!(none["activity_log"], json!([]));
+
+    // entries strictly after the third-from-last
+    let cutoff = all[all.len() - 3]["at"].clone();
+    let newer = call(&mcp, "get_ticket", json!({"ticket_id": i, "activity_since": cutoff})).await;
+    assert_eq!(tos(&newer), [json!("t3"), json!("t4")]);
+    let both = call(&mcp, "get_ticket", json!({"ticket_id": i, "activity_since": all[0]["at"], "activity_limit": 1})).await;
+    assert_eq!(tos(&both), [json!("t4")]);
+    let future = call(&mcp, "get_ticket", json!({"ticket_id": i, "activity_since": "2999-01-01"})).await;
+    assert_eq!(future["activity_log"], json!([]));
+    let text = call_err(&mcp, "get_ticket", json!({"ticket_id": i, "activity_since": "yesterday"})).await;
+    assert!(text.contains("ISO"), "{text}");
+}
+
+#[tokio::test]
+async fn test_default_activity_is_capped_and_long_texts_are_shortened() {
+    let s = common::start().await;
+    let (mcp, c) = (s.mcp(), s.client());
+    let (_, t) = common::rest_ticket(&c, "t", "ACT", json!({})).await;
+    let i = t["id"].as_str().expect("an id");
+    for n in 0..15 {
+        let priority = ["low", "high"][n % 2];
+        c.patch(&format!("/tickets/{i}"), json!({"priority": priority})).await.assert_status(200);
+    }
+    c.patch(&format!("/tickets/{i}"), json!({"description": "x".repeat(5000)})).await.assert_status(200);
+    let recent = call(&mcp, "get_ticket", json!({"ticket_id": i})).await;
+    assert_eq!(recent["activity_log"].as_array().expect("log").len(), 10);
+    assert!(recent["activity_total"].as_u64().expect("total") > 10);
+    let description = |ticket: &Value| -> String {
+        let log = ticket["activity_log"].as_array().expect("log");
+        log.iter().find(|e| e["field"] == "description").expect("a description entry")["to"].as_str().expect("text").to_string()
+    };
+    // shortened by default...
+    let short = description(&recent);
+    assert!(short.chars().count() < 400 && short.contains("more chars"), "{short}");
+    let full = call(&mcp, "get_ticket", json!({"ticket_id": i, "activity_limit": -1})).await;
+    // ...whole with a negative limit
+    assert_eq!(description(&full).chars().count(), 5000);
+    let log = full["activity_log"].as_array().expect("log");
+    assert_eq!(log.len() as u64, full["activity_total"].as_u64().expect("total"));
+    // a negative limit with `since` = everything after that moment, in full
+    let cutoff = log[log.len() - 2]["at"].clone();
+    let tail = call(&mcp, "get_ticket", json!({"ticket_id": i, "activity_limit": -5, "activity_since": cutoff})).await;
+    let expected: Vec<&Value> = log.iter().filter(|e| e["at"].as_str() > cutoff.as_str()).collect();
+    assert_eq!(tail["activity_log"].as_array().expect("log").iter().collect::<Vec<_>>(), expected);
 }
 
 #[tokio::test]
@@ -324,13 +536,5 @@ async fn test_sketches_are_actions_of_the_docs_tools_not_tools_of_their_own() {
 // Not ported:
 // - test_every_operation_is_reachable_through_a_tool looks through the Python modules (every function of
 //   `kanban_mcp.operations` is named by a table); in Rust an operation nothing routes to is found by reading
-//   `operations/mod.rs` against the tables when a tool is ported.
-// Waiting for their tools (ported with them):
-// - list_tickets, get_ticket, manage_ticket: test_list_tickets_is_paginated_and_compact,
-//   test_activity_log_is_opt_in_and_branches_have_no_camel_case_twins,
-//   test_unlink_explains_that_each_side_of_a_link_has_its_own_id, test_get_ticket_can_return_only_the_recent_activity,
-//   test_default_activity_is_capped_and_long_texts_are_shortened, and the ticket half of
-//   test_create_ticket_and_update_project_cover_what_the_descriptions_offer
-// - ticket_items, ticket_branches: test_sub_item_errors_list_the_valid_ids,
-//   test_test_cases_and_branches_can_be_addressed_by_code_and_name
-// - the Idea Space tools: test_failures_are_raised_for_idea_tools_too
+//   `operations/mod.rs` against the tables (`update_ticket_status` and `create_child_ticket` are the two that the
+//   Python tests call and no table routes to: `manage_ticket` update and create do the same).

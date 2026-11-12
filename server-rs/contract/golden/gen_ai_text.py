@@ -21,6 +21,7 @@ os.environ["KANBAN_LOG_DIR"] = f"{work}/logs"
 os.environ["KANBAN_AI_KEY_FILE"] = f"{work}/ai.key"
 os.environ["CLAUDE_CONFIG_DIR"] = f"{work}/claude"
 os.environ["HOME"] = f"{work}/home"
+os.environ["KANBAN_UPLOADS_DIR"] = f"{work}/uploads"
 sys.path.insert(0, os.getcwd())
 
 import hashlib  # noqa: E402
@@ -41,6 +42,7 @@ from services.ai import (  # noqa: E402
     hook_guard,
     injection,
     ops,
+    pictures,
     providers,
     steps,
     store,
@@ -87,6 +89,51 @@ ISO = [
     "0001-01-01T00:00:00+00:00",
     "9999-12-31T23:59:59.999999+00:00",
     "2026-11-11T14:30:43 +00:00",
+    "2026-11-11T14:30:43.",
+    "2026-11-11T14:30:43.x",
+    "2026-11-11T14:30:43X+00:00",
+    "2026-11-11T14:3043",
+    "2026-11-11T1430",
+    "2026-11-11T143043",
+    "2026-11-11T14:30:43+00:00:00:00",
+    "2026-11-11T14:30:43+00:00.5",
+    "2026-11-11T14:30:43+00:00:00.123456",
+    "2026-W01-1",
+    "2026W011",
+    "2026-W53-7",
+    "2026-W54-1",
+    "2026-W00-1",
+    "2026W01",
+    "2026-W01-8",
+    "2026-W01-1T10:00",
+    "2026-W01T10:00",
+    "2026W01-1",
+    "2026-11-11T14:30:43-24:00",
+    "2026-11-11T14:30:43+23:59",
+    "2026-11-11T14:30:43+0000",
+    "2026-11-11T14:30:43-00:00",
+    "2026-11-11T14:30:43ZZ",
+    "2026-11-11T14:30:43Z ",
+    "2026-11-11é14:30",
+    "2026-11-11\n14:30",
+    "2026-1111",
+    "2026-11-1",
+    "1",
+    "2026-11-11T14:30:43.123456789012",
+    "2026-11-11T14:30:43.12345x",
+    "2026-11-11T14:30:43.1234567x",
+    "2026-11-11T24:00:00",
+    "2026-11-11T14:60:00",
+    "2026-11-11T14:30:60",
+    "0000-01-01",
+    "2024-02-29T12:00:00+00:00",
+    "2023-02-29",
+    "2026-11-11T14:30:43+07:00Z",
+    "2026-11-11T14:30:43Z+07:00",
+    "2026-11-11T14:30:43+7",
+    "2026-11-11T14:30:43+070",
+    "2026-11-11T14:30:43+07:0",
+    "2026-11-11T14:30:43+07:00:0",
     "2026-11-11t14:30:43",
     "2026/11/11",
     "11-11-2026",
@@ -313,6 +360,7 @@ main_repo.mkdir()
 subprocess.run(["git", "init", "-q", "-b", "main", str(main_repo)], check=True)
 script = Path(work) / "guard.sh"
 script.write_text(hook_guard.POSIX)
+WT = "{W}/wt"
 CMDS = [
     "ls -la",
     "git status",
@@ -350,9 +398,9 @@ CMDS = [
     "rm --recursive sub",
     "rm -f /etc/passwd",
     "rm /etc/passwd",
-    "rm -r " + str(git_repo) + "/sub",
-    "rm -r " + str(git_repo),
-    "rm -rf " + str(git_repo) + "/../other",
+    "rm -r " + WT + "/sub",
+    "rm -r " + WT,
+    "rm -rf " + WT + "/../other",
     "rm -rf '/etc'",
     'rm -rf "/var/log"',
     "rm -rf sub /etc/hosts",
@@ -394,7 +442,7 @@ CMDS = [
 hg = []
 for wt_name, wt in [("feature", git_repo), ("main", main_repo), ("none", None), ("missing", Path(work) / "nope")]:
     for command in CMDS:
-        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
+        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command.replace("{W}", work)}})
         env = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"]}
         if wt is not None:
             env["KANBAN_WORKTREE"] = str(wt)
@@ -626,6 +674,41 @@ out["guard_fingerprints"] = [
 ]
 out["guard_consts"] = {"DUPLICATE_WINDOW_S": guard.DUPLICATE_WINDOW_S, "WRITE_TOOLS": sorted(guard._WRITE_TOOLS)}
 out["new_token_shape"] = {"prefix": guard.new_token()[:4], "len": len(guard.new_token())}
+
+# --------------------------------------------------------------------------------------------------------------
+# pictures
+# --------------------------------------------------------------------------------------------------------------
+UPLOAD_FILES = {
+    "2026-11/pic.png": "PNG", "2026-11/other.png": "PNG2", "a/b/c.jpg": "JPG", "_private/secret.png": "SECRET",
+    "_PRIVATE/x.png": "X", "UPPER/Pic.PNG": "UP", "dup1/same.png": "ONE", "dup2/same.png": "TWO", "é/ñ.png": "UNI",
+    "x/with space.png": "SP", "x/a(b).png": "PAREN", "x/q'uote.png": "QUOTE",
+}
+for rel, content in UPLOAD_FILES.items():
+    f = Path(work) / "uploads" / rel
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(content)
+(Path(work) / "uploads" / "2026-11" / "dir.png").mkdir()
+PIC_TEXTS = [
+    "", "no pictures", "![a](/uploads/2026-11/pic.png)", "![a](/uploads/2026-11/pic.png) again /uploads/2026-11/pic.png",
+    "/uploads/2026-11/pic.png and /uploads/2026-11/other.png", "/uploads/_private/secret.png", "/uploads/_PRIVATE/x.png",
+    "/uploads/UPPER/Pic.PNG", "/uploads/dup1/same.png /uploads/dup2/same.png", "/uploads/../etc/passwd", "/uploads/2026-11/missing.png",
+    "/uploads/2026-11/dir.png", "/uploads/a/b/c.jpg)", "/uploads/a/b/c.jpg\\x", "/uploads/a/b/c.jpg?x=1", "/uploads/a/b/c.jpg#frag",
+    "/uploads/é/ñ.png", "/uploads/x/with space.png", "/uploads/x/a(b).png", "/uploads/x/q'uote.png", "<img src=\"/uploads/a/b/c.jpg\">",
+    "[x](/uploads/a/b/c.jpg|alt)", "/uploads/a/b/c.jpg/", "/uploads//a/b/c.jpg", "/uploads/./a/b/c.jpg",
+    "/uploads/a/../a/b/c.jpg", "text\n/uploads/a/b/c.jpg\nmore", "/UPLOADS/a/b/c.jpg",
+]
+PIC_KEYS = ["run_1", "run/../x y", "k" * 200, "é!", "", "a-b_C9"]
+pic = []
+for i, text in enumerate(PIC_TEXTS):
+    key = f"case{i}-{PIC_KEYS[i % len(PIC_KEYS)]}"
+    out_text, folder = pictures.stage(text, key)
+    copied = sorted(p.name for p in Path(folder).iterdir()) if folder else None
+    contents = {p.name: p.read_text() for p in Path(folder).iterdir()} if folder else None
+    pic.append({"text": text, "key": key, "out": out_text.replace(folder, "{F}") if folder else out_text, "folder": bool(folder),
+                "folder_name": Path(folder).name if folder else None, "copied": copied, "contents": contents})
+out["pictures"] = {"files": UPLOAD_FILES, "dir": "2026-11/dir.png", "cases": pic,
+                   "folder_for": [{"key": k, "name": pictures.folder_for(k).name, "parent": pictures.folder_for(k).parent.name}
+                                  for k in PIC_KEYS + ["run 1", "a.b", "日本語", "x" * 80, "x" * 81, "../..", "/"]]}
 
 OUT.write_text(json.dumps(out, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
 print(f"wrote {OUT} ({OUT.stat().st_size} bytes)")

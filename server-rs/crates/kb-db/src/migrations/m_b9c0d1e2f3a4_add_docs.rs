@@ -8,7 +8,9 @@ use super::ops::{self, StepResult};
 
 /// `upgrade()` of revision `b9c0d1e2f3a4`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    ops::exec(conn, r"CREATE TABLE docs_page (
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_page (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	parent_id VARCHAR, 
@@ -27,9 +29,13 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id), 
 	FOREIGN KEY(parent_id) REFERENCES docs_page (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_page_project_id ON docs_page (project_id)").await?;
-    ops::exec(conn, r"CREATE TABLE docs_version (
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_version (
 	id VARCHAR NOT NULL, 
 	page_id VARCHAR NOT NULL, 
 	version INTEGER NOT NULL, 
@@ -40,9 +46,13 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	created_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(page_id) REFERENCES docs_page (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_version_page_id ON docs_version (page_id)").await?;
-    ops::exec(conn, r"CREATE TABLE docs_draft (
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_draft (
 	id VARCHAR NOT NULL, 
 	page_id VARCHAR NOT NULL, 
 	author VARCHAR DEFAULT 'user' NOT NULL, 
@@ -52,9 +62,13 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	updated_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(page_id) REFERENCES docs_page (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_draft_page_id ON docs_draft (page_id)").await?;
-    ops::exec(conn, r"CREATE TABLE docs_link (
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_link (
 	id VARCHAR NOT NULL, 
 	source_page_id VARCHAR NOT NULL, 
 	source_section VARCHAR, 
@@ -66,7 +80,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	snippet VARCHAR DEFAULT '' NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(source_page_id) REFERENCES docs_page (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_link_source_page_id ON docs_link (source_page_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_link_target_page_id ON docs_link (target_page_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_link_target_ticket_id ON docs_link (target_ticket_id)").await?;

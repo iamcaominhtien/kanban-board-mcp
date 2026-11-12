@@ -8,6 +8,6 @@ use super::ops::StepResult;
 
 /// `upgrade()` of revision `8f3a9c2d1e4b`.
 pub(super) async fn upgrade<C: ConnectionTrait>(_conn: &C) -> StepResult {
-    
+    // columns added by 9a4b5c6d7e8f
     Ok(())
 }

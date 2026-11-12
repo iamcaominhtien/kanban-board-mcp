@@ -11,8 +11,7 @@ use kb_db::database;
 use kb_db::entities::{ai_audit, ai_project_settings, ai_run};
 use kb_db::sea_orm::sea_query::{Expr, ExprTrait};
 use kb_db::sea_orm::{
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, ModelTrait, QueryFilter, QueryOrder, QuerySelect,
-    Select,
+    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, ModelTrait, QueryFilter, QueryOrder, QuerySelect, Select,
 };
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
@@ -22,7 +21,8 @@ use sha2::{Digest, Sha256};
 /// closed holding it would block the next one; one `tokio` mutex does the same job here.)
 static LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
-fn digest(prev: &str, entry: &ai_audit::Model) -> String {
+/// The hash of an entry over the hash before it (`audit._digest`): SHA-256 of `json.dumps([...], sort_keys=True)`.
+pub fn digest(prev: &str, entry: &ai_audit::Model) -> String {
     // `json.dumps([...], sort_keys=True)`: a list of scalars
     let body = pyjson::dumps(&json!([
         prev,
@@ -44,11 +44,17 @@ fn digest(prev: &str, entry: &ai_audit::Model) -> String {
 /// What `record` takes besides the project, the action and the result.
 #[derive(Default, Clone)]
 pub struct Entry {
+    /// The AI member (team) it is about.
     pub member_id: Option<String>,
+    /// The member's name as it was when the entry was written.
     pub member_name: String,
+    /// The person the AI acted for.
     pub on_behalf_of: Option<String>,
+    /// The run it belongs to.
     pub run_id: Option<String>,
+    /// What the entry is about (a ticket id, a page).
     pub target: Option<String>,
+    /// What the entry records, as a JSON object.
     pub detail: Map<String, Value>,
 }
 
@@ -133,15 +139,21 @@ pub fn to_dict(entry: &ai_audit::Model) -> Map<String, Value> {
 /// The filters of `list_entries` and `count_results`.
 #[derive(Default, Clone)]
 pub struct Filters {
+    /// The AI member (team) it is about.
     pub member_id: Option<String>,
+    /// How it ended (`allowed`, `blocked`, `denied`...).
     pub result: Option<String>,
+    /// The run it belongs to.
     pub run_id: Option<String>,
+    /// Text a target contains (upper-cased, no escaping of `%` and `_`).
     pub q: Option<String>,
+    /// Only these actions.
     pub actions: Vec<String>,
     /// UTC ISO time
     pub since: Option<String>,
     /// UTC ISO time, exclusive
     pub until: Option<String>,
+    /// The person the AI acted for.
     pub on_behalf_of: Option<String>,
 }
 
@@ -192,7 +204,11 @@ pub async fn list_entries(
 }
 
 /// Entries per result under every filter but the result itself (the counters beside the filter chips).
-pub async fn count_results(session: &Session, project_id: &str, filters: &Filters) -> Result<Map<String, Value>, DbErr> {
+pub async fn count_results(
+    session: &Session,
+    project_id: &str,
+    filters: &Filters,
+) -> Result<Map<String, Value>, DbErr> {
     let mut f = filters.clone();
     f.result = None;
     let stmt = filtered(ai_audit::Entity::find().filter(ai_audit::Column::ProjectId.eq(project_id)), &f);
@@ -231,7 +247,13 @@ pub async fn enrich(session: &Session, rows: &[ai_audit::Model]) -> Result<Vec<M
     let runs: HashMap<String, ai_run::Model> = if ids.is_empty() {
         HashMap::new()
     } else {
-        ai_run::Entity::find().filter(ai_run::Column::Id.is_in(ids)).all(session).await?.into_iter().map(|r| (r.id.clone(), r)).collect()
+        ai_run::Entity::find()
+            .filter(ai_run::Column::Id.is_in(ids))
+            .all(session)
+            .await?
+            .into_iter()
+            .map(|r| (r.id.clone(), r))
+            .collect()
     };
     let mut out = Vec::new();
     for e in rows {
@@ -246,7 +268,7 @@ pub async fn enrich(session: &Session, rows: &[ai_audit::Model]) -> Result<Vec<M
 }
 
 /// `_TRIGGER_TEXT`
-fn trigger_text(trigger: &str) -> &'static str {
+pub fn trigger_text(trigger: &str) -> &'static str {
     match trigger {
         "assign" => "{by} assigned {ticket}",
         "run_button" => "{by} started a run on {ticket}",
@@ -286,13 +308,16 @@ pub async fn trace(session: &Session, entry: &ai_audit::Model) -> Result<Vec<Val
     }
     if let Some(Value::Object(source)) = detail.get("source") {
         if source.get("comment_id").is_some_and(pyjson::truthy) {
-            let author = source.get("author").filter(|a| pyjson::truthy(a)).map_or("unknown author".to_string(), pyjson::py_str);
+            let author =
+                source.get("author").filter(|a| pyjson::truthy(a)).map_or("unknown author".to_string(), pyjson::py_str);
             steps.push(json!({"text": format!("It also read a flagged comment ({author})"), "trust": "untrusted"}));
         }
     }
     let tool = detail.get("tool").filter(|t| pyjson::truthy(t));
     let called = match tool {
-        Some(tool) => format!("Called {}.{}", pyjson::py_str(tool), detail.get("op").map_or("None".to_string(), pyjson::py_str)),
+        Some(tool) => {
+            format!("Called {}.{}", pyjson::py_str(tool), detail.get("op").map_or("None".to_string(), pyjson::py_str))
+        }
         None => entry.action.clone(),
     };
     let label = match entry.result.as_str() {
@@ -310,7 +335,7 @@ pub async fn trace(session: &Session, entry: &ai_audit::Model) -> Result<Vec<Val
 pub fn loads_json(value: Option<&str>, default: Option<Value>) -> Value {
     let parsed = value.filter(|v| !v.is_empty()).and_then(|v| serde_json::from_str::<Value>(v).ok());
     match parsed {
-        Some(v) if !v.is_null() => v,
+        Some(v) if !Value::is_null(&v) => v,
         _ => default.unwrap_or_else(|| Value::Object(Map::new())),
     }
 }
@@ -353,7 +378,7 @@ pub async fn prune_at(now: DateTime<Utc>) -> Result<u64, DbErr> {
             };
             let mut keep = i64::from(days);
             if PROTECTED_RESULTS.contains(&e.result.as_str()) || e.action == "injection_detected" {
-                keep = keep.max(PROTECTED_DAYS);
+                keep = std::cmp::max(keep, PROTECTED_DAYS);
             }
             if e.created_at >= time::iso(&(now - Duration::days(keep))) {
                 stop = true;

@@ -8,6 +8,5 @@ use super::ops::StepResult;
 
 /// `upgrade()` of revision `fd73ce3d5800`.
 pub(super) async fn upgrade<C: ConnectionTrait>(_conn: &C) -> StepResult {
-    
     Ok(())
 }

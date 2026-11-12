@@ -24,7 +24,9 @@ use serde_json::{Map, Value, json};
 
 use crate::store::{py_int, save};
 
+/// The account key of this computer's own Claude Code login.
 pub const LOCAL: &str = "local";
+/// How many CLI runs an account runs at once unless set.
 pub const DEFAULT_PARALLEL: i32 = 2;
 /// "quota near" signal and the bar's amber.
 pub const NEAR: f64 = 0.8;
@@ -178,7 +180,8 @@ pub fn held(row: Option<&ai_account_state::Model>, now: Option<DateTime<Utc>>) -
 
 /// Accounts whose window reopened: clear the hold (their runs start in the same tick).
 pub async fn release_expired(session: &Session) -> Result<Vec<String>, DbErr> {
-    let rows = ai_account_state::Entity::find().filter(ai_account_state::Column::HeldUntil.is_not_null()).all(session).await?;
+    let rows =
+        ai_account_state::Entity::find().filter(ai_account_state::Column::HeldUntil.is_not_null()).all(session).await?;
     let mut out = Vec::new();
     for mut row in rows {
         if held(Some(&row), None).is_none() {
@@ -209,18 +212,26 @@ pub async fn running_on(session: &Session, key: &str) -> Result<Vec<ai_run::Mode
         .into_iter()
         .map(|t| (t.id.clone(), t))
         .collect();
-    Ok(runs.into_iter().filter(|run| teams.get(&run.member_id).is_some_and(|p| key_for(Some(p), Some(run)) == key)).collect())
+    Ok(runs
+        .into_iter()
+        .filter(|run| teams.get(&run.member_id).is_some_and(|p| key_for(Some(p), Some(run)) == key))
+        .collect())
 }
 
-/// `%H:%M` of a stored time in the zone `tz`, "" when it is empty or not a time.
+/// `%H:%M` of a stored time in the zone `tz`, "" when it is empty or not a time. A time without an offset is a wall
+/// time of that zone (`datetime.astimezone()` reads a naive time as local).
 pub fn local_in<Z: TimeZone>(when: Option<&str>, tz: &Z) -> String
 where
     Z::Offset: std::fmt::Display,
 {
-    match crate::store::parse_iso(when) {
-        Some(dt) if when.is_some_and(|w| !w.is_empty()) => dt.with_timezone(tz).format("%H:%M").to_string(),
-        _ => String::new(),
-    }
+    let Some((naive, offset)) = when.filter(|w| !w.is_empty()).and_then(crate::store::isoformat_parts) else {
+        return String::new();
+    };
+    let instant = match offset {
+        Some(seconds) => (naive - chrono::Duration::seconds(i64::from(seconds))).and_utc(),
+        None => crate::budget::local_naive_to_utc(tz, naive),
+    };
+    instant.with_timezone(tz).format("%H:%M").to_string()
 }
 
 fn limit_of(row: &ai_account_state::Model) -> i64 {
@@ -229,7 +240,11 @@ fn limit_of(row: &ai_account_state::Model) -> i64 {
 }
 
 /// Why a queued CLI run waits on its account (the window or the slots), or None.
-pub async fn blocking(session: &Session, run: &ai_run::Model, profile: &ai_team::Model) -> Result<Option<String>, DbErr> {
+pub async fn blocking(
+    session: &Session,
+    run: &ai_run::Model,
+    profile: &ai_team::Model,
+) -> Result<Option<String>, DbErr> {
     if profile.connection == "api_key" || profile.provider != "claude-code" {
         // windows and slots are Claude's (the accounts page shows only those): another CLI is not held by them
         return Ok(None);
@@ -309,7 +324,8 @@ pub async fn room(session: &Session, exclude: Option<&str>) -> Result<Vec<Value>
 /// Every account's window for the accounts page: used, reset, held, slots, what waits on it.
 pub async fn overview(session: &Session) -> Result<Vec<Value>, DbErr> {
     let accounts = ai_account::Entity::find().filter(ai_account::Column::Cli.eq("claude")).all(session).await?;
-    let mut keys: Vec<(String, Option<ai_account::Model>)> = accounts.into_iter().map(|a| (a.id.clone(), Some(a))).collect();
+    let mut keys: Vec<(String, Option<ai_account::Model>)> =
+        accounts.into_iter().map(|a| (a.id.clone(), Some(a))).collect();
     let has_local = ai_team::Entity::find()
         .filter(ai_team::Column::AccountId.is_null())
         .filter(ai_team::Column::Provider.eq("claude-code"))
@@ -324,13 +340,22 @@ pub async fn overview(session: &Session) -> Result<Vec<Value>, DbErr> {
     let teams: HashMap<String, ai_team::Model> = if team_ids.is_empty() {
         HashMap::new()
     } else {
-        ai_team::Entity::find().filter(ai_team::Column::Id.is_in(team_ids)).all(session).await?.into_iter().map(|t| (t.id.clone(), t)).collect()
+        ai_team::Entity::find()
+            .filter(ai_team::Column::Id.is_in(team_ids))
+            .all(session)
+            .await?
+            .into_iter()
+            .map(|t| (t.id.clone(), t))
+            .collect()
     };
     let mut out = Vec::new();
     for (key, acct) in keys {
         let row = state(session, &key).await?;
         let going = running_on(session, &key).await?;
-        let waiting = queued_runs.iter().filter(|r| teams.get(&r.member_id).is_some_and(|p| key_for(Some(p), Some(r)) == key)).count();
+        let waiting = queued_runs
+            .iter()
+            .filter(|r| teams.get(&r.member_id).is_some_and(|p| key_for(Some(p), Some(r)) == key))
+            .count();
         let held_now = held(Some(&row), None);
         let max_parallel = if row.max_parallel != 0 { row.max_parallel } else { DEFAULT_PARALLEL };
         out.push(json!({

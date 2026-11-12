@@ -1,0 +1,38 @@
+{
+  "_": "How a database is written down to be compared after an upgrade. Read by gen_fixtures.py (the expected result, through the Python server's migrations) and by the Rust tests (the result of kb_db::migrations), so both sides ask the database the same questions. Every query returns text or NULL only. 'schema' queries describe the tables; 'tables' lists the tables whose rows are compared; 'columns' lists one table's columns in order; 'cell' is how one value is read.",
+  "sqlite": {
+    "schema": {
+      "columns": "SELECT m.name, CAST(p.cid AS TEXT), p.name, p.type, CAST(p.\"notnull\" AS TEXT), p.dflt_value, CAST(p.pk AS TEXT) FROM sqlite_master m JOIN pragma_table_info(m.name) p WHERE m.type = 'table' AND m.name NOT LIKE 'sqlite_%'",
+      "indexes": "SELECT m.name, il.name, CAST(il.\"unique\" AS TEXT), il.origin, CAST(il.partial AS TEXT), CAST(ii.seqno AS TEXT), ii.name FROM sqlite_master m JOIN pragma_index_list(m.name) il JOIN pragma_index_info(il.name) ii WHERE m.type = 'table' AND m.name NOT LIKE 'sqlite_%'",
+      "index_where": "SELECT tbl_name, name, CASE WHEN instr(sql, ' WHERE ') > 0 THEN substr(sql, instr(sql, ' WHERE ') + 7) END FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL",
+      "foreign_keys": "SELECT m.name, f.\"table\", f.\"from\", f.\"to\", f.on_update, f.on_delete FROM sqlite_master m JOIN pragma_foreign_key_list(m.name) f WHERE m.type = 'table' AND m.name NOT LIKE 'sqlite_%'",
+      "virtual_tables": "SELECT name, sql FROM sqlite_master WHERE sql LIKE 'CREATE VIRTUAL TABLE%'"
+    },
+    "tables": "SELECT m.name FROM sqlite_master m WHERE m.type = 'table' AND m.name NOT LIKE 'sqlite_%' AND NOT EXISTS (SELECT 1 FROM sqlite_master v WHERE v.sql LIKE 'CREATE VIRTUAL TABLE%' AND m.name IN (v.name || '_data', v.name || '_idx', v.name || '_content', v.name || '_docsize', v.name || '_config')) ORDER BY m.name",
+    "columns": "SELECT name FROM pragma_table_info('{table}') ORDER BY cid",
+    "cell": "quote(\"{column}\")",
+    "from": "\"{table}\""
+  },
+  "postgresql": {
+    "schema": {
+      "columns": "SELECT CAST(table_name AS TEXT), CAST(row_number() OVER (PARTITION BY table_name ORDER BY ordinal_position) AS TEXT), CAST(column_name AS TEXT), CAST(data_type AS TEXT), CAST(character_maximum_length AS TEXT), CAST(is_nullable AS TEXT), CAST(column_default AS TEXT) FROM information_schema.columns WHERE table_schema = current_schema()",
+      "constraints": "SELECT CAST(CAST(conrelid AS regclass) AS TEXT), CAST(conname AS TEXT), CAST(contype AS TEXT), pg_get_constraintdef(oid) FROM pg_constraint WHERE connamespace = CAST(current_schema() AS regnamespace)",
+      "indexes": "SELECT CAST(tablename AS TEXT), CAST(indexname AS TEXT), indexdef FROM pg_indexes WHERE schemaname = current_schema()"
+    },
+    "tables": "SELECT CAST(table_name AS TEXT) FROM information_schema.tables WHERE table_schema = current_schema() AND table_type = 'BASE TABLE' AND table_name <> 'kanban_change' ORDER BY 1",
+    "columns": "SELECT CAST(column_name AS TEXT) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = '{table}' ORDER BY ordinal_position",
+    "cell": "CAST(\"{column}\" AS TEXT)",
+    "from": "\"{table}\""
+  },
+  "mysql": {
+    "schema": {
+      "columns": "SELECT CAST(table_name AS CHAR), CAST(ordinal_position AS CHAR), CAST(column_name AS CHAR), CAST(column_type AS CHAR), CAST(is_nullable AS CHAR), CAST(column_default AS CHAR), CAST(extra AS CHAR), CAST(collation_name AS CHAR) FROM information_schema.columns WHERE table_schema = DATABASE()",
+      "indexes": "SELECT CAST(table_name AS CHAR), CAST(index_name AS CHAR), CAST(non_unique AS CHAR), CAST(seq_in_index AS CHAR), CAST(column_name AS CHAR), CAST(sub_part AS CHAR) FROM information_schema.statistics WHERE table_schema = DATABASE()",
+      "tables": "SELECT CAST(table_name AS CHAR), CAST(engine AS CHAR), CAST(table_collation AS CHAR) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'"
+    },
+    "tables": "SELECT CAST(table_name AS CHAR) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE' AND table_name <> 'kanban_change' ORDER BY 1",
+    "columns": "SELECT CAST(column_name AS CHAR) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = '{table}' ORDER BY ordinal_position",
+    "cell": "CAST(`{column}` AS CHAR)",
+    "from": "`{table}`"
+  }
+}

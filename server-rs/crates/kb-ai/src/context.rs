@@ -31,15 +31,21 @@ pub fn status_label(status: &str) -> &str {
 /// Who is acting while a run's tool calls are handled.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RunContext {
+    /// The run it belongs to.
     pub run_id: String,
+    /// The AI member (team) it is about.
     pub member_id: String,
+    /// The member's name as it was when the entry was written.
     pub member_name: String,
+    /// The project it belongs to.
     pub project_id: String,
     /// None for a run that is not on a ticket (Python passes `run.ticket_id` as it is)
     pub ticket_id: Option<String>,
+    /// The person the AI acted for.
     pub on_behalf_of: String,
     /// work | ask
     pub mode: String,
+    /// What started the run (`assign`, `message`, `schedule`...).
     pub trigger: String,
     /// AI-to-AI hand-offs behind this run (see `runs.MAX_DEPTH`)
     pub depth: i64,
@@ -71,17 +77,30 @@ fn fence(source: &str, text: &str) -> String {
 /// The options of `ticket_block` (the keyword arguments of the Python function).
 #[derive(Debug, Clone)]
 pub struct TicketBlockOptions<'a> {
+    /// Whether the recent comments are shown.
     pub comments: bool,
+    /// Whether the acceptance criteria are shown.
     pub criteria: bool,
+    /// How many of the newest comments are shown (`items[-n:]`).
     pub comment_limit: i64,
+    /// The ticket's sub-tickets, listed under it.
     pub sub_tickets: Option<&'a [ticket::Model]>,
+    /// The names of the project's people: a comment by anyone else is an outsider's.
     pub humans: Option<&'a HashSet<String>>,
+    /// Whether an outsider's comments are shown (fenced).
     pub allow_external: bool,
 }
 
 impl Default for TicketBlockOptions<'_> {
     fn default() -> Self {
-        Self { comments: true, criteria: true, comment_limit: 20, sub_tickets: None, humans: None, allow_external: false }
+        Self {
+            comments: true,
+            criteria: true,
+            comment_limit: 20,
+            sub_tickets: None,
+            humans: None,
+            allow_external: false,
+        }
     }
 }
 
@@ -115,12 +134,7 @@ pub fn ticket_block(ticket: &ticket::Model, ai_names: &HashSet<String>, options:
     let mut lines: Vec<String> = vec![
         format!("<ticket id=\"{}\" trusted>", ticket.id),
         format!("Title: {}", ticket.title),
-        format!(
-            "Type: {} · Priority: {} · Status: {}",
-            ticket.r#type,
-            ticket.priority,
-            status_label(&ticket.status)
-        ),
+        format!("Type: {} · Priority: {} · Status: {}", ticket.r#type, ticket.priority, status_label(&ticket.status)),
     ];
     if let Some(estimate) = ticket.estimate {
         lines.push(format!("Estimate: {}", pyjson::float_repr(estimate)));

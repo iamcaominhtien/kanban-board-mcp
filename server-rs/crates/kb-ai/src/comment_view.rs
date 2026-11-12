@@ -16,7 +16,11 @@ use crate::guard;
 use crate::store::{ai_names, get_profile};
 
 /// `{"comments": [...], "held_back": n}` for an AI caller; None when the caller is not an AI run.
-pub async fn for_caller(session: &Session, project_id: &str, raw: &[Value]) -> Result<Option<Map<String, Value>>, guard::Error> {
+pub async fn for_caller(
+    session: &Session,
+    project_id: &str,
+    raw: &[Value],
+) -> Result<Option<Map<String, Value>>, guard::Error> {
     let Some(context) = guard::resolve().await? else { return Ok(None) };
     let _ = get_profile(session, &context.member_id).await?;
     let humans: HashSet<String> = member::Entity::find()
@@ -44,7 +48,8 @@ pub fn pick(comments: Vec<Value>, ids: Option<&[String]>, since: Option<&str>) -
     if let Some(since) = since.filter(|s| !s.is_empty()) {
         comments.retain(|c| match c.get("at") {
             Some(Value::String(at)) => at.as_str() > since,
-            _ => "" > since,
+            // `(c.get("at") or "") > since` with a non-empty `since`: the empty text is never later
+            _ => false,
         });
     }
     comments

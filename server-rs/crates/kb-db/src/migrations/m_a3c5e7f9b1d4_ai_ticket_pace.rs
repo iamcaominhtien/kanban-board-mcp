@@ -12,14 +12,18 @@ use super::ops::{self, StepResult};
 /// `upgrade()` of revision `a3c5e7f9b1d4`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
     ops::exec(conn, r"ALTER TABLE ai_ticket_workflow ADD COLUMN pace VARCHAR").await?;
-    ops::exec(conn, r"CREATE TABLE ai_ticket_pace (
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_ticket_pace (
 	ticket_id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	pace VARCHAR NOT NULL, 
 	set_by VARCHAR, 
 	set_at VARCHAR NOT NULL, 
 	PRIMARY KEY (ticket_id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_ticket_pace_project_id ON ai_ticket_pace (project_id)").await?;
     Ok(())
 }

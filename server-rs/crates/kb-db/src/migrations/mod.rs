@@ -23,86 +23,86 @@
 
 mod ops;
 
+mod m_03a006e7b66e_merge_ai_accounts_and_resources;
+mod m_1e1bb4aa5fa4_merge_multiple_heads;
+mod m_46d50ad33691_fix_idea_status_and_color_values;
 mod m_551353060a20_initial_schema;
 mod m_8f3a9c2d1e4b_add_blocks_blocked_by;
-mod m_b2c3d4e5f6a7_add_wont_do_reason;
-mod m_c3d4e5f6a7b8_add_members_and_ticket_assignee;
-mod m_d4e5f6a7b8c9_add_start_date;
-mod m_e5f6a7b8c9d0_add_links;
 mod m_9a4b5c6d7e8f_fix_blocks_blocked_by_columns;
 mod m_a1b2c3d4e5f6_add_block_done_guards;
-mod m_1e1bb4aa5fa4_merge_multiple_heads;
-mod m_f1a2b3c4d5e6_add_idea_ticket_table;
+mod m_a1b2c3d4e5f7_notifications;
+mod m_a1d0c5a1b2c3_docs_ai;
 mod m_a2b3c4d5e6f7_add_idea_ticket_promoted_unique;
-mod m_46d50ad33691_fix_idea_status_and_color_values;
-mod m_b3c4d5e6f7a8_add_branches_column;
-mod m_c4d5e6f7a8b9_add_workspace_settings;
-mod m_d5e6f7a8b9c0_add_project_repo_path;
-mod m_e6f7a8b9c0d1_add_ticket_repo_path;
-mod m_f7a8b9c0d1e2_add_project_worktree_settings;
+mod m_a2b4c6d8e0f1_ai_v2_reset;
+mod m_a3b4c5d6e7f8_ai_where_you_work;
+mod m_a3c5e7f9b1d4_ai_ticket_pace;
+mod m_a4b5c6d7e8f9_diagram_preview_kind;
+mod m_a6b7c8d9e0f1_ai_ticket_work;
+mod m_a7c1e3f5b9d2_ai_accounts;
+mod m_a7c9e1f3b567_ai_pause_facts;
+mod m_a7c9e1f3b5d8_ai_repo_scan_job;
 mod m_a8b9c0d1e2f3_add_sub_tasks;
-mod m_b9c0d1e2f3a4_add_docs;
-mod m_c0d1e2f3a4b5_docs_v2;
-mod m_d1e2f3a4b5c6_add_reopen_and_pending_fields;
-mod m_e2f3a4b5c6d7_docs_comments;
-mod m_f3a4b5c6d7e8_diagrams;
 mod m_a9b8c7d6e5f4_ai_members;
 mod m_b1c2d3e4f5a6_ai_board_assistant;
-mod m_c2d3e4f5a6b7_ai_schedules;
-mod m_d3e4f5a6b7c8_ai_members_polish;
-mod m_e4f5a6b7c8d9_ai_safety_cost;
-mod m_f5a6b7c8d9e0_ai_provider_config;
-mod m_a6b7c8d9e0f1_ai_ticket_work;
-mod m_b7c8d9e0f1a2_ai_auto_trip;
-mod m_c8d9e0f1a2b3_ai_member_projects;
-mod m_d9e0f1a2b3c4_ai_chat_feedback;
-mod m_a4b5c6d7e8f9_diagram_preview_kind;
-mod m_b5c6d7e8f9a0_docs_edit_policy;
-mod m_c6d7e8f9a0b1_docs_title_aliases;
-mod m_d7e8f9a0b1c2_docs_seen_and_autosaves;
-mod m_e8f9a0b1c2d3_ai_run_limit_defaults;
-mod m_a1d0c5a1b2c3_docs_ai;
-mod m_b3e5f7a9c1d2_docs_ai_page_sessions;
-mod m_f4a6b8c0d2e4_idea_space_model;
-mod m_c9d0e1f2a3b4_idea_ai_helpers;
-mod m_a3b4c5d6e7f8_ai_where_you_work;
-mod m_c3d9a1b7e5f2_sketches;
-mod m_e7f1a2b3c4d5_ai_run_context;
-mod m_b8c2d4e6f801_ai_run_report_back;
-mod m_c3d5e7f9a012_ai_run_tokens_cached;
-mod m_d4e6f8a0b123_ai_origin;
-mod m_e5f7a9b1c234_ai_team_dismissed;
-mod m_f6a8b0c2d345_ai_autopilot;
-mod m_a7c9e1f3b567_ai_pause_facts;
-mod m_b8d0f2a4c678_ai_resources;
-mod m_a7c1e3f5b9d2_ai_accounts;
-mod m_b8c9d0e1f2a3_canvas;
-mod m_c1d2e3f4a5b7_canvas_pin_anchor;
-mod m_03a006e7b66e_merge_ai_accounts_and_resources;
-mod m_fd73ce3d5800_merge_canvas_and_the_ai_team;
-mod m_a1b2c3d4e5f7_notifications;
-mod m_e6611f7871e7_ai_team_v2;
-mod m_b3e1c9d7a5f2_ai_team_v2_repair;
-mod m_c5d7e9f1a3b6_ai_team_manager;
-mod m_d8e0f2a4b6c8_story_and_decisions;
-mod m_e1f3a5c7b9d2_ai_grant_role;
-mod m_a7c9e1f3b5d8_ai_repo_scan_job;
-mod m_b5e7d9f1a3c4_wave5_pinned_wave_and_run_retention;
-mod m_c6f8a0b2d4e6_ai_run_details_removed_at;
-mod m_d8a0c2e4f6b8_review_requested_from;
-mod m_d7a9c1e3f5b8_ai_memory_notes;
-mod m_a3c5e7f9b1d4_ai_ticket_pace;
-mod m_c4e6a8b0d2f1_repair_docs_ai_ignore;
-mod m_e8b0d2f4a6c9_board_lookup_indexes;
-mod m_f1c3e5a7b9d2_run_hold_index_on_servers;
-mod m_a2b4c6d8e0f1_ai_v2_reset;
+mod m_b2c3d4e5f6a7_add_wont_do_reason;
+mod m_b3c4d5e6f7a8_add_branches_column;
 mod m_b3d5f7a9c1e4_ai_v2_repair_columns;
-mod m_c4e6a8b0d2f3_ai_session_history;
-mod m_d5f7b9c1e3a4_ai_chat_seen_at;
-mod m_e2a4c6e8b0d1_ai_touch_mark;
-mod m_e6a8c0d2f4b6_docs_ai_v1_leftovers;
-mod m_f7b9d1e3a5c7_ai_run_depth;
+mod m_b3e1c9d7a5f2_ai_team_v2_repair;
+mod m_b3e5f7a9c1d2_docs_ai_page_sessions;
+mod m_b5c6d7e8f9a0_docs_edit_policy;
+mod m_b5e7d9f1a3c4_wave5_pinned_wave_and_run_retention;
+mod m_b7c8d9e0f1a2_ai_auto_trip;
+mod m_b8c2d4e6f801_ai_run_report_back;
+mod m_b8c9d0e1f2a3_canvas;
+mod m_b8d0f2a4c678_ai_resources;
 mod m_b8d0f2a4c6e9_notifications_v2_kinds;
+mod m_b9c0d1e2f3a4_add_docs;
+mod m_c0d1e2f3a4b5_docs_v2;
+mod m_c1d2e3f4a5b7_canvas_pin_anchor;
+mod m_c2d3e4f5a6b7_ai_schedules;
+mod m_c3d4e5f6a7b8_add_members_and_ticket_assignee;
+mod m_c3d5e7f9a012_ai_run_tokens_cached;
+mod m_c3d9a1b7e5f2_sketches;
+mod m_c4d5e6f7a8b9_add_workspace_settings;
+mod m_c4e6a8b0d2f1_repair_docs_ai_ignore;
+mod m_c4e6a8b0d2f3_ai_session_history;
+mod m_c5d7e9f1a3b6_ai_team_manager;
+mod m_c6d7e8f9a0b1_docs_title_aliases;
+mod m_c6f8a0b2d4e6_ai_run_details_removed_at;
+mod m_c8d9e0f1a2b3_ai_member_projects;
+mod m_c9d0e1f2a3b4_idea_ai_helpers;
+mod m_d1e2f3a4b5c6_add_reopen_and_pending_fields;
+mod m_d3e4f5a6b7c8_ai_members_polish;
+mod m_d4e5f6a7b8c9_add_start_date;
+mod m_d4e6f8a0b123_ai_origin;
+mod m_d5e6f7a8b9c0_add_project_repo_path;
+mod m_d5f7b9c1e3a4_ai_chat_seen_at;
+mod m_d7a9c1e3f5b8_ai_memory_notes;
+mod m_d7e8f9a0b1c2_docs_seen_and_autosaves;
+mod m_d8a0c2e4f6b8_review_requested_from;
+mod m_d8e0f2a4b6c8_story_and_decisions;
+mod m_d9e0f1a2b3c4_ai_chat_feedback;
+mod m_e1f3a5c7b9d2_ai_grant_role;
+mod m_e2a4c6e8b0d1_ai_touch_mark;
+mod m_e2f3a4b5c6d7_docs_comments;
+mod m_e4f5a6b7c8d9_ai_safety_cost;
+mod m_e5f6a7b8c9d0_add_links;
+mod m_e5f7a9b1c234_ai_team_dismissed;
+mod m_e6611f7871e7_ai_team_v2;
+mod m_e6a8c0d2f4b6_docs_ai_v1_leftovers;
+mod m_e6f7a8b9c0d1_add_ticket_repo_path;
+mod m_e7f1a2b3c4d5_ai_run_context;
+mod m_e8b0d2f4a6c9_board_lookup_indexes;
+mod m_e8f9a0b1c2d3_ai_run_limit_defaults;
+mod m_f1a2b3c4d5e6_add_idea_ticket_table;
+mod m_f1c3e5a7b9d2_run_hold_index_on_servers;
+mod m_f3a4b5c6d7e8_diagrams;
+mod m_f4a6b8c0d2e4_idea_space_model;
+mod m_f5a6b7c8d9e0_ai_provider_config;
+mod m_f6a8b0c2d345_ai_autopilot;
+mod m_f7a8b9c0d1e2_add_project_worktree_settings;
+mod m_f7b9d1e3a5c7_ai_run_depth;
+mod m_fd73ce3d5800_merge_canvas_and_the_ai_team;
 
 use std::collections::HashSet;
 
@@ -182,18 +182,23 @@ fn topological_sort(mut todo: HashSet<&'static str>, head: &'static str) -> Vec<
     output
 }
 
-/// The revisions a database stamped with `current` still needs, in the order Alembic runs them
-/// (`ScriptDirectory._upgrade_revs("head", current)`). `None` when a stamped revision is not in the chain.
-pub fn plan(current: &[String]) -> Option<Vec<&'static Revision>> {
-    let head = schema::head_revision();
+/// The revisions a database stamped with `current` still needs to reach `target`, in the order Alembic runs them
+/// (`ScriptDirectory._upgrade_revs(target, current)`). `None` when a revision is not in the chain.
+pub fn plan_to(current: &[String], target: &str) -> Option<Vec<&'static Revision>> {
+    let target = revision(target)?.id;
     let mut have: HashSet<&'static str> = HashSet::new();
     for id in current {
         have.extend(ancestors(revision(id)?.id));
     }
-    let needs: HashSet<&'static str> = ancestors(head).into_iter().filter(|id| !have.contains(id)).collect();
-    let mut order = topological_sort(needs, head);
+    let needs: HashSet<&'static str> = ancestors(target).into_iter().filter(|id| !have.contains(id)).collect();
+    let mut order = topological_sort(needs, target);
     order.reverse();
     Some(order.into_iter().filter_map(revision).collect())
+}
+
+/// The revisions a database stamped with `current` still needs to reach the head (`alembic upgrade head`).
+pub fn plan(current: &[String]) -> Option<Vec<&'static Revision>> {
+    plan_to(current, schema::head_revision())
 }
 
 /// Alembic's `HeadMaintainer.update_to_step` for one upgrade step: `alembic_version` holds one row per open
@@ -201,7 +206,8 @@ pub fn plan(current: &[String]) -> Option<Vec<&'static Revision>> {
 /// a second branch) is added; a merge whose parents are both stamped leaves one row.
 async fn stamp<C: ConnectionTrait>(conn: &C, heads: &mut Vec<String>, rev: &Revision) -> Result<(), sea_orm::DbErr> {
     let backend = conn.get_database_backend();
-    let stamped: Vec<String> = rev.down.iter().filter(|d| heads.iter().any(|h| h == *d)).map(|d| d.to_string()).collect();
+    let stamped: Vec<String> =
+        rev.down.iter().filter(|d| heads.iter().any(|h| h == *d)).map(|d| d.to_string()).collect();
     match stamped.split_last() {
         None => {
             conn.execute_raw(sql::statement(
@@ -320,14 +326,27 @@ async fn apply<C: ConnectionTrait>(conn: &C, id: &str) -> ops::StepResult {
     }
 }
 
-/// Apply the migrations the database has not had yet, in the transaction `conn` is.
+/// Apply the migrations the database has not had yet, in the transaction `conn` is (`alembic upgrade head`).
 ///
 /// Nothing is committed here: the caller commits when every step has passed, and a failed step leaves the database
 /// at the revision it had.
 pub async fn upgrade<C: ConnectionTrait>(conn: &C) -> Result<(), DatabaseError> {
+    upgrade_to(conn, schema::head_revision()).await
+}
+
+/// `alembic upgrade <target>`: apply the migrations between what the database is stamped with and `target`. A
+/// database without `alembic_version` starts at the first migration, as under Alembic.
+pub async fn upgrade_to<C: ConnectionTrait>(conn: &C, target: &str) -> Result<(), DatabaseError> {
+    if !schema::has_table(conn, "alembic_version").await? {
+        conn.execute_unprepared(
+            "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, \
+             CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))",
+        )
+        .await?;
+    }
     let current = schema::current_revisions(conn).await?;
-    let Some(pending) = plan(&current) else {
-        let unknown = current.iter().find(|id| revision(id).is_none()).cloned().unwrap_or_default();
+    let Some(pending) = plan_to(&current, target) else {
+        let unknown = current.iter().find(|id| revision(id).is_none()).cloned().unwrap_or_else(|| target.to_string());
         let short: String = unknown.chars().take(8).collect();
         return Err(SchemaError {
             code: "newer",

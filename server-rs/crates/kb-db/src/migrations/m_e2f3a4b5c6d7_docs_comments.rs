@@ -9,7 +9,9 @@ use super::ops::{self, StepResult};
 /// `upgrade()` of revision `e2f3a4b5c6d7`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
     ops::exec(conn, r"ALTER TABLE member ADD COLUMN role VARCHAR DEFAULT 'member' NOT NULL").await?;
-    ops::exec(conn, r"CREATE TABLE docs_comment_thread (
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_comment_thread (
 	id VARCHAR NOT NULL, 
 	page_id VARCHAR NOT NULL, 
 	kind VARCHAR DEFAULT 'inline' NOT NULL, 
@@ -26,9 +28,13 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	resolved_at VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(page_id) REFERENCES docs_page (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_comment_thread_page_id ON docs_comment_thread (page_id)").await?;
-    ops::exec(conn, r"CREATE TABLE docs_comment (
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_comment (
 	id VARCHAR NOT NULL, 
 	thread_id VARCHAR NOT NULL, 
 	author VARCHAR NOT NULL, 
@@ -38,18 +44,26 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	edited_at VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(thread_id) REFERENCES docs_comment_thread (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_comment_thread_id ON docs_comment (thread_id)").await?;
-    ops::exec(conn, r"CREATE TABLE docs_comment_read (
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_comment_read (
 	id VARCHAR NOT NULL, 
 	thread_id VARCHAR NOT NULL, 
 	reader VARCHAR NOT NULL, 
 	read_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(thread_id) REFERENCES docs_comment_thread (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_comment_read_thread_id ON docs_comment_read (thread_id)").await?;
-    ops::exec(conn, r"CREATE TABLE docs_comment_event (
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_comment_event (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	page_id VARCHAR NOT NULL, 
@@ -65,7 +79,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id), 
 	FOREIGN KEY(page_id) REFERENCES docs_page (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_comment_event_project_id ON docs_comment_event (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_comment_event_page_id ON docs_comment_event (page_id)").await?;
     Ok(())

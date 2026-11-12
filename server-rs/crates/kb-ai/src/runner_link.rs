@@ -38,6 +38,7 @@ pub static TOKEN: LazyLock<String> = LazyLock::new(|| token_urlsafe(24));
 static COMMAND_WAIT_MS: AtomicU64 = AtomicU64::new(8000);
 /// Restarts within `RESPAWN_WINDOW_S` before the board gives up.
 pub const RESPAWN_LIMIT: usize = 5;
+/// The window (seconds) in which `RESPAWN_LIMIT` restarts are allowed.
 pub const RESPAWN_WINDOW_S: f64 = 600.0;
 const WATCH_EVERY: Duration = Duration::from_secs(5);
 
@@ -50,7 +51,8 @@ struct State {
     started: usize,
 }
 
-static STATE: Mutex<State> = Mutex::new(State { proc: None, watch: None, board_url: None, starts: Vec::new(), started: 0 });
+static STATE: Mutex<State> =
+    Mutex::new(State { proc: None, watch: None, board_url: None, starts: Vec::new(), started: 0 });
 static MODE: RwLock<Option<String>> = RwLock::new(None);
 static IN_RUNNER: RwLock<Option<bool>> = RwLock::new(None);
 
@@ -235,6 +237,19 @@ async fn terminate(child: &Child) {
         .stderr(std::process::Stdio::null())
         .status()
         .await;
+}
+
+/// Forget the runner, the board's URL and the start count, without touching a process (the Python tests set `_proc` and
+/// `_board_url` back to None).
+pub fn reset() {
+    let mut st = state();
+    st.proc = None;
+    if let Some(watch) = st.watch.take() {
+        watch.abort();
+    }
+    st.board_url = None;
+    st.starts.clear();
+    st.started = 0;
 }
 
 /// Is the runner this process started still running?

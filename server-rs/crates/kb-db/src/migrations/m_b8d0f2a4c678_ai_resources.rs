@@ -12,6 +12,7 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
     ops::exec(conn, r"ALTER TABLE ai_run ADD COLUMN last_rss_mb FLOAT").await?;
     ops::exec(conn, r"ALTER TABLE ai_run ADD COLUMN restarts VARCHAR DEFAULT '[]' NOT NULL").await?;
     ops::exec(conn, r"ALTER TABLE ai_member ADD COLUMN resource_access VARCHAR DEFAULT 'none' NOT NULL").await?;
-    ops::exec(conn, r"ALTER TABLE ai_project_settings ADD COLUMN run_memory_limit_mb INTEGER DEFAULT '4096' NOT NULL").await?;
+    ops::exec(conn, r"ALTER TABLE ai_project_settings ADD COLUMN run_memory_limit_mb INTEGER DEFAULT '4096' NOT NULL")
+        .await?;
     Ok(())
 }

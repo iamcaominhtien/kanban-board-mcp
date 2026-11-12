@@ -8,7 +8,9 @@ use super::ops::{self, StepResult};
 
 /// `upgrade()` of revision `a7c1e3f5b9d2`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    ops::exec(conn, r#"CREATE TABLE ai_account (
+    ops::exec(
+        conn,
+        r#"CREATE TABLE ai_account (
 	id VARCHAR NOT NULL, 
 	name VARCHAR NOT NULL, 
 	cli VARCHAR NOT NULL, 
@@ -25,7 +27,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	created_at VARCHAR NOT NULL, 
 	updated_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id)
-)"#).await?;
+)"#,
+    )
+    .await?;
     ops::exec(conn, r"CREATE UNIQUE INDEX ix_ai_account_name ON ai_account (name)").await?;
     ops::exec(conn, r"ALTER TABLE ai_member ADD COLUMN account_id VARCHAR").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_member_account_id ON ai_member (account_id)").await?;

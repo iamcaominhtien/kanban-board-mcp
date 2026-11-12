@@ -149,7 +149,9 @@ impl Types {
     /// The spelling for the engine of `conn`.
     pub fn of<C: ConnectionTrait>(conn: &C) -> Self {
         match conn.get_database_backend() {
-            DbBackend::Postgres => Types { s: "VARCHAR", t: "VARCHAR", b: "BOOLEAN", serial: "SERIAL NOT NULL", quote: '"' },
+            DbBackend::Postgres => {
+                Types { s: "VARCHAR", t: "VARCHAR", b: "BOOLEAN", serial: "SERIAL NOT NULL", quote: '"' }
+            }
             DbBackend::MySql => Types {
                 s: "VARCHAR(255)",
                 t: "LONGTEXT",
@@ -219,10 +221,19 @@ pub(super) async fn create_table_if_missing<C: ConnectionTrait>(
         lines.push(format!("{} {kind_sql}{not_null}", spell(column)));
     }
     lines.push(format!("PRIMARY KEY ({})", spell(pk)));
-    exec(conn, &format!("CREATE TABLE {name} (
+    exec(
+        conn,
+        &format!(
+            "CREATE TABLE {name} (
 	{}
-)", lines.join(", 
-	"))).await
+)",
+            lines.join(
+                ", 
+	"
+            )
+        ),
+    )
+    .await
 }
 
 // ---------------------------------------------------------------------------
@@ -259,7 +270,10 @@ pub(super) struct Table {
 
 fn ident(name: &str) -> String {
     let plain = name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
-        && !matches!(name, "trigger" | "key" | "order" | "group" | "index" | "table" | "column" | "check" | "references");
+        && !matches!(
+            name,
+            "trigger" | "key" | "order" | "group" | "index" | "table" | "column" | "check" | "references"
+        );
     if plain { name.to_string() } else { format!("\"{}\"", name.replace('"', "\"\"")) }
 }
 

@@ -15,7 +15,9 @@ use std::time::Instant;
 use kb_base::{activity, ctx, pyjson, pytext, time};
 use kb_db::database;
 use kb_db::entities::ai_run;
-use kb_db::sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter};
+use kb_db::sea_orm::{
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter,
+};
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 
@@ -40,8 +42,10 @@ pub struct AiActionError(pub String);
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]
+    /// The AI action was refused (the message is what the agent reads).
     Action(#[from] AiActionError),
     #[error("{0}")]
+    /// The database call failed.
     Db(#[from] DbErr),
 }
 
@@ -179,14 +183,19 @@ pub async fn resolve() -> Result<Option<RunContext>, Error> {
 }
 
 /// Project AI settings as they apply to this run.
-pub async fn settings_for(session: &kb_db::Session, context: &RunContext) -> Result<kb_db::entities::ai_project_settings::Model, DbErr> {
+pub async fn settings_for(
+    session: &kb_db::Session,
+    context: &RunContext,
+) -> Result<kb_db::entities::ai_project_settings::Model, DbErr> {
     get_settings(session, &context.project_id).await
 }
 
 /// A run resumed with its conversation (a retry, a restart) may repeat the write it made right before the cut: the
 /// board answers with the earlier result instead of doing it twice.
 pub const DUPLICATE_WINDOW_S: f64 = 180.0;
-const WRITE_TOOLS: [&str; 6] = ["manage_ticket", "ticket_items", "docs_write", "ticket_branches", "manage_project", "ai_run"];
+/// The tools whose writes are remembered for the duplicate suppression after a resume.
+pub const WRITE_TOOLS: [&str; 6] =
+    ["manage_ticket", "ticket_items", "docs_write", "ticket_branches", "manage_project", "ai_run"];
 
 static START: LazyLock<Instant> = LazyLock::new(Instant::now);
 
@@ -271,7 +280,12 @@ pub const ALREADY_DONE: &str = "Not repeated: this run already did exactly this 
 ///
 /// `call` is what the tool does with the arguments; it fails with whatever its own error type is (`E`), and a failure
 /// of the guard itself (a dead token) is `GuardedError::Guard`.
-pub async fn guarded<E, F, Fut>(tool: &str, action: &str, given: Map<String, Value>, call: F) -> Result<Value, GuardedError<E>>
+pub async fn guarded<E, F, Fut>(
+    tool: &str,
+    action: &str,
+    given: Map<String, Value>,
+    call: F,
+) -> Result<Value, GuardedError<E>>
 where
     F: FnOnce(Map<String, Value>) -> Fut,
     Fut: std::future::Future<Output = Result<Value, E>>,

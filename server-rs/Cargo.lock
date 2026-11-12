@@ -1615,6 +1615,51 @@ dependencies = [
 ]
 
 [[package]]
+name = "kb-ai-know"
+version = "5.0.0"
+dependencies = [
+ "async-trait",
+ "kb-ai",
+ "kb-base",
+ "kb-db",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "kb-ai-run"
+version = "5.0.0"
+dependencies = [
+ "async-trait",
+ "kb-ai",
+ "kb-base",
+ "kb-db",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "kb-ai-work"
+version = "5.0.0"
+dependencies = [
+ "async-trait",
+ "kb-ai",
+ "kb-base",
+ "kb-db",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "kb-app"
 version = "5.0.0"
 dependencies = [
@@ -1720,6 +1765,7 @@ version = "5.0.0"
 dependencies = [
  "async-trait",
  "chrono",
+ "flate2",
  "kb-base",
  "regex",
  "sea-orm",
@@ -1898,12 +1944,17 @@ dependencies = [
  "kb-base",
  "kb-board",
  "kb-db",
+ "kb-docs",
+ "kb-files",
+ "kb-ideas",
  "kb-log",
+ "kb-notify",
  "kb-skills",
  "regex",
  "reqwest",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tempfile",
  "testkit",
  "tokio",

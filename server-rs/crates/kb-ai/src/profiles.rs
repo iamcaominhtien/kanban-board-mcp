@@ -29,6 +29,7 @@ pub fn real_home() -> PathBuf {
     kb_base::config::home_dir()
 }
 
+/// The CLIs that have a profile, in the order of the Python tuple.
 pub const CLIS: [&str; 4] = ["agy", "claude", "codex", "opencode"];
 /// Colour codes in a CLI's output.
 static ANSI_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new("\x1b\\[[0-9;]*m").expect("the colour pattern compiles"));
@@ -48,10 +49,13 @@ pub struct Fail(pub String);
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]
+    /// A user-facing error.
     Fail(#[from] Fail),
     #[error("{0}")]
+    /// The operating system refused (`OSError`).
     Io(#[from] std::io::Error),
     #[error("Command timed out after 45 seconds")]
+    /// The call took longer than its 45 seconds (`subprocess.TimeoutExpired`).
     Timeout,
 }
 
@@ -65,10 +69,13 @@ pub type Env = Vec<(String, String)>;
 /// What a CLI says about a profile's login. Only `claude` says who; the others say whether a call works.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Status {
+    /// Whether the CLI says the profile is signed in.
     pub signed_in: bool,
     /// one line, as the CLI words it
     pub detail: String,
+    /// The account's e-mail address.
     pub email: Option<String>,
+    /// The subscription plan the CLI reports.
     pub plan: Option<String>,
     /// subscription | api key | ChatGPT login | Google sign-in ...
     pub method: Option<String>,
@@ -111,14 +118,30 @@ fn is_executable(path: &Path) -> bool {
 /// Path of the CLI to run: `<CLI>_BIN` if set, else the first match on PATH.
 pub fn find_bin(cli: &str) -> Result<String, Fail> {
     let from_env = std::env::var(format!("{}_BIN", cli.to_uppercase())).ok().filter(|v| !v.is_empty());
-    from_env.or_else(|| which(cli)).ok_or_else(|| Fail(format!("{cli} not found on PATH (set {}_BIN)", cli.to_uppercase())))
+    from_env
+        .or_else(|| which(cli))
+        .ok_or_else(|| Fail(format!("{cli} not found on PATH (set {}_BIN)", cli.to_uppercase())))
+}
+
+/// Read a pipe to its end on a thread of its own, so a full pipe never stops the child.
+fn read_all<R: Read + Send + 'static>(pipe: Option<R>) -> std::thread::JoinHandle<Vec<u8>> {
+    std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(mut pipe) = pipe {
+            let _ = pipe.read_to_end(&mut buf);
+        }
+        buf
+    })
 }
 
 /// What a captured call gave (`subprocess.CompletedProcess` with text output).
 #[derive(Debug, Clone)]
 pub struct Completed {
+    /// The exit code.
     pub returncode: i32,
+    /// What the program printed.
     pub stdout: String,
+    /// What the program printed as errors.
     pub stderr: String,
 }
 
@@ -141,17 +164,8 @@ fn run_captured(argv: &[String], env: &Env, cwd: Option<&Path>) -> Result<Comple
     let mut child = command.spawn()?;
     let mut out = child.stdout.take();
     let mut err = child.stderr.take();
-    let read = |pipe: Option<impl Read + Send + 'static>| {
-        std::thread::spawn(move || {
-            let mut buf = Vec::new();
-            if let Some(mut pipe) = pipe {
-                let _ = pipe.read_to_end(&mut buf);
-            }
-            buf
-        })
-    };
-    let out_reader = read(out.take());
-    let err_reader = read(err.take());
+    let out_reader = read_all(out.take());
+    let err_reader = read_all(err.take());
     let deadline = Instant::now() + Duration::from_secs(45);
     let status = loop {
         if let Some(status) = child.try_wait()? {
@@ -172,8 +186,11 @@ fn run_captured(argv: &[String], env: &Env, cwd: Option<&Path>) -> Result<Comple
 /// What every profile has: its name, its folder and the CLI's path.
 #[derive(Debug, Clone)]
 pub struct ProfileBase {
+    /// The profile's name.
     pub name: String,
+    /// The profile's folder.
     pub dir: PathBuf,
+    /// The path of the CLI, when it is not looked up.
     pub binary: Option<String>,
 }
 
@@ -205,11 +222,14 @@ pub trait Profile: Send + Sync {
     fn login_args(&self) -> &'static [&'static str] {
         &[]
     }
+    /// The name, folder and CLI path of this profile.
     fn base(&self) -> &ProfileBase;
 
+    /// The profile's name.
     fn name(&self) -> &str {
         &self.base().name
     }
+    /// The profile's folder.
     fn dir(&self) -> &Path {
         &self.base().dir
     }
@@ -247,7 +267,9 @@ pub trait Profile: Send + Sync {
 
     /// The caller's own environment with the profile applied.
     fn build_env(&self) -> Env {
-        let current: Env = std::env::vars_os().map(|(k, v)| (k.to_string_lossy().into_owned(), v.to_string_lossy().into_owned())).collect();
+        let current: Env = std::env::vars_os()
+            .map(|(k, v)| (k.to_string_lossy().into_owned(), v.to_string_lossy().into_owned()))
+            .collect();
         self.overlay(&current)
     }
 
@@ -350,10 +372,6 @@ fn mkdir_parents(path: &Path) -> Result<(), Error> {
     }
     std::fs::create_dir_all(path)?;
     Ok(())
-}
-
-fn argv(parts: &[&str]) -> Vec<String> {
-    parts.iter().map(|p| p.to_string()).collect()
 }
 
 /// Antigravity CLI. It keeps its data in ~/.gemini and tries to keep its Google login in the OS keychain (on macOS one
@@ -652,7 +670,8 @@ impl Profile for Codex {
     fn check(&self) -> Result<Status, Error> {
         let out = self.call_capture(&[self.bin()?, "login".into(), "status".into()], None)?;
         let all = format!("{}{}", out.stdout, out.stderr);
-        let lines: Vec<&str> = pytext::splitlines(&all).into_iter().map(pytext::strip).filter(|l| !l.is_empty()).collect();
+        let lines: Vec<&str> =
+            pytext::splitlines(&all).into_iter().map(pytext::strip).filter(|l| !l.is_empty()).collect();
         let answer = lines.iter().find(|l| l.starts_with("Logged in") || l.starts_with("Not logged in")).copied();
         let text = answer.or_else(|| lines.first().copied()).unwrap_or("no answer").to_string();
         let ok = answer.is_some_and(|a| a.starts_with("Logged in"));
@@ -724,7 +743,12 @@ impl Profile for Opencode {
 }
 
 /// The Profile object of `cli` (does not create anything).
-pub fn profile_for(cli: &str, name: &str, folder: Option<&Path>, binary: Option<&str>) -> Result<Box<dyn Profile>, Fail> {
+pub fn profile_for(
+    cli: &str,
+    name: &str,
+    folder: Option<&Path>,
+    binary: Option<&str>,
+) -> Result<Box<dyn Profile>, Fail> {
     if !CLIS.contains(&cli) {
         return Err(Fail(format!("unknown CLI '{cli}' (use one of: {})", CLIS.join(", "))));
     }

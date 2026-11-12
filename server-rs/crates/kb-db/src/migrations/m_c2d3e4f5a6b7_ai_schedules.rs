@@ -8,7 +8,9 @@ use super::ops::{self, StepResult};
 
 /// `upgrade()` of revision `c2d3e4f5a6b7`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    ops::exec(conn, r"CREATE TABLE ai_schedule (
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_schedule (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	ticket_id VARCHAR NOT NULL, 
@@ -42,13 +44,17 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	updated_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_schedule_member_id ON ai_schedule (member_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_schedule_state ON ai_schedule (state)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_schedule_ticket_id ON ai_schedule (ticket_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_schedule_project_id ON ai_schedule (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_schedule_next_run_at ON ai_schedule (next_run_at)").await?;
-    ops::exec(conn, r"CREATE TABLE ai_schedule_run (
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_schedule_run (
 	id VARCHAR NOT NULL, 
 	schedule_id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
@@ -71,7 +77,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	updated_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(schedule_id) REFERENCES ai_schedule (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_schedule_run_project_id ON ai_schedule_run (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_schedule_run_ticket_id ON ai_schedule_run (ticket_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_schedule_run_state ON ai_schedule_run (state)").await?;

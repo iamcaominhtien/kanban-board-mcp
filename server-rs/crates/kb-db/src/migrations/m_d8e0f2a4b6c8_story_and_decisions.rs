@@ -8,7 +8,9 @@ use super::ops::{self, StepResult};
 
 /// `upgrade()` of revision `d8e0f2a4b6c8`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    ops::exec(conn, r#"CREATE TABLE story (
+    ops::exec(
+        conn,
+        r#"CREATE TABLE story (
 	ticket_id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	state VARCHAR DEFAULT 'draft' NOT NULL, 
@@ -27,10 +29,14 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	closed_at VARCHAR, 
 	PRIMARY KEY (ticket_id), 
 	FOREIGN KEY(ticket_id) REFERENCES ticket (id)
-)"#).await?;
+)"#,
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_story_project_id ON story (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_story_state ON story (state)").await?;
-    ops::exec(conn, r"CREATE TABLE ai_decision (
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_decision (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	ticket_id VARCHAR, 
@@ -46,7 +52,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	override_note VARCHAR, 
 	at VARCHAR NOT NULL, 
 	PRIMARY KEY (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_decision_project_id ON ai_decision (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_decision_ticket_id ON ai_decision (ticket_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_decision_story_id ON ai_decision (story_id)").await?;

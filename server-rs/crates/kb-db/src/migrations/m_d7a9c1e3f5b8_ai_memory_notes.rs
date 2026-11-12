@@ -10,7 +10,9 @@ use super::ops::{self, StepResult};
 
 /// `upgrade()` of revision `d7a9c1e3f5b8`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    ops::exec(conn, r"CREATE TABLE ai_memory_note (
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_memory_note (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	scope VARCHAR NOT NULL, 
@@ -25,7 +27,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	created_at VARCHAR NOT NULL, 
 	updated_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_memory_note_project_id ON ai_memory_note (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_memory_note_scope ON ai_memory_note (scope)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_memory_note_scope_key ON ai_memory_note (scope_key)").await?;

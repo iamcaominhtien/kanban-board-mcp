@@ -8,13 +8,13 @@ use std::sync::{Arc, Mutex as StdMutex};
 use std::time::Duration;
 
 use kb_base::{ctx, events, pyjson};
+use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{ai_run, ai_run_agent, ai_run_step};
 use kb_db::sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter,
     QueryOrder, QuerySelect,
 };
-use kb_db::Session;
 use serde_json::{Map, Value, json};
 use tokio::task::JoinHandle;
 
@@ -275,7 +275,9 @@ pub async fn append(run_id: &str, rows: Vec<Value>, extras: Extras) -> Result<Ve
     }
     if !files.is_empty() {
         let mut current: Vec<(String, Map<String, Value>)> = Vec::new();
-        if let Ok(Value::Array(items)) = serde_json::from_str::<Value>(if run.files.is_empty() { "[]" } else { &run.files }) {
+        if let Ok(Value::Array(items)) =
+            serde_json::from_str::<Value>(if run.files.is_empty() { "[]" } else { &run.files })
+        {
             for f in items {
                 if let Some(path) = f.get("path").map(pyjson::py_str) {
                     let map = f.as_object().cloned().unwrap_or_default();
@@ -319,14 +321,19 @@ pub async fn append(run_id: &str, rows: Vec<Value>, extras: Extras) -> Result<Ve
             Value::Object(map) => map,
             _ => Map::new(),
         };
-        let shown: Vec<Value> = written[written.len().saturating_sub(EVENT_STEPS_MAX)..].iter().map(|s| to_dict(s, false)).collect();
+        let shown: Vec<Value> =
+            written[written.len().saturating_sub(EVENT_STEPS_MAX)..].iter().map(|s| to_dict(s, false)).collect();
         payload.insert("steps".into(), Value::Array(shown));
         payload.insert("truncated".into(), json!(written.len() > EVENT_STEPS_MAX));
         if let Some(rows) = agent_rows {
             payload.insert("agents".into(), Value::Array(rows));
         }
         if !fields.is_empty() {
-            let kept: Map<String, Value> = fields.iter().filter(|(k, _)| k.as_str() != "steps_count").map(|(k, v)| (k.clone(), v.clone())).collect();
+            let kept: Map<String, Value> = fields
+                .iter()
+                .filter(|(k, _)| k.as_str() != "steps_count")
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect();
             payload.insert("fields".into(), Value::Object(kept));
         }
         events::publish_typed("ai.step", &payload).await;
@@ -402,7 +409,8 @@ impl StepWriter {
     pub async fn flush(&self) {
         let _guard = self.inner.lock.lock().await;
         let pending = std::mem::take(&mut *self.inner.pending.lock().unwrap_or_else(|e| e.into_inner()));
-        if pending.rows.is_empty() && pending.agents.is_empty() && pending.files.is_empty() && pending.fields.is_empty() {
+        if pending.rows.is_empty() && pending.agents.is_empty() && pending.files.is_empty() && pending.fields.is_empty()
+        {
             return;
         }
         let extras = Extras { agents: pending.agents, fields: pending.fields, files: pending.files, announce: true };
@@ -449,7 +457,8 @@ pub async fn read(
         Some(agent) => stmt = stmt.filter(ai_run_step::Column::AgentId.eq(agent)),
         None => {}
     }
-    stmt = if last { stmt.order_by_desc(ai_run_step::Column::Seq) } else { stmt.order_by_asc(ai_run_step::Column::Seq) };
+    stmt =
+        if last { stmt.order_by_desc(ai_run_step::Column::Seq) } else { stmt.order_by_asc(ai_run_step::Column::Seq) };
     let mut rows = stmt.limit(limit).all(session).await?;
     if last {
         rows.reverse();
@@ -458,7 +467,12 @@ pub async fn read(
 }
 
 /// A tool's result arrived for a step already written: its output and exit code go onto that step.
-pub async fn attach_result(run_id: &str, tool_id: &str, output_text: Option<&str>, detail: &Map<String, Value>) -> Result<bool, DbErr> {
+pub async fn attach_result(
+    run_id: &str,
+    tool_id: &str,
+    output_text: Option<&str>,
+    detail: &Map<String, Value>,
+) -> Result<bool, DbErr> {
     let session = database::session();
     let row = ai_run_step::Entity::find()
         .filter(ai_run_step::Column::RunId.eq(run_id))
@@ -507,7 +521,8 @@ pub async fn agents(session: &Session, run_id: &str) -> Result<Vec<Value>, DbErr
     Ok(rows
         .iter()
         .map(|a| {
-            let mine: Vec<ai_run_step::Model> = marks.iter().filter(|m| m.agent_id.as_deref().unwrap_or("") == a.id).cloned().collect();
+            let mine: Vec<ai_run_step::Model> =
+                marks.iter().filter(|m| m.agent_id.as_deref().unwrap_or("") == a.id).cloned().collect();
             agent_dict(a, Some(&mine))
         })
         .collect())

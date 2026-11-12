@@ -8,17 +8,21 @@ use super::ops::{self, StepResult};
 
 /// `upgrade()` of revision `a1d0c5a1b2c3`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    // batch_alter_table("docs_page"): Alembic rebuilt the table for these columns; the table is the same with ADD COLUMN
+    // batch_alter_table("docs_page"): Alembic rebuilt the table for these columns (their default is written as an
+    // expression); ADD COLUMN gives the same table
     ops::exec(conn, r"ALTER TABLE docs_page ADD COLUMN ai_hidden BOOLEAN DEFAULT 0 NOT NULL").await?;
     ops::exec(conn, r"ALTER TABLE docs_page ADD COLUMN ai_guidance BOOLEAN DEFAULT 0 NOT NULL").await?;
-    // batch_alter_table("docs_version"): Alembic rebuilt the table for these columns; the table is the same with ADD COLUMN
+    // batch_alter_table("docs_version"): Alembic rebuilt the table for these columns (their default is written as an
+    // expression); ADD COLUMN gives the same table
     ops::exec(conn, r"ALTER TABLE docs_version ADD COLUMN with_ai BOOLEAN DEFAULT 0 NOT NULL").await?;
     ops::exec(conn, r"ALTER TABLE docs_draft ADD COLUMN ai_source VARCHAR").await?;
     ops::exec(conn, r"ALTER TABLE docs_comment ADD COLUMN ai VARCHAR").await?;
     ops::exec(conn, r"ALTER TABLE ai_chat ADD COLUMN summary VARCHAR DEFAULT '' NOT NULL").await?;
     ops::exec(conn, r"ALTER TABLE ai_chat ADD COLUMN summary_upto VARCHAR").await?;
     ops::exec(conn, r"ALTER TABLE ai_chat ADD COLUMN compactions INTEGER DEFAULT '0' NOT NULL").await?;
-    ops::exec(conn, r"CREATE TABLE docs_ai_settings (
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_ai_settings (
 	project_id VARCHAR NOT NULL, 
 	enabled BOOLEAN DEFAULT 1 NOT NULL, 
 	member_id VARCHAR, 
@@ -34,8 +38,12 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	updated_at VARCHAR NOT NULL, 
 	PRIMARY KEY (project_id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
-    ops::exec(conn, r"CREATE TABLE docs_ai_job (
+)",
+    )
+    .await?;
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_ai_job (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	page_id VARCHAR, 
@@ -61,14 +69,18 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	ended_at VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_ai_job_project_id ON docs_ai_job (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_ai_job_page_id ON docs_ai_job (page_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_ai_job_thread_id ON docs_ai_job (thread_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_ai_job_member_id ON docs_ai_job (member_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_ai_job_kind ON docs_ai_job (kind)").await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_ai_job_state ON docs_ai_job (state)").await?;
-    ops::exec(conn, r"CREATE TABLE docs_ai_proposal (
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_ai_proposal (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	page_id VARCHAR NOT NULL, 
@@ -90,12 +102,16 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id), 
 	FOREIGN KEY(page_id) REFERENCES docs_page (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_ai_proposal_project_id ON docs_ai_proposal (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_ai_proposal_page_id ON docs_ai_proposal (page_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_ai_proposal_member_id ON docs_ai_proposal (member_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_ai_proposal_status ON docs_ai_proposal (status)").await?;
-    ops::exec(conn, r"CREATE TABLE docs_ai_check (
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_ai_check (
 	page_id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	state VARCHAR DEFAULT 'ok' NOT NULL, 
@@ -110,22 +126,32 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	PRIMARY KEY (page_id), 
 	FOREIGN KEY(page_id) REFERENCES docs_page (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_docs_ai_check_project_id ON docs_ai_check (project_id)").await?;
-    ops::exec(conn, r"CREATE TABLE docs_ai_health (
+    ops::exec(
+        conn,
+        r"CREATE TABLE docs_ai_health (
 	project_id VARCHAR NOT NULL, 
 	data VARCHAR DEFAULT '{}' NOT NULL, 
 	checked_at VARCHAR, 
 	digest_at VARCHAR, 
 	PRIMARY KEY (project_id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
-    ops::exec(conn, r#"CREATE TABLE docs_ai_ignore (
+)",
+    )
+    .await?;
+    ops::exec(
+        conn,
+        r#"CREATE TABLE docs_ai_ignore (
 	page_id VARCHAR NOT NULL, 
 	"key" VARCHAR NOT NULL, 
 	"by" VARCHAR DEFAULT 'user' NOT NULL, 
 	at VARCHAR NOT NULL, 
 	PRIMARY KEY (page_id, "key")
-)"#).await?;
+)"#,
+    )
+    .await?;
     Ok(())
 }

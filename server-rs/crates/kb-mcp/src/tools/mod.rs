@@ -18,8 +18,12 @@
 //!    remove its name from `registry::NOT_PORTED_YET` (a unit test of the registry fails until both are done).
 //! 4. Add its calls to a differential test like `tests/mcp_tool_calls.rs` and record what Python answers.
 
+pub mod branches;
+pub mod ideas;
+pub mod items;
 pub mod projects;
 pub mod routing;
+pub mod tickets;
 
 use serde_json::{Map, Value};
 
@@ -45,18 +49,26 @@ pub async fn checked_read(name: &'static str, args: Map<String, Value>, run: Too
 /// that are not ported yet are named in `registry::NOT_PORTED_YET`.
 pub const CORE_TOOL_TABLE: &[Tool] = &[
     tool!(get_projects, projects::get_projects),
-    // list_tickets, get_ticket, docs_read
+    tool!(list_tickets, tickets::list_tickets),
+    tool!(get_ticket, tickets::get_ticket),
+    // docs_read
     tool!(manage_project, projects::manage_project), // remove_member
-                                                     // manage_ticket (delete, unlink), ticket_items (delete), ticket_branches (delete, optionally the git branch),
-                                                     // docs_write (delete), ai_schedules (delete),
-                                                     // knowledge: the knowledge base (table of contents, search, read) and the project memory,
-                                                     // board_wait: wait until the board moves (the notification log),
-                                                     // ai_run: only inside a run the board started: ask a person, message a ticket's team, report
+    tool!(manage_ticket, tickets::manage_ticket),    // delete, unlink
+    tool!(ticket_items, items::ticket_items),        // delete
+    tool!(ticket_branches, branches::ticket_branches), // delete (optionally the git branch)
+    // docs_write (delete), ai_schedules (delete),
+    // knowledge: the knowledge base (table of contents, search, read) and the project memory,
+    // board_wait: wait until the board moves (the notification log),
+    // ai_run: only inside a run the board started: ask a person, message a ticket's team, report
 ];
 
 /// The Idea Space tools are hidden from the MCP tool list for now (about a quarter of its size). They are fully
 /// implemented in Python: set KANBAN_MCP_IDEA_TOOLS=1 to expose them. AI members may only read ideas and add to the
 /// Inbox: moving, editing, merging, archiving and promoting are for people, in the app.
 pub const IDEA_TOOL_TABLE: &[Tool] = &[
-    // list_idea_tickets, get_idea_ticket, list_idea_assumptions, get_idea_activity_trail, create_idea_ticket
+    tool!(list_idea_tickets, ideas::list_idea_tickets),
+    tool!(get_idea_ticket, ideas::get_idea_ticket),
+    tool!(list_idea_assumptions, ideas::list_idea_assumptions),
+    tool!(get_idea_activity_trail, ideas::get_idea_activity_trail),
+    tool!(create_idea_ticket, ideas::create_idea_ticket),
 ];

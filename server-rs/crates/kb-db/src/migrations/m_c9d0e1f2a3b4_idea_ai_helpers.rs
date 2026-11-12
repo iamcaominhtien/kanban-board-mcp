@@ -9,7 +9,9 @@ use super::ops::{self, StepResult};
 /// `upgrade()` of revision `c9d0e1f2a3b4`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
     ops::exec(conn, r"ALTER TABLE idea_assumption ADD COLUMN ai BOOLEAN DEFAULT 0 NOT NULL").await?;
-    ops::exec(conn, r"CREATE TABLE idea_ai_settings (
+    ops::exec(
+        conn,
+        r"CREATE TABLE idea_ai_settings (
 	project_id VARCHAR NOT NULL, 
 	enabled BOOLEAN DEFAULT 1 NOT NULL, 
 	triage_advice BOOLEAN DEFAULT 1 NOT NULL, 
@@ -20,8 +22,12 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	daily_cap FLOAT DEFAULT '1.0' NOT NULL, 
 	updated_at VARCHAR NOT NULL, 
 	PRIMARY KEY (project_id)
-)").await?;
-    ops::exec(conn, r"CREATE TABLE idea_advice (
+)",
+    )
+    .await?;
+    ops::exec(
+        conn,
+        r"CREATE TABLE idea_advice (
 	id VARCHAR NOT NULL, 
 	idea_id VARCHAR NOT NULL, 
 	action VARCHAR NOT NULL, 
@@ -37,9 +43,13 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	created_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(idea_id) REFERENCES idea_ticket (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_idea_advice_idea_id ON idea_advice (idea_id)").await?;
-    ops::exec(conn, r"CREATE TABLE idea_digest (
+    ops::exec(
+        conn,
+        r"CREATE TABLE idea_digest (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR DEFAULT '' NOT NULL, 
 	text VARCHAR DEFAULT '' NOT NULL, 
@@ -50,7 +60,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	ideas_read INTEGER DEFAULT '0' NOT NULL, 
 	created_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_idea_digest_project_id ON idea_digest (project_id)").await?;
     Ok(())
 }

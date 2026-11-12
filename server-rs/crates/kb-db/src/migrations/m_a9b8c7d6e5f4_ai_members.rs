@@ -9,7 +9,9 @@ use super::ops::{self, StepResult};
 /// `upgrade()` of revision `a9b8c7d6e5f4`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
     ops::exec(conn, r"ALTER TABLE member ADD COLUMN kind VARCHAR DEFAULT 'human' NOT NULL").await?;
-    ops::exec(conn, r"CREATE TABLE ai_member (
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_member (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	provider VARCHAR NOT NULL, 
@@ -48,9 +50,13 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	PRIMARY KEY (id), 
 	FOREIGN KEY(id) REFERENCES member (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_member_project_id ON ai_member (project_id)").await?;
-    ops::exec(conn, r#"CREATE TABLE ai_run (
+    ops::exec(
+        conn,
+        r#"CREATE TABLE ai_run (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	ticket_id VARCHAR NOT NULL, 
@@ -91,14 +97,18 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id), 
 	FOREIGN KEY(member_id) REFERENCES member (id)
-)"#).await?;
+)"#,
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_run_project_id ON ai_run (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_run_ticket_id ON ai_run (ticket_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_run_member_id ON ai_run (member_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_run_state ON ai_run (state)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_run_token_hash ON ai_run (token_hash)").await?;
     ops::exec(conn, r"CREATE UNIQUE INDEX ux_ai_run_ticket_hold ON ai_run (ticket_id) WHERE mode = 'work' AND state IN ('queued', 'starting', 'running', 'needs_input')").await?;
-    ops::exec(conn, r"CREATE TABLE ai_approval (
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_approval (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	member_id VARCHAR NOT NULL, 
@@ -119,11 +129,15 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id), 
 	FOREIGN KEY(member_id) REFERENCES member (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_approval_project_id ON ai_approval (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_approval_member_id ON ai_approval (member_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_approval_ticket_id ON ai_approval (ticket_id)").await?;
-    ops::exec(conn, r"CREATE TABLE ai_audit (
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_audit (
 	id VARCHAR NOT NULL, 
 	seq INTEGER DEFAULT '0' NOT NULL, 
 	project_id VARCHAR NOT NULL, 
@@ -141,12 +155,16 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	prev_hash VARCHAR DEFAULT '' NOT NULL, 
 	hash VARCHAR DEFAULT '' NOT NULL, 
 	PRIMARY KEY (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_audit_seq ON ai_audit (seq)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_audit_project_id ON ai_audit (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_audit_member_id ON ai_audit (member_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_audit_run_id ON ai_audit (run_id)").await?;
-    ops::exec(conn, r"CREATE TABLE ai_project_settings (
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_project_settings (
 	project_id VARCHAR NOT NULL, 
 	board_ai_id VARCHAR, 
 	paused_all BOOLEAN DEFAULT '0' NOT NULL, 
@@ -161,6 +179,8 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	approval_expiry_hours INTEGER DEFAULT '24' NOT NULL, 
 	PRIMARY KEY (project_id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     Ok(())
 }

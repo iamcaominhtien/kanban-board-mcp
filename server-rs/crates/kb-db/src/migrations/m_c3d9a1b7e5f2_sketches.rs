@@ -8,7 +8,9 @@ use super::ops::{self, StepResult};
 
 /// `upgrade()` of revision `c3d9a1b7e5f2`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    ops::exec(conn, r"CREATE TABLE sketch (
+    ops::exec(
+        conn,
+        r"CREATE TABLE sketch (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR, 
 	owner_kind VARCHAR DEFAULT 'doc' NOT NULL, 
@@ -28,7 +30,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	deleted_by VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_sketch_project_id ON sketch (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_sketch_owner_id ON sketch (owner_id)").await?;
     Ok(())

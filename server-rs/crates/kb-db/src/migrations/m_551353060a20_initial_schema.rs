@@ -8,7 +8,9 @@ use super::ops::{self, StepResult};
 
 /// `upgrade()` of revision `551353060a20`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    ops::exec(conn, r"CREATE TABLE project (
+    ops::exec(
+        conn,
+        r"CREATE TABLE project (
 	id VARCHAR NOT NULL, 
 	name VARCHAR NOT NULL, 
 	prefix VARCHAR NOT NULL, 
@@ -16,8 +18,12 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	ticket_counter INTEGER NOT NULL, 
 	PRIMARY KEY (id), 
 	UNIQUE (prefix)
-)").await?;
-    ops::exec(conn, r"CREATE TABLE ticket (
+)",
+    )
+    .await?;
+    ops::exec(
+        conn,
+        r"CREATE TABLE ticket (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	title VARCHAR NOT NULL, 
@@ -39,6 +45,8 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	PRIMARY KEY (id), 
 	FOREIGN KEY(parent_id) REFERENCES ticket (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     Ok(())
 }

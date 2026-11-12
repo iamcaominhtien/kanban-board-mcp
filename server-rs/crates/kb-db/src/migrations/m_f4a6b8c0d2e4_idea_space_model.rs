@@ -52,7 +52,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
     table.add_column("workspace_retention", "VARCHAR", true, Some("'open_then_30'"));
     table.rebuild(conn).await?;
     ops::exec(conn, r"CREATE INDEX ix_idea_ticket_stage ON idea_ticket (stage)").await?;
-    ops::exec(conn, r"CREATE TABLE idea_assumption (
+    ops::exec(
+        conn,
+        r"CREATE TABLE idea_assumption (
 	id VARCHAR NOT NULL, 
 	idea_id VARCHAR NOT NULL, 
 	position INTEGER DEFAULT '0' NOT NULL, 
@@ -64,9 +66,13 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	updated_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(idea_id) REFERENCES idea_ticket (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_idea_assumption_idea_id ON idea_assumption (idea_id)").await?;
-    ops::exec(conn, r"CREATE TABLE idea_evidence (
+    ops::exec(
+        conn,
+        r"CREATE TABLE idea_evidence (
 	id VARCHAR NOT NULL, 
 	assumption_id VARCHAR NOT NULL, 
 	kind VARCHAR DEFAULT 'link' NOT NULL, 
@@ -76,9 +82,13 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	created_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(assumption_id) REFERENCES idea_assumption (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_idea_evidence_assumption_id ON idea_evidence (assumption_id)").await?;
-    ops::exec(conn, r"CREATE TABLE idea_comment (
+    ops::exec(
+        conn,
+        r"CREATE TABLE idea_comment (
 	id VARCHAR NOT NULL, 
 	idea_id VARCHAR NOT NULL, 
 	author VARCHAR, 
@@ -89,9 +99,13 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	edited_at VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(idea_id) REFERENCES idea_ticket (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_idea_comment_idea_id ON idea_comment (idea_id)").await?;
-    ops::exec(conn, r"CREATE TABLE idea_log_entry (
+    ops::exec(
+        conn,
+        r"CREATE TABLE idea_log_entry (
 	id VARCHAR NOT NULL, 
 	idea_id VARCHAR NOT NULL, 
 	kind VARCHAR DEFAULT 'note' NOT NULL, 
@@ -105,16 +119,22 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	created_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(idea_id) REFERENCES idea_ticket (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_idea_log_entry_idea_id ON idea_log_entry (idea_id)").await?;
-    ops::exec(conn, r"CREATE TABLE idea_vote (
+    ops::exec(
+        conn,
+        r"CREATE TABLE idea_vote (
 	id VARCHAR NOT NULL, 
 	idea_id VARCHAR NOT NULL, 
 	voter VARCHAR NOT NULL, 
 	created_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(idea_id) REFERENCES idea_ticket (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_idea_vote_idea_id ON idea_vote (idea_id)").await?;
     ops::exec(conn, r"CREATE UNIQUE INDEX uq_idea_vote_idea_voter ON idea_vote (idea_id, voter)").await?;
     ops::exec(conn, r"ALTER TABLE ticket ADD COLUMN from_idea_id VARCHAR").await?;
@@ -160,7 +180,10 @@ async fn backup_database<C: ConnectionTrait>(conn: &C) -> StepResult {
     let stamp = chrono::Utc::now().format("%Y%m%d-%H%M%S").to_string();
     let target = backup_path(&source, &stamp);
     let failed = |err: &dyn std::fmt::Display| {
-        DatabaseError::Other(format!("Could not back up the database to {} before converting the ideas: {err}", target.display()))
+        DatabaseError::Other(format!(
+            "Could not back up the database to {} before converting the ideas: {err}",
+            target.display()
+        ))
     };
     // the copy replaces a file of the same name (Python's backup wrote over it)
     if target.exists() {

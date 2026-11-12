@@ -5,6 +5,7 @@
 
 use kb_base::{pypath, pytext};
 
+/// The environment variable that lists more folders where work may be kept.
 pub const ROOTS_ENV: &str = "KANBAN_AI_ROOTS";
 
 /// A path outside the places the board may use; the message says why.

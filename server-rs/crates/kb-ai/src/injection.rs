@@ -11,7 +11,23 @@ use kb_base::{pyjson, pytext};
 use regex::{Regex, RegexBuilder};
 use serde_json::{Map, Value, json};
 
-/// (pattern, the phrase shown to the person)
+/// Python's `re.I` treats `i` as also `İ` (U+0130) and `ı` (U+0131); Rust's case folding does not. Every literal `i` of a
+/// pattern becomes a class that has them (an `i` after a backslash is an escape, not a letter).
+fn python_i(pattern: &str) -> String {
+    let mut out = String::with_capacity(pattern.len() + 16);
+    let mut escaped = false;
+    for c in pattern.chars() {
+        if !escaped && (c == 'i' || c == 'I') {
+            out.push_str("[iIıİ]");
+        } else {
+            out.push(c);
+        }
+        escaped = !escaped && c == '\\';
+    }
+    out
+}
+
+/// The patterns (the phrase shown to the person is the match itself).
 static PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     [
         r"ignore\s+(?:all\s+|any\s+|the\s+)?(?:previous|prior|above|earlier)\s+(?:instructions?|rules?|prompts?)",
@@ -26,7 +42,7 @@ static PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     ]
     .iter()
     .map(|p| {
-        RegexBuilder::new(p).case_insensitive(true).build().expect("an injection pattern written in the code compiles")
+        RegexBuilder::new(&python_i(p)).case_insensitive(true).build().expect("an injection pattern written in the code compiles")
     })
     .collect()
 });

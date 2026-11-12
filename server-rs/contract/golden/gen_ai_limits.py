@@ -140,14 +140,19 @@ out["consts"] = {"LOCAL": quota.LOCAL, "DEFAULT_PARALLEL": quota.DEFAULT_PARALLE
 REAL = datetime
 
 
-class Fake(REAL):
-    frozen = None  # an aware UTC datetime
+class Fake:
+    """`budget.datetime` with the clock frozen; every value it makes is a real `datetime`, so the arithmetic is
+    Python's own."""
 
-    @classmethod
-    def now(cls, tz=None):
+    frozen = None  # an aware UTC datetime
+    combine = staticmethod(REAL.combine)
+    fromisoformat = staticmethod(REAL.fromisoformat)
+
+    @staticmethod
+    def now(tz=None):
         if tz is None:
-            return cls.fromtimestamp(cls.frozen.timestamp())  # naive, local
-        return cls.frozen.astimezone(tz)
+            return REAL.fromtimestamp(Fake.frozen.timestamp())  # naive, local
+        return Fake.frozen.astimezone(tz)
 
 
 budget.datetime = Fake
@@ -155,7 +160,7 @@ budget.datetime = Fake
 ZONES = [
     "UTC", "Asia/Ho_Chi_Minh", "America/New_York", "Europe/London", "Europe/Berlin", "Australia/Lord_Howe", "America/Sao_Paulo",
     "Asia/Kolkata", "Pacific/Auckland", "Pacific/Kiritimati", "America/St_Johns", "Pacific/Apia", "America/Havana", "Asia/Tehran",
-    "Africa/Cairo", "America/Los_Angeles", "Asia/Kathmandu", "Africa/Casablanca", "America/Santiago", "Asia/Beirut",
+    "Africa/Cairo", "America/Los_Angeles", "Asia/Kathmandu", "Europe/Moscow", "America/Santiago", "Asia/Beirut",
 ]
 INSTANTS = [
     "2026-01-01T00:00:00+00:00", "2026-01-01T12:30:15.123456+00:00", "2026-03-08T06:59:59+00:00", "2026-03-08T07:00:00+00:00",

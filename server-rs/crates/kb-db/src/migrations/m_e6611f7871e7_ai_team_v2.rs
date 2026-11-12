@@ -93,14 +93,7 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
         )
         .await?;
     }
-    ops::add_missing_columns(
-        conn,
-        "ai_project_settings",
-        &[
-            ("ops", "VARCHAR DEFAULT '{}' NOT NULL"),
-        ],
-    )
-    .await?;
+    ops::add_missing_columns(conn, "ai_project_settings", &[("ops", "VARCHAR DEFAULT '{}' NOT NULL")]).await?;
     if !ops::has_table(conn, "ai_ticket_flag").await? {
         ops::exec(
             conn,
@@ -282,7 +275,8 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
         )
         .await?;
     }
-    ops::create_index_if_missing(conn, "ix_ai_workflow_template_project_id", "ai_workflow_template", &["project_id"]).await?;
+    ops::create_index_if_missing(conn, "ix_ai_workflow_template_project_id", "ai_workflow_template", &["project_id"])
+        .await?;
     ops::create_index_if_missing(conn, "ix_ai_workflow_template_key", "ai_workflow_template", &["key"]).await?;
     if !ops::has_table(conn, "ai_ticket_workflow").await? {
         ops::exec(
@@ -314,7 +308,8 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
         )
         .await?;
     }
-    ops::create_index_if_missing(conn, "ix_ai_ticket_workflow_project_id", "ai_ticket_workflow", &["project_id"]).await?;
+    ops::create_index_if_missing(conn, "ix_ai_ticket_workflow_project_id", "ai_ticket_workflow", &["project_id"])
+        .await?;
     ops::create_index_if_missing(conn, "ix_ai_ticket_workflow_state", "ai_ticket_workflow", &["state"]).await?;
     if !ops::has_table(conn, "ai_ticket_step").await? {
         ops::exec(

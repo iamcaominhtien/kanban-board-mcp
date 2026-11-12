@@ -9,11 +9,11 @@
 //! moment): the plain one is that form with `Local` and now. The golden vectors and the tests of day boundaries
 //! use the `_in` forms.
 
-use chrono::{DateTime, Datelike, Days, FixedOffset, Local, NaiveDate, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, Datelike, Days, FixedOffset, Local, NaiveDate, NaiveDateTime, Offset, TimeZone, Utc};
 use kb_base::time;
 use kb_db::Session;
 use kb_db::entities::{ai_project_settings, ai_run, ai_team, ai_usage};
-use kb_db::sea_orm::sea_query::{Expr, Func, SimpleExpr};
+use kb_db::sea_orm::sea_query::{Expr, ExprTrait, Func, SimpleExpr};
 use kb_db::sea_orm::{ColumnTrait, Condition, DbErr, EntityTrait, QueryFilter, QuerySelect};
 use serde_json::{Map, Value, json};
 
@@ -81,7 +81,7 @@ pub fn local_day_in<Z: TimeZone>(tz: &Z, iso: Option<&str>) -> Option<String> {
 /// A naive local time as an instant, the way `datetime.astimezone()` reads a naive datetime (fold 0): a time that
 /// occurs twice is the first one; a time that does not exist (the clock skipped it) is read with the offset in force
 /// before the skip.
-fn local_naive_to_utc<Z: TimeZone>(tz: &Z, naive: NaiveDateTime) -> DateTime<Utc> {
+pub(crate) fn local_naive_to_utc<Z: TimeZone>(tz: &Z, naive: NaiveDateTime) -> DateTime<Utc> {
     match tz.from_local_datetime(&naive) {
         chrono::LocalResult::Single(dt) => dt.with_timezone(&Utc),
         chrono::LocalResult::Ambiguous(first, _) => first.with_timezone(&Utc),
@@ -120,14 +120,19 @@ fn iso(dt: &DateTime<Utc>) -> String {
 }
 
 /// `COALESCE(SUM(col), 0)`.
-fn sum_or_zero(column: impl ColumnTrait, zero: impl Into<sea_orm_value::Value>) -> SimpleExpr {
-    Func::coalesce([Func::sum(Expr::col(column)).into(), Expr::val(zero).into()]).into()
+fn sum_or_zero(column: impl ColumnTrait, zero: f64) -> SimpleExpr {
+    let sum: Expr = Func::sum(Expr::col(column)).into();
+    let zero: Expr = Expr::val(zero);
+    Func::coalesce([sum, zero]).into()
 }
 
-use kb_db::sea_orm::sea_query as sea_orm_value;
-
-async fn float_sum<E: EntityTrait>(session: &Session, select: kb_db::sea_orm::Select<E>, expr: SimpleExpr) -> Result<f64, DbErr> {
-    let value: Option<f64> = select.select_only().expr_as(expr, "total").into_tuple::<Option<f64>>().one(session).await?.flatten();
+async fn float_sum<E: EntityTrait>(
+    session: &Session,
+    select: kb_db::sea_orm::Select<E>,
+    expr: SimpleExpr,
+) -> Result<f64, DbErr> {
+    let value: Option<f64> =
+        select.select_only().expr_as(expr, "total").into_tuple::<Option<f64>>().one(session).await?.flatten();
     Ok(value.unwrap_or(0.0))
 }
 
@@ -143,7 +148,9 @@ pub async fn spent(
 ) -> Result<f64, DbErr> {
     let member_id = member_id.filter(|m| !m.is_empty());
     let project_id = project_id.filter(|p| !p.is_empty());
-    let mut stmt = ai_run::Entity::find().filter(ai_run::Column::Metered.eq(true)).filter(ai_run::Column::StartedAt.gte(iso(&since)));
+    let mut stmt = ai_run::Entity::find()
+        .filter(ai_run::Column::Metered.eq(true))
+        .filter(ai_run::Column::StartedAt.gte(iso(&since)));
     if let Some(until) = until {
         stmt = stmt.filter(ai_run::Column::StartedAt.lt(iso(&until)));
     }
@@ -207,24 +214,20 @@ pub async fn tokens_since(
     member_id: Option<&str>,
     project_id: Option<&str>,
 ) -> Result<i64, DbErr> {
-    let mut stmt = ai_run::Entity::find().filter(ai_run::Column::Metered.eq(true)).filter(ai_run::Column::StartedAt.gte(iso(&since)));
+    let mut stmt = ai_run::Entity::find()
+        .filter(ai_run::Column::Metered.eq(true))
+        .filter(ai_run::Column::StartedAt.gte(iso(&since)));
     if let Some(member_id) = member_id.filter(|m| !m.is_empty()) {
         stmt = stmt.filter(ai_run::Column::MemberId.eq(member_id));
     }
     if let Some(project_id) = project_id.filter(|p| !p.is_empty()) {
         stmt = stmt.filter(ai_run::Column::ProjectId.eq(project_id));
     }
-    let sum = Func::coalesce([
-        Func::sum(Expr::col(ai_run::Column::TokensIn).add(Expr::col(ai_run::Column::TokensOut))).into(),
-        Expr::val(0).into(),
-    ]);
-    let value: Option<i64> = stmt
-        .select_only()
-        .expr_as(sum, "total")
-        .into_tuple::<Option<i64>>()
-        .one(session)
-        .await?
-        .flatten();
+    let tokens: Expr = Expr::col(ai_run::Column::TokensIn).add(Expr::col(ai_run::Column::TokensOut));
+    let total: Expr = Func::sum(tokens).into();
+    let sum = Func::coalesce([total, Expr::val(0)]);
+    let value: Option<i64> =
+        stmt.select_only().expr_as(sum, "total").into_tuple::<Option<i64>>().one(session).await?.flatten();
     Ok(value.unwrap_or(0))
 }
 
@@ -256,7 +259,11 @@ pub async fn runs_today_since(
     let scheduled = ai_run::Column::Trigger.eq("schedule");
     // a run another AI, a Docs page or GitHub started: nobody sat there either
     let chained = ai_run::Column::Trigger.is_in(["message", "ai_message", "docs_threads", "ci_red", "review_comments"]);
-    stmt = if kinds == ["schedule"] { stmt.filter(scheduled) } else { stmt.filter(Condition::any().add(scheduled).add(chained)) };
+    stmt = if kinds == ["schedule"] {
+        stmt.filter(scheduled)
+    } else {
+        stmt.filter(Condition::any().add(scheduled).add(chained))
+    };
     if let Some(member_id) = member_id.filter(|m| !m.is_empty()) {
         stmt = stmt.filter(ai_run::Column::MemberId.eq(member_id));
     }
@@ -295,7 +302,9 @@ pub async fn blocked_detail(
             if n >= i64::from(board_runs) {
                 return Ok(Some(hit(
                     "Runs per day used up",
-                    format!("Board scheduled and AI-started runs per day used up ({n} of {board_runs}); resets at 00:00"),
+                    format!(
+                        "Board scheduled and AI-started runs per day used up ({n} of {board_runs}); resets at 00:00"
+                    ),
                     "board",
                     "runs",
                 )));

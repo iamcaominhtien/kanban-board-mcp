@@ -34,6 +34,7 @@ pub const PRICES: [(&str, (f64, f64)); 6] = [
     ("haiku", (1.0, 5.0)),
     ("opus", (5.0, 25.0)),
 ];
+/// When the sample prices were last looked at.
 pub const PRICES_UPDATED: &str = "2026-10-01";
 
 /// Sample price of a model (longest matching prefix), dollars per million tokens in and out.
@@ -41,7 +42,8 @@ pub fn price_for(model: Option<&str>) -> (f64, f64) {
     let name = model.unwrap_or("").to_lowercase();
     let mut best: Option<(&str, (f64, f64))> = None;
     for (key, price) in PRICES {
-        if (name.starts_with(key) || name.contains(key)) && best.is_none_or(|(b, _)| key.chars().count() > b.chars().count())
+        if (name.starts_with(key) || name.contains(key))
+            && best.is_none_or(|(b, _)| key.chars().count() > b.chars().count())
         {
             best = Some((key, price));
         }

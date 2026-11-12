@@ -22,21 +22,23 @@ use std::sync::{LazyLock, Mutex, MutexGuard, RwLock};
 use chrono::{DateTime, Duration, Utc};
 use kb_base::secrets::redact;
 use kb_base::{pyjson, time};
+use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{ai_run, ai_run_transcript, ai_skill_use};
 use kb_db::sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter, Value as SqlValue,
 };
 use kb_db::sql::statement;
-use kb_db::Session;
 use serde_json::{Map, Value, json};
 
 /// Characters of one string inside one event.
 pub const MAX_TEXT: usize = 64_000;
 /// Characters of a run's search document.
 pub const MAX_INDEX: usize = 200_000;
+/// The tools whose calls start a subagent.
 pub const SUBAGENT_TOOLS: [&str; 2] = ["Task", "Agent"];
 
+/// The statement that makes the search table of the transcripts.
 pub const CREATE_FTS: &str = "CREATE VIRTUAL TABLE IF NOT EXISTS ai_run_fts USING fts5(\
 run_id UNINDEXED, project_id UNINDEXED, body, tokenize = 'unicode61 remove_diacritics 2')";
 
@@ -59,7 +61,8 @@ pub fn set_root(path: Option<&Path>) {
 /// Where transcripts live: `KANBAN_AI_RUNS_DIR`, else `ai-runs` beside the database.
 pub fn root() -> std::io::Result<PathBuf> {
     let set = ROOT_OVERRIDE.read().unwrap_or_else(|e| e.into_inner()).clone();
-    let configured = set.or_else(|| std::env::var("KANBAN_AI_RUNS_DIR").ok().filter(|v| !v.is_empty()).map(PathBuf::from));
+    let configured =
+        set.or_else(|| std::env::var("KANBAN_AI_RUNS_DIR").ok().filter(|v| !v.is_empty()).map(PathBuf::from));
     let base = match configured {
         Some(base) => base,
         None => database::get_db_path().parent().map(Path::to_path_buf).unwrap_or_default().join("ai-runs"),
@@ -92,7 +95,7 @@ fn thousands(n: usize) -> String {
     let digits = n.to_string();
     let mut out = String::new();
     for (i, c) in digits.chars().enumerate() {
-        if i > 0 && (digits.len() - i) % 3 == 0 {
+        if i > 0 && (digits.len() - i).is_multiple_of(3) {
             out.push(',');
         }
         out.push(c);
@@ -129,7 +132,11 @@ struct Open {
 
 impl Open {
     fn new(path: &Path) -> std::io::Result<Self> {
-        Ok(Self { file: std::fs::OpenOptions::new().append(true).create(true).open(path)?, events: 0, skills: Vec::new() })
+        Ok(Self {
+            file: std::fs::OpenOptions::new().append(true).create(true).open(path)?,
+            events: 0,
+            skills: Vec::new(),
+        })
     }
 
     fn write(&mut self, record: &Value) -> std::io::Result<()> {
@@ -145,6 +152,16 @@ static OPEN: LazyLock<Mutex<HashMap<String, Open>>> = LazyLock::new(|| Mutex::ne
 
 fn open_map() -> MutexGuard<'static, HashMap<String, Open>> {
     OPEN.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// Forget every transcript held open (the Python tests clear `_OPEN` between tests).
+pub fn clear_open() {
+    open_map().clear();
+}
+
+/// Whether a run's transcript is held open for writing (`run_id in _OPEN`).
+pub fn is_open(run_id: &str) -> bool {
+    open_map().contains_key(run_id)
 }
 
 fn path_for(run_id: &str, started: Option<&str>) -> std::io::Result<PathBuf> {
@@ -206,14 +223,23 @@ pub fn safe_args(args: &[String]) -> Vec<String> {
 /// What `begin` records (the keyword arguments of the Python function).
 #[derive(Default)]
 pub struct Begin<'a> {
+    /// The project it belongs to.
     pub project_id: &'a str,
+    /// The AI member (team) it is about.
     pub member_id: &'a str,
+    /// The system prompt the board sent.
     pub system: Option<&'a str>,
+    /// The prompt the board sent.
     pub prompt: Option<&'a str>,
+    /// The CLI's command line.
     pub args: &'a [String],
+    /// The CLI starts again with its conversation.
     pub resume: bool,
+    /// The CLI session the run resumes.
     pub session_id: Option<&'a str>,
+    /// A note the board gave the CLI.
     pub note: Option<&'a str>,
+    /// When the run started (ISO time).
     pub started_at: Option<&'a str>,
 }
 
@@ -238,13 +264,17 @@ pub async fn begin(run_id: &str, b: Begin<'_>) -> Result<(), DbErr> {
                 row.project_id = kb_db::sea_orm::ActiveValue::Set(b.project_id.to_string());
                 row.member_id = kb_db::sea_orm::ActiveValue::Set(Some(b.member_id.to_string()));
                 row.path = kb_db::sea_orm::ActiveValue::Set(path.to_string_lossy().into_owned());
-                row.started_at = kb_db::sea_orm::ActiveValue::Set(b.started_at.filter(|s| !s.is_empty()).map_or_else(now, str::to_string));
+                row.started_at = kb_db::sea_orm::ActiveValue::Set(
+                    b.started_at.filter(|s| !s.is_empty()).map_or_else(now, str::to_string),
+                );
                 let row = row.insert(&session).await?;
                 session.commit().await?;
                 row
             }
         };
-        if row.ended_at.as_ref().is_some_and(|e| !e.is_empty()) || existing(Path::new(&row.path)).extension().is_some_and(|e| e == "gz") {
+        if row.ended_at.as_ref().is_some_and(|e| !e.is_empty())
+            || existing(Path::new(&row.path)).extension().is_some_and(|e| e == "gz")
+        {
             // an ended run is never reopened (a retry is a new run): a late start for it, after a cancel, must not
             // reopen the finished, compressed and indexed transcript
             return Ok(());
@@ -364,7 +394,9 @@ pub fn read_lines(path: &Path) -> Vec<Value> {
     let path = existing(path);
     let text = if path.extension().is_some_and(|e| e == "gz") {
         let mut text = String::new();
-        let ok = std::fs::File::open(&path).and_then(|f| flate2::read::MultiGzDecoder::new(f).read_to_string(&mut text)).is_ok();
+        let ok = std::fs::File::open(&path)
+            .and_then(|f| flate2::read::MultiGzDecoder::new(f).read_to_string(&mut text))
+            .is_ok();
         if !ok {
             return Vec::new();
         }
@@ -413,7 +445,9 @@ pub fn index_text(records: &[Value], run: Option<&ai_run::Model>) -> String {
                 _ => {}
             }
         }
-        if let Ok(Value::Array(files)) = serde_json::from_str::<Value>(if run.files.is_empty() { "[]" } else { &run.files }) {
+        if let Ok(Value::Array(files)) =
+            serde_json::from_str::<Value>(if run.files.is_empty() { "[]" } else { &run.files })
+        {
             for f in files {
                 if let Some(path) = f.as_object() {
                     parts.push(path.get("path").map(pyjson::py_str).unwrap_or_default());
@@ -495,7 +529,11 @@ pub async fn index(session: &Session, run: &ai_run::Model, records: &[Value]) ->
         .execute_raw(statement(
             backend,
             "INSERT INTO ai_run_fts (run_id, project_id, body) VALUES (?, ?, ?)",
-            [SqlValue::from(run.id.as_str()), SqlValue::from(run.project_id.as_str()), SqlValue::from(index_text(records, Some(run)))],
+            [
+                SqlValue::from(run.id.as_str()),
+                SqlValue::from(run.project_id.as_str()),
+                SqlValue::from(index_text(records, Some(run))),
+            ],
         ))
         .await?;
     Ok(())
@@ -511,7 +549,10 @@ pub async fn finish(run_id: &str) {
     }
 }
 
-async fn finish_inner(run_id: &str, skills: Vec<(String, String)>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn finish_inner(
+    run_id: &str,
+    skills: Vec<(String, String)>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let session = database::session();
     let row = ai_run_transcript::Entity::find_by_id(run_id).one(&session).await?;
     let run = ai_run::Entity::find_by_id(run_id).one(&session).await?;
@@ -597,7 +638,8 @@ pub async fn prune(retention_days: i64, now_at: Option<DateTime<Utc>>) -> Result
 /// How much space transcripts take: `{bytes, runs, pinned}`.
 pub async fn usage() -> Result<Map<String, Value>, DbErr> {
     let session = database::session();
-    let rows = ai_run_transcript::Entity::find().filter(ai_run_transcript::Column::DeletedAt.is_null()).all(&session).await?;
+    let rows =
+        ai_run_transcript::Entity::find().filter(ai_run_transcript::Column::DeletedAt.is_null()).all(&session).await?;
     let mut out = Map::new();
     out.insert("bytes".into(), json!(rows.iter().map(|r| i64::from(r.bytes)).sum::<i64>()));
     out.insert("runs".into(), json!(rows.len()));
@@ -639,7 +681,12 @@ pub fn fts_query(q: &str) -> Option<String> {
 
 /// Run ids that match `q`, best first; None when the index cannot be used (the caller falls back). With `project_id` only
 /// that project's runs count, inside the query (the cap would otherwise go to other projects).
-pub async fn search_ids(session: &Session, q: &str, limit: i64, project_id: Option<&str>) -> Result<Option<Vec<String>>, DbErr> {
+pub async fn search_ids(
+    session: &Session,
+    q: &str,
+    limit: i64,
+    project_id: Option<&str>,
+) -> Result<Option<Vec<String>>, DbErr> {
     let Some(query) = fts_query(q) else { return Ok(Some(Vec::new())) };
     if !fts_ready(session).await {
         return Ok(None);

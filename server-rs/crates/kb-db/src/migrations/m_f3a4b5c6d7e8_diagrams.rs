@@ -9,7 +9,9 @@ use super::ops::{self, StepResult};
 /// `upgrade()` of revision `f3a4b5c6d7e8`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
     ops::exec(conn, r"ALTER TABLE docs_version ADD COLUMN diagram_versions VARCHAR DEFAULT '{}' NOT NULL").await?;
-    ops::exec(conn, r"CREATE TABLE diagram (
+    ops::exec(
+        conn,
+        r"CREATE TABLE diagram (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	label VARCHAR DEFAULT 'Diagram' NOT NULL, 
@@ -25,10 +27,14 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	deleted_by VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_diagram_project_id ON diagram (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_diagram_item_id ON diagram (item_id)").await?;
-    ops::exec(conn, r"CREATE TABLE diagram_version (
+    ops::exec(
+        conn,
+        r"CREATE TABLE diagram_version (
 	id VARCHAR NOT NULL, 
 	diagram_id VARCHAR NOT NULL, 
 	version INTEGER NOT NULL, 
@@ -39,13 +45,19 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	created_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(diagram_id) REFERENCES diagram (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_diagram_version_diagram_id ON diagram_version (diagram_id)").await?;
-    ops::exec(conn, r"CREATE TABLE diagram_settings (
+    ops::exec(
+        conn,
+        r"CREATE TABLE diagram_settings (
 	id INTEGER NOT NULL, 
 	mode VARCHAR DEFAULT 'self-hosted' NOT NULL, 
 	url VARCHAR DEFAULT '' NOT NULL, 
 	PRIMARY KEY (id)
-)").await?;
+)",
+    )
+    .await?;
     Ok(())
 }

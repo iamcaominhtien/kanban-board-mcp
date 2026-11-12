@@ -8,7 +8,9 @@ use super::ops::{self, StepResult};
 
 /// `upgrade()` of revision `c3d4e5f6a7b8`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    ops::exec(conn, r"CREATE TABLE member (
+    ops::exec(
+        conn,
+        r"CREATE TABLE member (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	name VARCHAR NOT NULL, 
@@ -16,7 +18,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	created_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     // batch_alter_table("ticket"): Alembic rebuilt the table to add the two columns and their named links to
     // member; a column added with its link written on it gives the same table
     ops::exec(

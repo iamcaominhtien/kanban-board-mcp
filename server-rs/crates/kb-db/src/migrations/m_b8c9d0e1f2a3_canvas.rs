@@ -8,7 +8,9 @@ use super::ops::{self, StepResult};
 
 /// `upgrade()` of revision `b8c9d0e1f2a3`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    ops::exec(conn, r"CREATE TABLE canvas (
+    ops::exec(
+        conn,
+        r"CREATE TABLE canvas (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR, 
 	owner_kind VARCHAR DEFAULT 'doc' NOT NULL, 
@@ -27,11 +29,15 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	deleted_by VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_canvas_project_id ON canvas (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_canvas_owner_id ON canvas (owner_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_canvas_page_id ON canvas (page_id)").await?;
-    ops::exec(conn, r"CREATE TABLE canvas_version (
+    ops::exec(
+        conn,
+        r"CREATE TABLE canvas_version (
 	id VARCHAR NOT NULL, 
 	canvas_id VARCHAR NOT NULL, 
 	version INTEGER NOT NULL, 
@@ -45,10 +51,14 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	created_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(canvas_id) REFERENCES canvas (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_canvas_version_canvas_id ON canvas_version (canvas_id)").await?;
     ops::exec(conn, r"CREATE UNIQUE INDEX uq_canvas_version ON canvas_version (canvas_id, version)").await?;
-    ops::exec(conn, r"CREATE TABLE canvas_thread (
+    ops::exec(
+        conn,
+        r"CREATE TABLE canvas_thread (
 	id VARCHAR NOT NULL, 
 	canvas_id VARCHAR NOT NULL, 
 	number INTEGER DEFAULT '1' NOT NULL, 
@@ -63,9 +73,13 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	resolved_at VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(canvas_id) REFERENCES canvas (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_canvas_thread_canvas_id ON canvas_thread (canvas_id)").await?;
-    ops::exec(conn, r"CREATE TABLE canvas_comment (
+    ops::exec(
+        conn,
+        r"CREATE TABLE canvas_comment (
 	id VARCHAR NOT NULL, 
 	thread_id VARCHAR NOT NULL, 
 	author VARCHAR NOT NULL, 
@@ -76,9 +90,13 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	edited_at VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(thread_id) REFERENCES canvas_thread (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_canvas_comment_thread_id ON canvas_comment (thread_id)").await?;
-    ops::exec(conn, r"CREATE TABLE canvas_proposal (
+    ops::exec(
+        conn,
+        r"CREATE TABLE canvas_proposal (
 	id VARCHAR NOT NULL, 
 	canvas_id VARCHAR NOT NULL, 
 	author VARCHAR NOT NULL, 
@@ -94,7 +112,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	decided_at VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(canvas_id) REFERENCES canvas (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_canvas_proposal_canvas_id ON canvas_proposal (canvas_id)").await?;
     ops::exec(conn, r"ALTER TABLE docs_page ADD COLUMN kind VARCHAR DEFAULT 'page' NOT NULL").await?;
     Ok(())

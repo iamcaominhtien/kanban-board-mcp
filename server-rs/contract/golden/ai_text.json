@@ -166,6 +166,231 @@
    "offset": 0
   },
   {
+   "in": "2026-11-11T14:30:43.",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:30:43.x",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:30:43X+00:00",
+   "out": "2026-11-11T14:30:43+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-11-11T14:3043",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T1430",
+   "out": "2026-11-11T14:30:00+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-11-11T143043",
+   "out": "2026-11-11T14:30:43+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-11-11T14:30:43+00:00:00:00",
+   "out": "2026-11-11T14:30:43+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-11-11T14:30:43+00:00.5",
+   "out": "2026-11-11T14:30:43+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-11-11T14:30:43+00:00:00.123456",
+   "out": "2026-11-11T14:30:43+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-W01-1",
+   "out": "2025-12-29T00:00:00+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026W011",
+   "out": "2025-12-29T00:00:00+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-W53-7",
+   "out": "2027-01-03T00:00:00+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-W54-1",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-W00-1",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026W01",
+   "out": "2025-12-29T00:00:00+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-W01-8",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-W01-1T10:00",
+   "out": "2025-12-29T10:00:00+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-W01T10:00",
+   "out": "2025-12-29T10:00:00+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026W01-1",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:30:43-24:00",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:30:43+23:59",
+   "out": "2026-11-10T14:31:43+00:00",
+   "offset": 86340
+  },
+  {
+   "in": "2026-11-11T14:30:43+0000",
+   "out": "2026-11-11T14:30:43+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-11-11T14:30:43-00:00",
+   "out": "2026-11-11T14:30:43+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-11-11T14:30:43ZZ",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:30:43Z ",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11é14:30",
+   "out": "2026-11-11T14:30:00+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-11-11\n14:30",
+   "out": "2026-11-11T14:30:00+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-1111",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-1",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "1",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:30:43.123456789012",
+   "out": "2026-11-11T14:30:43.123456+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2026-11-11T14:30:43.12345x",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:30:43.1234567x",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T24:00:00",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:60:00",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:30:60",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "0000-01-01",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2024-02-29T12:00:00+00:00",
+   "out": "2024-02-29T12:00:00+00:00",
+   "offset": 0
+  },
+  {
+   "in": "2023-02-29",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:30:43+07:00Z",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:30:43Z+07:00",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:30:43+7",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:30:43+070",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:30:43+07:0",
+   "out": null,
+   "offset": null
+  },
+  {
+   "in": "2026-11-11T14:30:43+07:00:0",
+   "out": null,
+   "offset": null
+  },
+  {
    "in": "2026-11-11t14:30:43",
    "out": "2026-11-11T14:30:43+00:00",
    "offset": 0
@@ -3360,19 +3585,19 @@
   },
   {
    "worktree": "feature",
-   "command": "rm -r /tmp/gen-ai-text-v5091s6l/wt/sub",
+   "command": "rm -r {W}/wt/sub",
    "stdout": "",
    "code": 0
   },
   {
    "worktree": "feature",
-   "command": "rm -r /tmp/gen-ai-text-v5091s6l/wt",
+   "command": "rm -r {W}/wt",
    "stdout": "",
    "code": 0
   },
   {
    "worktree": "feature",
-   "command": "rm -rf /tmp/gen-ai-text-v5091s6l/wt/../other",
+   "command": "rm -rf {W}/wt/../other",
    "stdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Refused by the board: rm -r of {W}/wt/../other, which leaves the run's folder. Work inside the ticket's folder and leave the main branch's history alone.\"}}\n",
    "code": 0
   },
@@ -3816,19 +4041,19 @@
   },
   {
    "worktree": "main",
-   "command": "rm -r /tmp/gen-ai-text-v5091s6l/wt/sub",
+   "command": "rm -r {W}/wt/sub",
    "stdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Refused by the board: rm -r of {W}/wt/sub, which is outside the run's folder. Work inside the ticket's folder and leave the main branch's history alone.\"}}\n",
    "code": 0
   },
   {
    "worktree": "main",
-   "command": "rm -r /tmp/gen-ai-text-v5091s6l/wt",
+   "command": "rm -r {W}/wt",
    "stdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Refused by the board: rm -r of {W}/wt, which is outside the run's folder. Work inside the ticket's folder and leave the main branch's history alone.\"}}\n",
    "code": 0
   },
   {
    "worktree": "main",
-   "command": "rm -rf /tmp/gen-ai-text-v5091s6l/wt/../other",
+   "command": "rm -rf {W}/wt/../other",
    "stdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Refused by the board: rm -r of {W}/wt/../other, which leaves the run's folder. Work inside the ticket's folder and leave the main branch's history alone.\"}}\n",
    "code": 0
   },
@@ -4272,19 +4497,19 @@
   },
   {
    "worktree": "none",
-   "command": "rm -r /tmp/gen-ai-text-v5091s6l/wt/sub",
+   "command": "rm -r {W}/wt/sub",
    "stdout": "",
    "code": 0
   },
   {
    "worktree": "none",
-   "command": "rm -r /tmp/gen-ai-text-v5091s6l/wt",
+   "command": "rm -r {W}/wt",
    "stdout": "",
    "code": 0
   },
   {
    "worktree": "none",
-   "command": "rm -rf /tmp/gen-ai-text-v5091s6l/wt/../other",
+   "command": "rm -rf {W}/wt/../other",
    "stdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Refused by the board: rm -r of {W}/wt/../other, which leaves the run's folder. Work inside the ticket's folder and leave the main branch's history alone.\"}}\n",
    "code": 0
   },
@@ -4728,19 +4953,19 @@
   },
   {
    "worktree": "missing",
-   "command": "rm -r /tmp/gen-ai-text-v5091s6l/wt/sub",
+   "command": "rm -r {W}/wt/sub",
    "stdout": "",
    "code": 0
   },
   {
    "worktree": "missing",
-   "command": "rm -r /tmp/gen-ai-text-v5091s6l/wt",
+   "command": "rm -r {W}/wt",
    "stdout": "",
    "code": 0
   },
   {
    "worktree": "missing",
-   "command": "rm -rf /tmp/gen-ai-text-v5091s6l/wt/../other",
+   "command": "rm -rf {W}/wt/../other",
    "stdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Refused by the board: rm -r of {W}/wt/../other, which leaves the run's folder. Work inside the ticket's folder and leave the main branch's history alone.\"}}\n",
    "code": 0
   },
@@ -7572,5 +7797,405 @@
  "new_token_shape": {
   "prefix": "kbr_",
   "len": 36
+ },
+ "pictures": {
+  "files": {
+   "2026-11/pic.png": "PNG",
+   "2026-11/other.png": "PNG2",
+   "a/b/c.jpg": "JPG",
+   "_private/secret.png": "SECRET",
+   "_PRIVATE/x.png": "X",
+   "UPPER/Pic.PNG": "UP",
+   "dup1/same.png": "ONE",
+   "dup2/same.png": "TWO",
+   "é/ñ.png": "UNI",
+   "x/with space.png": "SP",
+   "x/a(b).png": "PAREN",
+   "x/q'uote.png": "QUOTE"
+  },
+  "dir": "2026-11/dir.png",
+  "cases": [
+   {
+    "text": "",
+    "key": "case0-run_1",
+    "out": "",
+    "folder": false,
+    "folder_name": null,
+    "copied": null,
+    "contents": null
+   },
+   {
+    "text": "no pictures",
+    "key": "case1-run/../x y",
+    "out": "no pictures",
+    "folder": false,
+    "folder_name": null,
+    "copied": null,
+    "contents": null
+   },
+   {
+    "text": "![a](/uploads/2026-11/pic.png)",
+    "key": "case2-kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "out": "![a](/uploads/2026-11/pic.png)\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/2026-11/pic.png → {F}/pic.png",
+    "folder": true,
+    "folder_name": "case2-kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "copied": [
+     "pic.png"
+    ],
+    "contents": {
+     "pic.png": "PNG"
+    }
+   },
+   {
+    "text": "![a](/uploads/2026-11/pic.png) again /uploads/2026-11/pic.png",
+    "key": "case3-é!",
+    "out": "![a](/uploads/2026-11/pic.png) again /uploads/2026-11/pic.png\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/2026-11/pic.png → {F}/pic.png",
+    "folder": true,
+    "folder_name": "case3-__",
+    "copied": [
+     "pic.png"
+    ],
+    "contents": {
+     "pic.png": "PNG"
+    }
+   },
+   {
+    "text": "/uploads/2026-11/pic.png and /uploads/2026-11/other.png",
+    "key": "case4-",
+    "out": "/uploads/2026-11/pic.png and /uploads/2026-11/other.png\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/2026-11/pic.png → {F}/pic.png\n- /uploads/2026-11/other.png → {F}/other.png",
+    "folder": true,
+    "folder_name": "case4-",
+    "copied": [
+     "other.png",
+     "pic.png"
+    ],
+    "contents": {
+     "other.png": "PNG2",
+     "pic.png": "PNG"
+    }
+   },
+   {
+    "text": "/uploads/_private/secret.png",
+    "key": "case5-a-b_C9",
+    "out": "/uploads/_private/secret.png",
+    "folder": false,
+    "folder_name": null,
+    "copied": null,
+    "contents": null
+   },
+   {
+    "text": "/uploads/_PRIVATE/x.png",
+    "key": "case6-run_1",
+    "out": "/uploads/_PRIVATE/x.png",
+    "folder": false,
+    "folder_name": null,
+    "copied": null,
+    "contents": null
+   },
+   {
+    "text": "/uploads/UPPER/Pic.PNG",
+    "key": "case7-run/../x y",
+    "out": "/uploads/UPPER/Pic.PNG\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/UPPER/Pic.PNG → {F}/Pic.PNG",
+    "folder": true,
+    "folder_name": "case7-run____x_y",
+    "copied": [
+     "Pic.PNG"
+    ],
+    "contents": {
+     "Pic.PNG": "UP"
+    }
+   },
+   {
+    "text": "/uploads/dup1/same.png /uploads/dup2/same.png",
+    "key": "case8-kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "out": "/uploads/dup1/same.png /uploads/dup2/same.png\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/dup1/same.png → {F}/same.png\n- /uploads/dup2/same.png → {F}/same.png",
+    "folder": true,
+    "folder_name": "case8-kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "copied": [
+     "same.png"
+    ],
+    "contents": {
+     "same.png": "ONE"
+    }
+   },
+   {
+    "text": "/uploads/../etc/passwd",
+    "key": "case9-é!",
+    "out": "/uploads/../etc/passwd",
+    "folder": false,
+    "folder_name": null,
+    "copied": null,
+    "contents": null
+   },
+   {
+    "text": "/uploads/2026-11/missing.png",
+    "key": "case10-",
+    "out": "/uploads/2026-11/missing.png",
+    "folder": false,
+    "folder_name": null,
+    "copied": null,
+    "contents": null
+   },
+   {
+    "text": "/uploads/2026-11/dir.png",
+    "key": "case11-a-b_C9",
+    "out": "/uploads/2026-11/dir.png",
+    "folder": false,
+    "folder_name": null,
+    "copied": null,
+    "contents": null
+   },
+   {
+    "text": "/uploads/a/b/c.jpg)",
+    "key": "case12-run_1",
+    "out": "/uploads/a/b/c.jpg)\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/a/b/c.jpg → {F}/c.jpg",
+    "folder": true,
+    "folder_name": "case12-run_1",
+    "copied": [
+     "c.jpg"
+    ],
+    "contents": {
+     "c.jpg": "JPG"
+    }
+   },
+   {
+    "text": "/uploads/a/b/c.jpg\\x",
+    "key": "case13-run/../x y",
+    "out": "/uploads/a/b/c.jpg\\x\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/a/b/c.jpg → {F}/c.jpg",
+    "folder": true,
+    "folder_name": "case13-run____x_y",
+    "copied": [
+     "c.jpg"
+    ],
+    "contents": {
+     "c.jpg": "JPG"
+    }
+   },
+   {
+    "text": "/uploads/a/b/c.jpg?x=1",
+    "key": "case14-kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "out": "/uploads/a/b/c.jpg?x=1\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/a/b/c.jpg → {F}/c.jpg",
+    "folder": true,
+    "folder_name": "case14-kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "copied": [
+     "c.jpg"
+    ],
+    "contents": {
+     "c.jpg": "JPG"
+    }
+   },
+   {
+    "text": "/uploads/a/b/c.jpg#frag",
+    "key": "case15-é!",
+    "out": "/uploads/a/b/c.jpg#frag\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/a/b/c.jpg → {F}/c.jpg",
+    "folder": true,
+    "folder_name": "case15-__",
+    "copied": [
+     "c.jpg"
+    ],
+    "contents": {
+     "c.jpg": "JPG"
+    }
+   },
+   {
+    "text": "/uploads/é/ñ.png",
+    "key": "case16-",
+    "out": "/uploads/é/ñ.png\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/é/ñ.png → {F}/ñ.png",
+    "folder": true,
+    "folder_name": "case16-",
+    "copied": [
+     "ñ.png"
+    ],
+    "contents": {
+     "ñ.png": "UNI"
+    }
+   },
+   {
+    "text": "/uploads/x/with space.png",
+    "key": "case17-a-b_C9",
+    "out": "/uploads/x/with space.png",
+    "folder": false,
+    "folder_name": null,
+    "copied": null,
+    "contents": null
+   },
+   {
+    "text": "/uploads/x/a(b).png",
+    "key": "case18-run_1",
+    "out": "/uploads/x/a(b).png",
+    "folder": false,
+    "folder_name": null,
+    "copied": null,
+    "contents": null
+   },
+   {
+    "text": "/uploads/x/q'uote.png",
+    "key": "case19-run/../x y",
+    "out": "/uploads/x/q'uote.png",
+    "folder": false,
+    "folder_name": null,
+    "copied": null,
+    "contents": null
+   },
+   {
+    "text": "<img src=\"/uploads/a/b/c.jpg\">",
+    "key": "case20-kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "out": "<img src=\"/uploads/a/b/c.jpg\">\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/a/b/c.jpg → {F}/c.jpg",
+    "folder": true,
+    "folder_name": "case20-kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "copied": [
+     "c.jpg"
+    ],
+    "contents": {
+     "c.jpg": "JPG"
+    }
+   },
+   {
+    "text": "[x](/uploads/a/b/c.jpg|alt)",
+    "key": "case21-é!",
+    "out": "[x](/uploads/a/b/c.jpg|alt)\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/a/b/c.jpg → {F}/c.jpg",
+    "folder": true,
+    "folder_name": "case21-__",
+    "copied": [
+     "c.jpg"
+    ],
+    "contents": {
+     "c.jpg": "JPG"
+    }
+   },
+   {
+    "text": "/uploads/a/b/c.jpg/",
+    "key": "case22-",
+    "out": "/uploads/a/b/c.jpg/\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/a/b/c.jpg/ → {F}/c.jpg",
+    "folder": true,
+    "folder_name": "case22-",
+    "copied": [
+     "c.jpg"
+    ],
+    "contents": {
+     "c.jpg": "JPG"
+    }
+   },
+   {
+    "text": "/uploads//a/b/c.jpg",
+    "key": "case23-a-b_C9",
+    "out": "/uploads//a/b/c.jpg",
+    "folder": false,
+    "folder_name": null,
+    "copied": null,
+    "contents": null
+   },
+   {
+    "text": "/uploads/./a/b/c.jpg",
+    "key": "case24-run_1",
+    "out": "/uploads/./a/b/c.jpg\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/./a/b/c.jpg → {F}/c.jpg",
+    "folder": true,
+    "folder_name": "case24-run_1",
+    "copied": [
+     "c.jpg"
+    ],
+    "contents": {
+     "c.jpg": "JPG"
+    }
+   },
+   {
+    "text": "/uploads/a/../a/b/c.jpg",
+    "key": "case25-run/../x y",
+    "out": "/uploads/a/../a/b/c.jpg",
+    "folder": false,
+    "folder_name": null,
+    "copied": null,
+    "contents": null
+   },
+   {
+    "text": "text\n/uploads/a/b/c.jpg\nmore",
+    "key": "case26-kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "out": "text\n/uploads/a/b/c.jpg\nmore\n\nPictures and files in the text above, as files on this computer: open each with Read to see it (Read shows images) before you answer about it.\n- /uploads/a/b/c.jpg → {F}/c.jpg",
+    "folder": true,
+    "folder_name": "case26-kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "copied": [
+     "c.jpg"
+    ],
+    "contents": {
+     "c.jpg": "JPG"
+    }
+   },
+   {
+    "text": "/UPLOADS/a/b/c.jpg",
+    "key": "case27-é!",
+    "out": "/UPLOADS/a/b/c.jpg",
+    "folder": false,
+    "folder_name": null,
+    "copied": null,
+    "contents": null
+   }
+  ],
+  "folder_for": [
+   {
+    "key": "run_1",
+    "name": "run_1",
+    "parent": "kanban-ai-pictures"
+   },
+   {
+    "key": "run/../x y",
+    "name": "run____x_y",
+    "parent": "kanban-ai-pictures"
+   },
+   {
+    "key": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "name": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "parent": "kanban-ai-pictures"
+   },
+   {
+    "key": "é!",
+    "name": "__",
+    "parent": "kanban-ai-pictures"
+   },
+   {
+    "key": "",
+    "name": "kanban-ai-pictures",
+    "parent": "tmp"
+   },
+   {
+    "key": "a-b_C9",
+    "name": "a-b_C9",
+    "parent": "kanban-ai-pictures"
+   },
+   {
+    "key": "run 1",
+    "name": "run_1",
+    "parent": "kanban-ai-pictures"
+   },
+   {
+    "key": "a.b",
+    "name": "a_b",
+    "parent": "kanban-ai-pictures"
+   },
+   {
+    "key": "日本語",
+    "name": "___",
+    "parent": "kanban-ai-pictures"
+   },
+   {
+    "key": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "parent": "kanban-ai-pictures"
+   },
+   {
+    "key": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "parent": "kanban-ai-pictures"
+   },
+   {
+    "key": "../..",
+    "name": "_____",
+    "parent": "kanban-ai-pictures"
+   },
+   {
+    "key": "/",
+    "name": "_",
+    "parent": "kanban-ai-pictures"
+   }
+  ]
  }
 }

@@ -18,6 +18,7 @@ use kb_base::{ctx, pyjson, pypath};
 use regex::Regex;
 use serde_json::{Map, Value};
 
+/// The largest settings file read (bytes).
 pub const MAX_FILE: u64 = 1_000_000;
 
 /// The config folder of the AI account a call is made for (None: the login already on this computer). Set with
@@ -62,7 +63,8 @@ fn usable(listed: Option<&Value>) -> Map<String, Value> {
         .collect()
 }
 
-fn same_path(a: &str, b: &str) -> bool {
+/// `_same_path`: two paths are the same place, compared as `normcase(normpath(p.replace("\\", "/")))`.
+pub fn same_path(a: &str, b: &str) -> bool {
     let norm = |p: &str| {
         let n = pypath::normpath(&p.replace('\\', "/"));
         if cfg!(windows) { n.replace('/', "\\").to_lowercase() } else { n }
@@ -78,7 +80,9 @@ fn config_dir() -> String {
 }
 
 fn account_file() -> String {
-    let custom = account_dir().filter(|d| !d.is_empty()).or_else(|| std::env::var("CLAUDE_CONFIG_DIR").ok().filter(|d| !d.is_empty()));
+    let custom = account_dir()
+        .filter(|d| !d.is_empty())
+        .or_else(|| std::env::var("CLAUDE_CONFIG_DIR").ok().filter(|d| !d.is_empty()));
     pypath::join(&custom.unwrap_or_else(|| pypath::expanduser("~")), ".claude.json")
 }
 
@@ -93,7 +97,8 @@ fn substitute(value: &Value, root: &str) -> Value {
 
 static UNSAFE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[^A-Za-z0-9_-]").expect("the name pattern compiles"));
 
-fn clean(text: &str) -> String {
+/// `_clean`: every character that is not a letter, digit, `_` or `-` becomes `_`.
+pub fn clean(text: &str) -> String {
     UNSAFE.replace_all(text, "_").into_owned()
 }
 
@@ -173,7 +178,9 @@ fn plugin_servers_of(root: &str) -> Map<String, Value> {
 pub fn plugin_servers(folder: &str) -> Map<String, Value> {
     let mut out = Map::new();
     for key in enabled_plugins(folder) {
-        let Some(root) = install_path(&key, folder).filter(|r| !r.is_empty() && Path::new(r).is_dir()) else { continue };
+        let Some(root) = install_path(&key, folder).filter(|r| !r.is_empty() && Path::new(r).is_dir()) else {
+            continue;
+        };
         let plugin = clean(key.split('@').next().unwrap_or(""));
         for (name, spec) in plugin_servers_of(&root) {
             out.insert(format!("plugin_{plugin}_{}", clean(&name)), substitute(&spec, &root));
@@ -190,7 +197,8 @@ pub fn folder_servers(folder: Option<&str>) -> Map<String, Value> {
     if let Some(Value::Object(projects)) = account.get("projects") {
         for (key, entry) in projects {
             if let Some(entry) = entry.as_object().filter(|_| same_path(key, folder)) {
-                local = entry.get("mcpServers").filter(|v| pyjson::truthy(v)).cloned().unwrap_or(Value::Object(Map::new()));
+                local =
+                    entry.get("mcpServers").filter(|v| pyjson::truthy(v)).cloned().unwrap_or(Value::Object(Map::new()));
                 break;
             }
         }

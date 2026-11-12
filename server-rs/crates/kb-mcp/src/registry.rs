@@ -34,25 +34,7 @@ pub struct Tool {
 
 /// Tools of the Python server that are not ported yet: they are left out of `tools/list` and a call answers
 /// `Unknown tool`. A task that ports one removes its name here and adds it to the table in `tools/mod.rs`.
-pub const NOT_PORTED_YET: [&str; 16] = [
-    "list_tickets",
-    "get_ticket",
-    "docs_read",
-    "manage_ticket",
-    "ticket_items",
-    "ticket_branches",
-    "docs_write",
-    "ai_schedules",
-    "knowledge",
-    "board_wait",
-    "ai_run",
-    // the Idea Space tools (listed only with KANBAN_MCP_IDEA_TOOLS=1)
-    "list_idea_tickets",
-    "get_idea_ticket",
-    "list_idea_assumptions",
-    "get_idea_activity_trail",
-    "create_idea_ticket",
-];
+pub const NOT_PORTED_YET: [&str; 6] = ["docs_read", "docs_write", "ai_schedules", "knowledge", "board_wait", "ai_run"];
 
 const SNAPSHOT: &str = include_str!("../../../contract/mcp-tools.json");
 const SNAPSHOT_IDEAS: &str = include_str!("../../../contract/mcp-tools-ideas.json");

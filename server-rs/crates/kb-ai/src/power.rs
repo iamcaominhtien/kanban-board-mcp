@@ -2,10 +2,10 @@
 //! machine wakes, asks the board to look at every run it thinks is running: a CLI that did not survive the sleep is ended
 //! the way the board ends one whose process died (the reader sees the end and the retry and watchdog paths take over).
 
+use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::ai_run;
 use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, PaginatorTrait, QueryFilter};
-use kb_db::Session;
 use serde_json::{Map, Value, json};
 
 use crate::seams::{self, BOARD_CLOSED};
@@ -86,7 +86,8 @@ async fn end_orphans(run_ids: &[String]) -> Result<(), DbErr> {
     let runtime = seams::runs_runtime();
     for run_id in run_ids {
         let Some(run) = ai_run::Entity::find_by_id(run_id.as_str()).one(&session).await? else { continue };
-        if !matches!(run.state.as_str(), "starting" | "running") || runtime.as_ref().is_some_and(|r| r.has_task(run_id)) {
+        if !matches!(run.state.as_str(), "starting" | "running") || runtime.as_ref().is_some_and(|r| r.has_task(run_id))
+        {
             continue;
         }
         let mut row = run.into_active_model();

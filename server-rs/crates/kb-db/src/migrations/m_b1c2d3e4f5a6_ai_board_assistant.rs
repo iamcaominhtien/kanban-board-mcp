@@ -8,7 +8,9 @@ use super::ops::{self, StepResult};
 
 /// `upgrade()` of revision `b1c2d3e4f5a6`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    ops::exec(conn, r"CREATE TABLE ai_assist_settings (
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_assist_settings (
 	id INTEGER NOT NULL, 
 	features VARCHAR DEFAULT '{}' NOT NULL, 
 	language VARCHAR DEFAULT 'English (US)' NOT NULL, 
@@ -22,8 +24,12 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	health VARCHAR DEFAULT '{}' NOT NULL, 
 	paused_until VARCHAR, 
 	PRIMARY KEY (id)
-)").await?;
-    ops::exec(conn, r"CREATE TABLE ai_chat (
+)",
+    )
+    .await?;
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_chat (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	owner VARCHAR NOT NULL, 
@@ -39,10 +45,14 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	updated_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_chat_project_id ON ai_chat (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_chat_owner ON ai_chat (owner)").await?;
-    ops::exec(conn, r"CREATE TABLE ai_chat_message (
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_chat_message (
 	id VARCHAR NOT NULL, 
 	chat_id VARCHAR NOT NULL, 
 	role VARCHAR NOT NULL, 
@@ -64,9 +74,13 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	finished_at VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(chat_id) REFERENCES ai_chat (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_chat_message_chat_id ON ai_chat_message (chat_id)").await?;
-    ops::exec(conn, r"CREATE TABLE ai_draft (
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_draft (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	kind VARCHAR NOT NULL, 
@@ -90,10 +104,14 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	applied_by VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_draft_ticket_id ON ai_draft (ticket_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_draft_project_id ON ai_draft (project_id)").await?;
-    ops::exec(conn, r"CREATE TABLE ai_usage (
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_usage (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	feature VARCHAR NOT NULL, 
@@ -106,11 +124,15 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	created_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_usage_feature ON ai_usage (feature)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_usage_created_at ON ai_usage (created_at)").await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_usage_project_id ON ai_usage (project_id)").await?;
-    ops::exec(conn, r#"CREATE TABLE ai_insight (
+    ops::exec(
+        conn,
+        r#"CREATE TABLE ai_insight (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	kind VARCHAR NOT NULL, 
@@ -128,10 +150,14 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	updated_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)"#).await?;
+)"#,
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_insight_project_id ON ai_insight (project_id)").await?;
     ops::exec(conn, r#"CREATE INDEX ix_ai_insight_key ON ai_insight ("key")"#).await?;
-    ops::exec(conn, r"CREATE TABLE ai_digest (
+    ops::exec(
+        conn,
+        r"CREATE TABLE ai_digest (
 	id VARCHAR NOT NULL, 
 	project_id VARCHAR NOT NULL, 
 	day VARCHAR NOT NULL, 
@@ -142,7 +168,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	created_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_ai_digest_project_id ON ai_digest (project_id)").await?;
     Ok(())
 }

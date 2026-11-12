@@ -14,6 +14,10 @@ kb-base = { workspace = true }
 kb-db = { workspace = true }
 kb-board = { workspace = true }
 kb-skills = { workspace = true }
+kb-files = { workspace = true }
+kb-docs = { workspace = true }
+kb-ideas = { workspace = true }
+kb-notify = { workspace = true }
 kb-log = { workspace = true }
 async-trait = { workspace = true }
 axum = { workspace = true }
@@ -25,6 +29,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+sha2 = "0.10"
 
 # the server the tests of this crate start through `testkit`: the MCP routes alone over a temporary database
 [[bin]]

@@ -12,7 +12,9 @@ use crate::database::DatabaseError;
 
 /// `upgrade()` of revision `a1b2c3d4e5f7`.
 pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
-    ops::exec(conn, r"CREATE TABLE notify_event (
+    ops::exec(
+        conn,
+        r"CREATE TABLE notify_event (
 	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
 	project_id VARCHAR, 
 	kind VARCHAR NOT NULL, 
@@ -29,12 +31,16 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	data VARCHAR DEFAULT '{}' NOT NULL, 
 	recipients VARCHAR DEFAULT '[]' NOT NULL, 
 	created_at VARCHAR NOT NULL
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_notify_event_project_id ON notify_event (project_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_notify_event_kind ON notify_event (kind)").await?;
     ops::exec(conn, r"CREATE INDEX ix_notify_event_target_id ON notify_event (target_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_notify_event_created_at ON notify_event (created_at)").await?;
-    ops::exec(conn, r"CREATE TABLE notification (
+    ops::exec(
+        conn,
+        r"CREATE TABLE notification (
 	id VARCHAR NOT NULL, 
 	recipient VARCHAR NOT NULL, 
 	event_id INTEGER NOT NULL, 
@@ -65,7 +71,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	created_at VARCHAR NOT NULL, 
 	updated_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_notification_recipient ON notification (recipient)").await?;
     ops::exec(conn, r"CREATE INDEX ix_notification_event_id ON notification (event_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_notification_last_event_id ON notification (last_event_id)").await?;
@@ -77,7 +85,9 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
     ops::exec(conn, r"CREATE INDEX ix_notification_updated_at ON notification (updated_at)").await?;
     ops::exec(conn, r"CREATE INDEX ix_notification_recipient_open ON notification (recipient, done_at)").await?;
     ops::exec(conn, r"CREATE INDEX ix_notification_open_needs ON notification (needs, done_at)").await?;
-    ops::exec(conn, r"CREATE TABLE notify_follow (
+    ops::exec(
+        conn,
+        r"CREATE TABLE notify_follow (
 	id VARCHAR NOT NULL, 
 	recipient VARCHAR NOT NULL, 
 	scope VARCHAR NOT NULL, 
@@ -88,16 +98,22 @@ pub(super) async fn upgrade<C: ConnectionTrait>(conn: &C) -> StepResult {
 	label VARCHAR DEFAULT '' NOT NULL, 
 	created_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id)
-)").await?;
+)",
+    )
+    .await?;
     ops::exec(conn, r"CREATE INDEX ix_notify_follow_recipient ON notify_follow (recipient)").await?;
     ops::exec(conn, r"CREATE INDEX ix_notify_follow_scope_id ON notify_follow (scope_id)").await?;
     ops::exec(conn, r"CREATE INDEX ix_notify_follow_project_id ON notify_follow (project_id)").await?;
-    ops::exec(conn, r"CREATE TABLE notify_prefs (
+    ops::exec(
+        conn,
+        r"CREATE TABLE notify_prefs (
 	recipient VARCHAR NOT NULL, 
 	prefs VARCHAR DEFAULT '{}' NOT NULL, 
 	updated_at VARCHAR NOT NULL, 
 	PRIMARY KEY (recipient)
-)").await?;
+)",
+    )
+    .await?;
     move_docs_follows(conn).await?;
     carry_safety_desktop_prefs(conn).await?;
     // batch_alter_table: Alembic rebuilt the two tables without the columns; DROP COLUMN leaves the same tables
@@ -197,4 +213,26 @@ async fn carry_safety_desktop_prefs<C: ConnectionTrait>(conn: &C) -> StepResult 
         .await?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn desktop_choices_are_read_as_python_read_them() {
+        let raw = r#"{"approval_requested": {"desktop": false, "email": true}, "budget": {"desktop": "no"},
+            "unknown": {"desktop": true}, "offline": "yes", "question": {"email": true}, "blocked": {"desktop": null}}"#;
+        assert_eq!(
+            safety_desktop_choices(Some(raw)).unwrap(),
+            [("approval", false), ("budget", true), ("blocked", false)]
+        );
+        for unreadable in [None, Some(""), Some("not json"), Some("null"), Some("[]"), Some("0"), Some("{}")] {
+            assert!(safety_desktop_choices(unreadable).unwrap().is_empty(), "{unreadable:?}");
+        }
+        // Python's migration stopped on JSON that is not an object (AttributeError); so does this one
+        for wrong in ["[1]", "5", "\"x\"", "true"] {
+            assert!(safety_desktop_choices(Some(wrong)).is_err(), "{wrong}");
+        }
+    }
 }
