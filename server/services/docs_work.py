@@ -43,8 +43,8 @@ async def _doing(session: AsyncSession, run: AiRun) -> str | None:
 async def _ticket_ids(session: AsyncSession, page_id: str) -> list[str]:
     page = await svc_docs.get_page(session, page_id)
     ids: list[str] = []
-    back = await svc_docs.backlinks(session, page.id)
-    ids += [t["ticket_id"] for t in back.get("tickets", [])]
+    # only the tickets: the pages half of the backlinks reads and parses every page that links here
+    ids += [t["ticket_id"] for t in await svc_docs.ticket_backlinks(session, page)]
     out = (
         await session.exec(
             select(DocsLink.target_ticket_id).where(

@@ -1,4 +1,5 @@
 import { Fragment, useState, type ReactNode } from 'react';
+import { usePageSettled } from './pageSettled';
 import { useDocsPage } from '../../api/docs';
 import { useBacklinksEx } from '../../api/docsActions';
 import { useToast } from '../Toast';
@@ -119,7 +120,8 @@ const ctxBox: React.CSSProperties = {
  */
 export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByProps) {
   const toast = useToast();
-  const backlinks = useBacklinksEx(pageId);
+  const settled = usePageSettled();
+  const backlinks = useBacklinksEx(settled ? pageId : null);
   const page = useDocsPage(pageId);
   const [open, setOpen] = useState(true);
   const pages = backlinks.data?.pages ?? [];

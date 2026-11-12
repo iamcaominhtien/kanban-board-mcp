@@ -1,5 +1,16 @@
 import type { Element } from 'hast';
-import { Children, isValidElement, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  Children,
+  createContext,
+  isValidElement,
+  memo,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import ReactMarkdown, { defaultUrlTransform, type Components } from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeKatex from 'rehype-katex';
@@ -10,6 +21,7 @@ import { resolveOrigin } from '../../api/resolveOrigin';
 import { useResolveRefs } from '../../api/docs';
 import type { DocsRefRequest } from '../../types/docs';
 import { escapeStrayDollars } from '../../utils/mathDollars';
+import { splitMarkdown } from '../../utils/markdownChunks';
 import { markNeedsInput, NEEDS_INPUT_SCHEME } from '../../utils/writeRules';
 import {
   linkifyDocs,
@@ -94,6 +106,79 @@ export interface DocsMarkdownProps {
   onReplaceSection?: RefChipProps['onReplaceSection'];
   /** Source line text -> version that added it: marks those blocks "Changed in vN" (since last viewed). */
   changedIn?: Map<string, number>;
+  /**
+   * Render a long page piece by piece (utils/markdownChunks): the top shows at once and the rest follows frame by
+   * frame, so opening a 4,000-line page neither waits for the whole page nor blocks typing and scrolling. While pieces
+   * are still coming the root carries `data-rendering`.
+   */
+  progressive?: boolean;
+  /** Called once every piece is on the page (at once when not progressive). */
+  onRendered?: () => void;
+}
+
+type RefResult = NonNullable<ReturnType<typeof useResolveRefs>['data']>[number];
+
+/** What the reference chips show and do. It reaches them through a context, so the parsed page (the slow part of
+ *  rendering a long page) is not built again when the references resolve or a callback above changes. */
+interface ChipContext {
+  pages: Map<string, RefResult>;
+  tickets: Map<string, RefResult>;
+  projectId: string;
+  projectName?: string;
+  peek: ReturnType<typeof useDocsPeek>;
+  onOpenPage?: DocsMarkdownProps['onOpenPage'];
+  onOpenTicket?: DocsMarkdownProps['onOpenTicket'];
+  onCreatePage?: DocsMarkdownProps['onCreatePage'];
+  onRestorePage?: DocsMarkdownProps['onRestorePage'];
+  onReplaceSection?: DocsMarkdownProps['onReplaceSection'];
+}
+
+const ChipCtx = createContext<ChipContext | null>(null);
+
+function TicketRefChip({ ticketKey }: { ticketKey: string }) {
+  const c = useContext(ChipCtx)!;
+  return (
+    <RefChip
+      kind="ticket"
+      label={ticketKey}
+      result={c.tickets.get(ticketKey)}
+      projectId={c.projectId}
+      onOpenTicket={c.onOpenTicket}
+    />
+  );
+}
+
+function PageRefChip({
+  label,
+  pageTitle,
+  anchor,
+  custom,
+  refKey,
+}: {
+  label: string;
+  pageTitle?: string;
+  anchor?: string | null;
+  custom: boolean;
+  refKey: string | null;
+}) {
+  const c = useContext(ChipCtx)!;
+  return (
+    <RefChip
+      kind="page"
+      label={label}
+      pageTitle={pageTitle}
+      anchor={anchor}
+      custom={custom}
+      result={refKey != null ? c.pages.get(refKey) : undefined}
+      projectId={c.projectId}
+      projectName={c.projectName}
+      onOpenPage={c.onOpenPage}
+      onPeek={c.peek ?? undefined}
+      onCreatePage={c.onCreatePage}
+      onRestorePage={c.onRestorePage}
+      onReplaceSection={c.onReplaceSection}
+    />
+  );
 }
 
 function textOf(node: ReactNode): string {
@@ -211,6 +296,78 @@ function sectionOf(from: HTMLElement, href: string): HTMLElement | null {
   return null;
 }
 
+const REMARK_PLUGINS = [remarkGfm, remarkMath, remarkDocs];
+
+/** The heading-id counts at the end of each piece of a page, filled as the pieces are parsed in order. */
+type SlugCounts = Map<string, number>[];
+// KaTeX runs after sanitize: its own markup would be stripped, and its input is only the sanitized math code.
+const REHYPE_PLUGINS = [
+  [rehypeSanitize, SCHEMA],
+  [rehypeKatex, { throwOnError: false, strict: 'ignore' }],
+] as NonNullable<Parameters<typeof ReactMarkdown>[0]['rehypePlugins']>;
+
+function docsUrlTransform(url: string): string {
+  return url.startsWith(REF_SCHEME) ||
+    url.startsWith(TICKET_SCHEME) ||
+    url.startsWith(DIAGRAM_SCHEME) ||
+    url.startsWith(SKETCH_SCHEME) ||
+    url.startsWith(CANVAS_SCHEME) ||
+    url.startsWith(NEEDS_INPUT_SCHEME)
+    ? url
+    : defaultUrlTransform(url);
+}
+
+/**
+ * One piece of the page. Parsing it (remark, rehype, sanitize, KaTeX) is the cost of rendering, and ReactMarkdown does
+ * it on every render: a piece renders again only when its text, the component map or the "Changed in" marks change.
+ * The chips update through ChipCtx without it.
+ */
+const MarkdownPiece = memo(function MarkdownPiece({
+  text,
+  components,
+  index,
+  slugCounts,
+}: {
+  text: string;
+  components: Components;
+  /** Not read here: a new map of marks must render the piece again (`changedProps` reads it). */
+  changedIn?: Map<string, number>;
+  /** Which piece of the page this is, and the shared counts: a heading repeated in a later piece keeps the id the
+   *  whole page gives it (`-2`, `-3`…), as the server's headings, the outline and `#section` links expect. */
+  index?: number;
+  slugCounts?: SlugCounts;
+}) {
+  const plugins = useMemo(
+    () =>
+      index === undefined || !slugCounts
+        ? REMARK_PLUGINS
+        : [
+            remarkGfm,
+            remarkMath,
+            [
+              remarkDocs,
+              {
+                seen: index > 0 ? slugCounts[index - 1] : undefined,
+                done: (seen: Map<string, number>) => {
+                  slugCounts[index] = seen;
+                },
+              },
+            ] as const,
+          ],
+    [index, slugCounts],
+  );
+  return (
+    <ReactMarkdown
+      remarkPlugins={plugins as NonNullable<Parameters<typeof ReactMarkdown>[0]['remarkPlugins']>}
+      rehypePlugins={REHYPE_PLUGINS}
+      urlTransform={docsUrlTransform}
+      components={components}
+    >
+      {text}
+    </ReactMarkdown>
+  );
+});
+
 /**
  * Reader for a Docs page: the board's dk-md typography with callouts, tables, code, task lists and reference chips.
  * @param props.children - Markdown source of the page.
@@ -222,6 +379,8 @@ function sectionOf(from: HTMLElement, href: string): HTMLElement | null {
  * @param props.onRestorePage - Called with a page id when a deleted referenced page is restored.
  * @param props.onReplaceSection - Called when a stale section reference is replaced.
  * @param props.changedIn - Marks blocks whose source lines were added by a later version ("Changed in vN").
+ * @param props.progressive - Render a long page piece by piece.
+ * @param props.onRendered - Called once the whole page is on the page.
  */
 export function DocsMarkdown({
   children,
@@ -233,6 +392,8 @@ export function DocsMarkdown({
   onRestorePage,
   onReplaceSection,
   changedIn,
+  progressive = false,
+  onRendered,
 }: DocsMarkdownProps) {
   const cleaned = (children ?? '').replace(/\/api\/uploads\//g, '/uploads/');
   const linked = useMemo(
@@ -240,46 +401,50 @@ export function DocsMarkdown({
     [cleaned],
   );
   const resolved = useResolveRefs(projectId, linked.refs.length ? linked.refs : NO_REFS);
-  const pages = new Map<string, NonNullable<typeof resolved.data>[number]>();
-  const tickets = new Map<string, NonNullable<typeof resolved.data>[number]>();
-  linked.refs.forEach((ref, i) => {
-    const res = resolved.data?.[i];
-    if (!res) return;
-    if (ref.kind === 'page') pages.set(pageRefKey(ref), res);
-    else tickets.set(ref.key, res);
-  });
+  const { pages, tickets } = useMemo(() => {
+    const byPage = new Map<string, RefResult>();
+    const byTicket = new Map<string, RefResult>();
+    linked.refs.forEach((ref, i) => {
+      const res = resolved.data?.[i];
+      if (!res) return;
+      if (ref.kind === 'page') byPage.set(pageRefKey(ref), res);
+      else byTicket.set(ref.key, res);
+    });
+    return { pages: byPage, tickets: byTicket };
+  }, [linked.refs, resolved.data]);
 
+  const peek = useDocsPeek();
+  const chips = useMemo<ChipContext>(
+    () => ({
+      pages,
+      tickets,
+      projectId,
+      projectName,
+      peek,
+      onOpenPage,
+      onOpenTicket,
+      onCreatePage,
+      onRestorePage,
+      onReplaceSection,
+    }),
+    [
+      pages,
+      tickets,
+      projectId,
+      projectName,
+      peek,
+      onOpenPage,
+      onOpenTicket,
+      onCreatePage,
+      onRestorePage,
+      onReplaceSection,
+    ],
+  );
   // The component map must keep one identity across renders: a new function per render makes React remount
   // every chip (and close its hover card) whenever anything above re-renders.
-  const peek = useDocsPeek();
-  const live = useRef({
-    peek,
-    projectId,
-    projectName,
-    onOpenPage,
-    onOpenTicket,
-    onCreatePage,
-    onRestorePage,
-    onReplaceSection,
-    pages,
-    tickets,
-    changedIn,
-    lines: cleaned.split('\n'),
-  });
-  live.current = {
-    peek,
-    projectId,
-    projectName,
-    onOpenPage,
-    onOpenTicket,
-    onCreatePage,
-    onRestorePage,
-    onReplaceSection,
-    pages,
-    tickets,
-    changedIn,
-    lines: cleaned.split('\n'),
-  };
+  const lines = useMemo(() => cleaned.split('\n'), [cleaned]);
+  const live = useRef({ changedIn, lines });
+  live.current = { changedIn, lines };
   // Props that flag a block as changed since the viewer last looked, from its source lines (hast position).
   const changedProps = (node: Element | undefined): BlockMark => {
     const { changedIn: map, lines } = live.current;
@@ -459,35 +624,19 @@ export function DocsMarkdown({
         if (href?.startsWith(NEEDS_INPUT_SCHEME)) return <span className="dk-needs-input">{inner}</span>;
         if (href?.startsWith(TICKET_SCHEME)) {
           const key = href.slice(TICKET_SCHEME.length);
-          return (
-            <RefChip
-              kind="ticket"
-              label={key}
-              result={live.current.tickets.get(key)}
-              projectId={live.current.projectId}
-              onOpenTicket={live.current.onOpenTicket}
-            />
-          );
+          return <TicketRefChip ticketKey={key} />;
         }
         if (href?.startsWith(REF_SCHEME)) {
           const ref = parseDocRef(href);
           const label = textOf(inner);
           const dflt = ref ? (ref.anchor ? `${ref.title} › ${ref.anchor}` : ref.title) : label;
           return (
-            <RefChip
-              kind="page"
+            <PageRefChip
               label={label}
               pageTitle={ref?.title}
               anchor={ref?.anchor}
               custom={!!ref && label !== dflt}
-              result={ref ? live.current.pages.get(pageRefKey(ref)) : undefined}
-              projectId={live.current.projectId}
-              projectName={live.current.projectName}
-              onOpenPage={live.current.onOpenPage}
-              onPeek={live.current.peek ?? undefined}
-              onCreatePage={live.current.onCreatePage}
-              onRestorePage={live.current.onRestorePage}
-              onReplaceSection={live.current.onReplaceSection}
+              refKey={ref ? pageRefKey(ref) : null}
             />
           );
         }
@@ -519,29 +668,49 @@ export function DocsMarkdown({
     [],
   );
 
+  // The page in pieces (one when not progressive), and how many are on the page yet: a new text starts over
+  const pieces = useMemo(
+    () => (progressive ? splitMarkdown(linked.markdown) : [{ text: linked.markdown, start: 0 }]),
+    [progressive, linked.markdown],
+  );
+  // heading-id counts carried from one piece to the next (pieces render in order, each after the one before)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- a new page (new pieces) starts its counts over
+  const slugCounts = useMemo<SlugCounts>(() => [], [pieces]);
+  const [shown, setShown] = useState({ of: pieces, count: 1 });
+  const count = shown.of === pieces ? shown.count : 1;
+  const done = count >= pieces.length;
+  const rendered = useRef(onRendered);
+  rendered.current = onRendered;
+  useEffect(() => {
+    if (done) {
+      rendered.current?.();
+      return;
+    }
+    // after the browser has painted what is there: one piece per frame, with input handled in between
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const frame = requestAnimationFrame(() => {
+      timer = setTimeout(() => setShown({ of: pieces, count: count + 1 }), 0);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, [done, count, pieces]);
+
   return (
-    <div className="dk-md" data-preview-scope>
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath, remarkDocs]}
-        // KaTeX runs after sanitize: its own markup would be stripped, and its input is only the sanitized math code.
-        rehypePlugins={[
-          [rehypeSanitize, SCHEMA],
-          [rehypeKatex, { throwOnError: false, strict: 'ignore' }],
-        ]}
-        urlTransform={(url) =>
-          url.startsWith(REF_SCHEME) ||
-          url.startsWith(TICKET_SCHEME) ||
-          url.startsWith(DIAGRAM_SCHEME) ||
-          url.startsWith(SKETCH_SCHEME) ||
-          url.startsWith(CANVAS_SCHEME) ||
-          url.startsWith(NEEDS_INPUT_SCHEME)
-            ? url
-            : defaultUrlTransform(url)
-        }
-        components={components}
-      >
-        {linked.markdown}
-      </ReactMarkdown>
-    </div>
+    <ChipCtx.Provider value={chips}>
+      <div className="dk-md" data-preview-scope data-rendering={done ? undefined : ''}>
+        {pieces.slice(0, count).map((p, i) => (
+          <MarkdownPiece
+            key={p.start}
+            text={p.text}
+            components={components}
+            changedIn={changedIn}
+            index={pieces.length > 1 ? i : undefined}
+            slugCounts={slugCounts}
+          />
+        ))}
+      </div>
+    </ChipCtx.Provider>
   );
 }

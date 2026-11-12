@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { LineIcon, type LineIconName } from './ui/LineIcon';
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
@@ -135,7 +135,7 @@ function MarkdownImage({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImage
  * @param props.plain - Never turn references into pills (e.g. raw previews).
  * @param props.inline - Render a single line inline: paragraphs are unwrapped.
  */
-export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: MarkdownRendererProps) {
+function MarkdownRendererImpl({ children, docs: docsProp, plain, inline }: MarkdownRendererProps) {
   const Wrapper = (inline ? 'span' : 'div') as 'div';
   const refs = useDocsRefs();
   const toast = useToast();
@@ -364,3 +364,10 @@ export function MarkdownRenderer({ children, docs: docsProp, plain, inline }: Ma
     </Wrapper>
   );
 }
+
+/**
+ * Render Markdown with callouts, images, file cards and doc-reference pills (see MarkdownRendererImpl). It renders
+ * again only when its props change: a list of comments re-rendered (an AI run's counters, a refetch) parsed every
+ * comment again and mounted its pictures afresh, which made a ticket full of screenshots stutter.
+ */
+export const MarkdownRenderer = memo(MarkdownRendererImpl);

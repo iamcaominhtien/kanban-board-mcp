@@ -850,6 +850,15 @@ function useTicketSubMutation<T>(mutationFn: (arg: T) => Promise<Ticket>) {
   return useMutation({
     mutationFn,
     onSuccess: (ticket) => {
+      // The open ticket shows what the project's list holds: put the server's answer there at once, so a new comment
+      // shows as soon as it is saved instead of after the whole list came back (a second on a slow machine)
+      for (const key of [ticketKeys.all(ticket.projectId), ['wont_do_tickets', ticket.projectId]]) {
+        queryClient.setQueriesData<Ticket[]>({ queryKey: key }, (old) =>
+          Array.isArray(old) && old.some((t) => t.id === ticket.id)
+            ? old.map((t) => (t.id === ticket.id ? ticket : t))
+            : old,
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ticketKeys.all(ticket.projectId) });
       queryClient.setQueryData(ticketKeys.detail(ticket.id), ticket);
     },

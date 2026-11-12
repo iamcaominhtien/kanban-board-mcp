@@ -1,5 +1,6 @@
 """Pure Markdown helpers for the Docs space: slugs, headings and reference parsing."""
 
+import functools
 import re
 from typing import Any
 
@@ -108,7 +109,36 @@ def _strip_inline(text: str) -> str:
 
 
 def heading_anchors(markdown: str) -> list[dict[str, Any]]:
-    """Headings with their slug anchors; duplicates get ``-2``, ``-3``…"""
+    """Headings with their slug anchors; duplicates get ``-2``, ``-3``…
+
+    The same page is read for many requests (an agent reading a ticket reads the headings of every page that links it;
+    a page open reads those of the pages it links), so the result is kept per text (`_headings_cached`) and each call
+    gets its own copy."""
+    return [dict(h) for h in _headings(markdown)]
+
+
+# Short texts (ticket descriptions, comments, criteria: hundreds of them are read to find the tickets that mention a
+# page) are kept apart, in a larger cache, so they do not push the pages out of theirs.
+SHORT_TEXT = 2048
+
+
+def _headings(markdown: str) -> tuple[dict[str, Any], ...]:
+    if len(markdown) < SHORT_TEXT:
+        return _headings_short(markdown)
+    return _headings_cached(markdown)
+
+
+@functools.lru_cache(maxsize=64)
+def _headings_cached(markdown: str) -> tuple[dict[str, Any], ...]:
+    return tuple(_parse_headings(markdown))
+
+
+@functools.lru_cache(maxsize=4096)
+def _headings_short(markdown: str) -> tuple[dict[str, Any], ...]:
+    return tuple(_parse_headings(markdown))
+
+
+def _parse_headings(markdown: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     seen: dict[str, int] = {}
     in_fence = False
@@ -130,9 +160,26 @@ def heading_anchors(markdown: str) -> list[dict[str, Any]]:
     return out
 
 
-def _prose_lines(markdown: str) -> list[tuple[str, str | None, str]]:
-    """(line, current section slug, raw line) for lines outside code fences."""
-    anchors = {a["text"]: a["slug"] for a in heading_anchors(markdown)}
+def _prose_lines(markdown: str) -> tuple[tuple[str, str | None, str], ...]:
+    """(line, current section slug, raw line) for lines outside code fences. Kept per text, like the headings: the
+    tuples cannot be changed by a caller."""
+    if len(markdown) < SHORT_TEXT:
+        return _prose_lines_short(markdown)
+    return _prose_lines_cached(markdown)
+
+
+@functools.lru_cache(maxsize=32)
+def _prose_lines_cached(markdown: str) -> tuple[tuple[str, str | None, str], ...]:
+    return _parse_prose_lines(markdown)
+
+
+@functools.lru_cache(maxsize=4096)
+def _prose_lines_short(markdown: str) -> tuple[tuple[str, str | None, str], ...]:
+    return _parse_prose_lines(markdown)
+
+
+def _parse_prose_lines(markdown: str) -> tuple[tuple[str, str | None, str], ...]:
+    anchors = {a["text"]: a["slug"] for a in _headings(markdown)}
     section: str | None = None
     in_fence = False
     out: list[tuple[str, str | None, str]] = []
@@ -146,7 +193,7 @@ def _prose_lines(markdown: str) -> list[tuple[str, str | None, str]]:
         if m:
             section = anchors.get(_strip_inline(m.group(2)), section)
         out.append((_INLINE_CODE.sub("", raw), section, raw))
-    return out
+    return tuple(out)
 
 
 def parse_references(markdown: str) -> list[dict[str, Any]]:
@@ -297,11 +344,20 @@ def count_page_links(markdown: str, title: str) -> int:
     return rewrite_page_links(markdown, title, title)[1]
 
 
-def page_ref_contexts(markdown: str) -> list[dict[str, Any]]:
-    """Every [[page]] reference with the sentence it sits in (for 'Referenced by' and ticket mentions)."""
+def page_ref_contexts(
+    markdown: str, titles: set[str] | None = None
+) -> list[dict[str, Any]]:
+    """Every [[page]] reference with the sentence it sits in (for 'Referenced by' and ticket mentions).
+
+    Args:
+        markdown: Content to scan.
+        titles: Keep only references to these (lower-cased) titles; None keeps all.
+    """
     out: list[dict[str, Any]] = []
     for line, section, _raw in _prose_lines(markdown):
         for m in _REF.finditer(line):
+            if titles is not None and m.group(1).strip().lower() not in titles:
+                continue
             out.append(
                 {
                     "title": m.group(1).strip(),

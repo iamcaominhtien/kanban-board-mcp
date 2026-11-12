@@ -22,6 +22,8 @@ from models import AiRunCommand
 logger = logging.getLogger("kanban.ai.runner")
 
 TOKEN = secrets.token_urlsafe(24)  # what the runner shows when it posts events back
+# The runner's process token (dbkit/targets.py): its rows of a server database's change log are not "another app's"
+RUNNER_ORIGIN = secrets.token_hex(16)
 COMMAND_WAIT_S = 8.0
 RESPAWN_LIMIT = 5  # restarts within RESPAWN_WINDOW_S before the board gives up
 RESPAWN_WINDOW_S = 600.0
@@ -64,12 +66,18 @@ def _spawn() -> subprocess.Popen:
         "KANBAN_IN_RUNNER": "1",
         "KANBAN_BOARD_URL": _board_url or "",
         "KANBAN_INTERNAL_TOKEN": TOKEN,
+        "KANBAN_PROCESS_TOKEN": RUNNER_ORIGIN,
         "KANBAN_PARENT_PID": str(os.getpid()),
         "KANBAN_DB_PATH": str(database.get_db_path()),
         # the same config folder as this process, whatever chose it: the runner must open the same database
         "KANBAN_CONFIG_DIR": str(app_config._CONFIG_DIR),
     }
     env.pop("KANBAN_API_SECRET_STDIN", None)
+    # What the runner writes is announced by the runner (typed events, `own_change`): the database watcher must not
+    # take it for another app's change and make every window refetch everything
+    from dbkit import changes
+
+    changes.ignore_origin(RUNNER_ORIGIN)
     log_path = database.get_data_dir() / "ai-v2" / "runner.log"
     log_path.parent.mkdir(parents=True, exist_ok=True)
     _log = open(log_path, "ab")  # noqa: SIM115 - held for the runner's lifetime

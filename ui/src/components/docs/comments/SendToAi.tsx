@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePageSettled } from '../pageSettled';
 import {
   sendErrorCode,
   useSendToAi,
@@ -115,7 +116,8 @@ export function SendToAiBox({ pageId, data }: BoxProps) {
   const canSend = data.role !== 'viewer';
   const open = useMemo(() => data.threads.filter((t) => t.status === 'open'), [data.threads]);
   const [expanded, setExpanded] = useState(false);
-  const targets = useSendToAiTargets(pageId, canSend && open.length > 0);
+  const settled = usePageSettled();
+  const targets = useSendToAiTargets(pageId, canSend && open.length > 0 && settled);
   const send = useSendToAi(pageId);
   const [chosen, setChosen] = useState<string[]>([]);
   const [to, setTo] = useState<SendDestination>('team');
@@ -514,7 +516,7 @@ export function threadDefault(targets: SendToAiTargets | undefined, threadId: st
  * @param props.threadId - The open thread.
  */
 export function ThreadSendButton({ pageId, threadId }: { pageId: string; threadId: string }) {
-  const targets = useSendToAiTargets(pageId, true);
+  const targets = useSendToAiTargets(pageId, usePageSettled());
   if (!targets.data) return null;
   return <ThreadSend pageId={pageId} threadId={threadId} targets={targets.data} />;
 }

@@ -238,11 +238,19 @@ export function markHighlights(tree: MdNode): void {
   walk(tree);
 }
 
+/** Where a piece of a page starts numbering its heading ids, and where it tells how far it got (DocsMarkdown). */
+export interface RemarkDocsOptions {
+  /** How many times each heading slug was used before this piece; a repeated one goes on with `-2`, `-3`… */
+  seen?: ReadonlyMap<string, number>;
+  /** Called with the counts after this piece, for the next one. */
+  done?: (seen: Map<string, number>) => void;
+}
+
 /** Remark plugin: mark `> [!KIND]` callouts, add heading ids and render `==highlights==`. */
-export function remarkDocs() {
+export function remarkDocs(options?: RemarkDocsOptions) {
   return (tree: MdNode) => {
     markHighlights(tree);
-    const seen = new Map<string, number>();
+    const seen = new Map<string, number>(options?.seen ?? []);
     const walk = (node: MdNode) => {
       if (node.type === 'heading') {
         const base = slugify(nodeText(node).replace(/[*_`~]/g, '')) || 'section';
@@ -268,6 +276,7 @@ export function remarkDocs() {
       node.children?.forEach(walk);
     };
     walk(tree);
+    options?.done?.(seen);
   };
 }
 

@@ -7,6 +7,7 @@ Conventions (kept in sync with the server `instructions` in `instructions.py`):
 - Every changing operation is attributed to the AI agent in the Activity tab (`notify_on_success`).
 """
 
+import contextvars
 import json
 import os
 import re
@@ -20,6 +21,7 @@ from pydantic import Field, ValidationError
 import services.activity as svc_activity
 import services.tickets as svc_tickets
 import database
+from dbkit import changes
 from models import (
     AiTeam,
     IdeaTicketRead,
@@ -320,8 +322,53 @@ async def _edit_ticket(
         raise ValueError(str(exc)) from exc
 
 
+# The tables a tool's commits wrote (dbkit.changes tells each commit's), to say what changed in its announcement
+_written: contextvars.ContextVar[set[str] | None] = contextvars.ContextVar(
+    "mcp_tool_written", default=None
+)
+
+
+def _note_written(tables: set[str]) -> None:
+    written = _written.get()
+    if written is not None:
+        written.update(tables)
+
+
+changes.on_write_commit(_note_written)
+
+# What the app refetches for a table (ui/src/hooks/invalidationTopics.ts). A ticket holds its comments, criteria,
+# sub-tasks and logs; its text can name Docs pages, so the pages a ticket names and the backlinks follow it.
+_TABLE_TOPICS: dict[str, tuple[str, ...]] = {
+    "ticket": ("tickets", "ticket_docs"),
+    # the notification centre announces its own changes (topic "notifications")
+    "notification": (),
+    "notify_event": (),
+    "notify_follow": (),
+    "ai_audit": (),
+}
+_DOCS_PREFIXES = ("docs_", "canvas", "diagram")
+
+
+def topics_for(tables: set[str]) -> set[str] | None:
+    """The topics of an announcement for a change of these tables; None when one of them has no topic (refetch all)."""
+    topics: set[str] = set()
+    for table in tables:
+        if table in _TABLE_TOPICS:
+            topics.update(_TABLE_TOPICS[table])
+        elif table.startswith(_DOCS_PREFIXES):
+            topics.add("docs")
+        else:
+            return None
+    return topics
+
+
 def notify_on_success(func):
-    """Attribute the change to the AI agent and publish an SSE invalidation after a successful mutation."""
+    """Attribute the change to the AI agent and publish an SSE invalidation after a successful mutation.
+
+    The invalidation names what the tool wrote (the tables of its commits), so the board refetches only that: with ten
+    AIs at work, a plain invalidation from every call refetched every list of the board a few times a second. A tool
+    that wrote a table without a topic, or nothing the commits saw, announces a plain one, as before.
+    """
 
     @wraps(func)
     async def wrapper(*args, **kwargs):
@@ -330,12 +377,21 @@ def notify_on_success(func):
         token = svc_activity.set_actor(
             ai.get("member_name") or svc_activity.AGENT_ACTOR
         )
+        written: set[str] = set()
+        seen = _written.set(written)
         try:
             result = await func(*args, **kwargs)
         finally:
+            _written.reset(seen)
             svc_activity.reset_actor(token)
         if result is not None:
-            await board_events.publish(board_events.INVALIDATE)
+            topics = topics_for(written) if written else None
+            if topics is None:
+                await board_events.publish(board_events.INVALIDATE)
+            elif topics:
+                await board_events.publish(board_events.INVALIDATE, topics=topics)
+            else:
+                board_events.mark_announced()
         return result
 
     return wrapper

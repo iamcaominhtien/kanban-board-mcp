@@ -317,27 +317,36 @@ export function RefSuggester({
     const el = targetRef.current;
     if (!el) return;
     let before = '';
-    let rect: { left: number; top: number; bottom: number } | null = null;
+    // Where the caret is on screen. Measuring it lays the page out (a mirror of the text box, or the selection's
+    // rectangles), so it is done only once a trigger ([[, @, KEY-) was typed: on every key of a long ticket it was most
+    // of what a key cost.
+    let measure: () => { left: number; top: number; bottom: number };
     if (isText(el)) {
       if (document.activeElement !== el || el.selectionStart !== el.selectionEnd) return setState(null);
       const pos = el.selectionStart ?? 0;
       before = el.value.slice(0, pos);
-      rect = textCaretRect(el, pos);
+      measure = () => textCaretRect(el, pos);
     } else {
       const sel = window.getSelection();
       if (!sel || !sel.rangeCount || !sel.isCollapsed) return setState(null);
       const node = sel.anchorNode;
       if (!node || node.nodeType !== Node.TEXT_NODE || !el.contains(node)) return setState(null);
       before = (node.textContent ?? '').slice(0, sel.anchorOffset);
-      const r = sel.getRangeAt(0).cloneRange();
-      const cr = r.getClientRects()[0] ?? r.getBoundingClientRect();
-      const box = el.getBoundingClientRect();
-      rect = {
-        left: Math.max(box.left, cr.left || box.left),
-        top: cr.top || box.top,
-        bottom: cr.bottom || box.top + 24,
+      measure = () => {
+        const r = sel.getRangeAt(0).cloneRange();
+        const cr = r.getClientRects()[0] ?? r.getBoundingClientRect();
+        const box = el.getBoundingClientRect();
+        return {
+          left: Math.max(box.left, cr.left || box.left),
+          top: cr.top || box.top,
+          bottom: cr.bottom || box.top + 24,
+        };
       };
     }
+    const at = () => {
+      const rect = measure();
+      return { x: rect.left, y: rect.bottom + 6, top: rect.top };
+    };
     let m = membersOnly ? null : /\[\[([^[\]\n|]{0,60})$/.exec(before);
     if (m) {
       const hash = m[1].indexOf('#');
@@ -347,17 +356,13 @@ export function RefSuggester({
           query: m[1].slice(hash + 1),
           pageTitle: m[1].slice(0, hash),
           typed: m[0].length,
-          x: rect.left,
-          y: rect.bottom + 6,
-          top: rect.top,
+          ...at(),
         });
       return setState({
         mode: 'page',
         query: m[1],
         typed: m[0].length,
-        x: rect.left,
-        y: rect.bottom + 6,
-        top: rect.top,
+        ...at(),
       });
     }
     if (members) {
@@ -367,9 +372,7 @@ export function RefSuggester({
           mode: 'member',
           query: m[1],
           typed: m[1].length + 1,
-          x: rect.left,
-          y: rect.bottom + 6,
-          top: rect.top,
+          ...at(),
         });
     }
     if (keyPrefix) {
@@ -379,9 +382,7 @@ export function RefSuggester({
           mode: 'ticket',
           query: m[1].slice(keyPrefix.length + 1),
           typed: m[1].length,
-          x: rect.left,
-          y: rect.bottom + 6,
-          top: rect.top,
+          ...at(),
         });
     }
     setState(null);

@@ -20,6 +20,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 import config as app_config
 
+from . import sqlite_gate
+
 ENGINES = ("sqlite", "postgresql", "mysql")
 SSL_MODES = ("off", "prefer", "require", "verify-full")
 DEFAULT_PORTS = {"postgresql": 5432, "mysql": 3306}
@@ -30,7 +32,9 @@ CONFIG_KEY = "database"
 
 # Which process this is, in the connection's name on PostgreSQL ("kanban-board app 1a2b3c4d"): the board can then
 # tell another app on the same database from its own MCP process. `main` keeps "app"; the stdio MCP server sets "mcp".
-PROCESS_TOKEN = uuid.uuid4().hex
+# The AI runner gets its token from the API that starts it (services/ai/runner_link.py), so the API can tell the
+# runner's rows of the change log from another app's. Taken out of the environment so the runner's children don't share it.
+PROCESS_TOKEN = os.environ.pop("KANBAN_PROCESS_TOKEN", "") or uuid.uuid4().hex
 ROLE = "app"
 APP_NAME_PREFIX = "kanban-board"
 
@@ -349,10 +353,13 @@ def make_engine(target: Target, *, role: str | None = None) -> AsyncEngine:
     timeout does not surface as an error in the board) and renews connections every 30 minutes.
     """
     if target.is_sqlite:
+        # One SQLite call at a time in the process, and writers in line (dbkit/sqlite_gate.py).
         engine = create_async_engine(
             target.url(),
             echo=False,
-            connect_args={"timeout": SQLITE_BUSY_TIMEOUT_S},
+            async_creator=sqlite_gate.connector(
+                target.path, timeout=SQLITE_BUSY_TIMEOUT_S
+            ),
         )
         _tune_sqlite(engine.sync_engine)
         return engine

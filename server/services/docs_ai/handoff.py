@@ -294,7 +294,8 @@ async def targets(session: AsyncSession, page_id: str) -> dict[str, Any]:
             add(tid, "named")
             if link.source_section:
                 sections.setdefault(tid, set()).add(link.source_section)
-    for m in (await svc_docs.backlinks(session, page.id)).get("tickets", []):
+    await svc_docs.get_page(session, page.id)  # the reader check `backlinks` made
+    for m in await svc_docs.ticket_backlinks(session, page):
         add(m["ticket_id"], "mentions" if m["origin"] != "manual" else "linked")
     tickets: dict[str, Ticket] = {}
     for tid in rel:

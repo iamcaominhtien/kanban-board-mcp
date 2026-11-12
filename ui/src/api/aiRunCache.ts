@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import camelcaseKeys from 'camelcase-keys';
 import type { AiMessageEvent, AiRun, AiRunEvent, AiRunFull, AiStepEvent, BoardRun, RunStep } from '../types/ai';
 import { aiKeys, type AiBoardData } from './ai';
+import { resetRunCounters, setRunCounter } from './runCounters';
 
 /** Steps by seq, oldest first, each seq once (a later copy replaces an earlier one: its output may have arrived). */
 export function mergeSteps(old: RunStep[], incoming: RunStep[]): RunStep[] {
@@ -56,12 +57,92 @@ function patchProjectRuns(qc: QueryClient, runId: string, patch: (r: AiRun) => A
   });
 }
 
+/** How often the step counters of the running AIs may change the run lists (and the board, on a change of state). */
+export const COUNTERS_EVERY_MS = 5000;
+
+type Counters = Pick<AiStepEvent, 'state' | 'stepsCount' | 'lastOutputAt'>;
+
+// The newest counters of each run, waiting for the next write; one write for every run at once
+const pending = new Map<string, Counters>();
+let lastWrite = -Infinity;
+let timer: ReturnType<typeof setTimeout> | undefined;
+
+function counted<T extends { state: AiRun['state']; stepsCount: number; lastOutputAt: string | null }>(
+  r: T,
+  c: Counters,
+  withState: boolean,
+): T {
+  // a batch written later carries only the counters: a state it held may be older than what a refetch or an `ai.run`
+  // put there since (a change of state is written at once, with `withState`)
+  return {
+    ...r,
+    state: withState ? c.state : r.state,
+    stepsCount: Math.max(c.stepsCount, r.stepsCount),
+    lastOutputAt: c.lastOutputAt ?? r.lastOutputAt,
+  };
+}
+
+/**
+ * Write the waiting counters of every run on the run lists, at once. The board gets them only with a change of state
+ * (`board`): its cards show their live "step N" from api/runCounters.ts, and a board entry that moved rendered every
+ * card and column of the board.
+ */
+function writeCounters(qc: QueryClient, now: number, board = false): void {
+  clearTimeout(timer);
+  timer = undefined;
+  lastWrite = now;
+  if (!pending.size) return;
+  const all = new Map(pending);
+  pending.clear();
+  if (board)
+    patchBoard(
+      qc,
+      (r) => all.has(r.runId),
+      (r) => counted(r, all.get(r.runId) as Counters, true),
+    );
+  for (const [runId, c] of all) {
+    patchTicketRuns(qc, runId, (r) => counted(r, c, board));
+    patchProjectRuns(qc, runId, (r) => counted(r, c, board));
+  }
+}
+
+/**
+ * Put a step batch's counters where they show. The live "step N" goes to api/runCounters.ts at once (only that line
+ * renders). The board and the run lists are read by the App, every card, column, ticket and comment box: a run
+ * streaming a batch a second re-rendered the whole app a second, once per running AI (typing a comment lagged). So a
+ * change of state goes to the board at once; the counters go to the run lists, for all runs together, at most every
+ * COUNTERS_EVERY_MS, and to the board not at all.
+ */
+function queueCounters(qc: QueryClient, ev: AiStepEvent, now: number): void {
+  setRunCounter(ev.runId, { stepsCount: ev.stepsCount, lastOutputAt: ev.lastOutputAt ?? null });
+  const boards = qc.getQueriesData<AiBoardData>({ queryKey: ['ai', 'board'] });
+  const held = boards.map(([, d]) => Object.values(d?.tickets ?? {}).find((r) => r.runId === ev.runId)).find(Boolean);
+  pending.set(ev.runId, { state: ev.state, stepsCount: ev.stepsCount, lastOutputAt: ev.lastOutputAt });
+  if (held && held.state !== ev.state) {
+    writeCounters(qc, now, true);
+  } else if (now - lastWrite >= COUNTERS_EVERY_MS) {
+    writeCounters(qc, now);
+  } else if (timer === undefined) {
+    timer = setTimeout(() => writeCounters(qc, Date.now()), lastWrite + COUNTERS_EVERY_MS - now);
+  }
+}
+
+/** Forget the waiting counters and when they were last written (tests). */
+export function resetCounterThrottle(): void {
+  resetRunCounters();
+  clearTimeout(timer);
+  timer = undefined;
+  pending.clear();
+  lastWrite = -Infinity;
+}
+
 /**
  * `ai.step`: a batch of a run's steps. They go on the run in the cache when it is there (a run nobody opened takes
- * nothing), and the counters and state go on the board entry and the ticket's run list. A batch that left out steps
- * (`truncated`) or does not follow the ones held makes the open run refetch.
+ * nothing), the counter to the line that shows it (api/runCounters.ts), a change of state to the board entry and the
+ * run lists, and the counters to the run lists (all runs together, at most every COUNTERS_EVERY_MS). A batch that left out steps (`truncated`) or does not follow the ones held makes the open run
+ * refetch.
  */
-export function applyStepEvent(qc: QueryClient, ev: AiStepEvent): void {
+export function applyStepEvent(qc: QueryClient, ev: AiStepEvent, now = Date.now()): void {
   const runKey = aiKeys.run(ev.runId);
   const run = qc.getQueryData<AiRunFull>(runKey);
   if (run) {
@@ -81,15 +162,7 @@ export function applyStepEvent(qc: QueryClient, ev: AiStepEvent): void {
       });
     }
   }
-  const counters = <T extends { state: AiRun['state']; stepsCount: number; lastOutputAt: string | null }>(r: T): T => ({
-    ...r,
-    state: ev.state,
-    stepsCount: ev.stepsCount,
-    lastOutputAt: ev.lastOutputAt ?? r.lastOutputAt,
-  });
-  patchBoard(qc, (r) => r.runId === ev.runId, counters);
-  patchTicketRuns(qc, ev.runId, counters);
-  patchProjectRuns(qc, ev.runId, counters);
+  queueCounters(qc, ev, now);
 }
 
 /**
@@ -99,6 +172,8 @@ export function applyStepEvent(qc: QueryClient, ev: AiStepEvent): void {
  */
 export function applyRunEvent(qc: QueryClient, ev: AiRunEvent): void {
   const run = ev.run;
+  // counters waiting for their write are older than this: they must not put back a state the run left
+  pending.delete(run.id);
   qc.setQueryData<AiRunFull>(aiKeys.run(run.id), (old) => (old ? { ...old, ...run } : old));
   if (run.ticketId) {
     qc.setQueryData<AiRun[]>(aiKeys.ticketRuns(run.ticketId), (old) => {
@@ -140,10 +215,17 @@ export function applyMessageEvent(qc: QueryClient, ev: AiMessageEvent): void {
   void qc.invalidateQueries({ queryKey: aiKeys.runMessages(ev.runId), exact: true });
 }
 
-/** Route one SSE message. Returns true when it was an AI event (so the generic invalidation is skipped). */
+// `{"type": "ai.…"` at the start: how the server writes a typed AI event (events.publish_typed)
+const AI_TYPED = /^\{\s*"type"\s*:\s*"ai\./;
+
+/**
+ * Route one SSE message. Returns true when it was an AI event (so the generic invalidation is skipped). A typed AI
+ * event handled elsewhere (`ai.resources`, RAM and CPU every 2 s, read by useResources) or not known here is never a
+ * reason to refetch: taken for "anything changed", it made the whole app refetch everything while an AI ran.
+ */
 export function applyAiEvent(qc: QueryClient, data: string): boolean {
   const ev = parseAiEvent(data);
-  if (!ev) return false;
+  if (!ev) return AI_TYPED.test(data);
   if (ev.type === 'ai.step') applyStepEvent(qc, ev);
   else if (ev.type === 'ai.run') applyRunEvent(qc, ev);
   else if (ev.type === 'ai.message') applyMessageEvent(qc, ev);
