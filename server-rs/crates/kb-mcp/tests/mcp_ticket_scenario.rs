@@ -2,7 +2,9 @@
 //! and the notification tables (`notification`, `notify_event`, `notify_follow`, `notify_prefs`) of `testkit`'s
 //! `dump_db`, ids, times and folders normalized, must be the same on both servers. This checks the stored bytes
 //! (the JSON columns as `json.dumps` writes them, the activity log with the agent as the actor) and which
-//! notifications a change made through MCP triggers.
+//! notifications a change made through MCP triggers: none. A ticket change raises no notification (the centre is
+//! fed by AI runs, the Docs comments and pages, and the schedules), so the notification tables stay empty on both
+//! servers; the comparison is there to catch a change that starts to raise one on only one of them.
 //!
 //! The scenario creates tickets with their criteria, comments (with a mention), a work log, test cases and an
 //! attachment, blocks and links two tickets, works a branch on a temporary git repository (commits with fixed
@@ -220,6 +222,14 @@ async fn scenario(s: &testkit::Server, repo: &Path, files: &Path) {
     manage(&mcp, "update", json!({"ticket_id": b_id, "status": "wont_do", "wont_do_reason": "superseded"})).await;
     manage(&mcp, "reopen", json!({"ticket_id": b_id})).await;
     manage(&mcp, "delete", json!({"ticket_id": b_id})).await;
+
+    // what a person does on the board, next to what the tools did: the actor of each change is in the log
+    let an = s.client().header("X-Actor", "An Nguyen");
+    let mention = format!("Thanks @[Bao](member:{})", text(&bao["id"]));
+    an.post(&format!("/tickets/{a_id}/comments"), json!({"text": mention, "author": "An Nguyen"})).await.assert_status(200);
+    an.patch(&format!("/tickets/{a_id}"), json!({"assignee": bao["id"], "priority": "low"})).await.assert_status(200);
+    an.patch(&format!("/tickets/{a_id}"), json!({"status": "review", "review_requested_from": ha["id"]})).await.assert_status(200);
+    manage(&mcp, "update", json!({"ticket_id": a_id, "status": "done"})).await;
 }
 
 /// The rows of a table as the dump gives them, in an order that does not depend on the ids and times each server
@@ -251,7 +261,6 @@ fn tables(dump: &Value, folders: &[(String, &str)]) -> Map<String, Value> {
     // the folders of this run, and the name an uploaded file is stored under
     let mut text = serde_json::to_string(&Value::Object(chosen)).expect("json");
     for (folder, name) in folders {
-        text = text.replace(&serde_json::to_string(folder).expect("json")[1..][..folder.len()], name);
         text = text.replace(folder.as_str(), name);
     }
     let stored = regex::Regex::new(r"(/uploads/[A-Za-z0-9_.-]*?)-[0-9a-f]{6,12}(\.[a-z0-9]+)").expect("a pattern");
@@ -284,6 +293,9 @@ async fn a_ticket_worked_through_mcp_leaves_the_same_rows_as_python_does() {
     if std::env::var("KANBAN_WRITE_GOLDEN").is_ok_and(|v| v == "1") {
         assert_eq!(target(), Target::Python, "the golden file is what the Python server stores");
         std::fs::write(GOLDEN, serde_json::to_string_pretty(&got).expect("json") + "\n").expect("write the golden file");
+    }
+    if let Ok(path) = std::env::var("KANBAN_DUMP_TO") {
+        std::fs::write(path, serde_json::to_string_pretty(&got).expect("json") + "\n").expect("write the rows");
     }
     let golden: Map<String, Value> =
         serde_json::from_str(&std::fs::read_to_string(GOLDEN).expect("the golden file")).expect("it parses");
