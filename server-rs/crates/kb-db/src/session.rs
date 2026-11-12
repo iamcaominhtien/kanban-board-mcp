@@ -33,6 +33,21 @@ pub struct Session {
     turn: StdMutex<Option<crate::sqlite_gate::WritePermit>>,
 }
 
+/// Whether a statement changes rows: INSERT, UPDATE, DELETE or REPLACE, alone or after a `WITH` (the statements
+/// before which Python's SQLite driver opens its transaction).
+fn changes_rows(sql: &str) -> bool {
+    let head = sql.trim_start().trim_start_matches('(').trim_start();
+    let word: String = head.chars().take_while(|c| c.is_ascii_alphabetic()).collect::<String>().to_ascii_uppercase();
+    match word.as_str() {
+        "INSERT" | "UPDATE" | "DELETE" | "REPLACE" => true,
+        "WITH" => {
+            let upper = head.to_ascii_uppercase();
+            ["INSERT ", "UPDATE ", "DELETE ", "REPLACE "].iter().any(|w| upper.contains(w))
+        }
+        _ => false,
+    }
+}
+
 /// Whether a statement only reads (it does not need a transaction of its own).
 fn reads_only(sql: &str) -> bool {
     let head = sql.trim_start().trim_start_matches('(').trim_start();
@@ -77,13 +92,23 @@ impl Session {
         dialect_name(self.conn.get_database_backend())
     }
 
-    /// Begin the transaction of a write: wait in line at the SQLite file's write gate first (writers in line,
-    /// `sqlite_gate`), then begin.
+    /// Begin this session's transaction (the SQLite driver sends a deferred `BEGIN`, which takes no lock).
     async fn open(&self) -> Result<DatabaseTransaction, DbErr> {
+        self.conn.begin().await
+    }
+
+    /// Before a statement that changes rows: on SQLite, wait in line at the file's write gate (`sqlite_gate`) unless
+    /// this transaction has its turn already; the turn is kept until the transaction ends. As in the Python server,
+    /// where the SQLite driver opens its transaction at the first INSERT, UPDATE, DELETE or REPLACE and the gate is
+    /// held while it is open: a statement that changes no rows (a `CREATE ... IF NOT EXISTS`, a pragma) does not
+    /// make the other writers wait for this session's commit.
+    async fn take_turn(&self, sql: &str) -> Result<(), DbErr> {
+        if !changes_rows(sql) || self.turn.lock().unwrap_or_else(|e| e.into_inner()).is_some() {
+            return Ok(());
+        }
         let turn = crate::sqlite_gate::enter_for(&self.conn).await?;
-        let txn = self.conn.begin().await?;
         *self.turn.lock().unwrap_or_else(|e| e.into_inner()) = turn;
-        Ok(txn)
+        Ok(())
     }
 
     /// The transaction ended: let the next writer in.
@@ -189,8 +214,10 @@ impl Session {
                     // `BEGIN IMMEDIATE` cannot follow the driver's own `BEGIN`: a statement that writes nothing
                     // takes the same lock (SQLite waits for it, up to the busy timeout).
                     let table = E::default().table_name().to_owned();
+                    let take_lock = format!("DELETE FROM \"{table}\" WHERE 0");
+                    self.take_turn(&take_lock).await?;
                     if let Some(txn) = guard.as_ref() {
-                        txn.execute_unprepared(&format!("DELETE FROM \"{table}\" WHERE 0")).await?;
+                        txn.execute_unprepared(&take_lock).await?;
                     }
                 }
             }
@@ -264,6 +291,7 @@ impl ConnectionTrait for Session {
         if guard.is_none() {
             *guard = Some(self.open().await?);
         }
+        self.take_turn(&stmt.sql).await?;
         self.wrote_something();
         match guard.as_ref() {
             Some(txn) => txn.execute_raw(stmt).await,
@@ -282,6 +310,7 @@ impl ConnectionTrait for Session {
         if guard.is_none() {
             *guard = Some(self.open().await?);
         }
+        self.take_turn(sql).await?;
         self.wrote_something();
         match guard.as_ref() {
             Some(txn) => txn.execute_unprepared(sql).await,
@@ -296,6 +325,7 @@ impl ConnectionTrait for Session {
             if guard.is_none() {
                 *guard = Some(self.open().await?);
             }
+            self.take_turn(&stmt.sql).await?;
             self.wrote_something();
         }
         match guard.as_ref() {
@@ -310,6 +340,7 @@ impl ConnectionTrait for Session {
             if guard.is_none() {
                 *guard = Some(self.open().await?);
             }
+            self.take_turn(&stmt.sql).await?;
             self.wrote_something();
         }
         match guard.as_ref() {
