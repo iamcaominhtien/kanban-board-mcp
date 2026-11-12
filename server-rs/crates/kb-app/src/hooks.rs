@@ -7,8 +7,10 @@
 use std::path::Path;
 
 use async_trait::async_trait;
+use serde_json::{Map, Value};
 
 use kb_db::entities::docs_comment_event;
+use kb_mcp::common::{ToolError, ToolResult};
 
 struct DbMove;
 
@@ -49,6 +51,105 @@ impl kb_skills::hooks::McpToolsHook for McpTools {
     }
 }
 
+/// `kb_mcp::hooks::AiGuardHook` as `services/ai/guard.py` backs it.
+struct AiGuard;
+
+fn run_context(context: kb_ai::context::RunContext) -> kb_mcp::hooks::RunContext {
+    kb_mcp::hooks::RunContext {
+        run_id: context.run_id,
+        member_id: context.member_id,
+        member_name: context.member_name,
+        project_id: context.project_id,
+        ticket_id: context.ticket_id,
+        on_behalf_of: context.on_behalf_of,
+        mode: context.mode,
+        trigger: context.trigger,
+        depth: context.depth,
+        acts_by_tier: context.acts_by_tier,
+    }
+}
+
+#[async_trait]
+impl kb_mcp::hooks::AiGuardHook for AiGuard {
+    async fn resolve(&self, authorization: Option<&str>) -> Result<Option<kb_mcp::hooks::RunContext>, String> {
+        match kb_ai::guard::resolve_for(authorization).await {
+            Ok(context) => Ok(context.map(run_context)),
+            Err(err) => Err(err.to_string()),
+        }
+    }
+
+    async fn guarded(
+        &self,
+        tool: &str,
+        action: &str,
+        given: Map<String, Value>,
+        authorization: Option<&str>,
+        call: kb_mcp::hooks::GuardedCall,
+    ) -> ToolResult {
+        use kb_ai::guard::{Error, GuardedError};
+        match kb_ai::guard::guarded_for(authorization, tool, action, given, call).await {
+            Ok(value) => Ok(value),
+            // `AiActionError` is a `ValueError`: a call refused on purpose
+            Err(GuardedError::Guard(Error::Action(refused))) => Err(ToolError::Value(refused.0)),
+            Err(GuardedError::Guard(err)) => Err(ToolError::Other(err.to_string())),
+            Err(GuardedError::Call(err)) => Err(err),
+        }
+    }
+}
+
+/// `kb_mcp::hooks::AiTicketViewHook`: `comment_view.for_caller` and `worktrees.brief`.
+struct AiTicketView;
+
+#[async_trait]
+impl kb_mcp::hooks::AiTicketViewHook for AiTicketView {
+    async fn comments_for_caller(
+        &self,
+        project_id: &str,
+        raw: Vec<Value>,
+        authorization: Option<&str>,
+    ) -> Result<Option<(Vec<Value>, i64)>, String> {
+        // `for_caller` asks the guard, which reads the header of the request being handled
+        let token = kb_ai::guard::set_request_authorization(authorization);
+        let session = kb_db::database::session();
+        let viewed = kb_ai::comment_view::for_caller(&session, project_id, &raw).await;
+        kb_base::ctx::reset(token);
+        let Some(mut viewed) = viewed.map_err(|err| err.to_string())? else { return Ok(None) };
+        let comments = match viewed.remove("comments") {
+            Some(Value::Array(comments)) => comments,
+            _ => Vec::new(),
+        };
+        let held_back = viewed.get("held_back").and_then(Value::as_i64).unwrap_or(0);
+        Ok(Some((comments, held_back)))
+    }
+
+    async fn worktree_brief(&self, ticket_id: &str) -> Result<Option<Value>, String> {
+        kb_ai_work::worktrees::worktree_brief(ticket_id).await
+    }
+}
+
+/// `kb_mcp::hooks::BoardSkillsHook`: the plugin folder of `services/ai/board_skills.py`, written as it is asked for.
+struct BoardSkills;
+
+/// The plugin folder, or the place it would be when it could not be written (Python raises there; the guide that
+/// prints the path is still worth reading).
+fn plugin_dir() -> String {
+    kb_ai_know::board_skills::plugin_dir(None).unwrap_or_else(|err| {
+        tracing::error!(target: "kanban.http", "Could not write the board's skills folder: {err}");
+        let db = kb_db::database::get_db_path();
+        db.parent().map(Path::to_path_buf).unwrap_or_default().join("board-skills").to_string_lossy().into_owned()
+    })
+}
+
+impl kb_mcp::hooks::BoardSkillsHook for BoardSkills {
+    fn skill_dir(&self, name: &str) -> String {
+        Path::new(&plugin_dir()).join("skills").join(name).to_string_lossy().into_owned()
+    }
+
+    fn examples_dir(&self) -> String {
+        Path::new(&plugin_dir()).join("skills").join("canvas-design").join("examples").to_string_lossy().into_owned()
+    }
+}
+
 /// Register every hook (a second call changes nothing).
 pub fn install() {
     kb_ai::hooks::register();
@@ -57,6 +158,9 @@ pub fn install() {
     kb_ai_run::register();
     kb_assist::register();
     kb_skills::hooks::set_mcp_tools_hook(Box::new(McpTools));
+    kb_mcp::hooks::set_ai_guard_hook(Box::new(AiGuard));
+    kb_mcp::hooks::set_ai_ticket_view_hook(Box::new(AiTicketView));
+    kb_mcp::hooks::set_board_skills_hook(Box::new(BoardSkills));
     kb_docs::hooks::register();
     kb_ideas::register();
     kb_dbkit::hooks::set_docs_search_hook(Box::new(DocsSearch));

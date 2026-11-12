@@ -32,6 +32,14 @@ pub fn docs_error(err: DocsFailure) -> ToolError {
         DocsFailure::Value(message) => ToolError::Value(message),
         DocsFailure::Db(err) => err.into(),
         DocsFailure::Other(message) => ToolError::Other(message),
+        // an assistant's refusal (`AssistError`, `DocsAiError`): `str(exc)` is its message, the `detail` of the body
+        DocsFailure::Json { status, body } => {
+            let message = match body.get("detail") {
+                Some(Value::String(text)) => text.clone(),
+                _ => kb_base::pyjson::py_str(&body),
+            };
+            if status < 500 { ToolError::Value(message) } else { ToolError::Other(message) }
+        }
     }
 }
 

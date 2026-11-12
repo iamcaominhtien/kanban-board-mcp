@@ -29,6 +29,14 @@ pub enum Error {
     Db(DbErr),
     /// Any other exception nothing catches: a 500.
     Other(String),
+    /// An exception of the code above (`hooks::DocsAiHook`) that the app answers with a handler of its own
+    /// (`DocsAiError`, `AssistError`): the status and the body of that answer.
+    Json {
+        /// The HTTP status.
+        status: u16,
+        /// The whole JSON body (`{"detail": message, "code": ..., ...extra}`).
+        body: serde_json::Value,
+    },
 }
 
 impl From<DocsError> for Error {
@@ -75,6 +83,7 @@ impl std::fmt::Display for Error {
             Error::Docs(e) => e.fmt(f),
             Error::Value(m) | Error::Other(m) => f.write_str(m),
             Error::Db(e) => e.fmt(f),
+            Error::Json { body, .. } => f.write_str(body.get("detail").and_then(|d| d.as_str()).unwrap_or("")),
         }
     }
 }

@@ -174,6 +174,31 @@ pub struct CommentBody {
     pub ai_intent: Option<String>,
 }
 
+/// Open threads of a page to send to an AI (Send to AI).
+#[derive(Debug, Deserialize)]
+pub struct SendToAiBody {
+    pub thread_ids: Vec<String>,
+    /// team: the team of `ticket_id` | board_ai: it routes | page_assistant: the page's own assistant
+    #[serde(default = "default_team")]
+    pub to: String,
+    #[serde(default)]
+    pub ticket_id: Option<String>,
+    /// A ticket with no team: the team to give it before sending.
+    #[serde(default)]
+    pub give_team_id: Option<String>,
+}
+
+fn default_team() -> String {
+    "team".to_string()
+}
+
+/// Send a ticket's page comments to its own team.
+#[derive(Debug, Deserialize)]
+pub struct SendCommentsBody {
+    #[serde(default)]
+    pub give_team_id: Option<String>,
+}
+
 /// Markdown whose effect on open comment anchors should be checked.
 #[derive(Debug, Deserialize)]
 pub struct AnchorPreviewBody {

@@ -1674,14 +1674,9 @@ dependencies = [
 name = "kanban-mcp-stdio"
 version = "5.0.0"
 dependencies = [
- "kb-db",
- "kb-log",
- "kb-mcp",
  "serde_json",
  "tempfile",
  "testkit",
- "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -1690,6 +1685,7 @@ version = "5.0.0"
 dependencies = [
  "kb-app",
  "kb-base",
+ "kb-dbkit",
  "kb-log",
  "serde_json",
  "tokio",
@@ -1857,6 +1853,7 @@ dependencies = [
  "futures",
  "kb-ai",
  "kb-ai-api",
+ "kb-ai-know",
  "kb-ai-run",
  "kb-ai-scan",
  "kb-ai-work",

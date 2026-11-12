@@ -1,9 +1,10 @@
-//! What the comments take from the Docs AI (`services/assistant/docs.py` lines 949-1106, which the Docs AI port will
-//! replace): whether Docs AI is on for a project, the member rows of the comments payload, the `ai_jobs` and
-//! `ai_summary` of a thread, and the delivery of a mention of an AI member.
+//! What the comments take from the Docs AI (`services/assistant/docs.py` lines 949-1106): whether Docs AI is on for a
+//! project, the member rows of the comments payload, the `ai_jobs` and `ai_summary` of a thread, and the delivery of
+//! a mention of an AI member.
 //!
-//! Docs AI itself (running jobs) is not ported: [`deliver`] answers `not_delivered` where Python would start a job
-//! (the page's assistant), and everything else is what Python answers.
+//! The Docs AI is above this crate: each function asks the hook (`hooks::DocsAiHook`, `kb-assist` registers it) and,
+//! while none is set, does what is in this file: the same reads over the same tables, and a [`deliver`] that answers
+//! `not_delivered` where Python would start a job (the page's assistant).
 
 use std::collections::HashSet;
 
@@ -15,7 +16,7 @@ use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use serde_json::{Map, Value, json};
 
 use super::json_list;
-use crate::Result;
+use crate::{Result, hooks};
 use crate::util::casefold;
 
 /// The kinds of job that belong to a thread.
@@ -27,6 +28,9 @@ const ACTIVE: [&str; 2] = ["queued", "running"];
 ///
 /// A project without a settings row predates AI-1: its row is made on first use with Docs AI on, as it always was.
 pub async fn docs_ai_on(session: &Session, project_id: &str) -> Result<bool> {
+    if let Some(hook) = hooks::docs_ai() {
+        return hook.docs_ai_on(session, project_id).await;
+    }
     if project::Entity::find_by_id(project_id).one(session).await?.is_none() {
         return Ok(false);
     }
@@ -46,10 +50,13 @@ pub async fn docs_ai_on(session: &Session, project_id: &str) -> Result<bool> {
 /// Members for the comments payload; AI members carry `ai` (their status for the @ picker) while Docs AI is on.
 pub async fn member_rows(
     session: &Session,
-    _project_id: &str,
+    project_id: &str,
     members: &[member::Model],
     docs_ai: bool,
 ) -> Result<Vec<Value>> {
+    if let Some(hook) = hooks::docs_ai() {
+        return hook.member_rows(session, project_id, members, docs_ai).await;
+    }
     let mut rows = Vec::new();
     for m in members {
         let mut row = Map::new();
@@ -83,6 +90,9 @@ pub async fn member_rows(
 /// Add `ai_jobs` (assistant work going on in the thread) and `ai_summary` (the latest summary) to serialized
 /// threads. Returns whether Docs AI is on.
 pub async fn annotate(session: &Session, page: &docs_page::Model, threads: &mut [Map<String, Value>]) -> Result<bool> {
+    if let Some(hook) = hooks::docs_ai() {
+        return hook.annotate(session, page, threads).await;
+    }
     for t in threads.iter_mut() {
         t.insert("ai_jobs".into(), json!([]));
         t.insert("ai_summary".into(), Value::Null);
@@ -142,7 +152,10 @@ pub async fn annotate(session: &Session, page: &docs_page::Model, threads: &mut 
 /// `thread_reply` job). A comment an AI wrote is never delivered (no loops).
 ///
 /// Returns `[{member_id, result: "job"|"notified"|"not_delivered", job_id?, reason?}]`; empty without an AI mention.
-pub async fn deliver(session: &Session, thread: &Map<String, Value>, intent: &str) -> Result<Vec<Value>> {
+pub async fn deliver(session: &Session, thread: &Map<String, Value>, by: &str, intent: &str) -> Result<Vec<Value>> {
+    if let Some(hook) = hooks::docs_ai() {
+        return hook.deliver(session, thread, by, intent).await;
+    }
     let comment = thread.get("comments").and_then(Value::as_array).and_then(|c| c.last()).cloned();
     let Some(comment) = comment.filter(|c| c.as_object().is_some_and(|o| !o.is_empty())) else { return Ok(Vec::new()) };
     if comment.get("ai").is_some_and(kb_base::pyjson::truthy) {
@@ -177,6 +190,6 @@ pub async fn deliver(session: &Session, thread: &Map<String, Value>, intent: &st
     if intent == "notify" {
         return Ok(mentioned.iter().map(|m| json!({"member_id": m, "result": "notified"})).collect());
     }
-    // `engine.ready(...)` and `jobs.start(...)`: the Docs AI is not in this server yet
+    // `engine.ready(...)` and `jobs.start(...)` are the hook's: the Docs AI is not in this server
     Ok(not_delivered("Docs AI is not available in this server build yet."))
 }

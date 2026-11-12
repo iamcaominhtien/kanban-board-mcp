@@ -31,6 +31,8 @@ pub fn docs_error(headers: &HeaderMap, err: crate::Error) -> ApiError {
         }
         crate::Error::Db(e) => e.into(),
         crate::Error::Value(m) | crate::Error::Other(m) => ApiError::internal(m),
+        // an answer with its own handler: the routes that can raise it answer it themselves (`docs::Failure`)
+        crate::Error::Json { body, .. } => ApiError::internal(body),
     }
 }
 

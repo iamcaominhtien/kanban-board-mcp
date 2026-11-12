@@ -7,6 +7,7 @@ pub mod hooks;
 pub mod lifespan;
 pub mod middleware;
 pub mod sse;
+pub mod stdio;
 
 use std::time::Instant;
 

@@ -208,8 +208,9 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - MySQL only: the float columns are `FLOAT` (single precision) there. The Python driver read them as text (`0.1`); the
   Rust driver reads the 4-byte value (`0.10000000149`). Decide: a float type for the entities that reads as Python
   did, or widen the columns in the first Rust migration.
-- `GET /database/command` still prints the `uv run python -m dbkit.cli` command; the Rust CLI is
-  `kb_dbkit::cli::main` and needs a binary entry (`kanban-server db ...`).
+- `GET /database/command` still prints the `uv run python -m dbkit.cli` command outside a packaged app. The Rust CLI
+  is `kanban-server db ...` (and `kanban-db ...` when the program is started under that name): change the text at
+  the switch, and ship a `kanban-db` link or tell the packaged text to say `kanban-server db`.
 - Hooks still without an implementation: `kb_board::hooks::{AiTeamsHook, AiRunsHook}`, `kb_dbkit::hooks::AssistantHook`,
   `kb_docs::hooks::{AiGuardHook, AssignHook, CommentsHook, CanvasesHook}`, `kb_draw::hooks::{CanvasDocs, CanvasDelivery}`. Hooks are
   registered in `kb-app/src/hooks.rs`.
@@ -219,12 +220,9 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - `kb_base::time::parse_iso` accepts shapes `datetime.fromisoformat` refuses; `kb_ai::store::parse_iso` is the exact
   port. Make the exact one the shared one.
 - `Session` has no savepoint (`begin_nested`): `transcripts::finish` logs a failed FTS statement and commits.
-- The adapter for `kb_mcp::hooks::AiGuardHook` (run tokens on MCP calls) is not registered yet: until then an MCP
-  call with a run token is not attributed to its run.
 - PDF text (`pdf-extract`) equals `pypdf` on the test fixtures; on the repository's own PDFs it differs in whitespace
   (`pypdf` splits Vietnamese words) and in one file in the bullet character. Accepted unless search quality suffers.
 - On Windows `kb-ai-run` has only been type-checked in part (no Windows C toolchain here): it compiles first in CI.
-- `kb_mcp::hooks::BoardSkillsHook` is not registered yet (it needs the plugin folder).
 - Two crates register `kb_draw::hooks::CanvasDelivery` (`kb-ai-run` first, so it holds; `kb-assist` second). Keep the
   one of `kb-ai-run`, drop the other, and fill `kb_ai_run::seams::PageNotes` and `kb_assist::seams::Runs` (the
   delivery calls with a trigger and a depth, a note to a page, waking a new assignee) from `kb-assist`, which sees
@@ -236,8 +234,10 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - The sign-in route writes its audit entry through a private copy of `touches.record_signin` in
   `kb-ai-api/src/api/ai_accounts.rs`; replace it when `touches` is ported.
 - `kb_base::activity` has no getter for the "suggested by" value (`kb-ai-work` reads it through `entry`).
-- Size: the release binaries are 68 MB (`kanban-server`) and 37 MB (`kanban-mcp-stdio`) on Linux. To try before the
-  switch: one program that serves both names, a size-optimised release profile, and one copy of the embedded assets.
+- Size: the release binary of `kanban-server` was 68 MB on Linux. `kanban-mcp-stdio` is now a launcher of well under
+  1 MB that hands over to `kanban-server mcp-stdio` beside it (on Unix it becomes that program; on Windows it runs it
+  as a child and waits: try a real MCP client on Windows before the release). Still to try: a size-optimised release
+  profile and one copy of the embedded assets.
 - Before this work already: the x64 macOS dmg carries an arm64 server (the build uses the host architecture only).
   `MACOS_UNIVERSAL=1` in `build-server.sh` builds both and joins them; the workflows do not set it yet.
 - `kb_base::secrets` has no test backend for the keychain: the two tests of `test_ai_keychain.py` are not ported.

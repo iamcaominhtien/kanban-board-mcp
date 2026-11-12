@@ -1,9 +1,11 @@
 //! `api/docs.py`: the Docs routes whose service functions are in `services/docs.py`, `docs_search.py` and
 //! `docs_work.py`, in the order the Python router registers them.
 //!
-//! Not served (they call `services/docs_ai/handoff.py`, the Docs AI): `GET|POST /docs/pages/{page_id}/send-to-ai`
-//! (between the replies route and the ticket routes below) and `GET /tickets/{ticket_id}/docs/comments`,
-//! `POST /tickets/{ticket_id}/docs/comments/send` (after them).
+//! `GET|POST /docs/pages/{page_id}/send-to-ai`, `GET /tickets/{ticket_id}/docs/comments` and `POST
+//! /tickets/{ticket_id}/docs/comments/send` call `services/docs_ai/handoff.py`, the Docs AI above this crate: they go
+//! through `hooks::DocsAiHook` (and answer 500 while none is registered). A `DocsAiError` or `AssistError` of that
+//! call has a handler of its own in the app: its answer is `{detail, code, ...}` without the `detail` wrapper, so
+//! these handlers return [`Failure`].
 //!
 //! Registration order and path parameters: no path of this file has a parameter that could swallow a literal
 //! segment registered later (`by-path`, `by-slug/{slug}`, `similar`, `search`, `recycle-bin`, `resolve`, `import`,
@@ -34,7 +36,7 @@ use crate::docs_search::{self, SearchParams};
 use crate::schemas::{
     AccessRequestBody, AnchorBody, AnchorPreviewBody, AssignPageBody, CommentBody, DraftSave, FollowBody,
     ImportResolveBody, PageCreate, PageDuplicate, PageMove, PageRename, PublishBody, ResolveBody, RestoreBody,
-    SeenBody, ThreadCreate, TicketDocBody,
+    SeenBody, SendCommentsBody, SendToAiBody, ThreadCreate, TicketDocBody,
 };
 use crate::{docs, docs_comments, docs_import, docs_work};
 
@@ -87,6 +89,10 @@ pub fn routes() -> Routes {
         .post("/docs/pages/{page_id}/comments", post_thread)
         .post("/docs/pages/{page_id}/comments/anchor-preview", post_anchor_preview)
         .post("/docs/comments/threads/{thread_id}/replies", post_reply)
+        .get("/docs/pages/{page_id}/send-to-ai", get_send_to_ai)
+        .post("/docs/pages/{page_id}/send-to-ai", post_send_to_ai)
+        .get("/tickets/{ticket_id}/docs/comments", get_ticket_doc_comments)
+        .post("/tickets/{ticket_id}/docs/comments/send", post_ticket_doc_comments_send)
         .post("/docs/comments/threads/{thread_id}/resolve", post_resolve_thread)
         .post("/docs/comments/threads/{thread_id}/reopen", post_reopen)
         .post("/docs/comments/threads/{thread_id}/reattach", post_reattach)
@@ -655,7 +661,7 @@ async fn deliver_ai(
         Some("work") | Some("suggest") | Some("") | None => "ask",
         Some(other) => other,
     };
-    let delivered = docs_comments::docs_ai::deliver(session, &out, intent).await?;
+    let delivered = docs_comments::docs_ai::deliver(session, &out, &kb_base::activity::current_actor(), intent).await?;
     let mut out = out;
     if delivered.iter().any(|d| d["result"] == "job") {
         let id = out.get("id").and_then(Value::as_str).unwrap_or("").to_string();
@@ -823,4 +829,97 @@ async fn post_access_request(
         events::publish("invalidate", &[]).await;
     }
     Ok((StatusCode::CREATED, obj(result)))
+}
+
+// --- send to AI (the Docs AI's hand-off) --------------------------------------------
+
+/// What the routes that call the Docs AI answer when it fails: an `ApiError`, or the answer of an exception with a
+/// handler of its own in the app (`DocsAiError`, `AssistError`: `{detail, code, ...}`).
+pub enum Failure {
+    /// `HTTPException`, `DocsError` and the like.
+    Api(ApiError),
+    /// A status and the whole body.
+    Json(u16, Value),
+}
+
+impl From<ApiError> for Failure {
+    fn from(err: ApiError) -> Self {
+        Failure::Api(err)
+    }
+}
+
+impl axum::response::IntoResponse for Failure {
+    fn into_response(self) -> axum::response::Response {
+        match self {
+            Failure::Api(err) => err.into_response(),
+            Failure::Json(status, body) => {
+                (StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), Json(body)).into_response()
+            }
+        }
+    }
+}
+
+/// A result of the Docs AI hook as the route answers it.
+fn hooked<T>(headers: &HeaderMap, result: crate::Result<T>) -> Result<T, Failure> {
+    result.map_err(|err| match err {
+        crate::Error::Json { status, body } => Failure::Json(status, body),
+        other => Failure::Api(docs_error(headers, other)),
+    })
+}
+
+/// The Docs AI, or the failure of a server that has none.
+fn docs_ai_hook() -> Result<&'static dyn crate::hooks::DocsAiHook, Failure> {
+    crate::hooks::docs_ai().ok_or_else(|| Failure::Api(ApiError::internal("the Docs AI is not registered")))
+}
+
+/// Who can receive the page's open threads: tickets by how they relate to the page and to each thread, every other
+/// ticket, the project's AI teams, and whether the Board AI and the page's assistant can answer.
+async fn get_send_to_ai(headers: HeaderMap, Path(page_id): Path<String>) -> Result<Json<Value>, Failure> {
+    let hook = docs_ai_hook()?;
+    let session = kb_db::session();
+    Ok(obj(hooked(&headers, hook.send_to_ai_targets(&session, &page_id).await)?))
+}
+
+/// Send open threads to the team of a ticket, to the Board AI (it routes) or to the page's assistant.
+async fn post_send_to_ai(
+    headers: HeaderMap,
+    Path(page_id): Path<String>,
+    Body(body): Body<SendToAiBody>,
+) -> Result<(StatusCode, Json<Value>), Failure> {
+    let hook = docs_ai_hook()?;
+    let session = kb_db::session();
+    let out = hooked(
+        &headers,
+        hook.send_to_ai(
+            &session,
+            &page_id,
+            &body.thread_ids,
+            &body.to,
+            body.ticket_id.as_deref(),
+            body.give_team_id.as_deref(),
+        )
+        .await,
+    )?;
+    events::publish("invalidate", &[]).await;
+    Ok((StatusCode::ACCEPTED, obj(out)))
+}
+
+/// The open comment threads of the pages linked to a ticket: what "Ask the team to apply the comments" sends.
+async fn get_ticket_doc_comments(headers: HeaderMap, Path(ticket_id): Path<String>) -> Result<Json<Value>, Failure> {
+    let hook = docs_ai_hook()?;
+    let session = kb_db::session();
+    Ok(obj(hooked(&headers, hook.ticket_doc_comments(&session, &ticket_id).await)?))
+}
+
+/// Send the open threads of the ticket's linked pages to the ticket's own team.
+async fn post_ticket_doc_comments_send(
+    headers: HeaderMap,
+    Path(ticket_id): Path<String>,
+    Body(body): Body<SendCommentsBody>,
+) -> Result<(StatusCode, Json<Value>), Failure> {
+    let hook = docs_ai_hook()?;
+    let session = kb_db::session();
+    let out = hooked(&headers, hook.send_ticket_doc_comments(&session, &ticket_id, body.give_team_id.as_deref()).await)?;
+    events::publish("invalidate", &[]).await;
+    Ok((StatusCode::ACCEPTED, obj(out)))
 }

@@ -25,13 +25,19 @@ use serde_json::{Map, Value};
 ///
 /// - `kb_dbkit::hooks::AssistantHook` (`engine.any_cli()`, `engine.oneshot(skill, inputs)`: the helper of a stopped
 ///   database copy asks the board's assistant);
-/// - `kb_draw::hooks::CanvasDelivery` and `kb_docs::hooks::AssignHook` (see `hooks`);
+/// - `kb_docs::hooks::AssignHook` and `kb_docs::hooks::DocsAiHook` (see `hooks`);
+/// - the seams of `kb-ai-run` (`kb_ai_run::seams::set_page_notes`) and of this crate (`seams::set_runs`, backed by
+///   `kb_ai_run::runs`);
 /// - the handlers of the Docs AI jobs (`docs_ai::jobs::register`).
+///
+/// `kb_draw::hooks::CanvasDelivery` is `kb_ai_run::register()`'s (one slot, filled first by the app).
 pub fn register() {
     kb_dbkit::hooks::set_assistant_hook(Box::new(DbHelper));
     assistant::docs::register_handlers();
-    kb_draw::hooks::set_canvas_delivery(Box::new(hooks::Delivery));
     kb_docs::hooks::set_assign_hook(Box::new(hooks::Assign));
+    kb_docs::hooks::set_docs_ai_hook(Box::new(hooks::Docs));
+    kb_ai_run::seams::set_page_notes(Some(std::sync::Arc::new(hooks::Notes)));
+    seams::set_runs(Some(std::sync::Arc::new(hooks::CoreRuns)));
 }
 
 /// The `kb_dbkit::hooks::AssistantHook` this crate registers.

@@ -1,4 +1,4 @@
-//! Calls this crate makes into code it cannot depend on: the tickets and the AI team. The Python code imports them
+//! Calls this crate makes into code it cannot depend on: the tickets, the AI team and the Docs AI. The Python code imports them
 //! late, inside a function. The upper crate registers itself at startup; while a hook is not set the call is skipped
 //! (or, for the ones that must give an answer, refused).
 //!
@@ -8,6 +8,7 @@ use std::sync::OnceLock;
 
 use async_trait::async_trait;
 use kb_db::Session;
+use kb_db::entities::{docs_page, member};
 use serde_json::{Map, Value};
 
 /// `services/ai/guard.py`: whether the current task acts for an AI run.
@@ -86,6 +87,84 @@ pub fn assign() -> Option<&'static dyn AssignHook> {
     ASSIGN.get().map(|hook| hook.as_ref())
 }
 
+/// `services/assistant/docs.py` and `services/docs_ai/handoff.py`, as `services/docs_comments.py` and
+/// `api/docs.py` call them (late imports there): the Docs AI on the comments, and the "send to AI" routes. An `Err`
+/// is what the called function raised: a `DocsError` stays one, an exception with a handler of its own (`DocsAiError`,
+/// `AssistError`) is [`crate::Error::Json`], anything else a failure of the call.
+///
+/// While no hook is set the comments behave as they did before the Docs AI existed (see `docs_comments::docs_ai`) and
+/// the "send to AI" routes are not served.
+#[async_trait]
+pub trait DocsAiHook: Send + Sync {
+    /// `assistant_docs.docs_ai_on(session, project_id)`.
+    async fn docs_ai_on(&self, session: &Session, project_id: &str) -> crate::Result<bool>;
+
+    /// `assistant_docs.member_rows(session, project_id, members, docs_ai)`.
+    async fn member_rows(
+        &self,
+        session: &Session,
+        project_id: &str,
+        members: &[member::Model],
+        docs_ai: bool,
+    ) -> crate::Result<Vec<Value>>;
+
+    /// `assistant_docs.annotate(session, page, threads)`: adds `ai_jobs` and `ai_summary` to the threads; whether
+    /// Docs AI is on.
+    async fn annotate(
+        &self,
+        session: &Session,
+        page: &docs_page::Model,
+        threads: &mut [Map<String, Value>],
+    ) -> crate::Result<bool>;
+
+    /// `assistant_docs.deliver(session, thread=, by=, intent=)`: what became of each AI member mentioned.
+    async fn deliver(
+        &self,
+        session: &Session,
+        thread: &Map<String, Value>,
+        by: &str,
+        intent: &str,
+    ) -> crate::Result<Vec<Value>>;
+
+    /// `handoff.targets(session, page_id)`.
+    async fn send_to_ai_targets(&self, session: &Session, page_id: &str) -> crate::Result<Map<String, Value>>;
+
+    /// `handoff.send(session, page_id=, thread_ids=, to=, ticket_id=, give_team_id=)`.
+    async fn send_to_ai(
+        &self,
+        session: &Session,
+        page_id: &str,
+        thread_ids: &[String],
+        to: &str,
+        ticket_id: Option<&str>,
+        give_team_id: Option<&str>,
+    ) -> crate::Result<Map<String, Value>>;
+
+    /// The answer of `GET /tickets/{ticket_id}/docs/comments`: `handoff.threads_of_ticket`, `handoff.MAX_THREADS`
+    /// and `handoff.builder_team_of`.
+    async fn ticket_doc_comments(&self, session: &Session, ticket_id: &str) -> crate::Result<Map<String, Value>>;
+
+    /// `handoff.send(session, from_ticket=ticket_id, give_team_id=)`.
+    async fn send_ticket_doc_comments(
+        &self,
+        session: &Session,
+        ticket_id: &str,
+        give_team_id: Option<&str>,
+    ) -> crate::Result<Map<String, Value>>;
+}
+
+static DOCS_AI: OnceLock<Box<dyn DocsAiHook>> = OnceLock::new();
+
+/// Register the Docs AI (once, at startup; a second call is ignored).
+pub fn set_docs_ai_hook(hook: Box<dyn DocsAiHook>) {
+    let _ = DOCS_AI.set(hook);
+}
+
+/// The Docs AI, when its crate has registered itself.
+pub fn docs_ai() -> Option<&'static dyn DocsAiHook> {
+    DOCS_AI.get().map(|hook| hook.as_ref())
+}
+
 /// What `kb-draw` calls in `services/docs.py` and `services/docs_search.py` (`kb_draw::hooks::CanvasDocs`).
 struct DocsForCanvases;
 
@@ -95,6 +174,7 @@ fn for_draw(err: crate::Error) -> kb_draw::Error {
         crate::Error::Docs(e) => kb_draw::Error::Docs(e),
         crate::Error::Db(e) => kb_draw::Error::Db(e),
         crate::Error::Value(m) | crate::Error::Other(m) => kb_draw::Error::Value(m),
+        e @ crate::Error::Json { .. } => kb_draw::Error::Value(e.to_string()),
     }
 }
 

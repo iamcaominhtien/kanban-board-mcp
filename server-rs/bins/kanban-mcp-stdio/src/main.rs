@@ -1,52 +1,61 @@
-//! Stdio entry point for the Kanban MCP server (the port of `mcp_stdio.py`).
+//! The program AI clients start for the board's MCP server over stdio (`mcp_stdio.py` before). Their configuration
+//! names this file, so it keeps its name and its place; the server itself is one program, `kanban-server`, in the
+//! same folder, and this one hands over to it: `kanban-server mcp-stdio <the same words>`, with the same standard
+//! input, output and error.
 //!
-//! Use this when connecting via VS Code, Claude Desktop, or any MCP client that launches the server as a subprocess
-//! (stdio transport). Standard output carries the protocol and nothing else; the log goes to its own file.
-//!
-//! `--bridge` is Antigravity's way into a board run: it forwards to the board's HTTP MCP endpoint with the run's
-//! token (`kb_mcp::bridge`). It is handled before anything else: no database is needed.
+//! On Unix the server program takes this process's place. On Windows it runs as a child with the same handles, and
+//! this process waits for it and ends with its exit code.
 
-use std::process::ExitCode;
-use std::time::Duration;
+use std::path::PathBuf;
+use std::process::{Command, ExitCode};
 
-use kb_db::database;
-
-/// Bring the database up, then serve stdin and stdout until the client closes them.
-async fn serve() -> Result<(), database::DatabaseError> {
-    database::setup().await?;
-    database::init_db().await?;
-    // Follow the database setting: when the board switches to another database, this process does too, so the
-    // board and the editors always talk to one database (design/screens/ai-databases.md B3)
-    let follow = tokio::spawn(database::follow_settings(Duration::from_secs(2)));
-    kb_mcp::protocol::stdio::serve().await;
-    follow.abort();
-    Ok(())
+/// `kanban-server` beside this program.
+fn server_program() -> Result<PathBuf, String> {
+    let me = std::env::current_exe().map_err(|err| format!("Cannot tell where this program is: {err}"))?;
+    // (a link to the program is followed: the server is beside the file, not beside the link)
+    let me = std::fs::canonicalize(&me).unwrap_or(me);
+    let folder = me.parent().map(PathBuf::from).unwrap_or_default();
+    let server = folder.join(format!("kanban-server{}", std::env::consts::EXE_SUFFIX));
+    if server.is_file() {
+        Ok(server)
+    } else {
+        Err(format!(
+            "{} is missing: it must be in the same folder as this program (in a checkout, build it with \
+             `cargo build -p kanban-server`).",
+            server.display()
+        ))
+    }
 }
 
-fn main() -> ExitCode {
-    let runtime = match tokio::runtime::Builder::new_multi_thread().enable_all().build() {
-        Ok(runtime) => runtime,
-        Err(err) => {
-            eprintln!("Cannot start the runtime: {err}");
-            return ExitCode::FAILURE;
-        }
-    };
-    if std::env::args().any(|arg| arg == "--bridge") {
-        return ExitCode::from(runtime.block_on(kb_mcp::bridge::main()));
-    }
+#[cfg(unix)]
+fn hand_over(mut command: Command) -> ExitCode {
+    use std::os::unix::process::CommandExt;
+    // returns only when the server program could not be started
+    let err = command.exec();
+    eprintln!("Cannot start the MCP server: {err}");
+    ExitCode::FAILURE
+}
 
-    // its connections are named "kanban-board mcp …" on PostgreSQL
-    kb_db::targets::set_role("mcp");
-    kb_log::setup_logging(true);
-    let served = runtime.block_on(serve());
-    // the blocking read of standard input must not keep the process alive once the session is over
-    runtime.shutdown_background();
-    match served {
-        Ok(()) => ExitCode::SUCCESS,
+#[cfg(not(unix))]
+fn hand_over(mut command: Command) -> ExitCode {
+    match command.status() {
+        Ok(status) => ExitCode::from(u8::try_from(status.code().unwrap_or(1)).unwrap_or(1)),
         Err(err) => {
-            tracing::error!(target: "kanban.mcp_stdio", "The MCP server could not start: {err}");
-            eprintln!("The MCP server could not start: {err}");
+            eprintln!("Cannot start the MCP server: {err}");
             ExitCode::FAILURE
         }
     }
+}
+
+fn main() -> ExitCode {
+    let server = match server_program() {
+        Ok(server) => server,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let mut command = Command::new(server);
+    command.arg("mcp-stdio").args(std::env::args_os().skip(1));
+    hand_over(command)
 }
