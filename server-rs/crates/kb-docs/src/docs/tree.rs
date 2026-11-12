@@ -15,7 +15,7 @@ use serde_json::{Map, Value, json};
 use super::RECYCLE_DAYS;
 use super::pages::{all_pages, clean_title, draft_for, get_page, latest_version, next_position, page_detail, project};
 use super::refs::refresh_link_targets;
-use crate::{Result, docs_err, docs_search, hooks};
+use crate::{Result, docs_comments, docs_err, docs_search};
 
 /// All the pages under `page`, depth first (the order `stack.pop()` of the Python code walks them).
 pub async fn descendants(session: &Session, page: &docs_page::Model, deleted: bool) -> Result<Vec<docs_page::Model>> {
@@ -301,9 +301,7 @@ pub async fn hard_delete(session: &Session, pages: &[docs_page::Model]) -> Resul
     }
     docs_search::unindex(session, &ids).await?;
     // late import in Python: docs_comments builds on this module
-    if let Some(comments) = hooks::comments() {
-        comments.delete_for_pages(session, &ids).await?;
-    }
+    docs_comments::delete_for_pages(session, &ids).await?;
     docs_link::Entity::delete_many().filter(docs_link::Column::SourcePageId.is_in(ids.clone())).exec(session).await?;
     docs_draft::Entity::delete_many().filter(docs_draft::Column::PageId.is_in(ids.clone())).exec(session).await?;
     docs_version::Entity::delete_many().filter(docs_version::Column::PageId.is_in(ids.clone())).exec(session).await?;

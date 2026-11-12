@@ -1,0 +1,705 @@
+{
+  "events: a stranger reads them": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "page_id": null,
+        "page_title": "",
+        "thread_id": null,
+        "comment_id": null,
+        "kind": "access_request",
+        "actor": "Stranger",
+        "mentioned": [],
+        "recipients": [
+          "user",
+          "Ada"
+        ],
+        "snippet": "let me in",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:2>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": null,
+        "kind": "reopened",
+        "actor": "Mia",
+        "mentioned": [],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "bearer token",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:5>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": null,
+        "kind": "resolved",
+        "actor": "Ada",
+        "mentioned": [],
+        "recipients": [
+          "Mia"
+        ],
+        "snippet": "bearer token",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:6>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": "<uuid:7>",
+        "kind": "reply",
+        "actor": "Ada",
+        "mentioned": [],
+        "recipients": [
+          "Mia"
+        ],
+        "snippet": "Seen",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:8>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": "<uuid:9>",
+        "kind": "comment",
+        "actor": "Mia",
+        "mentioned": [
+          "Ada"
+        ],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "@Ada look [diagram] [image]",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "events: all": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "page_id": null,
+        "page_title": "",
+        "thread_id": null,
+        "comment_id": null,
+        "kind": "access_request",
+        "actor": "Stranger",
+        "mentioned": [],
+        "recipients": [
+          "user",
+          "Ada"
+        ],
+        "snippet": "let me in",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:2>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": null,
+        "kind": "reopened",
+        "actor": "Mia",
+        "mentioned": [],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "bearer token",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:5>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": null,
+        "kind": "resolved",
+        "actor": "Ada",
+        "mentioned": [],
+        "recipients": [
+          "Mia"
+        ],
+        "snippet": "bearer token",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:6>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": "<uuid:7>",
+        "kind": "reply",
+        "actor": "Ada",
+        "mentioned": [],
+        "recipients": [
+          "Mia"
+        ],
+        "snippet": "Seen",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:8>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": "<uuid:9>",
+        "kind": "comment",
+        "actor": "Mia",
+        "mentioned": [
+          "Ada"
+        ],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "@Ada look [diagram] [image]",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "events: another project": {
+    "status": 200,
+    "json": []
+  },
+  "events: docs disabled": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "page_id": null,
+        "page_title": "",
+        "thread_id": null,
+        "comment_id": null,
+        "kind": "access_request",
+        "actor": "Stranger",
+        "mentioned": [],
+        "recipients": [
+          "user",
+          "Ada"
+        ],
+        "snippet": "let me in",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:2>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": null,
+        "kind": "reopened",
+        "actor": "Mia",
+        "mentioned": [],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "bearer token",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:5>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": null,
+        "kind": "resolved",
+        "actor": "Ada",
+        "mentioned": [],
+        "recipients": [
+          "Mia"
+        ],
+        "snippet": "bearer token",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:6>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": "<uuid:7>",
+        "kind": "reply",
+        "actor": "Ada",
+        "mentioned": [],
+        "recipients": [
+          "Mia"
+        ],
+        "snippet": "Seen",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:8>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": "<uuid:9>",
+        "kind": "comment",
+        "actor": "Mia",
+        "mentioned": [
+          "Ada"
+        ],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "@Ada look [diagram] [image]",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "events: empty recipient": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "page_id": null,
+        "page_title": "",
+        "thread_id": null,
+        "comment_id": null,
+        "kind": "access_request",
+        "actor": "Stranger",
+        "mentioned": [],
+        "recipients": [
+          "user",
+          "Ada"
+        ],
+        "snippet": "let me in",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:2>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": null,
+        "kind": "reopened",
+        "actor": "Mia",
+        "mentioned": [],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "bearer token",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:5>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": null,
+        "kind": "resolved",
+        "actor": "Ada",
+        "mentioned": [],
+        "recipients": [
+          "Mia"
+        ],
+        "snippet": "bearer token",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:6>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": "<uuid:7>",
+        "kind": "reply",
+        "actor": "Ada",
+        "mentioned": [],
+        "recipients": [
+          "Mia"
+        ],
+        "snippet": "Seen",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:8>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": "<uuid:9>",
+        "kind": "comment",
+        "actor": "Mia",
+        "mentioned": [
+          "Ada"
+        ],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "@Ada look [diagram] [image]",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "events: for Ada": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "page_id": null,
+        "page_title": "",
+        "thread_id": null,
+        "comment_id": null,
+        "kind": "access_request",
+        "actor": "Stranger",
+        "mentioned": [],
+        "recipients": [
+          "user",
+          "Ada"
+        ],
+        "snippet": "let me in",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:2>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": null,
+        "kind": "reopened",
+        "actor": "Mia",
+        "mentioned": [],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "bearer token",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:5>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": "<uuid:6>",
+        "kind": "comment",
+        "actor": "Mia",
+        "mentioned": [
+          "Ada"
+        ],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "@Ada look [diagram] [image]",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "events: for Mia": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "page_id": "<uuid:2>",
+        "page_title": "API",
+        "thread_id": "<uuid:3>",
+        "comment_id": null,
+        "kind": "resolved",
+        "actor": "Ada",
+        "mentioned": [],
+        "recipients": [
+          "Mia"
+        ],
+        "snippet": "bearer token",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:4>",
+        "page_id": "<uuid:2>",
+        "page_title": "API",
+        "thread_id": "<uuid:3>",
+        "comment_id": "<uuid:5>",
+        "kind": "reply",
+        "actor": "Ada",
+        "mentioned": [],
+        "recipients": [
+          "Mia"
+        ],
+        "snippet": "Seen",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "events: for ada, any case": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "page_id": null,
+        "page_title": "",
+        "thread_id": null,
+        "comment_id": null,
+        "kind": "access_request",
+        "actor": "Stranger",
+        "mentioned": [],
+        "recipients": [
+          "user",
+          "Ada"
+        ],
+        "snippet": "let me in",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:2>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": null,
+        "kind": "reopened",
+        "actor": "Mia",
+        "mentioned": [],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "bearer token",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:5>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": "<uuid:6>",
+        "kind": "comment",
+        "actor": "Mia",
+        "mentioned": [
+          "Ada"
+        ],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "@Ada look [diagram] [image]",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "events: for nobody": {
+    "status": 200,
+    "json": []
+  },
+  "events: for the board's user": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "page_id": null,
+        "page_title": "",
+        "thread_id": null,
+        "comment_id": null,
+        "kind": "access_request",
+        "actor": "Stranger",
+        "mentioned": [],
+        "recipients": [
+          "user",
+          "Ada"
+        ],
+        "snippet": "let me in",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "events: limit 0": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "page_id": null,
+        "page_title": "",
+        "thread_id": null,
+        "comment_id": null,
+        "kind": "access_request",
+        "actor": "Stranger",
+        "mentioned": [],
+        "recipients": [
+          "user",
+          "Ada"
+        ],
+        "snippet": "let me in",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "events: limit 1000": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "page_id": null,
+        "page_title": "",
+        "thread_id": null,
+        "comment_id": null,
+        "kind": "access_request",
+        "actor": "Stranger",
+        "mentioned": [],
+        "recipients": [
+          "user",
+          "Ada"
+        ],
+        "snippet": "let me in",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:2>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": null,
+        "kind": "reopened",
+        "actor": "Mia",
+        "mentioned": [],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "bearer token",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:5>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": null,
+        "kind": "resolved",
+        "actor": "Ada",
+        "mentioned": [],
+        "recipients": [
+          "Mia"
+        ],
+        "snippet": "bearer token",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:6>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": "<uuid:7>",
+        "kind": "reply",
+        "actor": "Ada",
+        "mentioned": [],
+        "recipients": [
+          "Mia"
+        ],
+        "snippet": "Seen",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:8>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": "<uuid:9>",
+        "kind": "comment",
+        "actor": "Mia",
+        "mentioned": [
+          "Ada"
+        ],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "@Ada look [diagram] [image]",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "events: limit 2": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "page_id": null,
+        "page_title": "",
+        "thread_id": null,
+        "comment_id": null,
+        "kind": "access_request",
+        "actor": "Stranger",
+        "mentioned": [],
+        "recipients": [
+          "user",
+          "Ada"
+        ],
+        "snippet": "let me in",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:2>",
+        "page_id": "<uuid:3>",
+        "page_title": "API",
+        "thread_id": "<uuid:4>",
+        "comment_id": null,
+        "kind": "reopened",
+        "actor": "Mia",
+        "mentioned": [],
+        "recipients": [
+          "Ada"
+        ],
+        "snippet": "bearer token",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "events: limit negative": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "page_id": null,
+        "page_title": "",
+        "thread_id": null,
+        "comment_id": null,
+        "kind": "access_request",
+        "actor": "Stranger",
+        "mentioned": [],
+        "recipients": [
+          "user",
+          "Ada"
+        ],
+        "snippet": "let me in",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "events: limit not a number": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "limit"
+        ]
+      ]
+    }
+  },
+  "events: limit with a recipient": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "page_id": null,
+        "page_title": "",
+        "thread_id": null,
+        "comment_id": null,
+        "kind": "access_request",
+        "actor": "Stranger",
+        "mentioned": [],
+        "recipients": [
+          "user",
+          "Ada"
+        ],
+        "snippet": "let me in",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "events: none yet": {
+    "status": 200,
+    "json": []
+  },
+  "events: unknown project": {
+    "status": 200,
+    "json": []
+  }
+}

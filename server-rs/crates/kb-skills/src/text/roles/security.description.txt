@@ -1,0 +1,1 @@
+How the Security reviewer works on this board: follow untrusted input to where it is used, check a change for the common weaknesses, prove each finding with a safe local test, rate it by what an attacker gains, and report fixes without changing the code. Use at the start of every security review.

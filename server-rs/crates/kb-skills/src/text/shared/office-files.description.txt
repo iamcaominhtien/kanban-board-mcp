@@ -1,0 +1,1 @@
+How to make Excel, Word and PDF files that work and look considered, and how to look at any office file before handing it in: real formulas and styles, then rendering each sheet, page or slide to an image to check it, on whatever the machine has. Use whenever you create or change a .xlsx, .docx or .pdf file (decks: `slides`).

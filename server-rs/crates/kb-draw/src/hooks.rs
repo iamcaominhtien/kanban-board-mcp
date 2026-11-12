@@ -45,3 +45,50 @@ pub fn set_canvas_docs(hook: Box<dyn CanvasDocs>) {
 pub fn canvas_docs() -> Option<&'static dyn CanvasDocs> {
     CANVAS_DOCS.get().map(|hook| hook.as_ref())
 }
+
+/// Why handing a note to an AI team failed (`services/canvas_delivery.py` tells the cases apart).
+#[derive(Debug, Clone)]
+pub enum DeliverError {
+    /// `RunError`: a team that waits for a person, a run that cannot start. The text is shown as the reason.
+    Run(String),
+    /// `ValueError`: the note could not be left on the page. The text is shown as the reason.
+    Value(String),
+    /// Any other exception: logged, and the reason is the generic one.
+    Other(String),
+}
+
+/// `services/assistant/docs.py` and `services/ai/messaging.py`, as `canvas_delivery` calls them (late imports there).
+#[async_trait]
+pub trait CanvasDelivery: Send + Sync {
+    /// `assistant_docs.docs_ai_on(session, project_id)`: whether the Docs assistant is on and ready.
+    async fn docs_ai_on(&self, session: &Session, project_id: &str) -> crate::Result<bool>;
+    /// `messaging.deliver_to_ticket(ticket_id, note, by=by, trigger=trigger, depth=depth)`.
+    async fn deliver_to_ticket(
+        &self,
+        ticket_id: &str,
+        note: &str,
+        by: &str,
+        trigger: &str,
+        depth: i32,
+    ) -> Result<(), DeliverError>;
+    /// `messaging.deliver_to_page(page_id, note, by=by, depth=depth)`: the `delivered` key of its answer.
+    async fn deliver_to_page(
+        &self,
+        page_id: &str,
+        note: &str,
+        by: &str,
+        depth: i32,
+    ) -> Result<Option<String>, DeliverError>;
+}
+
+static CANVAS_DELIVERY: OnceLock<Box<dyn CanvasDelivery>> = OnceLock::new();
+
+/// Register the AI team and assistant code (once, at startup; a second call is ignored).
+pub fn set_canvas_delivery(hook: Box<dyn CanvasDelivery>) {
+    let _ = CANVAS_DELIVERY.set(hook);
+}
+
+/// The AI team and assistant code, when its crate has registered itself.
+pub fn canvas_delivery() -> Option<&'static dyn CanvasDelivery> {
+    CANVAS_DELIVERY.get().map(|hook| hook.as_ref())
+}

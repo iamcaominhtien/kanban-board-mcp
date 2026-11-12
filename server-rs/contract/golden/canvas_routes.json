@@ -3715,6 +3715,5008 @@
       }
     }
   },
+  "cm_members_doc": {
+    "status": 200,
+    "body": [
+      {
+        "id": "<uuid:1>",
+        "name": "Admin",
+        "color": "#3B82F6",
+        "role": "member",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:2>",
+        "name": "An",
+        "color": "#123456",
+        "role": "member",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:3>",
+        "name": "Vi",
+        "color": "#123456",
+        "role": "viewer",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:4>",
+        "name": "Hoa Tran",
+        "color": "#123456",
+        "role": "member",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:5>",
+        "name": "Ann",
+        "color": "#123456",
+        "role": "member",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:6>",
+        "name": "Designer AI",
+        "color": "#123456",
+        "role": "member",
+        "kind": "ai",
+        "ai": {
+          "status": "ready",
+          "usable": false,
+          "note": "Docs AI is off",
+          "provider": "claude-code"
+        }
+      },
+      {
+        "id": "<uuid:7>",
+        "name": "Paused AI",
+        "color": "#123456",
+        "role": "member",
+        "kind": "ai",
+        "ai": {
+          "status": "paused",
+          "usable": false,
+          "note": "Paused",
+          "provider": "claude-code"
+        }
+      },
+      {
+        "id": "<uuid:8>",
+        "name": "Ghost AI",
+        "color": "#123456",
+        "role": "member",
+        "kind": "ai",
+        "ai": {
+          "status": "unavailable",
+          "usable": false,
+          "note": "Not set up",
+          "provider": "claude-code"
+        }
+      }
+    ]
+  },
+  "cm_members_idea": {
+    "status": 200,
+    "body": [
+      {
+        "id": "<uuid:1>",
+        "name": "Admin",
+        "color": "#3B82F6",
+        "role": "member",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:2>",
+        "name": "An",
+        "color": "#123456",
+        "role": "member",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:3>",
+        "name": "Vi",
+        "color": "#123456",
+        "role": "viewer",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:4>",
+        "name": "Hoa Tran",
+        "color": "#123456",
+        "role": "member",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:5>",
+        "name": "Ann",
+        "color": "#123456",
+        "role": "member",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:6>",
+        "name": "Designer AI",
+        "color": "#123456",
+        "role": "member",
+        "kind": "ai",
+        "ai": {
+          "status": "ready",
+          "usable": false,
+          "note": "Ticket or page canvases only",
+          "provider": "claude-code"
+        }
+      },
+      {
+        "id": "<uuid:7>",
+        "name": "Paused AI",
+        "color": "#123456",
+        "role": "member",
+        "kind": "ai",
+        "ai": {
+          "status": "paused",
+          "usable": false,
+          "note": "Paused",
+          "provider": "claude-code"
+        }
+      },
+      {
+        "id": "<uuid:8>",
+        "name": "Ghost AI",
+        "color": "#123456",
+        "role": "member",
+        "kind": "ai",
+        "ai": {
+          "status": "unavailable",
+          "usable": false,
+          "note": "Not set up",
+          "provider": "claude-code"
+        }
+      }
+    ]
+  },
+  "cm_members_ticket": {
+    "status": 200,
+    "body": [
+      {
+        "id": "<uuid:1>",
+        "name": "Admin",
+        "color": "#3B82F6",
+        "role": "member",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:2>",
+        "name": "An",
+        "color": "#123456",
+        "role": "member",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:3>",
+        "name": "Vi",
+        "color": "#123456",
+        "role": "viewer",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:4>",
+        "name": "Hoa Tran",
+        "color": "#123456",
+        "role": "member",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:5>",
+        "name": "Ann",
+        "color": "#123456",
+        "role": "member",
+        "kind": "human"
+      },
+      {
+        "id": "<uuid:6>",
+        "name": "Designer AI",
+        "color": "#123456",
+        "role": "member",
+        "kind": "ai",
+        "ai": {
+          "status": "ready",
+          "usable": false,
+          "note": "Not on this ticket",
+          "provider": "claude-code"
+        }
+      },
+      {
+        "id": "<uuid:7>",
+        "name": "Paused AI",
+        "color": "#123456",
+        "role": "member",
+        "kind": "ai",
+        "ai": {
+          "status": "paused",
+          "usable": false,
+          "note": "Paused",
+          "provider": "claude-code"
+        }
+      },
+      {
+        "id": "<uuid:8>",
+        "name": "Ghost AI",
+        "color": "#123456",
+        "role": "member",
+        "kind": "ai",
+        "ai": {
+          "status": "unavailable",
+          "usable": false,
+          "note": "Not set up",
+          "provider": "claude-code"
+        }
+      }
+    ]
+  },
+  "cm_members_no_project": {
+    "status": 200,
+    "body": []
+  },
+  "cm_members_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "cm_members_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "cm_thread_frame_anchor": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 1,
+      "board_id": "<b:31>",
+      "x": 0.7,
+      "y": 0.4,
+      "page": null,
+      "anchor": {
+        "ox": 1.0,
+        "oy": 0.25,
+        "sel": ".logo",
+        "text": "Sign in",
+        "w": 390
+      },
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Logo too small",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_plane": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 2,
+      "board_id": null,
+      "x": 120.0,
+      "y": 80.0,
+      "page": "<p:32>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Plane note",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_plane_page": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 3,
+      "board_id": null,
+      "x": 5.0,
+      "y": 6.0,
+      "page": "<p:32>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "On a tab",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_plane_unknown_page": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 4,
+      "board_id": null,
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:32>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Odd tab",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_clamped": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 5,
+      "board_id": "<b:31>",
+      "x": 1.0,
+      "y": 0.0,
+      "page": null,
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Clamped",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_anchor_unusable": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 6,
+      "board_id": "<b:31>",
+      "x": 0.5,
+      "y": 0.5,
+      "page": null,
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "No anchor",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_anchor_on_plane": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 7,
+      "board_id": null,
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:32>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Plane anchor",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_empty_board_id_is_plane": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 8,
+      "board_id": "",
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:32>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Empty id",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_unknown_board": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "board_not_found",
+        "message": "That frame is not on this canvas any more."
+      }
+    }
+  },
+  "cm_thread_empty_body": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "empty_comment",
+        "message": "A comment needs some text."
+      }
+    }
+  },
+  "cm_thread_missing_body": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "cm_thread_bad_x": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "cm_thread_bad_anchor": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "cm_thread_long_body": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 9,
+      "board_id": null,
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:32>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "cm_thread_unknown_canvas": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "cm_thread_mention_typed": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 10,
+      "board_id": null,
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:32>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Hello @Hoa Tran, and @ann too",
+          "mentions": [
+            "<uuid:3>",
+            "<uuid:4>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_mention_picked": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 11,
+      "board_id": null,
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:32>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "@[Hoa Tran](member:<uuid:3>) and @[Ann](member:<uuid:4>) @Ann",
+          "mentions": [
+            "<uuid:3>",
+            "<uuid:4>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_mention_self": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 12,
+      "board_id": null,
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:32>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "Hoa Tran",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "Hoa Tran",
+          "body": "Note to @Hoa Tran myself",
+          "mentions": [
+            "<uuid:3>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_mention_viewer_unknown": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 13,
+      "board_id": null,
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:32>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "@Vi hello @Nobody",
+          "mentions": [
+            "<uuid:3>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_ai_on_idea": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:33>",
+      "number": 1,
+      "board_id": null,
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:34>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "@Designer AI look",
+          "mentions": [
+            "<uuid:3>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": [
+        {
+          "member_id": "<uuid:3>",
+          "name": "Designer AI",
+          "result": "not_delivered",
+          "reason": "A team answers a canvas comment only on a ticket's canvas or a Docs page's canvas."
+        }
+      ]
+    }
+  },
+  "cm_thread_ai_not_on_ticket": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:35>",
+      "number": 1,
+      "board_id": null,
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:36>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "@Designer AI @Paused AI @Ghost AI",
+          "mentions": [
+            "<uuid:3>",
+            "<uuid:4>",
+            "<uuid:5>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": [
+        {
+          "member_id": "<uuid:3>",
+          "name": "Designer AI",
+          "result": "not_delivered",
+          "reason": "This team is not on this ticket."
+        },
+        {
+          "member_id": "<uuid:4>",
+          "name": "Paused AI",
+          "result": "not_delivered",
+          "reason": "This team is not on this ticket."
+        },
+        {
+          "member_id": "<uuid:5>",
+          "name": "Ghost AI",
+          "result": "not_delivered",
+          "reason": "This team is not on this ticket."
+        }
+      ]
+    }
+  },
+  "cm_thread_ai_paused_on_page": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 14,
+      "board_id": null,
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:32>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "@Paused AI and @Ghost AI please",
+          "mentions": [
+            "<uuid:3>",
+            "<uuid:4>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": [
+        {
+          "member_id": "<uuid:3>",
+          "name": "Paused AI",
+          "result": "not_delivered",
+          "reason": "Paused AI is paused."
+        },
+        {
+          "member_id": "<uuid:4>",
+          "name": "Ghost AI",
+          "result": "not_delivered",
+          "reason": "Ghost AI is not set up."
+        }
+      ]
+    }
+  },
+  "cm_thread_ai_removed_is_nobody": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 15,
+      "board_id": null,
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:32>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "@Gone AI",
+          "mentions": [
+            "<uuid:3>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_by_ai_is_not_delivered": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 16,
+      "board_id": null,
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:32>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "Designer AI",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "Designer AI",
+          "body": "I am @Designer AI, @Paused AI",
+          "mentions": [
+            "<uuid:3>",
+            "<uuid:4>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_thread_no_project": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:37>",
+      "number": 1,
+      "board_id": null,
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:38>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "@Ann",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_threads_all": {
+    "status": 200,
+    "body": [
+      {
+        "id": "<uuid:1>",
+        "canvas_id": "<cv:30>",
+        "number": 1,
+        "board_id": "<b:31>",
+        "x": 0.7,
+        "y": 0.4,
+        "page": null,
+        "anchor": {
+          "ox": 1.0,
+          "oy": 0.25,
+          "sel": ".logo",
+          "text": "Sign in",
+          "w": 390
+        },
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:2>",
+            "thread_id": "<uuid:1>",
+            "author": "user",
+            "body": "Logo too small",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:3>",
+        "canvas_id": "<cv:30>",
+        "number": 2,
+        "board_id": null,
+        "x": 120.0,
+        "y": 80.0,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:4>",
+            "thread_id": "<uuid:3>",
+            "author": "user",
+            "body": "Plane note",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:5>",
+        "canvas_id": "<cv:30>",
+        "number": 3,
+        "board_id": null,
+        "x": 5.0,
+        "y": 6.0,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:6>",
+            "thread_id": "<uuid:5>",
+            "author": "user",
+            "body": "On a tab",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:7>",
+        "canvas_id": "<cv:30>",
+        "number": 4,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:8>",
+            "thread_id": "<uuid:7>",
+            "author": "user",
+            "body": "Odd tab",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:9>",
+        "canvas_id": "<cv:30>",
+        "number": 5,
+        "board_id": "<b:31>",
+        "x": 1.0,
+        "y": 0.0,
+        "page": null,
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:10>",
+            "thread_id": "<uuid:9>",
+            "author": "user",
+            "body": "Clamped",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:11>",
+        "canvas_id": "<cv:30>",
+        "number": 6,
+        "board_id": "<b:31>",
+        "x": 0.5,
+        "y": 0.5,
+        "page": null,
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:12>",
+            "thread_id": "<uuid:11>",
+            "author": "user",
+            "body": "No anchor",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:13>",
+        "canvas_id": "<cv:30>",
+        "number": 7,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:14>",
+            "thread_id": "<uuid:13>",
+            "author": "user",
+            "body": "Plane anchor",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:15>",
+        "canvas_id": "<cv:30>",
+        "number": 8,
+        "board_id": "",
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:16>",
+            "thread_id": "<uuid:15>",
+            "author": "user",
+            "body": "Empty id",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:17>",
+        "canvas_id": "<cv:30>",
+        "number": 9,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:18>",
+            "thread_id": "<uuid:17>",
+            "author": "user",
+            "body": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:19>",
+        "canvas_id": "<cv:30>",
+        "number": 10,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:20>",
+            "thread_id": "<uuid:19>",
+            "author": "user",
+            "body": "Hello @Hoa Tran, and @ann too",
+            "mentions": [
+              "<uuid:21>",
+              "<uuid:22>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:23>",
+        "canvas_id": "<cv:30>",
+        "number": 11,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:24>",
+            "thread_id": "<uuid:23>",
+            "author": "user",
+            "body": "@[Hoa Tran](member:<uuid:21>) and @[Ann](member:<uuid:22>) @Ann",
+            "mentions": [
+              "<uuid:21>",
+              "<uuid:22>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:25>",
+        "canvas_id": "<cv:30>",
+        "number": 12,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "Hoa Tran",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:26>",
+            "thread_id": "<uuid:25>",
+            "author": "Hoa Tran",
+            "body": "Note to @Hoa Tran myself",
+            "mentions": [
+              "<uuid:21>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:27>",
+        "canvas_id": "<cv:30>",
+        "number": 13,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:28>",
+            "thread_id": "<uuid:27>",
+            "author": "user",
+            "body": "@Vi hello @Nobody",
+            "mentions": [
+              "<uuid:29>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:30>",
+        "canvas_id": "<cv:30>",
+        "number": 14,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:31>",
+            "thread_id": "<uuid:30>",
+            "author": "user",
+            "body": "@Paused AI and @Ghost AI please",
+            "mentions": [
+              "<uuid:32>",
+              "<uuid:33>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:34>",
+        "canvas_id": "<cv:30>",
+        "number": 15,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:35>",
+            "thread_id": "<uuid:34>",
+            "author": "user",
+            "body": "@Gone AI",
+            "mentions": [
+              "<uuid:36>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:37>",
+        "canvas_id": "<cv:30>",
+        "number": 16,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "Designer AI",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:38>",
+            "thread_id": "<uuid:37>",
+            "author": "Designer AI",
+            "body": "I am @Designer AI, @Paused AI",
+            "mentions": [
+              "<uuid:39>",
+              "<uuid:32>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      }
+    ]
+  },
+  "cm_threads_open": {
+    "status": 200,
+    "body": [
+      {
+        "id": "<uuid:1>",
+        "canvas_id": "<cv:30>",
+        "number": 1,
+        "board_id": "<b:31>",
+        "x": 0.7,
+        "y": 0.4,
+        "page": null,
+        "anchor": {
+          "ox": 1.0,
+          "oy": 0.25,
+          "sel": ".logo",
+          "text": "Sign in",
+          "w": 390
+        },
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:2>",
+            "thread_id": "<uuid:1>",
+            "author": "user",
+            "body": "Logo too small",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:3>",
+        "canvas_id": "<cv:30>",
+        "number": 2,
+        "board_id": null,
+        "x": 120.0,
+        "y": 80.0,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:4>",
+            "thread_id": "<uuid:3>",
+            "author": "user",
+            "body": "Plane note",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:5>",
+        "canvas_id": "<cv:30>",
+        "number": 3,
+        "board_id": null,
+        "x": 5.0,
+        "y": 6.0,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:6>",
+            "thread_id": "<uuid:5>",
+            "author": "user",
+            "body": "On a tab",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:7>",
+        "canvas_id": "<cv:30>",
+        "number": 4,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:8>",
+            "thread_id": "<uuid:7>",
+            "author": "user",
+            "body": "Odd tab",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:9>",
+        "canvas_id": "<cv:30>",
+        "number": 5,
+        "board_id": "<b:31>",
+        "x": 1.0,
+        "y": 0.0,
+        "page": null,
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:10>",
+            "thread_id": "<uuid:9>",
+            "author": "user",
+            "body": "Clamped",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:11>",
+        "canvas_id": "<cv:30>",
+        "number": 6,
+        "board_id": "<b:31>",
+        "x": 0.5,
+        "y": 0.5,
+        "page": null,
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:12>",
+            "thread_id": "<uuid:11>",
+            "author": "user",
+            "body": "No anchor",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:13>",
+        "canvas_id": "<cv:30>",
+        "number": 7,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:14>",
+            "thread_id": "<uuid:13>",
+            "author": "user",
+            "body": "Plane anchor",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:15>",
+        "canvas_id": "<cv:30>",
+        "number": 8,
+        "board_id": "",
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:16>",
+            "thread_id": "<uuid:15>",
+            "author": "user",
+            "body": "Empty id",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:17>",
+        "canvas_id": "<cv:30>",
+        "number": 9,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:18>",
+            "thread_id": "<uuid:17>",
+            "author": "user",
+            "body": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:19>",
+        "canvas_id": "<cv:30>",
+        "number": 10,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:20>",
+            "thread_id": "<uuid:19>",
+            "author": "user",
+            "body": "Hello @Hoa Tran, and @ann too",
+            "mentions": [
+              "<uuid:21>",
+              "<uuid:22>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:23>",
+        "canvas_id": "<cv:30>",
+        "number": 11,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:24>",
+            "thread_id": "<uuid:23>",
+            "author": "user",
+            "body": "@[Hoa Tran](member:<uuid:21>) and @[Ann](member:<uuid:22>) @Ann",
+            "mentions": [
+              "<uuid:21>",
+              "<uuid:22>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:25>",
+        "canvas_id": "<cv:30>",
+        "number": 12,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "Hoa Tran",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:26>",
+            "thread_id": "<uuid:25>",
+            "author": "Hoa Tran",
+            "body": "Note to @Hoa Tran myself",
+            "mentions": [
+              "<uuid:21>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:27>",
+        "canvas_id": "<cv:30>",
+        "number": 13,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:28>",
+            "thread_id": "<uuid:27>",
+            "author": "user",
+            "body": "@Vi hello @Nobody",
+            "mentions": [
+              "<uuid:29>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:30>",
+        "canvas_id": "<cv:30>",
+        "number": 14,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:31>",
+            "thread_id": "<uuid:30>",
+            "author": "user",
+            "body": "@Paused AI and @Ghost AI please",
+            "mentions": [
+              "<uuid:32>",
+              "<uuid:33>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:34>",
+        "canvas_id": "<cv:30>",
+        "number": 15,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:35>",
+            "thread_id": "<uuid:34>",
+            "author": "user",
+            "body": "@Gone AI",
+            "mentions": [
+              "<uuid:36>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:37>",
+        "canvas_id": "<cv:30>",
+        "number": 16,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "Designer AI",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:38>",
+            "thread_id": "<uuid:37>",
+            "author": "Designer AI",
+            "body": "I am @Designer AI, @Paused AI",
+            "mentions": [
+              "<uuid:39>",
+              "<uuid:32>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      }
+    ]
+  },
+  "cm_threads_resolved_none": {
+    "status": 200,
+    "body": []
+  },
+  "cm_threads_other_state_is_all": {
+    "status": 200,
+    "body": [
+      {
+        "id": "<uuid:1>",
+        "canvas_id": "<cv:30>",
+        "number": 1,
+        "board_id": "<b:31>",
+        "x": 0.7,
+        "y": 0.4,
+        "page": null,
+        "anchor": {
+          "ox": 1.0,
+          "oy": 0.25,
+          "sel": ".logo",
+          "text": "Sign in",
+          "w": 390
+        },
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:2>",
+            "thread_id": "<uuid:1>",
+            "author": "user",
+            "body": "Logo too small",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:3>",
+        "canvas_id": "<cv:30>",
+        "number": 2,
+        "board_id": null,
+        "x": 120.0,
+        "y": 80.0,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:4>",
+            "thread_id": "<uuid:3>",
+            "author": "user",
+            "body": "Plane note",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:5>",
+        "canvas_id": "<cv:30>",
+        "number": 3,
+        "board_id": null,
+        "x": 5.0,
+        "y": 6.0,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:6>",
+            "thread_id": "<uuid:5>",
+            "author": "user",
+            "body": "On a tab",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:7>",
+        "canvas_id": "<cv:30>",
+        "number": 4,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:8>",
+            "thread_id": "<uuid:7>",
+            "author": "user",
+            "body": "Odd tab",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:9>",
+        "canvas_id": "<cv:30>",
+        "number": 5,
+        "board_id": "<b:31>",
+        "x": 1.0,
+        "y": 0.0,
+        "page": null,
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:10>",
+            "thread_id": "<uuid:9>",
+            "author": "user",
+            "body": "Clamped",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:11>",
+        "canvas_id": "<cv:30>",
+        "number": 6,
+        "board_id": "<b:31>",
+        "x": 0.5,
+        "y": 0.5,
+        "page": null,
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:12>",
+            "thread_id": "<uuid:11>",
+            "author": "user",
+            "body": "No anchor",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:13>",
+        "canvas_id": "<cv:30>",
+        "number": 7,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:14>",
+            "thread_id": "<uuid:13>",
+            "author": "user",
+            "body": "Plane anchor",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:15>",
+        "canvas_id": "<cv:30>",
+        "number": 8,
+        "board_id": "",
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:16>",
+            "thread_id": "<uuid:15>",
+            "author": "user",
+            "body": "Empty id",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:17>",
+        "canvas_id": "<cv:30>",
+        "number": 9,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:18>",
+            "thread_id": "<uuid:17>",
+            "author": "user",
+            "body": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:19>",
+        "canvas_id": "<cv:30>",
+        "number": 10,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:20>",
+            "thread_id": "<uuid:19>",
+            "author": "user",
+            "body": "Hello @Hoa Tran, and @ann too",
+            "mentions": [
+              "<uuid:21>",
+              "<uuid:22>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:23>",
+        "canvas_id": "<cv:30>",
+        "number": 11,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:24>",
+            "thread_id": "<uuid:23>",
+            "author": "user",
+            "body": "@[Hoa Tran](member:<uuid:21>) and @[Ann](member:<uuid:22>) @Ann",
+            "mentions": [
+              "<uuid:21>",
+              "<uuid:22>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:25>",
+        "canvas_id": "<cv:30>",
+        "number": 12,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "Hoa Tran",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:26>",
+            "thread_id": "<uuid:25>",
+            "author": "Hoa Tran",
+            "body": "Note to @Hoa Tran myself",
+            "mentions": [
+              "<uuid:21>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:27>",
+        "canvas_id": "<cv:30>",
+        "number": 13,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:28>",
+            "thread_id": "<uuid:27>",
+            "author": "user",
+            "body": "@Vi hello @Nobody",
+            "mentions": [
+              "<uuid:29>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:30>",
+        "canvas_id": "<cv:30>",
+        "number": 14,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:31>",
+            "thread_id": "<uuid:30>",
+            "author": "user",
+            "body": "@Paused AI and @Ghost AI please",
+            "mentions": [
+              "<uuid:32>",
+              "<uuid:33>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:34>",
+        "canvas_id": "<cv:30>",
+        "number": 15,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:35>",
+            "thread_id": "<uuid:34>",
+            "author": "user",
+            "body": "@Gone AI",
+            "mentions": [
+              "<uuid:36>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:37>",
+        "canvas_id": "<cv:30>",
+        "number": 16,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "Designer AI",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:38>",
+            "thread_id": "<uuid:37>",
+            "author": "Designer AI",
+            "body": "I am @Designer AI, @Paused AI",
+            "mentions": [
+              "<uuid:39>",
+              "<uuid:32>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      }
+    ]
+  },
+  "cm_threads_viewer": {
+    "status": 200,
+    "body": [
+      {
+        "id": "<uuid:1>",
+        "canvas_id": "<cv:30>",
+        "number": 1,
+        "board_id": "<b:31>",
+        "x": 0.7,
+        "y": 0.4,
+        "page": null,
+        "anchor": {
+          "ox": 1.0,
+          "oy": 0.25,
+          "sel": ".logo",
+          "text": "Sign in",
+          "w": 390
+        },
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:2>",
+            "thread_id": "<uuid:1>",
+            "author": "user",
+            "body": "Logo too small",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:3>",
+        "canvas_id": "<cv:30>",
+        "number": 2,
+        "board_id": null,
+        "x": 120.0,
+        "y": 80.0,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:4>",
+            "thread_id": "<uuid:3>",
+            "author": "user",
+            "body": "Plane note",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:5>",
+        "canvas_id": "<cv:30>",
+        "number": 3,
+        "board_id": null,
+        "x": 5.0,
+        "y": 6.0,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:6>",
+            "thread_id": "<uuid:5>",
+            "author": "user",
+            "body": "On a tab",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:7>",
+        "canvas_id": "<cv:30>",
+        "number": 4,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:8>",
+            "thread_id": "<uuid:7>",
+            "author": "user",
+            "body": "Odd tab",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:9>",
+        "canvas_id": "<cv:30>",
+        "number": 5,
+        "board_id": "<b:31>",
+        "x": 1.0,
+        "y": 0.0,
+        "page": null,
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:10>",
+            "thread_id": "<uuid:9>",
+            "author": "user",
+            "body": "Clamped",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:11>",
+        "canvas_id": "<cv:30>",
+        "number": 6,
+        "board_id": "<b:31>",
+        "x": 0.5,
+        "y": 0.5,
+        "page": null,
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:12>",
+            "thread_id": "<uuid:11>",
+            "author": "user",
+            "body": "No anchor",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:13>",
+        "canvas_id": "<cv:30>",
+        "number": 7,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:14>",
+            "thread_id": "<uuid:13>",
+            "author": "user",
+            "body": "Plane anchor",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:15>",
+        "canvas_id": "<cv:30>",
+        "number": 8,
+        "board_id": "",
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:16>",
+            "thread_id": "<uuid:15>",
+            "author": "user",
+            "body": "Empty id",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:17>",
+        "canvas_id": "<cv:30>",
+        "number": 9,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:18>",
+            "thread_id": "<uuid:17>",
+            "author": "user",
+            "body": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:19>",
+        "canvas_id": "<cv:30>",
+        "number": 10,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:20>",
+            "thread_id": "<uuid:19>",
+            "author": "user",
+            "body": "Hello @Hoa Tran, and @ann too",
+            "mentions": [
+              "<uuid:21>",
+              "<uuid:22>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:23>",
+        "canvas_id": "<cv:30>",
+        "number": 11,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:24>",
+            "thread_id": "<uuid:23>",
+            "author": "user",
+            "body": "@[Hoa Tran](member:<uuid:21>) and @[Ann](member:<uuid:22>) @Ann",
+            "mentions": [
+              "<uuid:21>",
+              "<uuid:22>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:25>",
+        "canvas_id": "<cv:30>",
+        "number": 12,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "Hoa Tran",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:26>",
+            "thread_id": "<uuid:25>",
+            "author": "Hoa Tran",
+            "body": "Note to @Hoa Tran myself",
+            "mentions": [
+              "<uuid:21>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:27>",
+        "canvas_id": "<cv:30>",
+        "number": 13,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:28>",
+            "thread_id": "<uuid:27>",
+            "author": "user",
+            "body": "@Vi hello @Nobody",
+            "mentions": [
+              "<uuid:29>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:30>",
+        "canvas_id": "<cv:30>",
+        "number": 14,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:31>",
+            "thread_id": "<uuid:30>",
+            "author": "user",
+            "body": "@Paused AI and @Ghost AI please",
+            "mentions": [
+              "<uuid:32>",
+              "<uuid:33>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:34>",
+        "canvas_id": "<cv:30>",
+        "number": 15,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:35>",
+            "thread_id": "<uuid:34>",
+            "author": "user",
+            "body": "@Gone AI",
+            "mentions": [
+              "<uuid:36>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:37>",
+        "canvas_id": "<cv:30>",
+        "number": 16,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "Designer AI",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:38>",
+            "thread_id": "<uuid:37>",
+            "author": "Designer AI",
+            "body": "I am @Designer AI, @Paused AI",
+            "mentions": [
+              "<uuid:39>",
+              "<uuid:32>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      }
+    ]
+  },
+  "cm_threads_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "cm_reply": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 1,
+      "board_id": "<b:31>",
+      "x": 0.7,
+      "y": 0.4,
+      "page": null,
+      "anchor": {
+        "ox": 1.0,
+        "oy": 0.25,
+        "sel": ".logo",
+        "text": "Sign in",
+        "w": 390
+      },
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Logo too small",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "It matches the brand sheet",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_reply_mention": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 1,
+      "board_id": "<b:31>",
+      "x": 0.7,
+      "y": 0.4,
+      "page": null,
+      "anchor": {
+        "ox": 1.0,
+        "oy": 0.25,
+        "sel": ".logo",
+        "text": "Sign in",
+        "w": 390
+      },
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Logo too small",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "It matches the brand sheet",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "cc @Hoa Tran",
+          "mentions": [
+            "<uuid:5>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_reply_ai_mention_on_idea": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:33>",
+      "number": 2,
+      "board_id": null,
+      "x": 0.5,
+      "y": 0.5,
+      "page": "<p:34>",
+      "anchor": null,
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "plain",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "@Designer AI again",
+          "mentions": [
+            "<uuid:4>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": [
+        {
+          "member_id": "<uuid:4>",
+          "name": "Designer AI",
+          "result": "not_delivered",
+          "reason": "A team answers a canvas comment only on a ticket's canvas or a Docs page's canvas."
+        }
+      ]
+    }
+  },
+  "cm_reply_empty": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "empty_comment",
+        "message": "A comment needs some text."
+      }
+    }
+  },
+  "cm_reply_missing_body": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "cm_reply_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "cm_reply_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "thread_not_found",
+        "message": "That comment thread was not found."
+      }
+    }
+  },
+  "cm_reply_by_ai": {
+    "status": 201,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 1,
+      "board_id": "<b:31>",
+      "x": 0.7,
+      "y": 0.4,
+      "page": null,
+      "anchor": {
+        "ox": 1.0,
+        "oy": 0.25,
+        "sel": ".logo",
+        "text": "Sign in",
+        "w": 390
+      },
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Logo too small",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "It matches the brand sheet",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "cc @Hoa Tran",
+          "mentions": [
+            "<uuid:5>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "Designer AI",
+          "body": "Button is 36 px",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false,
+      "deliveries": []
+    }
+  },
+  "cm_resolve_ai_on_a_persons": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "ai_cannot_resolve",
+        "message": "AI teams do not resolve a person's thread."
+      }
+    }
+  },
+  "cm_resolve": {
+    "status": 200,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 1,
+      "board_id": "<b:31>",
+      "x": 0.7,
+      "y": 0.4,
+      "page": null,
+      "anchor": {
+        "ox": 1.0,
+        "oy": 0.25,
+        "sel": ".logo",
+        "text": "Sign in",
+        "w": 390
+      },
+      "status": "resolved",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": "user",
+      "resolved_at": "<time>",
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Logo too small",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "It matches the brand sheet",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "cc @Hoa Tran",
+          "mentions": [
+            "<uuid:5>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "Designer AI",
+          "body": "Button is 36 px",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false
+    }
+  },
+  "cm_resolve_again": {
+    "status": 200,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 1,
+      "board_id": "<b:31>",
+      "x": 0.7,
+      "y": 0.4,
+      "page": null,
+      "anchor": {
+        "ox": 1.0,
+        "oy": 0.25,
+        "sel": ".logo",
+        "text": "Sign in",
+        "w": 390
+      },
+      "status": "resolved",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": "An",
+      "resolved_at": "<time>",
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Logo too small",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "It matches the brand sheet",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "cc @Hoa Tran",
+          "mentions": [
+            "<uuid:5>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "Designer AI",
+          "body": "Button is 36 px",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false
+    }
+  },
+  "cm_resolve_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "cm_resolve_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "thread_not_found",
+        "message": "That comment thread was not found."
+      }
+    }
+  },
+  "cm_threads_resolved": {
+    "status": 200,
+    "body": [
+      {
+        "id": "<uuid:1>",
+        "canvas_id": "<cv:30>",
+        "number": 1,
+        "board_id": "<b:31>",
+        "x": 0.7,
+        "y": 0.4,
+        "page": null,
+        "anchor": {
+          "ox": 1.0,
+          "oy": 0.25,
+          "sel": ".logo",
+          "text": "Sign in",
+          "w": 390
+        },
+        "status": "resolved",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": "An",
+        "resolved_at": "<time>",
+        "comments": [
+          {
+            "id": "<uuid:2>",
+            "thread_id": "<uuid:1>",
+            "author": "user",
+            "body": "Logo too small",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          },
+          {
+            "id": "<uuid:3>",
+            "thread_id": "<uuid:1>",
+            "author": "user",
+            "body": "It matches the brand sheet",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          },
+          {
+            "id": "<uuid:4>",
+            "thread_id": "<uuid:1>",
+            "author": "user",
+            "body": "cc @Hoa Tran",
+            "mentions": [
+              "<uuid:5>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          },
+          {
+            "id": "<uuid:6>",
+            "thread_id": "<uuid:1>",
+            "author": "Designer AI",
+            "body": "Button is 36 px",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      }
+    ]
+  },
+  "cm_canvas_open_comments": {
+    "status": 200,
+    "body": {
+      "open_comments": 15
+    }
+  },
+  "cm_reopen": {
+    "status": 200,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 1,
+      "board_id": "<b:31>",
+      "x": 0.7,
+      "y": 0.4,
+      "page": null,
+      "anchor": {
+        "ox": 1.0,
+        "oy": 0.25,
+        "sel": ".logo",
+        "text": "Sign in",
+        "w": 390
+      },
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Logo too small",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "It matches the brand sheet",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "cc @Hoa Tran",
+          "mentions": [
+            "<uuid:5>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "Designer AI",
+          "body": "Button is 36 px",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false
+    }
+  },
+  "cm_reopen_open_one": {
+    "status": 200,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 1,
+      "board_id": "<b:31>",
+      "x": 0.7,
+      "y": 0.4,
+      "page": null,
+      "anchor": {
+        "ox": 1.0,
+        "oy": 0.25,
+        "sel": ".logo",
+        "text": "Sign in",
+        "w": 390
+      },
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Logo too small",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "It matches the brand sheet",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "cc @Hoa Tran",
+          "mentions": [
+            "<uuid:5>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "Designer AI",
+          "body": "Button is 36 px",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false
+    }
+  },
+  "cm_reopen_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "cm_reopen_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "thread_not_found",
+        "message": "That comment thread was not found."
+      }
+    }
+  },
+  "cm_resolve_ai_own": {
+    "status": 200,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 17,
+      "board_id": "<b:31>",
+      "x": 0.5,
+      "y": 0.5,
+      "page": null,
+      "anchor": null,
+      "status": "resolved",
+      "created_by": "Designer AI",
+      "created_at": "<time>",
+      "resolved_by": "Designer AI",
+      "resolved_at": "<time>",
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "Designer AI",
+          "body": "Mine",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false
+    }
+  },
+  "cm_edit": {
+    "status": 200,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 1,
+      "board_id": "<b:31>",
+      "x": 0.7,
+      "y": 0.4,
+      "page": null,
+      "anchor": {
+        "ox": 1.0,
+        "oy": 0.25,
+        "sel": ".logo",
+        "text": "Sign in",
+        "w": 390
+      },
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Logo is fine now",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": "<time>"
+        },
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "It matches the brand sheet",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "cc @Hoa Tran",
+          "mentions": [
+            "<uuid:5>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "Designer AI",
+          "body": "Button is 36 px",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false
+    }
+  },
+  "cm_edit_mention": {
+    "status": 200,
+    "body": {
+      "id": "<uuid:1>",
+      "canvas_id": "<cv:30>",
+      "number": 1,
+      "board_id": "<b:31>",
+      "x": 0.7,
+      "y": 0.4,
+      "page": null,
+      "anchor": {
+        "ox": 1.0,
+        "oy": 0.25,
+        "sel": ".logo",
+        "text": "Sign in",
+        "w": 390
+      },
+      "status": "open",
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "comments": [
+        {
+          "id": "<uuid:2>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "ask @Ann",
+          "mentions": [
+            "<uuid:3>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": "<time>"
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "It matches the brand sheet",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:5>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "cc @Hoa Tran",
+          "mentions": [
+            "<uuid:6>"
+          ],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        },
+        {
+          "id": "<uuid:7>",
+          "thread_id": "<uuid:1>",
+          "author": "Designer AI",
+          "body": "Button is 36 px",
+          "mentions": [],
+          "ai": null,
+          "is_ai": false,
+          "created_at": "<time>",
+          "edited_at": null
+        }
+      ],
+      "by_ai": false
+    }
+  },
+  "cm_edit_empty": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "empty_comment",
+        "message": "A comment needs some text."
+      }
+    }
+  },
+  "cm_edit_missing_body": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "cm_edit_not_yours": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "not_yours",
+        "message": "You can only edit your own comments."
+      }
+    }
+  },
+  "cm_edit_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "cm_edit_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "comment_not_found",
+        "message": "That comment was not found."
+      }
+    }
+  },
+  "cm_delete_not_yours": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "not_yours",
+        "message": "You can only delete your own comments."
+      }
+    }
+  },
+  "cm_delete_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "cm_delete_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "comment_not_found",
+        "message": "That comment was not found."
+      }
+    }
+  },
+  "cm_delete_reply": {
+    "status": 200,
+    "body": {
+      "deleted": "comment",
+      "thread": {
+        "id": "<uuid:1>",
+        "canvas_id": "<cv:30>",
+        "number": 1,
+        "board_id": "<b:31>",
+        "x": 0.7,
+        "y": 0.4,
+        "page": null,
+        "anchor": {
+          "ox": 1.0,
+          "oy": 0.25,
+          "sel": ".logo",
+          "text": "Sign in",
+          "w": 390
+        },
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:2>",
+            "thread_id": "<uuid:1>",
+            "author": "user",
+            "body": "ask @Ann",
+            "mentions": [
+              "<uuid:3>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": "<time>"
+          },
+          {
+            "id": "<uuid:4>",
+            "thread_id": "<uuid:1>",
+            "author": "user",
+            "body": "cc @Hoa Tran",
+            "mentions": [
+              "<uuid:5>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          },
+          {
+            "id": "<uuid:6>",
+            "thread_id": "<uuid:1>",
+            "author": "Designer AI",
+            "body": "Button is 36 px",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      }
+    }
+  },
+  "cm_delete_opening_comment": {
+    "status": 200,
+    "body": {
+      "deleted": "thread",
+      "thread_id": "<uuid:1>"
+    }
+  },
+  "cm_delete_gone": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "comment_not_found",
+        "message": "That comment was not found."
+      }
+    }
+  },
+  "cm_threads_after": {
+    "status": 200,
+    "body": [
+      {
+        "id": "<uuid:1>",
+        "canvas_id": "<cv:30>",
+        "number": 2,
+        "board_id": null,
+        "x": 120.0,
+        "y": 80.0,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:2>",
+            "thread_id": "<uuid:1>",
+            "author": "user",
+            "body": "Plane note",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:3>",
+        "canvas_id": "<cv:30>",
+        "number": 3,
+        "board_id": null,
+        "x": 5.0,
+        "y": 6.0,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:4>",
+            "thread_id": "<uuid:3>",
+            "author": "user",
+            "body": "On a tab",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:5>",
+        "canvas_id": "<cv:30>",
+        "number": 4,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:6>",
+            "thread_id": "<uuid:5>",
+            "author": "user",
+            "body": "Odd tab",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:7>",
+        "canvas_id": "<cv:30>",
+        "number": 5,
+        "board_id": "<b:31>",
+        "x": 1.0,
+        "y": 0.0,
+        "page": null,
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:8>",
+            "thread_id": "<uuid:7>",
+            "author": "user",
+            "body": "Clamped",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:9>",
+        "canvas_id": "<cv:30>",
+        "number": 6,
+        "board_id": "<b:31>",
+        "x": 0.5,
+        "y": 0.5,
+        "page": null,
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:10>",
+            "thread_id": "<uuid:9>",
+            "author": "user",
+            "body": "No anchor",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:11>",
+        "canvas_id": "<cv:30>",
+        "number": 7,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:12>",
+            "thread_id": "<uuid:11>",
+            "author": "user",
+            "body": "Plane anchor",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:13>",
+        "canvas_id": "<cv:30>",
+        "number": 8,
+        "board_id": "",
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:14>",
+            "thread_id": "<uuid:13>",
+            "author": "user",
+            "body": "Empty id",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:15>",
+        "canvas_id": "<cv:30>",
+        "number": 9,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:16>",
+            "thread_id": "<uuid:15>",
+            "author": "user",
+            "body": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:17>",
+        "canvas_id": "<cv:30>",
+        "number": 10,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:18>",
+            "thread_id": "<uuid:17>",
+            "author": "user",
+            "body": "Hello @Hoa Tran, and @ann too",
+            "mentions": [
+              "<uuid:19>",
+              "<uuid:20>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:21>",
+        "canvas_id": "<cv:30>",
+        "number": 11,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:22>",
+            "thread_id": "<uuid:21>",
+            "author": "user",
+            "body": "@[Hoa Tran](member:<uuid:19>) and @[Ann](member:<uuid:20>) @Ann",
+            "mentions": [
+              "<uuid:19>",
+              "<uuid:20>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:23>",
+        "canvas_id": "<cv:30>",
+        "number": 12,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "Hoa Tran",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:24>",
+            "thread_id": "<uuid:23>",
+            "author": "Hoa Tran",
+            "body": "Note to @Hoa Tran myself",
+            "mentions": [
+              "<uuid:19>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:25>",
+        "canvas_id": "<cv:30>",
+        "number": 13,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:26>",
+            "thread_id": "<uuid:25>",
+            "author": "user",
+            "body": "@Vi hello @Nobody",
+            "mentions": [
+              "<uuid:27>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:28>",
+        "canvas_id": "<cv:30>",
+        "number": 14,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:29>",
+            "thread_id": "<uuid:28>",
+            "author": "user",
+            "body": "@Paused AI and @Ghost AI please",
+            "mentions": [
+              "<uuid:30>",
+              "<uuid:31>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:32>",
+        "canvas_id": "<cv:30>",
+        "number": 15,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "user",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:33>",
+            "thread_id": "<uuid:32>",
+            "author": "user",
+            "body": "@Gone AI",
+            "mentions": [
+              "<uuid:34>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:35>",
+        "canvas_id": "<cv:30>",
+        "number": 16,
+        "board_id": null,
+        "x": 0.5,
+        "y": 0.5,
+        "page": "<p:32>",
+        "anchor": null,
+        "status": "open",
+        "created_by": "Designer AI",
+        "created_at": "<time>",
+        "resolved_by": null,
+        "resolved_at": null,
+        "comments": [
+          {
+            "id": "<uuid:36>",
+            "thread_id": "<uuid:35>",
+            "author": "Designer AI",
+            "body": "I am @Designer AI, @Paused AI",
+            "mentions": [
+              "<uuid:37>",
+              "<uuid:30>"
+            ],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      },
+      {
+        "id": "<uuid:38>",
+        "canvas_id": "<cv:30>",
+        "number": 17,
+        "board_id": "<b:31>",
+        "x": 0.5,
+        "y": 0.5,
+        "page": null,
+        "anchor": null,
+        "status": "resolved",
+        "created_by": "Designer AI",
+        "created_at": "<time>",
+        "resolved_by": "Designer AI",
+        "resolved_at": "<time>",
+        "comments": [
+          {
+            "id": "<uuid:39>",
+            "thread_id": "<uuid:38>",
+            "author": "Designer AI",
+            "body": "Mine",
+            "mentions": [],
+            "ai": null,
+            "is_ai": false,
+            "created_at": "<time>",
+            "edited_at": null
+          }
+        ],
+        "by_ai": false
+      }
+    ]
+  },
+  "cm_notifications_hoa": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "<nt:39>",
+          "kind": "mention",
+          "kind_label": "Someone mentioned you",
+          "needs": true,
+          "project_id": "<uuid:1>",
+          "title": "Someone mentioned you on Login redesign",
+          "body": "“cc @Hoa Tran”",
+          "target_kind": "canvas_thread",
+          "target_id": "<uuid:2>",
+          "ticket_id": null,
+          "page_id": null,
+          "member_id": null,
+          "member_name": null,
+          "actor": "user",
+          "count": 1,
+          "items": [
+            {
+              "event_id": 6,
+              "title": "Someone mentioned you on Login redesign",
+              "body": "“cc @Hoa Tran”",
+              "ticket_id": null,
+              "member_id": null,
+              "actor": "user",
+              "at": "<time>"
+            }
+          ],
+          "data": {
+            "canvas_id": "<cv:30>",
+            "canvas_title": "Login redesign",
+            "board_id": "<b:31>",
+            "comment_id": "<uuid:3>",
+            "gone": true,
+            "gone_reason": "The comment thread is gone."
+          },
+          "inapp": true,
+          "desktop": true,
+          "read": false,
+          "read_at": null,
+          "done": false,
+          "done_at": null,
+          "done_text": null,
+          "done_by": null,
+          "gone": true,
+          "gone_reason": "The comment thread is gone.",
+          "snoozed": false,
+          "snoozed_until": null,
+          "cleared": false,
+          "cleared_at": null,
+          "group_key": "mention:canvas_thread:<uuid:2>",
+          "event_id": 6,
+          "last_event_id": 6,
+          "created_at": "<time>",
+          "updated_at": "<time>",
+          "actions": [
+            {
+              "id": "dismiss",
+              "label": "Dismiss"
+            }
+          ],
+          "reminded": false,
+          "dismissable": true
+        },
+        {
+          "id": "<nt:40>",
+          "kind": "mention",
+          "kind_label": "Someone mentioned you",
+          "needs": true,
+          "project_id": "<uuid:1>",
+          "title": "Someone mentioned you on Login redesign",
+          "body": "“@Hoa Tran and @Ann @Ann”",
+          "target_kind": "canvas_thread",
+          "target_id": "<uuid:4>",
+          "ticket_id": null,
+          "page_id": null,
+          "member_id": null,
+          "member_name": null,
+          "actor": "user",
+          "count": 1,
+          "items": [
+            {
+              "event_id": 3,
+              "title": "Someone mentioned you on Login redesign",
+              "body": "“@Hoa Tran and @Ann @Ann”",
+              "ticket_id": null,
+              "member_id": null,
+              "actor": "user",
+              "at": "<time>"
+            }
+          ],
+          "data": {
+            "canvas_id": "<cv:30>",
+            "canvas_title": "Login redesign",
+            "board_id": null,
+            "comment_id": "<uuid:5>"
+          },
+          "inapp": true,
+          "desktop": true,
+          "read": false,
+          "read_at": null,
+          "done": false,
+          "done_at": null,
+          "done_text": null,
+          "done_by": null,
+          "gone": false,
+          "gone_reason": null,
+          "snoozed": false,
+          "snoozed_until": null,
+          "cleared": false,
+          "cleared_at": null,
+          "group_key": "mention:canvas_thread:<uuid:4>",
+          "event_id": 3,
+          "last_event_id": 3,
+          "created_at": "<time>",
+          "updated_at": "<time>",
+          "actions": [
+            {
+              "id": "open",
+              "label": "Open"
+            }
+          ],
+          "reminded": false,
+          "dismissable": true
+        },
+        {
+          "id": "<nt:41>",
+          "kind": "mention",
+          "kind_label": "Someone mentioned you",
+          "needs": true,
+          "project_id": "<uuid:1>",
+          "title": "Someone mentioned you on Login redesign",
+          "body": "“Hello @Hoa Tran, and @ann too”",
+          "target_kind": "canvas_thread",
+          "target_id": "<uuid:6>",
+          "ticket_id": null,
+          "page_id": null,
+          "member_id": null,
+          "member_name": null,
+          "actor": "user",
+          "count": 1,
+          "items": [
+            {
+              "event_id": 1,
+              "title": "Someone mentioned you on Login redesign",
+              "body": "“Hello @Hoa Tran, and @ann too”",
+              "ticket_id": null,
+              "member_id": null,
+              "actor": "user",
+              "at": "<time>"
+            }
+          ],
+          "data": {
+            "canvas_id": "<cv:30>",
+            "canvas_title": "Login redesign",
+            "board_id": null,
+            "comment_id": "<uuid:7>"
+          },
+          "inapp": true,
+          "desktop": true,
+          "read": false,
+          "read_at": null,
+          "done": false,
+          "done_at": null,
+          "done_text": null,
+          "done_by": null,
+          "gone": false,
+          "gone_reason": null,
+          "snoozed": false,
+          "snoozed_until": null,
+          "cleared": false,
+          "cleared_at": null,
+          "group_key": "mention:canvas_thread:<uuid:6>",
+          "event_id": 1,
+          "last_event_id": 1,
+          "created_at": "<time>",
+          "updated_at": "<time>",
+          "actions": [
+            {
+              "id": "open",
+              "label": "Open"
+            }
+          ],
+          "reminded": false,
+          "dismissable": true
+        }
+      ],
+      "total": 3,
+      "head": 6,
+      "day_card": null,
+      "now": "<time>"
+    }
+  },
+  "cm_notifications_ann": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": "<nt:42>",
+          "kind": "mention",
+          "kind_label": "Someone mentioned you",
+          "needs": true,
+          "project_id": "<uuid:1>",
+          "title": "Someone mentioned you on Login redesign",
+          "body": "“@Hoa Tran and @Ann @Ann”",
+          "target_kind": "canvas_thread",
+          "target_id": "<uuid:2>",
+          "ticket_id": null,
+          "page_id": null,
+          "member_id": null,
+          "member_name": null,
+          "actor": "user",
+          "count": 1,
+          "items": [
+            {
+              "event_id": 4,
+              "title": "Someone mentioned you on Login redesign",
+              "body": "“@Hoa Tran and @Ann @Ann”",
+              "ticket_id": null,
+              "member_id": null,
+              "actor": "user",
+              "at": "<time>"
+            }
+          ],
+          "data": {
+            "canvas_id": "<cv:30>",
+            "canvas_title": "Login redesign",
+            "board_id": null,
+            "comment_id": "<uuid:3>"
+          },
+          "inapp": true,
+          "desktop": true,
+          "read": false,
+          "read_at": null,
+          "done": false,
+          "done_at": null,
+          "done_text": null,
+          "done_by": null,
+          "gone": false,
+          "gone_reason": null,
+          "snoozed": false,
+          "snoozed_until": null,
+          "cleared": false,
+          "cleared_at": null,
+          "group_key": "mention:canvas_thread:<uuid:2>",
+          "event_id": 4,
+          "last_event_id": 4,
+          "created_at": "<time>",
+          "updated_at": "<time>",
+          "actions": [
+            {
+              "id": "open",
+              "label": "Open"
+            }
+          ],
+          "reminded": false,
+          "dismissable": true
+        },
+        {
+          "id": "<nt:43>",
+          "kind": "mention",
+          "kind_label": "Someone mentioned you",
+          "needs": true,
+          "project_id": "<uuid:1>",
+          "title": "Someone mentioned you on Login redesign",
+          "body": "“Hello @Hoa Tran, and @ann too”",
+          "target_kind": "canvas_thread",
+          "target_id": "<uuid:4>",
+          "ticket_id": null,
+          "page_id": null,
+          "member_id": null,
+          "member_name": null,
+          "actor": "user",
+          "count": 1,
+          "items": [
+            {
+              "event_id": 2,
+              "title": "Someone mentioned you on Login redesign",
+              "body": "“Hello @Hoa Tran, and @ann too”",
+              "ticket_id": null,
+              "member_id": null,
+              "actor": "user",
+              "at": "<time>"
+            }
+          ],
+          "data": {
+            "canvas_id": "<cv:30>",
+            "canvas_title": "Login redesign",
+            "board_id": null,
+            "comment_id": "<uuid:5>"
+          },
+          "inapp": true,
+          "desktop": true,
+          "read": false,
+          "read_at": null,
+          "done": false,
+          "done_at": null,
+          "done_text": null,
+          "done_by": null,
+          "gone": false,
+          "gone_reason": null,
+          "snoozed": false,
+          "snoozed_until": null,
+          "cleared": false,
+          "cleared_at": null,
+          "group_key": "mention:canvas_thread:<uuid:4>",
+          "event_id": 2,
+          "last_event_id": 2,
+          "created_at": "<time>",
+          "updated_at": "<time>",
+          "actions": [
+            {
+              "id": "open",
+              "label": "Open"
+            }
+          ],
+          "reminded": false,
+          "dismissable": true
+        }
+      ],
+      "total": 2,
+      "head": 6,
+      "day_card": null,
+      "now": "<time>"
+    }
+  },
+  "cm_notifications_author": {
+    "status": 200,
+    "body": {
+      "items": [],
+      "total": 0,
+      "head": 6,
+      "day_card": null,
+      "now": "<time>"
+    }
+  },
+  "cm_notification_log": {
+    "status": 200,
+    "body": {
+      "head": 6,
+      "cursor_too_old": false,
+      "events": [
+        {
+          "id": 1,
+          "project_id": "<uuid:1>",
+          "kind": "mention",
+          "op": "new",
+          "needs": true,
+          "target_kind": "canvas_thread",
+          "target_id": "<uuid:2>",
+          "ticket_id": null,
+          "page_id": null,
+          "member_id": null,
+          "actor": "user",
+          "title": "Someone mentioned you on Login redesign",
+          "body": "“Hello @Hoa Tran, and @ann too”",
+          "data": {
+            "canvas_id": "<cv:30>",
+            "canvas_title": "Login redesign",
+            "board_id": null,
+            "comment_id": "<uuid:3>"
+          },
+          "recipients": [
+            "hoa tran"
+          ],
+          "created_at": "<time>"
+        },
+        {
+          "id": 2,
+          "project_id": "<uuid:1>",
+          "kind": "mention",
+          "op": "new",
+          "needs": true,
+          "target_kind": "canvas_thread",
+          "target_id": "<uuid:2>",
+          "ticket_id": null,
+          "page_id": null,
+          "member_id": null,
+          "actor": "user",
+          "title": "Someone mentioned you on Login redesign",
+          "body": "“Hello @Hoa Tran, and @ann too”",
+          "data": {
+            "canvas_id": "<cv:30>",
+            "canvas_title": "Login redesign",
+            "board_id": null,
+            "comment_id": "<uuid:3>"
+          },
+          "recipients": [
+            "ann"
+          ],
+          "created_at": "<time>"
+        },
+        {
+          "id": 3,
+          "project_id": "<uuid:1>",
+          "kind": "mention",
+          "op": "new",
+          "needs": true,
+          "target_kind": "canvas_thread",
+          "target_id": "<uuid:4>",
+          "ticket_id": null,
+          "page_id": null,
+          "member_id": null,
+          "actor": "user",
+          "title": "Someone mentioned you on Login redesign",
+          "body": "“@Hoa Tran and @Ann @Ann”",
+          "data": {
+            "canvas_id": "<cv:30>",
+            "canvas_title": "Login redesign",
+            "board_id": null,
+            "comment_id": "<uuid:5>"
+          },
+          "recipients": [
+            "hoa tran"
+          ],
+          "created_at": "<time>"
+        },
+        {
+          "id": 4,
+          "project_id": "<uuid:1>",
+          "kind": "mention",
+          "op": "new",
+          "needs": true,
+          "target_kind": "canvas_thread",
+          "target_id": "<uuid:4>",
+          "ticket_id": null,
+          "page_id": null,
+          "member_id": null,
+          "actor": "user",
+          "title": "Someone mentioned you on Login redesign",
+          "body": "“@Hoa Tran and @Ann @Ann”",
+          "data": {
+            "canvas_id": "<cv:30>",
+            "canvas_title": "Login redesign",
+            "board_id": null,
+            "comment_id": "<uuid:5>"
+          },
+          "recipients": [
+            "ann"
+          ],
+          "created_at": "<time>"
+        },
+        {
+          "id": 5,
+          "project_id": "<uuid:1>",
+          "kind": "mention",
+          "op": "new",
+          "needs": true,
+          "target_kind": "canvas_thread",
+          "target_id": "<uuid:6>",
+          "ticket_id": null,
+          "page_id": null,
+          "member_id": null,
+          "actor": "user",
+          "title": "Someone mentioned you on Login redesign",
+          "body": "“@Vi hello @Nobody”",
+          "data": {
+            "canvas_id": "<cv:30>",
+            "canvas_title": "Login redesign",
+            "board_id": null,
+            "comment_id": "<uuid:7>"
+          },
+          "recipients": [
+            "vi"
+          ],
+          "created_at": "<time>"
+        },
+        {
+          "id": 6,
+          "project_id": "<uuid:1>",
+          "kind": "mention",
+          "op": "new",
+          "needs": true,
+          "target_kind": "canvas_thread",
+          "target_id": "<uuid:8>",
+          "ticket_id": null,
+          "page_id": null,
+          "member_id": null,
+          "actor": "user",
+          "title": "Someone mentioned you on Login redesign",
+          "body": "“cc @Hoa Tran”",
+          "data": {
+            "canvas_id": "<cv:30>",
+            "canvas_title": "Login redesign",
+            "board_id": "<b:31>",
+            "comment_id": "<uuid:9>"
+          },
+          "recipients": [
+            "hoa tran"
+          ],
+          "created_at": "<time>"
+        }
+      ]
+    }
+  },
   "docs_page_canvas": {
     "status": 201,
     "body": {
@@ -3752,7 +8754,7 @@
         }
       },
       "canvas": {
-        "id": "<cv:30>",
+        "id": "<cv:44>",
         "project_id": "<uuid:2>",
         "owner_kind": "page",
         "owner_id": "<uuid:1>",
@@ -3769,7 +8771,7 @@
         "deleted_at": null,
         "role": "admin",
         "can_edit": true,
-        "markdown": "![Settings flow](canvas:<cv:30>)",
+        "markdown": "![Settings flow](canvas:<cv:44>)",
         "limits": {
           "boards": 60,
           "board_bytes": 5242880,
@@ -3784,15 +8786,15 @@
           "version": 1,
           "pages": [
             {
-              "id": "<p:31>",
+              "id": "<p:45>",
               "name": "Page 1",
               "rev": 1
             }
           ],
           "boards": [
             {
-              "id": "<b:32>",
-              "page": "<p:31>",
+              "id": "<b:46>",
+              "page": "<p:45>",
               "name": "Frame 1",
               "kind": "empty",
               "x": 0,
@@ -3852,7 +8854,7 @@
         }
       },
       "canvas": {
-        "id": "<cv:33>",
+        "id": "<cv:47>",
         "project_id": "<uuid:2>",
         "owner_kind": "page",
         "owner_id": "<uuid:1>",
@@ -3869,7 +8871,7 @@
         "deleted_at": null,
         "role": "admin",
         "can_edit": true,
-        "markdown": "![Login flow](canvas:<cv:33>)",
+        "markdown": "![Login flow](canvas:<cv:47>)",
         "limits": {
           "boards": 60,
           "board_bytes": 5242880,
@@ -3884,15 +8886,15 @@
           "version": 1,
           "pages": [
             {
-              "id": "<p:34>",
+              "id": "<p:48>",
               "name": "Page 1",
               "rev": 1
             }
           ],
           "boards": [
             {
-              "id": "<b:35>",
-              "page": "<p:34>",
+              "id": "<b:49>",
+              "page": "<p:48>",
               "name": "Frame 1",
               "kind": "empty",
               "x": 0,

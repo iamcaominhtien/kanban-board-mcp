@@ -6,14 +6,15 @@
 //! `DOCS_ROUTES_RECORD=1 PARITY_TARGET=python cargo test -p kb-docs --test docs_routes`
 //!
 //! A 422 for a body or query the server cannot read is compared by its status and the location of the field (the
-//! wording is Pydantic's). Routes of part 2 (comments, import, Docs AI hand-off) are not here.
+//! wording is Pydantic's). The comment and import routes (part 2) are the last three tests; the Docs AI hand-off
+//! routes are not served.
 
 mod common;
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use common::{id, member, mk, new_ticket, pid, project, publish};
+use common::{exec, id, import, insert, member, mk, new_ticket, pid, project, publish};
 use serde_json::{Map, Value, json};
 use testkit::{Client, Resp, Server, normalize, skip_unless_available, target};
 
@@ -528,5 +529,365 @@ async fn access_and_access_requests() {
     c.patch(&format!("/projects/{pid}"), json!({"docs_enabled": false})).await;
     rec.check("access: docs disabled", &as_(&c, "Stranger").get(&url).await);
     rec.check("request: docs disabled still answers", &as_(&c, "Third").post(&ask, json!({})).await);
+    rec.finish();
+}
+
+const DOC: &str = "# API\n\nEvery route requires a bearer token; rotation rules live in [[Auth]].\n\n## Limits\n\nRate limits are not enforced yet. Tracked in KAN-12.\n";
+
+fn anchor(quote: &str) -> Value {
+    json!({"quote": quote, "prefix": "Every route requires a ", "suffix": "; rotation", "section": "api"})
+}
+
+#[tokio::test]
+async fn comment_routes_every_branch() {
+    let Some((s, c, pid)) = world("comment_routes_every_branch").await else { return };
+    let mut rec = Rec::new("comment_routes_every_branch");
+    // an AI member of the project (its mention is delivered to the Docs AI, which is off)
+    insert(
+        &s,
+        "member",
+        &json!({"id": "ai-robo", "project_id": pid, "name": "Robo", "color": "#3B82F6", "role": "member", "kind": "ai",
+                "created_at": common::NOW}),
+    )
+    .await;
+    let page = publish(&c, &mk(&c, &pid, "API", json!({})).await, DOC, None).await;
+    let pg = id(&page);
+    let list = format!("/docs/pages/{pg}/comments");
+    rec.check("list: empty", &c.get(&list).await);
+    rec.check("list: unknown page", &c.get("/docs/pages/nope/comments").await);
+    rec.check("list: stranger", &as_(&c, "Stranger").get(&list).await);
+    rec.check("list: bad state", &c.get_query(&list, &[("state", "nope")]).await);
+    rec.check("list: empty state", &c.get_query(&list, &[("state", "")]).await);
+    rec.check("list: bad kind", &c.get_query(&list, &[("kind", "nope")]).await);
+    rec.check("list: empty kind", &c.get_query(&list, &[("kind", "")]).await);
+
+    // start threads
+    rec.check(
+        "thread: inline",
+        &c.post(&list, json!({"kind": "inline", "body": "Is this enough?", "anchor": anchor("bearer token")})).await,
+    );
+    let t1 = c.get(&list).await.json()["threads"][0]["id"].as_str().unwrap().to_string();
+    rec.check(
+        "thread: default kind is inline",
+        &as_(&c, "Mia")
+            .post(&list, json!({"body": " Padded \n", "anchor": anchor("Rate limits are not enforced")}))
+            .await,
+    );
+    rec.check("thread: page comment", &c.post(&list, json!({"kind": "page", "body": "Looks good"})).await);
+    rec.check(
+        "thread: mention a member",
+        &c.post(&list, json!({"kind": "page", "body": "@Mia and @[Ada](member:nope) please look, cc @Nobody"})).await,
+    );
+    rec.check("thread: mention an AI member", &c.post(&list, json!({"kind": "page", "body": "@Robo summarize"})).await);
+    rec.check(
+        "thread: AI mention with intent notify",
+        &c.post(&list, json!({"kind": "page", "body": "@Robo FYI", "ai_intent": "notify"})).await,
+    );
+    rec.check(
+        "thread: text not in the page yet",
+        &c.post(&list, json!({"kind": "inline", "body": "x", "anchor": anchor("Not in the text")})).await,
+    );
+    rec.check(
+        "thread: anchor with a section of nothing",
+        &c.post(&list, json!({"kind": "inline", "body": "x", "anchor": {"quote": "Tracked in KAN-12", "section": ""}}))
+            .await,
+    );
+    rec.check("thread: empty body", &c.post(&list, json!({"kind": "page", "body": "   "})).await);
+    rec.check("thread: body too long", &c.post(&list, json!({"kind": "page", "body": "b".repeat(4001)})).await);
+    rec.check("thread: body at the limit", &c.post(&list, json!({"kind": "page", "body": "b".repeat(4000)})).await);
+    rec.check("thread: no body", &c.post(&list, json!({"kind": "page"})).await);
+    rec.check("thread: body not text", &c.post(&list, json!({"kind": "page", "body": 7})).await);
+    rec.check("thread: bad kind", &c.post(&list, json!({"kind": "weird", "body": "x"})).await);
+    rec.check("thread: inline without anchor", &c.post(&list, json!({"kind": "inline", "body": "x"})).await);
+    rec.check(
+        "thread: anchor without quote",
+        &c.post(&list, json!({"kind": "inline", "body": "x", "anchor": {"prefix": "a"}})).await,
+    );
+    rec.check(
+        "thread: blank quote",
+        &c.post(&list, json!({"kind": "inline", "body": "x", "anchor": {"quote": "   "}})).await,
+    );
+    rec.check(
+        "thread: quote too long",
+        &c.post(&list, json!({"kind": "inline", "body": "x", "anchor": {"quote": "q".repeat(2001)}})).await,
+    );
+    rec.check(
+        "thread: anchor not an object",
+        &c.post(&list, json!({"kind": "inline", "body": "x", "anchor": "text"})).await,
+    );
+    rec.check("thread: no body at all", &c.post(&list, json!({})).await);
+    rec.check("thread: unknown page", &c.post("/docs/pages/nope/comments", json!({"kind": "page", "body": "x"})).await);
+    rec.check("thread: viewer", &as_(&c, "Vera").post(&list, json!({"kind": "page", "body": "x"})).await);
+    rec.check("thread: stranger", &as_(&c, "Stranger").post(&list, json!({"kind": "page", "body": "x"})).await);
+    rec.check("list: all", &c.get(&list).await);
+    rec.check("list: as the viewer", &as_(&c, "Vera").get(&list).await);
+    rec.check("list: as Mia", &as_(&c, "Mia").get(&list).await);
+    rec.check("list: kind page", &c.get_query(&list, &[("kind", "page")]).await);
+    rec.check("list: kind inline, open", &c.get_query(&list, &[("kind", "inline"), ("state", "open")]).await);
+
+    // anchor preview
+    let preview = format!("/docs/pages/{pg}/comments/anchor-preview");
+    rec.check(
+        "preview: some orphaned",
+        &c.post(&preview, json!({"markdown": "# API\n\nA bearer token is needed.\n"})).await,
+    );
+    rec.check("preview: none orphaned", &c.post(&preview, json!({"markdown": DOC})).await);
+    rec.check("preview: viewer may ask", &as_(&c, "Vera").post(&preview, json!({"markdown": "x"})).await);
+    rec.check("preview: no markdown", &c.post(&preview, json!({})).await);
+    rec.check(
+        "preview: unknown page",
+        &c.post("/docs/pages/nope/comments/anchor-preview", json!({"markdown": "x"})).await,
+    );
+
+    // replies
+    let replies = format!("/docs/comments/threads/{t1}/replies");
+    rec.check("reply: ok", &as_(&c, "Mia").post(&replies, json!({"body": "Yes, @Ada"})).await);
+    rec.check("reply: with an AI intent", &c.post(&replies, json!({"body": "Thanks", "ai_intent": "work"})).await);
+    rec.check("reply: empty", &c.post(&replies, json!({"body": ""})).await);
+    rec.check("reply: no body", &c.post(&replies, json!({})).await);
+    rec.check("reply: unknown thread", &c.post("/docs/comments/threads/nope/replies", json!({"body": "x"})).await);
+    rec.check("reply: viewer", &as_(&c, "Vera").post(&replies, json!({"body": "x"})).await);
+    rec.check("reply: stranger", &as_(&c, "Stranger").post(&replies, json!({"body": "x"})).await);
+
+    // read, resolve, reopen, reattach
+    let thread = |action: &str, id: &str| format!("/docs/comments/threads/{id}/{action}");
+    rec.check("read: ok", &as_(&c, "Mia").post_empty(&thread("read", &t1)).await);
+    rec.check("read: unknown", &c.post_empty(&thread("read", "nope")).await);
+    rec.check("resolve: ok", &as_(&c, "Mia").post_empty(&thread("resolve", &t1)).await);
+    rec.check("resolve: again", &as_(&c, "Mia").post_empty(&thread("resolve", &t1)).await);
+    rec.check("resolve: unknown", &c.post_empty(&thread("resolve", "nope")).await);
+    rec.check("resolve: viewer", &as_(&c, "Vera").post_empty(&thread("resolve", &t1)).await);
+    let page_thread =
+        c.get_query(&list, &[("kind", "page")]).await.json()["threads"][0]["id"].as_str().unwrap().to_string();
+    rec.check("resolve: a page comment", &c.post_empty(&thread("resolve", &page_thread)).await);
+    rec.check("reopen: ok", &c.post_empty(&thread("reopen", &t1)).await);
+    rec.check("reopen: already open", &c.post_empty(&thread("reopen", &t1)).await);
+    rec.check("reopen: unknown", &c.post_empty(&thread("reopen", "nope")).await);
+    rec.check("reopen: viewer", &as_(&c, "Vera").post_empty(&thread("reopen", &t1)).await);
+    rec.check("reopen: a page comment", &c.post_empty(&thread("reopen", &page_thread)).await);
+    rec.check(
+        "reattach: ok",
+        &c.post(
+            &thread("reattach", &t1),
+            json!({"quote": "Rate limits", "prefix": "", "suffix": " are", "section": "limits"}),
+        )
+        .await,
+    );
+    rec.check("reattach: text not in the page", &c.post(&thread("reattach", &t1), json!({"quote": "Not there"})).await);
+    rec.check("reattach: no selection", &c.post(&thread("reattach", &t1), json!({"quote": "  "})).await);
+    rec.check("reattach: too long", &c.post(&thread("reattach", &t1), json!({"quote": "q".repeat(2001)})).await);
+    rec.check("reattach: no quote", &c.post(&thread("reattach", &t1), json!({})).await);
+    rec.check("reattach: a page comment", &c.post(&thread("reattach", &page_thread), json!({"quote": "x"})).await);
+    rec.check("reattach: unknown", &c.post(&thread("reattach", "nope"), json!({"quote": "x"})).await);
+    rec.check("reattach: viewer", &as_(&c, "Vera").post(&thread("reattach", &t1), json!({"quote": "x"})).await);
+
+    // edit and delete
+    let t = c.get_query(&list, &[("kind", "inline")]).await.json();
+    let mine = t["threads"].as_array().unwrap().iter().find(|x| x["id"] == t1.as_str()).unwrap().clone();
+    let first = mine["comments"][0]["id"].as_str().unwrap().to_string();
+    let reply = mine["comments"][1]["id"].as_str().unwrap().to_string();
+    let comment = |id: &str| format!("/docs/comments/{id}");
+    rec.check("edit: not the author", &c.patch(&comment(&first), json!({"body": "Hack"})).await);
+    rec.check("edit: ok", &as_(&c, "Mia").patch(&comment(&reply), json!({"body": "Edited @Ada"})).await);
+    rec.check("edit: same text", &as_(&c, "Mia").patch(&comment(&reply), json!({"body": "Edited @Ada"})).await);
+    rec.check("edit: empty", &as_(&c, "Mia").patch(&comment(&reply), json!({"body": " "})).await);
+    rec.check("edit: too long", &as_(&c, "Mia").patch(&comment(&reply), json!({"body": "b".repeat(4001)})).await);
+    rec.check("edit: no body", &as_(&c, "Mia").patch(&comment(&reply), json!({})).await);
+    rec.check("edit: unknown", &c.patch(&comment("nope"), json!({"body": "x"})).await);
+    rec.check("edit: viewer", &as_(&c, "Vera").patch(&comment(&reply), json!({"body": "x"})).await);
+    rec.check("delete: unknown", &c.delete(&comment("nope")).await);
+    rec.check("delete: viewer", &as_(&c, "Vera").delete(&comment(&reply)).await);
+    rec.check("delete: a member, not the author", &as_(&c, "Mia").delete(&comment(&first)).await);
+    rec.check("delete: a reply", &as_(&c, "Mia").delete(&comment(&reply)).await);
+    rec.check("delete: the first comment removes the thread", &as_(&c, "Ada").delete(&comment(&first)).await);
+    rec.check("list: after", &c.get(&list).await);
+    // the stranger and the viewer of a page in the bin
+    c.delete(&format!("/docs/pages/{pg}")).await;
+    rec.check("list: page in the bin", &c.get(&list).await);
+    rec.check("thread: page in the bin", &c.post(&list, json!({"kind": "page", "body": "x"})).await);
+    rec.check("preview: page in the bin", &c.post(&preview, json!({"markdown": "x"})).await);
+    rec.check("reply: page in the bin", &c.post(&replies, json!({"body": "x"})).await);
+    rec.check("resolve: page in the bin", &c.post_empty(&thread("resolve", &t1)).await);
+    // Docs AI on: AI members of the list carry their status
+    c.post_empty(&format!("/docs/pages/{pg}/restore")).await;
+    exec(&s, "UPDATE docs_ai_settings SET enabled = 1 WHERE project_id = ?", &[json!(pid)]).await;
+    rec.check("list: docs AI on", &c.get(&list).await);
+    rec.check(
+        "thread: docs AI on, AI mention to notify",
+        &c.post(&list, json!({"kind": "page", "body": "@Robo FYI", "ai_intent": "notify"})).await,
+    );
+    // the Docs AI hand-off routes are not served here, but `DELETE /tickets/{ticket_id}/docs/comments` is the
+    // `{page_id}` route of the ticket links (Python registers that one first): it unlinks a page called "comments"
+    let ticket = new_ticket(&c, &pid, json!({"title": "T", "type": "task"})).await;
+    rec.check(
+        "ticket docs: DELETE .../docs/comments is the page route",
+        &c.delete(&format!("/tickets/{}/docs/comments", id(&ticket))).await,
+    );
+    rec.check("ticket docs: DELETE with an unknown ticket", &c.delete("/tickets/NOPE-1/docs/comments").await);
+    // documents disabled
+    c.patch(&format!("/projects/{pid}"), json!({"docs_enabled": false})).await;
+    rec.check("list: docs disabled", &c.get(&list).await);
+    rec.check("thread: docs disabled", &c.post(&list, json!({"kind": "page", "body": "x"})).await);
+    rec.finish();
+}
+
+#[tokio::test]
+async fn comment_events_route() {
+    let Some((_s, c, pid)) = world("comment_events_route").await else { return };
+    let mut rec = Rec::new("comment_events_route");
+    let page = publish(&c, &mk(&c, &pid, "API", json!({})).await, DOC, None).await;
+    let list = format!("/docs/pages/{}/comments", id(&page));
+    let url = format!("/projects/{pid}/docs/comment-events");
+    rec.check("events: none yet", &c.get(&url).await);
+    let t = as_(&c, "Mia").post(&list, json!({"kind": "inline", "body": "@Ada look [x](diagram:dg_1) ![i](/u/a.png)", "anchor": anchor("bearer token")})).await.json();
+    as_(&c, "Ada").post(&format!("/docs/comments/threads/{}/replies", id(&t)), json!({"body": "Seen"})).await;
+    as_(&c, "Ada").post_empty(&format!("/docs/comments/threads/{}/resolve", id(&t))).await;
+    as_(&c, "Mia").post_empty(&format!("/docs/comments/threads/{}/reopen", id(&t))).await;
+    as_(&c, "Stranger").post(&format!("/projects/{pid}/docs/access-requests"), json!({"note": "let me in"})).await;
+    rec.check("events: all", &c.get(&url).await);
+    rec.check("events: for Ada", &c.get_query(&url, &[("recipient", "Ada")]).await);
+    rec.check("events: for ada, any case", &c.get_query(&url, &[("recipient", "ADA")]).await);
+    rec.check("events: for Mia", &c.get_query(&url, &[("recipient", "Mia")]).await);
+    rec.check("events: for the board's user", &c.get_query(&url, &[("recipient", "user")]).await);
+    rec.check("events: for nobody", &c.get_query(&url, &[("recipient", "Nobody")]).await);
+    rec.check("events: empty recipient", &c.get_query(&url, &[("recipient", "")]).await);
+    rec.check("events: limit 2", &c.get_query(&url, &[("limit", "2")]).await);
+    rec.check("events: limit 0", &c.get_query(&url, &[("limit", "0")]).await);
+    rec.check("events: limit negative", &c.get_query(&url, &[("limit", "-5")]).await);
+    rec.check("events: limit 1000", &c.get_query(&url, &[("limit", "1000")]).await);
+    rec.check("events: limit with a recipient", &c.get_query(&url, &[("limit", "1"), ("recipient", "Ada")]).await);
+    rec.check("events: limit not a number", &c.get_query(&url, &[("limit", "abc")]).await);
+    rec.check("events: unknown project", &c.get("/projects/nope/docs/comment-events").await);
+    rec.check(
+        "events: another project",
+        &c.get(&format!("/projects/{}/docs/comment-events", id(&project(&c, "Other", "OTH").await))).await,
+    );
+    rec.check("events: a stranger reads them", &as_(&c, "Stranger").get(&url).await);
+    c.patch(&format!("/projects/{pid}"), json!({"docs_enabled": false})).await;
+    rec.check("events: docs disabled", &c.get(&url).await);
+    rec.finish();
+}
+
+#[tokio::test]
+async fn import_routes_every_branch() {
+    let Some((_s, c, pid)) = world("import_routes_every_branch").await else { return };
+    let mut rec = Rec::new("import_routes_every_branch");
+    let base = format!("/projects/{pid}/docs/import");
+    let post = |files: &[(&str, &str)], fields: &[(&str, &str)]| {
+        let files: Vec<(String, Vec<u8>)> = files.iter().map(|(p, t)| (p.to_string(), t.as_bytes().to_vec())).collect();
+        let fields: Vec<(String, String)> = fields.iter().map(|(a, b)| (a.to_string(), b.to_string())).collect();
+        let (c, pid) = (c.clone(), pid.clone());
+        async move {
+            let refs: Vec<(&str, &[u8])> = files.iter().map(|(p, d)| (p.as_str(), d.as_slice())).collect();
+            let f: Vec<(&str, &str)> = fields.iter().map(|(a, b)| (a.as_str(), b.as_str())).collect();
+            import(&c, &pid, &refs, &f).await
+        }
+    };
+    let existing = publish(&c, &mk(&c, &pid, "Existing", json!({})).await, "x", None).await;
+    let files: &[(&str, &str)] = &[
+        ("guide/setup.md", "# Setup\nSee [[Existing]] and [[Nowhere]] and [[Nowhere]]."),
+        ("guide/index.md", "---\ntitle: Guide home\n---\nwelcome [[Setup]]"),
+        ("Existing.md", "dup"),
+        ("bad.md", "---\nitems: [unclosed\n---\nx"),
+        ("notes.txt", "x"),
+        ("../evil.md", "x"),
+    ];
+    rec.check("dry run", &post(files, &[("dry_run", "true")]).await);
+    rec.check("dry run: skip", &post(files, &[("dry_run", "1"), ("on_conflict", "skip")]).await);
+    rec.check("dry run: parent", &post(files, &[("dry_run", "yes"), ("parent_id", &id(&existing))]).await);
+    rec.check("dry run: empty parent is the top", &post(files, &[("dry_run", "on"), ("parent_id", "")]).await);
+    rec.check("dry run: bad conflict", &post(files, &[("dry_run", "true"), ("on_conflict", "overwrite")]).await);
+    rec.check("dry run: bool not a bool", &post(files, &[("dry_run", "maybe")]).await);
+    rec.check("dry run: publish not a bool", &post(files, &[("publish", "maybe")]).await);
+    rec.check("dry run: parent missing", &post(files, &[("dry_run", "true"), ("parent_id", "nope")]).await);
+    rec.check("dry run: unknown project", &import(&c, "nope", &[("a.md", b"a")], &[("dry_run", "true")]).await);
+    let other = project(&c, "Other", "OTH").await;
+    rec.check(
+        "dry run: parent of another project",
+        &import(&c, &id(&other), &[("a.md", b"a")], &[("dry_run", "true"), ("parent_id", &id(&existing))]).await,
+    );
+    rec.check("dry run: no files", &post(&[], &[("dry_run", "true")]).await);
+    rec.check(
+        "dry run: not a form",
+        &c.request("POST", &base, &[("content-type", "application/json")], Some(b"{}".to_vec())).await,
+    );
+    let many: Vec<(String, &str)> = (0..201).map(|n| (format!("f{n}.md"), "x")).collect();
+    let many_refs: Vec<(&str, &str)> = many.iter().map(|(p, t)| (p.as_str(), *t)).collect();
+    rec.check("dry run: too many files", &post(&many_refs, &[("dry_run", "true")]).await);
+    rec.check("dry run: a viewer may ask", &{
+        let refs: Vec<(&str, &[u8])> = vec![("a.md", b"a")];
+        let (ct, body) = common::multipart(&refs, &[("dry_run", "true")]);
+        as_(&c, "Vera").request("POST", &base, &[("content-type", ct.as_str())], Some(body)).await
+    });
+    let as_member =
+        |who: &'static str, files: Vec<(&'static str, &'static [u8])>, fields: Vec<(&'static str, &'static str)>| {
+            let c = as_(&c, who);
+            let base = base.clone();
+            async move {
+                let (ct, body) = common::multipart(&files, &fields);
+                c.request("POST", &base, &[("content-type", ct.as_str())], Some(body)).await
+            }
+        };
+    rec.check("import: viewer", &as_member("Vera", vec![("a.md", b"a")], vec![]).await);
+    rec.check("import: stranger", &as_member("Stranger", vec![("a.md", b"a")], vec![("dry_run", "true")]).await);
+    rec.check("import: the folder tree", &post(files, &[]).await);
+    rec.check("tree after", &c.get(&format!("/projects/{pid}/docs/tree")).await);
+    rec.check("import: again, copies", &post(files, &[("on_conflict", "copy")]).await);
+    rec.check("import: again, skipped", &post(files, &[("on_conflict", "skip")]).await);
+    rec.check(
+        "import: published under a parent",
+        &post(
+            &[("pub/a.md", "# A\nsee [[B]]"), ("pub/b.md", "# B\ncontent")],
+            &[("publish", "true"), ("parent_id", &id(&existing))],
+        )
+        .await,
+    );
+    rec.check(
+        "import: published and notify",
+        &post(&[("n.md", "# N\nx")], &[("publish", "true"), ("notify", "true")]).await,
+    );
+    rec.check("import: member", &as_member("Mia", vec![("mia.md", b"by mia")], vec![]).await);
+    rec.check(
+        "import: the last repeated field wins",
+        &post(&[("r.md", "r")], &[("on_conflict", "overwrite"), ("on_conflict", "copy")]).await,
+    );
+    rec.check("import: paths and files that do not match", &{
+        let (ct, body) = common::multipart(&[("one.md", b"1"), ("two.md", b"2")], &[]);
+        // a text field named paths is read by the order; drop the second one so only the first file has a path
+        let body = String::from_utf8_lossy(&body).replacen(
+            "name=\"paths\"\r\n\r\ntwo.md\r\n--",
+            "name=\"other\"\r\n\r\ntwo.md\r\n--",
+            1,
+        );
+        c.request("POST", &base, &[("content-type", ct.as_str())], Some(body.into_bytes())).await
+    });
+    // resolve
+    let ids: Vec<Value> = c
+        .get(&format!("/projects/{pid}/docs/tree"))
+        .await
+        .json()
+        .as_array()
+        .unwrap()
+        .iter()
+        .take(6)
+        .map(|r| r["id"].clone())
+        .collect();
+    let resolve = format!("{base}/resolve");
+    rec.check("resolve: pages", &c.post(&resolve, json!({"page_ids": ids})).await);
+    rec.check("resolve: unknown ids", &c.post(&resolve, json!({"page_ids": ["nope", "nada"]})).await);
+    rec.check("resolve: none", &c.post(&resolve, json!({"page_ids": []})).await);
+    rec.check("resolve: no body", &c.post(&resolve, json!({})).await);
+    rec.check("resolve: ids not a list", &c.post(&resolve, json!({"page_ids": "x"})).await);
+    rec.check("resolve: unknown project", &c.post("/projects/nope/docs/import/resolve", json!({"page_ids": []})).await);
+    rec.check("resolve: viewer", &as_(&c, "Vera").post(&resolve, json!({"page_ids": []})).await);
+    rec.check("resolve: stranger", &as_(&c, "Stranger").post(&resolve, json!({"page_ids": []})).await);
+    rec.check(
+        "resolve: pages of another project",
+        &c.post(&format!("/projects/{}/docs/import/resolve", id(&other)), json!({"page_ids": ids})).await,
+    );
+    c.patch(&format!("/projects/{pid}"), json!({"docs_enabled": false})).await;
+    rec.check("import: docs disabled", &post(&[("a.md", "a")], &[]).await);
+    rec.check("dry run: docs disabled", &post(&[("a.md", "a")], &[("dry_run", "true")]).await);
+    rec.check("resolve: docs disabled", &c.post(&resolve, json!({"page_ids": []})).await);
     rec.finish();
 }

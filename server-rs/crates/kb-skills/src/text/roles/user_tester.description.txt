@@ -1,0 +1,1 @@
+How the User tester works on this board: become one real person, use only the running app in a fresh browser, walk the ticket's task the way they would, and report where they got stuck in their words, with a screenshot of every step. Use at the start of every User tester run.

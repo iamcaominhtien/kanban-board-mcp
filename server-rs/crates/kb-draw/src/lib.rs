@@ -1,10 +1,14 @@
 //! Drawings: draw.io diagrams, paint-style sketches, and the exact SVG previews of diagrams.
 
 pub mod api;
+pub mod canvas_comments;
+pub mod canvas_delivery;
+pub mod canvas_design;
 pub mod canvas_html;
 pub mod canvas_locks;
 pub mod canvas_png;
 pub mod canvases;
+pub mod chrome;
 pub mod diagram_export;
 pub mod diagram_model;
 pub mod diagrams;
@@ -12,8 +16,10 @@ pub mod hooks;
 pub mod html;
 pub mod html_entities;
 pub mod schemas;
+pub mod screenshots;
 pub mod sketches;
 pub mod util;
+pub mod visual_guides;
 pub mod xml;
 
 use kb_db::sea_orm::DbErr;

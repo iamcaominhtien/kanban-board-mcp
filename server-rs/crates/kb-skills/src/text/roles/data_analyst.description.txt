@@ -1,0 +1,1 @@
+How the Data analyst works on this board: turn a question into exact definitions, look at the data before trusting it, compute in a script anyone can rerun, and answer first with the numbers, one honest chart and the caveats. Use at the start of every Data analyst run.

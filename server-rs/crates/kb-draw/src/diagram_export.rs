@@ -15,19 +15,15 @@
 //! because the drawing would be sent out without anybody asking.
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use futures::{SinkExt, StreamExt};
 use kb_base::{pyjson, pytext};
 use serde_json::{Value, json};
-use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::sync::{mpsc, oneshot};
-use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
 
+use crate::chrome::{self, Cdp, Filter, host_and_port, urlsplit};
+pub use crate::chrome::{CHROME_ENV, EXPORT_CMD_ENV, command, find_chrome};
 use crate::diagram_model::{b64decode, unquote};
 
 /// Seconds to wait for the editor.
@@ -37,8 +33,6 @@ pub const PROBE_TIMEOUT: f64 = 3.0;
 /// An editor that is not running (the self-hosted default, http://localhost:8080, on a computer that never started
 /// one) is said once in this many seconds, not on every save.
 pub const UNREACHABLE_LOG_EVERY: f64 = 600.0;
-pub const EXPORT_CMD_ENV: &str = "KANBAN_EXPORT_CMD";
-pub const CHROME_ENV: &str = "KANBAN_CHROME_PATH";
 /// `"off"` turns it off, `"public"` also allows the public editor.
 pub const SWITCH_ENV: &str = "KANBAN_DIAGRAM_EXPORT";
 
@@ -83,104 +77,6 @@ pub fn decode(data: &str) -> Result<String, String> {
     Ok(unquote(body))
 }
 
-fn is_executable_file(path: &Path) -> bool {
-    use std::os::unix::fs::PermissionsExt;
-    path.metadata().is_ok_and(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
-}
-
-/// `shutil.which(name)`.
-fn which(name: &str) -> Option<String> {
-    let path = std::env::var_os("PATH")?;
-    std::env::split_paths(&path)
-        .map(|dir| dir.join(name))
-        .find(|candidate| is_executable_file(candidate))
-        .map(|p| p.to_string_lossy().into_owned())
-}
-
-/// A Chrome, Chromium or Edge to drive: `KANBAN_CHROME_PATH` first, then the usual places.
-pub fn find_chrome() -> Option<String> {
-    let given = pytext::strip(&std::env::var(CHROME_ENV).unwrap_or_default()).to_string();
-    if !given.is_empty() {
-        return Path::new(&given).is_file().then_some(given);
-    }
-    let names =
-        ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "chrome", "msedge", "microsoft-edge"];
-    if let Some(found) = names.iter().find_map(|n| which(n)) {
-        return Some(found);
-    }
-    let candidates: Vec<String> = if cfg!(target_os = "macos") {
-        vec![
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome".into(),
-            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge".into(),
-            "/Applications/Chromium.app/Contents/MacOS/Chromium".into(),
-        ]
-    } else if cfg!(windows) {
-        let mut out = Vec::new();
-        for key in ["PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA"] {
-            let root = std::env::var(key).unwrap_or_default();
-            if root.is_empty() {
-                continue;
-            }
-            let root = PathBuf::from(root);
-            out.push(root.join("Google/Chrome/Application/chrome.exe").to_string_lossy().into_owned());
-            out.push(root.join("Microsoft/Edge/Application/msedge.exe").to_string_lossy().into_owned());
-        }
-        out
-    } else {
-        Vec::new()
-    };
-    candidates.into_iter().find(|c| Path::new(c).is_file())
-}
-
-/// `urllib.parse.urlsplit(url)`: `(scheme, netloc)`, the scheme in lower case; empty strings when there is none.
-fn urlsplit(url: &str) -> (String, String) {
-    let url = url.trim_start_matches(|c: char| c <= ' ');
-    let url: String = url.chars().filter(|c| !matches!(c, '\t' | '\r' | '\n')).collect();
-    let Some((scheme, rest)) = url.split_once(':') else {
-        return (String::new(), String::new());
-    };
-    let valid = scheme.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
-        && scheme.chars().all(|c| c.is_ascii_alphanumeric() || "+-.".contains(c));
-    if !valid {
-        return (String::new(), String::new());
-    }
-    let scheme = scheme.to_ascii_lowercase();
-    match rest.strip_prefix("//") {
-        Some(after) => {
-            let end = after.find(['/', '?', '#']).unwrap_or(after.len());
-            (scheme, after[..end].to_string())
-        }
-        None => (scheme, String::new()),
-    }
-}
-
-/// `(hostname, port)` of a URL as `urlsplit(url).hostname` / `.port` give them; `Err` where `.port` raises.
-fn host_and_port(url: &str) -> (Option<String>, Result<Option<u16>, ()>) {
-    let (_, netloc) = urlsplit(url);
-    let host_part = netloc.rsplit_once('@').map_or(netloc.as_str(), |(_, h)| h);
-    let (host, port_text) = if let Some(rest) = host_part.strip_prefix('[') {
-        match rest.split_once(']') {
-            Some((h, after)) => (h.to_string(), after.strip_prefix(':').map(str::to_string)),
-            None => (rest.to_string(), None),
-        }
-    } else {
-        match host_part.split_once(':') {
-            Some((h, p)) => (h.to_string(), Some(p.to_string())),
-            None => (host_part.to_string(), None),
-        }
-    };
-    let host = (!host.is_empty()).then(|| host.to_lowercase());
-    let port = match port_text {
-        None => Ok(None),
-        Some(p) if p.is_empty() => Ok(None),
-        Some(p) => match p.parse::<u32>() {
-            Ok(n) if n <= 65535 && p.chars().all(|c| c.is_ascii_digit()) => Ok(Some(n as u16)),
-            _ => Err(()),
-        },
-    };
-    (host, port)
-}
-
 /// Whether a request URL may load: the editor's own origin, or an inline `data:`, `blob:` or `about:` URL.
 pub fn same_origin(url: &str, editor: &str) -> bool {
     if url.starts_with("data:") || url.starts_with("blob:") || url.starts_with("about:") {
@@ -189,256 +85,64 @@ pub fn same_origin(url: &str, editor: &str) -> bool {
     urlsplit(url) == urlsplit(editor)
 }
 
-// --- a hidden Chrome over the DevTools protocol ---------------------------------------------------
-
-type Reply = oneshot::Sender<Result<Value, String>>;
-
-#[derive(Default)]
-struct CdpState {
-    next_id: u64,
-    pending: HashMap<u64, Reply>,
-    waiters: Vec<(String, oneshot::Sender<Value>)>,
-}
-
-/// Just enough of the DevTools protocol over one websocket: commands, events, and a request filter.
-#[derive(Clone)]
-struct Cdp {
-    state: Arc<Mutex<CdpState>>,
-    out: mpsc::UnboundedSender<String>,
-}
-
-impl Cdp {
-    async fn call(&self, method: &str, params: Value, session: Option<&str>) -> Result<Value, String> {
-        let (tx, rx) = oneshot::channel();
-        let id = {
-            let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
-            state.next_id += 1;
-            let id = state.next_id;
-            state.pending.insert(id, tx);
-            id
-        };
-        let mut msg = json!({"id": id, "method": method, "params": params});
-        if let Some(session) = session {
-            msg["sessionId"] = json!(session);
-        }
-        self.out.send(msg.to_string()).map_err(|_| "the browser connection closed".to_string())?;
-        rx.await.map_err(|_| "the browser connection closed".to_string())?
-    }
-
-    fn wait_for(&self, method: &str) -> oneshot::Receiver<Value> {
-        let (tx, rx) = oneshot::channel();
-        self.state.lock().unwrap_or_else(|e| e.into_inner()).waiters.push((method.to_string(), tx));
-        rx
-    }
-
-    /// One message from the browser: a reply to a command, or an event.
-    fn handle(&self, text: &str, editor: &str) {
-        let Ok(msg) = serde_json::from_str::<Value>(text) else { return };
-        if let Some(id) = msg.get("id").and_then(Value::as_u64) {
-            let reply = self.state.lock().unwrap_or_else(|e| e.into_inner()).pending.remove(&id);
-            if let Some(reply) = reply {
-                let result = match msg.get("error") {
-                    Some(error) => {
-                        Err(error.get("message").and_then(Value::as_str).unwrap_or("devtools error").to_string())
-                    }
-                    None => Ok(msg.get("result").cloned().unwrap_or_else(|| json!({}))),
-                };
-                let _ = reply.send(result);
-            }
-            return;
-        }
-        let method = msg.get("method").and_then(Value::as_str).unwrap_or("");
-        let params = msg.get("params").cloned().unwrap_or_else(|| json!({}));
-        // only the editor's own origin may load
-        if method == "Fetch.requestPaused" {
-            let url = params["request"]["url"].as_str().unwrap_or("");
-            let mut args = json!({"requestId": params["requestId"]});
-            let verb = if same_origin(url, editor) {
-                "continueRequest"
-            } else {
-                args["errorReason"] = json!("BlockedByClient");
-                "failRequest"
-            };
-            let this = self.clone();
-            let session = msg.get("sessionId").and_then(Value::as_str).map(str::to_string);
-            tokio::spawn(async move {
-                let _ = this.call(&format!("Fetch.{verb}"), args, session.as_deref()).await;
-            });
-        }
-        let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
-        let mut i = 0;
-        while i < state.waiters.len() {
-            if state.waiters[i].0 == method {
-                let (_, tx) = state.waiters.remove(i);
-                let _ = tx.send(params.clone());
-            } else {
-                i += 1;
-            }
-        }
-    }
-}
-
-fn is_root() -> bool {
-    // `os.geteuid() == 0` without a libc dependency: the effective user of this process owns /proc/self
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::MetadataExt;
-        std::fs::metadata("/proc/self").map(|m| m.uid() == 0).unwrap_or(false)
-    }
-    #[cfg(not(unix))]
-    {
-        false
-    }
-}
+// --- a hidden Chrome over the DevTools protocol (the common part is in `chrome.rs`) -----------------
 
 /// `_export_with_chrome`.
 async fn export_with_chrome(chrome: &str, source: &str, editor: &str, timeout: f64) -> Result<String, String> {
-    let profile = tempfile::Builder::new().prefix("kanban-export-").tempdir().map_err(|e| e.to_string())?;
-    let mut args: Vec<String> = vec![
-        "--headless=new".into(),
-        "--remote-debugging-port=0".into(),
-        format!("--user-data-dir={}", profile.path().display()),
-        "--no-first-run".into(),
-        "--no-default-browser-check".into(),
-        "--disable-gpu".into(),
-        "--disable-extensions".into(),
-        "--disable-background-networking".into(),
-        "--mute-audio".into(),
-        "about:blank".into(),
-    ];
-    // Chrome refuses to start as root without this
-    if is_root() {
-        args.insert(0, "--no-sandbox".into());
-    }
-    let mut child = tokio::process::Command::new(chrome)
-        .args(&args)
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .kill_on_drop(true)
-        .spawn()
-        .map_err(|e| e.to_string())?;
-    let stderr = child.stderr.take();
-    let result = drive_chrome(stderr, source, editor, timeout).await;
-    let _ = child.start_kill();
-    let _ = child.wait().await;
-    drop(profile);
+    let owned = editor.to_string();
+    let filter: Filter = Arc::new(move |url| same_origin(url, &owned));
+    let browser = chrome::launch(chrome, "kanban-export-", &[], filter).await?;
+    let result = drive_chrome(&browser.cdp, source, editor, timeout).await;
+    browser.close().await;
     result
 }
 
-async fn drive_chrome(
-    stderr: Option<tokio::process::ChildStderr>,
-    source: &str,
-    editor: &str,
-    timeout: f64,
-) -> Result<String, String> {
-    let Some(stderr) = stderr else {
-        return Err("the browser exited before it was ready".into());
-    };
-    let endpoint = async {
-        let mut lines = BufReader::new(stderr);
-        loop {
-            let mut raw = Vec::new();
-            let n = lines.read_until(b'\n', &mut raw).await.map_err(|e| e.to_string())?;
-            if n == 0 {
-                return Err("the browser exited before it was ready".to_string());
-            }
-            let line = String::from_utf8_lossy(&raw).into_owned();
-            if let Some((_, after)) = line.split_once("DevTools listening on") {
-                // keep reading the pipe so Chrome never blocks on a full one
-                tokio::spawn(async move {
-                    let mut sink = Vec::new();
-                    loop {
-                        sink.clear();
-                        match lines.read_until(b'\n', &mut sink).await {
-                            Ok(0) | Err(_) => break,
-                            Ok(_) => {}
-                        }
-                    }
-                });
-                return Ok(pytext::strip(after).to_string());
-            }
-        }
-    };
-    let url = tokio::time::timeout(Duration::from_secs(20), endpoint).await.map_err(|_| "timed out".to_string())??;
-    let mut config = WebSocketConfig::default();
-    config.max_message_size = Some(64 * 1024 * 1024);
-    config.max_frame_size = Some(64 * 1024 * 1024);
-    let (ws, _) = tokio_tungstenite::connect_async_with_config(url.as_str(), Some(config), false)
-        .await
-        .map_err(|e| e.to_string())?;
-    let (mut sink, mut stream) = ws.split();
-    let (out_tx, mut out_rx) = mpsc::unbounded_channel::<String>();
-    let cdp = Cdp { state: Arc::new(Mutex::new(CdpState::default())), out: out_tx };
-    let writer = tokio::spawn(async move {
-        while let Some(text) = out_rx.recv().await {
-            if sink.send(Message::text(text)).await.is_err() {
-                break;
-            }
-        }
-    });
-    let reader = {
-        let cdp = cdp.clone();
-        let editor = editor.to_string();
-        tokio::spawn(async move {
-            // the socket closing ends the loop; whoever waits will time out
-            while let Some(Ok(message)) = stream.next().await {
-                if let Message::Text(text) = message {
-                    cdp.handle(text.as_ref(), &editor);
-                }
-            }
-        })
-    };
-    let result = async {
-        let target = cdp.call("Target.createTarget", json!({"url": "about:blank"}), None).await?;
-        let target = target["targetId"].as_str().unwrap_or_default().to_string();
-        let attached = cdp.call("Target.attachToTarget", json!({"targetId": target, "flatten": true}), None).await?;
-        let session = attached["sessionId"].as_str().unwrap_or_default().to_string();
-        let session = Some(session.as_str());
-        cdp.call("Page.enable", json!({}), session).await?;
-        cdp.call("Fetch.enable", json!({"patterns": [{"urlPattern": "*"}]}), session).await?;
-        let loaded = cdp.wait_for("Page.loadEventFired");
-        // a page on the editor's own origin hosts the frame that runs the editor
-        let nav = cdp.call("Page.navigate", json!({"url": format!("{editor}/clear.html")}), session).await?;
-        if let Some(text) = nav.get("errorText").and_then(Value::as_str).filter(|t| !t.is_empty()) {
-            return Err(format!("the editor at {editor} could not be reached ({text})"));
-        }
-        tokio::time::timeout(Duration::from_secs(30), loaded)
-            .await
-            .map_err(|_| "timed out".to_string())?
-            .map_err(|_| "the browser connection closed".to_string())?;
-        let expression = format!(
-            "({PAGE_SCRIPT})({}, {}, {})",
-            pyjson::dumps(&source),
-            pyjson::dumps(&editor),
-            (timeout * 1000.0) as i64
-        );
-        let evaluated = tokio::time::timeout(
-            Duration::from_secs_f64(timeout + 5.0),
-            cdp.call(
-                "Runtime.evaluate",
-                json!({"expression": expression, "awaitPromise": true, "returnByValue": true}),
-                session,
-            ),
-        )
-        .await
-        .map_err(|_| "timed out".to_string())??;
-        if let Some(detail) = evaluated.get("exceptionDetails") {
-            let text = detail
-                .get("exception")
-                .and_then(|e| e.get("description"))
-                .and_then(Value::as_str)
-                .filter(|d| !d.is_empty())
-                .or_else(|| detail.get("text").and_then(Value::as_str))
-                .unwrap_or("script error");
-            return Err(text.to_string());
-        }
-        let value = evaluated["result"]["value"].as_str().ok_or_else(|| "the editor answered nothing".to_string())?;
-        decode(value)
+async fn drive_chrome(cdp: &Cdp, source: &str, editor: &str, timeout: f64) -> Result<String, String> {
+    let target = cdp.call("Target.createTarget", json!({"url": "about:blank"}), None).await?;
+    let target = target["targetId"].as_str().unwrap_or_default().to_string();
+    let attached = cdp.call("Target.attachToTarget", json!({"targetId": target, "flatten": true}), None).await?;
+    let session = attached["sessionId"].as_str().unwrap_or_default().to_string();
+    let session = Some(session.as_str());
+    cdp.call("Page.enable", json!({}), session).await?;
+    cdp.call("Fetch.enable", json!({"patterns": [{"urlPattern": "*"}]}), session).await?;
+    let loaded = cdp.wait_for("Page.loadEventFired");
+    // a page on the editor's own origin hosts the frame that runs the editor
+    let nav = cdp.call("Page.navigate", json!({"url": format!("{editor}/clear.html")}), session).await?;
+    if let Some(text) = nav.get("errorText").and_then(Value::as_str).filter(|t| !t.is_empty()) {
+        return Err(format!("the editor at {editor} could not be reached ({text})"));
     }
-    .await;
-    reader.abort();
-    writer.abort();
-    result
+    tokio::time::timeout(Duration::from_secs(30), loaded)
+        .await
+        .map_err(|_| "timed out".to_string())?
+        .map_err(|_| "the browser connection closed".to_string())?;
+    let expression = format!(
+        "({PAGE_SCRIPT})({}, {}, {})",
+        pyjson::dumps(&source),
+        pyjson::dumps(&editor),
+        (timeout * 1000.0) as i64
+    );
+    let evaluated = tokio::time::timeout(
+        Duration::from_secs_f64(timeout + 5.0),
+        cdp.call(
+            "Runtime.evaluate",
+            json!({"expression": expression, "awaitPromise": true, "returnByValue": true}),
+            session,
+        ),
+    )
+    .await
+    .map_err(|_| "timed out".to_string())??;
+    if let Some(detail) = evaluated.get("exceptionDetails") {
+        let text = detail
+            .get("exception")
+            .and_then(|e| e.get("description"))
+            .and_then(Value::as_str)
+            .filter(|d| !d.is_empty())
+            .or_else(|| detail.get("text").and_then(Value::as_str))
+            .unwrap_or("script error");
+        return Err(text.to_string());
+    }
+    let value = evaluated["result"]["value"].as_str().ok_or_else(|| "the editor answered nothing".to_string())?;
+    decode(value)
 }
 
 // --- the desktop app's own Chromium ---------------------------------------------------------------
@@ -550,20 +254,6 @@ pub fn say_unreachable(editor: &str) -> bool {
 /// `_unreachable_said = {}` (for tests).
 pub fn forget_unreachable() {
     *UNREACHABLE_SAID.lock().unwrap_or_else(|e| e.into_inner()) = None;
-}
-
-/// `KANBAN_EXPORT_CMD` as a non-empty JSON list of strings.
-pub fn command() -> Option<Vec<String>> {
-    let raw = std::env::var(EXPORT_CMD_ENV).unwrap_or_default();
-    let raw = pytext::strip(&raw);
-    if raw.is_empty() {
-        return None;
-    }
-    let Ok(Value::Array(items)) = serde_json::from_str::<Value>(raw) else {
-        return None;
-    };
-    let strings: Option<Vec<String>> = items.iter().map(|v| v.as_str().map(str::to_string)).collect();
-    strings.filter(|s| !s.is_empty())
 }
 
 /// The editor's own SVG of a drawing, or `None` when no hidden browser is available or it failed.

@@ -140,3 +140,42 @@ pub struct AccessRequestBody {
     #[serde(default)]
     pub note: String,
 }
+
+/// Request body listing the pages created by an import.
+#[derive(Debug, Deserialize)]
+pub struct ImportResolveBody {
+    pub page_ids: Vec<String>,
+}
+
+pub use crate::docs_comments::Anchor as AnchorBody;
+
+fn inline() -> String {
+    "inline".to_string()
+}
+
+/// Request body to start a comment thread.
+#[derive(Debug, Deserialize)]
+pub struct ThreadCreate {
+    #[serde(default = "inline")]
+    pub kind: String,
+    pub body: String,
+    #[serde(default)]
+    pub anchor: Option<AnchorBody>,
+    /// What a mention of an AI member means (Docs AI): ask | suggest (work) | notify
+    #[serde(default)]
+    pub ai_intent: Option<String>,
+}
+
+/// Request body to reply to or edit a comment.
+#[derive(Debug, Deserialize)]
+pub struct CommentBody {
+    pub body: String,
+    #[serde(default)]
+    pub ai_intent: Option<String>,
+}
+
+/// Markdown whose effect on open comment anchors should be checked.
+#[derive(Debug, Deserialize)]
+pub struct AnchorPreviewBody {
+    pub markdown: String,
+}

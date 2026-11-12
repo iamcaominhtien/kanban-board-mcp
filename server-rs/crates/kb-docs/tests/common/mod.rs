@@ -169,3 +169,36 @@ pub fn git(cwd: &std::path::Path, args: &[&str]) -> String {
     assert!(out.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&out.stderr));
     String::from_utf8_lossy(&out.stdout).into_owned()
 }
+
+/// A multipart body of the Docs import: `files` are `(path, bytes)` (the part's file name is the last segment of the
+/// path and the path itself goes in the `paths` fields, as the Python test's `upload` sends them); `fields` are text
+/// fields. Returns the `content-type` and the body.
+pub fn multipart(files: &[(&str, &[u8])], fields: &[(&str, &str)]) -> (String, Vec<u8>) {
+    let boundary = "----kb-docs-test-boundary-7d4a6d158c9";
+    let mut body: Vec<u8> = Vec::new();
+    for (path, data) in files {
+        let name = path.rsplit('/').next().unwrap_or(path);
+        body.extend(
+            format!("--{boundary}\r\nContent-Disposition: form-data; name=\"files\"; filename=\"{name}\"\r\n")
+                .as_bytes(),
+        );
+        body.extend(b"Content-Type: application/octet-stream\r\n\r\n");
+        body.extend(*data);
+        body.extend(b"\r\n");
+    }
+    let paths = files.iter().map(|(p, _)| ("paths", *p));
+    for (name, value) in paths.chain(fields.iter().copied()) {
+        body.extend(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n").as_bytes());
+        body.extend(value.as_bytes());
+        body.extend(b"\r\n");
+    }
+    body.extend(format!("--{boundary}--\r\n").as_bytes());
+    (format!("multipart/form-data; boundary={boundary}"), body)
+}
+
+/// `POST /projects/{pid}/docs/import` with these files and fields.
+pub async fn import(c: &Client, pid: &str, files: &[(&str, &[u8])], fields: &[(&str, &str)]) -> testkit::Resp {
+    let (content_type, body) = multipart(files, fields);
+    c.request("POST", &format!("/projects/{pid}/docs/import"), &[("content-type", content_type.as_str())], Some(body))
+        .await
+}

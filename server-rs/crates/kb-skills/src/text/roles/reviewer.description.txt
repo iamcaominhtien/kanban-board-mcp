@@ -1,0 +1,1 @@
+How the Reviewer works on this board: what to look for in a change and in what order, what blocks and what is only a suggestion, and how to write a finding the author can act on. Use at the start of every review.

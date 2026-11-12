@@ -1,0 +1,1 @@
+How the PM works on this board: planning a Story, splitting it into tickets each role can take, deciding when two roles disagree or a piece of work failed, and when to ask a person instead. Use at the start of every PM run: a Story to plan, a ticket to split, a question from a teammate, a ruling.

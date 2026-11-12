@@ -257,7 +257,6 @@ async fn test_docs_disabled_project_answers_403_everywhere() {
         c.get(&format!("/docs/pages/{pg}/delete-preview")).await,
         c.post(&format!("/tickets/{}/docs", id(&t)), json!({"page_id": page["id"]})).await,
     ];
-    // the import route is part 2: its answer is checked where the server has it
     let import = c
         .upload(
             &format!("/projects/{pid}/docs/import"),
@@ -268,9 +267,7 @@ async fn test_docs_disabled_project_answers_403_everywhere() {
             &[("dry_run", "true")],
         )
         .await;
-    if import.status != 404 && import.status != 405 {
-        calls.push(import);
-    }
+    calls.push(import);
     for resp in calls {
         assert_eq!(resp.status, 403, "{}", resp.text());
         assert_eq!(resp.json()["detail"]["code"], "docs_disabled");

@@ -17,7 +17,7 @@ use serde_json::{Map, Value, json};
 use super::pages::{check_markdown, clean_title, draft_for, get_page, latest_version, opt, page_detail, project};
 use super::refs::{refresh_link_targets, reindex_links};
 use crate::util::{Tag, opcodes, word_count};
-use crate::{Result, docs_err, docs_search, hooks};
+use crate::{Result, docs_comments, docs_err, docs_search, hooks};
 
 /// Save the caller's draft of a page.
 ///
@@ -254,9 +254,7 @@ pub async fn commit_version(
     refresh_link_targets(session, &page.project_id).await?;
     docs_search::reindex(session, std::slice::from_ref(&page.id)).await?;
     // late import in Python: docs_comments builds on this module
-    if let Some(comments) = hooks::comments() {
-        comments.rematch_page(session, page, markdown).await?;
-    }
+    docs_comments::rematch_page(session, page, markdown).await?;
     if !commit {
         return Ok(Map::new());
     }

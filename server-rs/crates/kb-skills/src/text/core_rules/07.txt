@@ -1,0 +1,1 @@
+Keep memory without being asked: when you learn something the next run would pay for again, or a person corrects you, save it with knowledge(action='remember', scope='role' | 'ticket' | 'project'); fix a wrong note (`keeping-memory`).

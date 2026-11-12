@@ -27,10 +27,13 @@ tracing = { workspace = true }
 caseless = "0.2.2"
 serde_urlencoded = "0.7"
 unicode-normalization = "0.1"
+# YAML events only: the front matter is typed by PyYAML's rules in `docs_import::yaml`
+yaml-rust2 = "0.13"
 
 [dev-dependencies]
 reqwest = { workspace = true }
 testkit = { workspace = true }
 tempfile = "3"
+base64 = { workspace = true }
 # the same sqlx as testkit: tests add rows to the server's SQLite file where no ported route can
 sqlx = { version = "0.9", default-features = false, features = ["sqlite", "runtime-tokio"] }

@@ -10,8 +10,6 @@ use kb_db::sea_orm::{ColumnTrait, ConnectionTrait, DbBackend, DbErr, EntityTrait
 use kb_db::sql::statement;
 use kb_doctext::docs_text::heading_anchors;
 
-use crate::hooks;
-
 /// The statement that makes the FTS table.
 pub const CREATE_FTS: &str = "CREATE VIRTUAL TABLE IF NOT EXISTS docs_fts USING fts5(\
 page_id UNINDEXED, project_id UNINDEXED, title, headings, body, tokenize = 'unicode61 remove_diacritics 2')";
@@ -162,20 +160,27 @@ async fn canvas_outline(
     if ids.is_empty() {
         return Ok(());
     }
-    let Some(hook) = hooks::canvases() else { return Ok(()) };
     let rows = canvas::Entity::find()
         .filter(canvas::Column::PageId.is_in(ids))
         .filter(canvas::Column::DeletedAt.is_null())
         .all(session)
         .await?;
     for c in rows {
-        let Some(names) = hook.board_names(&c.id).await else { continue };
+        // `[b["name"] for b in canvases.read_doc(c.id)["boards"]]`; a missing file only means no sections
+        let Some(names) = board_names(&c.id) else { continue };
         let outline = names.iter().map(|n| format!("## {}", n.replace('\n', " "))).collect::<Vec<_>>().join("\n\n");
         let Some(page_id) = c.page_id else { continue };
         let existing = out.get(&page_id).cloned().unwrap_or_default();
         out.insert(page_id, kb_base::pytext::strip(&format!("{existing}\n\n{outline}")).to_string());
     }
     Ok(())
+}
+
+/// The names of a canvas's boards; `None` where Python raises (`read_doc` of a missing file, a board without a name).
+fn board_names(canvas_id: &str) -> Option<Vec<String>> {
+    let doc = kb_draw::canvases::read_doc(canvas_id).ok()?;
+    let boards = doc.get("boards")?.as_array()?;
+    boards.iter().map(|b| b.get("name").and_then(|n| n.as_str()).map(str::to_string)).collect()
 }
 
 /// (Re)write the index rows of these pages; deleted or missing pages are removed.

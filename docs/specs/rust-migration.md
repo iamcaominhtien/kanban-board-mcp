@@ -154,8 +154,9 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - [x] diagrams and sketches (`services/diagram*.py`, `sketches.py`, `api/diagrams.py`, `sketches.py`)
 - [x] canvases, part 1 (`services/canvases.py`, `canvas_png.py`, `canvas_html.py`, `canvas_locks.py`, 30 routes of
       `api/canvases.py`)
-- [ ] canvases, part 2: comment threads, delivery, design guide, screenshots (`canvas_comments.py`,
-      `canvas_delivery.py`, `canvas_design.py`, `screenshots.py`, `visual_guides.py`)
+- [x] canvases, part 2: comment threads, delivery, design guide, screenshots (`canvas_comments.py`,
+      `canvas_delivery.py`, `canvas_design.py`, `screenshots.py`, `visual_guides.py`; every route of
+      `api/canvases.py` is served)
 - [x] ideas (`services/idea_*.py`, `api/idea_space.py`, `idea_tickets.py`; the nine tests of the
       `f4a6b8c0d2e4` migration wait for the migration port)
 
@@ -187,11 +188,13 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - `GET /database/command` still prints the `uv run python -m dbkit.cli` command; the Rust CLI is
   `kb_dbkit::cli::main` and needs a binary entry (`kanban-server db ...`).
 - Hooks still without an implementation: `kb_board::hooks::{AiTeamsHook, AiRunsHook}`, `kb_dbkit::hooks::AssistantHook`,
-  `kb_docs::hooks::{AiGuardHook, AssignHook, CommentsHook, CanvasesHook}`, `kb_draw::hooks::CanvasDocs`. Hooks are
+  `kb_docs::hooks::{AiGuardHook, AssignHook, CommentsHook, CanvasesHook}`, `kb_draw::hooks::{CanvasDocs, CanvasDelivery}`. Hooks are
   registered in `kb-app/src/hooks.rs`.
 - Tests waiting for another port: the two data-import tests that need an older database (migrations),
   `test_data_path_validation` on Rust (`api/settings.py`), the `test_mcp_*` tests (MCP), the wave-5 idea tests.
 - A JSON body that leaves out several required fields names only the first in the 422; FastAPI lists all.
+- Carried over from Python unchanged, to review after the switch: the screenshot helper's local server lists
+  directories, and its host check lets decimal and hexadecimal IP hosts through.
 
 ### P7 Switch
 

@@ -264,3 +264,69 @@ pub fn drawio(labels: &[&str], extra: &str) -> String {
          {cells}{edges}{extra}</root></mxGraphModel></diagram></mxfile>"
     )
 }
+
+/// An AI team behind the member `name` of a project: the row `AiTeam(id=member.id, project_id=pid, provider="claude-code",
+/// connection="local")` that the Python tests add through the session, written into the server's SQLite file (no
+/// ported route makes one).
+pub async fn add_ai_team(srv: &Server, project_id: &str, name: &str) {
+    use sqlx::Connection;
+    let c = srv.client();
+    let members = c.get(&format!("/projects/{project_id}/members")).await.json();
+    let id = members
+        .as_array()
+        .expect("members")
+        .iter()
+        .find(|m| m["name"] == name)
+        .and_then(|m| m["id"].as_str())
+        .expect("the member")
+        .to_string();
+    let url = format!("sqlite://{}", srv.db_path().display());
+    let mut conn = sqlx::SqliteConnection::connect(&url).await.expect("open the server's database");
+    let now = "2000-01-01T00:00:00+00:00";
+    sqlx::query(
+        "INSERT INTO ai_team (id, project_id, provider, connection, description, persona, config, permission_mode, \
+         max_parallel, scope, paused, health, created_at, updated_at) \
+         VALUES (?, ?, 'claude-code', 'local', '', '', '{}', 'bypass', 2, 'assigned', 0, 'unknown', ?, ?)",
+    )
+    .bind(id)
+    .bind(project_id)
+    .bind(now)
+    .bind(now)
+    .execute(&mut conn)
+    .await
+    .expect("add the AI team");
+}
+
+/// An AI member, as the AI team's port will make it: the member `name` of a project (made as a person first) turned
+/// into `kind = 'ai'`, with its `AiTeam` row when `team` is set and the team paused when `paused` is. Written into the
+/// server's SQLite file (no ported route makes one). Returns the member's id.
+pub async fn ai_member(srv: &Server, project_id: &str, name: &str, team: bool, paused: bool) -> String {
+    use sqlx::Connection;
+    let c = srv.client();
+    member(&c, project_id, name, "member").await;
+    let members = c.get(&format!("/projects/{project_id}/members")).await.json();
+    let id = members
+        .as_array()
+        .expect("members")
+        .iter()
+        .find(|m| m["name"] == name)
+        .and_then(|m| m["id"].as_str())
+        .expect("the member")
+        .to_string();
+    let url = format!("sqlite://{}", srv.db_path().display());
+    let mut conn = sqlx::SqliteConnection::connect(&url).await.expect("open the server's database");
+    sqlx::query("UPDATE member SET kind = 'ai' WHERE id = ?").bind(&id).execute(&mut conn).await.expect("make it AI");
+    if team {
+        drop(conn);
+        add_ai_team(srv, project_id, name).await;
+        if paused {
+            let mut conn = sqlx::SqliteConnection::connect(&url).await.expect("open the server's database");
+            sqlx::query("UPDATE ai_team SET paused = 1 WHERE id = ?")
+                .bind(&id)
+                .execute(&mut conn)
+                .await
+                .expect("pause");
+        }
+    }
+    id
+}

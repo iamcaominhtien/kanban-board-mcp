@@ -1,0 +1,1 @@
+How the BA works on this board: acceptance criteria a tester can check, the edge and error cases, and which document a piece of work needs (a feature spec, a bugfix spec, a decision table, a use case, an example map, a one-pager), with a template for each and a checklist before handing in. Use at the start of every BA run, and whenever you write criteria or a spec.

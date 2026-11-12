@@ -10,3 +10,26 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+kb-base = { workspace = true }
+kb-db = { workspace = true }
+kb-board = { workspace = true }
+kb-skills = { workspace = true }
+async-trait = { workspace = true }
+axum = { workspace = true }
+futures = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+# the server the tests of this crate start through `testkit`: the MCP routes alone over a temporary database
+[[bin]]
+name = "kb-mcp-test-server"
+path = "tests/support/test_server.rs"
+test = false
+
+[dev-dependencies]
+testkit = { workspace = true }
+tempfile = "3"

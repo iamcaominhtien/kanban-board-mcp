@@ -3,12 +3,7 @@
 //! (layout) is JSON and merges per item. Errors use the Docs error shape `{detail: {code, message, ...}}`. The files
 //! of a frame are served as they are (an open web page: no policy, no sandbox).
 //!
-//! Left for part 2 (they need `canvas_comments.py` and `canvas_delivery.py`): `GET /canvases/{canvas_id}/members`
-//! (`canvas_delivery.mentionable`), `GET` and `POST /canvases/{canvas_id}/threads` (`canvas_comments.list_threads`,
-//! `add_thread`, then `canvas_delivery.deliver`), `POST /canvases/threads/{thread_id}/replies`,
-//! `POST /canvases/threads/{thread_id}/resolve`, `POST /canvases/threads/{thread_id}/reopen`,
-//! `PATCH` and `DELETE /canvases/comments/{comment_id}` (`canvas_comments.reply`, `set_status`, `edit_comment`,
-//! `delete_comment`).
+//! The comment routes (the last seven of the Python file) are in `comments.rs`, registered after these.
 
 use std::collections::HashMap;
 
@@ -24,6 +19,8 @@ use serde::Deserialize;
 use serde_json::{Map, Value, json};
 
 use super::{docs_error, query_int, query_pairs, query_required};
+
+pub mod comments;
 use crate::canvases::boards::{self, AddBoard, PutContent};
 use crate::canvases::content::{Files, put_file};
 use crate::canvases::rows::{NewCanvas, Size};
@@ -64,6 +61,8 @@ pub fn routes() -> Routes {
         .get("/canvases/{canvas_id}/versions/{n}", get_version)
         .add("PATCH", "/canvases/{canvas_id}/versions/{n}", patch(patch_version).layer(unlimited()))
         .post("/canvases/{canvas_id}/versions/{n}/restore", post_restore_version)
+        // the comments: the last routes of the Python file
+        .merge(comments::routes())
 }
 
 /// A frame's files are open web pages (scripts, CDN links and fonts all run, as when the file is opened in a browser):

@@ -1,11 +1,14 @@
 //! The Docs space: a tree of Markdown pages per project with versions, drafts, links between pages and to tickets,
 //! the Recycle Bin and full-text search (`services/docs.py`, `docs_search.py`, `docs_work.py`, `api/docs.py`).
 //!
-//! Part 1 of the port. Comments (`docs_comments.py`) and imports (`docs_import.py`) come in part 2; the places
-//! where this half calls them are the hooks in [`hooks`].
+//! Part 1 is pages, versions, links, the bin and search; part 2 is the comments (`docs_comments.py`) and the import
+//! of Markdown files (`docs_import.py`) with their routes. What Docs calls in code it cannot depend on (tickets, the
+//! AI team) is a hook in [`hooks`]; [`hooks::register`] gives `kb-draw` the Docs calls its canvases make.
 
 pub mod api;
 pub mod docs;
+pub mod docs_comments;
+pub mod docs_import;
 pub mod docs_search;
 pub mod docs_work;
 pub mod hooks;

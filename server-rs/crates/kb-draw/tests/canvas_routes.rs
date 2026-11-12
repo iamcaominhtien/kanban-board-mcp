@@ -30,10 +30,10 @@ struct Rec {
 }
 
 impl Rec {
-    /// Ids (`cv_`, `b_`, `p_`, `n_`, `a_`, `t_`, `sk_`) numbered by first appearance, volatile numbers masked.
+    /// Ids (`cv_`, `b_`, `p_`, `n_`, `a_`, `t_`, `sk_`, `nt_`) numbered by first appearance, volatile numbers masked.
     fn norm(&mut self, value: &Value) -> Value {
         static RE: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
-        let re = RE.get_or_init(|| Regex::new(r"\b(cv|b|p|n|a|t|sk)_[0-9a-f]{8}\b").expect("static pattern"));
+        let re = RE.get_or_init(|| Regex::new(r"\b(cv|b|p|n|a|t|sk|nt)_[0-9a-f]{8,12}\b").expect("static pattern"));
         let value = testkit::normalize(value);
         self.walk(&value, re)
     }
@@ -169,6 +169,191 @@ async fn urlform(srv: &Server, method: &str, path: &str, fields: &[(&str, &str)]
     let headers = r.headers().clone();
     let body = r.bytes().await.expect("body").to_vec();
     Reply { status, headers, body }
+}
+
+/// The comment routes (the last of `api/canvases.py`): who the picker offers, the threads, replies, resolve / reopen,
+/// edit and delete, every error branch, what a mention sends to a person (`GET /notifications`) and to an AI team.
+/// Only branches that need no AI code are exercised: a team that would really be asked (a ready team on a Docs page or
+/// on its ticket) calls the AI port, which this crate reaches through a hook.
+async fn comments(srv: &Server, c: &Client, an: &Client, vi: &Client, pid: &str, rec: &mut Rec) {
+    let base = json!({"owner_kind": "doc", "owner_id": "page-1", "title": "Login redesign", "project_id": pid});
+    let cm = c.post("/canvases", base).await.json();
+    let (cmid, cmb) = (s(&cm["id"]), s(&cm["doc"]["boards"][0]["id"]));
+    let page_tab = s(&cm["doc"]["pages"][0]["id"]);
+    let idea =
+        c.post("/canvases", json!({"owner_kind": "idea", "owner_id": "idea-ai", "project_id": pid})).await.json();
+    let idea_id = s(&idea["id"]);
+    let ticket =
+        c.post("/canvases", json!({"owner_kind": "ticket", "owner_id": "tk-missing", "project_id": pid})).await.json();
+    let ticket_id = s(&ticket["id"]);
+    let free = c.post("/canvases", json!({"owner_kind": "idea", "owner_id": "idea-free-2"})).await.json();
+    let free_id = s(&free["id"]);
+    common::member(c, pid, "Hoa Tran", "member").await;
+    common::member(c, pid, "Ann", "member").await;
+    common::ai_member(srv, pid, "Designer AI", true, false).await;
+    common::ai_member(srv, pid, "Paused AI", true, true).await;
+    common::ai_member(srv, pid, "Ghost AI", false, false).await;
+    let gone = common::ai_member(srv, pid, "Gone AI", false, false).await;
+    {
+        use sqlx::Connection;
+        let url = format!("sqlite://{}", srv.db_path().display());
+        let mut conn = sqlx::SqliteConnection::connect(&url).await.expect("open the server's database");
+        sqlx::query("UPDATE member SET kind = 'ai_removed' WHERE id = ?")
+            .bind(gone)
+            .execute(&mut conn)
+            .await
+            .expect("remove");
+    }
+    let people = c.get(&format!("/projects/{pid}/members")).await.json();
+    let id_of = |name: &str| -> String {
+        s(&people.as_array().expect("members").iter().find(|m| m["name"] == name).expect("member")["id"])
+    };
+    let (hoa, ann) = (id_of("Hoa Tran"), id_of("Ann"));
+    let designer = srv.client().header("x-actor", "Designer AI");
+    let hoa_client = srv.client().header("x-actor", "Hoa Tran");
+
+    // GET /canvases/{canvas_id}/members
+    rec.resp("cm_members_doc", &c.get(&format!("/canvases/{cmid}/members")).await);
+    rec.resp("cm_members_idea", &c.get(&format!("/canvases/{idea_id}/members")).await);
+    rec.resp("cm_members_ticket", &c.get(&format!("/canvases/{ticket_id}/members")).await);
+    rec.resp("cm_members_no_project", &c.get(&format!("/canvases/{free_id}/members")).await);
+    rec.resp("cm_members_viewer", &vi.get(&format!("/canvases/{cmid}/members")).await);
+    rec.resp("cm_members_unknown", &c.get("/canvases/cv_00000000/members").await);
+
+    // POST /canvases/{canvas_id}/threads
+    let path = format!("/canvases/{cmid}/threads");
+    let t1 = c
+        .post(
+            &path,
+            json!({"body": "  Logo too small  ", "board_id": cmb, "x": 0.7, "y": 0.4,
+                   "anchor": {"sel": " .logo ", "text": " Sign   in ", "ox": 2, "oy": "0.25", "w": 390.5}}),
+        )
+        .await;
+    rec.resp("cm_thread_frame_anchor", &t1);
+    let t1 = t1.json();
+    let t1_id = s(&t1["id"]);
+    let t2 = c.post(&path, json!({"body": "Plane note", "x": 120, "y": 80})).await;
+    rec.resp("cm_thread_plane", &t2);
+    let t2 = t2.json();
+    rec.resp(
+        "cm_thread_plane_page",
+        &c.post(&path, json!({"body": "On a tab", "x": 5, "y": 6, "page": page_tab})).await,
+    );
+    rec.resp("cm_thread_plane_unknown_page", &c.post(&path, json!({"body": "Odd tab", "page": "p_deadbeef"})).await);
+    rec.resp("cm_thread_clamped", &c.post(&path, json!({"body": "Clamped", "board_id": cmb, "x": 9, "y": -3})).await);
+    rec.resp(
+        "cm_thread_anchor_unusable",
+        &c.post(&path, json!({"body": "No anchor", "board_id": cmb, "anchor": {"sel": " ", "text": ""}})).await,
+    );
+    rec.resp(
+        "cm_thread_anchor_on_plane",
+        &c.post(&path, json!({"body": "Plane anchor", "anchor": {"sel": "a"}})).await,
+    );
+    rec.resp("cm_thread_empty_board_id_is_plane", &c.post(&path, json!({"body": "Empty id", "board_id": ""})).await);
+    rec.resp("cm_thread_unknown_board", &c.post(&path, json!({"body": "x", "board_id": "b_deadbeef"})).await);
+    rec.resp("cm_thread_empty_body", &c.post(&path, json!({"body": "  "})).await);
+    rec.resp("cm_thread_missing_body", &c.post(&path, json!({"x": 1})).await);
+    rec.resp("cm_thread_bad_x", &c.post(&path, json!({"body": "x", "x": "left"})).await);
+    rec.resp("cm_thread_bad_anchor", &c.post(&path, json!({"body": "x", "anchor": "str"})).await);
+    rec.resp("cm_thread_long_body", &c.post(&path, json!({"body": "w".repeat(4100)})).await);
+    rec.resp("cm_thread_viewer", &vi.post(&path, json!({"body": "hi"})).await);
+    rec.resp("cm_thread_unknown_canvas", &c.post("/canvases/cv_00000000/threads", json!({"body": "hi"})).await);
+    // a mention of a person: typed, picked, and both for the same member; the author is never told
+    let typed = c.post(&path, json!({"body": "Hello @Hoa Tran, and @ann too"})).await;
+    rec.resp("cm_thread_mention_typed", &typed);
+    let picked =
+        c.post(&path, json!({"body": format!("@[Hoa Tran](member:{hoa}) and @[Ann](member:{ann}) @Ann")})).await;
+    rec.resp("cm_thread_mention_picked", &picked);
+    rec.resp("cm_thread_mention_self", &hoa_client.post(&path, json!({"body": "Note to @Hoa Tran myself"})).await);
+    rec.resp("cm_thread_mention_viewer_unknown", &c.post(&path, json!({"body": "@Vi hello @Nobody"})).await);
+    // a mention of an AI team: delivered only when it can be asked, so only the branches that need no AI code
+    rec.resp(
+        "cm_thread_ai_on_idea",
+        &c.post(&format!("/canvases/{idea_id}/threads"), json!({"body": "@Designer AI look"})).await,
+    );
+    rec.resp(
+        "cm_thread_ai_not_on_ticket",
+        &c.post(&format!("/canvases/{ticket_id}/threads"), json!({"body": "@Designer AI @Paused AI @Ghost AI"})).await,
+    );
+    rec.resp("cm_thread_ai_paused_on_page", &c.post(&path, json!({"body": "@Paused AI and @Ghost AI please"})).await);
+    rec.resp("cm_thread_ai_removed_is_nobody", &c.post(&path, json!({"body": "@Gone AI"})).await);
+    rec.resp(
+        "cm_thread_by_ai_is_not_delivered",
+        &designer.post(&path, json!({"body": "I am @Designer AI, @Paused AI"})).await,
+    );
+    rec.resp("cm_thread_no_project", &c.post(&format!("/canvases/{free_id}/threads"), json!({"body": "@Ann"})).await);
+
+    // GET /canvases/{canvas_id}/threads
+    rec.resp("cm_threads_all", &c.get(&path).await);
+    rec.resp("cm_threads_open", &c.get_query(&path, &[("state", "open")]).await);
+    rec.resp("cm_threads_resolved_none", &c.get_query(&path, &[("state", "resolved")]).await);
+    rec.resp("cm_threads_other_state_is_all", &c.get_query(&path, &[("state", "bogus")]).await);
+    rec.resp("cm_threads_viewer", &vi.get(&path).await);
+    rec.resp("cm_threads_unknown", &c.get("/canvases/cv_00000000/threads").await);
+
+    // POST /canvases/threads/{thread_id}/replies
+    let replies = format!("/canvases/threads/{t1_id}/replies");
+    let reply = c.post(&replies, json!({"body": "It matches the brand sheet"})).await;
+    rec.resp("cm_reply", &reply);
+    let reply_id = s(&reply.json()["comments"][1]["id"]);
+    rec.resp("cm_reply_mention", &c.post(&replies, json!({"body": "cc @Hoa Tran"})).await);
+    rec.resp("cm_reply_ai_mention_on_idea", &{
+        let t = c.post(&format!("/canvases/{idea_id}/threads"), json!({"body": "plain"})).await.json();
+        c.post(&format!("/canvases/threads/{}/replies", s(&t["id"])), json!({"body": "@Designer AI again"})).await
+    });
+    rec.resp("cm_reply_empty", &c.post(&replies, json!({"body": ""})).await);
+    rec.resp("cm_reply_missing_body", &c.post(&replies, json!({})).await);
+    rec.resp("cm_reply_viewer", &vi.post(&replies, json!({"body": "hi"})).await);
+    rec.resp("cm_reply_unknown", &c.post("/canvases/threads/nope/replies", json!({"body": "hi"})).await);
+    rec.resp("cm_reply_by_ai", &designer.post(&replies, json!({"body": "Button is 36 px"})).await);
+
+    // POST /canvases/threads/{thread_id}/resolve and /reopen
+    let t2_id = s(&t2["id"]);
+    rec.resp("cm_resolve_ai_on_a_persons", &designer.post_empty(&format!("/canvases/threads/{t1_id}/resolve")).await);
+    rec.resp("cm_resolve", &c.post_empty(&format!("/canvases/threads/{t1_id}/resolve")).await);
+    rec.resp("cm_resolve_again", &an.post_empty(&format!("/canvases/threads/{t1_id}/resolve")).await);
+    rec.resp("cm_resolve_viewer", &vi.post_empty(&format!("/canvases/threads/{t2_id}/resolve")).await);
+    rec.resp("cm_resolve_unknown", &c.post_empty("/canvases/threads/nope/resolve").await);
+    rec.resp("cm_threads_resolved", &c.get_query(&path, &[("state", "resolved")]).await);
+    let open_comments = c.get(&format!("/canvases/{cmid}")).await.json()["open_comments"].clone();
+    rec.json("cm_canvas_open_comments", 200, json!({"open_comments": open_comments}));
+    rec.resp("cm_reopen", &c.post_empty(&format!("/canvases/threads/{t1_id}/reopen")).await);
+    rec.resp("cm_reopen_open_one", &c.post_empty(&format!("/canvases/threads/{t1_id}/reopen")).await);
+    rec.resp("cm_reopen_viewer", &vi.post_empty(&format!("/canvases/threads/{t1_id}/reopen")).await);
+    rec.resp("cm_reopen_unknown", &c.post_empty("/canvases/threads/nope/reopen").await);
+    let ai_thread = designer.post(&path, json!({"body": "Mine", "board_id": cmb})).await.json();
+    rec.resp(
+        "cm_resolve_ai_own",
+        &designer.post_empty(&format!("/canvases/threads/{}/resolve", s(&ai_thread["id"]))).await,
+    );
+
+    // PATCH /canvases/comments/{comment_id}
+    let first = s(&t1["comments"][0]["id"]);
+    rec.resp(
+        "cm_edit",
+        &c.patch(&format!("/canvases/comments/{first}"), json!({"body": "  Logo is fine now  "})).await,
+    );
+    rec.resp("cm_edit_mention", &c.patch(&format!("/canvases/comments/{first}"), json!({"body": "ask @Ann"})).await);
+    rec.resp("cm_edit_empty", &c.patch(&format!("/canvases/comments/{first}"), json!({"body": " "})).await);
+    rec.resp("cm_edit_missing_body", &c.patch(&format!("/canvases/comments/{first}"), json!({})).await);
+    rec.resp("cm_edit_not_yours", &an.patch(&format!("/canvases/comments/{first}"), json!({"body": "mine now"})).await);
+    rec.resp("cm_edit_viewer", &vi.patch(&format!("/canvases/comments/{first}"), json!({"body": "mine now"})).await);
+    rec.resp("cm_edit_unknown", &c.patch("/canvases/comments/nope", json!({"body": "x"})).await);
+
+    // DELETE /canvases/comments/{comment_id}
+    rec.resp("cm_delete_not_yours", &an.delete(&format!("/canvases/comments/{reply_id}")).await);
+    rec.resp("cm_delete_viewer", &vi.delete(&format!("/canvases/comments/{reply_id}")).await);
+    rec.resp("cm_delete_unknown", &c.delete("/canvases/comments/nope").await);
+    rec.resp("cm_delete_reply", &c.delete(&format!("/canvases/comments/{reply_id}")).await);
+    rec.resp("cm_delete_opening_comment", &c.delete(&format!("/canvases/comments/{first}")).await);
+    rec.resp("cm_delete_gone", &c.delete(&format!("/canvases/comments/{first}")).await);
+    rec.resp("cm_threads_after", &c.get(&path).await);
+
+    // what the mentions sent: the person's own Needs you rows, and the event log
+    rec.resp("cm_notifications_hoa", &hoa_client.get("/notifications").await);
+    rec.resp("cm_notifications_ann", &srv.client().header("x-actor", "Ann").get("/notifications").await);
+    rec.resp("cm_notifications_author", &c.get("/notifications").await);
+    rec.resp("cm_notification_log", &c.get_query("/notifications/log", &[("since", "0")]).await);
 }
 
 async fn script(srv: &Server) -> Map<String, Value> {
@@ -678,6 +863,7 @@ async fn script(srv: &Server) -> Map<String, Value> {
     rec.resp("restore_canvas_viewer", &vi.post_empty(&format!("/canvases/{cid}/restore")).await);
     rec.resp("restore_canvas", &c.post_empty(&format!("/canvases/{cid}/restore")).await);
     rec.resp("restore_canvas_unknown", &c.post_empty("/canvases/cv_00000000/restore").await);
+    comments(srv, &c, &an, &vi, &pid, &mut rec).await;
     // the Docs steps come last: where the Docs area is not wired in they are skipped and nothing above depends on them
     if c.post("/canvases/pages", json!({"project_id": pid, "title": "Probe"})).await.status == 201 {
         let r = c.post("/canvases/pages", json!({"project_id": pid, "title": "Settings flow"})).await;

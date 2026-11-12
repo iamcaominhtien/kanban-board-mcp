@@ -1,13 +1,13 @@
 //! `tests/test_canvases.py` (the half of the canvases this crate serves), a differential check of every route of
 //! `api/canvases.rs` against a snapshot recorded from the Python server, and the cross-server ZIP check.
 //!
-//! Left out here because they need part 2 of the canvases (`canvas_comments`, `canvas_delivery`): the threads and
-//! comments of `test_comment_threads_pinned_to_a_frame_or_the_plane_resolve_and_reopen` and
-//! `test_an_ai_comment_is_marked_and_an_ai_member_cannot_resolve_a_persons_thread` (in-process `canvas_comments`), the
-//! pins inside `test_one_lock_per_board...`, `test_move_to_docs...` and `test_viewers_can_look...` run only where the
-//! threads routes are served. The Docs steps run only where the Docs routes are served (the Docs area is another
-//! port): `test_a_docs_page_canvas_gets_a_version_every_ten_minutes`, `test_move_to_docs_keeps_the_id_...`,
+//! The Docs steps run only where the Docs routes are served (the Docs area is another port):
+//! `test_a_docs_page_canvas_gets_a_version_every_ten_minutes`, `test_move_to_docs_keeps_the_id_...`,
 //! `test_boards_are_sections_of_a_canvas_page_and_the_ticket_lists_the_canvas`.
+//!
+//! The comment tests (`test_comment_threads_pinned_to_a_frame_or_the_plane_resolve_and_reopen`,
+//! `test_an_ai_comment_is_marked_and_an_ai_member_cannot_resolve_a_persons_thread`) are at the end of the file; the
+//! pins inside `test_one_lock_per_board...`, `test_move_to_docs...` and `test_viewers_can_look...` run on every target.
 
 mod common;
 
@@ -123,11 +123,6 @@ async fn docs_served(c: &Client, pid: &str, test: &str) -> bool {
     }
     eprintln!("SKIPPED the Docs steps of {test}: the Docs area is not wired into this server");
     false
-}
-
-/// Whether the threads routes (part 2 of the canvases) are served.
-async fn threads_served(c: &Client, cid: &str) -> bool {
-    c.get(&format!("/canvases/{cid}/threads")).await.status == 200
 }
 
 fn zip_of(entries: &[(&str, &[u8])]) -> Vec<u8> {
@@ -583,15 +578,13 @@ async fn test_one_lock_per_board_content_needs_it_layout_does_not() {
         .patch(&format!("/canvases/{cid}"), json!({"base_rev": doc["rev"], "upsert": {"boards": [moved_board]}}))
         .await;
     assert_eq!(moved.status, 200);
-    if threads_served(&c, &cid).await {
-        let pin = an
-            .post(
-                &format!("/canvases/{cid}/threads"),
-                json!({"body": "Looks fine", "board_id": b["id"], "x": 0.2, "y": 0.3}),
-            )
-            .await;
-        assert_eq!(pin.status, 201);
-    }
+    let pin = an
+        .post(
+            &format!("/canvases/{cid}/threads"),
+            json!({"body": "Looks fine", "board_id": b["id"], "x": 0.2, "y": 0.3}),
+        )
+        .await;
+    assert_eq!(pin.status, 201);
     // the holder saves, which releases the lock
     let saved = c
         .put(
@@ -819,20 +812,55 @@ async fn test_move_to_docs_keeps_the_id_and_the_text_keeps_showing_it() {
     }
     let cv = make_in(&c, &pid, json!({})).await;
     let cid = s(&cv["id"]);
-    let threads = threads_served(&c, &cid).await;
-    if threads {
-        let pin = c.post(&format!("/canvases/{cid}/threads"), json!({"body": "Check"})).await;
-        assert_eq!(pin.status, 201);
-    }
+    let pin = c.post(&format!("/canvases/{cid}/threads"), json!({"body": "Check"})).await;
+    assert_eq!(pin.status, 201);
     let out = c.post(&format!("/canvases/{cid}/move-to-docs"), json!({"title": "Login flow"})).await;
     assert_eq!(out.status, 200, "{}", out.text());
     let moved = out.json()["canvas"].clone();
     assert!(moved["id"] == cv["id"] && moved["owner_kind"] == "page" && moved["page_id"] == out.json()["page"]["id"]);
-    if threads {
-        assert_eq!(get_json(&c, &format!("/canvases/{cid}/threads")).await[0]["comments"][0]["body"], "Check");
-    }
+    assert_eq!(get_json(&c, &format!("/canvases/{cid}/threads")).await[0]["comments"][0]["body"], "Check");
     let again = c.post(&format!("/canvases/{cid}/move-to-docs"), json!({})).await;
     assert!(again.status == 422 && again.json()["detail"]["code"] == "already_page");
+}
+
+// --- comments ---------------------------------------------------------------------------------------------------
+
+#[tokio::test]
+async fn test_comment_threads_pinned_to_a_frame_or_the_plane_resolve_and_reopen() {
+    let (_srv, c, pid) = start!("test_comment_threads_pinned_to_a_frame_or_the_plane_resolve_and_reopen");
+    let cv = make_in(&c, &pid, json!({})).await;
+    let cid = s(&cv["id"]);
+    let bid = s(&cv["doc"]["boards"][0]["id"]);
+    let t1 = c
+        .post(
+            &format!("/canvases/{cid}/threads"),
+            json!({"body": "Logo too small @Hoa", "board_id": bid, "x": 0.7, "y": 0.4}),
+        )
+        .await
+        .json();
+    let t2 = c.post(&format!("/canvases/{cid}/threads"), json!({"body": "Plane note", "x": 120, "y": 80})).await.json();
+    assert!(t1["number"] == 1 && t2["number"] == 2 && t1["board_id"] == json!(bid) && t2["board_id"].is_null());
+    // mentions are member ids; "Hoa" is no member here
+    assert_eq!(t1["comments"][0]["mentions"], json!([]));
+    let t1_id = s(&t1["id"]);
+    let rep =
+        c.post(&format!("/canvases/threads/{t1_id}/replies"), json!({"body": "It matches the brand sheet"})).await;
+    assert_eq!(rep.json()["comments"].as_array().expect("comments").len(), 2);
+    let res = c.post_empty(&format!("/canvases/threads/{t1_id}/resolve")).await.json();
+    assert!(res["status"] == "resolved" && res["resolved_by"] == "user");
+    let open = c.get_query(&format!("/canvases/{cid}/threads"), &[("state", "open")]).await.json();
+    let ids: Vec<&Value> = open.as_array().expect("threads").iter().map(|t| &t["id"]).collect();
+    assert_eq!(ids, vec![&t2["id"]]);
+    assert_eq!(get_json(&c, &format!("/canvases/{cid}")).await["open_comments"], 1);
+    assert_eq!(c.post_empty(&format!("/canvases/threads/{t1_id}/reopen")).await.json()["status"], "open");
+    // a pin keeps its frame; a pin on a frame that is not there is refused
+    let bad = c.post(&format!("/canvases/{cid}/threads"), json!({"body": "x", "board_id": "b_deadbeef"})).await;
+    assert_eq!(bad.status, 404);
+    let empty = c.post(&format!("/canvases/{cid}/threads"), json!({"body": "  "})).await;
+    assert_eq!(empty.status, 422);
+    // deleting the opening comment removes the thread
+    let first = s(&t2["comments"][0]["id"]);
+    assert_eq!(c.delete(&format!("/canvases/comments/{first}")).await.json()["deleted"], "thread");
 }
 
 // --- permissions ------------------------------------------------------------------------------------------------
@@ -846,10 +874,7 @@ async fn test_viewers_can_look_but_not_change_anything() {
     let cid = s(&cv["id"]);
     let got = vi.get(&format!("/canvases/{cid}")).await;
     assert!(got.status == 200 && got.json()["role"] == "viewer" && got.json()["can_edit"] == false);
-    let threads = threads_served(&c, &cid).await;
-    if threads {
-        assert_eq!(vi.get(&format!("/canvases/{cid}/threads")).await.status, 200);
-    }
+    assert_eq!(vi.get(&format!("/canvases/{cid}/threads")).await.status, 200);
     assert_eq!(vi.get(&format!("/canvases/{cid}/versions")).await.status, 200);
     let bid = s(&cv["doc"]["boards"][0]["id"]);
     let h = [("x-actor", "Vi")];
@@ -860,9 +885,7 @@ async fn test_viewers_can_look_but_not_change_anything() {
     let board = urlform(&srv, "POST", &format!("/canvases/{cid}/boards"), &[("kind", "empty")], &h).await;
     replies.push((board.status, board.json()));
     replies.push(vi.post_empty(&format!("/canvases/{cid}/boards/{bid}/lock")).await.into_pair());
-    if threads {
-        replies.push(vi.post(&format!("/canvases/{cid}/threads"), json!({"body": "hi"})).await.into_pair());
-    }
+    replies.push(vi.post(&format!("/canvases/{cid}/threads"), json!({"body": "hi"})).await.into_pair());
     replies.push(vi.delete(&format!("/canvases/{cid}")).await.into_pair());
     replies.push(vi.post_empty(&format!("/canvases/{cid}/versions/1/restore")).await.into_pair());
     for (status, body) in replies {
@@ -924,6 +947,34 @@ async fn test_download_zip_overview_and_snapshots() {
     )
     .await;
     assert!(page.text().contains("Sign in"));
+}
+
+#[tokio::test]
+async fn test_an_ai_comment_is_marked_and_an_ai_member_cannot_resolve_a_persons_thread() {
+    let (srv, c, pid) = start!("test_an_ai_comment_is_marked_and_an_ai_member_cannot_resolve_a_persons_thread");
+    let cv = make_in(&c, &pid, json!({})).await;
+    let cid = s(&cv["id"]);
+    member(&c, &pid, "Designer AI", "member").await;
+    let person = c.post(&format!("/canvases/{cid}/threads"), json!({"body": "Check this"})).await.json();
+    let ai_client = srv.client().header("x-actor", "Designer AI");
+    let ai = ai_client
+        .post(
+            &format!("/canvases/{cid}/threads"),
+            json!({"body": "Button is 36 px", "board_id": cv["doc"]["boards"][0]["id"]}),
+        )
+        .await
+        .json();
+    assert_eq!(ai["created_by"], "Designer AI");
+    // the Python test adds the team row through the session and calls `set_status` in-process; here the row is added to
+    // the server's database and the route is asked
+    common::add_ai_team(&srv, &pid, "Designer AI").await;
+    let r = ai_client.post_empty(&format!("/canvases/threads/{}/resolve", s(&person["id"]))).await;
+    assert_eq!(r.status, 403, "{}", r.text());
+    assert_eq!(r.json()["detail"]["code"], "ai_cannot_resolve");
+    // an AI team's own thread, it may resolve; a person may resolve any
+    let own = ai_client.post_empty(&format!("/canvases/threads/{}/resolve", s(&ai["id"]))).await;
+    assert!(own.status == 200 && own.json()["resolved_by"] == "Designer AI");
+    assert_eq!(c.post_empty(&format!("/canvases/threads/{}/resolve", s(&person["id"]))).await.status, 200);
 }
 
 #[tokio::test]

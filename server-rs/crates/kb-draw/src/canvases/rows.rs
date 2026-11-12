@@ -2,9 +2,9 @@
 
 use kb_base::activity;
 use kb_db::Session;
-use kb_db::entities::{canvas, canvas_thread};
+use kb_db::entities::canvas;
 use kb_db::sea_orm::ActiveValue::{Set, Unchanged};
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use kb_doctext::docs_text::DocsError;
 use serde_json::{Map, Value, json};
 
@@ -275,18 +275,8 @@ pub async fn get_canvas(session: &Session, canvas_id: &str) -> Result<Map<String
     let mut out = summary(&c, &role);
     out.insert("doc".into(), Value::Object(read_doc(&c.id)?));
     out.insert("locks".into(), Value::Array(canvas_locks::locks_of(&c.id).into_iter().map(Value::Object).collect()));
-    out.insert("open_comments".into(), json!(open_count(session, &c.id).await?));
+    out.insert("open_comments".into(), json!(crate::canvas_comments::open_count(session, &c.id).await?));
     Ok(out)
-}
-
-/// `canvas_comments.open_count(session, canvas_id)` (part 2 of the canvases owns the comments; this count is all
-/// that `get_canvas` needs of them): the open threads of a canvas.
-pub async fn open_count(session: &Session, canvas_id: &str) -> Result<u64> {
-    Ok(canvas_thread::Entity::find()
-        .filter(canvas_thread::Column::CanvasId.eq(canvas_id))
-        .filter(canvas_thread::Column::Status.eq("open"))
-        .count(session)
-        .await?)
 }
 
 /// The canvases of one page, ticket, idea or comment's ticket, newest change first.

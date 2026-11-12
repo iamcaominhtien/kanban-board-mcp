@@ -1,0 +1,1 @@
+How to make a presentation deck (.pptx) that looks designed and makes its point: the story first, a theme or the person's own template, pictures found or drawn, then every slide rendered and looked at. Scripts turn slides designed in HTML into an editable .pptx, fill a person's template, and render any office file. Use whenever you make or change slides, a deck or a presentation.

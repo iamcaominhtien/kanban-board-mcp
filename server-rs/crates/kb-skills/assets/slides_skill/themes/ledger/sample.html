@@ -1,0 +1,126 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Ledger · Báo cáo kinh doanh</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap"><style>/* The layouts every theme shares. A theme sets the variables and adds its own signature (themes/<key>/theme.css).
+   A slide is a 1280 x 720 <section class="slide l-...">; html_to_pptx.py turns it into PowerPoint.
+   The variables live on section.slide: a theme that changes them for one layout writes `section.slide.l-cover`
+   (a plain `.l-cover` is less specific and loses). Use weights 400 to 800: lighter cuts are rarely installed. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { background: #7a7a7a; }
+body { font-family: var(--font-body); color: var(--ink); -webkit-font-smoothing: antialiased; }
+aside.notes { display: none; }
+
+section.slide {
+  --pad: 88px;
+  width: 1280px; height: 720px; position: relative; overflow: hidden; margin: 0 auto 24px;
+  background: var(--ground); color: var(--ink); font-family: var(--font-body);
+  font-size: var(--body-size, 22px); line-height: 1.4;
+  font-feature-settings: "lnum", "tnum";
+}
+.slide .title { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: var(--title-size, 46px);
+  line-height: 1.08; letter-spacing: var(--display-tracking, -0.01em); text-wrap: balance; }
+.slide .eyebrow { font-size: 15px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+.slide .lede { font-size: 24px; line-height: 1.4; color: var(--muted); text-wrap: pretty; }
+.slide .muted { color: var(--muted); }
+.slide .num { font-family: var(--font-display); font-weight: var(--display-weight, 700); line-height: 0.95;
+  letter-spacing: -0.02em; color: var(--accent); }
+.slide .cap { font-size: 18px; color: var(--muted); line-height: 1.35; }
+.slide .footer { position: absolute; left: var(--pad); right: var(--pad); bottom: 30px; display: flex; justify-content: space-between;
+  font-size: 13px; letter-spacing: 0.06em; color: var(--muted); }
+
+/* Cover: the deck's point in one sentence */
+.l-cover .eyebrow { position: absolute; left: var(--pad); top: 72px; }
+.l-cover .title { position: absolute; left: var(--pad); top: 210px; width: 680px; font-size: var(--cover-size, 76px); line-height: 1.02; }
+.l-cover .lede { position: absolute; left: var(--pad); bottom: 96px; width: 640px; }
+.l-cover .art { position: absolute; right: 0; top: 0; bottom: 0; width: 460px; }
+
+/* Section break */
+.l-section .num { position: absolute; left: var(--pad); top: 150px; font-size: 180px; }
+.l-section .title { position: absolute; left: var(--pad); top: 380px; width: 900px; font-size: 60px; }
+.l-section .lede { position: absolute; left: var(--pad); top: 540px; width: 760px; }
+
+/* Agenda */
+.l-agenda .title { position: absolute; left: var(--pad); top: 80px; width: 420px; }
+.l-agenda ol { position: absolute; left: 600px; top: 84px; width: 590px; list-style: none; }
+.l-agenda li { display: flex; gap: 28px; align-items: baseline; padding: 20px 0; border-top: 1px solid var(--rule); }
+.l-agenda li .n { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: 28px; color: var(--accent); width: 44px; }
+.l-agenda li .t { font-size: 26px; font-weight: 600; }
+.l-agenda li .d { display: block; font-size: 17px; color: var(--muted); font-weight: 400; margin-top: 4px; }
+
+/* A big number and what it means */
+.l-number .num { position: absolute; left: var(--pad); top: 130px; font-size: 240px; }
+.l-number .title { position: absolute; left: var(--pad); top: 430px; width: 820px; font-size: 44px; }
+.l-number .lede { position: absolute; left: var(--pad); top: 560px; width: 760px; font-size: 21px; }
+.l-number .art { position: absolute; right: 0; top: 0; bottom: 0; width: 360px; }
+
+/* A chart and its point */
+.l-chart .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-chart .lede { position: absolute; left: var(--pad); top: 140px; width: 900px; font-size: 19px; }
+.l-chart .chart { position: absolute; left: calc(var(--pad) - 12px); top: 210px; width: 760px; height: 440px; }
+.l-chart .side { position: absolute; left: 900px; top: 236px; width: 300px; }
+.l-chart .side .num { font-size: 96px; }
+.l-chart .side .cap { margin-top: 10px; }
+.l-chart .side p { margin-top: 28px; font-size: 19px; line-height: 1.45; }
+
+/* A picture beside the text */
+.l-split .art { position: absolute; left: 0; top: 0; bottom: 0; width: 600px; }
+.l-split .eyebrow { position: absolute; left: 680px; top: 110px; }
+.l-split .title { position: absolute; left: 680px; top: 150px; width: 520px; }
+.l-split .body { position: absolute; left: 680px; top: 330px; width: 500px; font-size: 21px; line-height: 1.5; }
+.l-split .body p + p { margin-top: 14px; }
+
+/* Two options side by side */
+.l-compare .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-compare .cols { position: absolute; left: var(--pad); right: var(--pad); top: 210px; display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
+.l-compare .col { padding-top: 22px; border-top: 4px solid var(--rule-strong, var(--ink)); }
+.l-compare .col.pick { border-top-color: var(--accent); }
+.l-compare .col h3 { font-family: var(--font-display); font-weight: var(--display-weight, 700); font-size: 30px; line-height: 1.15; }
+.l-compare .col .tag { font-size: 14px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.l-compare .col.pick .tag { color: var(--accent); }
+.l-compare .col p { margin-top: 14px; font-size: 20px; line-height: 1.45; color: var(--muted); }
+.l-compare .col .k { margin-top: 22px; font-size: 19px; }
+.l-compare .col .k b { font-family: var(--font-display); font-size: 40px; display: block; color: var(--ink); }
+
+/* Steps or a timeline */
+.l-steps .title { position: absolute; left: var(--pad); top: 70px; width: 1100px; }
+.l-steps .row { position: absolute; left: var(--pad); right: var(--pad); top: 300px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+.l-steps .step { border-top: 2px solid var(--rule-strong, var(--ink)); padding-top: 18px; }
+.l-steps .step .when { font-size: 15px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.l-steps .step h3 { margin-top: 12px; font-size: 30px; line-height: 1.2; font-family: var(--font-display); font-weight: var(--display-weight, 700); }
+.l-steps .step p { margin-top: 12px; font-size: 20px; line-height: 1.45; color: var(--muted); }
+
+/* A quote */
+.l-quote .mark { position: absolute; left: var(--pad); top: 70px; font-family: var(--font-display); font-size: 200px; line-height: 1; color: var(--accent); }
+.l-quote .title { position: absolute; left: var(--pad); top: 210px; width: 1000px; font-size: 52px; line-height: 1.15; }
+.l-quote .who { position: absolute; left: var(--pad); top: 520px; font-size: 20px; }
+.l-quote .who b { display: block; font-size: 22px; }
+
+/* Closing: what is asked of the room */
+.l-closing .eyebrow { position: absolute; left: var(--pad); top: 110px; }
+.l-closing .title { position: absolute; left: var(--pad); top: 150px; width: 820px; font-size: 64px; }
+.l-closing .asks { position: absolute; left: var(--pad); top: 420px; width: 1100px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+.l-closing .asks div { font-size: 20px; line-height: 1.4; }
+.l-closing .asks b { display: block; font-size: 22px; margin-bottom: 6px; color: var(--accent); }
+
+/* Ledger: a business report. Warm paper, ink navy, one vermilion for the point; a serif that reads like a
+   printed annual report, ruled like an account book. */
+section.slide {
+  --ground: #F6F2EA; --ink: #15213B; --muted: #5C6474; --accent: #C2412A; --rule: #D8D0C2; --rule-strong: #15213B;
+  --font-display: "Source Serif 4", Cambria, Georgia, serif; --font-body: "Inter", Calibri, Arial, sans-serif;
+  --display-weight: 600; --title-size: 46px; --display-tracking: -0.015em;
+}
+/* the account-book rule: two hairlines across the top of every slide but the cover */
+section.slide:not(.l-cover)::before { content: ""; position: absolute; left: var(--pad); right: var(--pad); top: 40px;
+  height: 4px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); opacity: .55; }
+section.slide.l-cover { --ground: #15213B; --ink: #F6F2EA; --muted: #B7BDC9; }
+.l-cover .eyebrow { color: #E9A08F; }
+.l-number .num, .l-section .num { color: var(--ink); }
+.l-number .num em { font-style: normal; color: var(--accent); }
+section.slide.l-quote { --ground: #EFE8DB; }
+.l-agenda li .n { font-feature-settings: "lnum"; }
+</style></head><body><section class="slide l-cover"><div class="eyebrow">Sao Mai · Báo cáo quý 3/2026</div><h1 class="title">Doanh thu tăng 18%, nhờ khách quay lại</h1><p class="lede">Họp ban giám đốc, 12/10/2026. Bốn con số, hai việc cần quyết.</p><div class="art"><svg width='460' height='720' viewBox='0 0 460 720'><rect width='460' height='720' fill='#C2412A'/><g stroke='#F6F2EA' stroke-opacity='.28'><line x1='0' y1='120' x2='460' y2='120'/><line x1='0' y1='126' x2='460' y2='126'/><line x1='0' y1='600' x2='460' y2='600'/></g><text x='40' y='520' font-family='Source Serif 4' font-weight='600' font-size='300' fill='#F6F2EA' letter-spacing='-12'>Q3</text><text x='44' y='180' font-family='Inter' font-size='15' font-weight='700' letter-spacing='3' fill='#F6F2EA' fill-opacity='.8'>2026</text></svg></div><aside class="notes"></aside></section>
+<section class="slide l-agenda"><h2 class="title">Hôm nay bàn bốn việc</h2><ol><li><span class="n">01</span><span class="t">Kết quả quý 3<span class="d">Doanh thu, lợi nhuận, khách hàng</span></span></li><li><span class="n">02</span><span class="t">Vì sao khách quay lại<span class="d">Chương trình thành viên sau 6 tháng</span></span></li><li><span class="n">03</span><span class="t">Hai hướng cho quý 4<span class="d">Mở chi nhánh hay đẩy bán online</span></span></li><li><span class="n">04</span><span class="t">Việc cần quyết hôm nay<span class="d">Ngân sách và người phụ trách</span></span></li></ol><div class="footer"><span>Sao Mai · Báo cáo quý 3/2026</span><span>02</span></div></section>
+<section class="slide l-number"><div class="num">42%</div><h2 class="title">khách của quý 3 là khách quay lại, từ 27% đầu năm</h2><p class="lede">Chương trình thành viên mở tháng 3. Khách quay lại chi trung bình 1,6 lần khách mới.</p><div class="footer"><span>Sao Mai · Báo cáo quý 3/2026</span><span>03</span></div></section>
+<section class="slide l-chart"><h2 class="title">Doanh thu quý 3 đạt 38,4 tỷ, quý cao nhất từ trước</h2><p class="lede">Doanh thu theo quý, tỷ đồng.</p><div class="chart" data-pptx="chart" data-chart='{&quot;type&quot;: &quot;bar&quot;, &quot;categories&quot;: [&quot;Q3/25&quot;, &quot;Q4/25&quot;, &quot;Q1/26&quot;, &quot;Q2/26&quot;, &quot;Q3/26&quot;], &quot;series&quot;: {&quot;Doanh thu&quot;: [27.1, 30.2, 29.4, 32.5, 38.4]}, &quot;colors&quot;: [&quot;D8D0C2&quot;, &quot;D8D0C2&quot;, &quot;D8D0C2&quot;, &quot;D8D0C2&quot;, &quot;C2412A&quot;], &quot;labels&quot;: [&quot;27,1&quot;, &quot;30,2&quot;, &quot;29,4&quot;, &quot;32,5&quot;, &quot;38,4&quot;], &quot;size&quot;: 16, &quot;muted&quot;: &quot;5C6474&quot;, &quot;font&quot;: &quot;Inter&quot;}'></div><div class="side"><div class="num">+18%</div><div class="cap">so với quý 2</div><p>Lợi nhuận gộp 31%, giữ nguyên dù giá nguyên liệu tăng 6%.</p></div><div class="footer"><span>Sao Mai · Báo cáo quý 3/2026</span><span>04</span></div></section>
+<section class="slide l-split"><div class="art"><svg width='600' height='720' viewBox='0 0 600 720'><rect width='600' height='720' fill='#EAE3D6'/><g transform='translate(110 170) rotate(-8 190 120)'><rect width='380' height='240' rx='18' fill='#15213B'/><rect x='30' y='34' width='60' height='44' rx='8' fill='#E9C46A'/><text x='30' y='196' font-family='Source Serif 4' font-size='34' font-weight='600' fill='#F6F2EA'>Sao Mai</text><text x='30' y='222' font-family='Inter' font-size='13' letter-spacing='2' fill='#B7BDC9'>THÀNH VIÊN</text><text x='350' y='196' text-anchor='end' font-family='Inter' font-size='15' fill='#E9A08F'>● ● ●</text></g><g transform='translate(150 420) rotate(4 190 120)'><rect width='380' height='240' rx='18' fill='#C2412A'/><text x='30' y='196' font-family='Source Serif 4' font-size='34' font-weight='600' fill='#F6F2EA'>Sao Mai</text><text x='30' y='222' font-family='Inter' font-size='13' letter-spacing='2' fill='#F6F2EA' fill-opacity='.75'>THÀNH VIÊN VÀNG</text></g></svg></div><div class="eyebrow">Vì sao khách quay lại</div><h2 class="title">Thẻ thành viên biến lần mua thứ hai thành thói quen</h2><div class="body"><p>68% chủ thẻ mua lần hai trong 30 ngày, so với 22% người không có thẻ.</p><p>Chi phí chương trình bằng 2,1% doanh thu, thu về gấp bốn lần.</p></div><div class="footer"><span>Sao Mai · Báo cáo quý 3/2026</span><span>05</span></div></section>
+<section class="slide l-compare"><h2 class="title">Quý 4: hai hướng, cùng 6 tỷ đồng</h2><div class="cols"><div class="col"><div class="tag">Hướng A</div><h3>Mở chi nhánh Đà Nẵng</h3><p>Thêm khách mới ở miền Trung; hoà vốn sau khoảng 14 tháng.</p><div class="k"><b>+9%</b>doanh thu dự kiến năm 2027</div></div><div class="col pick"><div class="tag">Hướng B · đề xuất</div><h3>Đẩy bán online cho khách cũ</h3><p>Dùng dữ liệu thành viên; hoà vốn sau khoảng 5 tháng, rủi ro thấp hơn.</p><div class="k"><b>+12%</b>doanh thu dự kiến năm 2027</div></div></div><div class="footer"><span>Sao Mai · Báo cáo quý 3/2026</span><span>06</span></div></section>
+<section class="slide l-steps"><h2 class="title">Nếu chọn hướng B, đây là 4 tháng tới</h2><div class="row"><div class="step"><div class="when">Tháng 11</div><h3>Trang mua lại một chạm</h3><p>Khách có thẻ đặt lại đơn cũ trong 10 giây.</p></div><div class="step"><div class="when">Tháng 12</div><h3>Ưu đãi theo mùa Tết</h3><p>Gói quà cho 18.000 chủ thẻ đang hoạt động.</p></div><div class="step"><div class="when">Tháng 1</div><h3>Giao trong ngày</h3><p>Ba quận trung tâm, đối tác giao hàng sẵn có.</p></div><div class="step"><div class="when">Tháng 2</div><h3>Đo và quyết tiếp</h3><p>Mốc: 15% doanh thu từ online, rồi mới mở rộng.</p></div></div><div class="footer"><span>Sao Mai · Báo cáo quý 3/2026</span><span>07</span></div></section>
+<section class="slide l-quote"><div class="mark">“</div><h2 class="title">Tôi mua ở Sao Mai vì họ nhớ tôi thích gì, không phải vì rẻ nhất.</h2><div class="who"><b>Chị Ngọc Anh</b>Thành viên vàng, Quận 3</div><div class="footer"><span>Sao Mai · Báo cáo quý 3/2026</span><span>08</span></div></section>
+<section class="slide l-closing"><div class="eyebrow">Cần quyết hôm nay</div><h2 class="title">Duyệt hướng B và 6 tỷ cho quý 4</h2><div class="asks"><div><b>Ngân sách</b>6 tỷ đồng, chia theo 4 tháng ở trang trước.</div><div><b>Người phụ trách</b>Chị Lan (Kinh doanh) cùng anh Phúc (Công nghệ).</div><div><b>Lần báo cáo tới</b>15/01/2027: số liệu tháng 11 và 12.</div></div><div class="footer"><span>Sao Mai · Báo cáo quý 3/2026</span><span>09</span></div></section></body></html>

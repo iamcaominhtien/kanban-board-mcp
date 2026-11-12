@@ -1,9 +1,8 @@
-//! `tests/test_docs_access.py`: who may read and edit a project's Docs. The `comment-events` route is part 2 (it
-//! comes from `docs_comments`): where the server does not serve it yet, the access request is checked in the table.
+//! `tests/test_docs_access.py`: who may read and edit a project's Docs.
 
 mod common;
 
-use common::{count, id, member, pid, scalar};
+use common::{count, id, member, pid};
 use serde_json::{Value, json};
 use testkit::{Client, Server, skip_unless_available};
 
@@ -131,22 +130,17 @@ async fn test_non_member_has_no_access_and_can_request_it() {
     assert_eq!(again.json()["sent"], false);
 
     let r = c.get_query(&format!("/projects/{pid}/docs/comment-events"), &[("recipient", "Ada")]).await;
-    if r.status == 200 {
-        let events = r.json();
-        assert_eq!(events.as_array().unwrap().len(), 1);
-        let e = &events[0];
-        assert_eq!(e["kind"], "access_request");
-        assert_eq!(e["actor"], "Stranger");
-        assert!(e["page_id"].is_null());
-        assert_eq!(e["snippet"], "I need to read the API docs");
-        assert!(e["recipients"].as_array().unwrap().contains(&json!("user")));
-    } else {
-        // the route is part 2: the same row, read from the table
-        assert_eq!(count(&s, "SELECT COUNT(*) FROM docs_comment_event WHERE kind = 'access_request'", &[]).await, 1);
-        let row = scalar(&s, "SELECT actor || '|' || snippet || '|' || recipients FROM docs_comment_event", &[]).await;
-        let row = row.as_str().expect("row text").to_string();
-        assert!(row.starts_with("Stranger|I need to read the API docs|") && row.contains("\"user\""), "{row}");
-    }
+    assert_eq!(r.status, 200);
+    let events = r.json();
+    assert_eq!(events.as_array().unwrap().len(), 1);
+    let e = &events[0];
+    assert_eq!(e["kind"], "access_request");
+    assert_eq!(e["actor"], "Stranger");
+    assert!(e["page_id"].is_null());
+    assert_eq!(e["snippet"], "I need to read the API docs");
+    assert!(e["recipients"].as_array().unwrap().contains(&json!("user")));
+    // the row itself
+    assert_eq!(count(&s, "SELECT COUNT(*) FROM docs_comment_event WHERE kind = 'access_request'", &[]).await, 1);
 
     // a member asking is a no-op
     let r = as_(&c, "Mia").post(&format!("/projects/{pid}/docs/access-requests"), json!({})).await;

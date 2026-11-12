@@ -1,0 +1,1 @@
+REQUIRED for every AI member (the lead and each role) before any work on a ticket: how to work it from the first read to the report, and how to leave the ticket (status, criteria, closing comment) so a person sees what happened. Read the project first, plan, stay in your role, review your own work, report only what you did and saw.

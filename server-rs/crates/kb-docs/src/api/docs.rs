@@ -1,24 +1,26 @@
 //! `api/docs.py`: the Docs routes whose service functions are in `services/docs.py`, `docs_search.py` and
 //! `docs_work.py`, in the order the Python router registers them.
 //!
-//! Left for part 2 (comments, import, Docs AI hand-off), in the same file of the Python router:
-//! `POST /projects/{project_id}/docs/import` and `.../import/resolve` (`docs_import`), the comment routes
-//! (`docs_comments`), `GET|POST /docs/pages/{page_id}/send-to-ai` and `GET|POST /tickets/{ticket_id}/docs/comments`
-//! (`docs_ai.handoff`).
+//! Not served (they call `services/docs_ai/handoff.py`, the Docs AI): `GET|POST /docs/pages/{page_id}/send-to-ai`
+//! (between the replies route and the ticket routes below) and `GET /tickets/{ticket_id}/docs/comments`,
+//! `POST /tickets/{ticket_id}/docs/comments/send` (after them).
 //!
 //! Registration order and path parameters: no path of this file has a parameter that could swallow a literal
-//! segment registered later (`by-path`, `by-slug/{slug}`, `similar`, `search`, `recycle-bin`, `resolve`, `follow`,
-//! `followers`, `access` are literals under `/projects/{project_id}/docs/`, and the one parameter there,
-//! `by-slug/{slug}`, has a segment of its own). The page routes all start `/docs/pages/{page_id}`, and `/docs/templates`
-//! is the only other path under `/docs/`. Where a part 2 route has a literal after `/tickets/{ticket_id}/docs/`
-//! (`comments`), part 2 must keep Python's outcome for `DELETE .../docs/comments`, which Python sends to the
-//! `{page_id}` route.
+//! segment registered later (`by-path`, `by-slug/{slug}`, `similar`, `search`, `recycle-bin`, `resolve`, `import`,
+//! `follow`, `followers`, `comment-events`, `access` are literals under `/projects/{project_id}/docs/`, and the one
+//! parameter there, `by-slug/{slug}`, has a segment of its own). The page routes all start `/docs/pages/{page_id}`,
+//! the comment routes `/docs/comments/`, and `/docs/templates` is the only other path under `/docs/`. `DELETE
+//! /tickets/{ticket_id}/docs/comments` is answered by the `{page_id}` route registered before the Docs AI routes, as
+//! Python does (the app's router picks the first match, as Starlette does): it unlinks a page called "comments".
 
 use std::sync::LazyLock;
 
 use axum::Json;
+use axum::extract::DefaultBodyLimit;
 use axum::extract::RawQuery;
+use axum::extract::multipart::{Multipart, MultipartRejection};
 use axum::http::{HeaderMap, StatusCode};
+use axum::routing::post;
 use kb_base::error::{Body, Path};
 use kb_base::{ApiError, ApiResult, Routes, events, pyjson};
 use kb_db::entities::project as project_table;
@@ -30,10 +32,11 @@ use serde_json::{Map, Value, json};
 use super::{docs_error, query_int, query_opt, query_opt_bool, query_pairs, query_required, query_str};
 use crate::docs_search::{self, SearchParams};
 use crate::schemas::{
-    AccessRequestBody, AssignPageBody, DraftSave, FollowBody, PageCreate, PageDuplicate, PageMove, PageRename,
-    PublishBody, ResolveBody, RestoreBody, SeenBody, TicketDocBody,
+    AccessRequestBody, AnchorBody, AnchorPreviewBody, AssignPageBody, CommentBody, DraftSave, FollowBody,
+    ImportResolveBody, PageCreate, PageDuplicate, PageMove, PageRename, PublishBody, ResolveBody, RestoreBody,
+    SeenBody, ThreadCreate, TicketDocBody,
 };
-use crate::{docs, docs_work};
+use crate::{docs, docs_comments, docs_import, docs_work};
 
 static NEEDS_INPUT: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\[Needs input[^\]]*\]").expect("the needs-input pattern is valid"));
@@ -51,6 +54,9 @@ pub fn routes() -> Routes {
         .get("/projects/{project_id}/docs/recycle-bin", get_recycle_bin)
         .delete("/projects/{project_id}/docs/recycle-bin", empty_recycle_bin)
         .post("/projects/{project_id}/docs/resolve", post_resolve)
+        // the files are read up to 2 MB each (and one byte more): the body limit of the extractors is lifted
+        .add("POST", "/projects/{project_id}/docs/import", post(post_import).layer(DefaultBodyLimit::disable()))
+        .post("/projects/{project_id}/docs/import/resolve", post_import_resolve)
         .get("/docs/pages/{page_id}", get_page)
         .get("/docs/pages/{page_id}/rename-preview", get_rename_preview)
         .get("/docs/pages/{page_id}/delete-preview", get_delete_preview)
@@ -77,6 +83,17 @@ pub fn routes() -> Routes {
         .get("/tickets/{ticket_id}/docs", get_ticket_docs)
         .post("/tickets/{ticket_id}/docs", post_ticket_doc)
         .delete("/tickets/{ticket_id}/docs/{page_id}", delete_ticket_doc)
+        .get("/docs/pages/{page_id}/comments", get_comments)
+        .post("/docs/pages/{page_id}/comments", post_thread)
+        .post("/docs/pages/{page_id}/comments/anchor-preview", post_anchor_preview)
+        .post("/docs/comments/threads/{thread_id}/replies", post_reply)
+        .post("/docs/comments/threads/{thread_id}/resolve", post_resolve_thread)
+        .post("/docs/comments/threads/{thread_id}/reopen", post_reopen)
+        .post("/docs/comments/threads/{thread_id}/reattach", post_reattach)
+        .post("/docs/comments/threads/{thread_id}/read", post_read)
+        .patch("/docs/comments/{comment_id}", patch_comment)
+        .delete("/docs/comments/{comment_id}", del_comment)
+        .get("/projects/{project_id}/docs/comment-events", get_comment_events)
         .get("/projects/{project_id}/docs/access", get_docs_access)
         .post("/projects/{project_id}/docs/access-requests", post_access_request)
 }
@@ -228,6 +245,121 @@ async fn post_resolve(
     let session = kb_db::session();
     let refs: Vec<Value> = body.refs.into_iter().map(Value::Object).collect();
     Ok(Json(Value::Array(done(&headers, docs::resolve_refs(&session, &project_id, &refs, body.from_ticket).await)?)))
+}
+
+/// A form field as text. Starlette's form keeps the last value of a repeated field.
+fn form_bool(value: Option<&str>, name: &str) -> ApiResult<bool> {
+    let Some(value) = value else { return Ok(false) };
+    match value.to_lowercase().as_str() {
+        "1" | "true" | "t" | "yes" | "y" | "on" => Ok(true),
+        "0" | "false" | "f" | "no" | "n" | "off" => Ok(false),
+        _ => Err(ApiError::validation(
+            &["body", name],
+            "Input should be a valid boolean, unable to interpret input",
+            "bool_parsing",
+        )),
+    }
+}
+
+/// The parts of the import form (`files`, `paths` and the text fields of `post_import`).
+struct ImportForm {
+    files: Vec<(String, Vec<u8>)>,
+    paths: Vec<String>,
+    fields: Vec<(String, String)>,
+}
+
+impl ImportForm {
+    fn field(&self, name: &str) -> Option<&str> {
+        self.fields.iter().rev().find(|(n, _)| n == name).map(|(_, v)| v.as_str())
+    }
+}
+
+/// Read the multipart body: each file up to `MAX_FILE_BYTES + 1` bytes (so an oversized file is reported, not
+/// loaded whole), the text fields whole.
+async fn read_import_form(multipart: Result<Multipart, MultipartRejection>) -> ApiResult<ImportForm> {
+    let missing = || ApiError::validation(&["body", "files"], "Field required", "missing");
+    let parse_error = || ApiError::bad_request("There was an error parsing the body");
+    let mut multipart = multipart.map_err(|_| missing())?;
+    let mut form = ImportForm { files: Vec::new(), paths: Vec::new(), fields: Vec::new() };
+    while let Some(mut field) = multipart.next_field().await.map_err(|_| parse_error())? {
+        let name = field.name().unwrap_or("").to_string();
+        if let Some(filename) = field.file_name().map(str::to_string) {
+            let mut data: Vec<u8> = Vec::new();
+            let limit = docs_import::MAX_FILE_BYTES + 1;
+            while let Some(chunk) = field.chunk().await.map_err(|_| parse_error())? {
+                let room = limit.saturating_sub(data.len());
+                data.extend_from_slice(&chunk[..chunk.len().min(room)]);
+            }
+            if name == "files" {
+                form.files.push((filename, data));
+            }
+        } else {
+            let text = field.text().await.map_err(|_| parse_error())?;
+            if name == "paths" {
+                form.paths.push(text);
+            } else {
+                form.fields.push((name, text));
+            }
+        }
+    }
+    if form.files.is_empty() {
+        return Err(missing());
+    }
+    Ok(form)
+}
+
+/// Import Markdown files as draft pages (dry_run only reports the plan).
+async fn post_import(
+    headers: HeaderMap,
+    Path(project_id): Path<String>,
+    multipart: Result<Multipart, MultipartRejection>,
+) -> ApiResult<Json<Value>> {
+    let form = read_import_form(multipart).await?;
+    let dry_run = form_bool(form.field("dry_run"), "dry_run")?;
+    let publish = form_bool(form.field("publish"), "publish")?;
+    let notify = form_bool(form.field("notify"), "notify")?;
+    let uploads: Vec<(String, Vec<u8>)> = form
+        .files
+        .iter()
+        .enumerate()
+        .map(|(i, (filename, data))| {
+            let name = form.paths.get(i).filter(|p| !p.is_empty()).cloned().unwrap_or_else(|| filename.clone());
+            (name, data.clone())
+        })
+        .collect();
+    let parent = form.field("parent_id").filter(|p| !p.is_empty());
+    let on_conflict = form.field("on_conflict").unwrap_or("copy");
+    let session = kb_db::session();
+    if dry_run {
+        return Ok(obj(done(
+            &headers,
+            docs_import::dry_run(&session, &project_id, &uploads, parent, on_conflict).await,
+        )?));
+    }
+    let result =
+        done(&headers, docs_import::run_import(&session, &project_id, &uploads, parent, on_conflict, publish).await)?;
+    events::publish("invalidate", &[]).await;
+    if publish && notify {
+        let created = result.get("created").and_then(Value::as_array).cloned().unwrap_or_default();
+        for item in created.iter().take(50) {
+            let page_id = item["page_id"].as_str().unwrap_or("");
+            let page = done(&headers, docs::page_detail(&session, page_id).await)?;
+            announce(&page, Some("Imported")).await;
+        }
+    }
+    Ok(obj(result))
+}
+
+/// Re-index links of imported pages and re-point pending links.
+async fn post_import_resolve(
+    headers: HeaderMap,
+    Path(project_id): Path<String>,
+    Body(body): Body<ImportResolveBody>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    let result = done(&headers, docs_import::resolve_pages(&session, &project_id, &body.page_ids).await)?;
+    events::publish("invalidate", &[]).await;
+    Ok(obj(result))
 }
 
 /// Get a page with its content, draft and stats.
@@ -505,6 +637,154 @@ async fn delete_ticket_doc(
     let result = done(&headers, docs::unlink_ticket_doc(&session, &ticket_id, &page_id).await)?;
     events::publish("invalidate", &[]).await;
     Ok(obj(result))
+}
+
+// --- comments -------------------------------------------------------------------
+
+/// `_deliver_ai`: deliver the AI members mentioned in the comment just saved (Docs AI); the thread comes back with
+/// `ai_delivery` and any note an AI member posted.
+async fn deliver_ai(
+    session: &kb_db::Session,
+    out: Map<String, Value>,
+    intent: Option<&str>,
+) -> crate::Result<Map<String, Value>> {
+    if !out.get("comments").is_some_and(pyjson::truthy) {
+        return Ok(out);
+    }
+    let intent = match intent {
+        Some("work") | Some("suggest") | Some("") | None => "ask",
+        Some(other) => other,
+    };
+    let delivered = docs_comments::docs_ai::deliver(session, &out, intent).await?;
+    let mut out = out;
+    if delivered.iter().any(|d| d["result"] == "job") {
+        let id = out.get("id").and_then(Value::as_str).unwrap_or("").to_string();
+        out = docs_comments::get_thread(session, &id).await?;
+    }
+    out.insert("ai_delivery".into(), Value::Array(delivered));
+    Ok(out)
+}
+
+/// List a page's comment threads (inline and page), with counts and your role.
+async fn get_comments(
+    headers: HeaderMap,
+    Path(page_id): Path<String>,
+    RawQuery(query): RawQuery,
+) -> ApiResult<Json<Value>> {
+    let pairs = query_pairs(query.as_deref());
+    let state = query_str(&pairs, "state", "all");
+    let kind = query_opt(&pairs, "kind");
+    let session = kb_db::session();
+    Ok(obj(done(&headers, docs_comments::list_comments(&session, &page_id, &state, kind.as_deref()).await)?))
+}
+
+/// Start a thread: an inline comment on selected text or a page comment.
+async fn post_thread(
+    headers: HeaderMap,
+    Path(page_id): Path<String>,
+    Body(body): Body<ThreadCreate>,
+) -> ApiResult<(StatusCode, Json<Value>)> {
+    let session = kb_db::session();
+    let out = done(
+        &headers,
+        docs_comments::create_thread(&session, &page_id, &body.kind, &body.body, body.anchor.as_ref(), None).await,
+    )?;
+    events::publish("invalidate", &[]).await;
+    let out = done(&headers, deliver_ai(&session, out, body.ai_intent.as_deref()).await)?;
+    Ok((StatusCode::CREATED, obj(out)))
+}
+
+/// Say which open inline comments would be orphaned by publishing this Markdown.
+async fn post_anchor_preview(
+    headers: HeaderMap,
+    Path(page_id): Path<String>,
+    Body(body): Body<AnchorPreviewBody>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(obj(done(&headers, docs_comments::anchor_preview(&session, &page_id, &body.markdown).await)?))
+}
+
+/// Reply in a thread.
+async fn post_reply(
+    headers: HeaderMap,
+    Path(thread_id): Path<String>,
+    Body(body): Body<CommentBody>,
+) -> ApiResult<(StatusCode, Json<Value>)> {
+    let session = kb_db::session();
+    let out = done(&headers, docs_comments::add_reply(&session, &thread_id, &body.body, None).await)?;
+    events::publish("invalidate", &[]).await;
+    let out = done(&headers, deliver_ai(&session, out, body.ai_intent.as_deref()).await)?;
+    Ok((StatusCode::CREATED, obj(out)))
+}
+
+/// Resolve a thread.
+async fn post_resolve_thread(headers: HeaderMap, Path(thread_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    let out = done(&headers, docs_comments::set_status(&session, &thread_id, "resolved").await)?;
+    events::publish("invalidate", &[]).await;
+    Ok(obj(out))
+}
+
+/// Reopen a resolved thread.
+async fn post_reopen(headers: HeaderMap, Path(thread_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    let out = done(&headers, docs_comments::set_status(&session, &thread_id, "open").await)?;
+    events::publish("invalidate", &[]).await;
+    Ok(obj(out))
+}
+
+/// Attach a thread (typically an orphaned one) to a new selection.
+async fn post_reattach(
+    headers: HeaderMap,
+    Path(thread_id): Path<String>,
+    Body(body): Body<AnchorBody>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    let out = done(&headers, docs_comments::reattach(&session, &thread_id, &body).await)?;
+    events::publish("invalidate", &[]).await;
+    Ok(obj(out))
+}
+
+/// Mark a thread as read by you.
+async fn post_read(headers: HeaderMap, Path(thread_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(obj(done(&headers, docs_comments::mark_read(&session, &thread_id).await)?))
+}
+
+/// Edit your own comment.
+async fn patch_comment(
+    headers: HeaderMap,
+    Path(comment_id): Path<String>,
+    Body(body): Body<CommentBody>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    let out = done(&headers, docs_comments::edit_comment(&session, &comment_id, &body.body).await)?;
+    events::publish("invalidate", &[]).await;
+    Ok(obj(out))
+}
+
+/// Delete a comment (the first comment of a thread removes the whole thread).
+async fn del_comment(headers: HeaderMap, Path(comment_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    let out = done(&headers, docs_comments::delete_comment(&session, &comment_id).await)?;
+    events::publish("invalidate", &[]).await;
+    Ok(obj(out))
+}
+
+/// Comment Activity for a project; `recipient` keeps only the events that notify that person.
+async fn get_comment_events(
+    headers: HeaderMap,
+    Path(project_id): Path<String>,
+    RawQuery(query): RawQuery,
+) -> ApiResult<Json<Value>> {
+    let pairs = query_pairs(query.as_deref());
+    let recipient = query_opt(&pairs, "recipient");
+    let limit = query_int(&pairs, "limit", 50)?;
+    let session = kb_db::session();
+    Ok(Json(Value::Array(done(
+        &headers,
+        docs_comments::list_events(&session, &project_id, recipient.as_deref(), limit).await,
+    )?)))
 }
 
 /// What the caller may do in the Docs space: access, role, can_edit, policy, admins.

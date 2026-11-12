@@ -1,0 +1,51 @@
+/* Keynote: a product launch on a stage. Near-black room, white type set big and tight, the product drawn as the hero;
+   one warm amber that is the product's own light and marks only what the product does. */
+section.slide {
+  --ground: #0B0B0C; --ink: #F4F2EE; --muted: #9A9893; --accent: #FFB547; --rule: #2A2A2C; --rule-strong: #F4F2EE;
+  --font-display: "Manrope", "Segoe UI", Arial, sans-serif; --font-body: "Manrope", "Segoe UI", Arial, sans-serif;
+  --display-weight: 800; --title-size: 52px; --display-tracking: -0.035em; --body-size: 22px;
+  font-family: var(--font-body);
+}
+.slide .eyebrow { color: var(--accent); letter-spacing: 0.2em; font-size: 14px; }
+.slide .lede { color: var(--muted); }
+.slide .footer { color: #5C5B58; }
+.l-cover .title { top: 230px; width: 640px; font-size: 84px; line-height: 0.98; }
+.l-cover .lede { bottom: 110px; width: 560px; }
+.l-cover .art { width: 560px; }
+.l-agenda .title { font-size: 56px; line-height: 1; width: 440px; }
+.l-agenda li { border-top: 1px solid var(--rule); }
+.l-agenda li .n { color: var(--muted); font-size: 24px; }
+.l-agenda li .t { font-weight: 700; }
+/* the big number is the light itself */
+.l-number .num { color: var(--accent); font-size: 260px; top: 110px; letter-spacing: -0.05em; }
+.l-number .title { top: 430px; width: 700px; font-size: 46px; }
+.l-number .lede { top: 590px; width: 680px; }
+.l-number .art { width: 460px; }
+.l-chart .title, .l-compare .title, .l-steps .title { font-size: 50px; top: 76px; }
+.l-chart .lede { top: 150px; }
+.l-chart .side .num { color: var(--accent); font-size: 110px; }
+.l-split .art { width: 620px; }
+.l-split .title { left: 700px; width: 500px; font-size: 50px; line-height: 1; }
+.l-split .eyebrow { left: 700px; top: 120px; }
+.l-split .body { left: 700px; top: 360px; color: var(--muted); }
+.l-compare .col { border-top: 1px solid var(--rule-strong); }
+.l-compare .col.pick { border-top: 3px solid var(--accent); }
+.l-compare .col h3 { font-size: 38px; letter-spacing: -0.03em; }
+.l-compare .col .k b { font-size: 56px; letter-spacing: -0.03em; }
+.l-compare .col.pick .k b { color: var(--accent); }
+.l-steps .row { top: 300px; }
+.l-steps .step { border-top: 1px solid var(--rule-strong); }
+.l-steps .step h3 { font-size: 28px; letter-spacing: -0.02em; }
+.l-quote .mark { color: var(--accent); }
+.l-quote .title { font-size: 60px; line-height: 1.05; font-weight: 700; letter-spacing: -0.03em; }
+.l-quote .who { top: 540px; color: var(--muted); }
+.l-quote .who b { color: var(--ink); }
+.l-closing .title { font-size: 92px; line-height: 0.95; top: 160px; width: 900px; }
+.l-closing .asks { top: 470px; }
+.l-closing .asks b { color: var(--accent); }
+.l-closing .asks div { color: var(--muted); }
+.l-closing .title { width: 1100px; font-size: 84px; }
+.l-steps .row { top: 320px; }
+.l-steps .step h3 { font-size: 32px; line-height: 1.05; }
+.l-steps .step p { font-size: 19px; }
+.l-steps .title { font-size: 64px; }

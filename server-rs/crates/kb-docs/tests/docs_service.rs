@@ -1,7 +1,8 @@
 //! The parts of the Docs service that no REST route reaches or that the Python tests reach by monkeypatching, in one
 //! process with its own database: FTS5 in the bundled SQLite (the spike of the plan), the scan path of the search,
 //! the index writes while FTS5 is off, `backfill_sync` (what the database move calls), `slug_path` against the
-//! whole-space `slug_paths`, and the hooks to what is above this crate (comments, canvases, the AI guard, tickets).
+//! whole-space `slug_paths`, and the hooks to what is above this crate (the AI guard, tickets). Comments and the
+//! canvases' board names are called directly now (part 2).
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -13,7 +14,7 @@ use kb_db::sea_orm::{ActiveModelTrait, ConnectionTrait, EntityTrait, IntoActiveM
 use kb_db::{Session, database};
 use kb_docs::docs::{self, all_pages, slug_path, slug_paths};
 use kb_docs::docs_search::{self, SearchParams};
-use kb_docs::hooks::{self, AiGuardHook, AssignHook, CanvasesHook, CommentsHook, RunBrief, TicketBrief};
+use kb_docs::hooks::{self, AiGuardHook, AssignHook, RunBrief, TicketBrief};
 use kb_docs::{Error, docs_work};
 use serde_json::{Value, json};
 
@@ -25,40 +26,6 @@ fn call(text: String) {
 
 fn calls() -> Vec<String> {
     std::mem::take(&mut *CALLS.lock().expect("calls"))
-}
-
-struct Comments;
-
-#[async_trait]
-impl CommentsHook for Comments {
-    async fn delete_for_pages(&self, _session: &Session, ids: &[String]) -> Result<(), kb_db::sea_orm::DbErr> {
-        let mut ids = ids.to_vec();
-        ids.sort();
-        call(format!("delete_for_pages {}", ids.len()));
-        Ok(())
-    }
-
-    async fn rematch_page(
-        &self,
-        _session: &Session,
-        page: &docs_page::Model,
-        markdown: &str,
-    ) -> Result<(), kb_db::sea_orm::DbErr> {
-        call(format!("rematch_page {} v{} {markdown:?}", page.title, page.version));
-        Ok(())
-    }
-}
-
-struct Canvases;
-
-#[async_trait]
-impl CanvasesHook for Canvases {
-    async fn board_names(&self, canvas_id: &str) -> Option<Vec<String>> {
-        match canvas_id {
-            "cv_00000001" => Some(vec!["Sign in".to_string(), "Two\nlines".to_string()]),
-            _ => None,
-        }
-    }
 }
 
 struct Guard(bool);
@@ -285,16 +252,12 @@ async fn scenario() {
     }
 
     // --- hooks ---
-    hooks::set_comments_hook(Box::new(Comments));
-    hooks::set_canvases_hook(Box::new(Canvases));
     hooks::set_assign_hook(Box::new(Assign));
     calls();
     let hooked = make(&pid, "Hooked", None, "## One\nfirst", true).await;
-    assert_eq!(calls(), ["rematch_page Hooked v1 \"## One\\nfirst\""]);
     let s = database::session();
     docs::delete_page(&s, &hooked).await.expect("delete");
     docs::purge_page(&database::session(), &hooked).await.expect("purge");
-    assert_eq!(calls(), ["delete_for_pages 1"]);
     // an unset guard: not an AI run; the version carries the mark when the guard says so
     hooks::set_ai_guard_hook(Box::new(Guard(false)));
     let marked = make(&pid, "Plain", None, "x", true).await;
@@ -315,6 +278,15 @@ async fn scenario() {
     c.title = Set("Login redesign".into());
     c.insert(&s).await.expect("canvas");
     s.commit().await.expect("commit");
+    // the canvas file: `canvases.read_doc` reads it from the data folder
+    let file = kb_draw::canvases::doc_path("cv_00000001").expect("canvas path");
+    std::fs::create_dir_all(file.parent().expect("canvas folder")).expect("mkdir");
+    std::fs::write(
+        &file,
+        json!({"format": kb_draw::canvases::FORMAT, "boards": [{"name": "Sign in"}, {"name": "Two\nlines"}]})
+            .to_string(),
+    )
+    .expect("write the canvas");
     let s = database::session();
     let pages = [docs_page::Entity::find_by_id(canvas_page.as_str()).one(&s).await.expect("page").expect("page")];
     let text = docs_search::contents(&s, &pages).await.expect("contents");

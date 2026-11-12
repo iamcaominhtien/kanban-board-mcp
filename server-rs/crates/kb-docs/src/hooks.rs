@@ -1,55 +1,14 @@
-//! Calls this crate makes into code it cannot depend on: later parts of Docs (comments, Docs AI), the canvases, the
-//! tickets and the AI team. The Python code imports them late, inside a function. The upper crate registers itself
-//! at startup; while a hook is not set the call is skipped (or, for the ones that must give an answer, refused).
+//! Calls this crate makes into code it cannot depend on: the tickets and the AI team. The Python code imports them
+//! late, inside a function. The upper crate registers itself at startup; while a hook is not set the call is skipped
+//! (or, for the ones that must give an answer, refused).
+//!
+//! The other direction: [`register`] gives `kb-draw` the Docs calls its canvases make (a canvas can be a Docs page).
 
 use std::sync::OnceLock;
 
 use async_trait::async_trait;
 use kb_db::Session;
-use kb_db::entities::docs_page;
-use kb_db::sea_orm::DbErr;
-
-/// `services/docs_comments.py`, which builds on `services/docs.py` (part 2 of the Docs port).
-#[async_trait]
-pub trait CommentsHook: Send + Sync {
-    /// `docs_comments.delete_for_pages(session, ids)`: a hard delete of pages removes their threads.
-    async fn delete_for_pages(&self, session: &Session, ids: &[String]) -> Result<(), DbErr>;
-
-    /// `docs_comments.rematch_page(session, page, markdown)`: a new version moves the comment anchors.
-    async fn rematch_page(&self, session: &Session, page: &docs_page::Model, markdown: &str) -> Result<(), DbErr>;
-}
-
-static COMMENTS: OnceLock<Box<dyn CommentsHook>> = OnceLock::new();
-
-/// Register the comments (once, at startup; a second call is ignored).
-pub fn set_comments_hook(hook: Box<dyn CommentsHook>) {
-    let _ = COMMENTS.set(hook);
-}
-
-/// The comments, when they have registered themselves.
-pub fn comments() -> Option<&'static dyn CommentsHook> {
-    COMMENTS.get().map(|hook| hook.as_ref())
-}
-
-/// `services/canvases.py` (the canvases area, not ported yet), as far as Docs reads it.
-#[async_trait]
-pub trait CanvasesHook: Send + Sync {
-    /// `[b["name"] for b in canvases.read_doc(canvas_id)["boards"]]`; `None` where Python raises (a missing file
-    /// only means no sections).
-    async fn board_names(&self, canvas_id: &str) -> Option<Vec<String>>;
-}
-
-static CANVASES: OnceLock<Box<dyn CanvasesHook>> = OnceLock::new();
-
-/// Register the canvases (once, at startup; a second call is ignored).
-pub fn set_canvases_hook(hook: Box<dyn CanvasesHook>) {
-    let _ = CANVASES.set(hook);
-}
-
-/// The canvases, when their crate has registered itself.
-pub fn canvases() -> Option<&'static dyn CanvasesHook> {
-    CANVASES.get().map(|hook| hook.as_ref())
-}
+use serde_json::{Map, Value};
 
 /// `services/ai/guard.py`: whether the current task acts for an AI run.
 pub trait AiGuardHook: Send + Sync {
@@ -125,4 +84,57 @@ pub fn set_assign_hook(hook: Box<dyn AssignHook>) {
 /// Tickets and the AI team's runs, when their crates have registered themselves.
 pub fn assign() -> Option<&'static dyn AssignHook> {
     ASSIGN.get().map(|hook| hook.as_ref())
+}
+
+/// What `kb-draw` calls in `services/docs.py` and `services/docs_search.py` (`kb_draw::hooks::CanvasDocs`).
+struct DocsForCanvases;
+
+/// The error a canvas caller reads: a Docs error stays one, the rest is a failure of the call.
+fn for_draw(err: crate::Error) -> kb_draw::Error {
+    match err {
+        crate::Error::Docs(e) => kb_draw::Error::Docs(e),
+        crate::Error::Db(e) => kb_draw::Error::Db(e),
+        crate::Error::Value(m) | crate::Error::Other(m) => kb_draw::Error::Value(m),
+    }
+}
+
+#[async_trait]
+impl kb_draw::hooks::CanvasDocs for DocsForCanvases {
+    async fn check_page_edit(&self, session: &Session, page_id: &str) -> kb_draw::Result<()> {
+        crate::docs::get_page(session, page_id, false, true).await.map(|_| ()).map_err(for_draw)
+    }
+
+    async fn reindex(&self, session: &Session, page_ids: &[String]) -> kb_draw::Result<()> {
+        crate::docs_search::reindex(session, page_ids).await.map_err(kb_draw::Error::Db)
+    }
+
+    async fn create_page(
+        &self,
+        session: &Session,
+        project_id: &str,
+        title: &str,
+        parent_id: Option<&str>,
+    ) -> kb_draw::Result<Map<String, Value>> {
+        crate::docs::create_page(session, project_id, title, parent_id, "blank", Some("")).await.map_err(for_draw)
+    }
+
+    async fn publish_page(
+        &self,
+        session: &Session,
+        page_id: &str,
+        base_version: i32,
+        markdown: &str,
+        note: &str,
+    ) -> kb_draw::Result<()> {
+        crate::docs::publish_page(session, page_id, i64::from(base_version), Some(note), Some(markdown), None)
+            .await
+            .map(|_| ())
+            .map_err(for_draw)
+    }
+}
+
+/// Register what this crate gives the crates below it (once, at startup; the app calls this): the Docs calls of
+/// `kb-draw`'s canvases.
+pub fn register() {
+    kb_draw::hooks::set_canvas_docs(Box::new(DocsForCanvases));
 }

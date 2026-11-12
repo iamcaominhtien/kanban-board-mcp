@@ -1,0 +1,1 @@
+How Triage sorts a new ticket on this board: its kind, labels from the project's own set and the review depth, when to split, and what to do when the ticket is unclear. Use at the start of every Triage run.

@@ -1,0 +1,1 @@
+How the Dev works on this board: reproduce first, a test that fails on an assertion before the fix, the smallest change, small commits on the ticket's branch, what to log, and the note for the reviewer. Use at the start of every Dev run and before you commit.
