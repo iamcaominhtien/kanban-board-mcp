@@ -155,7 +155,8 @@ pub async fn on_review(ticket_id: &str) -> Result<Option<Value>, Error> {
         return Ok(Some(json!({"route": route, "error": format!("gh pr create failed: {text}")})));
     }
     let stdout = pytext::strip(&out.stdout);
-    let url: Option<String> = if stdout.is_empty() { None } else { pytext::splitlines(stdout).last().map(|l| (*l).to_string()) };
+    let url: Option<String> =
+        if stdout.is_empty() { None } else { pytext::splitlines(stdout).last().map(|l| (*l).to_string()) };
     let session = kb_db::session();
     if let Some(mut row) = ai_worktree::Entity::find_by_id(ticket_id).one(&session).await? {
         row.pr_url = url.clone();
@@ -223,7 +224,8 @@ pub async fn merge(ticket_id: &str, _by: &str) -> Result<Value, Error> {
         }));
     }
     let message = format!("Merge {ticket_id}: {}", row.branch);
-    let out = git_with(&row.repo, &["merge", "--no-ff", "--no-edit", &row.branch, "-m", &message], 300.0, false).await?;
+    let out =
+        git_with(&row.repo, &["merge", "--no-ff", "--no-edit", &row.branch, "-m", &message], 300.0, false).await?;
     if out.returncode != 0 {
         let diff = git_try(&row.repo, &["diff", "--name-only", "--diff-filter=U"]).await?;
         let files: Vec<String> = pytext::split(&diff.stdout).into_iter().map(str::to_string).collect();
@@ -332,7 +334,8 @@ pub fn on_status(ticket_id: &str, status: &str, previous: &str, by_ai: bool) {
         return;
     }
     // `act._suggested.get()`: an entry made now names who suggested the change when somebody did
-    let suggested = kb_base::activity::entry("", Value::Null, Value::Null, None, None, None).get("suggested_by").is_some();
+    let suggested =
+        kb_base::activity::entry("", Value::Null, Value::Null, None, None, None).get("suggested_by").is_some();
     if status == "review" && suggested {
         // a Board AI move (Done is always asked first, so a person confirmed that one)
         return;

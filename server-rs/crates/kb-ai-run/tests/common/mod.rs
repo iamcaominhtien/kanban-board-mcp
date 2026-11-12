@@ -497,7 +497,7 @@ pub async fn team_of(project_id: &str, name: &str, extra: serde_json::Value) -> 
     let mut body = serde_json::json!({
         "name": name,
         "working_dir": repo.to_string_lossy(),
-        "cli_path": fake_cli(),
+        "cli_path": real_cli(),
         "model": "haiku",
     });
     for (k, v) in extra.as_object().cloned().unwrap_or_default() {
@@ -542,4 +542,85 @@ impl kb_ai_run::seams::Runs for Cancels {
     fn wake(&self) {
         self.woken.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
     }
+}
+
+/// The stand-in CLI as a file of its own inside the folders a person may name a program in (`fake_cli()` is a link
+/// to the build folder, which a configured path may not lead to): what a team's `cli_path` is set to (`FAKE` of the
+/// Python helpers).
+pub fn real_cli() -> String {
+    let path = folder().join("tools").join("claude");
+    if !path.is_file() {
+        std::fs::create_dir_all(folder().join("tools")).expect("the tools folder");
+        // copied under another name first, so that a test that runs at the same time never starts half a file
+        let part = folder().join("tools").join(format!("claude-{}", kb_base::time::uuid4_hex()));
+        std::fs::copy(fake_claude::bin_path(), &part).expect("copy of the stand-in CLI");
+        std::fs::rename(&part, &path).expect("the stand-in CLI in place");
+    }
+    path.to_string_lossy().into_owned()
+}
+
+/// A run of a team that is about to start (`AiRun(project_id=, ticket_id=, member_id=, state="starting",
+/// started_by="An")`) and what `launch::prepare` gives for it, with the team's working folder as the run's folder.
+pub async fn launch_of(team_id: &str, ticket_id: Option<&str>, token: &str, session_id: &str) -> kb_ai_run::launch::Launch {
+    let session = database::session();
+    let (m, profile) = kb_ai_run::teams::get_profile(&session, team_id).await.expect("rows");
+    let (m, profile) = (m.expect("member"), profile.expect("profile"));
+    drop(session);
+    let run = run(&m.project_id, team_id, ticket_id, "starting", |r| r.started_by = Set("An".into())).await;
+    let cwd = profile.working_dir.clone().unwrap_or_else(|| tmp_path("cwd").to_string_lossy().into_owned());
+    let session = database::session();
+    kb_ai_run::launch::prepare(
+        &session,
+        &run,
+        &profile,
+        &m,
+        kb_ai_run::launch::PrepareOpts {
+            token,
+            board_url: "http://127.0.0.1:9",
+            cwd: &cwd,
+            session_id,
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("prepare")
+}
+
+/// The value after `name` in a command line (`_flag(args, name)`).
+pub fn flag(args: &[String], name: &str) -> String {
+    let at = args.iter().position(|a| a == name).unwrap_or_else(|| panic!("no {name} in {args:?}"));
+    args[at + 1].clone()
+}
+
+/// A plugin row as `tests/test_ai_launch_v2.py` builds it: a folder with a manifest, one skill, the roles it is
+/// suggested for.
+pub async fn plugin_row(
+    project_id: &str,
+    folder: &Path,
+    name: &str,
+    roles: &[&str],
+    edit: impl FnOnce(&mut kb_db::entities::ai_plugin::ActiveModel),
+) -> kb_db::entities::ai_plugin::Model {
+    std::fs::create_dir_all(folder.join(".claude-plugin")).expect("manifest folder");
+    let session = database::session();
+    let mut row = kb_db::entities::ai_plugin::new();
+    row.project_id = Set(Some(project_id.to_string()));
+    row.name = Set(name.to_string());
+    row.source = Set(format!("https://example.com/{name}"));
+    row.path = Set(Some(folder.to_string_lossy().into_owned()));
+    row.skills = Set(serde_json::to_string(&[format!("{name}-skill")]).expect("json"));
+    row.roles = Set(serde_json::to_string(roles).expect("json"));
+    edit(&mut row);
+    let row = row.insert(&session).await.expect("plugin");
+    session.commit().await.expect("commit");
+    row
+}
+
+/// Merge `patch` into the project's AI settings (`ops.update` and a commit).
+pub async fn set_ops(project_id: &str, patch: serde_json::Value) {
+    let session = database::session();
+    let mut settings = kb_ai::store::get_settings(&session, project_id).await.expect("settings");
+    kb_ai::ops::update(&mut settings, patch.as_object().expect("an object"));
+    kb_ai::store::save(&session, settings).await.expect("save");
+    session.commit().await.expect("commit");
 }

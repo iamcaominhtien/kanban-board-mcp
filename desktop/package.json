@@ -68,7 +68,7 @@
       "entitlementsInherit": "build/entitlements.mac.plist",
       "extraResources": [
         {
-          "from": "../dist-python/kanban-mcp-stdio",
+          "from": "../dist-server/kanban-mcp-stdio",
           "to": "kanban-mcp-stdio"
         }
       ],
@@ -98,7 +98,7 @@
       ],
       "extraResources": [
         {
-          "from": "../dist-python/kanban-mcp-stdio",
+          "from": "../dist-server/kanban-mcp-stdio",
           "to": "kanban-mcp-stdio"
         }
       ],

@@ -30,16 +30,14 @@ If either condition fails → workflow exits early, no release created.
 
 ### Step 3 — Build macOS (`macos-latest`)
 - Depends on Steps 1 & 2
-- Setup: Node 20, Python 3.11
-- Create Python venv: `cd server && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`
-- Run `bash build-desktop.sh`
+- Setup: Node 20, the Rust toolchain (pinned to `rust-version` in `server-rs/Cargo.toml`), a cache of `~/.cargo` and `server-rs/target`
+- Run `bash build-desktop.sh` (it builds the Rust server through `desktop/scripts/build-server.sh`)
 - Disable code signing: `CSC_IDENTITY_AUTO_DISCOVERY=false`
 - Upload artifacts: `dist-desktop/*.dmg`
 
 ### Step 4 — Build Windows (`windows-latest`)
 - Depends on Steps 1 & 2
-- Setup: Node 20, Python 3.11
-- Create Python venv (Windows path): `python -m venv .venv` then `source .venv/Scripts/activate`
+- Setup: Node 20, the Rust toolchain and cache as on macOS
 - Run `bash build-desktop.sh` (Git Bash available on Windows runners)
 - Disable code signing: `CSC_IDENTITY_AUTO_DISCOVERY=false`
 - Upload artifacts: `dist-desktop/*.exe` (NSIS installer)
@@ -64,5 +62,5 @@ If either condition fails → workflow exits early, no release created.
 
 ## Known Risks
 - **macOS code signing**: Skipped in CI (`CSC_IDENTITY_AUTO_DISCOVERY=false`). Builds will succeed but produce unsigned DMGs.
-- **Windows Python venv path**: `Scripts/activate` vs `bin/activate` — must use correct path per OS.
+- **Windows binary names**: the Rust programs are `kanban-server.exe` and `kanban-mcp-stdio.exe`; `build-server.sh` adds the extension under Git Bash.
 - **build-desktop.sh Windows compatibility**: Script uses bash — available via Git Bash on Windows runners; `shell: bash` required on Windows steps.

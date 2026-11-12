@@ -87,9 +87,7 @@ pub fn extra(settings: Option<&ai_project_settings::Model>) -> Vec<String> {
 pub fn with_path(base: Option<&HashMap<String, String>>, folders: Option<&[String]>) -> HashMap<String, String> {
     let mut env: HashMap<String, String> = match base {
         Some(base) => base.clone(),
-        None => std::env::vars_os()
-            .filter_map(|(k, v)| Some((k.into_string().ok()?, v.into_string().ok()?)))
-            .collect(),
+        None => std::env::vars_os().filter_map(|(k, v)| Some((k.into_string().ok()?, v.into_string().ok()?))).collect(),
     };
     let Some(folders) = folders.filter(|f| !f.is_empty()) else {
         return env;
@@ -175,7 +173,7 @@ pub fn candidates() -> Vec<PathBuf> {
                 // the scan order is the system's; the names make the order of equal versions certain
                 found.sort_by_key(|p| path_text(p));
                 // `sorted(..., reverse=True)` keeps equal elements in their order
-                found.sort_by(|a, b| version_key(&path_text(b)).cmp(&version_key(&path_text(a))));
+                found.sort_by_key(|b| std::cmp::Reverse(version_key(&path_text(b))));
                 dirs.extend(found.into_iter().filter(|p| p.is_dir()));
             }
         } else if Path::new(&path).is_dir() {

@@ -16,14 +16,19 @@ use async_trait::async_trait;
 use kb_ai_work::worktrees::{self, Error, Handover};
 use kb_db::database;
 use kb_db::entities::{ai_run, ai_worktree, ticket};
-use kb_db::sea_orm::{EntityTrait, IntoActiveModel, ActiveModelTrait, ActiveValue::Set};
+use kb_db::sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait, IntoActiveModel};
 use serde_json::{Value, json};
 
 /// A project with worktrees on, a team on `repo`, one ticket and its worktree, as `_setup_ticket` made them.
 async fn setup_ticket(repo: &Path, extra: Value) -> (String, ticket::Model, ai_worktree::Model) {
     let (pid, _) = common::project().await;
     common::worktrees_on(&pid, extra).await;
-    common::team(&pid, "Claude Code · Backend", common::TeamOpts { working_dir: Some(repo.to_string_lossy().into_owned()), ..Default::default() }).await;
+    common::team(
+        &pid,
+        "Claude Code · Backend",
+        common::TeamOpts { working_dir: Some(repo.to_string_lossy().into_owned()), ..Default::default() },
+    )
+    .await;
     let t = common::ticket(&pid, "Fix add()", "todo").await;
     let row = common::ensure_worktree(&t, repo).await.expect("ensure").expect("a worktree");
     (pid, t, row)
@@ -55,7 +60,11 @@ async fn test_a_ticket_works_in_its_own_worktree_beside_the_repo_with_a_port() {
     let t = common::ticket(&pid, "Fix add()", "todo").await;
     let row = common::ensure_worktree(&t, &repo).await.expect("ensure").expect("a worktree");
     // the folder the CLI is started in (the Python test reads it from the fake CLI's record)
-    let expected = repo.parent().expect("parent").join(format!("{}.worktrees", repo.file_name().expect("name").to_string_lossy())).join(&t.id);
+    let expected = repo
+        .parent()
+        .expect("parent")
+        .join(format!("{}.worktrees", repo.file_name().expect("name").to_string_lossy()))
+        .join(&t.id);
     assert_eq!(Path::new(&row.path).canonicalize().expect("real"), expected.canonicalize().expect("real"));
     assert!(row.branch.starts_with(&format!("ai/{}-fix-add", t.id)) && row.base == "main");
     assert_eq!(row.port, Some(5190));
@@ -88,7 +97,8 @@ async fn test_the_same_ticket_keeps_its_worktree_and_another_gets_the_next_port(
         .collect();
     assert_eq!(ports, [(t1.id.clone(), Some(5300)), (t2.id.clone(), Some(5301))].into_iter().collect());
     let first = row_of(&t1.id).await.expect("first");
-    let again = worktrees::ensure(&session, &t1, Some(&repo.to_string_lossy())).await.expect("ensure").expect("a worktree");
+    let again =
+        worktrees::ensure(&session, &t1, Some(&repo.to_string_lossy())).await.expect("ensure").expect("a worktree");
     assert!(again.path == first.path && again.port == Some(5300));
 }
 
@@ -176,10 +186,8 @@ async fn test_a_person_moving_the_ticket_to_done_merges_and_removes_the_worktree
     assert!(read(repo.join("calc.py")).contains("a - b"), "not merged yet");
     worktrees::on_status(&t.id, "done", "review", false);
     let tid = t.id.clone();
-    common::until(10, || async {
-        row_of(&tid).await.is_some_and(|r| r.state == "removed" && r.merged_at.is_some())
-    })
-    .await;
+    common::until(10, || async { row_of(&tid).await.is_some_and(|r| r.state == "removed" && r.merged_at.is_some()) })
+        .await;
     assert!(read(repo.join("calc.py")).contains("a + b"));
     assert!(common::git(&repo, &["log", "--oneline", "-3"]).contains(&format!("Merge {}", t.id)));
 }
@@ -206,7 +214,10 @@ async fn test_a_conflict_is_rolled_back_and_the_worktree_is_left_as_the_ai_made_
     let opts = kb_notify::ListOptions { view: "panel".into(), tab: Some("needs".into()), ..Default::default() };
     let panel = kb_notify::list_rows(&session, "user", &opts).await.expect("the panel");
     let items = panel["items"].as_array().expect("items");
-    assert!(items.iter().any(|i| i["kind"] == "merge_conflict" && i["title"].as_str().is_some_and(|t2| t2.contains(&t.id))), "{items:?}");
+    assert!(
+        items.iter().any(|i| i["kind"] == "merge_conflict" && i["title"].as_str().is_some_and(|t2| t2.contains(&t.id))),
+        "{items:?}"
+    );
 }
 
 #[tokio::test]
@@ -265,7 +276,7 @@ async fn test_a_worktree_with_uncommitted_work_is_never_removed_and_commit_now_s
 async fn test_the_handover_route_of_one_ticket_overrides_the_projects() {
     let _g = common::init().await;
     let repo = common::repo("route");
-    let (_pid, t, row) = setup_ticket(&repo, json!({})).await;
+    let (_pid, _t, row) = setup_ticket(&repo, json!({})).await;
     let session = database::session();
     // the route `PATCH /tickets/{id}/ai/handover` sets: the row's own override
     let mut own = row.clone();
@@ -310,7 +321,10 @@ async fn test_review_with_a_branch_route_commits_leftovers_and_pushes_the_branch
     let out = worktrees::on_review(&t.id).await.expect("review");
     assert_eq!(out, Some(json!({"route": "branch", "pushed": true})));
     assert!(common::git(&bare, &["branch", "--list"]).contains(&row.branch));
-    assert!(common::git(&bare, &["log", &row.branch, "-1", "--format=%s"]).contains("work in progress handed over for review"));
+    assert!(
+        common::git(&bare, &["log", &row.branch, "-1", "--format=%s"])
+            .contains("work in progress handed over for review")
+    );
     assert!(Path::new(&row.path).join("late.py").exists());
     assert_eq!(common::git(Path::new(&row.path), &["status", "--porcelain"]), "");
 }
@@ -459,13 +473,24 @@ fn test_names_and_paths() {
 
 #[test]
 fn test_outputs_are_told_from_code() {
-    for rel in ["shot.png", "qa/step1.txt", "run.log", "out/evidence/a.txt", "test-results/x.json", "sub/video.mp4", "my_work/notes.md"] {
+    for rel in [
+        "shot.png",
+        "qa/step1.txt",
+        "run.log",
+        "out/evidence/a.txt",
+        "test-results/x.json",
+        "sub/video.mp4",
+        "my_work/notes.md",
+    ] {
         assert!(worktrees::is_output(rel), "{rel}");
     }
     for rel in ["src/app.py", "docs/diagram.png", "README.md", "src/logo.png", "script.sh"] {
         assert!(!worktrees::is_output(rel), "{rel}");
     }
-    let lines: Vec<String> = ["?? shot.png", "?? src/new.py", " M calc.py", "?? qa/a.txt", "A  staged.log"].iter().map(|s| (*s).to_string()).collect();
+    let lines: Vec<String> = ["?? shot.png", "?? src/new.py", " M calc.py", "?? qa/a.txt", "A  staged.log"]
+        .iter()
+        .map(|s| (*s).to_string())
+        .collect();
     assert_eq!(worktrees::outputs_in(&lines), vec!["shot.png".to_string(), "qa/a.txt".to_string()]);
 }
 
@@ -492,7 +517,8 @@ async fn test_outputs_a_run_leaves_are_tidied_at_its_end_and_never_committed() {
     // the end of the run tidies the worktree and says where the outputs went
     let result = worktrees::tidy_after_run(&t.id, &run.id).await.expect("tidy").expect("a result");
     let log = work_log(&t.id).await;
-    let note = log.iter().filter_map(|e| e["note"].as_str()).find(|n| n.contains("output file")).expect("a note").to_string();
+    let note =
+        log.iter().filter_map(|e| e["note"].as_str()).find(|n| n.contains("output file")).expect("a note").to_string();
     if note.starts_with("Moved 2 output files") {
         // the Workspace is on: the ticket's folder has them
         assert!(!Path::new(&row.path).join("shot.png").exists() && !Path::new(&row.path).join("qa").exists());

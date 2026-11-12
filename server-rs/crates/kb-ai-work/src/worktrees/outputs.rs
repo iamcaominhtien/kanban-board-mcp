@@ -167,7 +167,8 @@ pub async fn move_outputs(ticket_id: &str) -> Result<MoveOutcome, Error> {
         if found.is_empty() {
             return Ok(MoveOutcome::Nothing);
         }
-        let ws = kb_board::workspace::get_workspace_settings(&session).await.map_err(|e| Error::Other(e.to_string()))?;
+        let ws =
+            kb_board::workspace::get_workspace_settings(&session).await.map_err(|e| Error::Other(e.to_string()))?;
         if !ws.enabled {
             return Ok(MoveOutcome::WorkspaceOff { left: found });
         }
@@ -223,7 +224,13 @@ pub fn note_for(result: &MoveOutcome, worktree: &str) -> Option<String> {
 }
 
 /// `_note_for` on the parts of the result dict: `moved`, `left`, `to` and `reason` (any of them may be missing).
-pub fn note_text(moved: &[String], left: &[String], to: Option<&str>, reason: Option<&str>, worktree: &str) -> Option<String> {
+pub fn note_text(
+    moved: &[String],
+    left: &[String],
+    to: Option<&str>,
+    reason: Option<&str>,
+    worktree: &str,
+) -> Option<String> {
     let plural = |n: usize| if n == 1 { "" } else { "s" };
     if !moved.is_empty() {
         let names: Vec<String> = moved.iter().take(20).map(|m| format!("- `{m}`")).collect();
@@ -285,9 +292,13 @@ pub async fn log_tidy(ticket_id: &str, result: &MoveOutcome, by: Option<&str>) -
     let note = note_for(result, row.as_ref().map_or("", |r| r.path.as_str()));
     if let Some(note) = note {
         let author = by.filter(|b| !b.is_empty()).unwrap_or("Kanban Board");
-        kb_board::tickets::add_work_log(&session, ticket_id, kb_board::tickets::NewWorkLog::new(author, "Other", &note))
-            .await
-            .map_err(|e| Error::Other(e.to_string()))?;
+        kb_board::tickets::add_work_log(
+            &session,
+            ticket_id,
+            kb_board::tickets::NewWorkLog::new(author, "Other", &note),
+        )
+        .await
+        .map_err(|e| Error::Other(e.to_string()))?;
     }
     Ok(())
 }

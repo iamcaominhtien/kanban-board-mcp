@@ -60,7 +60,12 @@ async fn timeline_helpers_give_what_python_gives() {
         assert_eq!(timeline::role_label(input), case[1].as_str().expect("label"), "{}", case[0]);
     }
     for case in g["role_color"].as_array().expect("cases") {
-        assert_eq!(timeline::role_color(case[0].as_str().unwrap_or("")), case[1].as_str().expect("color"), "{}", case[0]);
+        assert_eq!(
+            timeline::role_color(case[0].as_str().unwrap_or("")),
+            case[1].as_str().expect("color"),
+            "{}",
+            case[0]
+        );
     }
     let now = dt("2026-11-12T10:00:00.250000+00:00");
     for case in g["window"].as_array().expect("cases") {
@@ -118,8 +123,12 @@ async fn activity_gives_what_python_gives() {
         let session = database::session();
         let got = match case["kind"].as_str().expect("kind") {
             "team_activity" => {
-                let keys: Vec<String> =
-                    args["role_keys"].as_array().expect("keys").iter().map(|k| k.as_str().expect("key").to_string()).collect();
+                let keys: Vec<String> = args["role_keys"]
+                    .as_array()
+                    .expect("keys")
+                    .iter()
+                    .map(|k| k.as_str().expect("key").to_string())
+                    .collect();
                 activity::team_activity_at(&session, args["member_id"].as_str().expect("member"), &keys, day)
                     .await
                     .expect("the activity")
@@ -130,11 +139,16 @@ async fn activity_gives_what_python_gives() {
                 let mut out = serde_json::Map::new();
                 for t in teams {
                     let keys: Vec<String> = match t.get("roles") {
-                        Some(Value::Array(roles)) => roles.iter().map(|r| r["key"].as_str().unwrap_or("").to_string()).collect(),
+                        Some(Value::Array(roles)) => {
+                            roles.iter().map(|r| r["key"].as_str().unwrap_or("").to_string()).collect()
+                        }
                         _ => Vec::new(),
                     };
                     let id = t["id"].as_str().expect("id");
-                    out.insert(id.to_string(), activity::team_activity_at(&session, id, &keys, day).await.expect("one team"));
+                    out.insert(
+                        id.to_string(),
+                        activity::team_activity_at(&session, id, &keys, day).await.expect("one team"),
+                    );
                 }
                 Value::Object(out)
             }
@@ -164,4 +178,29 @@ fn first_line_gives_what_python_gives() {
         };
         assert_eq!(got, case.as_array().and_then(|c| c.last()).and_then(Value::as_str).expect("want"), "{case}");
     }
+}
+
+#[tokio::test]
+async fn the_functions_that_read_the_clock_run_on_the_same_rows() {
+    let _guard = common::init().await;
+    common::insert_view_rows().await;
+    let session = database::session();
+    // `timeline`, `flow_map` and `project_activity` take the real time: the rows are old, so only the shape is checked
+    let t = timeline::timeline(&session, "p1", &TimelineOpts { range_key: "7d".into(), ..Default::default() })
+        .await
+        .expect("timeline");
+    assert_eq!(t["scope"]["kind"], "team");
+    assert!(t["lifelines"].as_array().expect("lifelines").len() >= 6);
+    let f = flow::flow_map(&session, "p1", &FlowOpts { range_key: "all".into(), ..Default::default() })
+        .await
+        .expect("flow");
+    assert_eq!(f["all_teams"], 5);
+    let teams =
+        vec![serde_json::json!({"id": "m_alpha", "roles": [{"key": "dev"}]}), serde_json::json!({"id": "m_gamma"})];
+    let a = activity::project_activity(&session, &teams).await.expect("activity");
+    assert_eq!(a["m_alpha"]["team_id"], "m_alpha");
+    assert_eq!(a["m_gamma"]["roles"], serde_json::json!([]));
+    assert!(a["m_alpha"]["day"].as_str().expect("day").len() == 10);
+    assert_eq!(_flow::ids(Some(r#"["a", 2, null]"#)), vec!["a".to_string(), "2".to_string(), "None".to_string()]);
+    assert!(_flow::ids(Some("{}")).is_empty() && _flow::ids(Some("nope")).is_empty() && _flow::ids(None).is_empty());
 }

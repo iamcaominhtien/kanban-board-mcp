@@ -28,8 +28,8 @@ ui/dist/
 # Desktop build output
 dist-desktop/
 
-# Python binary build output
-dist-python/
+# Rust server build output (desktop/scripts/build-server.sh)
+dist-server/
 # the draw.io editor the desktop app ships (desktop/scripts/fetch-drawio.sh)
 dist-drawio/
 desktop/build/*

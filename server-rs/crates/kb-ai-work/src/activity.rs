@@ -41,7 +41,8 @@ static WIKI_LINK: LazyLock<Regex> =
 /// The first non-empty line of a report, cleaned of Markdown marks (and `[[page]]` links) and cut short.
 pub fn first_line(text: Option<&str>, limit: usize) -> String {
     for raw in pytext::splitlines(text.unwrap_or("")) {
-        let line = pytext::strip(raw).trim_start_matches(['#', '>', '*', '-', '•', ' ']).replace("**", "").replace('`', "");
+        let line =
+            pytext::strip(raw).trim_start_matches(['#', '>', '*', '-', '•', ' ']).replace("**", "").replace('`', "");
         let line = WIKI_LINK.replace_all(&line, "$1").into_owned();
         let line = pytext::strip(&line);
         if !line.is_empty() {
@@ -109,7 +110,12 @@ pub async fn team_activity(session: &Session, member_id: &str, role_keys: &[Stri
 }
 
 /// `team_activity` for the day that starts at `day` (`YYYY-MM-DD`).
-pub async fn team_activity_at(session: &Session, member_id: &str, role_keys: &[String], day: &str) -> Result<Value, DbErr> {
+pub async fn team_activity_at(
+    session: &Session,
+    member_id: &str,
+    role_keys: &[String],
+    day: &str,
+) -> Result<Value, DbErr> {
     // runs that matter for "now" and "today": still going, or started or ended today
     let runs = ai_run::Entity::find()
         .filter(ai_run::Column::MemberId.eq(member_id))
@@ -232,7 +238,10 @@ pub async fn team_activity_at(session: &Session, member_id: &str, role_keys: &[S
                     w.insert("since".into(), start);
                     w.insert("steps_count".into(), a.get("steps_count").cloned().unwrap_or(Value::Null));
                     w.insert("state".into(), json!(run.state));
-                    w.insert("step".into(), newest_step(session, rid, Some(&text(a, "id"))).await?.unwrap_or(Value::Null));
+                    w.insert(
+                        "step".into(),
+                        newest_step(session, rid, Some(&text(a, "id"))).await?.unwrap_or(Value::Null),
+                    );
                     working = Some((w, text(a, "id")));
                 }
             }

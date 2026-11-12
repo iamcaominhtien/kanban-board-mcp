@@ -4,14 +4,22 @@ name: CI
 # Coverage (which doubles the backend's time) and the SonarQube Cloud analysis run once a night on main instead,
 # in nightly-quality.yml, which also files what SonarQube found in a GitHub issue.
 #
-# Every part runs side by side: the backend in 10 shards, the UI's tests in 3, the UI's checks (prettier, eslint, tsc,
-# build) in one job whose caches make an unchanged file cost nothing. The repository is public, so the extra jobs
+# Every part runs side by side: the backend (Rust: rustfmt and clippy, plus a type check on macOS and Windows), the UI's
+# tests in 3, the UI's checks (prettier, eslint, tsc, build) in one job whose caches make an unchanged file cost
+# nothing. The repository is public, so the extra jobs
 # cost no Actions minutes. Each job checks out only the folders it needs (docs/ and design/ alone are 300 MB).
 
 on:
   pull_request:
   push:
     branches: [main]
+
+env:
+  # The Rust workspace that holds the server. The one place this file names it: change this line when the folder is
+  # renamed (the paths below read it; only the `changes` filter and the docs of the file repeat the name).
+  SERVER_DIR: server-rs
+  # Keep equal to rust-version in <SERVER_DIR>/Cargo.toml
+  RUST_TOOLCHAIN: "1.94"
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -42,7 +50,7 @@ jobs:
         with:
           filters: |
             backend:
-              - 'server/**'
+              - '${{ env.SERVER_DIR }}/**'
               - '.github/workflows/ci.yml'
             frontend:
               - 'ui/**'
@@ -53,78 +61,115 @@ jobs:
               - '.github/workflows/ci.yml'
 
   backend-lint:
-    name: Backend lint (ruff)
+    name: Backend lint (rustfmt, clippy)
     needs: changes
     if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: server
     steps:
       - uses: actions/checkout@v4
         with:
           filter: blob:none
           sparse-checkout: |
-            server
-      - uses: actions/setup-python@v5
+            ${{ env.SERVER_DIR }}
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          python-version: "3.12"
-      - run: pip install uv
-      - run: uv sync
-      - name: Lint (includes the docstring rules)
-        run: uv run ruff check .
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: rustfmt, clippy
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ${{ env.SERVER_DIR }}/target
+          key: cargo-lint-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-${{ hashFiles(format('{0}/Cargo.lock', env.SERVER_DIR)) }}
+          restore-keys: cargo-lint-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-
       - name: Format
-        run: uv run ruff format --check .
+        working-directory: ${{ env.SERVER_DIR }}
+        run: cargo fmt --all --check
+      - name: Lint
+        working-directory: ${{ env.SERVER_DIR }}
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
-  # Ten shards side by side. tests/shard.py names each shard's files, split by their measured time
-  # (tests/durations.json), so the shards take about as long and each worker imports only its own files. Some tests read ui/, desktop/ and .claude/ files
-  # (package.json versions, member presets, the canvas-design skill), so those come along.
+  # The Rust code has branches that only compile on one system (the keychain, process handling, paths), so a type
+  # check runs on macOS and Windows too. Only `cargo check`: no linking, no tests.
+  backend-check:
+    name: Backend check (${{ matrix.os }})
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            ${{ env.SERVER_DIR }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ${{ env.SERVER_DIR }}/target
+          key: cargo-check-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-${{ hashFiles(format('{0}/Cargo.lock', env.SERVER_DIR)) }}
+          restore-keys: cargo-check-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-
+      - name: Check
+        working-directory: ${{ env.SERVER_DIR }}
+        run: cargo check --workspace --all-targets
+
+  # The Rust tests. Some read server/ (the Python reference) and ui/, so those come along.
   backend-tests:
-    name: Backend tests (${{ matrix.shard }}/10)
+    name: Backend tests
     needs: changes
     # DISABLED: tests are turned off in CI. To turn them back on, restore the `if:` line below to the changes-based condition.
     # if: ${{ needs.changes.outputs.backend == 'true' }}
     if: false
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    defaults:
-      run:
-        working-directory: server
     steps:
       - uses: actions/checkout@v4
         with:
           filter: blob:none
           sparse-checkout: |
+            ${{ env.SERVER_DIR }}
             server
             ui
             desktop
             .claude
-      - uses: actions/setup-python@v5
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          python-version: "3.12"
-      - run: pip install uv
-      - run: uv sync
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ${{ env.SERVER_DIR }}/target
+          key: cargo-test-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-${{ hashFiles(format('{0}/Cargo.lock', env.SERVER_DIR)) }}
+          restore-keys: cargo-test-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-
       - name: Tests
-        run: uv run pytest -q -n auto --durations=10 $(python3 tests/shard.py ${{ matrix.shard }}/10)
+        working-directory: ${{ env.SERVER_DIR }}
+        run: cargo test --workspace
 
-  # The check that keeps its old name for branch protection: green only when lint and every shard passed
+  # The check that keeps its old name for branch protection: green when lint and the checks on every system passed
   backend:
-    name: Backend (ruff, pytest)
-    needs: [changes, backend-lint, backend-tests]
+    name: Backend (rustfmt, clippy)
+    needs: [changes, backend-lint, backend-check, backend-tests]
     if: ${{ !cancelled() && needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      # backend-tests is disabled (skipped), so only lint is required; re-add the backend-tests line when tests return
-      - name: Lint passed
+      # backend-tests is disabled (skipped), so only lint and the checks are required; add a backend-tests line when tests return
+      - name: Lint and checks passed
         run: |
           test "${{ needs.backend-lint.result }}" = success
+          test "${{ needs.backend-check.result }}" = success
 
-  # The board on PostgreSQL and MySQL/MariaDB (design/screens/ai-databases.md F, "Tests"): the database tests with a
-  # round trip SQLite → PostgreSQL → MariaDB → SQLite compared row by row, then the ticket, project, idea, docs and
-  # MCP suites run once on each server (tests/fast_db.py, KANBAN_TEST_DATABASE_URL).
+  # The board on PostgreSQL and MySQL/MariaDB: the data layer's tests (kb-db, kb-dbkit) run against a PostgreSQL and a
+  # MariaDB container. They skip a server whose URL variable is not set.
   databases:
     name: Databases (PostgreSQL, MariaDB)
     needs: changes
@@ -154,33 +199,26 @@ jobs:
         options: >-
           --health-cmd "healthcheck.sh --connect --innodb_initialized" --health-interval 5s --health-timeout 5s
           --health-retries 10
-    defaults:
-      run:
-        working-directory: server
     steps:
+      # server/ (the Python reference) comes along for the tests that compare with it
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          python-version: "3.12"
-      - run: pip install uv
-      - run: uv sync
-      - name: Second databases for the suites
-        run: |
-          PGPASSWORD=${{ github.run_id }}-db psql -h 127.0.0.1 -U kanban -d kanban -c "CREATE DATABASE kanban_suites"
-          mysql -h 127.0.0.1 -uroot -p${{ github.run_id }}-root -e "CREATE DATABASE kanban_suites; GRANT ALL ON kanban_suites.* TO 'kanban'@'%'"
-      - name: Move, verify and the round trip
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ${{ env.SERVER_DIR }}/target
+          key: cargo-test-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-${{ hashFiles(format('{0}/Cargo.lock', env.SERVER_DIR)) }}
+          restore-keys: cargo-test-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-
+      - name: Data layer tests on PostgreSQL and MariaDB
+        working-directory: ${{ env.SERVER_DIR }}
         env:
-          KANBAN_TEST_PG_URL: postgresql://kanban:${{ github.run_id }}-db@127.0.0.1:5432/kanban
+          KANBAN_TEST_POSTGRES_URL: postgresql://kanban:${{ github.run_id }}-db@127.0.0.1:5432/kanban
           KANBAN_TEST_MYSQL_URL: mysql://kanban:${{ github.run_id }}-db@127.0.0.1:3306/kanban
-        run: uv run pytest -q tests/test_dbkit_move.py tests/test_dbkit_targets.py tests/test_dbkit_api.py
-      - name: The app's suites on PostgreSQL
-        env:
-          KANBAN_TEST_DATABASE_URL: postgresql://kanban:${{ github.run_id }}-db@127.0.0.1:5432/kanban_suites
-        run: uv run pytest -q tests/test_tickets.py tests/test_projects.py tests/test_mcp_tools.py tests/test_idea_tickets.py tests/test_docs.py
-      - name: The app's suites on MariaDB
-        env:
-          KANBAN_TEST_DATABASE_URL: mysql://kanban:${{ github.run_id }}-db@127.0.0.1:3306/kanban_suites
-        run: uv run pytest -q tests/test_tickets.py tests/test_projects.py tests/test_mcp_tools.py tests/test_idea_tickets.py tests/test_docs.py
+        run: cargo test -p kb-db -p kb-dbkit
 
   # prettier, eslint and tsc keep their caches between runs (keyed by commit, restored from the newest one this
   # branch or main made): a file that did not change is not checked again. prettier and eslint cache by content, so

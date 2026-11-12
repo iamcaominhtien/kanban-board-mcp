@@ -128,7 +128,13 @@ async fn red_ci_the_change_caused_is_blamed_and_goes_back_to_the_dev_with_its_lo
     assert!(row.checked_at.is_some() && row.last_error.is_none());
     let red: Value = serde_json::from_str(row.red.as_deref().expect("red")).expect("json");
     assert_eq!(
-        (red["check"].clone(), red["workflow"].clone(), red["blamed"].clone(), red["base_unknown"].clone(), red["base"].clone()),
+        (
+            red["check"].clone(),
+            red["workflow"].clone(),
+            red["blamed"].clone(),
+            red["base_unknown"].clone(),
+            red["base"].clone()
+        ),
         (json!("build"), json!("CI"), json!(true), json!(false), json!("main"))
     );
     assert_eq!(red["url"], "https://github.com/o/r/actions/runs/12345678/job/1");
@@ -146,9 +152,20 @@ async fn red_ci_the_change_caused_is_blamed_and_goes_back_to_the_dev_with_its_lo
     assert_eq!(got.as_deref(), Some(run.id.as_str()));
     let calls = seam.0.calls.lock().expect("lock").clone();
     assert_eq!(calls.len(), 1);
-    assert_eq!((calls[0].0.as_str(), calls[0].2.as_str(), calls[0].3.as_str()), (f.tid.as_str(), "the board (red CI)", "ci_red"));
-    assert!(calls[0].1.starts_with("CI failed on the pull request #7 of this ticket (build). The same check is green on main"));
-    assert!(calls[0].1.contains("<untrusted source=\"ci log · build\">\nthe failing step says boom {x}\n</untrusted>"), "{}", calls[0].1);
+    assert_eq!(
+        (calls[0].0.as_str(), calls[0].2.as_str(), calls[0].3.as_str()),
+        (f.tid.as_str(), "the board (red CI)", "ci_red")
+    );
+    assert!(
+        calls[0]
+            .1
+            .starts_with("CI failed on the pull request #7 of this ticket (build). The same check is green on main")
+    );
+    assert!(
+        calls[0].1.contains("<untrusted source=\"ci log · build\">\nthe failing step says boom {x}\n</untrusted>"),
+        "{}",
+        calls[0].1
+    );
     let after: Value = serde_json::from_str(watched(&f.tid).await.red.as_deref().expect("red")).expect("json");
     assert_eq!((after["run_id"].clone(), after["delivered"].clone()), (json!(run.id), json!("started")));
     assert!(after["handled_at"].is_string());
@@ -223,7 +240,11 @@ async fn review_comments_of_people_go_to_the_dev_and_the_boards_own_replies_do_n
     assert!(calls[0].1.contains("<untrusted source=\"review comment · @carol · a.py:3\">\nwrong\n</untrusted>"));
     assert!(calls[0].1.contains("end every reply with the line `<!-- kanban-board-ai -->` exactly"));
     let given: Vec<Value> = serde_json::from_str(&watched(&f.tid).await.pending_comments).expect("json");
-    assert!(given.iter().all(|c| c["run_id"] == json!(run.id) && c["delivered"] == json!("message") && c["handled_at"].is_string()));
+    assert!(
+        given
+            .iter()
+            .all(|c| c["run_id"] == json!(run.id) && c["delivered"] == json!("message") && c["handled_at"].is_string())
+    );
     // nothing waits now
     assert_eq!(github::comments_to_dev(&f.tid).await.expect("to dev"), None);
     // a later batch drops the ones already given, and the seen ones never come back
@@ -259,14 +280,22 @@ async fn a_pull_request_is_polled_only_when_it_is_due_and_a_gh_failure_is_kept()
     // asked again at once: not due
     github::tick_project(&f.pid).await.expect("tick");
     assert_eq!(polls(), 1);
-    assert!(common::fake_gh_calls()[0].ends_with("|pr view 7 --json state,statusCheckRollup,reviews,comments,headRefName,baseRefName,url"));
+    assert!(
+        common::fake_gh_calls()[0]
+            .ends_with("|pr view 7 --json state,statusCheckRollup,reviews,comments,headRefName,baseRefName,url")
+    );
     // the pull request is merged: it is closed and watched no more
     let mut row = watched(&f.tid).await;
     row.checked_at = Some("2020-01-01T00:00:00+00:00".into());
     let session = database::session();
     row.into_active_model().reset_all().update(&session).await.expect("update");
     session.commit().await.expect("commit");
-    common::fake_gh_set("pr_view", &json!({"state": "MERGED", "statusCheckRollup": [{"conclusion": "SUCCESS"}]}).to_string(), "", 0);
+    common::fake_gh_set(
+        "pr_view",
+        &json!({"state": "MERGED", "statusCheckRollup": [{"conclusion": "SUCCESS"}]}).to_string(),
+        "",
+        0,
+    );
     github::tick_project(&f.pid).await.expect("tick");
     let row = watched(&f.tid).await;
     assert_eq!((row.state.as_str(), row.ci.as_deref(), row.last_error.as_deref()), ("closed", Some("green"), None));
@@ -371,14 +400,23 @@ async fn without_a_dev_or_a_runs_module_nothing_is_delivered() {
 async fn the_poll_loop_starts_once_polls_the_pull_requests_and_stops() {
     let _g = common::init().await;
     let f = fixture(json!({})).await;
-    common::fake_gh_set("pr_view", &json!({"state": "OPEN", "statusCheckRollup": [{"conclusion": "SUCCESS"}]}).to_string(), "", 0);
+    common::fake_gh_set(
+        "pr_view",
+        &json!({"state": "OPEN", "statusCheckRollup": [{"conclusion": "SUCCESS"}]}).to_string(),
+        "",
+        0,
+    );
     github::start_every(Duration::from_millis(100));
     // a second start while it runs does not start another
     github::start_every(Duration::from_millis(100));
     let tid = f.tid.clone();
     common::until(10, || async {
         let session = database::session();
-        ai_watched_pr::Entity::find_by_id(tid.as_str()).one(&session).await.expect("read").is_some_and(|r| r.ci.as_deref() == Some("green"))
+        ai_watched_pr::Entity::find_by_id(tid.as_str())
+            .one(&session)
+            .await
+            .expect("read")
+            .is_some_and(|r| r.ci.as_deref() == Some("green"))
     })
     .await;
     github::stop().await;

@@ -212,8 +212,9 @@ fn same_args(got: &[String], want: &Value, blobs: &Value, what: &str) {
     }
 }
 
-#[test]
-fn the_command_line_the_settings_and_the_mcp_config() {
+#[tokio::test]
+async fn the_command_line_the_settings_and_the_mcp_config() {
+    let _guard = common::init_with(&BOARD_ENV).await;
     let g = golden();
     let (p, blobs) = (&g["pure"], &g["blobs"]);
     for case in p["kv_dict"].as_array().expect("cases") {
@@ -286,6 +287,10 @@ async fn prepare_gives_what_python_gives() {
             let path = common::local_text(file["path"].as_str().expect("path"));
             std::fs::create_dir_all(Path::new(&path).parent().expect("parent")).expect("folder");
             std::fs::write(&path, common::local_text(file["text"].as_str().expect("text"))).expect("file");
+            if file["executable"] == true {
+                use std::os::unix::fs::PermissionsExt;
+                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).expect("mode");
+            }
         }
         common::insert_all(&case["rows"]).await;
         seams::set_session_history(

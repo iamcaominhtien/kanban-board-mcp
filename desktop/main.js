@@ -68,7 +68,6 @@ function startBackend() {
       desktopDir: __dirname,
       baseEnv: process.env,
       exportCommand: buildExportCommand({ isPackaged: app.isPackaged, execPath: process.execPath, desktopDir: __dirname }),
-      devPythonExists: fs.existsSync(path.join(__dirname, '..', 'server', '.venv', 'bin', 'python')),
       configPath,
       apiSecret,
     });
@@ -175,9 +174,9 @@ function createWindow() {
 
   // Always load from the local file — this is safe because:
   //   • The CSP header (injected via onHeadersReceived below) explicitly allows
-  //     connect-src http://127.0.0.1:* (and ws:// for the sign-in terminal) so API calls to the Python backend work.
+  //     connect-src http://127.0.0.1:* (and ws:// for the sign-in terminal) so API calls to the backend work.
   //   • Loading from file:// means the window shows immediately without waiting
-  //     for the Python server to boot.  The renderer handles the "backend not ready"
+  //     for the server to boot.  The renderer handles the "backend not ready"
   //     state by showing a connecting overlay until it receives the backend-ready IPC.
   const uiPath = path.join(
     app.isPackaged ? process.resourcesPath : path.join(__dirname, '..'),

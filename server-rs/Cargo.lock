@@ -1801,6 +1801,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "kb-ai-scan"
+version = "5.0.0"
+dependencies = [
+ "async-trait",
+ "kb-ai",
+ "kb-ai-know",
+ "kb-ai-run",
+ "kb-ai-work",
+ "kb-base",
+ "kb-db",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "kb-ai-work"
 version = "5.0.0"
 dependencies = [
@@ -1813,9 +1831,7 @@ dependencies = [
  "kb-db",
  "kb-notify",
  "regex",
- "serde",
  "serde_json",
- "sha2 0.10.9",
  "tempfile",
  "tokio",
  "tracing",
@@ -1833,6 +1849,7 @@ dependencies = [
  "kb-ai",
  "kb-ai-api",
  "kb-ai-run",
+ "kb-ai-work",
  "kb-assist",
  "kb-base",
  "kb-board",

@@ -47,7 +47,7 @@
 | | |
 |---|---|
 | **UI** | React 18 + Vite + TypeScript, CSS Modules, drag-and-drop (`@dnd-kit`) |
-| **Server** | Python, FastAPI, MCP (Model Context Protocol), SQLModel on SQLite, PostgreSQL or MySQL/MariaDB |
+| **Server** | Rust (axum, SeaORM), MCP (Model Context Protocol), SQLite, PostgreSQL or MySQL/MariaDB |
 | **Storage** | Local-first — SQLite by default, no external services; PostgreSQL or MySQL/MariaDB when you want one |
 
 ## Screenshots
@@ -87,13 +87,15 @@ npm run dev        # http://localhost:5173
 
 ### MCP Server (Backend)
 
-Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/). The database is created and migrated automatically on first start.
+Requires the Rust toolchain (see `rust-version` in `server-rs/Cargo.toml`). The database is created and migrated automatically on first start. The server picks a free port and prints `READY port=<N>` on stdout.
 
 ```bash
-cd server
-uv sync
-uv run uvicorn main:app --reload --port 8000
+cd server-rs
+cargo build -p kanban-server -p kanban-mcp-stdio
+./target/debug/kanban-server
 ```
+
+To run the desktop app against this build: `cd desktop && npm run dev` (it starts `server-rs/target/debug/kanban-server`; set `KANBAN_SERVER_BIN` to use another path).
 
 ## MCP Tools
 
@@ -141,8 +143,7 @@ Add to VS Code `mcp.json` or Claude Desktop config:
   "servers": {
     "kanban": {
       "type": "stdio",
-      "command": "uv",
-      "args": ["--directory", "/path/to/kanban-board-mcp/server", "run", "mcp_stdio.py"]
+      "command": "/path/to/kanban-board-mcp/server-rs/target/debug/kanban-mcp-stdio"
     }
   }
 }
@@ -150,12 +151,12 @@ Add to VS Code `mcp.json` or Claude Desktop config:
 
 ### Option 2 — HTTP (when running the full server)
 
-Start the server first:
+Start the server first (it prints the port it chose as `READY port=<N>`):
 ```bash
-cd server && uv run uvicorn main:app --port 8000
+cd server-rs && cargo run -p kanban-server
 ```
 
-Then connect any MCP-compatible client to `http://localhost:8000/mcp/` (note the trailing slash — the mount only matches with it).
+Then connect any MCP-compatible client to `http://localhost:<N>/mcp/` (note the trailing slash — the mount only matches with it).
 
 ## Desktop App
 
@@ -167,7 +168,7 @@ The desktop app packages the full stack (React UI + FastAPI server + MCP stdio) 
 | **Windows** (x64) | NSIS installer |
 | **Linux** | Not yet supported |
 
-You can also build it yourself: `./build-desktop.sh`.
+You can also build it yourself: `./build-desktop.sh` (needs Node 20+ and the Rust toolchain; it builds the UI, the Rust server and the installer).
 
 > **macOS note:** the app is not notarized — right-click → Open on first launch.
 

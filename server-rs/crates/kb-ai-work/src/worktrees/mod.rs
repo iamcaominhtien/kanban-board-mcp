@@ -164,15 +164,13 @@ pub async fn git_try(cwd: &str, args: &[&str]) -> Result<Captured, Error> {
 /// `urlparse(url).hostname`, for a URL that has a network location; None when it has none or Python raises.
 fn url_hostname(url: &str) -> Option<String> {
     // `urlparse` first drops leading control characters and spaces, and tab and line breaks anywhere
-    let url: String = url.trim_start_matches(|c: char| c <= ' ').chars().filter(|c| !matches!(c, '\t' | '\r' | '\n')).collect();
+    let url: String =
+        url.trim_start_matches(|c: char| c <= ' ').chars().filter(|c| !matches!(c, '\t' | '\r' | '\n')).collect();
     let mut rest = url.as_str();
     if let Some(i) = rest.find(':') {
         let scheme = &rest[..i];
         let first_ok = scheme.chars().next().is_some_and(|c| c.is_ascii_alphabetic());
-        if i > 0
-            && first_ok
-            && scheme.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.'))
-        {
+        if i > 0 && first_ok && scheme.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.')) {
             rest = &rest[i + 1..];
         }
     }
@@ -354,9 +352,9 @@ pub async fn ensure(
         Some(port) => port,
         None => {
             let base_port = match cfg.get("base_port").filter(|v| kb_base::pyjson::truthy(v)) {
-                Some(v) => kb_ai::store::py_int(v)
-                    .and_then(|n| i32::try_from(n).ok())
-                    .ok_or_else(|| Error::Other(format!("invalid literal for int(): {}", kb_base::pyjson::py_repr(v))))?,
+                Some(v) => kb_ai::store::py_int(v).and_then(|n| i32::try_from(n).ok()).ok_or_else(|| {
+                    Error::Other(format!("invalid literal for int(): {}", kb_base::pyjson::py_repr(v)))
+                })?,
                 None => 5180,
             };
             free_port(session, base_port).await?
@@ -390,7 +388,7 @@ pub async fn ensure(
         let mut env = crate::project_env::with_path(None, Some(&crate::project_env::extra(Some(&settings))));
         env.insert("PORT".to_string(), port.to_string());
         let spec = Spec { cwd: Some(&path), whole_env: Some(env), shell: true, ..Spec::default() };
-        let out = match proc::run(&[prepare.clone()], &spec, PREPARE_TIMEOUT_S as f64).await {
+        let out = match proc::run(std::slice::from_ref(&prepare), &spec, PREPARE_TIMEOUT_S as f64).await {
             Ok(out) => out,
             Err(ProcError::Timeout(_)) => {
                 return fail(format!(
@@ -576,14 +574,11 @@ pub async fn worktree_brief(ticket_id: &str) -> Result<Option<Value>, String> {
 
 /// A worktree for the API.
 pub fn to_dict(row: &ai_worktree::Model, live: Option<Value>) -> Value {
-    let conflict_files = match serde_json::from_str::<Value>(if row.conflict_files.is_empty() {
-        "[]"
-    } else {
-        &row.conflict_files
-    }) {
-        Ok(v) => v,
-        Err(_) => json!([]),
-    };
+    let conflict_files =
+        match serde_json::from_str::<Value>(if row.conflict_files.is_empty() { "[]" } else { &row.conflict_files }) {
+            Ok(v) => v,
+            Err(_) => json!([]),
+        };
     let mut out = Map::new();
     out.insert("ticket_id".into(), json!(row.ticket_id));
     out.insert("project_id".into(), json!(row.project_id));

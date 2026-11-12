@@ -51,7 +51,8 @@ pub async fn init() -> MutexGuard<'static, ()> {
             let shim = dir.join("shim");
             std::fs::create_dir_all(&shim).expect("shim folder");
             #[cfg(unix)]
-            for tool in ["git", "kill", "sleep", "cat", "env", "sh", "true", "false", "mkdir", "touch", "rm", "printf"] {
+            for tool in ["git", "kill", "sleep", "cat", "env", "sh", "true", "false", "mkdir", "touch", "rm", "printf"]
+            {
                 if let Some(real) = find_on_path(tool, &original_path) {
                     let _ = std::os::unix::fs::symlink(real, shim.join(tool));
                 }

@@ -294,7 +294,7 @@ plugin_root = Path(launch.board_plugin_dir())
 pure["board_plugin"] = {
     "dir": norm(str(plugin_root)),
     "files": sorted(
-        [str(p.relative_to(plugin_root)), T(p.read_text(encoding="utf-8")), bool(p.stat().st_mode & 0o111)]
+        [str(p.relative_to(plugin_root)), T(p.read_bytes().decode("utf-8")), bool(p.stat().st_mode & 0o111)]
         for p in plugin_root.rglob("*")
         if p.is_file()
     ),
@@ -348,11 +348,13 @@ class Case:
         self.dirs.append(norm(self.path(rel)))
         return self.path(rel)
 
-    def write(self, path, text):
+    def write(self, path, text, executable=False):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(text)
-        self.files.append({"path": norm(path), "text": norm(text)})
+        if executable:
+            os.chmod(path, 0o755)
+        self.files.append({"path": norm(path), "text": norm(text), "executable": executable})
 
 
 async def build(case: Case) -> dict:
@@ -361,6 +363,8 @@ async def build(case: Case) -> dict:
     repo = case.mkdir("repo")
     for path, text in (s.get("repo_files") or {}).items():
         case.write(f"{repo}/{path}", text.replace("<REPO>", repo))
+    for rel in s.get("programs") or []:
+        case.write(case.path(rel), "#!/bin/sh\nexit 0\n", executable=True)
     async with database.async_session() as session:
         session.add(Project(id=pid, name=s.get("project_name", "Kanban Board"), prefix=f"G{CASES.index(case):03d}", color="#2E6F40"))
         session.add(Member(id=f"{pid}-an", project_id=pid, name="An Nguyen", color="#3B82F6", created_at=STAMP))
@@ -379,7 +383,7 @@ async def build(case: Case) -> dict:
         team = dict(id=member.id, project_id=pid, model="haiku", working_dir=repo, created_at=STAMP, updated_at=STAMP)
         if s.get("account") and not s["account"].get("on_run_only"):
             team["account_id"] = account_id
-        team.update({k: (v.replace("<ROOT>", work) if isinstance(v, str) else v) for k, v in (s.get("team") or {}).items()})
+        team.update({k: (v.replace("<ROOT>", work).replace("<CASE>", case.path("")) if isinstance(v, str) else v) for k, v in (s.get("team") or {}).items()})
         if isinstance(team.get("config"), dict):
             team["config"] = json.dumps(team["config"])
         profile = AiTeam(**team)
@@ -460,7 +464,7 @@ async def build(case: Case) -> dict:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(data)
-        case.files.append({"path": norm(path), "text": data})
+        case.files.append({"path": norm(path), "text": data, "executable": False})
 
     # the rows as they are before the call (the call records which lessons and notes it used)
     rows: dict = {}
@@ -605,7 +609,8 @@ CASES = [
     Case("mcp_folder", repo_files={".mcp.json": MCP_JSON}, team={"config": {"mcp_servers": MCP_CONFIGS[2]["mcp_servers"]}}),
     Case("not_live", settings={"ops": {"live_messages": False, "auto_compact_pct": 70}}),
     Case("compact_low", settings={"ops": {"auto_compact_pct": "12"}}),
-    Case("cli_path", team={"cli_path": "<ROOT>/bin/claude"}),
+    Case("cli_path", team={"cli_path": "<CASE>tools/claude"}, programs=["tools/claude"]),
+    Case("cli_not_executable", team={"cli_path": "<CASE>repo/README.md"}, repo_files={"README.md": "not a program"}),
     Case("cli_missing", team={"cli_path": "<ROOT>/bin/no-such-claude"}),
     Case("cli_refused", team={"cli_path": "/etc/passwd"}),
     Case("knowledge", instructions="Tests: `uv run pytest -q`. Never touch `migrations/`.", lessons=["Use the design tokens, never raw colours.", "The dev server is on port 5180."], notes=[("member", "<TEAM>", "I prefer small commits."), ("ticket", "<TICKET>", "The bug needs two tabs open.")], team={"persona": "  You are careful and brief.  ", "config": {"instructions": "  Always answer in English.  "}}),

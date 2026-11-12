@@ -26,12 +26,14 @@ pub async fn startup() -> Result<Running, DatabaseError> {
         tokio::spawn(database::watch_database(None, Duration::from_millis(400), Duration::from_millis(150)));
     // (the AI run scheduler, the Docs AI and assistant recovery and the AI schedules start here once ported)
     kb_notify::start();
+    kb_ai_work::github::start();
     Ok(Running { follow, sweeper, db_watcher })
 }
 
 /// Stop the background work, in the reverse order of `startup`.
 pub async fn shutdown(running: Running) {
-    // (the GitHub watcher and the repository rescan stop here once ported)
+    kb_ai_work::github::stop().await;
+    // (the repository rescan stops here once ported)
     kb_notify::stop().await;
     running.sweeper.abort();
     running.db_watcher.abort();

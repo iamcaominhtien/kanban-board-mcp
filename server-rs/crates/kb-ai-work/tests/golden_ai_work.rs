@@ -5,8 +5,8 @@
 
 mod common;
 
-use std::collections::HashSet;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 use kb_ai_work::{github, project_env, worktrees};
 use kb_db::database;
@@ -127,10 +127,13 @@ async fn poll_reads_what_gh_prints_and_says_when_it_cannot() {
     common::fake_gh_reset();
     common::fake_gh_set("pr_view", "", &format!("{}\n", "boom ".repeat(100)), 1);
     let got = github::poll(&row).await.expect("a poll").to_value();
-    let want = format!("{}", "boom ".repeat(100).trim().chars().take(200).collect::<String>());
+    let want: String = "boom ".repeat(100).trim().chars().take(200).collect();
     assert_eq!(got, json!({"error": want}));
     common::fake_gh_set("pr_view", "not json", "", 0);
-    assert_eq!(github::poll(&row).await.expect("a poll").to_value(), json!({"error": "gh answered something that is not JSON"}));
+    assert_eq!(
+        github::poll(&row).await.expect("a poll").to_value(),
+        json!({"error": "gh answered something that is not JSON"})
+    );
     // a gh that does not exist says so as Python's FileNotFoundError does
     common::fake_gh_reset();
     let calls = common::fake_gh_calls();
@@ -184,7 +187,11 @@ async fn the_base_branch_check_gives_what_python_gives() {
     github::base_is_red(&row, Some("main"), &json!({"workflowName": "CI"})).await;
     let calls = common::fake_gh_calls();
     assert_eq!(calls.len(), 1);
-    assert!(calls[0].ends_with("|run list --branch main --limit 20 --json conclusion,status,workflowName"), "{}", calls[0]);
+    assert!(
+        calls[0].ends_with("|run list --branch main --limit 20 --json conclusion,status,workflowName"),
+        "{}",
+        calls[0]
+    );
 }
 
 #[tokio::test]
@@ -206,7 +213,10 @@ async fn the_failing_log_is_read_as_python_reads_it() {
         let len = gh[2].as_u64().expect("length") as usize;
         let reply = match gh[1].as_str() {
             Some(t) => t.to_string(),
-            None => case["out"].as_str().map(|o| o.chars().next().map_or(String::new(), |c| c.to_string().repeat(len))).unwrap_or_default(),
+            None => case["out"]
+                .as_str()
+                .map(|o| o.chars().next().map_or(String::new(), |c| c.to_string().repeat(len)))
+                .unwrap_or_default(),
         };
         common::fake_gh_set("run_view", &reply, "", gh[0].as_i64().expect("code") as i32);
         let got = github::failure_log(&row, &json!({"detailsUrl": case["url"], "name": case["name"]})).await;
@@ -229,11 +239,21 @@ fn what_the_dev_is_told_reads_as_python_writes_it() {
     }
     for case in g["ci_task"].as_array().expect("cases") {
         let check = case["check"].as_str().unwrap_or("None");
-        let got = github::ci_task(case["number"].as_i64().expect("number") as i32, check, s(&case["base"]), s(&case["log"]), s(&case["branch"]));
+        let got = github::ci_task(
+            case["number"].as_i64().expect("number") as i32,
+            check,
+            s(&case["base"]),
+            s(&case["log"]),
+            s(&case["branch"]),
+        );
         assert_eq!(got, s(&case["text"]));
     }
     for case in g["review_task"].as_array().expect("cases") {
-        let got = github::review_task(case["number"].as_i64().expect("number") as i32, s(&case["comments"]), s(&case["branch"]));
+        let got = github::review_task(
+            case["number"].as_i64().expect("number") as i32,
+            s(&case["comments"]),
+            s(&case["branch"]),
+        );
         assert_eq!(got, s(&case["text"]));
     }
 }
@@ -268,7 +288,11 @@ async fn the_cards_and_signals_of_watched_pull_requests_read_as_python_writes_th
     common::assert_same("no live", &worktrees::to_dict(&rows[0], None), &want[0]);
     let live = json!({"exists": true, "uncommitted": [], "size_mb": 0.5, "ahead": 2, "outputs": []});
     common::assert_same("live", &worktrees::to_dict(&rows[0], Some(live)), &want[1]);
-    common::assert_same("empty live and empty conflict files", &worktrees::to_dict(&rows[1], Some(json!({}))), &want[2]);
+    common::assert_same(
+        "empty live and empty conflict files",
+        &worktrees::to_dict(&rows[1], Some(json!({}))),
+        &want[2],
+    );
 }
 
 #[tokio::test]
@@ -377,7 +401,8 @@ async fn tools_are_found_in_the_usual_folders_and_the_newest_node_wins() {
 
 /// Replace this test's folder with the placeholder the generator wrote.
 fn scrub(value: &Value, root: &std::path::Path) -> Value {
-    serde_json::from_str(&value.to_string().replace(&root.to_string_lossy().replace('\\', "\\\\"), "$ROOT")).expect("json")
+    serde_json::from_str(&value.to_string().replace(&root.to_string_lossy().replace('\\', "\\\\"), "$ROOT"))
+        .expect("json")
 }
 
 #[tokio::test]
@@ -399,12 +424,12 @@ async fn what_git_says_about_a_worktree_is_read_as_python_reads_it() {
         trees.insert(tid, path);
     }
     let b = &trees["T-B"];
+    common::write_files(b, &[("calc.py", "def add(a, b):\n    return a + b\n"), ("staged.txt", "staged\n")]);
+    common::git(b, &["add", "staged.txt"]);
     common::write_files(
         b,
-        &[("calc.py", "def add(a, b):\n    return a + b\n"), ("staged.txt", "staged\n")],
+        &[("feature.py", "x = 1\n"), ("qa/step.txt", "step\n"), ("src/new.py", "y = 2\n"), ("run.log", "log\n")],
     );
-    common::git(b, &["add", "staged.txt"]);
-    common::write_files(b, &[("feature.py", "x = 1\n"), ("qa/step.txt", "step\n"), ("src/new.py", "y = 2\n"), ("run.log", "log\n")]);
     std::fs::write(b.join("shot.png"), [0x89u8, b'P', b'N', b'G'].repeat(300_000)).expect("png");
     let c = &trees["T-C"];
     common::write_files(c, &[("later.py", "z = 3\n")]);
@@ -433,7 +458,11 @@ async fn what_git_says_about_a_worktree_is_read_as_python_reads_it() {
     session.commit().await.expect("commit");
     for row in &rows {
         let live = worktrees::status(row).await.expect("status").to_value();
-        common::assert_same(&format!("status {}", row.ticket_id), &scrub(&live, &root), &want["status"][&row.ticket_id]);
+        common::assert_same(
+            &format!("status {}", row.ticket_id),
+            &scrub(&live, &root),
+            &want["status"][&row.ticket_id],
+        );
         let brief = worktrees::brief(&session, &row.ticket_id).await.expect("brief").unwrap_or(Value::Null);
         common::assert_same(&format!("brief {}", row.ticket_id), &scrub(&brief, &root), &want["brief"][&row.ticket_id]);
     }

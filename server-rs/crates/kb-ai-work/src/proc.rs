@@ -2,9 +2,9 @@
 //! capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=...)` ran them.
 //!
 //! Output is decoded as UTF-8 with replacement characters and its line ends are made `\n` (text mode). A child that
-//! outlives its timeout is killed and waited for, never left behind; a shell command is started in a process group of
-//! its own and the whole group is killed (Python killed only the shell and left the rest running; the child that
-//! "must never be left behind" decides here).
+//! outlives its timeout is killed and waited for, never left behind; every child is started in a process group of its
+//! own and the whole group is killed (Python killed only the child and left what it had started running; "never leave
+//! one behind" decides here).
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -73,7 +73,11 @@ fn spawn_text(err: &std::io::Error, what: &str) -> String {
 /// `str(subprocess.TimeoutExpired(cmd, timeout))`.
 fn timeout_text(cmd: &[String], shell: bool, secs: f64) -> String {
     if shell {
-        return format!("Command '{}' timed out after {} seconds", cmd.first().map_or("", String::as_str), secs_text(secs));
+        return format!(
+            "Command '{}' timed out after {} seconds",
+            cmd.first().map_or("", String::as_str),
+            secs_text(secs)
+        );
     }
     let list: Vec<String> = cmd.iter().map(|a| pytext::repr(a)).collect();
     format!("Command '[{}]' timed out after {} seconds", list.join(", "), secs_text(secs))
@@ -147,9 +151,7 @@ pub async fn run(argv: &[String], spec: &Spec<'_>, timeout_s: f64) -> Result<Cap
     }
     cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true);
     #[cfg(unix)]
-    if spec.shell {
-        cmd.process_group(0);
-    }
+    cmd.process_group(0);
     let what = argv.first().cloned().unwrap_or_default();
     let mut child = cmd.spawn().map_err(|e| ProcError::Spawn(spawn_text(&e, &what)))?;
     let pid = child.id();
@@ -188,9 +190,7 @@ pub async fn run(argv: &[String], spec: &Spec<'_>, timeout_s: f64) -> Result<Cap
             Ok(Captured { returncode: code, stdout: decode(&o), stderr: decode(&e) })
         }
         Err(_) => {
-            if spec.shell {
-                kill_group(pid).await;
-            }
+            kill_group(pid).await;
             let _ = child.kill().await;
             let _ = child.wait().await;
             Err(ProcError::Timeout(timeout_text(argv, spec.shell, timeout_s)))
