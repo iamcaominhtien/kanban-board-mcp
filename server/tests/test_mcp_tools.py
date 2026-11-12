@@ -450,7 +450,10 @@ async def test_update_ticket_description_publishes_sse():
         result = await ops.update_ticket(ticket["id"], description="Updated desc")
 
     assert result is not None
-    mock_publish.assert_called_once_with("invalidate")
+    # the tool names what it wrote: a ticket, and the Docs a ticket reaches
+    mock_publish.assert_called_once_with(
+        "invalidate", topics={"tickets", "ticket_docs"}
+    )
 
 
 @pytest.mark.asyncio
@@ -466,7 +469,10 @@ async def test_add_acceptance_criterion_publishes_sse():
         )
 
     assert result is not None
-    mock_publish.assert_called_once_with("invalidate")
+    # the tool names what it wrote: a ticket, and the Docs a ticket reaches
+    mock_publish.assert_called_once_with(
+        "invalidate", topics={"tickets", "ticket_docs"}
+    )
 
 
 @pytest.mark.asyncio
@@ -480,7 +486,10 @@ async def test_add_test_case_publishes_sse():
         result = await ops.add_test_case(ticket["id"], title="Login works")
 
     assert result is not None
-    mock_publish.assert_called_once_with("invalidate")
+    # the tool names what it wrote: a ticket, and the Docs a ticket reaches
+    mock_publish.assert_called_once_with(
+        "invalidate", topics={"tickets", "ticket_docs"}
+    )
 
 
 @pytest.mark.asyncio
@@ -496,7 +505,10 @@ async def test_add_work_log_publishes_sse():
         )
 
     assert result is not None
-    mock_publish.assert_called_once_with("invalidate")
+    # the tool names what it wrote: a ticket, and the Docs a ticket reaches
+    mock_publish.assert_called_once_with(
+        "invalidate", topics={"tickets", "ticket_docs"}
+    )
 
 
 @pytest.mark.asyncio
@@ -510,7 +522,10 @@ async def test_add_comment_publishes_sse():
         result = await ops.add_comment(ticket["id"], text="Nice work", author="alice")
 
     assert result is not None
-    mock_publish.assert_called_once_with("invalidate")
+    # the tool names what it wrote: a ticket, and the Docs a ticket reaches
+    mock_publish.assert_called_once_with(
+        "invalidate", topics={"tickets", "ticket_docs"}
+    )
 
 
 @pytest.mark.asyncio

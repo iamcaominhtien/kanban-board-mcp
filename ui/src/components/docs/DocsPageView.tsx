@@ -19,6 +19,7 @@ import { ComposePopover, SelectionToolbar, type Pick } from './comments/Selectio
 import { personOf } from './comments/people';
 import { useCommentsController } from './comments/useCommentsController';
 import { useCommentHighlights } from './comments/useCommentHighlights';
+import { PageSettledContext } from './pageSettled';
 import './comments/comments.css';
 import { avatarColors, pageFullTime } from './docsUi';
 import { useMembers } from '../../api/members';
@@ -115,6 +116,12 @@ export function DocsPageView({
   const [timeTip, setTimeTip] = useState(false);
   const [editTip, setEditTip] = useState(false);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
+  // the page whose content is all on screen: the panels around it ask the server only then (pageSettled.ts)
+  // The page whose content has been all on screen once. Until then a long page comes in piece by piece and the panels
+  // around it wait (pageSettled.ts); after, a new text of the same page (a new version, the translated view) renders
+  // at once, so the reader keeps their place and the panels stay on.
+  const [renderedKey, setRenderedKey] = useState<string | null>(null);
+  const onRendered = useCallback(() => setRenderedKey(page.id), [page.id]);
   const tocNavRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
@@ -201,7 +208,8 @@ export function DocsPageView({
     );
     els.forEach((el) => obs.observe(el));
     return () => obs.disconnect();
-  }, [page.id, page.markdown]);
+    // again once a long page has all its headings (it comes in piece by piece)
+  }, [page.id, page.markdown, renderedKey]);
 
   // a long "On this page" list scrolls on its own: keep the section in view visible in it
   useEffect(() => {
@@ -215,7 +223,14 @@ export function DocsPageView({
   }, [activeSlug]);
 
   function jump(slug: string) {
-    document.getElementById(`docs-${slug}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // a heading further down a long page may not be on it yet (it comes in piece by piece): look again for ~3 s
+    let tries = 0;
+    const go = () => {
+      const el = document.getElementById(`docs-${slug}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      else if (++tries < 30) setTimeout(go, 100);
+    };
+    go();
     setActiveSlug(slug);
     setToc(false);
   }
@@ -226,6 +241,7 @@ export function DocsPageView({
   }, [page.id]);
 
   const published = page.version > 0;
+  const settled = !(published || page.draft) || renderedKey === page.id;
   const showDraft = page.hasUnpublishedChanges && !!page.draft;
   const who = showDraft ? page.draft!.author : page.updatedBy;
   const whenIso = showDraft ? page.draft!.updatedAt : page.updatedAt;
@@ -271,542 +287,550 @@ export function DocsPageView({
   );
 
   return (
-    <div
-      style={{
-        flex: 1,
-        minWidth: 0,
-        minHeight: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        background: '#FFFFFF',
-      }}
-      className="dk-find-push"
-      data-testid="docs-page"
-    >
-      {offline && (
-        <OfflineBanner
-          pageTitle={page.title}
-          savedAt={offline.savedAt}
-          version={offline.version ?? page.version}
-          onTryAgain={onTryAgain}
-        />
-      )}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
-        <div
-          ref={scrollRef}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            overflowY: 'auto',
-            padding: narrow ? '28px 40px 40px' : '28px 44px 40px',
-            boxSizing: 'border-box',
-            position: 'relative',
-          }}
-        >
-          <div style={{ maxWidth: 'min(100%, clamp(640px, 62vw, 1120px))', margin: '0 auto' }}>
-            {!offline && (
-              <AiChangedBar
-                page={page}
-                projectId={projectId}
-                members={members}
-                canEdit={!readOnly}
-                onCompare={onCompare}
-              />
-            )}
-            {!offline && (
-              <div style={{ marginBottom: 16 }}>
-                <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />
-              </div>
-            )}
-            {!offline && (
-              <DocsAiBanners projectId={projectId} page={page} canEdit={!readOnly} onOpenTicket={onOpenTicket} />
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* The breadcrumb has its own row, as every Docs board draws it; the page actions sit beside the title
-                  below and wrap under it when the window is too narrow, so nothing is cut off */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <nav
-                  aria-label="Breadcrumb"
+    <PageSettledContext.Provider value={settled}>
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+          background: '#FFFFFF',
+        }}
+        className="dk-find-push"
+        data-testid="docs-page"
+      >
+        {offline && (
+          <OfflineBanner
+            pageTitle={page.title}
+            savedAt={offline.savedAt}
+            version={offline.version ?? page.version}
+            onTryAgain={onTryAgain}
+          />
+        )}
+        <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+          <div
+            ref={scrollRef}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              overflowY: 'auto',
+              padding: narrow ? '28px 40px 40px' : '28px 44px 40px',
+              boxSizing: 'border-box',
+              position: 'relative',
+            }}
+          >
+            <div style={{ maxWidth: 'min(100%, clamp(640px, 62vw, 1120px))', margin: '0 auto' }}>
+              {!offline && (
+                <AiChangedBar
+                  page={page}
+                  projectId={projectId}
+                  members={members}
+                  canEdit={!readOnly}
+                  onCompare={onCompare}
+                />
+              )}
+              {!offline && (
+                <div style={{ marginBottom: 16 }}>
+                  <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />
+                </div>
+              )}
+              {!offline && (
+                <DocsAiBanners projectId={projectId} page={page} canEdit={!readOnly} onOpenTicket={onOpenTicket} />
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* The breadcrumb has its own row, as every Docs board draws it; the page actions sit beside the title
+                    below and wrap under it when the window is too narrow, so nothing is cut off */}
+                <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 7,
-                    minWidth: 0,
-                    flex: '1 1 240px',
-                    overflow: 'hidden',
+                    gap: 10,
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
                   }}
                 >
-                  <Icon name="folder" size={13} strokeWidth={1.8} style={{ color: '#9AA8A0' }} />
-                  <span style={crumb}>{projectName}</span>
-                  <Icon name="chevronRight" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB' }} />
-                  {page.path.map((p) => (
-                    <span key={p.id} style={{ display: 'contents' }}>
-                      <button
-                        type="button"
-                        onClick={() => onOpenPage(p.id)}
-                        style={{
-                          ...crumb,
-                          border: 'none',
-                          background: 'none',
-                          padding: 0,
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        {p.title}
-                      </button>
-                      <Icon name="chevronRight" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB' }} />
-                    </span>
-                  ))}
-                  <span
+                  <nav
+                    aria-label="Breadcrumb"
                     style={{
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      color: '#1E2A22',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 7,
                       minWidth: 0,
+                      flex: '1 1 240px',
+                      overflow: 'hidden',
                     }}
                   >
-                    {page.title}
-                  </span>
-                </nav>
-                {narrow && headings.length > 0 && (
-                  <div data-popover style={{ position: 'relative', marginLeft: 'auto' }}>
-                    <button
-                      type="button"
-                      className="st-btn st-btn-sm"
-                      aria-expanded={toc}
-                      onClick={() => setToc((v) => !v)}
-                      data-testid="toc-button"
+                    <Icon name="folder" size={13} strokeWidth={1.8} style={{ color: '#9AA8A0' }} />
+                    <span style={crumb}>{projectName}</span>
+                    <Icon name="chevronRight" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB' }} />
+                    {page.path.map((p) => (
+                      <span key={p.id} style={{ display: 'contents' }}>
+                        <button
+                          type="button"
+                          onClick={() => onOpenPage(p.id)}
+                          style={{
+                            ...crumb,
+                            border: 'none',
+                            background: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            fontFamily: 'inherit',
+                          }}
+                        >
+                          {p.title}
+                        </button>
+                        <Icon name="chevronRight" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB' }} />
+                      </span>
+                    ))}
+                    <span
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: '#1E2A22',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        minWidth: 0,
+                      }}
                     >
-                      <Icon name="i42" size={14} strokeWidth={1.9} />
-                      On this page
-                      <Icon name="chevronDown" size={11} strokeWidth={2.3} style={{ color: '#9AA8A0' }} />
-                    </button>
-                    {toc && (
+                      {page.title}
+                    </span>
+                  </nav>
+                  {narrow && headings.length > 0 && (
+                    <div data-popover style={{ position: 'relative', marginLeft: 'auto' }}>
+                      <button
+                        type="button"
+                        className="st-btn st-btn-sm"
+                        aria-expanded={toc}
+                        onClick={() => setToc((v) => !v)}
+                        data-testid="toc-button"
+                      >
+                        <Icon name="i42" size={14} strokeWidth={1.9} />
+                        On this page
+                        <Icon name="chevronDown" size={11} strokeWidth={2.3} style={{ color: '#9AA8A0' }} />
+                      </button>
+                      {toc && (
+                        <div
+                          className="dk-menu"
+                          style={{
+                            position: 'absolute',
+                            right: 0,
+                            top: 'calc(100% + 6px)',
+                            zIndex: 40,
+                            width: 220,
+                            padding: '10px 12px',
+                            // a long list scrolls inside the popover instead of running off the window
+                            maxHeight: 'min(60vh, 420px)',
+                            overflowY: 'auto',
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.06em',
+                              color: '#5B6B60',
+                              marginBottom: 6,
+                            }}
+                          >
+                            On this page
+                          </span>
+                          {tocList}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                  <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+                    <h1
+                      data-testid="page-title"
+                      style={{
+                        margin: 0,
+                        fontSize: 32,
+                        fontWeight: 800,
+                        lineHeight: 1.15,
+                        color: '#1E2A22',
+                        letterSpacing: '-0.01em',
+                      }}
+                    >
+                      {page.title}
+                    </h1>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        flexWrap: 'wrap',
+                        marginTop: 10,
+                      }}
+                    >
+                      {published ? (
+                        <span
+                          className="mc-chip"
+                          style={{ background: '#DCEEE1', color: '#1F5A31' }}
+                          data-testid="status-badge"
+                        >
+                          <span className="mc-dot" style={{ background: '#2E6F40' }} />
+                          Published · v{page.version}
+                        </span>
+                      ) : (
+                        <span
+                          className="mc-chip"
+                          style={{ background: '#FCEFD9', color: '#7A4F08' }}
+                          data-testid="status-badge"
+                        >
+                          <span className="mc-dot" style={{ background: '#B4791E' }} />
+                          Draft
+                        </span>
+                      )}
+                      {showDraft && published && (
+                        <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }}>
+                          <span className="mc-dot" style={{ background: '#2F6FB0' }} />
+                          Unpublished changes
+                        </span>
+                      )}
+                      {offline && (
+                        <span className="mc-chip" style={{ background: '#F1F3F1', color: '#3A4A3E' }}>
+                          Offline copy
+                        </span>
+                      )}
                       <div
-                        className="dk-menu"
+                        data-popover
                         style={{
-                          position: 'absolute',
-                          right: 0,
-                          top: 'calc(100% + 6px)',
-                          zIndex: 40,
-                          width: 220,
-                          padding: '10px 12px',
-                          // a long list scrolls inside the popover instead of running off the window
-                          maxHeight: 'min(60vh, 420px)',
-                          overflowY: 'auto',
+                          position: 'relative',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          fontSize: 12.5,
+                          color: '#5B6B60',
                         }}
                       >
                         <span
+                          title={actorName(who)}
                           style={{
-                            display: 'block',
+                            width: 22,
+                            height: 22,
+                            borderRadius: '50%',
+                            ...av,
                             fontSize: 11,
                             fontWeight: 700,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.06em',
-                            color: '#5B6B60',
-                            marginBottom: 6,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
                           }}
                         >
-                          On this page
+                          {initials(who)}
                         </span>
-                        {tocList}
+                        <button
+                          type="button"
+                          onClick={() => setInfo((v) => !v)}
+                          aria-expanded={info}
+                          data-testid="page-info"
+                          style={{
+                            border: 'none',
+                            background: 'none',
+                            padding: 0,
+                            font: 'inherit',
+                            color: 'inherit',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                          }}
+                        >
+                          {lead} <b style={{ color: '#1E2A22', fontWeight: 600 }}>{actorName(who)}</b> ·{' '}
+                          <span
+                            onMouseEnter={() => setTimeTip(true)}
+                            onMouseLeave={() => setTimeTip(false)}
+                            style={{ borderBottom: '1px dotted #9AA8A0', cursor: 'default' }}
+                          >
+                            {relativeTime(whenIso)}
+                          </span>
+                        </button>
+                        {timeTip && !info && (
+                          <div
+                            className="dk-tt"
+                            role="tooltip"
+                            style={{ position: 'absolute', left: 150, top: 30, zIndex: 3, pointerEvents: 'none' }}
+                          >
+                            {pageFullTime(whenIso, actorName(who), published ? page.version : 0)}
+                          </div>
+                        )}
+                        {info && (
+                          <PageInfoPopover
+                            page={page}
+                            onClose={() => setInfo(false)}
+                            onOpenHistory={() => {
+                              setInfo(false);
+                              onAction('history');
+                            }}
+                            onOpenReferences={() =>
+                              scrollRef.current
+                                ?.querySelector('[data-testid="referenced-by"]')
+                                ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                            }
+                          />
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
-                )}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 320px', minWidth: 0 }}>
-                  <h1
-                    data-testid="page-title"
-                    style={{
-                      margin: 0,
-                      fontSize: 32,
-                      fontWeight: 800,
-                      lineHeight: 1.15,
-                      color: '#1E2A22',
-                      letterSpacing: '-0.01em',
-                    }}
-                  >
-                    {page.title}
-                  </h1>
                   <div
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 12,
+                      gap: 8,
+                      paddingTop: 2,
                       flexWrap: 'wrap',
-                      marginTop: 10,
+                      justifyContent: 'flex-end',
+                      marginLeft: 'auto',
+                      maxWidth: '100%',
                     }}
                   >
-                    {published ? (
-                      <span
-                        className="mc-chip"
-                        style={{ background: '#DCEEE1', color: '#1F5A31' }}
-                        data-testid="status-badge"
-                      >
-                        <span className="mc-dot" style={{ background: '#2E6F40' }} />
-                        Published · v{page.version}
-                      </span>
-                    ) : (
-                      <span
-                        className="mc-chip"
-                        style={{ background: '#FCEFD9', color: '#7A4F08' }}
-                        data-testid="status-badge"
-                      >
-                        <span className="mc-dot" style={{ background: '#B4791E' }} />
-                        Draft
-                      </span>
+                    {!offline && (
+                      <PageAiMenu
+                        projectId={projectId}
+                        page={page}
+                        canEdit={!readOnly}
+                        view={aiView}
+                        onEdit={() => onAction('edit')}
+                        onOpenTicket={onOpenTicket}
+                      />
                     )}
-                    {showDraft && published && (
-                      <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }}>
-                        <span className="mc-dot" style={{ background: '#2F6FB0' }} />
-                        Unpublished changes
-                      </span>
-                    )}
-                    {offline && (
-                      <span className="mc-chip" style={{ background: '#F1F3F1', color: '#3A4A3E' }}>
-                        Offline copy
-                      </span>
-                    )}
-                    <div
-                      data-popover
-                      style={{
-                        position: 'relative',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        fontSize: 12.5,
-                        color: '#5B6B60',
-                      }}
-                    >
-                      <span
-                        title={actorName(who)}
-                        style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: '50%',
-                          ...av,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {initials(who)}
-                      </span>
+                    {!offline && <FollowBell scope="page" scopeId={page.id} projectId={projectId} />}
+                    {!offline && (
                       <button
                         type="button"
-                        onClick={() => setInfo((v) => !v)}
-                        aria-expanded={info}
-                        data-testid="page-info"
-                        style={{
-                          border: 'none',
-                          background: 'none',
-                          padding: 0,
-                          font: 'inherit',
-                          color: 'inherit',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                        }}
+                        className="st-btn"
+                        aria-pressed={cc.open}
+                        data-testid="comments-button"
+                        onClick={() => cc.setOpen((v) => !v)}
                       >
-                        {lead} <b style={{ color: '#1E2A22', fontWeight: 600 }}>{actorName(who)}</b> ·{' '}
-                        <span
-                          onMouseEnter={() => setTimeTip(true)}
-                          onMouseLeave={() => setTimeTip(false)}
-                          style={{ borderBottom: '1px dotted #9AA8A0', cursor: 'default' }}
-                        >
-                          {relativeTime(whenIso)}
+                        <Icon name="comment" size={14} strokeWidth={1.9} />
+                        Comments
+                        <span className="dc-btn-count" data-testid="comments-count">
+                          {commentTotal}
                         </span>
+                        {anyUnread && <span className="dc-btn-dot" data-testid="comments-unread" />}
                       </button>
-                      {timeTip && !info && (
+                    )}
+                    <div data-popover style={{ position: 'relative' }}>
+                      <button
+                        type="button"
+                        className="st-btn"
+                        onClick={() => (canShare ? setShare((v) => !v) : onAction('copy-link'))}
+                        data-testid="share"
+                        aria-expanded={share}
+                      >
+                        <Icon name="link" size={14} strokeWidth={1.9} />
+                        {canShare ? 'Share' : 'Copy link'}
+                      </button>
+                      {share && <SharePopover page={page} onClose={() => setShare(false)} />}
+                    </div>
+                    <div
+                      style={{ position: 'relative' }}
+                      onMouseEnter={() => (offline || readOnly) && setEditTip(true)}
+                      onMouseLeave={() => setEditTip(false)}
+                    >
+                      <button
+                        type="button"
+                        className={offline || readOnly ? 'st-btn' : 'st-btn st-btn-primary'}
+                        disabled={!!offline || !!readOnly}
+                        onClick={() => onAction('edit')}
+                        data-testid="edit-page"
+                      >
+                        <Icon name="i15" size={14} strokeWidth={1.9} />
+                        {page.draft ? 'Continue editing' : 'Edit'}
+                      </button>
+                      {editTip && (
                         <div
                           className="dk-tt"
                           role="tooltip"
-                          style={{ position: 'absolute', left: 150, top: 30, zIndex: 3, pointerEvents: 'none' }}
+                          style={{ position: 'absolute', right: 0, top: 'calc(100% + 10px)', zIndex: 3 }}
                         >
-                          {pageFullTime(whenIso, actorName(who), published ? page.version : 0)}
+                          {offline ? 'Reconnect to edit' : readOnly}
                         </div>
                       )}
-                      {info && (
-                        <PageInfoPopover
+                    </div>
+                    <div data-popover style={{ position: 'relative' }}>
+                      <button
+                        type="button"
+                        className="dk-icobtn"
+                        aria-label="Page actions"
+                        aria-expanded={menu}
+                        data-testid="page-menu"
+                        onClick={() => setMenu((v) => !v)}
+                        style={{ border: '1px solid #E3E8E5', width: 34, height: 34, borderRadius: 8 }}
+                      >
+                        <Icon name="more" size={16} strokeWidth={1.8} />
+                      </button>
+                      {menu && (
+                        <PageMenu
                           page={page}
-                          onClose={() => setInfo(false)}
-                          onOpenHistory={() => {
-                            setInfo(false);
-                            onAction('history');
+                          onAction={(a) => {
+                            setMenu(false);
+                            onAction(a);
                           }}
-                          onOpenReferences={() =>
-                            scrollRef.current
-                              ?.querySelector('[data-testid="referenced-by"]')
-                              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                          }
+                          onClose={() => setMenu(false)}
                         />
                       )}
                     </div>
                   </div>
                 </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    paddingTop: 2,
-                    flexWrap: 'wrap',
-                    justifyContent: 'flex-end',
-                    marginLeft: 'auto',
-                    maxWidth: '100%',
-                  }}
-                >
-                  {!offline && (
-                    <PageAiMenu
-                      projectId={projectId}
-                      page={page}
-                      canEdit={!readOnly}
-                      view={aiView}
-                      onEdit={() => onAction('edit')}
-                      onOpenTicket={onOpenTicket}
-                    />
-                  )}
-                  {!offline && <FollowBell scope="page" scopeId={page.id} projectId={projectId} />}
-                  {!offline && (
-                    <button
-                      type="button"
-                      className="st-btn"
-                      aria-pressed={cc.open}
-                      data-testid="comments-button"
-                      onClick={() => cc.setOpen((v) => !v)}
-                    >
-                      <Icon name="comment" size={14} strokeWidth={1.9} />
-                      Comments
-                      <span className="dc-btn-count" data-testid="comments-count">
-                        {commentTotal}
-                      </span>
-                      {anyUnread && <span className="dc-btn-dot" data-testid="comments-unread" />}
-                    </button>
-                  )}
-                  <div data-popover style={{ position: 'relative' }}>
-                    <button
-                      type="button"
-                      className="st-btn"
-                      onClick={() => (canShare ? setShare((v) => !v) : onAction('copy-link'))}
-                      data-testid="share"
-                      aria-expanded={share}
-                    >
-                      <Icon name="link" size={14} strokeWidth={1.9} />
-                      {canShare ? 'Share' : 'Copy link'}
-                    </button>
-                    {share && <SharePopover page={page} onClose={() => setShare(false)} />}
-                  </div>
+              </div>
+              <div style={{ height: 1, background: '#E3E8E5', margin: '20px 0 4px' }} />
+              {!offline && aiOn && (
+                <div style={{ marginTop: 16 }}>
+                  <SummaryBlock view={aiView} />
+                  <TranslateBanner view={aiView} markdown={published ? page.markdown : (page.draft?.markdown ?? '')} />
+                </div>
+              )}
+              {!offline && published && (
+                <div style={{ marginTop: 16 }}>
+                  <PageWork pageId={page.id} onOpenTicket={onOpenTicket} />
+                </div>
+              )}
+              <div ref={setBody} data-testid="page-body" style={{ position: 'relative' }}>
+                {!published && (
                   <div
-                    style={{ position: 'relative' }}
-                    onMouseEnter={() => (offline || readOnly) && setEditTip(true)}
-                    onMouseLeave={() => setEditTip(false)}
+                    style={{
+                      margin: '24px 0',
+                      padding: '16px 18px',
+                      borderRadius: 10,
+                      border: '1px dashed #C7D2CB',
+                      background: '#F6FAF7',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
+                      fontSize: 13.5,
+                      color: '#5B6B60',
+                    }}
                   >
-                    <button
-                      type="button"
-                      className={offline || readOnly ? 'st-btn' : 'st-btn st-btn-primary'}
-                      disabled={!!offline || !!readOnly}
-                      onClick={() => onAction('edit')}
-                      data-testid="edit-page"
-                    >
-                      <Icon name="i15" size={14} strokeWidth={1.9} />
-                      {page.draft ? 'Continue editing' : 'Edit'}
-                    </button>
-                    {editTip && (
-                      <div
-                        className="dk-tt"
-                        role="tooltip"
-                        style={{ position: 'absolute', right: 0, top: 'calc(100% + 10px)', zIndex: 3 }}
-                      >
-                        {offline ? 'Reconnect to edit' : readOnly}
-                      </div>
-                    )}
+                    <strong style={{ color: '#1E2A22' }}>This page has not been published yet.</strong>
+                    <span>
+                      {page.draft
+                        ? 'Continue editing to finish your draft, then publish it so everyone can read it. Below is a preview of the draft.'
+                        : 'Edit the page and publish it so everyone can read it.'}
+                    </span>
                   </div>
-                  <div data-popover style={{ position: 'relative' }}>
-                    <button
-                      type="button"
-                      className="dk-icobtn"
-                      aria-label="Page actions"
-                      aria-expanded={menu}
-                      data-testid="page-menu"
-                      onClick={() => setMenu((v) => !v)}
-                      style={{ border: '1px solid #E3E8E5', width: 34, height: 34, borderRadius: 8 }}
+                )}
+                {(published || page.draft) && (
+                  <div
+                    style={{ display: 'contents' }}
+                    data-idea-source={JSON.stringify({ source: 'doc', id: page.id, label: page.title })}
+                  >
+                    <DocsMarkdown
+                      // keyed by what it shows: the comment numbers are placed inline in this DOM
+                      // (useCommentHighlights), so new text gets fresh nodes instead of edits to split ones
+                      key={contentKey(translated ?? (published ? page.markdown : page.draft!.markdown))}
+                      projectId={projectId}
+                      projectName={projectName}
+                      onOpenPage={onOpenPage}
+                      onOpenTicket={onOpenTicket}
+                      onCreatePage={onCreatePage}
+                      onRestorePage={onRestorePage}
+                      onReplaceSection={published && !translated ? onReplaceSection : undefined}
+                      changedIn={published && since.behind && since.marks && !translated ? since.changedIn : undefined}
+                      progressive={renderedKey !== page.id}
+                      onRendered={onRendered}
                     >
-                      <Icon name="more" size={16} strokeWidth={1.8} />
-                    </button>
-                    {menu && (
-                      <PageMenu
-                        page={page}
-                        onAction={(a) => {
-                          setMenu(false);
-                          onAction(a);
-                        }}
-                        onClose={() => setMenu(false)}
-                      />
-                    )}
+                      {translated ?? (published ? page.markdown : page.draft!.markdown)}
+                    </DocsMarkdown>
                   </div>
-                </div>
+                )}
               </div>
+              {!offline && <PageComments projectId={projectId} data={commentsData} actions={cc.actions} />}
+              <ReferencedBy pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
             </div>
-            <div style={{ height: 1, background: '#E3E8E5', margin: '20px 0 4px' }} />
-            {!offline && aiOn && (
-              <div style={{ marginTop: 16 }}>
-                <SummaryBlock view={aiView} />
-                <TranslateBanner view={aiView} markdown={published ? page.markdown : (page.draft?.markdown ?? '')} />
-              </div>
-            )}
-            {!offline && published && (
-              <div style={{ marginTop: 16 }}>
-                <PageWork pageId={page.id} onOpenTicket={onOpenTicket} />
-              </div>
-            )}
-            <div ref={setBody} data-testid="page-body" style={{ position: 'relative' }}>
-              {!published && (
-                <div
+          </div>
+          {cc.open && !offline && (
+            <CommentsPanel
+              pageId={page.id}
+              projectId={projectId}
+              version={page.version}
+              data={commentsData}
+              loading={cc.query.isLoading}
+              error={cc.query.isError}
+              onRetry={() => void cc.query.refetch()}
+              actions={cc.actions}
+              tab={cc.tab}
+              onTab={cc.setTab}
+              activeId={cc.activeId}
+              onActivate={cc.activate}
+              reattachId={cc.reattachId}
+              onReattach={cc.setReattachId}
+              onClose={() => cc.setOpen(false)}
+            />
+          )}
+          {!narrow && !cc.open && headings.length > 0 && (
+            <nav
+              aria-label="On this page"
+              className="dk-toc"
+              ref={tocNavRef}
+              // as tall as the pane (a flex child of it): a list taller than that scrolls here, so its end can be reached
+              style={{
+                width: 200,
+                flexShrink: 0,
+                padding: '30px 20px 24px 8px',
+                boxSizing: 'border-box',
+                maxHeight: '100%',
+                overflowY: 'auto',
+                overscrollBehavior: 'contain',
+              }}
+            >
+              <div>
+                <span
                   style={{
-                    margin: '24px 0',
-                    padding: '16px 18px',
-                    borderRadius: 10,
-                    border: '1px dashed #C7D2CB',
-                    background: '#F6FAF7',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 4,
-                    fontSize: 13.5,
+                    display: 'block',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
                     color: '#5B6B60',
+                    marginBottom: 10,
                   }}
                 >
-                  <strong style={{ color: '#1E2A22' }}>This page has not been published yet.</strong>
-                  <span>
-                    {page.draft
-                      ? 'Continue editing to finish your draft, then publish it so everyone can read it. Below is a preview of the draft.'
-                      : 'Edit the page and publish it so everyone can read it.'}
-                  </span>
-                </div>
-              )}
-              {(published || page.draft) && (
-                <div
-                  style={{ display: 'contents' }}
-                  data-idea-source={JSON.stringify({ source: 'doc', id: page.id, label: page.title })}
-                >
-                  <DocsMarkdown
-                    // keyed by what it shows: the comment numbers are placed inline in this DOM
-                    // (useCommentHighlights), so new text gets fresh nodes instead of edits to split ones
-                    key={contentKey(translated ?? (published ? page.markdown : page.draft!.markdown))}
-                    projectId={projectId}
-                    projectName={projectName}
-                    onOpenPage={onOpenPage}
-                    onOpenTicket={onOpenTicket}
-                    onCreatePage={onCreatePage}
-                    onRestorePage={onRestorePage}
-                    onReplaceSection={published && !translated ? onReplaceSection : undefined}
-                    changedIn={published && since.behind && since.marks && !translated ? since.changedIn : undefined}
-                  >
-                    {translated ?? (published ? page.markdown : page.draft!.markdown)}
-                  </DocsMarkdown>
-                </div>
-              )}
-            </div>
-            {!offline && <PageComments projectId={projectId} data={commentsData} actions={cc.actions} />}
-            <ReferencedBy pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
-          </div>
+                  On this page
+                </span>
+                {tocList}
+              </div>
+            </nav>
+          )}
         </div>
-        {cc.open && !offline && (
-          <CommentsPanel
-            pageId={page.id}
+        <SelectionToolbar
+          root={bodyEl}
+          label={cc.reattachId ? 'Attach here' : 'Comment'}
+          enabled={(canComment || aiOn) && !compose}
+          onPick={onPick}
+          hideComment={!canComment}
+          extra={
+            aiOn ? (pick, close) => <SelectionAi pick={pick} pageId={page.id} view={aiView} done={close} /> : undefined
+          }
+        />
+        {aiOn && <ExplainCard view={aiView} />}
+        {compose && (
+          <ComposePopover
+            pick={compose}
             projectId={projectId}
-            version={page.version}
-            data={commentsData}
-            loading={cc.query.isLoading}
-            error={cc.query.isError}
-            onRetry={() => void cc.query.refetch()}
-            actions={cc.actions}
-            tab={cc.tab}
-            onTab={cc.setTab}
-            activeId={cc.activeId}
-            onActivate={cc.activate}
-            reattachId={cc.reattachId}
-            onReattach={cc.setReattachId}
-            onClose={() => cc.setOpen(false)}
+            members={suggest}
+            me={commentsData ? personOf(commentsData.me, commentsData.members, commentsData.me) : undefined}
+            onCancel={() => setCompose(null)}
+            onSubmit={async (text) => {
+              const t = await cc.actions.createThread.mutateAsync({
+                kind: 'inline',
+                body: text,
+                anchor: compose.anchor,
+              });
+              setCompose(null);
+              window.getSelection()?.removeAllRanges();
+              cc.created(t);
+            }}
           />
         )}
-        {!narrow && !cc.open && headings.length > 0 && (
-          <nav
-            aria-label="On this page"
-            className="dk-toc"
-            ref={tocNavRef}
-            // as tall as the pane (a flex child of it): a list taller than that scrolls here, so its end can be reached
-            style={{
-              width: 200,
-              flexShrink: 0,
-              padding: '30px 20px 24px 8px',
-              boxSizing: 'border-box',
-              maxHeight: '100%',
-              overflowY: 'auto',
-              overscrollBehavior: 'contain',
-            }}
-          >
-            <div>
-              <span
-                style={{
-                  display: 'block',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  color: '#5B6B60',
-                  marginBottom: 10,
-                }}
-              >
-                On this page
-              </span>
-              {tocList}
-            </div>
-          </nav>
-        )}
       </div>
-      <SelectionToolbar
-        root={bodyEl}
-        label={cc.reattachId ? 'Attach here' : 'Comment'}
-        enabled={(canComment || aiOn) && !compose}
-        onPick={onPick}
-        hideComment={!canComment}
-        extra={
-          aiOn ? (pick, close) => <SelectionAi pick={pick} pageId={page.id} view={aiView} done={close} /> : undefined
-        }
-      />
-      {aiOn && <ExplainCard view={aiView} />}
-      {compose && (
-        <ComposePopover
-          pick={compose}
-          projectId={projectId}
-          members={suggest}
-          me={commentsData ? personOf(commentsData.me, commentsData.members, commentsData.me) : undefined}
-          onCancel={() => setCompose(null)}
-          onSubmit={async (text) => {
-            const t = await cc.actions.createThread.mutateAsync({ kind: 'inline', body: text, anchor: compose.anchor });
-            setCompose(null);
-            window.getSelection()?.removeAllRanges();
-            cc.created(t);
-          }}
-        />
-      )}
-    </div>
+    </PageSettledContext.Provider>
   );
 }

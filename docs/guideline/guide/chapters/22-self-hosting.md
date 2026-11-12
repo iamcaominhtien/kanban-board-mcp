@@ -34,6 +34,7 @@ Set these before starting the server. The guide checks every variable below agai
 | `KANBAN_CHROME_PATH` | A Chrome, Chromium or Edge to draw diagram previews with. |
 | `KANBAN_DIAGRAM_EXPORT` | `off` switches diagram preview drawing off; `public` allows diagrams.net. |
 | `KANBAN_BOARD_URL` | The address the board is reached at, used in links an AI run writes. |
+| `KANBAN_PORT` | The port the desktop app's server listens on. Without it the server asks for the port it used last time, so an MCP client's address keeps working, and takes a free one only when that port is taken. |
 
 ## The AI working-folder rule
 

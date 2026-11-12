@@ -615,9 +615,9 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
     _startup_mark("freeze-support-done")
 
-    import socket
-
     import uvicorn
+
+    import port_choice
 
     _startup_mark("uvicorn-imported")
 
@@ -631,9 +631,8 @@ if __name__ == "__main__":
             drawio_bundle.set_origin("127.0.0.1", self.config.port)
             print(f"READY port={self.config.port}", flush=True)
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(("127.0.0.1", 0))
+    # The same port as last time (or KANBAN_PORT) when it is free, so an MCP client's address keeps working
+    with port_choice.bind_socket() as sock:
         port = sock.getsockname()[1]
         _startup_mark(f"socket-bound-port={port}")
         os.environ["KANBAN_BOARD_URL"] = f"http://127.0.0.1:{port}"

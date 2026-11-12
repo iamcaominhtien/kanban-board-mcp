@@ -1,6 +1,8 @@
 import asyncio
 import json
 import logging
+import time
+from collections import deque
 from collections.abc import Iterable
 import sqlite3
 from pathlib import Path
@@ -17,6 +19,16 @@ INVALIDATE = "invalidate"
 # means "anything may have changed" and refetches everything (what every call site did before topics).
 TOPIC_AI = "ai"  # a run's steps and state: the AI screens, the run panels, the workspace of a ticket
 
+# Typed events that are readings, not changes (publish_typed): they reach the windows but are not announcements
+QUIET_KINDS = frozenset({"ai.resources"})
+_QUIET_PREFIXES = tuple(f'{{"type": "{k}"' for k in QUIET_KINDS)
+
+
+def _is_quiet(event: str) -> bool:
+    """Is this event string (as publish_typed wrote it) one of the QUIET_KINDS?"""
+    return event.startswith(_QUIET_PREFIXES)
+
+
 # Global set of subscriber queues
 _subscribers: set[asyncio.Queue] = set()
 
@@ -25,6 +37,10 @@ _on_publish: list = []
 
 # Number of events published so far (lets the database watcher tell whether this process already announced a change)
 _published = 0
+
+# When the AI runner's commits happened (time.time(), told by the runner with `own_change`): the database watcher
+# takes a change it sees for the runner's when one of these falls between its last two readings
+_runner_commits: deque[float] = deque(maxlen=2000)
 
 
 def subscribe() -> asyncio.Queue:
@@ -84,16 +100,28 @@ async def publish(event: str, topics: Iterable[str] | None = None) -> None:
         q.put_nowait(event)
 
 
-async def publish_typed(kind: str, payload: dict) -> None:
-    """Broadcast a typed event (AI v2): `{"type": kind, ...payload}`. The app patches its cache from it instead of
-    refetching; `kind` is `ai.step`, `ai.run`, `ai.agent` or `ai.message`."""
+def mark_announced() -> None:
+    """Count a change of this process as announced without telling anyone (nothing the app shows changed): the
+    database watcher then does not announce it as another process's."""
     global _published
     _published += 1
-    for cb in _on_publish:
-        try:
-            cb()
-        except Exception:  # noqa: BLE001 - a listener never stops an announcement
-            logger.debug("A publish listener failed", exc_info=True)
+
+
+async def publish_typed(kind: str, payload: dict) -> None:
+    """Broadcast a typed event (AI v2): `{"type": kind, ...payload}`. The app patches its cache from it instead of
+    refetching; `kind` is `ai.step`, `ai.run`, `ai.agent`, `ai.message` or `ai.resources`.
+
+    `ai.resources` (RAM and CPU every 2 s while a CLI runs) is a reading, not a change: it does not count as an
+    announcement (the database watcher would take another process's change for this one's) and does not wake the
+    notification centre."""
+    global _published
+    if kind not in QUIET_KINDS:
+        _published += 1
+        for cb in _on_publish:
+            try:
+                cb()
+            except Exception:  # noqa: BLE001 - a listener never stops an announcement
+                logger.debug("A publish listener failed", exc_info=True)
     event = json.dumps({"type": kind, **payload}, default=str)
     if _forwarder is not None:
         await _forwarder(event)
@@ -110,12 +138,13 @@ async def publish_typed(kind: str, payload: dict) -> None:
 def broadcast_raw(event: str) -> None:
     """An event that arrived from the runner process: to every subscriber as it is."""
     global _published
-    _published += 1
-    for cb in _on_publish:
-        try:
-            cb()
-        except Exception:  # noqa: BLE001
-            logger.debug("A publish listener failed", exc_info=True)
+    if not _is_quiet(event):
+        _published += 1
+        for cb in _on_publish:
+            try:
+                cb()
+            except Exception:  # noqa: BLE001
+                logger.debug("A publish listener failed", exc_info=True)
     for q in _subscribers:
         if q.full():
             try:
@@ -125,11 +154,50 @@ def broadcast_raw(event: str) -> None:
         q.put_nowait(event)
 
 
-def mark_own_change() -> None:
+def mark_own_change(at: Iterable[float] | None = None) -> None:
     """Note that this process changed the database and chose not to announce it yet (a run's steps are announced at
-    most once a second). The database watcher then does not take the commit for another process's."""
+    most once a second). The database watcher then does not take the commit for another process's.
+
+    `at`: the times of commits the AI runner made (`POST /internal/ai/events` with `own_change`). They are matched
+    to the watcher's readings by when they happened, not by when the news arrived: a commit made while the watcher
+    waits for an announcement is only seen at its next reading, and must be explained there too."""
     global _published
-    _published += 1
+    if at is None:
+        _published += 1
+        return
+    for t in at:
+        _runner_commits.append(float(t))
+
+
+def _runner_committed(after: float, until: float) -> bool:
+    """Did the runner say it committed between these two times (with a little slack for the clocks of the reads)?"""
+    lo, hi = after - COMMIT_SLACK_S, until + COMMIT_SLACK_S
+    for t in reversed(_runner_commits):
+        if lo < t <= hi:
+            return True
+        if t <= lo:
+            break
+    return False
+
+
+COMMIT_SLACK_S = 0.05
+
+
+RUNNER_GRACE_S = 0.5
+RUNNER_MASK_REFRESH_S = 15.0
+
+
+def _grace_for(grace: float) -> float:
+    """How long to wait for a change's announcement. The AI runner writes from its own process and says so over
+    HTTP (`own_change`), which takes longer than this process's own announcement: wait for it while it runs."""
+    try:
+        from services.ai import runner_link
+
+        if runner_link.alive():
+            return max(grace, RUNNER_GRACE_S)
+    except Exception:  # noqa: BLE001 - the watcher never fails over this
+        pass
+    return grace
 
 
 async def watch_database(
@@ -160,6 +228,9 @@ async def watch_database(
     trimmed_at = 0.0
     # What this process had announced when the version was last read: an announcement since then explains a change
     seen_published = _published
+    # when the version was last read: a runner commit since then explains a change
+    read_at = time.time()
+    runner_masked_at = 0.0  # the last refetch of tickets and Docs for changes the runner's commits explained
 
     def close() -> None:
         nonlocal conn, conn_path
@@ -178,6 +249,7 @@ async def watch_database(
     while True:
         try:
             await asyncio.sleep(interval)
+            last_read_at = read_at
             if path is not None or database.is_sqlite():
                 db_path = path or database.get_db_path()
                 source = db_path
@@ -190,18 +262,28 @@ async def watch_database(
                 source = database.engine
                 version = await changes.latest_from_others(source)
                 server = True
+            # after the read: a runner commit made while the version was being read is in this reading
+            read_at = time.time()
             if source != watching:
                 seen, watching = (
                     None,
                     source,
                 )  # another database: start over, nothing to announce yet
             if seen is not None and version != seen:
-                await asyncio.sleep(grace)
+                await asyncio.sleep(_grace_for(grace))
                 # Counted from the last read, not from now: this process announces right after it commits, usually
                 # before the watcher looks, and a change it announced must not be announced a second time. The
-                # change log of a server database names the writer, so only other processes' rows are counted.
+                # change log of a server database names the writer, so only other processes' rows are counted. A
+                # commit the AI runner told about counts when it was made between the last reading and this one.
                 if server or _published == seen_published:
-                    await publish(INVALIDATE)
+                    if server or not _runner_committed(last_read_at, read_at):
+                        await publish(INVALIDATE)
+                    elif time.time() - runner_masked_at >= RUNNER_MASK_REFRESH_S:
+                        # SQLite does not say who wrote: a change made by another app in the same moment as one of
+                        # the runner's (an editor's MCP server, while a run streams) would never show. So while the
+                        # runner's commits explain the changes, the tickets and Docs are refetched now and then.
+                        runner_masked_at = time.time()
+                        await publish(INVALIDATE, topics=["tickets", "docs"])
             seen = version
             seen_published = _published
             if server and asyncio.get_running_loop().time() - trimmed_at > 300:

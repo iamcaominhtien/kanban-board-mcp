@@ -6,9 +6,29 @@ import type { QueryKey } from '@tanstack/react-query';
  * An announcement with no topic, a topic nobody here knows, or an event of another kind means anything may have
  * changed, and everything is refetched.
  */
+// What a ticket reaches in Docs: the pages it names (shown on the ticket), the pages' "Referenced by" and "Work on
+// this page", the [[reference]] chips that show a ticket's title and status, a ticket's comments sent from a page
+const TICKET_DOCS: QueryKey[] = [
+  ['docs', 'ticket'],
+  ['docs', 'backlinks'],
+  ['docs', 'work'],
+  ['docs', 'resolve'],
+  ['docs', 'ticket-comments'],
+];
+
 const TOPIC_KEYS: Record<string, QueryKey[]> = {
   // The bell, the panel, the page and the feed of toasts (server/services/notifications.py publishes this)
   notifications: [['notifications']],
+  // A ticket comment was added, edited, deleted or restored (server/api/tickets.py): the ticket, the lists that show
+  // it, its activity, and the Docs pages and ticket links it names
+  comments: [['ticket'], ['tickets'], ['wont_do_tickets'], ['project_activities'], ...TICKET_DOCS],
+  // A ticket changed (the AI runner wrote a comment, its question, Pending, the work log; an AI moved or edited it):
+  // the ticket, the lists that show it, the lane counts and its activity
+  tickets: [['ticket'], ['tickets'], ['wont_do_tickets'], ['ticket-lane-counts'], ['project_activities']],
+  // A ticket's text changed (an AI's MCP tool wrote it): the Docs pages it names and the pages' backlinks
+  ticket_docs: TICKET_DOCS,
+  // Docs pages changed: every Docs query (tree, pages, comments, backlinks, a ticket's pages)
+  docs: [['docs']],
 };
 
 /** What an SSE message asks to refetch: topic names, or null for everything. */
@@ -16,6 +36,8 @@ export function topicsOf(data: string): string[] | null {
   if (!data || data[0] !== '{') return null;
   try {
     const j = JSON.parse(data) as { type?: unknown; topics?: unknown };
+    // who a new comment notified (server/api/tickets.py): it comes right after the comment's own announcement
+    if (j.type === 'comment_added') return ['comments'];
     if (j.type !== 'invalidate' || !Array.isArray(j.topics) || j.topics.length === 0) return null;
     return j.topics.filter((t): t is string => typeof t === 'string');
   } catch {

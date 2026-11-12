@@ -108,8 +108,10 @@ async def test_comment_activity_carries_comment_id_and_event_is_published(
 ):
     sent: list[str] = []
 
-    async def fake_publish(msg: str = "invalidate") -> None:
-        sent.append(msg)
+    async def fake_publish(msg: str = "invalidate", topics=None) -> None:
+        sent.append(
+            json.dumps({"type": msg, "topics": sorted(set(topics))}) if topics else msg
+        )
 
     monkeypatch.setattr(board_events, "publish", fake_publish)
     t = await _ticket(c, pid)
@@ -128,6 +130,9 @@ async def test_comment_activity_carries_comment_id_and_event_is_published(
     log = [e for e in posted["activity_log"] if e["field"] == "comment"]
     assert log and log[0]["ref"] == cid
     events = [json.loads(m) for m in sent if m.startswith("{")]
+    # the comment refetches only what a comment changes, not everything every window holds
+    assert {"type": "invalidate", "topics": ["comments"]} in events
+    events = [e for e in events if e["type"] != "invalidate"]
     assert (
         events
         and events[0]["type"] == "comment_added"

@@ -32,6 +32,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 - A JSON body that gives a string for a number or a boolean (`"3"`, `"true"`) is refused with 422; the app sends typed JSON, so it is not affected. A body that leaves out several required fields names only the first in the 422.
 - The text taken from a PDF can differ in whitespace from what 4.0.x took, on some PDFs.
 
+## [4.0.3] - 2026-11-12
+
+Hotfix: the board keeps its port across restarts, so an MCP client's address no longer goes stale.
+
+### Fixed
+- **The board's port changed on every start**, so an MCP client set to `http://127.0.0.1:<port>/mcp/` lost its connection each time the app restarted. The server now asks for the port it used last time (kept in `config.json`) and takes a random one only when that port is taken by another program (it says so in the log). `KANBAN_PORT` pins a port of your choice.
+
+## [4.0.2] - 2026-11-12
+
+Performance: the board stays smooth while AIs work on it, and no change of a ticket is lost when several write at once.
+
+### Fixed
+- **Comments added at the same time were lost.** A ticket keeps its comments, criteria, sub-tasks, test cases and logs as lists, and two writers that read the ticket before either wrote (two AIs, an AI and a person) each saved their own list: the second dropped what the first added, while both were told it worked. A change of a ticket now takes the database's write lock before it reads the ticket, across processes too (the AI runner, an editor's MCP server). With 10 AIs commenting on one ticket as fast as they can, every comment is kept.
+- **"database is locked" under load.** SQLite lets one writer in at a time and the others poll for the lock, which is not first come, first served: a writer could miss its turn for the whole 30 s. Writers of the board's process now wait in line (`server/dbkit/sqlite_gate.py`).
+- **Typing a comment lagged while an AI ran**, and a new comment took seconds to show. The app no longer refetches and re-renders everything on each step of a run: a run's steps patch the cache, a server announcement names what changed (tickets, comments, Docs, notifications), and a step counter renders only the line that shows it.
+- **A long Docs page took 1–3 s to open.** Its top shows at once and the rest follows frame by frame; its headings and links are parsed once per text; the side panels wait for the page.
+- **Comments and flags the AI runner wrote** (its summary, its question, Pending, the work log) now show without a reload, and a change made by another app while an AI runs shows within 15 s.
+- **PostgreSQL / MySQL:** a write committed without an explicit flush was missing from the change log, so the other processes did not see it.
+
+### Changed
+- **The server under many AIs.** SQLite calls of the board's process take turns instead of fighting over Python's GIL in ten threads (a 6 ms read took up to 330 ms with ten at once). Publishing a Docs page no longer re-resolves every link of the project unless the page is new or renamed (half a second under the write lock on a big project). Opening a page reads the tickets that mention it once instead of three times. The notification centre's check runs at most a tenth of the time while the board is busy. An MCP tool's announcement names the tables it wrote, so the app refetches only that.
+- Measured with 10 AIs on the MCP server (445 Docs pages, 81 tickets, a browser on the shared ticket): at 1 call per second each, 9.2 calls/s served (was 1.0), p95 0.4 s (was 20 s), a comment from the app shows in 0.16 s (was 20.5 s); as fast as they can, 23 calls/s (was 0.8), p95 1.5 s, no errors.
+
 ## [4.0.1] - 2026-11-08
 
 Hotfix: a Story's tickets can have sub-tickets.
