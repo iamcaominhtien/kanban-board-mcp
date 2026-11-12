@@ -223,6 +223,10 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - The sign-in route writes its audit entry through a private copy of `touches.record_signin` in
   `kb-ai-api/src/api/ai_accounts.rs`; replace it when `touches` is ported.
 - `kb_base::activity` has no getter for the "suggested by" value (`kb-ai-work` reads it through `entry`).
+- Size: the release binaries are 68 MB (`kanban-server`) and 37 MB (`kanban-mcp-stdio`) on Linux. To try before the
+  switch: one program that serves both names, a size-optimised release profile, and one copy of the embedded assets.
+- Before this work already: the x64 macOS dmg carries an arm64 server (the build uses the host architecture only).
+  `MACOS_UNIVERSAL=1` in `build-server.sh` builds both and joins them; the workflows do not set it yet.
 - `kb_base::secrets` has no test backend for the keychain: the two tests of `test_ai_keychain.py` are not ported.
 - Carried over from Python unchanged, to review after the switch: the screenshot helper's local server lists
   directories, and its host check lets decimal and hexadecimal IP hosts through.
@@ -234,8 +238,13 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
       must name the Rust binaries
 - [ ] One copy of the BA templates and the design examples (now in `kb-skills`, `kb-doctext` and `kb-draw`)
 
-- [~] Desktop: `build-desktop.sh`, `desktop/package.json`, `main-helpers.js`; remove the PyInstaller spec and script
-- [~] CI: `ci.yml`, `release.yml`, `nightly-quality.yml`, `sonar-project.properties`
+- [x] Desktop: `build-desktop.sh`, `desktop/scripts/build-server.sh` (a release build and a smoke test),
+      `desktop/package.json`, `main-helpers.js` (development starts `server-rs/target/debug/kanban-server`;
+      `KANBAN_SERVER_BIN` overrides); the PyInstaller spec and script are removed. Not run on macOS or Windows yet
+- [x] CI: `ci.yml` (fmt, clippy, and `cargo check` on macOS and Windows), `release.yml`, `nightly-quality.yml`,
+      `sonar-project.properties`; the jobs the owner had switched off stay off. The workflows have not run yet
+- [ ] At the rename of `server-rs/` to `server/`: `SERVER_DIR` in `desktop/scripts/build-server.sh`,
+      `desktop/main-helpers.js` and the three workflows, and the paths in `sonar-project.properties`
 - [ ] Delete the Python server, move `server-rs/` to `server/`
 - [ ] `CLAUDE.md`, `.claude/scripts/codegraph.sh`, READMEs, `docs/arch/backend-architecture.md`,
       `docs/guideline/databases.md`, `CHANGELOG.md` (5.0.0)
