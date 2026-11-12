@@ -273,16 +273,7 @@ impl Fx {
         for (key, id, columns) in rows {
             self.run(key, id, columns).await;
         }
-        // The board writes a person's day card in the evening of a working day (from 18:00 local time) when it starts:
-        // what the log holds, and so `board_wait`'s answers, would depend on the hour the test runs. The card is
-        // switched off and the one that may be there already is removed, once the board has had its first look.
-        tokio::time::sleep(Duration::from_secs(3)).await;
-        self.exec(
-            "INSERT OR REPLACE INTO notify_prefs (recipient, prefs, updated_at) VALUES ('user', '{\"day_card\": {\"on\": false}}', ?)",
-            &[json!(NOW)],
-        )
-        .await;
-        self.exec("DELETE FROM notify_event WHERE kind = 'day_card'", &[]).await;
+        // (the board writes no card of the day here: `testkit` starts it in a zone where it is morning)
     }
 
     async fn go(&mut self, steps: Vec<Step>) {

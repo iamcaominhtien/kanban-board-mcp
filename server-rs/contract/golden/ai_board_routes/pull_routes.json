@@ -1,0 +1,83 @@
+{
+  "GET pulls": {
+    "status": 200,
+    "json": [
+      {
+        "branch": "ai/KAN-1-work",
+        "checked_at": null,
+        "ci": null,
+        "last_error": null,
+        "number": 7,
+        "pending_comments": [],
+        "red": null,
+        "state": "open",
+        "ticket_id": "KAN-1",
+        "url": "https://example.test/pull/7"
+      }
+    ]
+  },
+  "GET pulls: after the poll": {
+    "status": 200,
+    "json": [
+      {
+        "branch": "ai/KAN-1-work",
+        "checked_at": "<time>",
+        "ci": null,
+        "last_error": "[Errno 2] No such file or directory: '<tmp>/repo'",
+        "number": 7,
+        "pending_comments": [],
+        "red": null,
+        "state": "open",
+        "ticket_id": "KAN-1",
+        "url": "https://example.test/pull/7"
+      }
+    ]
+  },
+  "GET pulls: again": {
+    "status": 200,
+    "json": [
+      {
+        "branch": "ai/KAN-1-work",
+        "checked_at": null,
+        "ci": null,
+        "last_error": null,
+        "number": 7,
+        "pending_comments": [],
+        "red": null,
+        "state": "open",
+        "ticket_id": "KAN-1",
+        "url": "https://example.test/pull/7"
+      }
+    ]
+  },
+  "GET pulls: another project": {
+    "status": 200,
+    "json": []
+  },
+  "GET pulls: another project, none": {
+    "status": 200,
+    "json": []
+  },
+  "GET pulls: none": {
+    "status": 200,
+    "json": []
+  },
+  "POST poll: another project": {
+    "status": 200,
+    "json": {
+      "changes": []
+    }
+  },
+  "POST poll: no gh": {
+    "status": 200,
+    "json": {
+      "changes": []
+    }
+  },
+  "POST poll: the watcher is off": {
+    "status": 200,
+    "json": {
+      "changes": []
+    }
+  }
+}

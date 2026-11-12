@@ -1,0 +1,1098 @@
+{
+  "GET latest": {
+    "status": 200,
+    "json": {
+      "ai_available": true,
+      "ai_unavailable_why": null,
+      "applied_at": null,
+      "base_path": "<tmp>/bin:/usr/bin:/bin",
+      "created_at": "<time>",
+      "folder": "<tmp>/repo",
+      "found": {
+        "agent_files": [],
+        "ci_commands": [],
+        "docker": false,
+        "files": 3,
+        "fingerprint": "c642ad830e5be39314a19e08c2dc81d7dcd2f3b5ab1688b9c86aec9bb8d7c069",
+        "folder": "<tmp>/repo",
+        "frameworks": [
+          "pytest"
+        ],
+        "git": true,
+        "languages": [
+          "python"
+        ],
+        "makefile_targets": [],
+        "monorepo": false,
+        "packages": [
+          {
+            "kind": "python",
+            "manager": "pip",
+            "path": ".",
+            "pytest": true,
+            "ruff": false
+          }
+        ],
+        "readme_lines": 0,
+        "remote": null,
+        "scripts": {},
+        "tests": [
+          "tests"
+        ],
+        "ui": false
+      },
+      "id": "<scn:1>",
+      "job": {},
+      "project_id": "<uuid:1>",
+      "proposal": {},
+      "suggested": {
+        "base_port": 5180,
+        "commands": {
+          "build": "",
+          "lint": "",
+          "test": "pytest -q"
+        },
+        "handover": "local",
+        "plugins": [
+          "tufte-data-viz",
+          "flow"
+        ],
+        "prepare": "",
+        "team": [
+          {
+            "name": "Triage",
+            "pack": "triage"
+          },
+          {
+            "name": "PM",
+            "pack": "pm"
+          },
+          {
+            "name": "BA",
+            "pack": "ba"
+          },
+          {
+            "name": "Dev",
+            "pack": "dev"
+          },
+          {
+            "name": "QA",
+            "pack": "qa"
+          },
+          {
+            "name": "Reviewer",
+            "pack": "reviewer"
+          }
+        ],
+        "why": {
+          "commands": "Taken from the CI workflow when there is one, else from the package scripts.",
+          "handover": "No remote: merge on this machine.",
+          "team": "The usual roles of a team."
+        },
+        "worktrees": true
+      },
+      "trial": {}
+    }
+  },
+  "GET latest: it was applied": {
+    "status": 200,
+    "json": null
+  },
+  "GET latest: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET latest: none": {
+    "status": 200,
+    "json": null
+  },
+  "GET scan": {
+    "status": 200,
+    "json": {
+      "ai_available": true,
+      "ai_unavailable_why": null,
+      "applied_at": null,
+      "base_path": "<tmp>/bin:/usr/bin:/bin",
+      "created_at": "<time>",
+      "folder": "<tmp>/repo",
+      "found": {
+        "agent_files": [],
+        "ci_commands": [],
+        "docker": false,
+        "files": 3,
+        "fingerprint": "c642ad830e5be39314a19e08c2dc81d7dcd2f3b5ab1688b9c86aec9bb8d7c069",
+        "folder": "<tmp>/repo",
+        "frameworks": [
+          "pytest"
+        ],
+        "git": true,
+        "languages": [
+          "python"
+        ],
+        "makefile_targets": [],
+        "monorepo": false,
+        "packages": [
+          {
+            "kind": "python",
+            "manager": "pip",
+            "path": ".",
+            "pytest": true,
+            "ruff": false
+          }
+        ],
+        "readme_lines": 0,
+        "remote": null,
+        "scripts": {},
+        "tests": [
+          "tests"
+        ],
+        "ui": false
+      },
+      "id": "<scn:1>",
+      "job": {},
+      "project_id": "<uuid:1>",
+      "proposal": {},
+      "suggested": {
+        "base_port": 5180,
+        "commands": {
+          "build": "",
+          "lint": "",
+          "test": "pytest -q"
+        },
+        "handover": "local",
+        "plugins": [
+          "tufte-data-viz",
+          "flow"
+        ],
+        "prepare": "",
+        "team": [
+          {
+            "name": "Triage",
+            "pack": "triage"
+          },
+          {
+            "name": "PM",
+            "pack": "pm"
+          },
+          {
+            "name": "BA",
+            "pack": "ba"
+          },
+          {
+            "name": "Dev",
+            "pack": "dev"
+          },
+          {
+            "name": "QA",
+            "pack": "qa"
+          },
+          {
+            "name": "Reviewer",
+            "pack": "reviewer"
+          }
+        ],
+        "why": {
+          "commands": "Taken from the CI workflow when there is one, else from the package scripts.",
+          "handover": "No remote: merge on this machine.",
+          "team": "The usual roles of a team."
+        },
+        "worktrees": true
+      },
+      "trial": {}
+    }
+  },
+  "GET scan: after the trial": {
+    "status": 200,
+    "json": {
+      "ai_available": true,
+      "ai_unavailable_why": null,
+      "applied_at": null,
+      "base_path": "<tmp>/bin:/usr/bin:/bin",
+      "created_at": "<time>",
+      "folder": "<tmp>/repo",
+      "found": {
+        "agent_files": [],
+        "ci_commands": [],
+        "docker": false,
+        "files": 3,
+        "fingerprint": "c642ad830e5be39314a19e08c2dc81d7dcd2f3b5ab1688b9c86aec9bb8d7c069",
+        "folder": "<tmp>/repo",
+        "frameworks": [
+          "pytest"
+        ],
+        "git": true,
+        "languages": [
+          "python"
+        ],
+        "makefile_targets": [],
+        "monorepo": false,
+        "packages": [
+          {
+            "kind": "python",
+            "manager": "pip",
+            "path": ".",
+            "pytest": true,
+            "ruff": false
+          }
+        ],
+        "readme_lines": 0,
+        "remote": null,
+        "scripts": {},
+        "tests": [
+          "tests"
+        ],
+        "ui": false
+      },
+      "id": "<scn:1>",
+      "job": {
+        "error": null,
+        "hint": "",
+        "mode": "try",
+        "state": "done",
+        "steps": [
+          {
+            "at_s": null,
+            "detail": "No command.",
+            "key": "prepare",
+            "label": "Prepare",
+            "state": "skipped"
+          },
+          {
+            "at_s": 0,
+            "detail": "works · 0.0 s",
+            "key": "test",
+            "label": "Test",
+            "state": "done"
+          }
+        ]
+      },
+      "project_id": "<uuid:1>",
+      "proposal": {
+        "env_path": []
+      },
+      "suggested": {
+        "base_port": 5180,
+        "commands": {
+          "build": "",
+          "lint": "",
+          "test": "pytest -q"
+        },
+        "handover": "local",
+        "plugins": [
+          "tufte-data-viz",
+          "flow"
+        ],
+        "prepare": "",
+        "team": [
+          {
+            "name": "Triage",
+            "pack": "triage"
+          },
+          {
+            "name": "PM",
+            "pack": "pm"
+          },
+          {
+            "name": "BA",
+            "pack": "ba"
+          },
+          {
+            "name": "Dev",
+            "pack": "dev"
+          },
+          {
+            "name": "QA",
+            "pack": "qa"
+          },
+          {
+            "name": "Reviewer",
+            "pack": "reviewer"
+          }
+        ],
+        "why": {
+          "commands": "Taken from the CI workflow when there is one, else from the package scripts.",
+          "handover": "No remote: merge on this machine.",
+          "team": "The usual roles of a team."
+        },
+        "worktrees": true
+      },
+      "trial": {
+        "build": null,
+        "lint": null,
+        "prepare": null,
+        "test": {
+          "command": "true",
+          "exit_code": 0,
+          "ok": true,
+          "reason": null,
+          "status": "works",
+          "tail": []
+        }
+      }
+    }
+  },
+  "GET scan: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Scan not found"
+    }
+  },
+  "GET settings: after the scan": {
+    "status": 200,
+    "json": {
+      "audit_retention_days": 90,
+      "board_at_cap": "pause",
+      "board_daily_cap": null,
+      "board_max_parallel": 4,
+      "board_monthly_budget": null,
+      "board_runs_per_day": null,
+      "board_tokens_per_day": null,
+      "deny_list": [],
+      "lessons_max": 40,
+      "lessons_mode": "auto",
+      "ops": {
+        "checks_off": [
+          "lint"
+        ],
+        "commands": {
+          "test": "pytest -q"
+        },
+        "env_path": [
+          "/opt/bin"
+        ],
+        "worktrees": {
+          "base_port": 5200,
+          "handover": "local",
+          "on": true,
+          "prepare": "",
+          "repo": "<tmp>/repo"
+        }
+      },
+      "paused_all": false,
+      "paused_at": null,
+      "paused_reason": null,
+      "permission_mode": "bypass",
+      "project_id": "<uuid:1>",
+      "reports_cost": false,
+      "run_memory_limit_mb": 4096
+    }
+  },
+  "GET teams: the one the scan made": {
+    "status": 200,
+    "json": [
+      {
+        "account_id": null,
+        "account_ref": null,
+        "assigned": [],
+        "cap_per_run": null,
+        "checked_at": null,
+        "cli_path": null,
+        "color": "#2E6F40",
+        "config": {
+          "disallowed_tools": [],
+          "hooks": [],
+          "mcp_servers": [],
+          "plugins": [],
+          "skills": []
+        },
+        "created_at": "<time>",
+        "created_by": "user",
+        "daily_budget": null,
+        "description": "",
+        "effort": null,
+        "health": "unknown",
+        "health_detail": null,
+        "id": "<uuid:1>",
+        "kind": "ai",
+        "last_run": null,
+        "max_parallel": 2,
+        "max_runs_per_day": null,
+        "mcp_last_used_at": null,
+        "model": "sonnet",
+        "monthly_cap": null,
+        "name": "Scan Team",
+        "pack_key": "standard",
+        "pack_name": "Standard feature",
+        "paused": false,
+        "paused_at": null,
+        "paused_reason": null,
+        "permission_mode": "bypass",
+        "persona": "",
+        "project_id": "<uuid:2>",
+        "provider": "claude-code",
+        "queued": 0,
+        "roles": [
+          {
+            "description": "A failing test before the fix",
+            "effort": "medium",
+            "key": "dev",
+            "model": "sonnet",
+            "name": "Dev (TDD)",
+            "prompt": "You are Dev on this project. Write the failing test first and run it, then make the smallest change that makes it pass, then run the suite. Keep the change as small as the criteria allow; never reformat a file you did not touch; commit on your ticket's branch. You are not the reviewer of your own work and you may not change an acceptance criterion, only propose one. A Docs page you write or change on how the parts fit together or what happens in which order (the architecture, a data flow, a sequence between devices or services) carries a draw.io Diagram of it beside the words; add or update it (skill `kanban-board:drawio-diagrams`: change only the shapes you mean, look at docs_read(picture) before you save). Your craft: the skill `kanban-board:role-dev`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
+            "tools": null,
+            "writes": "worktree"
+          },
+          {
+            "description": "Reads the diff, never the transcript",
+            "effort": "medium",
+            "key": "reviewer",
+            "model": "sonnet",
+            "name": "Reviewer",
+            "prompt": "You are the Reviewer. You get the diff, the acceptance criteria and the hand-over note, never the other AI's transcript, so you judge the change fresh. Check every criterion against the code, run the tests the depth asks for, and answer: pass, or exactly what to change and why. Do not repeat an objection you already made once it was answered; you never change code. Your craft: the skill `kanban-board:role-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
+            "tools": null,
+            "writes": "nothing"
+          },
+          {
+            "description": "Runs it, does not read it",
+            "effort": "low",
+            "key": "qa",
+            "model": "sonnet",
+            "name": "QA",
+            "prompt": "You are QA on this project. You check that the product works; you do not fix it. Turn the criteria into test cases, run the suite and the app, attach proof (output, screenshots) to each test case, and report exactly what passed and what did not. A failure gets a clear repro, not a guess at the cause. Your craft: the skill `kanban-board:role-qa`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
+            "tools": null,
+            "writes": "tests"
+          }
+        ],
+        "running": [],
+        "scope": "assigned",
+        "slots_in_use": 0,
+        "status": {
+          "code": "idle",
+          "detail": null,
+          "label": "Idle"
+        },
+        "tokens_per_day": null,
+        "updated_at": "<time>",
+        "usage": {
+          "cost_today": 0,
+          "runs_today": 0,
+          "tokens_today": 0
+        },
+        "working_dir": "<tmp>/repo"
+      }
+    ]
+  },
+  "POST ai: hint is a number": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "hint"
+        ]
+      ]
+    }
+  },
+  "POST ai: keep is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "keep"
+        ]
+      ]
+    }
+  },
+  "POST ai: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Scan not found."
+    }
+  },
+  "POST ai: while a job ran or after": {
+    "status": 200,
+    "json": {
+      "ai_available": true,
+      "ai_unavailable_why": null,
+      "applied_at": null,
+      "base_path": "<tmp>/bin:/usr/bin:/bin",
+      "created_at": "<time>",
+      "folder": "<tmp>/repo",
+      "found": {
+        "agent_files": [],
+        "ci_commands": [],
+        "docker": false,
+        "files": 3,
+        "fingerprint": "c642ad830e5be39314a19e08c2dc81d7dcd2f3b5ab1688b9c86aec9bb8d7c069",
+        "folder": "<tmp>/repo",
+        "frameworks": [
+          "pytest"
+        ],
+        "git": true,
+        "languages": [
+          "python"
+        ],
+        "makefile_targets": [],
+        "monorepo": false,
+        "packages": [
+          {
+            "kind": "python",
+            "manager": "pip",
+            "path": ".",
+            "pytest": true,
+            "ruff": false
+          }
+        ],
+        "readme_lines": 0,
+        "remote": null,
+        "scripts": {},
+        "tests": [
+          "tests"
+        ],
+        "ui": false
+      },
+      "id": "<scn:1>",
+      "job": {
+        "error": "ValueError: '--resume' is not in list",
+        "hint": "A small library",
+        "mode": "ai",
+        "state": "failed",
+        "steps": [
+          {
+            "at_s": null,
+            "detail": "Read-only: Read, Glob and Grep.",
+            "key": "ai",
+            "label": "The AI is reading the repository",
+            "state": "failed"
+          },
+          {
+            "at_s": null,
+            "detail": "",
+            "key": "path",
+            "label": "Looking for the programs the commands need",
+            "state": "skipped"
+          },
+          {
+            "at_s": null,
+            "detail": "",
+            "key": "prepare",
+            "label": "Prepare",
+            "state": "skipped"
+          },
+          {
+            "at_s": null,
+            "detail": "",
+            "key": "test",
+            "label": "Test",
+            "state": "skipped"
+          },
+          {
+            "at_s": null,
+            "detail": "",
+            "key": "lint",
+            "label": "Lint",
+            "state": "skipped"
+          },
+          {
+            "at_s": null,
+            "detail": "",
+            "key": "build",
+            "label": "Build",
+            "state": "skipped"
+          }
+        ]
+      },
+      "project_id": "<uuid:1>",
+      "proposal": {
+        "env_path": []
+      },
+      "suggested": {
+        "base_port": 5180,
+        "commands": {
+          "build": "",
+          "lint": "",
+          "test": "pytest -q"
+        },
+        "handover": "local",
+        "plugins": [
+          "tufte-data-viz",
+          "flow"
+        ],
+        "prepare": "",
+        "team": [
+          {
+            "name": "Triage",
+            "pack": "triage"
+          },
+          {
+            "name": "PM",
+            "pack": "pm"
+          },
+          {
+            "name": "BA",
+            "pack": "ba"
+          },
+          {
+            "name": "Dev",
+            "pack": "dev"
+          },
+          {
+            "name": "QA",
+            "pack": "qa"
+          },
+          {
+            "name": "Reviewer",
+            "pack": "reviewer"
+          }
+        ],
+        "why": {
+          "commands": "Taken from the CI workflow when there is one, else from the package scripts.",
+          "handover": "No remote: merge on this machine.",
+          "team": "The usual roles of a team."
+        },
+        "worktrees": true
+      },
+      "trial": {
+        "build": null,
+        "lint": null,
+        "prepare": null,
+        "test": null
+      }
+    }
+  },
+  "POST apply": {
+    "status": 200,
+    "json": {
+      "created": [
+        {
+          "id": "<uuid:1>",
+          "name": "Scan Team",
+          "pack": "standard"
+        }
+      ],
+      "mcp": [],
+      "plugin_failures": [],
+      "plugins": [],
+      "settings": {
+        "ai_notes": true,
+        "auto_compact_pct": null,
+        "board_skills": [],
+        "checks_off": [
+          "lint"
+        ],
+        "commands": {
+          "build": "",
+          "lint": "",
+          "test": "pytest -q"
+        },
+        "env_path": [
+          "/opt/bin"
+        ],
+        "github": {
+          "auto": true,
+          "on": false,
+          "poll_min": 5
+        },
+        "knowledge_shared": false,
+        "lessons_in_prompt": 20,
+        "live_messages": true,
+        "worktrees": {
+          "base_branch": null,
+          "base_port": 5200,
+          "handover": "local",
+          "on": true,
+          "prepare": "",
+          "repo": "<tmp>/repo"
+        }
+      },
+      "skipped": []
+    }
+  },
+  "POST apply: a list": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "POST apply: again": {
+    "status": 200,
+    "json": {
+      "created": [],
+      "mcp": [],
+      "plugin_failures": [],
+      "plugins": [],
+      "settings": {
+        "ai_notes": true,
+        "auto_compact_pct": null,
+        "board_skills": [],
+        "checks_off": [],
+        "commands": {
+          "build": "",
+          "lint": "",
+          "test": "pytest -q"
+        },
+        "env_path": [],
+        "github": {
+          "auto": true,
+          "on": false,
+          "poll_min": 5
+        },
+        "knowledge_shared": false,
+        "lessons_in_prompt": 20,
+        "live_messages": true,
+        "worktrees": {
+          "base_branch": null,
+          "base_port": 5180,
+          "handover": "auto",
+          "on": false,
+          "prepare": "",
+          "repo": "<tmp>/repo"
+        }
+      },
+      "skipped": [
+        {
+          "name": "Scan Team",
+          "why": "Another AI team already uses this name. Try “Scan Team 2”."
+        }
+      ]
+    }
+  },
+  "POST apply: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "POST apply: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Scan not found"
+    }
+  },
+  "POST cancel: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Scan not found."
+    }
+  },
+  "POST cancel: nothing runs": {
+    "status": 200,
+    "json": {
+      "ai_available": true,
+      "ai_unavailable_why": null,
+      "applied_at": null,
+      "base_path": "<tmp>/bin:/usr/bin:/bin",
+      "created_at": "<time>",
+      "folder": "<tmp>/repo",
+      "found": {
+        "agent_files": [],
+        "ci_commands": [],
+        "docker": false,
+        "files": 3,
+        "fingerprint": "c642ad830e5be39314a19e08c2dc81d7dcd2f3b5ab1688b9c86aec9bb8d7c069",
+        "folder": "<tmp>/repo",
+        "frameworks": [
+          "pytest"
+        ],
+        "git": true,
+        "languages": [
+          "python"
+        ],
+        "makefile_targets": [],
+        "monorepo": false,
+        "packages": [
+          {
+            "kind": "python",
+            "manager": "pip",
+            "path": ".",
+            "pytest": true,
+            "ruff": false
+          }
+        ],
+        "readme_lines": 0,
+        "remote": null,
+        "scripts": {},
+        "tests": [
+          "tests"
+        ],
+        "ui": false
+      },
+      "id": "<scn:1>",
+      "job": {
+        "error": null,
+        "hint": "",
+        "mode": "try",
+        "state": "done",
+        "steps": [
+          {
+            "at_s": null,
+            "detail": "No command.",
+            "key": "prepare",
+            "label": "Prepare",
+            "state": "skipped"
+          },
+          {
+            "at_s": 0,
+            "detail": "works · 0.0 s",
+            "key": "test",
+            "label": "Test",
+            "state": "done"
+          }
+        ]
+      },
+      "project_id": "<uuid:1>",
+      "proposal": {
+        "env_path": []
+      },
+      "suggested": {
+        "base_port": 5180,
+        "commands": {
+          "build": "",
+          "lint": "",
+          "test": "pytest -q"
+        },
+        "handover": "local",
+        "plugins": [
+          "tufte-data-viz",
+          "flow"
+        ],
+        "prepare": "",
+        "team": [
+          {
+            "name": "Triage",
+            "pack": "triage"
+          },
+          {
+            "name": "PM",
+            "pack": "pm"
+          },
+          {
+            "name": "BA",
+            "pack": "ba"
+          },
+          {
+            "name": "Dev",
+            "pack": "dev"
+          },
+          {
+            "name": "QA",
+            "pack": "qa"
+          },
+          {
+            "name": "Reviewer",
+            "pack": "reviewer"
+          }
+        ],
+        "why": {
+          "commands": "Taken from the CI workflow when there is one, else from the package scripts.",
+          "handover": "No remote: merge on this machine.",
+          "team": "The usual roles of a team."
+        },
+        "worktrees": true
+      },
+      "trial": {
+        "build": null,
+        "lint": null,
+        "prepare": null,
+        "test": {
+          "command": "true",
+          "exit_code": 0,
+          "ok": true,
+          "reason": null,
+          "status": "works",
+          "tail": []
+        }
+      }
+    }
+  },
+  "POST scan": {
+    "status": 201,
+    "json": {
+      "ai_available": true,
+      "ai_unavailable_why": null,
+      "applied_at": null,
+      "base_path": "<tmp>/bin:/usr/bin:/bin",
+      "created_at": "<time>",
+      "folder": "<tmp>/repo",
+      "found": {
+        "agent_files": [],
+        "ci_commands": [],
+        "docker": false,
+        "files": 3,
+        "fingerprint": "c642ad830e5be39314a19e08c2dc81d7dcd2f3b5ab1688b9c86aec9bb8d7c069",
+        "folder": "<tmp>/repo",
+        "frameworks": [
+          "pytest"
+        ],
+        "git": true,
+        "languages": [
+          "python"
+        ],
+        "makefile_targets": [],
+        "monorepo": false,
+        "packages": [
+          {
+            "kind": "python",
+            "manager": "pip",
+            "path": ".",
+            "pytest": true,
+            "ruff": false
+          }
+        ],
+        "readme_lines": 0,
+        "remote": null,
+        "scripts": {},
+        "tests": [
+          "tests"
+        ],
+        "ui": false
+      },
+      "id": "<scn:1>",
+      "job": {},
+      "project_id": "<uuid:1>",
+      "proposal": {},
+      "suggested": {
+        "base_port": 5180,
+        "commands": {
+          "build": "",
+          "lint": "",
+          "test": "pytest -q"
+        },
+        "handover": "local",
+        "plugins": [
+          "tufte-data-viz",
+          "flow"
+        ],
+        "prepare": "",
+        "team": [
+          {
+            "name": "Triage",
+            "pack": "triage"
+          },
+          {
+            "name": "PM",
+            "pack": "pm"
+          },
+          {
+            "name": "BA",
+            "pack": "ba"
+          },
+          {
+            "name": "Dev",
+            "pack": "dev"
+          },
+          {
+            "name": "QA",
+            "pack": "qa"
+          },
+          {
+            "name": "Reviewer",
+            "pack": "reviewer"
+          }
+        ],
+        "why": {
+          "commands": "Taken from the CI workflow when there is one, else from the package scripts.",
+          "handover": "No remote: merge on this machine.",
+          "team": "The usual roles of a team."
+        },
+        "worktrees": true
+      },
+      "trial": {}
+    }
+  },
+  "POST scan: no folder": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "folder"
+        ]
+      ]
+    }
+  },
+  "POST scan: no such folder": {
+    "status": 422,
+    "json": {
+      "detail": "No such folder: <tmp>/nowhere"
+    }
+  },
+  "POST scan: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "POST try: a command that is a number": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "commands",
+          "test"
+        ]
+      ]
+    }
+  },
+  "POST try: no commands": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "commands"
+        ]
+      ]
+    }
+  },
+  "POST try: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Scan not found."
+    }
+  },
+  "POST try: only is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "only"
+        ]
+      ]
+    }
+  },
+  "the AI job ended as": {
+    "note": {
+      "error": "ValueError: '--resume' is not in list",
+      "state": "failed"
+    }
+  },
+  "the AI job starts as": {
+    "note": {
+      "mode": "ai",
+      "state": "running"
+    }
+  },
+  "the trial ended as": {
+    "note": {
+      "state": "done",
+      "trial": {
+        "build": null,
+        "lint": null,
+        "prepare": null,
+        "test": {
+          "command": "true",
+          "exit_code": 0,
+          "ok": true,
+          "reason": null,
+          "seconds": 0.0,
+          "status": "works",
+          "tail": []
+        }
+      }
+    }
+  }
+}

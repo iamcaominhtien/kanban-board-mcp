@@ -195,7 +195,8 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
       routes are in the line below)
 - [x] the assistants' routes: `assist.py`, `ai_editor.py`, `ai_sketch.py`, `idea_ai.py`, `api/docs_ai/`, and the four
       Docs hand-off routes of `api/docs.py` (370 recorded answers equal Python's)
-- [ ] the other AI routes: `api/ai.py`, `ai_board.py`, `ai_code.py`, `ai_tools.py`, `schedules.py`
+- [x] the other AI routes: `api/ai.py`, `ai_board.py`, `ai_code.py`, `ai_tools.py`, `schedules.py` (route coverage:
+      496 of 496; the order of the 126 AI routes equals Python's)
 
 ### P6 Database kit and migrations (`kb-dbkit`, `kb-db`)
 
@@ -249,6 +250,12 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
   vectors include a zone whose rules changed in 2026.
 - Python 3.12 adds floats with a compensated sum; `kb_ai_run::pynum` has it. Check the other places that add costs
   (`kb-ai` quota and budget) and move the helper to `kb-base`.
+- Known differences of the AI routes: a `since` or `until` without a time zone on the team timeline and flow is read
+  as UTC (Python answers 500 once runs exist); a path parameter that is no integer answers 422 with `loc`
+  `["path"]` and not `["path", "seq"]`.
+- `kb-assist` `a_running_job_is_stopped_and_its_cli_is_gone` failed once while every core was busy with other
+  tests (the job was still `running` when the test looked) and passes on its own: give it a longer wait if it
+  returns.
 - Tests that need the UI not to be built read the index page as the recorded 404 (`Resp::is_ui_index` in
   `testkit`), since both servers fall back to `ui/dist` of the checkout.
 - The sign-in route writes its audit entry through a private copy of `touches.record_signin` in

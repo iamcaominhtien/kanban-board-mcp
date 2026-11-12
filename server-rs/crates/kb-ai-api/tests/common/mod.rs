@@ -358,3 +358,104 @@ pub async fn team_as(server: &Server, project_id: &str, name: &str, team_id: &st
     insert(server, "ai_team", &columns).await;
     team_id.to_string()
 }
+
+/// The folder of a test (the parent of the accounts' folder): its server's login, its repositories, its sources.
+pub fn tmp(f: &Fixture) -> PathBuf {
+    f.accounts.parent().expect("the test's folder").to_path_buf()
+}
+
+/// The login of this computer is signed in (the stand-in CLI answers `auth status` from this file).
+pub fn sign_in(f: &Fixture) {
+    std::fs::write(f.claude.join(".fake-login"), "an@work.example").expect("login file");
+}
+
+/// Wait until the newest run of the ticket is in one of the states (at most a minute).
+pub async fn wait_run(c: &Client, ticket_id: &str, states: &[&str]) -> Value {
+    let end = tokio::time::Instant::now() + Duration::from_secs(60);
+    loop {
+        let runs = c.get(&format!("/tickets/{ticket_id}/ai/runs")).await.json();
+        if let Some(run) = runs.as_array().and_then(|r| r.first()) {
+            if states.contains(&run["state"].as_str().unwrap_or("")) {
+                return run.clone();
+            }
+        }
+        assert!(tokio::time::Instant::now() < end, "the run never reached {states:?}: {runs}");
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+}
+
+/// A repository folder inside the test's folder, with the file the Python tests use (`env["repo"]`: never
+/// git-initialised).
+pub fn repo(f: &Fixture) -> PathBuf {
+    let repo = tmp(f).join("repo");
+    std::fs::create_dir_all(&repo).expect("repo folder");
+    if !repo.join("calc.py").exists() {
+        std::fs::write(repo.join("calc.py"), "def add(a, b):\n    return a - b\n").expect("calc.py");
+    }
+    repo
+}
+
+/// `_runner(c, pid, repo, name, **extra)` of `ai_helpers.py`: a team on the stand-in CLI (AI v2: a team is what used to
+/// be a member), made through the route.
+pub async fn runner(f: &Fixture, pid: &str, name: &str, extra: Value) -> Value {
+    runner_in(f, pid, &repo(f), name, extra).await
+}
+
+/// `runner` with a working folder of the caller's choice.
+pub async fn runner_in(f: &Fixture, pid: &str, working_dir: &Path, name: &str, extra: Value) -> Value {
+    let mut body = json!({
+        "name": name,
+        "working_dir": working_dir.to_string_lossy(),
+        "cli_path": f.bin.join("claude").to_string_lossy(),
+    });
+    for (key, value) in extra.as_object().expect("extra") {
+        body[key] = value.clone();
+    }
+    let r = f.c.post(&format!("/projects/{pid}/ai/teams"), body).await;
+    assert_eq!(r.status, 201, "{}", r.text());
+    r.json()
+}
+
+/// A server whose `claude` reads `FAKE_CTL` first, so that a test can change the stand-in's `FAKE_CLAUDE_*` variables
+/// between two requests (the Python tests `monkeypatch.setenv` between them; the environment of a running server
+/// cannot change). `Ctl::set` rewrites the file; the next CLI the server starts sees the new values.
+pub struct Ctl {
+    path: PathBuf,
+    values: std::sync::Mutex<std::collections::BTreeMap<String, String>>,
+    _dir: tempfile::TempDir,
+}
+
+impl Ctl {
+    /// Change variables of the stand-in CLI (a later call keeps the earlier ones that it does not name).
+    pub fn set(&self, pairs: &[(&str, &str)]) {
+        let mut values = self.values.lock().unwrap_or_else(|e| e.into_inner());
+        for (key, value) in pairs {
+            values.insert((*key).to_string(), (*value).to_string());
+        }
+        let text: String = values.iter().map(|(k, v)| format!("export {k}='{}'\n", v.replace('\'', "'\\''"))).collect();
+        std::fs::write(&self.path, text).expect("write the control file");
+    }
+}
+
+/// `start` with the controllable stand-in (see `Ctl`).
+pub async fn start_ctl(name: &str, extra: &[(&str, &str)]) -> Option<(Fixture, Ctl)> {
+    let dir = tempfile::Builder::new().prefix("kb-ai-api-ctl-").tempdir().expect("temporary folder");
+    let path = dir.path().join("fake.env");
+    std::fs::write(&path, "").expect("control file");
+    let mut env: Vec<(&str, String)> = vec![("FAKE_CTL", path.to_string_lossy().into_owned())];
+    env.extend(extra.iter().map(|(k, v)| (*k, (*v).to_string())));
+    let env: Vec<(&str, &str)> = env.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    let f = start(name, true, &env).await?;
+    let claude = f.bin.join("claude");
+    let script = format!(
+        "#!/bin/sh\n[ -f \"$FAKE_CTL\" ] && . \"$FAKE_CTL\"\nexec \"{}\" \"$@\"\n",
+        fake_claude::bin_path().display()
+    );
+    std::fs::remove_file(&claude).expect("remove the copy");
+    std::fs::write(&claude, script).expect("claude script");
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&claude, std::fs::Permissions::from_mode(0o755)).expect("chmod");
+    }
+    Some((f, Ctl { path, values: std::sync::Mutex::new(std::collections::BTreeMap::new()), _dir: dir }))
+}

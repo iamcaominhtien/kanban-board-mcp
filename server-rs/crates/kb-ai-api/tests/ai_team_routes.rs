@@ -10,61 +10,11 @@
 
 mod common;
 
-use std::path::PathBuf;
 use std::time::Duration;
 
 use common::rec::Rec;
-use common::{Fixture, account, exec, id, login, project, start, ticket};
+use common::{Fixture, account, exec, id, login, project, sign_in, start, ticket, tmp, wait_run};
 use serde_json::{Value, json};
-use testkit::Client;
-
-/// The folder of the test (the parent of the accounts' folder).
-fn tmp(f: &Fixture) -> PathBuf {
-    f.accounts.parent().expect("the test's folder").to_path_buf()
-}
-
-/// A repository folder inside the test's folder, with the file the Python tests use.
-fn repo(f: &Fixture) -> PathBuf {
-    let repo = tmp(f).join("repo");
-    std::fs::create_dir_all(&repo).expect("repo folder");
-    std::fs::write(repo.join("calc.py"), "def add(a, b):\n    return a - b\n").expect("calc.py");
-    repo
-}
-
-/// The login of this computer is signed in (the stand-in CLI answers `auth status` from this file).
-fn sign_in(f: &Fixture) {
-    std::fs::write(f.claude.join(".fake-login"), "an@work.example").expect("login file");
-}
-
-/// A team on the stand-in CLI (`_runner` of `ai_helpers.py`).
-async fn make_team(f: &Fixture, pid: &str, name: &str, extra: Value) -> Value {
-    let mut body = json!({
-        "name": name,
-        "working_dir": repo(f).to_string_lossy(),
-        "cli_path": f.bin.join("claude").to_string_lossy(),
-    });
-    for (key, value) in extra.as_object().expect("extra") {
-        body[key] = value.clone();
-    }
-    let r = f.c.post(&format!("/projects/{pid}/ai/teams"), body).await;
-    r.assert_status(201);
-    r.json()
-}
-
-/// Wait until the newest run of the ticket is in one of the states.
-async fn wait_run(c: &Client, ticket_id: &str, states: &[&str]) -> Value {
-    let end = tokio::time::Instant::now() + Duration::from_secs(60);
-    loop {
-        let runs = c.get(&format!("/tickets/{ticket_id}/ai/runs")).await.json();
-        if let Some(run) = runs.as_array().and_then(|r| r.first()) {
-            if states.contains(&run["state"].as_str().unwrap_or("")) {
-                return run.clone();
-            }
-        }
-        assert!(tokio::time::Instant::now() < end, "the run never reached {states:?}: {runs}");
-        tokio::time::sleep(Duration::from_millis(100)).await;
-    }
-}
 
 // ---------------------------------------------------------------------------
 // teams
@@ -85,7 +35,7 @@ async fn team_routes() {
 
     // create
     let url = format!("/projects/{pid}/ai/teams");
-    let dir = repo(&f).to_string_lossy().into_owned();
+    let dir = common::repo(&f).to_string_lossy().into_owned();
     let cli = f.bin.join("claude").to_string_lossy().into_owned();
     let made = |extra: Value| {
         let mut body = json!({"name": "Dev An", "working_dir": dir, "cli_path": cli});
@@ -193,7 +143,7 @@ async fn team_routes() {
     rec.check("PATCH team: a removed team", &c.patch(&one, json!({"effort": "low"})).await);
     rec.check("GET team: a removed team", &c.get(&one).await);
     // a second team, removed with the default (unassign)
-    let second = make_team(&f, &pid, "Dev Binh", json!({})).await;
+    let second = common::runner(&f, &pid, "Dev Binh", json!({})).await;
     let t2 = ticket(c, &pid, "Another", "todo").await;
     c.patch(&format!("/tickets/{t2}"), json!({"assignee": id(&second)})).await.assert_status(200);
     rec.check("POST remove: unassign", &c.post(&format!("/ai/teams/{}/remove", id(&second)), json!({})).await);
@@ -213,7 +163,7 @@ async fn settings_routes() {
     sign_in(&f);
     let mut rec = Rec::new("ai_team_routes", name, &[&tmp(&f)]);
     let (pid, _an) = project(c).await;
-    let team = make_team(&f, &pid, "Dev An", json!({})).await;
+    let team = common::runner(&f, &pid, "Dev An", json!({})).await;
     let url = format!("/projects/{pid}/ai/settings");
     rec.check("GET settings: no such project", &c.get("/projects/nope/ai/settings").await);
     rec.check("GET settings", &c.get(&url).await);
@@ -290,7 +240,7 @@ async fn run_routes() {
     let (pid, _an) = project(c).await;
     let t0 = ticket(c, &pid, "No team yet", "todo").await;
     rec.check("POST run: no team", &c.post(&format!("/tickets/{t0}/ai/run"), json!({})).await);
-    let team = make_team(&f, &pid, "Dev An", json!({})).await;
+    let team = common::runner(&f, &pid, "Dev An", json!({})).await;
     let team_id = id(&team);
     let t1 = ticket(c, &pid, "Fix add()", "todo").await;
     let run_url = format!("/tickets/{t1}/ai/run");
@@ -506,7 +456,7 @@ async fn page_routes() {
     let other = c.post("/projects", json!({"name": "Other", "prefix": "OTH", "color": "#2E6F40"})).await;
     other.assert_status(201);
     let pid2 = id(&other.json());
-    let team = make_team(&f, &pid, "Dev An", json!({})).await;
+    let team = common::runner(&f, &pid, "Dev An", json!({})).await;
     let team_id = id(&team);
     let t1 = ticket(c, &pid, "Fix add()", "todo").await;
     let t2 = ticket(c, &pid, "Write the docs", "todo").await;
@@ -583,7 +533,7 @@ async fn page_routes() {
     {
         rec.check(&format!("GET touches: {query}"), &c.get(&format!("{touches}?{query}")).await);
     }
-    rec.check(&"GET touches: one team".to_string(), &c.get(&format!("{touches}?team_id={team_id}")).await);
+    rec.check("GET touches: one team", &c.get(&format!("{touches}?team_id={team_id}")).await);
     rec.check("GET touches: no such project", &c.get("/projects/nope/ai/team/touches").await);
     rec.check("PUT mark: no such project", &c.put("/projects/nope/ai/team/touches/mark", json!({"key": "k"})).await);
     rec.check("PUT mark: no key", &c.put(&format!("{touches}/mark"), json!({})).await);
@@ -652,7 +602,7 @@ async fn asking_run_routes() {
     rec.ignore(&MEASURED);
     rec.ignore(&["id", "steps", "agents", "cost_usd", "tokens_in", "tokens_out", "context_used", "context_window"]);
     let (pid, _an) = project(c).await;
-    let team = make_team(&f, &pid, "Dev An", json!({})).await;
+    let team = common::runner(&f, &pid, "Dev An", json!({})).await;
     let t1 = ticket(c, &pid, "Fix add()", "todo").await;
     c.post(&format!("/tickets/{t1}/ai/run"), json!({})).await.assert_status(200);
     let asking = wait_run(c, &t1, &["needs_input", "failed", "finished"]).await;
@@ -706,7 +656,7 @@ async fn running_run_routes() {
         "history",
     ]);
     let (pid, _an) = project(c).await;
-    let team = make_team(&f, &pid, "Dev An", json!({})).await;
+    let team = common::runner(&f, &pid, "Dev An", json!({})).await;
     let team_id = id(&team);
     let t1 = ticket(c, &pid, "Fix add()", "todo").await;
     c.post(&format!("/tickets/{t1}/ai/run"), json!({})).await.assert_status(200);

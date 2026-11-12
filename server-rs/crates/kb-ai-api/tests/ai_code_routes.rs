@@ -11,13 +11,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use common::rec::Rec;
-use common::{Fixture, exec, insert, project, start, ticket};
+use common::{Fixture, exec, insert, project, start, ticket, tmp};
 use serde_json::json;
-
-/// The folder of the test.
-fn tmp(f: &Fixture) -> PathBuf {
-    f.accounts.parent().expect("the test's folder").to_path_buf()
-}
 
 /// `git` in a folder, which must succeed.
 fn git(folder: &Path, args: &[&str]) {
