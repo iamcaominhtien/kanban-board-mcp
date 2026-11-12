@@ -19,14 +19,19 @@ def test_page_references_come_from_the_shared_parse():
     md = "## Intro\n\nSee [[Spec]] and [[Plan#Goals]].\n"
     docs_text._prose_lines_short.cache_clear()
     refs = docs_text.page_ref_contexts(md)
-    assert [(r["title"], r["section"]) for r in refs] == [("Spec", "intro"), ("Plan", "intro")]
+    assert [(r["title"], r["section"]) for r in refs] == [
+        ("Spec", "intro"),
+        ("Plan", "intro"),
+    ]
     assert docs_text.page_ref_contexts(md, {"plan"})[0]["anchor"] == "Goals"
     assert docs_text._prose_lines_short.cache_info().hits >= 1
 
 
 def test_many_short_texts_do_not_push_a_page_out_of_the_cache():
     """Reading the tickets that mention a page parses hundreds of comments: the page stays parsed."""
-    page = "# Spec\n\n" + "".join(f"## Part {i}\n\nSee [[Plan]].\n\n" for i in range(200))
+    page = "# Spec\n\n" + "".join(
+        f"## Part {i}\n\nSee [[Plan]].\n\n" for i in range(200)
+    )
     assert len(page) >= docs_text.SHORT_TEXT
     docs_text._prose_lines_cached.cache_clear()
     docs_text.page_ref_contexts(page)

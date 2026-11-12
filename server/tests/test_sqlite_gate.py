@@ -21,7 +21,9 @@ from tests.fast_db import fresh_db_file
 @pytest.fixture
 async def engine(tmp_path):
     fresh_db_file(tmp_path / "board.db")
-    with sqlite3.connect(tmp_path / "board.db") as raw:  # as init_db leaves the board's file
+    with sqlite3.connect(
+        tmp_path / "board.db"
+    ) as raw:  # as init_db leaves the board's file
         raw.execute("PRAGMA journal_mode=WAL")
     eng = targets.make_engine(targets.Target("sqlite", path=str(tmp_path / "board.db")))
     yield eng

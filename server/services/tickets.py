@@ -332,12 +332,16 @@ async def _for_edit(session: AsyncSession, ticket_id: str) -> Ticket | None:
         )
     began = False
     raw = await conn.get_raw_connection()
-    if not raw.driver_connection.in_transaction:  # after a write of this transaction, the lock is held already
+    if (
+        not raw.driver_connection.in_transaction
+    ):  # after a write of this transaction, the lock is held already
         await conn.exec_driver_sql("BEGIN IMMEDIATE")
         began = True
     ticket = await session.get(Ticket, ticket_id, populate_existing=True)
     if ticket is None and began:
-        await conn.exec_driver_sql("ROLLBACK")  # nothing to change: let the next writer in
+        await conn.exec_driver_sql(
+            "ROLLBACK"
+        )  # nothing to change: let the next writer in
     return ticket
 
 
