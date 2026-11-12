@@ -458,14 +458,44 @@ pub async fn insert_rows(table: &str, rows: &[serde_json::Value]) {
         "docs_ai_session" => put::<e::docs_ai_session::Entity>(rows).await,
         "docs_page" => put::<e::docs_page::Entity>(rows).await,
         "idea_ticket" => put::<e::idea_ticket::Entity>(rows).await,
+        // Added for kb-assist part 2 (the Docs AI, the editor and the ideas)
+        "docs_version" => put::<e::docs_version::Entity>(rows).await,
+        "docs_comment_thread" => put::<e::docs_comment_thread::Entity>(rows).await,
+        "docs_comment" => put::<e::docs_comment::Entity>(rows).await,
+        "docs_comment_event" => put::<e::docs_comment_event::Entity>(rows).await,
+        "docs_link" => put::<e::docs_link::Entity>(rows).await,
+        "docs_ai_job" => put::<e::docs_ai_job::Entity>(rows).await,
+        "idea_assumption" => put::<e::idea_assumption::Entity>(rows).await,
+        "idea_advice" => put::<e::idea_advice::Entity>(rows).await,
+        "idea_digest" => put::<e::idea_digest::Entity>(rows).await,
+        "idea_ai_settings" => put::<e::idea_ai_settings::Entity>(rows).await,
         other => panic!("no table {other} in insert_rows"),
+    }
+}
+
+/// A golden case's rows with the times that are relative to now (`<T-80h>`: eighty hours ago) replaced by this
+/// process's own now.
+pub fn fill_times(value: &serde_json::Value) -> serde_json::Value {
+    use serde_json::Value;
+    match value {
+        Value::String(s) => {
+            match s.strip_prefix("<T-").and_then(|r| r.strip_suffix("h>")).and_then(|h| h.parse::<i64>().ok()) {
+                Some(hours) => {
+                    Value::String(kb_base::time::iso(&(chrono::Utc::now() - chrono::Duration::hours(hours))))
+                }
+                None => value.clone(),
+            }
+        }
+        Value::Array(items) => Value::Array(items.iter().map(fill_times).collect()),
+        Value::Object(map) => Value::Object(map.iter().map(|(k, v)| (k.clone(), fill_times(v))).collect()),
+        other => other.clone(),
     }
 }
 
 /// Every table of a golden case's `rows`, in an order that suits a reader of the database.
 pub async fn insert_all(rows: &serde_json::Value) {
     for (table, list) in rows.as_object().expect("rows by table") {
-        insert_rows(table, list.as_array().expect("a list of rows")).await;
+        insert_rows(table, fill_times(list).as_array().expect("a list of rows")).await;
     }
 }
 

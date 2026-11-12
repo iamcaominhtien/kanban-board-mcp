@@ -4,9 +4,9 @@
 //! The Python tests go through the routes of `api/assist.py` and `api/ai_sketch.py`, which a later task ports. Here
 //! are the ones whose assertions are about what the service functions of `chat`, `health` and `settings` return, at
 //! service level, with the same names; what a test asserts about a route alone (a status code, a field the route
-//! adds, a route that answers 410) waits with the routes and is named in a comment where it was left out. Two tests
-//! wait whole: `test_an_editor_result_is_held_until_accepted` (`assistant/editor.py`) and
-//! `test_a_schedule_dry_run_is_a_plan_from_the_assistant` (`services/ai/schedules.py`).
+//! adds, a route that answers 410) waits with the routes and is named in a comment where it was left out.
+//! `test_an_editor_result_is_held_until_accepted` (`assistant/editor.py`) is here too, ported with the editor. One
+//! test waits whole: `test_a_schedule_dry_run_is_a_plan_from_the_assistant` (`services/ai/schedules.py`).
 
 mod common;
 
@@ -211,4 +211,39 @@ async fn test_the_sketch_chat_reads_the_picture_and_offers_ideas() {
     let detail = chat::detail(&s, &c.id, BY).await.expect("detail");
     let turn = &detail["messages"][0]["context"]["turn"];
     assert!(turn["canvas"] == json!({"w": 800, "h": 600, "title": "Login"}) && turn["picture"]["file"] == "canvas.png");
+}
+
+#[tokio::test]
+async fn test_an_editor_result_is_held_until_accepted() {
+    use kb_assist::assistant::{drafts, editor};
+    let _guard = common::init().await;
+    drafts::clear();
+    let (pid, _team) = common::board().await;
+    let tid = common::ticket(&pid, "Fix add()", "todo").await.id;
+    let s = database::session();
+    // `GET /projects/{id}/ai/editor/state`
+    let st = editor::state(&s, &pid, "ticket_description").await.expect("state");
+    assert!(st["availability"]["code"] == "ok" && st["bar"][0]["action"] == "improve");
+    let body =
+        json!({"surface": "ticket_description", "action": "improve", "selection": "add is brokn", "ticket_id": tid});
+    let body = body.as_object().cloned().expect("body");
+    let pre = editor::preview(&body).expect("preview");
+    let kinds: Vec<&str> =
+        pre["pieces"].as_array().expect("pieces").iter().map(|p| p["kind"].as_str().expect("kind")).collect();
+    assert_eq!(kinds, ["instruction", "selection", "ticket"]);
+    common::fake(&[("FAKE_CLAUDE_ASSISTANT_JSON", &json!({"text": "add() is broken."}).to_string())]);
+    // `POST /projects/{id}/ai/editor/drafts` answers 201 with the pending draft
+    let draft = editor::start(&s, &pid, &body, "An Nguyen").await.expect("start");
+    assert!(draft["status"] == "pending" && draft["kind"] == "editor");
+    let id = draft["id"].as_str().expect("id").to_string();
+    common::until("the draft to be written", 15.0, || drafts::find(&id).is_some_and(|d| d["status"] != "pending"))
+        .await;
+    let d = drafts::get(&id).expect("the draft");
+    assert_eq!(d["status"], "open");
+    assert_eq!(d["payload"]["result"], json!({"kind": "replace", "cut_short": false, "text": "add() is broken."}));
+    let acc = editor::accept(&id, "An Nguyen", None).await.expect("accept");
+    assert_eq!(acc["draft"]["status"], "applied");
+    // the second accept answers 409
+    let again = editor::accept(&id, "An Nguyen", None).await.expect_err("closed");
+    assert_eq!(again.code(), Some("conflict"));
 }

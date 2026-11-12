@@ -72,6 +72,23 @@ impl Drop for Cleanup {
     }
 }
 
+/// Wait (at most ten seconds) until the task of a run that is being cancelled has let go of its CLI.
+///
+/// A cancel stops the CLI and ends the run from the canceller's task while the run's own task is still on its way out:
+/// it reaps the CLI, writes the steps it still holds and closes the roles that were open. In Python that task gets
+/// there while `_end` is busy with the transcript, so the roles' last markers come before the "Cancelled" step, which
+/// stays the run's last step; here the two tasks run at the same time, so the canceller waits for the other before it
+/// writes that step. (Python waits for the task too, after `_end`, for the same ten seconds.)
+pub(crate) async fn settled(run_id: &str) {
+    if !RT.is_cancelled(run_id) || in_task_of(run_id) {
+        return;
+    }
+    let task = RT.inner().tasks.get(run_id).map(|t| t.done.clone());
+    if let Some(mut done) = task {
+        let _ = tokio::time::timeout(Duration::from_secs(10), done.wait_for(|over| *over)).await;
+    }
+}
+
 /// `RT.tasks[run_id] = asyncio.create_task(_execute(run_id, token, note))`.
 pub(crate) fn spawn_execute(run_id: &str, token: String, note: Option<String>) {
     let generation = RT.next_generation();
@@ -488,7 +505,7 @@ async fn drive(
         code = 0;
     }
     writer.close().await;
-    steps::close_roles(run_id).await?;
+    super::close_roles(run_id).await?;
     RT.inner().writers.remove(run_id);
     resources::MON.untrack(run_id).await?;
     if RT.is_cancelled(run_id) {

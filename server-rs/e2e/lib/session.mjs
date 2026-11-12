@@ -127,7 +127,7 @@ export class Session {
   // A step: runs fn(ctx), then records what the page did.
   async step(name, fn, opts = {}) {
     if (this.failed) return;
-    const rec = { name, exchanges: [], console: [], pageErrors: [], failedRequests: [], snapshot: null, error: null, expectedConsole: !!opts.expectConsole };
+    const rec = { name, exchanges: [], console: [], pageErrors: [], failedRequests: [], snapshot: null, error: null, expectedConsole: !!opts.expectConsole, notes: {} };
     this.cur = rec;
     this.steps.push(rec);
     const t0 = Date.now();
@@ -142,7 +142,7 @@ export class Session {
       await this.settle();
     } catch (e) {
       rec.error = `[${this.scenario.id} / ${name}] ${String(e.message || e).split('\n').slice(0, 6).join(' | ')}`;
-      this.failed = true;
+      if (!this.scenario.soft) this.failed = true;
       rec.shot = await this.shot('fail');
       try { rec.aria = (await this.page.locator('body').ariaSnapshot()).slice(0, 7000); } catch {}
     } finally {
@@ -151,6 +151,11 @@ export class Session {
     try { rec.snapshot = await snapshot(this.page, this.norm); } catch (e) { rec.snapshot = { error: String(e.message) }; }
     rec.ms = Date.now() - t0;
     this.cur = null;
+  }
+
+  // A value that is compared between the servers as it is (after normalization), e.g. response headers.
+  note(key, value) {
+    if (this.cur) this.cur.notes[key] = typeof value === 'string' ? this.norm.str(value) : this.norm.json(value);
   }
 
   async close() {

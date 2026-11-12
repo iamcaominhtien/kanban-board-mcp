@@ -307,7 +307,7 @@ pub(crate) async fn restart_inside_run(
     } else {
         (format!("Restarted by {by}"), format!("{by} restarted it"))
     };
-    steps::append(run_id, vec![json!({"kind": "start", "title": text})], steps::Extras::default()).await?;
+    super::append_steps(run_id, vec![json!({"kind": "start", "title": text})], steps::Extras::default()).await?;
     transcripts::note(run_id, "restart", &text, None);
     publish_run(run_id).await?;
     execute_cli(run_id, token, None, Some(&why), generation).await
@@ -514,7 +514,7 @@ pub async fn send_message(
                 "title": format!("From {from}: {}", clip(text, 140)),
                 "detail": {"direction": "in", "peer": from},
             });
-            steps::append(run_id, vec![step], steps::Extras::default()).await?;
+            super::append_steps(run_id, vec![step], steps::Extras::default()).await?;
             return Ok(delivered("live", Some(run_id)));
         }
     }

@@ -41,39 +41,49 @@ for (const f of scenarioFiles) {
   scenarios.push(m);
 }
 
+for (const f of fs.readdirSync(reportDir)) if (f.endsWith('.png') && (!only || only.some((o) => f.startsWith(o)))) fs.rmSync(path.join(reportDir, f));
 const t0 = Date.now();
 const browser = await chromium.launch();
 const results = {};
 let exitCode = 0;
 try {
-  for (const tg of targets) {
-    results[tg] = [];
-    if (tg === 'rust') console.log(`rust binary: ${rustBinary()}`);
-    for (const sc of scenarios) {
-      let server;
-      const started = Date.now();
+  const jobsN = Number(opt('jobs', '4'));
+  for (const tg of targets) results[tg] = new Array(scenarios.length);
+  if (targets.includes('rust')) console.log(`rust binary: ${rustBinary()}`);
+  // every (target, scenario) is one job with its own server on its own temporary folders; a small pool runs them
+  const jobs = [];
+  for (const sc of scenarios.map((x, i) => [x, i])) for (const tg of targets) jobs.push({ tg, sc: sc[0], idx: sc[1] });
+  const runJob = async ({ tg, sc, idx }) => {
+    let server;
+    const started = Date.now();
+    try {
+      server = await startServer(tg);
+      const s = await new Session({ browser, server, scenario: sc, reportDir, apiFallback404: tg === 'rust' && !args.includes('--no-api-404') }).open();
       try {
-        server = await startServer(tg);
-        const s = await new Session({ browser, server, scenario: sc, reportDir, apiFallback404: tg === 'rust' && !args.includes('--no-api-404') }).open();
-        try {
-          await sc.run(s);
-        } catch (e) {
-          s.steps.push({ name: 'scenario body', exchanges: [], console: [], pageErrors: [], failedRequests: [], error: `[${sc.id}] ${e.message}` });
-        }
-        await s.close();
-        const r = s.result();
-        r.ms = Date.now() - started;
-        results[tg].push(r);
-        const bad = r.steps.filter((x) => x.error).length;
-        console.log(`${tg.padEnd(6)} ${sc.id.padEnd(22)} ${r.steps.length} steps, ${bad} failed, ${(r.ms / 1000).toFixed(1)}s${sc.group === 'ai' ? ' (ai)' : ''}`);
-        for (const st of r.steps.filter((x) => x.error)) console.log('   FAIL ' + st.error);
+        await sc.run(s);
       } catch (e) {
-        console.log(`${tg.padEnd(6)} ${sc.id.padEnd(22)} SETUP FAILED: ${e.message.split('\n')[0]}`);
-        results[tg].push({ id: sc.id, name: sc.name, group: sc.group, target: tg, steps: [{ name: 'server start', exchanges: [], console: [], pageErrors: [], failedRequests: [], error: e.message }] });
-      } finally {
-        if (server) await server.stop();
+        s.steps.push({ name: 'scenario body', exchanges: [], console: [], pageErrors: [], failedRequests: [], notes: {}, error: `[${sc.id}] ${e.message}` });
       }
+      await s.close();
+      const r = s.result();
+      r.ms = Date.now() - started;
+      results[tg][idx] = r;
+      const bad = r.steps.filter((x) => x.error).length;
+      console.log(`${tg.padEnd(6)} ${sc.id.padEnd(20)} ${String(r.steps.length).padStart(2)} steps, ${bad} failed, ${(r.ms / 1000).toFixed(0)}s${sc.group === 'ai' ? ' (ai)' : ''}`);
+      for (const st of r.steps.filter((x) => x.error)) console.log('   FAIL ' + st.error.slice(0, 300));
+    } catch (e) {
+      console.log(`${tg.padEnd(6)} ${sc.id.padEnd(20)} SETUP FAILED: ${e.message.split('\n')[0]}`);
+      results[tg][idx] = { id: sc.id, name: sc.name, group: sc.group, target: tg, steps: [{ name: 'server start', exchanges: [], console: [], pageErrors: [], failedRequests: [], notes: {}, error: e.message }] };
+    } finally {
+      if (server) await server.stop();
     }
+  };
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(jobsN, jobs.length) }, async () => {
+    while (next < jobs.length) await runJob(jobs[next++]);
+  }));
+  for (const tg of targets) {
+    results[tg] = results[tg].filter(Boolean);
     fs.writeFileSync(path.join(reportDir, `${tg}.json`), JSON.stringify(results[tg], null, 1));
   }
   if (targets.length === 2) writeReports(results.python, results.rust, reportDir);

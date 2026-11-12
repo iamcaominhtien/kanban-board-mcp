@@ -250,7 +250,13 @@ async fn failed_requests_are_logged_with_their_time() {
     if !skip_unless_available("failed_requests_are_logged_with_their_time") {
         return;
     }
-    let s = Server::start().await;
+    // an empty folder as the built UI: `/nope` is 404 whether or not the checkout has a built UI
+    let no_ui = tempfile::tempdir().expect("tmp");
+    let s = Server::start_with(Options {
+        env: vec![("KANBAN_UI_DIST".into(), no_ui.path().display().to_string())],
+        ..Options::default()
+    })
+    .await;
     get(&s, "/health").await;
     get(&s, "/nope").await;
     send(&s, "POST", "/nope", &[], None).await;

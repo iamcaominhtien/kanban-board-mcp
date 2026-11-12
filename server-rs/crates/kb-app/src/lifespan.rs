@@ -12,6 +12,7 @@ pub struct Running {
     follow: JoinHandle<()>,
     sweeper: JoinHandle<()>,
     db_watcher: JoinHandle<()>,
+    rescans: JoinHandle<()>,
 }
 
 /// Bring the database up and start the background work.
@@ -27,16 +28,33 @@ pub async fn startup() -> Result<Running, DatabaseError> {
     // the AI runs: recover what the last start left and start the scheduler (or, with KANBAN_RUNNER=process, the
     // runner process, which does both)
     kb_ai_run::runs::start_scheduler().await.map_err(DatabaseError::from)?;
-    // (the Docs AI and assistant recovery and the AI schedules start here once ported)
+    // (as in `main.py`, a failure of either stops the start)
+    kb_assist::docs_ai::jobs::recover().await.map_err(DatabaseError::from)?;
+    kb_assist::assistant::chat::recover().await.map_err(DatabaseError::from)?;
+    // (the AI schedules start here once ported)
     kb_notify::start();
     kb_ai_work::github::start();
-    Ok(Running { follow, sweeper, db_watcher })
+    let rescans = tokio::spawn(rescan_loop());
+    Ok(Running { follow, sweeper, db_watcher, rescans })
+}
+
+const RESCAN_EVERY: Duration = Duration::from_secs(30 * 60);
+
+/// Scan a project's repository again when its CI or packages changed; a person still applies it.
+async fn rescan_loop() {
+    loop {
+        tokio::time::sleep(RESCAN_EVERY).await;
+        // a scan that fails waits for the next round
+        if let Err(err) = kb_ai_scan::sweep(database::session).await {
+            tracing::error!(target: "kanban.http", "The repository rescan failed: {err}");
+        }
+    }
 }
 
 /// Stop the background work, in the reverse order of `startup`.
 pub async fn shutdown(running: Running) {
     kb_ai_work::github::stop().await;
-    // (the repository rescan stops here once ported)
+    running.rescans.abort();
     kb_notify::stop().await;
     // (the AI schedules stop here once ported)
     // No CLI process outlives the board: cancel the AI runs and kill their process trees

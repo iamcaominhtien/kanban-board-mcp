@@ -183,12 +183,14 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
       the app's lifespan with the runs port)
 - [x] `kb-ai-run`, part 1: cli, stream, resources, accounts, signin; `fake-claude`, the stand-in CLI of the tests
 - [x] `kb-ai-run`, part 2a: teams, launch (everything a run is started with equals Python in 52 situations)
-- [~] `kb-ai-run`, part 2b: runs, messaging, `runner/`, the hook and event routes
+- [x] `kb-ai-run`, part 2b: runs, messaging, `runner/`, the hook and event routes (16 run scenarios give the same
+      answers, rows and events as Python, with the runs in the board's process and in the runner process)
 - [x] `kb-ai-api`, part 1: the account, sign-in, knowledge and power routes (one account route waits for teams)
 - [ ] `kb-ai-run`, part 3: schedules, compact, messaging, session_history, touches, health
 - [x] `kb-assist`, part 1: the assistant's engine and the Board AI chat (errors, settings, sessions, skills, drafts,
       receipt, engine, health, chat)
-- [~] `kb-assist`, part 2: `assistant/docs.py`, `editor.py`, `ideas.py`, `services/docs_ai/`
+- [x] `kb-assist`, part 2: `assistant/docs.py`, `editor.py`, `ideas.py`, `services/docs_ai/` (the services; their
+      routes are in the line below)
 - [ ] the other AI routes: `api/ai.py`, `ai_board.py`, `ai_code.py`, `ai_editor.py`, `ai_sketch.py`, `ai_tools.py`,
       `assist.py`, `schedules.py`, `idea_ai.py`, `api/docs_ai/`
 
@@ -222,8 +224,15 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - PDF text (`pdf-extract`) equals `pypdf` on the test fixtures; on the repository's own PDFs it differs in whitespace
   (`pypdf` splits Vietnamese words) and in one file in the bullet character. Accepted unless search quality suffers.
 - On Windows `kb-ai-run` has only been type-checked in part (no Windows C toolchain here): it compiles first in CI.
-- `kb_docs::hooks::AssignHook` and `kb_mcp::hooks::BoardSkillsHook` are not registered yet (they need AI teams and
-  the plugin folder).
+- `kb_mcp::hooks::BoardSkillsHook` is not registered yet (it needs the plugin folder).
+- Two crates register `kb_draw::hooks::CanvasDelivery` (`kb-ai-run` first, so it holds; `kb-assist` second). Keep the
+  one of `kb-ai-run`, drop the other, and fill `kb_ai_run::seams::PageNotes` and `kb_assist::seams::Runs` (the
+  delivery calls with a trigger and a depth, a note to a page, waking a new assignee) from `kb-assist`, which sees
+  both crates.
+- A Docs comment that mentions an AI is not delivered to Docs AI yet: `kb-docs/src/docs_comments/docs_ai.rs` answers
+  "not available"; it needs a hook that `kb-assist` fills with `assistant::docs::deliver`.
+- Tests that need the UI not to be built read the index page as the recorded 404 (`Resp::is_ui_index` in
+  `testkit`), since both servers fall back to `ui/dist` of the checkout.
 - The sign-in route writes its audit entry through a private copy of `touches.record_signin` in
   `kb-ai-api/src/api/ai_accounts.rs`; replace it when `touches` is ported.
 - `kb_base::activity` has no getter for the "suggested by" value (`kb-ai-work` reads it through `entry`).

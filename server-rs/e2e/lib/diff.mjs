@@ -73,6 +73,10 @@ export function compareStep(a, b) {
   const fa = [...new Set(a.failedRequests)], fb = [...new Set(b.failedRequests)];
   for (const c of fa) if (!fb.includes(c)) diffs.push({ kind: 'failed request python only', msg: c });
   for (const c of fb) if (!fa.includes(c)) diffs.push({ kind: 'failed request rust only', msg: c });
+  for (const k of new Set([...Object.keys(a.notes || {}), ...Object.keys(b.notes || {})])) {
+    const x = (a.notes || {})[k], y = (b.notes || {})[k];
+    if (JSON.stringify(x) !== JSON.stringify(y)) diffs.push({ kind: 'note', msg: `${k}: python ${short(x)} / rust ${short(y)}` });
+  }
   // text
   const sa2 = a.snapshot || {}, sb2 = b.snapshot || {};
   for (const r of new Set([...Object.keys(sa2), ...Object.keys(sb2)])) {

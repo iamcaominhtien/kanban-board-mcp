@@ -7,10 +7,13 @@
 //! (`docs`, `editor` and `ideas` are not ported yet).
 
 pub mod chat;
+pub mod docs;
 pub mod drafts;
+pub mod editor;
 pub mod engine;
 pub mod errors;
 pub mod health;
+pub mod ideas;
 pub mod receipt;
 pub mod sessions;
 pub mod settings;

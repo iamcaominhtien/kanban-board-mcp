@@ -377,6 +377,42 @@ impl Runtime {
     }
 }
 
+/// One writer of steps at a time for each run.
+///
+/// `steps.append` reads the run's step count and the next step number, then writes both back with the new rows. In
+/// Python every task of the board shares one thread and such a write is in practice never cut in two by another; here
+/// the run's own task, a person's message and a cancel run on different threads at once, and two of them in the
+/// middle of `append` would give two steps the same number and lose one from the count. So every step `runs` writes
+/// for a run goes through this lock. (The hook route writes through `kb_ai::steps::append` itself, outside it.)
+static APPENDS: LazyLock<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>> = LazyLock::new(Mutex::default);
+
+fn append_lock(run_id: &str) -> Arc<tokio::sync::Mutex<()>> {
+    APPENDS.lock().unwrap_or_else(|e| e.into_inner()).entry(run_id.to_string()).or_default().clone()
+}
+
+/// The run is over: nothing more is written for it.
+pub(crate) fn forget_append_lock(run_id: &str) {
+    APPENDS.lock().unwrap_or_else(|e| e.into_inner()).remove(run_id);
+}
+
+/// `steps.append(run_id, rows, ...)` for a run of this module (one at a time for each run).
+pub(crate) async fn append_steps(
+    run_id: &str,
+    rows: Vec<Value>,
+    extras: kb_ai::steps::Extras,
+) -> Result<Vec<kb_db::entities::ai_run_step::Model>, DbErr> {
+    let lock = append_lock(run_id);
+    let _one = lock.lock().await;
+    kb_ai::steps::append(run_id, rows, extras).await
+}
+
+/// `steps.close_roles(run_id)` for a run of this module (one writer at a time for each run).
+pub(crate) async fn close_roles(run_id: &str) -> Result<(), DbErr> {
+    let lock = append_lock(run_id);
+    let _one = lock.lock().await;
+    kb_ai::steps::close_roles(run_id).await
+}
+
 /// What a test adds to the environment of every CLI a run starts (the Python tests call `monkeypatch.setenv` with
 /// `FAKE_CLAUDE_*` before a run; the environment of this process is never changed after it started).
 static CLI_ENV: Mutex<Vec<(String, String)>> = Mutex::new(Vec::new());

@@ -361,7 +361,6 @@
       ]
     },
     "kinds": [
-      "ai.resources",
       "ai.run",
       "ai.step"
     ]

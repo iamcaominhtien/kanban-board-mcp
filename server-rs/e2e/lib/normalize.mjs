@@ -4,6 +4,7 @@ const ISO = /\b\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:[.,]\d+)?)?(?:Z|[+-]\
 const ISO_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const TMP = /\/(?:tmp|var\/folders)[^\s"'<>]*?kanban-e2e-[A-Za-z0-9]+(?:\/[^\s"'<>,;)]*)?/g;
 const HEX_ID = /\b(?:[a-z]{2,8}_)[0-9a-f]{8,32}\b/g; // prefixed ids such as run_ab12cd34
+const FILE_SUFFIX = /(?<=[A-Za-z0-9]-)[0-9a-f]{12}(?=\.[A-Za-z0-9]+|\b)/g; // upload names: notes-2d9575f57680.txt
 const LONG_HEX = /\b[0-9a-f]{24,64}\b/g;
 const RELTIME = /\b(?:just now|\d+\s*(?:s|sec|secs|seconds?|m|min|mins|minutes?|h|hrs?|hours?|d|days?|w|weeks?|mo|months?|y|years?)\s+ago|(?:a|an)\s+(?:second|minute|hour|day|week|month|year)s?\s+ago)\b/gi;
 const TIMEOFDAY = /\b\d{1,2}:\d{2}(?::\d{2})?\s?(?:AM|PM|am|pm)?\b/g;
@@ -29,6 +30,7 @@ export class Normalizer {
     out = out.replace(ISO, '<TS>');
     if (ISO_DATE_ONLY.test(out)) out = out; // plain dates are user data; keep
     out = out.replace(HEX_ID, (m) => this.num('pid', m, 'ID'));
+    out = out.replace(FILE_SUFFIX, (m) => this.num('hex', m, 'FID'));
     out = out.replace(LONG_HEX, (m) => this.num('hex', m, 'HEX'));
     if (text) {
       out = out.replace(RELTIME, '<AGO>').replace(TIMEOFDAY, '<TIME>').replace(MONTHDATE, '<DATE>');

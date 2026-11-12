@@ -34,7 +34,7 @@ use regex::{Captures, Regex};
 use serde_json::{Map, Value, json};
 use testkit::{Client, Events, Options, Server, normalize, skip_unless_available, target};
 
-/// At most three stories at a time: every story is a server (and a runner, and CLIs), and a computer that is busy
+/// At most two stories at a time: every story is a server (and a runner, and CLIs), and a computer that is busy
 /// with sixteen of them makes the Python server drop what it may drop (a reading of the account's usage window
 /// whose write found the database locked is logged and forgotten, and the next run then starts where it should wait).
 struct Turn;
@@ -44,7 +44,7 @@ static TURNS: (std::sync::Mutex<usize>, std::sync::Condvar) = (std::sync::Mutex:
 fn turn() -> Turn {
     let (count, freed) = &TURNS;
     let mut running = count.lock().unwrap_or_else(|e| e.into_inner());
-    while *running >= 3 {
+    while *running >= 2 {
         running = freed.wait(running).unwrap_or_else(|e| e.into_inner());
     }
     *running += 1;
@@ -224,6 +224,9 @@ fn patterns() -> &'static [(Regex, &'static str)] {
     P.get_or_init(|| {
         [
             // how long a run took (the work log), and when a usage window reopens (the person's local time)
+            // the activity log keeps the first 200 characters of a work log entry: where it is cut depends on how
+            // many digits the duration before it has
+            (r#"("field": "work_log", "from": null, "to": "\*\*Run #\d+\*\* \w+ \\u00b7 )[^"]*""#, "$1<cut>\""),
             (r"\d+ min \d+ s", "<duration>"),
             (r"reopens [^\x22\\]*", "reopens <when>"),
             (r"\bkbr_[A-Za-z0-9_\-•]+", "<token>"),
@@ -302,7 +305,7 @@ const TABLES: [(&str, &[&str]); 10] = [
     ("ai_audit", &["seq"]),
     ("ai_account_state", &["key"]),
     ("notify_event", &["id"]),
-    ("notification", &["id"]),
+    ("notification", &["event_id", "recipient"]),
 ];
 
 /// Columns that hold a measurement, not behavior: memory readings, and the money a model would have cost (the
@@ -323,6 +326,28 @@ fn sort_key(row: &Value, columns: &[&str]) -> Vec<(i64, String)> {
         .collect()
 }
 
+/// The last steps of a cancelled run in one order. A cancel ends the run from the canceller's task ("Cancelled: …",
+/// the run's `end` step) while the run's own task closes the roles its CLI left open (a `role` marker each); in the
+/// Python server the two tasks race, and the marker lands before the end step on most runs and after it on some. The
+/// end step is put last here, and the step numbers (and row ids) of the steps it passes are handed on in order, so
+/// both orders compare equal. `kind`, `number` and `id` read those values of a step; `renumber` writes them back.
+fn end_step_last<T: Clone>(
+    steps: &mut [T],
+    kind: impl Fn(&T) -> String,
+    numbers: impl Fn(&T) -> Vec<Value>,
+    renumber: impl Fn(&mut T, &[Value]),
+) {
+    let Some(at) = steps.iter().position(|s| kind(s) == "end") else { return };
+    if steps[at + 1..].is_empty() || !steps[at + 1..].iter().all(|s| kind(s) == "role") {
+        return;
+    }
+    let held: Vec<Vec<Value>> = steps[at..].iter().map(&numbers).collect();
+    steps[at..].rotate_left(1);
+    for (step, numbers) in steps[at..].iter_mut().zip(&held) {
+        renumber(step, numbers);
+    }
+}
+
 /// The compared rows of a dump, sorted and normalized. A JSON text column is compared as the text it is.
 fn rows_of(dump: &Value, tidy: &mut Tidy) -> Value {
     let mut out = Map::new();
@@ -338,6 +363,19 @@ fn rows_of(dump: &Value, tidy: &mut Tidy) -> Value {
                     }
                 }
             }
+        }
+        if table == "ai_run_step" {
+            // (the stories that cancel have one run: its steps are the whole table)
+            end_step_last(
+                &mut rows,
+                |row| row["kind"].as_str().unwrap_or("").to_string(),
+                |row| vec![row["id"].clone(), row["seq"].clone(), row["at"].clone()],
+                |row, numbers| {
+                    row["id"] = numbers[0].clone();
+                    row["seq"] = numbers[1].clone();
+                    row["at"] = numbers[2].clone();
+                },
+            );
         }
         let rows: Vec<Value> = rows.iter().map(|row| tidy.value(row)).collect();
         out.insert(table.to_string(), Value::Array(rows));
@@ -379,6 +417,14 @@ fn events_of(typed: &[Value], dump: &Value, tidy: &mut Tidy) -> Value {
             _ => {}
         }
         kinds.insert(kind);
+    }
+    for list in steps.values_mut() {
+        end_step_last(
+            list,
+            |step| step[1].as_str().unwrap_or("").to_string(),
+            |step| vec![step[0].clone()],
+            |step, numbers| step[0] = numbers[0].clone(),
+        );
     }
     let out = json!({"states": states, "steps": steps, "kinds": kinds});
     normalize(&tidy.value(&out))

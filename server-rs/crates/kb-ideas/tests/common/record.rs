@@ -69,6 +69,8 @@ impl Script {
 
     fn record(&mut self, method: &str, path: &str, actor: Option<&str>, body: Option<&Value>, r: &Resp) {
         let answer = match serde_json::from_slice::<Value>(&r.body) {
+            // (the index page, on a machine with a built UI: see `Resp::is_ui_index`)
+            _ if r.is_ui_index() => json!("<the UI route>"),
             Ok(value) if r.status == 422 => {
                 // the place of each error, not Pydantic's words
                 // (up to the field: Pydantic names the item of a list and the key of an object inside it, the
@@ -106,7 +108,7 @@ impl Script {
         let who = actor.map(|a| format!(" as {a}")).unwrap_or_default();
         let sent = body.map(|b| format!(" {}", kb_base::pyjson::dumps(b))).unwrap_or_default();
         entry.insert("request".into(), json!(format!("{method} {path}{who}{sent}")));
-        entry.insert("status".into(), json!(r.status));
+        entry.insert("status".into(), json!(if r.is_ui_index() { 404 } else { r.status }));
         if r.status == 405 {
             let allow = r.headers.get("allow").and_then(|v| v.to_str().ok()).unwrap_or("");
             entry.insert("allow".into(), json!(allow));

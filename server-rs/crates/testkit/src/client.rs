@@ -36,6 +36,17 @@ impl Resp {
         self.json().get("detail").cloned().unwrap_or(Value::Null)
     }
 
+    /// Whether this is the UI's index page, which the app's last route gives a GET no other route serves when the
+    /// checkout has a built UI (`ui/dist`, the fallback of both servers). Without one the same request is
+    /// 404 `UI not built`, which is what the recorded answers hold: a test that records such a request reads the two
+    /// as the same answer, so that it passes whether or not the UI is built on the machine.
+    pub fn is_ui_index(&self) -> bool {
+        let html =
+            self.headers.get("content-type").and_then(|v| v.to_str().ok()).is_some_and(|v| v.starts_with("text/html"));
+        let start: Vec<u8> = self.body.iter().take(15).map(u8::to_ascii_lowercase).collect();
+        self.method == "GET" && self.status == 200 && html && start.starts_with(b"<!doctype html")
+    }
+
     /// Panics, showing method, path, status and body, unless the status is `expected`.
     pub fn assert_status(&self, expected: u16) -> &Resp {
         assert!(

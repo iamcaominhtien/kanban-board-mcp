@@ -3,13 +3,14 @@
 //! `kb_ai::steps::StepWriter` is the port of that class, but it keeps the rows it has not written yet to itself, and
 //! `runs._attach_result` reads and changes them (`for row in writer.rows`: a tool's result that arrives before its
 //! step is written goes onto the waiting row). So the run's writer lives here, with that one extra call
-//! (`attach_pending`); everything else is the class as it is, writing through `kb_ai::steps::append`.
+//! (`attach_pending`); everything else is the class as it is, writing through `kb_ai::steps::append` (one writer at a time for each run:
+//! see `runs::append_steps`).
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex as StdMutex};
 use std::time::Duration;
 
-use kb_ai::steps::{self, Extras, FLUSH_S};
+use kb_ai::steps::{Extras, FLUSH_S};
 use kb_base::ctx;
 use serde_json::{Map, Value};
 use tokio::task::JoinHandle;
@@ -112,7 +113,7 @@ impl StepWriter {
         }
         let extras = Extras { agents: pending.agents, fields: pending.fields, files: pending.files, announce: true };
         // a lost batch of steps never stops the run
-        match steps::append(&self.inner.run_id, pending.rows, extras).await {
+        match super::append_steps(&self.inner.run_id, pending.rows, extras).await {
             Ok(written) => {
                 self.inner.written.fetch_add(written.len(), Ordering::SeqCst);
             }

@@ -55,6 +55,7 @@ pub fn install() {
     // (it keeps what was registered before it for the calls it does not back itself)
     kb_ai_work::register();
     kb_ai_run::register();
+    kb_assist::register();
     kb_skills::hooks::set_mcp_tools_hook(Box::new(McpTools));
     kb_docs::hooks::register();
     kb_ideas::register();

@@ -337,7 +337,7 @@ pub(crate) async fn needs_input(run_id: &str) -> Result<(), RunError> {
         (started_by, asked)
     };
     let title = format!("Asked {started_by}: {}", clip(&asked, 200));
-    steps::append(run_id, vec![json!({"kind": "question", "title": title})], steps::Extras::default()).await?;
+    super::append_steps(run_id, vec![json!({"kind": "question", "title": title})], steps::Extras::default()).await?;
     guard::forget_run(run_id);
     publish_run(run_id).await?;
     // (the question notice never fails the run: it logs what went wrong itself)
@@ -515,10 +515,11 @@ pub async fn end(
         transcripts::note(run_id, "end", &format!("{state}: {reason}"), None);
     }
     transcripts::finish(run_id).await;
+    super::execute::settled(run_id).await;
     let said = reason.filter(|r| !r.is_empty()).map(|r| clip(&format!(": {r}"), 240)).unwrap_or_default();
     let mut fields = Map::new();
     fields.insert("state".into(), json!(state));
-    steps::append(
+    super::append_steps(
         run_id,
         vec![json!({"kind": "end", "title": format!("{}{said}", capitalize(state))})],
         steps::Extras { fields, ..steps::Extras::default() },
@@ -577,6 +578,7 @@ pub async fn end(
             compact.after_run(ticket_id, &run.id);
         }
     }
+    super::forget_append_lock(run_id);
     RT.wake.set();
     publish_run(run_id).await?;
     Ok(Some(run))

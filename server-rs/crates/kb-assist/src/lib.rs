@@ -1,15 +1,21 @@
 //! The assistants a person talks to inside the board (`services/assistant/`, `services/docs_ai/`) and their REST
 //! routes.
 //!
-//! Ported so far: the assistant's engine and the Board AI chat (`assistant::{errors, settings, sessions, skills,
-//! drafts, receipt, engine, health, chat}`). `assistant::{docs, editor, ideas}`, `services/docs_ai/` and the routes
-//! (`api/assist.py`, `api/ai_tools.py`...) are later tasks. `seams` lists what waits for `services/ai/runs.py`.
+//! Ported: the assistant's engine and the Board AI chat (`assistant::{errors, settings, sessions, skills, drafts,
+//! receipt, engine, health, chat}`, part 1), the Docs AI, the editor assistant and the ideas assistant
+//! (`assistant::{docs, editor, ideas}`) and `docs_ai::{errors, settings, jobs, tidy, health, handoff}` (part 2). The
+//! routes (`api/assist.py`, `api/docs_ai/`, `api/ai_editor.py`, `api/idea_ai.py`, `api/ai_sketch.py`) are a later
+//! task. `seams` lists what waits for `services/ai/runs.py`; `hooks` lists the hooks of other crates this crate backs.
 //!
-//! The app's lifespan calls `assistant::chat::recover()` once at start, right after `ai_runs.start_scheduler()` and
-//! `docs_ai_jobs.recover()` and before `ai_schedules.start_scheduler()` (`server/main.py`, line 125).
+//! The app's lifespan calls, in `server/main.py` (lines 123 to 126), in this order: `ai_runs.start_scheduler()`, then
+//! `docs_ai_jobs.recover()` (`docs_ai::jobs::recover().await`, line 124), then `assistant_chat.recover()`
+//! (`assistant::chat::recover().await`, line 125), then `ai_schedules.start_scheduler()`. `register()` is called once
+//! before them.
 
 pub mod api;
 pub mod assistant;
+pub mod docs_ai;
+pub mod hooks;
 pub mod seams;
 
 use async_trait::async_trait;
@@ -18,9 +24,14 @@ use serde_json::{Map, Value};
 /// Fill the slots of other crates that this crate's modules back (once, at startup):
 ///
 /// - `kb_dbkit::hooks::AssistantHook` (`engine.any_cli()`, `engine.oneshot(skill, inputs)`: the helper of a stopped
-///   database copy asks the board's assistant).
+///   database copy asks the board's assistant);
+/// - `kb_draw::hooks::CanvasDelivery` and `kb_docs::hooks::AssignHook` (see `hooks`);
+/// - the handlers of the Docs AI jobs (`docs_ai::jobs::register`).
 pub fn register() {
     kb_dbkit::hooks::set_assistant_hook(Box::new(DbHelper));
+    assistant::docs::register_handlers();
+    kb_draw::hooks::set_canvas_delivery(Box::new(hooks::Delivery));
+    kb_docs::hooks::set_assign_hook(Box::new(hooks::Assign));
 }
 
 /// The `kb_dbkit::hooks::AssistantHook` this crate registers.

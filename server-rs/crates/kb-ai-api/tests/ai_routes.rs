@@ -54,6 +54,12 @@ impl Rec {
 
     /// Note the answer under `label`.
     fn check(&mut self, label: &str, r: &Resp) {
+        if r.is_ui_index() {
+            // a GET no route serves, on a machine with a built UI: recorded as on a machine without one
+            let entry = json!({"status": 404, "json": {"detail": "UI not built"}});
+            assert!(self.got.insert(label.to_string(), entry).is_none(), "label {label} twice");
+            return;
+        }
         let mut entry = Map::new();
         entry.insert("status".into(), json!(r.status));
         let mut text = r.text();
