@@ -146,22 +146,43 @@ async fn the_project_tools_answer_as_python_does() {
         assert!(got.insert(call.name.to_string(), result.raw).is_none(), "two calls named {}", call.name);
     }
 
-    // members with tickets: the tickets are made through the REST API
+    // members with tickets: the tickets are made through the REST API (their creator is the project's first member)
     let c = s.client();
     let (alpha, bao, ha) = (&ids["alpha"], &ids["bao"], &ids["ha"]);
-    let made = c.post(&format!("/projects/{alpha}/tickets"), json!({"title": "Made by Bao", "created_by": bao})).await;
-    made.assert_status(201);
-    for title in ["One", "Two"] {
-        c.post(&format!("/projects/{alpha}/tickets"), json!({"title": title, "assignee": ha})).await.assert_status(201);
-    }
-    let closed = c.post(&format!("/projects/{alpha}/tickets"), json!({"title": "Closed", "assignee": ha})).await;
-    closed.assert_status(201);
+    let ticket = |title: &'static str, assignee: String| {
+        let c = c.clone();
+        let path = format!("/projects/{alpha}/tickets");
+        async move {
+            let made = c.post(&path, json!({"title": title, "assignee": assignee})).await;
+            made.assert_status(201);
+            made.json()
+        }
+    };
+    ticket("One", bao.clone()).await;
+    ticket("Two", bao.clone()).await;
+    ticket("Three", ha.clone()).await;
+    let dan = mcp.call_tool("manage_project", json!({"action": "add_member", "project_id": alpha, "name": "Dan"})).await;
+    let dan = dan.json()["id"].as_str().expect("an id").to_string();
+    let closed = ticket("Closed", dan.clone()).await;
+    let closed_id = closed["id"].as_str().expect("a ticket id");
+    c.patch(&format!("/tickets/{closed_id}"), json!({"status": "done"})).await.assert_status(200);
+    let admin = mcp.call_tool("get_projects", json!({"project_id": alpha})).await.json()["members"][0]["id"].clone();
+    let admin = admin.as_str().expect("the first member").to_string();
+
     let remove = |member: &str| json!({"action": "remove_member", "project_id": alpha, "member_id": member});
     let mut later = |name: &str, result: testkit::ToolResult| {
         assert!(got.insert(name.to_string(), result.raw).is_none(), "two calls named {name}");
     };
-    later("remove_member: created tickets", mcp.call_tool("manage_project", remove(bao)).await);
-    later("remove_member: two open tickets", mcp.call_tool("manage_project", remove(ha)).await);
+    later("remove_member: created tickets", mcp.call_tool("manage_project", remove(&admin)).await);
+    later("remove_member: two open tickets", mcp.call_tool("manage_project", remove(bao)).await);
+    later("remove_member: one open ticket", mcp.call_tool("manage_project", remove(ha)).await);
+    later("remove_member: only a closed ticket", mcp.call_tool("manage_project", remove(&dan)).await);
+    // the closed ticket is no longer assigned
+    let after = c.get(&format!("/tickets/{closed_id}")).await;
+    after.assert_status(200);
+    got.insert("the closed ticket's assignee afterwards".to_string(), after.json()["assignee"].clone());
+    let members = mcp.call_tool("get_projects", json!({"project_id": alpha})).await;
+    got.insert("list: members at the end".to_string(), members.raw);
 
     // one value normalized as a whole, so that an id is the same `<uuid:N>` in every call
     let normalized = normalize(&Value::Object(got));

@@ -2637,6 +2637,241 @@
     "idempotentHint": false,
     "openWorldHint": false
    }
+  },
+  {
+   "name": "list_idea_tickets",
+   "description": "List ideas (Idea Space), the ones closest to ready first. Ideas go through the stages inbox, exploring, ready,\n    building, parked, shipped and archived; only people move them.",
+   "inputSchema": {
+    "properties": {
+     "project_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "Only this project's ideas. Omit for ideas of every project and of no project."
+     },
+     "stage": {
+      "anyOf": [
+       {
+        "enum": [
+         "inbox",
+         "exploring",
+         "ready",
+         "building",
+         "parked",
+         "shipped",
+         "archived"
+        ],
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "Only ideas in this stage."
+     },
+     "q": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "Words that must all appear in the idea."
+     }
+    },
+    "type": "object",
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "properties": {
+     "result": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "title": "Result",
+      "type": "array"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "list_idea_ticketsOutput",
+    "type": "object"
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "get_idea_ticket",
+   "description": "Get one idea in full: its page text, stage, votes, readiness and assumptions with their impact, status\n    and evidence. Its change history is separate: get_idea_activity_trail.",
+   "inputSchema": {
+    "properties": {
+     "ticket_id": {
+      "description": "Idea ID such as 'IDEA-3'.",
+      "type": "string"
+     }
+    },
+    "required": [
+     "ticket_id"
+    ],
+    "type": "object",
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "list_idea_assumptions",
+   "description": "The assumptions of an idea (\"what must be true\") with impact if wrong (low/medium/high), status (untested,\n    testing, validated, disproved), evidence and test ticket, and the idea's readiness.",
+   "inputSchema": {
+    "properties": {
+     "ticket_id": {
+      "description": "Idea ID such as 'IDEA-3'.",
+      "type": "string"
+     }
+    },
+    "required": [
+     "ticket_id"
+    ],
+    "type": "object",
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "get_idea_activity_trail",
+   "description": "The idea's change history (stage moves, assumptions, evidence, edits; who did it), newest first.",
+   "inputSchema": {
+    "properties": {
+     "ticket_id": {
+      "description": "Idea ID such as 'IDEA-3'.",
+      "type": "string"
+     }
+    },
+    "required": [
+     "ticket_id"
+    ],
+    "type": "object",
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "properties": {
+     "result": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "title": "Result",
+      "type": "array"
+     }
+    },
+    "required": [
+     "result"
+    ],
+    "title": "get_idea_activity_trailOutput",
+    "type": "object"
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "create_idea_ticket",
+   "description": "Suggest an idea: it lands in the Inbox of the Idea Space for a person to sort (keep, park, merge or archive).\n    Use it instead of widening a ticket's scope. It is marked as suggested by AI with your reason; you cannot move,\n    edit or archive ideas afterwards. Returns the idea (id 'IDEA-<n>').",
+   "inputSchema": {
+    "properties": {
+     "title": {
+      "description": "Short idea title.",
+      "type": "string"
+     },
+     "description": {
+      "default": "",
+      "description": "Markdown: what the idea is and why. Quote what prompted it.",
+      "type": "string"
+     },
+     "project_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "Project UUID from get_projects. Omit if you do not know: the idea then belongs to no project."
+     },
+     "why": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "One line: why you are suggesting this (shown to people next to your name)."
+     },
+     "ticket_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "The ticket you were working on when you thought of it."
+     },
+     "tags": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "Free-form labels."
+     }
+    },
+    "required": [
+     "title"
+    ],
+    "type": "object",
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false
+   }
   }
  ]
 }

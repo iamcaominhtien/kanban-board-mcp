@@ -858,18 +858,89 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"ok\": true\n}"
+        "text": "Error executing tool manage_project: Cannot remove member who created tickets"
       }
     ],
-    "isError": false
+    "isError": true
   },
   "remove_member: two open tickets": {
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool manage_project: Cannot remove: assigned to 3 open tickets. Reassign first."
+        "text": "Error executing tool manage_project: Cannot remove: assigned to 2 open tickets. Reassign first."
       }
     ],
     "isError": true
+  },
+  "remove_member: one open ticket": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: Cannot remove: assigned to 1 open ticket. Reassign first."
+      }
+    ],
+    "isError": true
+  },
+  "remove_member: only a closed ticket": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"ok\": true\n}"
+      }
+    ],
+    "isError": false
+  },
+  "the closed ticket's assignee afterwards": null,
+  "list: members at the end": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 4,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\",\n  \"members\": [\n    {\n      \"id\": \"<uuid:5>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Admin\",\n      \"color\": \"#3B82F6\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:6>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Bao\",\n      \"color\": \"#10B981\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:7>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Hà My\",\n      \"color\": \"#123456\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:1>",
+        "name": "Alpha 2",
+        "prefix": "ALP",
+        "color": "#00ff00",
+        "ticket_counter": 4,
+        "repo_path": null,
+        "worktree_template": null,
+        "worktree_by_default": false,
+        "docs_enabled": true,
+        "docs_edit_policy": "members",
+        "members": [
+          {
+            "id": "<uuid:5>",
+            "project_id": "<uuid:1>",
+            "name": "Admin",
+            "color": "#3B82F6",
+            "role": "member",
+            "kind": "human",
+            "created_at": "<time>"
+          },
+          {
+            "id": "<uuid:6>",
+            "project_id": "<uuid:1>",
+            "name": "Bao",
+            "color": "#10B981",
+            "role": "member",
+            "kind": "human",
+            "created_at": "<time>"
+          },
+          {
+            "id": "<uuid:7>",
+            "project_id": "<uuid:1>",
+            "name": "Hà My",
+            "color": "#123456",
+            "role": "member",
+            "kind": "human",
+            "created_at": "<time>"
+          }
+        ]
+      }
+    },
+    "isError": false
   }
 }
