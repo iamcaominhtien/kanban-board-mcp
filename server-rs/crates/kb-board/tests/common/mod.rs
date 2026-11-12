@@ -17,6 +17,8 @@ pub async fn db(server: &Server) -> SqliteConnection {
     SqliteConnectOptions::new()
         .filename(server.db_path())
         .busy_timeout(Duration::from_secs(10))
+        // as the server itself: no engine enforces foreign keys, and tests add rows that point at nothing
+        .foreign_keys(false)
         .disable_statement_logging()
         .connect()
         .await
@@ -160,6 +162,20 @@ pub fn age(path: &std::path::Path, days: u64) {
 /// `PATCH /workspace/settings`.
 pub async fn workspace_settings(c: &Client, body: Value) -> Value {
     let r = c.patch("/workspace/settings", body).await;
+    r.assert_status(200);
+    r.json()
+}
+
+/// `POST /projects/{pid}/tickets` with `body` (`{"title": ...}` and whatever else), returning the ticket.
+pub async fn new_ticket(c: &Client, pid: &str, body: Value) -> Value {
+    let r = c.post(&format!("/projects/{pid}/tickets"), body).await;
+    r.assert_status(201);
+    r.json()
+}
+
+/// `GET /tickets/{id}`.
+pub async fn get_ticket(c: &Client, ticket_id: &str) -> Value {
+    let r = c.get(&format!("/tickets/{ticket_id}")).await;
     r.assert_status(200);
     r.json()
 }

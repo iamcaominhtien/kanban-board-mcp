@@ -29,8 +29,11 @@ flate2 = { version = "1", default-features = false, features = ["rust_backend"] 
 # a hidden Chrome is driven over the DevTools protocol on a WebSocket
 tokio-tungstenite = { version = "0.29", default-features = false, features = ["connect"] }
 tempfile = "3"
+caseless = "0.2.2"
+serde_urlencoded = "0.7"
 
 [dev-dependencies]
+reqwest = { workspace = true }
 testkit = { workspace = true }
 # the same sqlx as testkit: tests add rows to the server's SQLite file where no ported route can
 sqlx = { version = "0.9", default-features = false, features = ["sqlite", "runtime-tokio"] }

@@ -14,12 +14,14 @@ kb-base = { workspace = true }
 kb-db = { workspace = true }
 kb-doctext = { workspace = true }
 kb-files = { workspace = true }
+kb-fuzzy = { workspace = true }
 kb-log = { workspace = true }
 async-trait = { workspace = true }
 axum = { workspace = true }
 bytes = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
+regex = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_urlencoded = "0.7"

@@ -1,0 +1,3597 @@
+{
+ "clean_date": [
+  {
+   "in": [
+    "2026-05-01",
+    "Due date"
+   ],
+   "out": "2026-05-01"
+  },
+  {
+   "in": [
+    "2026-13-45",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-02-29",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2024-02-29",
+    "Due date"
+   ],
+   "out": "2024-02-29"
+  },
+  {
+   "in": [
+    "not-a-date",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "",
+    "Due date"
+   ],
+   "out": null
+  },
+  {
+   "in": [
+    "   ",
+    "Due date"
+   ],
+   "out": null
+  },
+  {
+   "in": [
+    " 2026-05-01 ",
+    "Due date"
+   ],
+   "out": "2026-05-01"
+  },
+  {
+   "in": [
+    "2026-5-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20260501",
+    "Due date"
+   ],
+   "out": "20260501"
+  },
+  {
+   "in": [
+    "2026050112",
+    "Due date"
+   ],
+   "out": "2026050112"
+  },
+  {
+   "in": [
+    "2026-W01-1",
+    "Due date"
+   ],
+   "out": "2026-W01-1"
+  },
+  {
+   "in": [
+    "2026-W53-7",
+    "Due date"
+   ],
+   "out": "2026-W53-7"
+  },
+  {
+   "in": [
+    "2026-W54-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-W01",
+    "Due date"
+   ],
+   "out": "2026-W01"
+  },
+  {
+   "in": [
+    "2026W011",
+    "Due date"
+   ],
+   "out": "2026W011"
+  },
+  {
+   "in": [
+    "2026W01",
+    "Due date"
+   ],
+   "out": "2026W01"
+  },
+  {
+   "in": [
+    "0000-01-01",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "9999-12-31",
+    "Due date"
+   ],
+   "out": "9999-12-31"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00"
+  },
+  {
+   "in": [
+    "2026-05-01 10:00:00.123",
+    "Due date"
+   ],
+   "out": "2026-05-01 10:00:00.123"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00.123456789",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00.123456789"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00Z",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00Z"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00+07:00",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00+07:00"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00+0700",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00+0700"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00+07",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00+07"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00-07:30:15",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00-07:30:15"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00+24:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00+23:59",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00+23:59"
+  },
+  {
+   "in": [
+    "2026-05-01T24:00:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T23:59:60",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10",
+    "Due date"
+   ],
+   "out": "2026-05-01T10"
+  },
+  {
+   "in": [
+    "2026-05-01T1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:0",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T1000",
+    "Due date"
+   ],
+   "out": "2026-05-01T1000"
+  },
+  {
+   "in": [
+    "2026-05-01T100000",
+    "Due date"
+   ],
+   "out": "2026-05-01T100000"
+  },
+  {
+   "in": [
+    "2026-05-01T100000.5",
+    "Due date"
+   ],
+   "out": "2026-05-01T100000.5"
+  },
+  {
+   "in": [
+    "20260501T100000",
+    "Due date"
+   ],
+   "out": "20260501T100000"
+  },
+  {
+   "in": [
+    "20260501T10:00",
+    "Due date"
+   ],
+   "out": "20260501T10:00"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00,5",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00,5"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00.",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00.x",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00:5",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00:5"
+  },
+  {
+   "in": [
+    "2026-05-01X10:00",
+    "Due date"
+   ],
+   "out": "2026-05-01X10:00"
+  },
+  {
+   "in": [
+    "2026-05-01é10:00",
+    "Due date"
+   ],
+   "out": "2026-05-01é10:00"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00Z",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00Z"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00z",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00ZZ",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00+",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00+0",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00+070",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00 +07:00",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00 +07:00"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00.123+07:00",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00.123+07:00"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00.123Z",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00.123Z"
+  },
+  {
+   "in": [
+    "2026-W01-1T10:00",
+    "Due date"
+   ],
+   "out": "2026-W01-1T10:00"
+  },
+  {
+   "in": [
+    "2026-W01T10:00",
+    "Due date"
+   ],
+   "out": "2026-W01T10:00"
+  },
+  {
+   "in": [
+    "2026W011T1000",
+    "Due date"
+   ],
+   "out": "2026W011T1000"
+  },
+  {
+   "in": [
+    "2026-05",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-0",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-011",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "２０２６-05-01",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026/05/01",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "01-05-2026",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00+07:00:00.5",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00+07:00:00.5"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00-00:00",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00-00:00"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00+00:00:00",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00+00:00:00"
+  },
+  {
+   "in": [
+    "2026-00-10",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-01-00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-04-31",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:60",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T99:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "1-01-01",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00.1234567Z",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00.1234567Z"
+  },
+  {
+   "in": [
+    "2026-05-01t10:00",
+    "Due date"
+   ],
+   "out": "2026-05-01t10:00"
+  },
+  {
+   "in": [
+    "2026-05-01\t10:00",
+    "Due date"
+   ],
+   "out": "2026-05-01\t10:00"
+  },
+  {
+   "in": [
+    "2026-05-01T 10:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10 :00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "+2026-05-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05--1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-1-011",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-01-1 ",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    " 2026-05-01 ",
+    "Due date"
+   ],
+   "out": "2026-05-01"
+  },
+  {
+   "in": [
+    "2026W01123",
+    "Due date"
+   ],
+   "out": "2026W01123"
+  },
+  {
+   "in": [
+    "2026W01-12",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-W0112",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20260501xx",
+    "Due date"
+   ],
+   "out": "20260501xx"
+  },
+  {
+   "in": [
+    "2026-W01xx",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-W01-x",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026W010",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-W01-0",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-W01-8",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-W00-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2020-W53-1",
+    "Due date"
+   ],
+   "out": "2020-W53-1"
+  },
+  {
+   "in": [
+    "2021-W53-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "0001-W01-1",
+    "Due date"
+   ],
+   "out": "0001-W01-1"
+  },
+  {
+   "in": [
+    "9999-W52-7",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "9999-W52-6",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00.5+07:00:00.123456",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00.5+07:00:00.123456"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00+23:59:59.9",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00+23:59:59.9"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00-23:59:59.999999",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00-23:59:59.999999"
+  },
+  {
+   "in": [
+    "2026-05-01T10Z",
+    "Due date"
+   ],
+   "out": "2026-05-01T10Z"
+  },
+  {
+   "in": [
+    "2026-05-01T10+07",
+    "Due date"
+   ],
+   "out": "2026-05-01T10+07"
+  },
+  {
+   "in": [
+    "2026-05-01TZ",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00.5,5",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:0000+24:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "202x-W53-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:0:00.5+07:00:00.123456",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:0 :00+07:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T23:5:60",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2024-02-99",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "202-01-00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2021-W5301",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026--011",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00.123807:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20026-W01T10:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-W012",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T108:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05--01T100000.5",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20026-05-01",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-0T10",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "２２０２６-05-01",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20226-W01-0",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2W26W011",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "２０２２６-05-01",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-W01112",
+    "Due date"
+   ],
+   "out": "2026-W01112"
+  },
+  {
+   "in": [
+    "20266-05-01T10:00:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2006-W01xx",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-0X10:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T1000:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05--01T24:00:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    " 2 26-05-01 ",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01X10::00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01TT10:00:00,5",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:000:00.1234567Z",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00+23:59:5.9",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "026-05-01T10:00:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-011T10:00:00+07:00:00.5",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01410:00",
+    "Due date"
+   ],
+   "out": "2026-05-01410:00"
+  },
+  {
+   "in": [
+    "2026-05-01t10:000",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01TZZ",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "nt-a-date",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:000:00-07:30:15",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T1000:00.123Z",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026--W00-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00::00ZZ",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-001T10:00:00.",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-W01x",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "202605501xx",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T107",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-W0-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2626W011T1000",
+    "Due date"
+   ],
+   "out": "2626W011T1000"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:0Z.123+07:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "001-05-2026",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "99+9-12-31",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-5-0",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "22026-13-45",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20026-W01xx",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-W01 8",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00700.5,5",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05--01T10:00:00+07:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "206-04-31",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20266-01-1 ",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00.12334567Z",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00.12334567Z"
+  },
+  {
+   "in": [
+    "2026-05-0123:59:60",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-01-15",
+    "Due date"
+   ],
+   "out": "2026-01-15"
+  },
+  {
+   "in": [
+    "202605011xx",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00+3:59",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-000-10",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T28:59:60",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2126-W00-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-1T10:00:00+070",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20260W01-8",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-W54-11",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "22026-05-01T10:00:00.",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T0:00:00-07:30:15",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "99999-12-31",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    " 2026-05-01",
+    "Due date"
+   ],
+   "out": "2026-05-01"
+  },
+  {
+   "in": [
+    "2026-00-01T 10:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T1:00:00+07",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026W011TW000",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "22026-05-01T",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T4",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-13--45",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-W0T-8",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01 1:00:00.123",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    " 026-05-01 ",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-T01-x",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01TT10:00:00 +07:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00.1123456789",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00.1123456789"
+  },
+  {
+   "in": [
+    "2026-133-45",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-0--01T24:00:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026W01323",
+    "Due date"
+   ],
+   "out": "2026W01323"
+  },
+  {
+   "in": [
+    "2026-0--01TZ",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "01-05-2.26",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01X11:00",
+    "Due date"
+   ],
+   "out": "2026-05-01X11:00"
+  },
+  {
+   "in": [
+    "01-052026",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "026-05-01T10:00:00-07:30:15",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "202-02-29",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:000ZZ",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "T0260501",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "226-05-01T10Z",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-001T10:00:00 +07:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01310:60",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-3-45",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026/05/0",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:0007:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-11-011",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:,0:00+",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-06-0",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "1-011-01",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "22026-01-00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "0260501xx",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00+23:559",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20026-05-01X10:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:000+070",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20026-13-45",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "202-1-011",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20026-05--1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-055-01T10:00:00:5",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "202601-00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "22026-W00-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00-23:59:59.99999",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00-23:59:59.99999"
+  },
+  {
+   "in": [
+    " 2026-05-0x ",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "00-05-2026",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-001T10:00:00+00:00:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "22026-5-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "202605-01T10:00:00:5",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20266-05",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    " 226-05-01 ",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "not7a-date",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "0700-01-01",
+    "Due date"
+   ],
+   "out": "0700-01-01"
+  },
+  {
+   "in": [
+    "202-W54-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2726-W54-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20200-W53-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20226-W01-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20266-04-31",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10::00:00-23:59:59.999999",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-0T10+07",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026W0123",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-1T10:00:00,5",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-0W-01T1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-W001-8",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2W26-W01-0",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20226-W01-1T10:00",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "206W010",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T99:000",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20266-05--1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00.12345678",
+    "Due date"
+   ],
+   "out": "2026-05-01T10:00:00.12345678"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:00..+07:00:00.123456",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    " 20026-05-01 ",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2021-53-1",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00:0023:59:59.999999",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2024--02-29",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "026W01-12",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05--1T",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "20266-05-01T10Z",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01T10:00900+070",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    "2026-05-01TT10:00:00+0700",
+    "Due date"
+   ],
+   "error": "Due date must be an ISO date (YYYY-MM-DD)"
+  },
+  {
+   "in": [
+    null,
+    "Start date"
+   ],
+   "out": null
+  }
+ ],
+ "clean_title": [
+  {
+   "in": null,
+   "error": "Title must not be empty"
+  },
+  {
+   "in": "",
+   "error": "Title must not be empty"
+  },
+  {
+   "in": "   ",
+   "error": "Title must not be empty"
+  },
+  {
+   "in": "  Hello  ",
+   "out": "Hello"
+  },
+  {
+   "in": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "out": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+   "in": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "error": "Title must be at most 300 characters"
+  },
+  {
+   "in": " éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n",
+   "out": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+  },
+  {
+   "in": "\u001f t  ",
+   "out": "t"
+  },
+  {
+   "in": "a ",
+   "out": "a"
+  }
+ ],
+ "clean_tags": [
+  {
+   "in": null,
+   "out": []
+  },
+  {
+   "in": [],
+   "out": []
+  },
+  {
+   "in": [
+    " a ",
+    "A",
+    "",
+    "b"
+   ],
+   "out": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "in": [
+    1
+   ],
+   "error": "Tags must be strings"
+  },
+  {
+   "in": [
+    {
+     "a": 1
+    }
+   ],
+   "error": "Tags must be strings"
+  },
+  {
+   "in": [
+    null
+   ],
+   "error": "Tags must be strings"
+  },
+  {
+   "in": [
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   ],
+   "out": [
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   ]
+  },
+  {
+   "in": [
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   ],
+   "error": "A tag must be at most 50 characters"
+  },
+  {
+   "in": [
+    " yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy "
+   ],
+   "out": [
+    "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+   ]
+  },
+  {
+   "in": [
+    "t0",
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "t5",
+    "t6",
+    "t7",
+    "t8",
+    "t9",
+    "t10",
+    "t11",
+    "t12",
+    "t13",
+    "t14",
+    "t15",
+    "t16",
+    "t17",
+    "t18",
+    "t19",
+    "t20",
+    "t21",
+    "t22",
+    "t23",
+    "t24",
+    "t25",
+    "t26",
+    "t27",
+    "t28",
+    "t29"
+   ],
+   "out": [
+    "t0",
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "t5",
+    "t6",
+    "t7",
+    "t8",
+    "t9",
+    "t10",
+    "t11",
+    "t12",
+    "t13",
+    "t14",
+    "t15",
+    "t16",
+    "t17",
+    "t18",
+    "t19",
+    "t20",
+    "t21",
+    "t22",
+    "t23",
+    "t24",
+    "t25",
+    "t26",
+    "t27",
+    "t28",
+    "t29"
+   ]
+  },
+  {
+   "in": [
+    "t0",
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "t5",
+    "t6",
+    "t7",
+    "t8",
+    "t9",
+    "t10",
+    "t11",
+    "t12",
+    "t13",
+    "t14",
+    "t15",
+    "t16",
+    "t17",
+    "t18",
+    "t19",
+    "t20",
+    "t21",
+    "t22",
+    "t23",
+    "t24",
+    "t25",
+    "t26",
+    "t27",
+    "t28",
+    "t29",
+    "t30"
+   ],
+   "error": "A ticket can have at most 30 tags"
+  },
+  {
+   "in": [
+    "T0",
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T5",
+    "T6",
+    "T7",
+    "T8",
+    "T9",
+    "T10",
+    "T11",
+    "T12",
+    "T13",
+    "T14",
+    "T15",
+    "T16",
+    "T17",
+    "T18",
+    "T19",
+    "T20",
+    "T21",
+    "T22",
+    "T23",
+    "T24",
+    "T25",
+    "T26",
+    "T27",
+    "T28",
+    "T29",
+    "T0",
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T5",
+    "T6",
+    "T7",
+    "T8",
+    "T9",
+    "T10",
+    "T11",
+    "T12",
+    "T13",
+    "T14",
+    "T15",
+    "T16",
+    "T17",
+    "T18",
+    "T19",
+    "T20",
+    "T21",
+    "T22",
+    "T23",
+    "T24",
+    "T25",
+    "T26",
+    "T27",
+    "T28",
+    "T29"
+   ],
+   "out": [
+    "T0",
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T5",
+    "T6",
+    "T7",
+    "T8",
+    "T9",
+    "T10",
+    "T11",
+    "T12",
+    "T13",
+    "T14",
+    "T15",
+    "T16",
+    "T17",
+    "T18",
+    "T19",
+    "T20",
+    "T21",
+    "T22",
+    "T23",
+    "T24",
+    "T25",
+    "T26",
+    "T27",
+    "T28",
+    "T29"
+   ]
+  },
+  {
+   "in": [
+    "İ",
+    "i̇",
+    "I",
+    "ı"
+   ],
+   "out": [
+    "İ",
+    "I",
+    "ı"
+   ]
+  },
+  {
+   "in": [
+    "STRASSE",
+    "straße",
+    "Straße"
+   ],
+   "out": [
+    "STRASSE",
+    "straße"
+   ]
+  },
+  {
+   "in": [
+    "Σ",
+    "σ",
+    "ς"
+   ],
+   "out": [
+    "Σ",
+    "ς"
+   ]
+  },
+  {
+   "in": [
+    "a",
+    true
+   ],
+   "error": "Tags must be strings"
+  },
+  {
+   "in": [
+    "\u001fx\u001f",
+    "x"
+   ],
+   "out": [
+    "x"
+   ]
+  }
+ ],
+ "clean_estimate": [
+  {
+   "in": null,
+   "out": null
+  },
+  {
+   "in": 0,
+   "out": 0
+  },
+  {
+   "in": 0.0,
+   "out": 0.0
+  },
+  {
+   "in": 3.5,
+   "out": 3.5
+  },
+  {
+   "in": -5,
+   "error": "Estimate must be between 0 and 100000"
+  },
+  {
+   "in": -0.0,
+   "out": -0.0
+  },
+  {
+   "in": 1000000000000.0,
+   "error": "Estimate must be between 0 and 100000"
+  },
+  {
+   "in": 100000,
+   "out": 100000
+  },
+  {
+   "in": 100000.0,
+   "out": 100000.0
+  },
+  {
+   "in": 100000.5,
+   "error": "Estimate must be between 0 and 100000"
+  },
+  {
+   "in": 99999.99,
+   "out": 99999.99
+  },
+  {
+   "in": -0.001,
+   "error": "Estimate must be between 0 and 100000"
+  }
+ ],
+ "clean_text": [
+  {
+   "in": [
+    null,
+    "Acceptance criterion",
+    10
+   ],
+   "error": "Acceptance criterion must not be empty"
+  },
+  {
+   "in": [
+    "",
+    "Acceptance criterion",
+    10
+   ],
+   "error": "Acceptance criterion must not be empty"
+  },
+  {
+   "in": [
+    " ",
+    "Acceptance criterion",
+    10
+   ],
+   "error": "Acceptance criterion must not be empty"
+  },
+  {
+   "in": [
+    " ok ",
+    "Acceptance criterion",
+    10
+   ],
+   "out": "ok"
+  },
+  {
+   "in": [
+    "xxxxxxxxxx",
+    "Acceptance criterion",
+    10
+   ],
+   "out": "xxxxxxxxxx"
+  },
+  {
+   "in": [
+    "xxxxxxxxxxx",
+    "Acceptance criterion",
+    10
+   ],
+   "error": "Acceptance criterion must be at most 10 characters"
+  }
+ ],
+ "check_date_order": [
+  {
+   "in": [
+    null,
+    null
+   ],
+   "out": null
+  },
+  {
+   "in": [
+    "2026-12-01",
+    "2026-01-01"
+   ],
+   "error": "Start date must not be after the due date"
+  },
+  {
+   "in": [
+    "2026-01-01",
+    "2026-12-01"
+   ],
+   "out": null
+  },
+  {
+   "in": [
+    "2026-01-01",
+    "2026-01-01T09:00"
+   ],
+   "out": null
+  },
+  {
+   "in": [
+    "2026-01-02T00:00",
+    "2026-01-01"
+   ],
+   "error": "Start date must not be after the due date"
+  },
+  {
+   "in": [
+    "",
+    "2026-01-01"
+   ],
+   "out": null
+  },
+  {
+   "in": [
+    "2026-01-01",
+    null
+   ],
+   "out": null
+  },
+  {
+   "in": [
+    "2026-W10-1",
+    "2026-01-01"
+   ],
+   "error": "Start date must not be after the due date"
+  }
+ ],
+ "clean_pin": [
+  {
+   "in": null,
+   "out": null
+  },
+  {
+   "in": 1,
+   "out": 1
+  },
+  {
+   "in": 99,
+   "out": 99
+  },
+  {
+   "in": 0,
+   "error": "wave_pin must be between 1 and 99, or null"
+  },
+  {
+   "in": 100,
+   "error": "wave_pin must be between 1 and 99, or null"
+  },
+  {
+   "in": -1,
+   "error": "wave_pin must be between 1 and 99, or null"
+  },
+  {
+   "in": true,
+   "error": "wave_pin must be a whole number or null"
+  },
+  {
+   "in": false,
+   "error": "wave_pin must be a whole number or null"
+  },
+  {
+   "in": 1.0,
+   "error": "wave_pin must be a whole number or null"
+  },
+  {
+   "in": 2.5,
+   "error": "wave_pin must be a whole number or null"
+  },
+  {
+   "in": "3",
+   "error": "wave_pin must be a whole number or null"
+  },
+  {
+   "in": [
+    1
+   ],
+   "error": "wave_pin must be a whole number or null"
+  }
+ ],
+ "mention_ids": [
+  {
+   "in": null,
+   "out": []
+  },
+  {
+   "in": "",
+   "out": []
+  },
+  {
+   "in": "hi @[An Nguyen](member:m-1) and @[Bao](member:b.2_x) and @[An Nguyen](member:m-1)",
+   "out": [
+    "m-1",
+    "b.2_x"
+   ]
+  },
+  {
+   "in": "@[a]b](member:x)",
+   "out": []
+  },
+  {
+   "in": "@[line\nbreak](member:x)",
+   "out": []
+  },
+  {
+   "in": "@[nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn](member:x)",
+   "out": []
+  },
+  {
+   "in": "@[ok](member:iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii)",
+   "out": []
+  },
+  {
+   "in": "@[ok](member:iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii)",
+   "out": [
+    "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
+   ]
+  },
+  {
+   "in": "@[é](member:đ1) @[x](member:a b) @[y](member:)",
+   "out": [
+    "đ1"
+   ]
+  },
+  {
+   "in": "@[z](member:٣)",
+   "out": [
+    "٣"
+   ]
+  }
+ ],
+ "doc_ref_keys": [
+  {
+   "in": null,
+   "out": []
+  },
+  {
+   "in": "",
+   "out": []
+  },
+  {
+   "in": "See [[API#Endpoints]] and [[API]] and [[API#Endpoints]].",
+   "out": [
+    "API#Endpoints",
+    "API"
+   ]
+  },
+  {
+   "in": "`[[Code]]` stays, [[ Page  # Sec ]] too",
+   "out": [
+    "Page#Sec"
+   ]
+  },
+  {
+   "in": "```\n[[Fenced]]\n```\n[[After]]",
+   "out": [
+    "After"
+   ]
+  },
+  {
+   "in": "[[A]] [[a]] [[A#]] [[#x]] [[]]",
+   "out": [
+    "A",
+    "a"
+   ]
+  },
+  {
+   "in": "## H\n[[Under heading|label]]",
+   "out": [
+    "Under heading"
+   ]
+  }
+ ],
+ "never_copied": [
+  {
+   "in": "qa/evidence/TC-1.png",
+   "out": false
+  },
+  {
+   "in": ".git/config",
+   "out": true
+  },
+  {
+   "in": "a/.ssh/id_rsa",
+   "out": true
+  },
+  {
+   "in": "node_modules/x/y.png",
+   "out": true
+  },
+  {
+   "in": "a/__pycache__/b.txt",
+   "out": true
+  },
+  {
+   "in": "server.pem",
+   "out": true
+  },
+  {
+   "in": "a/KEY.KEY",
+   "out": true
+  },
+  {
+   "in": "store.p12",
+   "out": true
+  },
+  {
+   "in": "x.pfx",
+   "out": true
+  },
+  {
+   "in": "my.keystore",
+   "out": true
+  },
+  {
+   "in": ".env",
+   "out": true
+  },
+  {
+   "in": "prod.env",
+   "out": true
+  },
+  {
+   "in": "notes/password.txt",
+   "out": true
+  },
+  {
+   "in": "notes/password.png",
+   "out": false
+  },
+  {
+   "in": "shots/Token-list.JPG",
+   "out": false
+  },
+  {
+   "in": "private_key.txt",
+   "out": true
+  },
+  {
+   "in": "private-key.md",
+   "out": true
+  },
+  {
+   "in": "privatekey.csv",
+   "out": true
+  },
+  {
+   "in": "id_ed25519.pub",
+   "out": true
+  },
+  {
+   "in": "report.pdf",
+   "out": false
+  },
+  {
+   "in": "a/b/secretary.docx",
+   "out": true
+  },
+  {
+   "in": "CREDENTIALS.json",
+   "out": true
+  },
+  {
+   "in": "a/./b/../c.txt",
+   "out": true
+  },
+  {
+   "in": "x",
+   "out": false
+  },
+  {
+   "in": "",
+   "out": false
+  },
+  {
+   "in": "passwd",
+   "out": true
+  },
+  {
+   "in": "tokens.svg",
+   "out": false
+  },
+  {
+   "in": "a.b/.c/d.txt",
+   "out": true
+  }
+ ],
+ "has_proof": [
+  {
+   "in": {
+    "proof": null
+   },
+   "out": false
+  },
+  {
+   "in": {
+    "proof": ""
+   },
+   "out": false
+  },
+  {
+   "in": {
+    "proof": "   "
+   },
+   "out": false
+  },
+  {
+   "in": {
+    "proof": "Not provable: no iPhone"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "  not PROVABLE"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "not provables"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "Not provable"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "Not provable_x"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "Không chứng minh được: cần tài khoản thật"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "không chứng minh đượcx"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "KHÔNG CHỨNG MINH ĐƯỢC."
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "ran it"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "x Not provable"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "\n\tnot provable\n"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "not provablé"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "not  provable"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": 0
+   },
+   "out": false
+  },
+  {
+   "in": {
+    "proof": 5
+   },
+   "out": true
+  },
+  {
+   "in": {},
+   "out": false
+  }
+ ],
+ "is_unprovable": [
+  {
+   "in": {
+    "proof": null
+   },
+   "out": false
+  },
+  {
+   "in": {
+    "proof": ""
+   },
+   "out": false
+  },
+  {
+   "in": {
+    "proof": "   "
+   },
+   "out": false
+  },
+  {
+   "in": {
+    "proof": "Not provable: no iPhone"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "  not PROVABLE"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "not provables"
+   },
+   "out": false
+  },
+  {
+   "in": {
+    "proof": "Not provable"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "Not provable_x"
+   },
+   "out": false
+  },
+  {
+   "in": {
+    "proof": "Không chứng minh được: cần tài khoản thật"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "không chứng minh đượcx"
+   },
+   "out": false
+  },
+  {
+   "in": {
+    "proof": "KHÔNG CHỨNG MINH ĐƯỢC."
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "ran it"
+   },
+   "out": false
+  },
+  {
+   "in": {
+    "proof": "x Not provable"
+   },
+   "out": false
+  },
+  {
+   "in": {
+    "proof": "\n\tnot provable\n"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "not provablé"
+   },
+   "out": true
+  },
+  {
+   "in": {
+    "proof": "not  provable"
+   },
+   "out": false
+  },
+  {
+   "in": {
+    "proof": 0
+   },
+   "out": false
+  },
+  {
+   "in": {
+    "proof": 5
+   },
+   "out": false
+  },
+  {
+   "in": {},
+   "out": false
+  }
+ ],
+ "gaps": [
+  {
+   "in": [],
+   "out": []
+  },
+  {
+   "in": [
+    {
+     "code": "TC-1",
+     "status": "pass"
+    },
+    {
+     "code": "TC-2",
+     "status": "fail",
+     "proof": " "
+    },
+    {
+     "title": "no code",
+     "status": "pass",
+     "proof": null
+    },
+    {
+     "status": "fail"
+    },
+    {
+     "code": "TC-5",
+     "status": "pending"
+    },
+    {
+     "code": "TC-6",
+     "status": "pass",
+     "proof": "Not provable: taste"
+    },
+    {
+     "code": 7,
+     "status": "pass",
+     "proof": "ok"
+    },
+    {
+     "code": "",
+     "title": "T8",
+     "status": "fail",
+     "proof": "không chứng minh được"
+    }
+   ],
+   "out": [
+    "TC-1",
+    "TC-2",
+    "no code",
+    ""
+   ]
+  }
+ ],
+ "unprovable": [
+  {
+   "in": [],
+   "out": []
+  },
+  {
+   "in": [
+    {
+     "code": "TC-1",
+     "status": "pass"
+    },
+    {
+     "code": "TC-2",
+     "status": "fail",
+     "proof": " "
+    },
+    {
+     "title": "no code",
+     "status": "pass",
+     "proof": null
+    },
+    {
+     "status": "fail"
+    },
+    {
+     "code": "TC-5",
+     "status": "pending"
+    },
+    {
+     "code": "TC-6",
+     "status": "pass",
+     "proof": "Not provable: taste"
+    },
+    {
+     "code": 7,
+     "status": "pass",
+     "proof": "ok"
+    },
+    {
+     "code": "",
+     "title": "T8",
+     "status": "fail",
+     "proof": "không chứng minh được"
+    }
+   ],
+   "out": [
+    "TC-6",
+    "T8"
+   ]
+  }
+ ],
+ "targets": [
+  {
+   "in": null,
+   "out": []
+  },
+  {
+   "in": "",
+   "out": []
+  },
+  {
+   "in": "![login](qa/evidence/TC-1.png) and [log](out/run.log \"the log\") and [web](https://x.y/a.png)",
+   "out": [
+    "https://x.y/a.png",
+    "out/run.log",
+    "qa/evidence/TC-1.png"
+   ]
+  },
+  {
+   "in": "`![a](code.png)` ```\n![b](fenced.png)\n``` ~~~\n[c](tilde.pdf)\n~~~ ![d](real.png)",
+   "out": [
+    "code.png",
+    "fenced.png",
+    "real.png",
+    "tilde.pdf"
+   ]
+  },
+  {
+   "in": "[a]( spaced.png)",
+   "out": []
+  },
+  {
+   "in": "[a](two words.png) [b](/uploads/x.png) [c](#top) [d](data:image/png;base64,AA) [e](mailto:a@b.c)",
+   "out": [
+    "#top",
+    "/uploads/x.png",
+    "data:image/png;base64,AA",
+    "mailto:a@b.c"
+   ]
+  },
+  {
+   "in": "![](x.PNG)[y](y.unknownext) [z](z) [multi\nline](m.png) [t](t.png\t\"title\") [u](u.png \"bad\ntitle\")",
+   "out": [
+    "t.png",
+    "x.PNG",
+    "y.unknownext",
+    "z"
+   ]
+  },
+  {
+   "in": "[v](v.png\u001f\"t\") [w](w.png \"t\") [x](a(b).png)",
+   "out": [
+    "a(b",
+    "v.png",
+    "w.png"
+   ]
+  }
+ ],
+ "is_local": [
+  {
+   "in": "https://x.y/a.png",
+   "out": false
+  },
+  {
+   "in": "out/run.log",
+   "out": true
+  },
+  {
+   "in": "qa/evidence/TC-1.png",
+   "out": true
+  },
+  {
+   "in": "code.png",
+   "out": true
+  },
+  {
+   "in": "fenced.png",
+   "out": true
+  },
+  {
+   "in": "real.png",
+   "out": true
+  },
+  {
+   "in": "tilde.pdf",
+   "out": true
+  },
+  {
+   "in": "#top",
+   "out": false
+  },
+  {
+   "in": "/uploads/x.png",
+   "out": false
+  },
+  {
+   "in": "data:image/png;base64,AA",
+   "out": false
+  },
+  {
+   "in": "mailto:a@b.c",
+   "out": false
+  },
+  {
+   "in": "t.png",
+   "out": true
+  },
+  {
+   "in": "x.PNG",
+   "out": true
+  },
+  {
+   "in": "y.unknownext",
+   "out": false
+  },
+  {
+   "in": "z",
+   "out": false
+  },
+  {
+   "in": "a(b",
+   "out": false
+  },
+  {
+   "in": "v.png",
+   "out": true
+  },
+  {
+   "in": "w.png",
+   "out": true
+  }
+ ],
+ "localize_no_folder": [
+  {
+   "in": [
+    null,
+    null
+   ],
+   "out": null
+  },
+  {
+   "in": [
+    "",
+    null
+   ],
+   "out": ""
+  },
+  {
+   "in": [
+    "![login](qa/evidence/TC-1.png) and [log](out/run.log \"the log\") and [web](https://x.y/a.png)",
+    null
+   ],
+   "error": "qa/evidence/TC-1.png: a file is attached by path only from inside an AI run; upload it in the editor instead."
+  },
+  {
+   "in": [
+    "`![a](code.png)` ```\n![b](fenced.png)\n``` ~~~\n[c](tilde.pdf)\n~~~ ![d](real.png)",
+    null
+   ],
+   "error": "real.png: a file is attached by path only from inside an AI run; upload it in the editor instead."
+  },
+  {
+   "in": [
+    "[a]( spaced.png)",
+    null
+   ],
+   "out": "[a]( spaced.png)"
+  },
+  {
+   "in": [
+    "[a](two words.png) [b](/uploads/x.png) [c](#top) [d](data:image/png;base64,AA) [e](mailto:a@b.c)",
+    null
+   ],
+   "out": "[a](two words.png) [b](/uploads/x.png) [c](#top) [d](data:image/png;base64,AA) [e](mailto:a@b.c)"
+  },
+  {
+   "in": [
+    "![](x.PNG)[y](y.unknownext) [z](z) [multi\nline](m.png) [t](t.png\t\"title\") [u](u.png \"bad\ntitle\")",
+    null
+   ],
+   "error": "x.PNG: a file is attached by path only from inside an AI run; upload it in the editor instead."
+  },
+  {
+   "in": [
+    "[v](v.png\u001f\"t\") [w](w.png \"t\") [x](a(b).png)",
+    null
+   ],
+   "error": "v.png: a file is attached by path only from inside an AI run; upload it in the editor instead."
+  }
+ ],
+ "waves": [
+  {
+   "in": [],
+   "waves": {},
+   "pinned_ready": {}
+  },
+  {
+   "in": [
+    [
+     "A",
+     "[]",
+     null,
+     false
+    ],
+    [
+     "B",
+     "[\"A\"]",
+     null,
+     false
+    ],
+    [
+     "C",
+     "[\"B\", \"A\"]",
+     null,
+     false
+    ],
+    [
+     "D",
+     "[\"Z\"]",
+     null,
+     false
+    ]
+   ],
+   "waves": {
+    "A": 1,
+    "B": 2,
+    "C": 3,
+    "D": 1
+   },
+   "pinned_ready": {
+    "A": true,
+    "B": false,
+    "C": false,
+    "D": true
+   }
+  },
+  {
+   "in": [
+    [
+     "A",
+     "[\"B\"]",
+     null,
+     false
+    ],
+    [
+     "B",
+     "[\"A\"]",
+     null,
+     false
+    ],
+    [
+     "C",
+     "[\"A\"]",
+     null,
+     false
+    ]
+   ],
+   "waves": {
+    "B": 2,
+    "A": 3,
+    "C": 4
+   },
+   "pinned_ready": {
+    "A": false,
+    "B": true,
+    "C": false
+   }
+  },
+  {
+   "in": [
+    [
+     "A",
+     "[\"A\"]",
+     null,
+     false
+    ]
+   ],
+   "waves": {
+    "A": 2
+   },
+   "pinned_ready": {
+    "A": true
+   }
+  },
+  {
+   "in": [
+    [
+     "A",
+     "[]",
+     null,
+     true
+    ],
+    [
+     "B",
+     "[\"A\"]",
+     1,
+     false
+    ],
+    [
+     "C",
+     "[\"B\"]",
+     null,
+     false
+    ],
+    [
+     "D",
+     "[]",
+     5,
+     false
+    ],
+    [
+     "E",
+     "[\"D\"]",
+     null,
+     true
+    ]
+   ],
+   "waves": {
+    "A": 1,
+    "B": 1,
+    "C": 2,
+    "D": 5,
+    "E": 6
+   },
+   "pinned_ready": {
+    "A": true,
+    "B": true,
+    "C": false,
+    "D": false,
+    "E": false
+   }
+  },
+  {
+   "in": [
+    [
+     "A",
+     "not json",
+     null,
+     false
+    ],
+    [
+     "B",
+     "{}",
+     null,
+     false
+    ],
+    [
+     "C",
+     "",
+     null,
+     false
+    ],
+    [
+     "D",
+     "[1, \"A\"]",
+     null,
+     false
+    ],
+    [
+     "1",
+     "[]",
+     3,
+     false
+    ],
+    [
+     "F",
+     "null",
+     0,
+     false
+    ]
+   ],
+   "waves": {
+    "A": 1,
+    "B": 1,
+    "C": 1,
+    "1": 3,
+    "D": 4,
+    "F": 0
+   },
+   "pinned_ready": {
+    "A": false,
+    "B": false,
+    "C": false,
+    "D": false,
+    "1": false,
+    "F": true
+   }
+  },
+  {
+   "in": [
+    [
+     "A",
+     "[]",
+     2,
+     false
+    ],
+    [
+     "B",
+     "[]",
+     1,
+     true
+    ],
+    [
+     "C",
+     "[]",
+     3,
+     false
+    ],
+    [
+     "D",
+     "[\"C\"]",
+     null,
+     false
+    ]
+   ],
+   "waves": {
+    "A": 2,
+    "B": 1,
+    "C": 3,
+    "D": 4
+   },
+   "pinned_ready": {
+    "A": true,
+    "B": true,
+    "C": false,
+    "D": false
+   }
+  }
+ ],
+ "guide": {
+  "name": "working-with-tickets",
+  "description": "How to use every part of a ticket on this board: a title, description and acceptance criteria a person can check, when to use a sub-task, a sub-ticket, a Story, a block or a link, how to keep the work log, a comment read in ten seconds, test cases and attachments as evidence, where files go (the worktree for code, the Workspace for outputs), and what each role writes. Use when you create, split, update, hand over or close a ticket, and when you make anything a person should see: a report, screenshots, logs, test cases and their proof.",
+  "guide": "# Working with tickets\n\nA person judges a ticket in a glance: the title, the criteria ticked or not, the last comment, the pictures. Write\nevery part for that glance. The tools: `manage_ticket` (the ticket, its relations, its Workspace), `ticket_items`\n(comments, work log, criteria, sub-tasks, test cases, attachments), `ticket_branches`, `get_ticket`.\n\n## A good ticket\n- **Title**: what changes, seen from outside, in the project's language, under about 70 characters. \"Login: a wrong\n  password shows no message\", \"Nhắc uống nước mỗi giờ\". Not \"Fix bug\", not \"Update file.py\".\n- **Description**: the first two lines say why (the problem, for whom) and what. Then what is in and what is out,\n  and for a bug the steps, what happens and what should. Links to pages and tickets. Short paragraphs.\n- **Acceptance criteria**: one condition each that a tester can check from outside, with the exact number or text\n  when it matters. Good: \"A wrong password shows «Sai mật khẩu» under the field and keeps the email\". Bad: \"Login\n  works well\". Give them when you create the ticket (`acceptance_criteria=[...]`): the AI team may take a new ticket at\n  once. Usually 3 to 8; past 8, split.\n- **Type and priority** say what it is (bug, feature, task, chore) and how urgent; tags only from the project's own.\n\n## Sub-task, sub-ticket, Story, block or link?\n| You have | Use | Why |\n|---|---|---|\n| Steps of one piece of work, one person, one go | sub-task (`ticket_items item='sub_task'`) | a checklist inside the ticket |\n| A part someone else can do, or that ships and is tested on its own | sub-ticket (`manage_ticket create parent_id=`) | its own status, assignee and criteria; one level deep, two under a Story (Story > ticket > sub-ticket) |\n| A goal bigger than a few tickets | a Story (`type='story'`) split into sub-tickets | one place for the goal, each piece tracked on its own |\n| This cannot start or finish before another is done | block (`manage_ticket block`: `ticket_id` waits for `target_id`) | the board shows the lock and the waiting order |\n| Related, same cause, or a duplicate | link (`relates_to`, `causes`, `duplicates`) | no lock |\n| A Docs page that explains it | `manage_ticket link_doc` | shows on the ticket and on the page |\n\nSplit by outcome, not by layer: \"export one month as CSV\" is a sub-ticket, \"the database part\" is not. A blocked\nticket stays where it is until its blocker is done; the board does not refuse the move, so do not make it.\n\n## The work log (Debug Space)\nThe ticket's journal for the next person and the next session: `ticket_items item='work_log'`.\n- Log what matters: the plan (a few lines, before a long piece of work), what you looked at, what you tried\n  (`fix_attempt`), the cause (`root_cause`), what blocks you (`blocked`: what you need, from whom), the fix\n  (`resolved`). Not every command.\n- Link the branch (`linked_branch`) and the test case (`linked_test_case`) an entry is about; pin the one to read\n  first.\n- `role`: PM, Developer, BA, Tester (QA, user tester), Designer, Other (reviewer, security, writer, DevOps, analyst).\n\n## A comment a person reads in ten seconds\n- **First line: the news.** Done, blocked, a question or a finding, with the one fact that matters.\n- Then two to five bullets, then the links and pictures. Logs go in an attachment, not the comment.\n- A question: `@Name`, one question, two to four options with your recommendation first.\n- The project's language.\n\nGood: \"Done: reminders every hour 8:00–18:00, silent once the goal is met. TC-1 and TC-2 pass (output below). Left:\nthe notification permission, blocked by GIOT-4.\" Bad: \"I have completed the implementation of the feature as\nrequested and all tests are passing.\"\n\n## Evidence\n- **Test cases** come from the criteria (`ticket_items item='test_case'`). After each run: its status and its proof,\n  the command and its real output in a ``` block, or a screenshot; \"Not provable: <why>\" when it cannot be shown.\n- **Attachments**: `ticket_items(item='attachment', path=..., text='what it shows')` posts the file in a comment, so\n  it shows in the ticket's Attachments. In a board run, `path` is a path in your working folder; outside one, the\n  file's absolute path. The result's `attached.markdown` puts the same file in a proof or the description. A picture\n  or a document named that way in a comment, work log, proof or Docs page is attached too.\n  **Link it in your report** with that markdown, and say what it shows: a person opens the ticket, not your disk, so a\n  path on your machine alone is not a delivery. A video or a picture plays or shows right in the comment.\n  **One hand-in, one comment**: files you made for a person go in your closing report, not in a comment each. Call\n  `attachment` with `post=false` for each file (no comment of its own), then put the returned markdown lines in the\n  report. Do not post a comment to say \"uploaded X\" and then a report that says it again.\n- **Tick a criterion** (`ticket_items item='criterion' action='toggle'`) only when it was checked, and say how. In a\n  team the QA ticks them, once the cases that prove each one passed: a claim in a report ticks nothing on the ticket.\n\n## Where files go\n| What | Where |\n|---|---|\n| Code, tests, docs that ship | the worktree (or the repository), committed on the ticket's branch |\n| Outputs a person should see: reports, screenshots, logs, exports, recordings | the ticket's **Workspace**, and the ones that prove a result also attached to the ticket |\n| Scratch you will not need | delete it before you finish |\n\nTwo folders, often mixed up:\n- The **Workspace** is a plain scratch folder per ticket (`~/kanban-workspace/<KEY>`), shown on the ticket's\n  Workspace tab. It exists only once something makes it: a person opening it, `manage_ticket(action='workspace')`, or\n  the board when a run starts (its path is then in the run's prompt).\n- The **worktree** is the AI team's git checkout for the ticket (`<repo>.worktrees/<KEY>`, branch\n  `ai/<KEY>-<slug>`), shared by Dev, Reviewer and QA one after another. It is removed only when nothing in it is\n  uncommitted, so leave nothing loose there. When a run ends, the board moves the outputs it finds there to the\n  Workspace (`from-worktree/<date>/`) and says so in the work log.\n\n## Never claim without checking\nBefore you say a file, folder, branch, page or comment exists or is somewhere, look: list the folder, read\n`get_ticket` (its `workspace`, `worktree`, `branches`, `files`), open the page. Then name the exact path or link.\n\"The report is in the Workspace\" when the Workspace was never made is the mistake this rule is for. If you did not\nlook, say \"not checked\".\n\nThe same goes for a cause or a result, wherever you write it (a new ticket's description is the usual place): name\na file, function or line as the cause only after you have read it, and a result only after you have run it. If you\nlater find that something you wrote on the ticket is wrong, correct it there (the description, a criterion, a test\ncase), not only in a later work log or comment: the next person reads the description first.\n\n## Closing a ticket\nDone means: each criterion ticked (and how it was checked), the test cases passed with proof, the branch pushed or the\npull request open, and one closing comment (what is done, what is left, who waits on what). An AI member stops at\nReview: a person moves it to Done. Work that will not be done: status `wont_do` with the reason. The board refuses Done\nwhile a ticket that blocks it is still open: finish that one, or remove the block if it no longer holds.\n\nBefore you move a ticket to Review, say where the change is, so the next person can find it: the branch and commit\n(`ticket_branches` links a branch), or, when you were asked not to commit, \"not committed, in <folder> on this\nmachine\". A reviewer in another checkout who finds nothing otherwise concludes the work was never done.\n\n## What each role writes on a ticket\n| Role | Leaves on the ticket |\n|---|---|\n| Triage | the type, labels, workflow and review depth, and one comment saying why |\n| PM | the split (sub-tickets with their criteria, blocks between them), the plan in a comment, your rulings as comments; before you tell a person where a file, branch or page is, open it and name the exact place |\n| BA | acceptance criteria a tester can check (one per condition), a spec page linked with link_doc when design, build or test work from it, and the open questions in a comment |\n| Designer | the canvas line in the description or a comment, a spec per screen, and a picture of each screen |\n| Dev | the work log (plan, root cause, what you tried), the red and then green test run pasted in the work log, which criterion each part of the change meets, and a note for the reviewer |\n| Reviewer | findings, one per comment (must fix or suggestion, file:line, a concrete case), and the VERDICT line |\n| QA | test cases from the criteria, each run with its status and proof (output or screenshot attached), each criterion ticked once its cases passed (ticket_items item='criterion' action='toggle'), a failure as steps anyone can repeat; your outputs in the Workspace, not the worktree |\n| User tester | one comment with the person's story, the steps and the screenshots in it, each problem as a test case or a comment |\n| Technical writer | the page or file linked on the ticket and a note of which steps you tried |\n| DevOps | what changed in CI or the environment, the command output that proves it, and what a person must switch on |\n| Security reviewer | each finding with its severity and proof (a local test, not committed), and the VERDICT line |\n| Data analyst | the answer with its numbers in a comment, the chart attached, the script (committed, or in the Workspace) and the caveats |\n",
+  "on_ticket": {
+   "triage": "the type, labels, workflow and review depth, and one comment saying why",
+   "pm": "the split (sub-tickets with their criteria, blocks between them), the plan in a comment, your rulings as comments; before you tell a person where a file, branch or page is, open it and name the exact place",
+   "ba": "acceptance criteria a tester can check (one per condition), a spec page linked with link_doc when design, build or test work from it, and the open questions in a comment",
+   "designer": "the canvas line in the description or a comment, a spec per screen, and a picture of each screen",
+   "dev": "the work log (plan, root cause, what you tried), the red and then green test run pasted in the work log, which criterion each part of the change meets, and a note for the reviewer",
+   "reviewer": "findings, one per comment (must fix or suggestion, file:line, a concrete case), and the VERDICT line",
+   "qa": "test cases from the criteria, each run with its status and proof (output or screenshot attached), each criterion ticked once its cases passed (ticket_items item='criterion' action='toggle'), a failure as steps anyone can repeat; your outputs in the Workspace, not the worktree",
+   "user_tester": "one comment with the person's story, the steps and the screenshots in it, each problem as a test case or a comment",
+   "tech_writer": "the page or file linked on the ticket and a note of which steps you tried",
+   "devops": "what changed in CI or the environment, the command output that proves it, and what a person must switch on",
+   "security": "each finding with its severity and proof (a local test, not committed), and the VERDICT line",
+   "data_analyst": "the answer with its numbers in a comment, the chart attached, the script (committed, or in the Workspace) and the caveats"
+  },
+  "role_line": [
+   {
+    "in": [
+     null,
+     true
+    ],
+    "out": null
+   },
+   {
+    "in": [
+     null,
+     false
+    ],
+    "out": null
+   },
+   {
+    "in": [
+     "",
+     true
+    ],
+    "out": null
+   },
+   {
+    "in": [
+     "",
+     false
+    ],
+    "out": null
+   },
+   {
+    "in": [
+     "nope",
+     true
+    ],
+    "out": null
+   },
+   {
+    "in": [
+     "nope",
+     false
+    ],
+    "out": null
+   },
+   {
+    "in": [
+     "triage",
+     true
+    ],
+    "out": "On the ticket, as Triage, you leave: the type, labels, workflow and review depth, and one comment saying why. How each part is used: the skill `kanban-board:working-with-tickets`."
+   },
+   {
+    "in": [
+     "triage",
+     false
+    ],
+    "out": "On the ticket, as Triage, you leave: the type, labels, workflow and review depth, and one comment saying why. How each part is used: docs_read(action='ticket_guide')."
+   },
+   {
+    "in": [
+     "pm",
+     true
+    ],
+    "out": "On the ticket, as PM, you leave: the split (sub-tickets with their criteria, blocks between them), the plan in a comment, your rulings as comments; before you tell a person where a file, branch or page is, open it and name the exact place. How each part is used: the skill `kanban-board:working-with-tickets`."
+   },
+   {
+    "in": [
+     "pm",
+     false
+    ],
+    "out": "On the ticket, as PM, you leave: the split (sub-tickets with their criteria, blocks between them), the plan in a comment, your rulings as comments; before you tell a person where a file, branch or page is, open it and name the exact place. How each part is used: docs_read(action='ticket_guide')."
+   },
+   {
+    "in": [
+     "ba",
+     true
+    ],
+    "out": "On the ticket, as BA, you leave: acceptance criteria a tester can check (one per condition), a spec page linked with link_doc when design, build or test work from it, and the open questions in a comment. How each part is used: the skill `kanban-board:working-with-tickets`."
+   },
+   {
+    "in": [
+     "ba",
+     false
+    ],
+    "out": "On the ticket, as BA, you leave: acceptance criteria a tester can check (one per condition), a spec page linked with link_doc when design, build or test work from it, and the open questions in a comment. How each part is used: docs_read(action='ticket_guide')."
+   },
+   {
+    "in": [
+     "designer",
+     true
+    ],
+    "out": "On the ticket, as Designer, you leave: the canvas line in the description or a comment, a spec per screen, and a picture of each screen. How each part is used: the skill `kanban-board:working-with-tickets`."
+   },
+   {
+    "in": [
+     "designer",
+     false
+    ],
+    "out": "On the ticket, as Designer, you leave: the canvas line in the description or a comment, a spec per screen, and a picture of each screen. How each part is used: docs_read(action='ticket_guide')."
+   },
+   {
+    "in": [
+     "dev",
+     true
+    ],
+    "out": "On the ticket, as Dev, you leave: the work log (plan, root cause, what you tried), the red and then green test run pasted in the work log, which criterion each part of the change meets, and a note for the reviewer. How each part is used: the skill `kanban-board:working-with-tickets`."
+   },
+   {
+    "in": [
+     "dev",
+     false
+    ],
+    "out": "On the ticket, as Dev, you leave: the work log (plan, root cause, what you tried), the red and then green test run pasted in the work log, which criterion each part of the change meets, and a note for the reviewer. How each part is used: docs_read(action='ticket_guide')."
+   },
+   {
+    "in": [
+     "reviewer",
+     true
+    ],
+    "out": "On the ticket, as Reviewer, you leave: findings, one per comment (must fix or suggestion, file:line, a concrete case), and the VERDICT line. How each part is used: the skill `kanban-board:working-with-tickets`."
+   },
+   {
+    "in": [
+     "reviewer",
+     false
+    ],
+    "out": "On the ticket, as Reviewer, you leave: findings, one per comment (must fix or suggestion, file:line, a concrete case), and the VERDICT line. How each part is used: docs_read(action='ticket_guide')."
+   },
+   {
+    "in": [
+     "qa",
+     true
+    ],
+    "out": "On the ticket, as QA, you leave: test cases from the criteria, each run with its status and proof (output or screenshot attached), each criterion ticked once its cases passed (ticket_items item='criterion' action='toggle'), a failure as steps anyone can repeat; your outputs in the Workspace, not the worktree. How each part is used: the skill `kanban-board:working-with-tickets`."
+   },
+   {
+    "in": [
+     "qa",
+     false
+    ],
+    "out": "On the ticket, as QA, you leave: test cases from the criteria, each run with its status and proof (output or screenshot attached), each criterion ticked once its cases passed (ticket_items item='criterion' action='toggle'), a failure as steps anyone can repeat; your outputs in the Workspace, not the worktree. How each part is used: docs_read(action='ticket_guide')."
+   },
+   {
+    "in": [
+     "user_tester",
+     true
+    ],
+    "out": "On the ticket, as User tester, you leave: one comment with the person's story, the steps and the screenshots in it, each problem as a test case or a comment. How each part is used: the skill `kanban-board:working-with-tickets`."
+   },
+   {
+    "in": [
+     "user_tester",
+     false
+    ],
+    "out": "On the ticket, as User tester, you leave: one comment with the person's story, the steps and the screenshots in it, each problem as a test case or a comment. How each part is used: docs_read(action='ticket_guide')."
+   },
+   {
+    "in": [
+     "tech_writer",
+     true
+    ],
+    "out": "On the ticket, as Technical writer, you leave: the page or file linked on the ticket and a note of which steps you tried. How each part is used: the skill `kanban-board:working-with-tickets`."
+   },
+   {
+    "in": [
+     "tech_writer",
+     false
+    ],
+    "out": "On the ticket, as Technical writer, you leave: the page or file linked on the ticket and a note of which steps you tried. How each part is used: docs_read(action='ticket_guide')."
+   },
+   {
+    "in": [
+     "devops",
+     true
+    ],
+    "out": "On the ticket, as DevOps, you leave: what changed in CI or the environment, the command output that proves it, and what a person must switch on. How each part is used: the skill `kanban-board:working-with-tickets`."
+   },
+   {
+    "in": [
+     "devops",
+     false
+    ],
+    "out": "On the ticket, as DevOps, you leave: what changed in CI or the environment, the command output that proves it, and what a person must switch on. How each part is used: docs_read(action='ticket_guide')."
+   },
+   {
+    "in": [
+     "security",
+     true
+    ],
+    "out": "On the ticket, as Security reviewer, you leave: each finding with its severity and proof (a local test, not committed), and the VERDICT line. How each part is used: the skill `kanban-board:working-with-tickets`."
+   },
+   {
+    "in": [
+     "security",
+     false
+    ],
+    "out": "On the ticket, as Security reviewer, you leave: each finding with its severity and proof (a local test, not committed), and the VERDICT line. How each part is used: docs_read(action='ticket_guide')."
+   },
+   {
+    "in": [
+     "data_analyst",
+     true
+    ],
+    "out": "On the ticket, as Data analyst, you leave: the answer with its numbers in a comment, the chart attached, the script (committed, or in the Workspace) and the caveats. How each part is used: the skill `kanban-board:working-with-tickets`."
+   },
+   {
+    "in": [
+     "data_analyst",
+     false
+    ],
+    "out": "On the ticket, as Data analyst, you leave: the answer with its numbers in a comment, the chart attached, the script (committed, or in the Workspace) and the caveats. How each part is used: docs_read(action='ticket_guide')."
+   }
+  ]
+ }
+}
