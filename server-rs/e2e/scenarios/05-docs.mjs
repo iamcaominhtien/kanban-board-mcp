@@ -116,6 +116,7 @@ export default {
       ]);
       await p.getByText('Is this step still needed?').first().waitFor();
       await p.getByTestId('reply-field').first().click();
+      await p.waitForTimeout(500);
       await p.keyboard.type('Yes, keep it.');
       await Promise.all([
         p.waitForResponse((r) => r.request().method() === 'POST' && /comments/.test(r.url()), { timeout: 8000 }),

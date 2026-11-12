@@ -1,0 +1,680 @@
+{
+  "chat: with messages": {
+    "status": 200,
+    "json": {
+      "applied": false,
+      "compactions": 0,
+      "cost": 0.06,
+      "created_at": "<time>",
+      "doc_id": null,
+      "drafts": [],
+      "id": "<uuid:1>",
+      "include_docs": [],
+      "member_id": null,
+      "messages": [
+        {
+          "actions": [],
+          "chat_id": "<uuid:1>",
+          "context": {},
+          "cost": 0.0,
+          "created_at": "<time>",
+          "draft": null,
+          "draft_id": null,
+          "error": {},
+          "feedback": null,
+          "finished_at": "<time>",
+          "id": "<uuid:2>",
+          "member_id": null,
+          "metered": false,
+          "model": null,
+          "retry_at": null,
+          "role": "user",
+          "state": "done",
+          "steps": [],
+          "text": "What is wrong?",
+          "tokens_in": 0,
+          "tokens_out": 0
+        },
+        {
+          "actions": [],
+          "chat_id": "<uuid:1>",
+          "context": {
+            "label": "KAN-1 Fix add()",
+            "posted": {
+              "at": "<time>",
+              "by": "user",
+              "comment_id": "<uuid:3>"
+            },
+            "request": {
+              "doc_ids": [],
+              "extra": {},
+              "mode": "ask",
+              "skill": "board-ask"
+            },
+            "run": {
+              "id": "<run:1>"
+            },
+            "scope": "ticket"
+          },
+          "cost": 0.02,
+          "created_at": "<time>",
+          "draft": null,
+          "draft_id": null,
+          "error": {},
+          "feedback": null,
+          "finished_at": "<time>",
+          "id": "<uuid:4>",
+          "member_id": null,
+          "metered": false,
+          "model": "stand-in",
+          "retry_at": null,
+          "role": "ai",
+          "state": "done",
+          "steps": [],
+          "text": "add() subtracts: fix the operator.",
+          "tokens_in": 200,
+          "tokens_out": 40
+        },
+        {
+          "actions": [],
+          "chat_id": "<uuid:1>",
+          "context": {},
+          "cost": 0.0,
+          "created_at": "<time>",
+          "draft": null,
+          "draft_id": null,
+          "error": {},
+          "feedback": null,
+          "finished_at": "<time>",
+          "id": "<uuid:5>",
+          "member_id": null,
+          "metered": false,
+          "model": null,
+          "retry_at": null,
+          "role": "user",
+          "state": "done",
+          "steps": [],
+          "text": "Take your time",
+          "tokens_in": 0,
+          "tokens_out": 0
+        },
+        {
+          "actions": [],
+          "chat_id": "<uuid:1>",
+          "context": {
+            "label": "KAN-1 Fix add()",
+            "request": {
+              "doc_ids": [],
+              "extra": {},
+              "mode": "ask",
+              "skill": "board-ask"
+            },
+            "run": {
+              "id": "<run:2>"
+            },
+            "scope": "ticket"
+          },
+          "cost": 0.0,
+          "created_at": "<time>",
+          "draft": null,
+          "draft_id": null,
+          "error": {},
+          "feedback": null,
+          "finished_at": null,
+          "id": "<uuid:6>",
+          "member_id": null,
+          "metered": false,
+          "model": "stand-in",
+          "retry_at": null,
+          "role": "ai",
+          "state": "thinking",
+          "steps": [],
+          "text": "",
+          "tokens_in": 0,
+          "tokens_out": 0
+        }
+      ],
+      "owner": "user",
+      "project_id": "<uuid:7>",
+      "scope": "ticket",
+      "scope_id": "KAN-1",
+      "summary": "",
+      "summary_upto": null,
+      "ticket_id": "KAN-1",
+      "title": "KAN-1 Fix add()",
+      "tokens": 720,
+      "updated_at": "<time>"
+    }
+  },
+  "message": {
+    "status": 200,
+    "json": {
+      "ai": {
+        "actions": [],
+        "chat_id": "<uuid:1>",
+        "context": {
+          "label": "KAN-1 Fix add()",
+          "request": {
+            "doc_ids": [],
+            "extra": {},
+            "mode": "ask",
+            "skill": "board-ask"
+          },
+          "scope": "ticket"
+        },
+        "cost": 0.0,
+        "created_at": "<time>",
+        "draft": null,
+        "draft_id": null,
+        "error": {},
+        "feedback": null,
+        "finished_at": null,
+        "id": "<uuid:2>",
+        "member_id": null,
+        "metered": false,
+        "model": null,
+        "retry_at": null,
+        "role": "ai",
+        "state": "thinking",
+        "steps": [],
+        "text": "",
+        "tokens_in": 0,
+        "tokens_out": 0
+      },
+      "user": {
+        "actions": [],
+        "chat_id": "<uuid:1>",
+        "context": {},
+        "cost": 0.0,
+        "created_at": "<time>",
+        "draft": null,
+        "draft_id": null,
+        "error": {},
+        "feedback": null,
+        "finished_at": "<time>",
+        "id": "<uuid:3>",
+        "member_id": null,
+        "metered": false,
+        "model": null,
+        "retry_at": null,
+        "role": "user",
+        "state": "done",
+        "steps": [],
+        "text": "What is wrong?",
+        "tokens_in": 0,
+        "tokens_out": 0
+      }
+    }
+  },
+  "message: another person": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Chat not found."
+    }
+  },
+  "message: answered": {
+    "status": 200,
+    "json": {
+      "actions": [],
+      "chat_id": "<uuid:1>",
+      "context": {
+        "label": "KAN-1 Fix add()",
+        "request": {
+          "doc_ids": [],
+          "extra": {},
+          "mode": "ask",
+          "skill": "board-ask"
+        },
+        "run": {
+          "id": "<run:1>"
+        },
+        "scope": "ticket"
+      },
+      "cost": 0.02,
+      "created_at": "<time>",
+      "draft": null,
+      "draft_id": null,
+      "error": {},
+      "feedback": null,
+      "finished_at": "<time>",
+      "id": "<uuid:2>",
+      "member_id": null,
+      "metered": false,
+      "model": "stand-in",
+      "retry_at": null,
+      "role": "ai",
+      "state": "done",
+      "steps": [],
+      "text": "add() subtracts: fix the operator.",
+      "tokens_in": 200,
+      "tokens_out": 40
+    }
+  },
+  "message: bad mode": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "mode"
+        ]
+      ]
+    }
+  },
+  "message: busy": {
+    "status": 409,
+    "json": {
+      "code": "conflict",
+      "detail": "The assistant is still answering in this chat."
+    }
+  },
+  "message: feedback": {
+    "status": 200,
+    "json": {
+      "actions": [],
+      "chat_id": "<uuid:1>",
+      "context": {
+        "label": "KAN-1 Fix add()",
+        "request": {
+          "doc_ids": [],
+          "extra": {},
+          "mode": "ask",
+          "skill": "board-ask"
+        },
+        "run": {
+          "id": "<run:1>"
+        },
+        "scope": "ticket"
+      },
+      "cost": 0.02,
+      "created_at": "<time>",
+      "draft": null,
+      "draft_id": null,
+      "error": {},
+      "feedback": {
+        "at": "<time>",
+        "reason": "wrong",
+        "thumb": "down"
+      },
+      "finished_at": "<time>",
+      "id": "<uuid:2>",
+      "member_id": null,
+      "metered": false,
+      "model": "stand-in",
+      "retry_at": null,
+      "role": "ai",
+      "state": "done",
+      "steps": [],
+      "text": "add() subtracts: fix the operator.",
+      "tokens_in": 200,
+      "tokens_out": 40
+    }
+  },
+  "message: feedback, bad thumb": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Thumbs up or down."
+    }
+  },
+  "message: feedback, clear": {
+    "status": 200,
+    "json": {
+      "actions": [],
+      "chat_id": "<uuid:1>",
+      "context": {
+        "label": "KAN-1 Fix add()",
+        "request": {
+          "doc_ids": [],
+          "extra": {},
+          "mode": "ask",
+          "skill": "board-ask"
+        },
+        "run": {
+          "id": "<run:1>"
+        },
+        "scope": "ticket"
+      },
+      "cost": 0.02,
+      "created_at": "<time>",
+      "draft": null,
+      "draft_id": null,
+      "error": {},
+      "feedback": null,
+      "finished_at": "<time>",
+      "id": "<uuid:2>",
+      "member_id": null,
+      "metered": false,
+      "model": "stand-in",
+      "retry_at": null,
+      "role": "ai",
+      "state": "done",
+      "steps": [],
+      "text": "add() subtracts: fix the operator.",
+      "tokens_in": 200,
+      "tokens_out": 40
+    }
+  },
+  "message: feedback, none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Message not found."
+    }
+  },
+  "message: get none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Message not found."
+    }
+  },
+  "message: no chat": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Chat not found."
+    }
+  },
+  "message: no text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "text"
+        ]
+      ]
+    }
+  },
+  "message: post-comment": {
+    "status": 200,
+    "json": {
+      "comment_id": "<uuid:1>",
+      "ticket_id": "KAN-1"
+    }
+  },
+  "message: post-comment, no body": {
+    "status": 200,
+    "json": {
+      "comment_id": "<uuid:1>",
+      "ticket_id": "KAN-1"
+    }
+  },
+  "message: post-comment, none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Message not found."
+    }
+  },
+  "message: retry": {
+    "status": 200,
+    "json": {
+      "actions": [],
+      "chat_id": "<uuid:1>",
+      "context": {
+        "label": "KAN-1 Fix add()",
+        "posted": {
+          "at": "<time>",
+          "by": "user",
+          "comment_id": "<uuid:2>"
+        },
+        "request": {
+          "doc_ids": [],
+          "extra": {},
+          "mode": "ask",
+          "skill": "board-ask"
+        },
+        "run": {
+          "id": "<run:1>"
+        },
+        "scope": "ticket"
+      },
+      "cost": 0.02,
+      "created_at": "<time>",
+      "draft": null,
+      "draft_id": null,
+      "error": {},
+      "feedback": null,
+      "finished_at": null,
+      "id": "<uuid:3>",
+      "member_id": null,
+      "metered": false,
+      "model": "stand-in",
+      "retry_at": null,
+      "role": "ai",
+      "state": "thinking",
+      "steps": [],
+      "text": "",
+      "tokens_in": 200,
+      "tokens_out": 40
+    }
+  },
+  "message: retry a stopped one": {
+    "status": 200,
+    "json": {
+      "actions": [],
+      "chat_id": "<uuid:1>",
+      "context": {
+        "label": "KAN-1 Fix add()",
+        "request": {
+          "doc_ids": [],
+          "extra": {},
+          "mode": "ask",
+          "skill": "board-ask"
+        },
+        "run": {
+          "id": "<run:1>"
+        },
+        "scope": "ticket"
+      },
+      "cost": 0.0,
+      "created_at": "<time>",
+      "draft": null,
+      "draft_id": null,
+      "error": {},
+      "feedback": null,
+      "finished_at": null,
+      "id": "<uuid:2>",
+      "member_id": null,
+      "metered": false,
+      "model": "stand-in",
+      "retry_at": null,
+      "role": "ai",
+      "state": "thinking",
+      "steps": [],
+      "text": "",
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "message: retry, no body": {
+    "status": 200,
+    "json": {
+      "actions": [],
+      "chat_id": "<uuid:1>",
+      "context": {
+        "label": "KAN-1 Fix add()",
+        "posted": {
+          "at": "<time>",
+          "by": "user",
+          "comment_id": "<uuid:2>"
+        },
+        "request": {
+          "doc_ids": [],
+          "extra": {},
+          "mode": "ask",
+          "skill": "board-ask"
+        },
+        "run": {
+          "id": "<run:1>"
+        },
+        "scope": "ticket"
+      },
+      "cost": 0.02,
+      "created_at": "<time>",
+      "draft": null,
+      "draft_id": null,
+      "error": {},
+      "feedback": null,
+      "finished_at": null,
+      "id": "<uuid:3>",
+      "member_id": null,
+      "metered": false,
+      "model": "stand-in",
+      "retry_at": null,
+      "role": "ai",
+      "state": "thinking",
+      "steps": [],
+      "text": "",
+      "tokens_in": 200,
+      "tokens_out": 40
+    }
+  },
+  "message: retry, none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Message not found."
+    }
+  },
+  "message: stop": {
+    "status": 200,
+    "json": {
+      "actions": [],
+      "chat_id": "<uuid:1>",
+      "context": {
+        "label": "KAN-1 Fix add()",
+        "request": {
+          "doc_ids": [],
+          "extra": {},
+          "mode": "ask",
+          "skill": "board-ask"
+        },
+        "scope": "ticket"
+      },
+      "cost": 0.0,
+      "created_at": "<time>",
+      "draft": null,
+      "draft_id": null,
+      "error": {},
+      "feedback": null,
+      "finished_at": "<time>",
+      "id": "<uuid:2>",
+      "member_id": null,
+      "metered": false,
+      "model": null,
+      "retry_at": null,
+      "role": "ai",
+      "state": "stopped",
+      "steps": [],
+      "text": "",
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "message: stop, done": {
+    "status": 200,
+    "json": {
+      "actions": [],
+      "chat_id": "<uuid:1>",
+      "context": {
+        "label": "KAN-1 Fix add()",
+        "posted": {
+          "at": "<time>",
+          "by": "user",
+          "comment_id": "<uuid:2>"
+        },
+        "request": {
+          "doc_ids": [],
+          "extra": {},
+          "mode": "ask",
+          "skill": "board-ask"
+        },
+        "run": {
+          "id": "<run:1>"
+        },
+        "scope": "ticket"
+      },
+      "cost": 0.02,
+      "created_at": "<time>",
+      "draft": null,
+      "draft_id": null,
+      "error": {},
+      "feedback": null,
+      "finished_at": "<time>",
+      "id": "<uuid:3>",
+      "member_id": null,
+      "metered": false,
+      "model": "stand-in",
+      "retry_at": null,
+      "role": "ai",
+      "state": "done",
+      "steps": [],
+      "text": "add() subtracts: fix the operator.",
+      "tokens_in": 200,
+      "tokens_out": 40
+    }
+  },
+  "message: stop, none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Message not found."
+    }
+  },
+  "message: stopped": {
+    "status": 200,
+    "json": {
+      "actions": [],
+      "chat_id": "<uuid:1>",
+      "context": {
+        "label": "KAN-1 Fix add()",
+        "request": {
+          "doc_ids": [],
+          "extra": {},
+          "mode": "ask",
+          "skill": "board-ask"
+        },
+        "run": {
+          "id": "<run:1>"
+        },
+        "scope": "ticket"
+      },
+      "cost": 0.0,
+      "created_at": "<time>",
+      "draft": null,
+      "draft_id": null,
+      "error": {},
+      "feedback": null,
+      "finished_at": "<time>",
+      "id": "<uuid:2>",
+      "member_id": null,
+      "metered": false,
+      "model": "stand-in",
+      "retry_at": null,
+      "role": "ai",
+      "state": "stopped",
+      "steps": [],
+      "text": "",
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "message: undo": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "This answer changed nothing."
+    }
+  },
+  "message: undo, none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Message not found."
+    }
+  }
+}

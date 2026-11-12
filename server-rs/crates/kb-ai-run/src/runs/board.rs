@@ -17,7 +17,7 @@ use kb_db::sea_orm::{
 use serde_json::{Map, Value, json};
 
 use super::{NewRun, RT, RunError, cancel, cancel_for_ticket, clip, create_run, refuse, send_message};
-use crate::seams;
+use crate::touches;
 
 /// `str(value or "")`.
 fn text_or_empty(value: Option<&Value>) -> String {
@@ -77,7 +77,7 @@ pub async fn record_question(
         let Some(run) = ai_run::Entity::find_by_id(ctx.run_id.as_str()).one(&session).await? else {
             return Err(RunError::Value("Run not found.".to_string()));
         };
-        q.insert("previous".into(), json!(seams::carry_answer(run.question.as_deref(), run.answer.as_deref())));
+        q.insert("previous".into(), json!(touches::carry_answer(run.question.as_deref(), run.answer.as_deref())));
         let mut row = run.into_active_model();
         row.question = Set(Some(pyjson::dumps(&Value::Object(q.clone()))));
         row.update(&session).await?;
@@ -166,10 +166,10 @@ pub async fn before_ticket_change(
 /// recorded as a touch (tab "You stepped in").
 pub async fn note_person_edit(ticket_id: &str, by: Option<&str>, what: &str, tell_lead: bool) -> Result<(), RunError> {
     let by = by.filter(|b| !b.is_empty());
-    if let Some(touches) = seams::touches() {
+    {
         let session = database::session();
         // a note about the edit must never fail the edit
-        if let Err(err) = touches.record_edit(&session, ticket_id, by, what).await {
+        if let Err(err) = touches::record_edit(&session, ticket_id, by, what).await {
             tracing::error!(target: "kanban.ai.runs", "Could not record the edit of {ticket_id} as a touch: {err}");
         }
     }

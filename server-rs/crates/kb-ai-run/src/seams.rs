@@ -1,16 +1,19 @@
-//! Places where the modules of this crate meet AI-team modules that a later task ports. A slot that is not filled
-//! behaves as the Python call would on a board with no run going.
+//! Places where the modules of this crate meet modules of crates above it (the assistant, Docs comments), and the
+//! slots tests fill to replace a module of this crate. A slot that is not filled behaves as the Python call would on
+//! a board with no run going.
+//!
+//! `touches` and `compact` (part 3) live in this crate now: `runs` calls `touches::carry_answer`,
+//! `touches::record_edit` and `compact::after_run` directly, and their slots are gone.
 //!
 //! | seam | stands for | filled by |
 //! |---|---|---|
 //! | `RunProcs::proc_alive`, `kill_proc`, `has_task` | `runs.RT.procs.get(run_id)`, `proc.proc.returncode`, `proc.kill()`, `run_id in runs.RT.tasks` (asked by `kb_ai::power` through `kb_ai::seams::RunsRuntime`) | `runs` |
 //! | `Runs::cancel` | `runs.cancel(run_id, by=, reason=)` (`teams.set_paused` with `cancel_current`, `teams.remove`); a `runs.RunError` is `CancelError::Run` | `runs` |
 //! | `Runs::wake` | `runs.RT.wake.set()` (`teams.set_paused`, `teams.health_check`) | `runs` |
-//! | `SessionHistory::prompt_block` | `session_history.prompt_block(session, ticket.id)` (`launch.build_prompt`, a new conversation on a ticket) | `session_history` |
-//! | `SessionHistory::closed_session_ids` | `session_history.closed_session_ids(session, ticket_id)` (`runs.create_run`, `runs._session_for`) | `session_history` |
-//! | `Touches::carry_answer` | `touches.carry_answer(run.question, run.answer)` (`runs._finish`, `runs.record_question`); not filled: `carry_answer` below, the function itself | `touches` |
-//! | `Touches::record_edit` | `touches.record_edit(session, ticket_id, by=, what=)` (`runs.note_person_edit`) | `touches` |
-//! | `Compact::after_run` | `compact.after_run(ticket_id, run_id)` (`runs._end`) | `compact` |
+//! | `SessionHistory::prompt_block` | `session_history.prompt_block(session, ticket.id)` (`launch.build_prompt`, a new conversation on a ticket) | nobody: `session_history` is called directly; a test puts its own in the slot, as the Python tests patch the function |
+//! | `SessionHistory::closed_session_ids` | `session_history.closed_session_ids(session, ticket_id)` (`runs.create_run`, `runs._session_for`) | as above |
+//! | `Assistant::oneshot` | `engine.oneshot(skill, inputs, by=by, model=model)` of `services/assistant/engine.py` (`session_history.start_over`, the skill `session-summary`) | the assistant (`kb-assist`) |
+//! | `Assistant::turn` | `engine.turn(project_id, name=, skill=, inputs=, by=, feature=, ticket_id=, fresh=True, timeout_s=300.0)` (`schedules.dry_run`, the skill `schedule-dry-run`); an `AssistError` is `AssistFailure::Assist` | the assistant (`kb-assist`) |
 //! | `PageNotes::create_thread` | `docs_comments.create_thread(session, page_id, kind="page", body=text)` (`messaging.deliver_to_page`) | Docs comments |
 //! | `PageNotes::docs_ai_on` | `assistant_docs.docs_ai_on(session, project_id)` (`messaging.deliver_to_page`, and `kb_draw::hooks::CanvasDelivery::docs_ai_on`) | the assistant |
 //! | `PageNotes::ready_state` | `(await engine.ready(project_id))["state"]` | the assistant |
@@ -121,7 +124,9 @@ pub fn runs() -> Option<Arc<dyn Runs>> {
     RUNS.read().unwrap_or_else(|e| e.into_inner()).clone()
 }
 
-/// What `launch` asks of the closed conversations of a ticket (`services/ai/session_history.py`).
+/// What `launch` and `runs` ask of the closed conversations of a ticket (`services/ai/session_history.py`). The slot
+/// is empty unless a test fills it: the callers go through `prompt_block` and `closed_session_ids` below, which call
+/// the module itself when nothing replaces it.
 #[async_trait]
 pub trait SessionHistory: Send + Sync {
     /// `session_history.prompt_block(session, ticket_id)`: what a new conversation is told about the closed ones,
@@ -140,14 +145,34 @@ pub trait SessionHistory: Send + Sync {
 
 static SESSION_HISTORY: RwLock<Option<Arc<dyn SessionHistory>>> = RwLock::new(None);
 
-/// Fill the session-history seam of `launch` (a later call replaces the earlier one, which tests use).
+/// Replace `session_history` for `launch` and `runs` (a later call replaces the earlier one; None puts the module
+/// back). Tests use it as the Python tests patch `session_history.prompt_block`.
 pub fn set_session_history(history: Option<Arc<dyn SessionHistory>>) {
     *SESSION_HISTORY.write().unwrap_or_else(|e| e.into_inner()) = history;
 }
 
-/// The session-history seam of `launch`, when `session_history` has been ported and registered.
+/// What a test put in place of `session_history`, if anything.
 pub fn session_history() -> Option<Arc<dyn SessionHistory>> {
     SESSION_HISTORY.read().unwrap_or_else(|e| e.into_inner()).clone()
+}
+
+/// `session_history.prompt_block(session, ticket_id)`: the module's, unless a test replaced it.
+pub(crate) async fn prompt_block(session: &Session, ticket_id: &str) -> Result<String, DbErr> {
+    match session_history() {
+        Some(history) => history.prompt_block(session, ticket_id).await,
+        None => crate::session_history::prompt_block(session, ticket_id, 5).await,
+    }
+}
+
+/// `session_history.closed_session_ids(session, ticket_id)`: the module's, unless a test replaced it.
+pub(crate) async fn closed_session_ids(
+    session: &Session,
+    ticket_id: &str,
+) -> Result<std::collections::HashSet<String>, DbErr> {
+    match session_history() {
+        Some(history) => history.closed_session_ids(session, ticket_id).await,
+        None => crate::session_history::closed_session_ids(session, ticket_id).await,
+    }
 }
 
 /// Wait for a future of this crate from a function that is not async (the seam of `kb-ai-know` is not): it runs on a
@@ -211,84 +236,89 @@ impl kb_board::hooks::AiTeamsHook for TeamNames {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Slots of `runs` and `messaging` (part 2b) for the modules of part 3 and the assistant
+// Slots of `messaging`, `session_history` and `schedules` for the assistant and Docs comments (crates above)
 // ---------------------------------------------------------------------------------------------------------------
 
-/// What `runs` asks of `services/ai/touches.py`.
+/// What a turn of the board's assistant gave back, as far as this crate reads it (`engine.Turn`).
+#[derive(Debug, Clone, Default)]
+pub struct AssistTurn {
+    /// finished | failed | cancelled
+    pub state: String,
+    /// Why it failed or stopped.
+    pub error: Option<String>,
+    /// The answer as text.
+    pub text: String,
+    /// The answer in the skill's JSON schema, when it was asked in one (`turn.structured` when it is a dict).
+    pub structured: Option<Map<String, Value>>,
+    /// `turn.data()`: the structured answer, else the text parsed as JSON, else `{}`.
+    pub data: Map<String, Value>,
+    /// Who answered, as the UI names it.
+    pub member: String,
+    /// The model that answered.
+    pub model: Option<String>,
+    /// What the turn cost.
+    pub cost: f64,
+}
+
+/// Why the assistant gave no turn.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum AssistFailure {
+    /// `AssistError`: the request was refused; the text is its message.
+    #[error("{0}")]
+    Assist(String),
+    /// Any other exception.
+    #[error("{0}")]
+    Other(String),
+}
+
+/// The keyword arguments of `engine.turn` that `schedules.dry_run` gives (`fresh=True`, `timeout_s=300.0` and the
+/// skill's own schema are part of the call).
+#[derive(Debug, Clone)]
+pub struct AssistAsk {
+    /// The conversation (`schedule:<id>:dry-run`).
+    pub name: String,
+    /// The feature skill of the turn.
+    pub skill: String,
+    /// The skill's inputs, in the order they are shown.
+    pub inputs: Map<String, Value>,
+    /// The person who asks.
+    pub by: String,
+    /// The feature the turn is metered as.
+    pub feature: String,
+    /// The ticket the turn's tools act on.
+    pub ticket_id: Option<String>,
+    /// Start a new conversation instead of resuming the one of `name`.
+    pub fresh: bool,
+    /// How long the turn may say nothing, in seconds.
+    pub timeout_s: f64,
+}
+
+/// What `session_history` and `schedules` ask of the board's assistant (`services/assistant/engine.py`, a late import
+/// in Python; `kb-assist` is above this crate).
 #[async_trait]
-pub trait Touches: Send + Sync {
-    /// `touches.carry_answer(question_json, answer)`: the answered questions of a run to keep when it asks a new one.
-    fn carry_answer(&self, question_json: Option<&str>, answer: Option<&str>) -> Vec<Value>;
-    /// `touches.record_edit(session, ticket_id, by=by, what=what)`: a person edited a ticket while a run was on it;
-    /// returns how many audit entries were written. The error is the text of the exception (the caller logs it).
-    async fn record_edit(
+pub trait Assistant: Send + Sync {
+    /// `engine.oneshot(skill, inputs, by=by, model=model)`: one answer with a skill and nothing else.
+    async fn oneshot(
         &self,
-        session: &Session,
-        ticket_id: &str,
-        by: Option<&str>,
-        what: &str,
-    ) -> Result<i64, String>;
+        skill: &str,
+        inputs: Map<String, Value>,
+        by: &str,
+        model: &str,
+    ) -> Result<AssistTurn, AssistFailure>;
+    /// `engine.turn(project_id, name=, skill=, inputs=, by=, feature=, ticket_id=, fresh=, timeout_s=)`.
+    async fn turn(&self, project_id: &str, ask: AssistAsk) -> Result<AssistTurn, AssistFailure>;
 }
 
-static TOUCHES: RwLock<Option<Arc<dyn Touches>>> = RwLock::new(None);
+static ASSISTANT: RwLock<Option<Arc<dyn Assistant>>> = RwLock::new(None);
 
-/// Fill the touches seam of `runs` (a later call replaces the earlier one, which tests use).
-pub fn set_touches(touches: Option<Arc<dyn Touches>>) {
-    *TOUCHES.write().unwrap_or_else(|e| e.into_inner()) = touches;
+/// Fill the assistant seam (a later call replaces the earlier one, which tests use).
+pub fn set_assistant(assistant: Option<Arc<dyn Assistant>>) {
+    *ASSISTANT.write().unwrap_or_else(|e| e.into_inner()) = assistant;
 }
 
-/// The touches seam of `runs`, when `touches` has been ported and registered.
-pub fn touches() -> Option<Arc<dyn Touches>> {
-    TOUCHES.read().unwrap_or_else(|e| e.into_inner()).clone()
-}
-
-/// `touches.carry_answer(question_json, answer)`: through the slot when `touches` is registered. Until then the
-/// function itself, as it is in `services/ai/touches.py` (it only reads its two arguments, and what it returns is
-/// stored in the run's question, so no run may go without it): the answered questions of a run to keep when it asks
-/// a new one (a run holds one question; the earlier ones, with their answers, move to `previous` so each answer
-/// stays a touch).
-pub fn carry_answer(question_json: Option<&str>, answer: Option<&str>) -> Vec<Value> {
-    if let Some(touches) = touches() {
-        return touches.carry_answer(question_json, answer);
-    }
-    let old = match kb_ai::store::loads(question_json, serde_json::json!({})) {
-        Value::Object(map) => map,
-        _ => Map::new(),
-    };
-    let mut previous: Vec<Value> = match old.get("previous") {
-        Some(Value::Array(items)) => items.clone(),
-        _ => Vec::new(),
-    };
-    let answered_at = old.get("answered_at").filter(|v| kb_base::pyjson::truthy(v));
-    if let (Some(answer), Some(answered_at)) = (answer.filter(|a| !a.is_empty()), answered_at) {
-        previous.push(serde_json::json!({
-            "text": old.get("text").cloned().unwrap_or_else(|| serde_json::json!("")),
-            "answer": answer,
-            "answered_at": answered_at,
-            "answered_by": old.get("answered_by").cloned().unwrap_or(Value::Null),
-        }));
-    }
-    let from = previous.len().saturating_sub(20);
-    previous.split_off(from)
-}
-
-/// What `runs` asks of `services/ai/compact.py`.
-pub trait Compact: Send + Sync {
-    /// `compact.after_run(ticket_id, run_id)`: a run ended; compact the lead's conversation now when someone asked
-    /// for it while the run worked (started in the background).
-    fn after_run(&self, ticket_id: &str, run_id: &str);
-}
-
-static COMPACT: RwLock<Option<Arc<dyn Compact>>> = RwLock::new(None);
-
-/// Fill the compact seam of `runs` (a later call replaces the earlier one, which tests use).
-pub fn set_compact(compact: Option<Arc<dyn Compact>>) {
-    *COMPACT.write().unwrap_or_else(|e| e.into_inner()) = compact;
-}
-
-/// The compact seam of `runs`, when `compact` has been ported and registered.
-pub fn compact() -> Option<Arc<dyn Compact>> {
-    COMPACT.read().unwrap_or_else(|e| e.into_inner()).clone()
+/// The assistant seam, when the assistant has been registered.
+pub fn assistant() -> Option<Arc<dyn Assistant>> {
+    ASSISTANT.read().unwrap_or_else(|e| e.into_inner()).clone()
 }
 
 /// What `messaging.deliver_to_page` asks of Docs comments, the assistant and the Docs AI jobs (late imports there).

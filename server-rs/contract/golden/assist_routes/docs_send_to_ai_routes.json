@@ -1,0 +1,607 @@
+{
+  "comment naming an AI": {
+    "status": 201,
+    "json": {
+      "ai_delivery": [
+        {
+          "job_id": "<dj:1>",
+          "member_id": "<mem:2>",
+          "result": "job"
+        }
+      ],
+      "ai_jobs": [
+        {
+          "id": "<dj:1>",
+          "kind": "thread_reply",
+          "member_id": "<mem:2>",
+          "member_name": "Docs AI",
+          "state": "running",
+          "step": null
+        }
+      ],
+      "ai_summary": null,
+      "anchor": null,
+      "can_reply": true,
+      "can_resolve": true,
+      "comments": [
+        {
+          "ai": null,
+          "author": "user",
+          "body": "@[Claude Code · Backend](member:<mem:2>) who owns paging?",
+          "can_delete": true,
+          "can_edit": true,
+          "created_at": "<time>",
+          "edited_at": null,
+          "id": "<uuid:1>",
+          "mentions": [
+            {
+              "id": "<mem:2>",
+              "name": "Claude Code · Backend"
+            }
+          ],
+          "thread_id": "<uuid:2>"
+        }
+      ],
+      "created_at": "<time>",
+      "created_by": "user",
+      "id": "<uuid:2>",
+      "kind": "page",
+      "number": null,
+      "page_id": "<uuid:3>",
+      "resolved_at": null,
+      "resolved_by": null,
+      "status": "open",
+      "unread": false
+    }
+  },
+  "comment naming an AI: notify": {
+    "status": 201,
+    "json": {
+      "ai_delivery": [
+        {
+          "member_id": "<mem:1>",
+          "result": "notified"
+        }
+      ],
+      "ai_jobs": [],
+      "ai_summary": null,
+      "anchor": null,
+      "can_reply": true,
+      "can_resolve": true,
+      "comments": [
+        {
+          "ai": null,
+          "author": "user",
+          "body": "@[Claude Code · Backend](member:<mem:1>) who owns paging?",
+          "can_delete": true,
+          "can_edit": true,
+          "created_at": "<time>",
+          "edited_at": null,
+          "id": "<uuid:1>",
+          "mentions": [
+            {
+              "id": "<mem:1>",
+              "name": "Claude Code · Backend"
+            }
+          ],
+          "thread_id": "<uuid:2>"
+        }
+      ],
+      "created_at": "<time>",
+      "created_by": "user",
+      "id": "<uuid:2>",
+      "kind": "page",
+      "number": null,
+      "page_id": "<uuid:3>",
+      "resolved_at": null,
+      "resolved_by": null,
+      "status": "open",
+      "unread": false
+    }
+  },
+  "comments: the list": {
+    "status": 200,
+    "json": {
+      "counts": {
+        "all": 0,
+        "open": 0,
+        "orphaned": 0,
+        "page": 3,
+        "resolved": 0
+      },
+      "docs_ai": true,
+      "me": "user",
+      "members": [
+        {
+          "color": "#3B82F6",
+          "id": "<uuid:1>",
+          "kind": "human",
+          "name": "Admin",
+          "role": "member"
+        },
+        {
+          "color": "#10B981",
+          "id": "<uuid:2>",
+          "kind": "human",
+          "name": "An Nguyen",
+          "role": "member"
+        },
+        {
+          "ai": {
+            "note": "",
+            "provider": "claude-code",
+            "status": "ready",
+            "usable": true
+          },
+          "color": "#8B5CF6",
+          "id": "<mem:1>",
+          "kind": "ai",
+          "name": "Claude Code · Backend",
+          "role": "member"
+        }
+      ],
+      "role": "admin",
+      "threads": [
+        {
+          "ai_jobs": [],
+          "ai_summary": null,
+          "anchor": null,
+          "can_reply": true,
+          "can_resolve": true,
+          "comments": [
+            {
+              "ai": null,
+              "author": "user",
+              "body": "Please add paging.",
+              "can_delete": true,
+              "can_edit": true,
+              "created_at": "<time>",
+              "edited_at": null,
+              "id": "<uuid:3>",
+              "mentions": [],
+              "thread_id": "<uuid:4>"
+            },
+            {
+              "ai": {
+                "kind": "sent"
+              },
+              "author": "user",
+              "body": "Sent to the page’s assistant",
+              "can_delete": true,
+              "can_edit": false,
+              "created_at": "<time>",
+              "edited_at": null,
+              "id": "<uuid:5>",
+              "mentions": [],
+              "thread_id": "<uuid:4>"
+            },
+            {
+              "ai": {
+                "kind": "sent"
+              },
+              "author": "user",
+              "body": "Sent to the Board AI (it finds the ticket's team, or answers)",
+              "can_delete": true,
+              "can_edit": false,
+              "created_at": "<time>",
+              "edited_at": null,
+              "id": "<uuid:6>",
+              "mentions": [],
+              "thread_id": "<uuid:4>"
+            },
+            {
+              "ai": {
+                "kind": "sent",
+                "ticket_id": null,
+                "via": "board_ai"
+              },
+              "author": "Board AI",
+              "body": "The Board AI left this for a person.",
+              "can_delete": true,
+              "can_edit": false,
+              "created_at": "<time>",
+              "edited_at": null,
+              "id": "<uuid:7>",
+              "mentions": [],
+              "thread_id": "<uuid:4>"
+            },
+            {
+              "ai": {
+                "kind": "sent",
+                "member_id": "<mem:1>",
+                "run_id": "<run:2>",
+                "ticket_id": "KAN-1"
+              },
+              "author": "user",
+              "body": "Sent to KAN-1 · Claude Code · Backend · run #1",
+              "can_delete": true,
+              "can_edit": false,
+              "created_at": "<time>",
+              "edited_at": null,
+              "id": "<uuid:8>",
+              "mentions": [],
+              "thread_id": "<uuid:4>"
+            },
+            {
+              "ai": {
+                "kind": "sent",
+                "member_id": "<mem:1>",
+                "run_id": "<run:3>",
+                "ticket_id": "KAN-2"
+              },
+              "author": "user",
+              "body": "Sent to KAN-2 · Claude Code · Backend · run #1",
+              "can_delete": true,
+              "can_edit": false,
+              "created_at": "<time>",
+              "edited_at": null,
+              "id": "<uuid:9>",
+              "mentions": [],
+              "thread_id": "<uuid:4>"
+            }
+          ],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<uuid:4>",
+          "kind": "page",
+          "number": null,
+          "page_id": "<uuid:10>",
+          "resolved_at": null,
+          "resolved_by": null,
+          "status": "open",
+          "unread": true
+        },
+        {
+          "ai_jobs": [],
+          "ai_summary": null,
+          "anchor": null,
+          "can_reply": true,
+          "can_resolve": true,
+          "comments": [
+            {
+              "ai": null,
+              "author": "user",
+              "body": "@[Claude Code · Backend](member:<mem:1>) who owns paging?",
+              "can_delete": true,
+              "can_edit": true,
+              "created_at": "<time>",
+              "edited_at": null,
+              "id": "<uuid:11>",
+              "mentions": [
+                {
+                  "id": "<mem:1>",
+                  "name": "Claude Code · Backend"
+                }
+              ],
+              "thread_id": "<uuid:12>"
+            }
+          ],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<uuid:12>",
+          "kind": "page",
+          "number": null,
+          "page_id": "<uuid:10>",
+          "resolved_at": null,
+          "resolved_by": null,
+          "status": "open",
+          "unread": false
+        },
+        {
+          "ai_jobs": [],
+          "ai_summary": null,
+          "anchor": null,
+          "can_reply": true,
+          "can_resolve": true,
+          "comments": [
+            {
+              "ai": null,
+              "author": "user",
+              "body": "@[Claude Code · Backend](member:<mem:1>) who owns paging?",
+              "can_delete": true,
+              "can_edit": true,
+              "created_at": "<time>",
+              "edited_at": null,
+              "id": "<uuid:13>",
+              "mentions": [
+                {
+                  "id": "<mem:1>",
+                  "name": "Claude Code · Backend"
+                }
+              ],
+              "thread_id": "<uuid:14>"
+            }
+          ],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<uuid:14>",
+          "kind": "page",
+          "number": null,
+          "page_id": "<uuid:10>",
+          "resolved_at": null,
+          "resolved_by": null,
+          "status": "open",
+          "unread": false
+        }
+      ]
+    }
+  },
+  "send-to-ai: PUT is not served": {
+    "status": 405,
+    "json": {
+      "detail": "Method Not Allowed"
+    }
+  },
+  "send-to-ai: bad destination": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_destination",
+        "message": "Send to one of: team, board_ai, page_assistant.",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "send-to-ai: board ai": {
+    "status": 202,
+    "json": {
+      "job_id": "<dj:1>",
+      "note": "Sent to the Board AI (it finds the ticket's team, or answers)",
+      "threads": 1,
+      "to": "board_ai"
+    }
+  },
+  "send-to-ai: give a team that is not there": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "no_team",
+        "message": "Choose an AI team of this project.",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "send-to-ai: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "send-to-ai: no threads": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "no_threads",
+        "message": "Choose the comments to send.",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "send-to-ai: no ticket": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "no_ticket",
+        "message": "Choose a ticket of this project (none).",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "send-to-ai: page assistant": {
+    "status": 202,
+    "json": {
+      "job_ids": [
+        "<dj:1>"
+      ],
+      "note": "Sent to the page’s assistant",
+      "threads": 1,
+      "to": "page_assistant"
+    }
+  },
+  "send-to-ai: targets": {
+    "status": 200,
+    "json": {
+      "board_ai": {
+        "available": true
+      },
+      "builder_team": {
+        "id": "<mem:1>",
+        "name": "Claude Code · Backend"
+      },
+      "max_threads": 20,
+      "others": [],
+      "page_assistant": {
+        "available": true
+      },
+      "page_id": "<uuid:1>",
+      "teams": [
+        {
+          "id": "<mem:1>",
+          "name": "Claude Code · Backend"
+        }
+      ],
+      "threads": [],
+      "tickets": []
+    }
+  },
+  "send-to-ai: targets with a thread": {
+    "status": 200,
+    "json": {
+      "board_ai": {
+        "available": true
+      },
+      "builder_team": {
+        "id": "<mem:1>",
+        "name": "Claude Code · Backend"
+      },
+      "max_threads": 20,
+      "others": [],
+      "page_assistant": {
+        "available": true
+      },
+      "page_id": "<uuid:1>",
+      "teams": [
+        {
+          "id": "<mem:1>",
+          "name": "Claude Code · Backend"
+        }
+      ],
+      "threads": [
+        {
+          "default": null,
+          "order": [],
+          "thread_id": "<uuid:2>"
+        }
+      ],
+      "tickets": []
+    }
+  },
+  "send-to-ai: targets, no page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "not_found",
+        "message": "The page is gone.",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "send-to-ai: team, given": {
+    "status": 202,
+    "json": {
+      "delivered": "new_run",
+      "gave_team": "Claude Code · Backend",
+      "note": "Sent to KAN-1 · Claude Code · Backend · run #1",
+      "run_id": "<run:1>",
+      "run_number": 1,
+      "team": "Claude Code · Backend",
+      "threads": 1,
+      "ticket_id": "KAN-1",
+      "to": "team"
+    }
+  },
+  "send-to-ai: ticket without a team": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "no_team",
+        "message": "KAN-1 has no AI team. Give it one, or pick another ticket.",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "send-to-ai: unknown thread": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "no_threads",
+        "message": "No open comments to send: they are resolved or not on this page.",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "send-to-ai: unknown ticket": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "no_ticket",
+        "message": "Choose a ticket of this project (KAN-99).",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "ticket comments/send: given a team": {
+    "status": 202,
+    "json": {
+      "delivered": "new_run",
+      "gave_team": "Claude Code · Backend",
+      "note": "Sent to KAN-2 · Claude Code · Backend · run #1",
+      "run_id": "<run:1>",
+      "run_number": 1,
+      "team": "Claude Code · Backend",
+      "threads": 1,
+      "ticket_id": "KAN-2",
+      "to": "team"
+    }
+  },
+  "ticket comments/send: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "ticket comments/send: no team": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "no_team",
+        "message": "KAN-2 has no AI team. Give it one, or pick another ticket.",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "ticket comments/send: no ticket": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "not_found",
+        "message": "No ticket KAN-99.",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "ticket comments/send: team that is not there": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "no_team",
+        "message": "Choose an AI team of this project.",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "ticket comments: linked": {
+    "status": 200,
+    "json": {
+      "builder_team": {
+        "id": "<mem:1>",
+        "name": "Claude Code · Backend"
+      },
+      "max_threads": 20,
+      "pages": [
+        {
+          "page_id": "<uuid:1>",
+          "threads": 1,
+          "title": "API"
+        }
+      ],
+      "threads": 1
+    }
+  },
+  "ticket comments: no ticket": {
+    "status": 200,
+    "json": {
+      "builder_team": null,
+      "max_threads": 20,
+      "pages": [],
+      "threads": 0
+    }
+  },
+  "ticket comments: none linked": {
+    "status": 200,
+    "json": {
+      "builder_team": null,
+      "max_threads": 20,
+      "pages": [],
+      "threads": 0
+    }
+  }
+}

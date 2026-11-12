@@ -434,6 +434,14 @@ pub async fn insert_rows(table: &str, rows: &[serde_json::Value]) {
         "ai_memory_note" => put::<e::ai_memory_note::Entity>(rows).await,
         "ai_role_pack" => put::<e::ai_role_pack::Entity>(rows).await,
         "ai_account" => put::<e::ai_account::Entity>(rows).await,
+        // (added for part 3: schedules, touches, health, the session history)
+        "ai_schedule" => put::<e::ai_schedule::Entity>(rows).await,
+        "ai_schedule_run" => put::<e::ai_schedule_run::Entity>(rows).await,
+        "ai_audit" => put::<e::ai_audit::Entity>(rows).await,
+        "ai_run_message" => put::<e::ai_run_message::Entity>(rows).await,
+        "ai_run_step" => put::<e::ai_run_step::Entity>(rows).await,
+        "ai_touch_mark" => put::<e::ai_touch_mark::Entity>(rows).await,
+        "ai_session_history" => put::<e::ai_session_history::Entity>(rows).await,
         "workspace_settings" => {
             clear::<e::workspace_settings::Entity>().await;
             put::<e::workspace_settings::Entity>(rows).await;

@@ -65,17 +65,8 @@ impl seams::Runs for CoreRuns {
             .map_err(deliver_error)
     }
 
-    async fn deliver_to_page(
-        &self,
-        page_id: &str,
-        note: &str,
-        by: &str,
-        depth: i64,
-    ) -> Result<Value, DeliverError> {
-        kb_ai_run::messaging::deliver_to_page(page_id, note, by, depth)
-            .await
-            .map(Value::Object)
-            .map_err(deliver_error)
+    async fn deliver_to_page(&self, page_id: &str, note: &str, by: &str, depth: i64) -> Result<Value, DeliverError> {
+        kb_ai_run::messaging::deliver_to_page(page_id, note, by, depth).await.map(Value::Object).map_err(deliver_error)
     }
 
     async fn wake_new_assignee(

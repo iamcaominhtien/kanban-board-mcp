@@ -1,0 +1,349 @@
+{
+  "GET docs/ai: a team": {
+    "status": 200,
+    "json": {
+      "candidates": [
+        {
+          "connection": "local",
+          "id": "<mem:1>",
+          "model": "stand-in",
+          "name": "Claude Code · Backend",
+          "paused": false,
+          "provider": "claude-code"
+        }
+      ],
+      "digest_on": true,
+      "enabled": false,
+      "freshness_on": true,
+      "master": true,
+      "member": {
+        "id": "<mem:1>",
+        "metered": false,
+        "model": "stand-in",
+        "name": "Claude Code · Backend",
+        "provider": "claude-code"
+      },
+      "member_id": null,
+      "problem": null,
+      "state": "off",
+      "style_page_id": null
+    }
+  },
+  "GET docs/ai: no such project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "GET docs/ai: no team": {
+    "status": 200,
+    "json": {
+      "candidates": [],
+      "digest_on": true,
+      "enabled": false,
+      "freshness_on": true,
+      "master": true,
+      "member": null,
+      "member_id": null,
+      "problem": {
+        "code": "no_member",
+        "message": "No AI team can read this space. Pick one in Settings › Docs, or add one in Members."
+      },
+      "state": "off",
+      "style_page_id": null
+    }
+  },
+  "GET job: finished": {
+    "status": 200,
+    "json": {
+      "comment_id": null,
+      "cost": 0.02,
+      "ended_at": "<time>",
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Summarise this page",
+      "kind": "summary",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "cost": 0.02,
+        "input": {
+          "markdown": null
+        },
+        "metered": false,
+        "text": "REST API.",
+        "title": "API"
+      },
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "finished",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 200,
+      "tokens_out": 40
+    }
+  },
+  "GET job: none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "That Docs AI job does not exist."
+    }
+  },
+  "GET jobs: filtered away": {
+    "status": 200,
+    "json": []
+  },
+  "GET jobs: limit 0": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "limit"
+        ]
+      ]
+    }
+  },
+  "GET jobs: limit 201": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "limit"
+        ]
+      ]
+    }
+  },
+  "GET jobs: limit text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "limit"
+        ]
+      ]
+    }
+  },
+  "GET jobs: none": {
+    "status": 200,
+    "json": []
+  },
+  "GET jobs: one": {
+    "status": 200,
+    "json": [
+      {
+        "comment_id": null,
+        "cost": 0.02,
+        "ended_at": "<time>",
+        "error": {},
+        "id": "<dj:1>",
+        "instruction": "Summarise this page",
+        "kind": "summary",
+        "member_id": null,
+        "metered": false,
+        "page_id": "<uuid:1>",
+        "project_id": "<uuid:2>",
+        "queued_at": "<time>",
+        "reads": [],
+        "reply_comment_id": null,
+        "result": {
+          "cost": 0.02,
+          "input": {
+            "markdown": null
+          },
+          "metered": false,
+          "text": "REST API.",
+          "title": "API"
+        },
+        "started_at": "<time>",
+        "started_by": "user",
+        "state": "finished",
+        "steps": [],
+        "thread_id": null,
+        "tokens_in": 200,
+        "tokens_out": 40
+      }
+    ]
+  },
+  "PATCH docs/ai: enable": {
+    "status": 200,
+    "json": {
+      "candidates": [
+        {
+          "connection": "local",
+          "id": "<mem:1>",
+          "model": "stand-in",
+          "name": "Claude Code · Backend",
+          "paused": false,
+          "provider": "claude-code"
+        }
+      ],
+      "digest_on": true,
+      "enabled": true,
+      "freshness_on": true,
+      "master": true,
+      "member": {
+        "id": "<mem:1>",
+        "metered": false,
+        "model": "stand-in",
+        "name": "Claude Code · Backend",
+        "provider": "claude-code"
+      },
+      "member_id": null,
+      "problem": null,
+      "state": "ready",
+      "style_page_id": null
+    }
+  },
+  "PATCH docs/ai: no page for style": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "The style guide page is not in this space."
+    }
+  },
+  "PATCH docs/ai: no such project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "PATCH docs/ai: not a team": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Pick an AI team of this project."
+    }
+  },
+  "PATCH docs/ai: not an admin": {
+    "status": 403,
+    "json": {
+      "code": "forbidden",
+      "detail": "Only project admins can change Docs AI settings."
+    }
+  },
+  "PATCH docs/ai: switches": {
+    "status": 200,
+    "json": {
+      "candidates": [
+        {
+          "connection": "local",
+          "id": "<mem:1>",
+          "model": "stand-in",
+          "name": "Claude Code · Backend",
+          "paused": false,
+          "provider": "claude-code"
+        }
+      ],
+      "digest_on": true,
+      "enabled": true,
+      "freshness_on": false,
+      "master": true,
+      "member": {
+        "id": "<mem:1>",
+        "metered": false,
+        "model": "stand-in",
+        "name": "Claude Code · Backend",
+        "provider": "claude-code"
+      },
+      "member_id": null,
+      "problem": null,
+      "state": "ready",
+      "style_page_id": null
+    }
+  },
+  "PATCH docs/ai: wrong type": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "enabled"
+        ]
+      ]
+    }
+  },
+  "POST job cancel: finished": {
+    "status": 200,
+    "json": {
+      "comment_id": null,
+      "cost": 0.02,
+      "ended_at": "<time>",
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Summarise this page",
+      "kind": "summary",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "cost": 0.02,
+        "input": {
+          "markdown": null
+        },
+        "metered": false,
+        "text": "REST API.",
+        "title": "API"
+      },
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "finished",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 200,
+      "tokens_out": 40
+    }
+  },
+  "POST job cancel: none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "That Docs AI job does not exist."
+    }
+  },
+  "POST summary": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Summarise this page",
+      "kind": "summary",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "markdown": null
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  }
+}

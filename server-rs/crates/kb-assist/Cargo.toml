@@ -20,6 +20,7 @@ kb-dbkit = { workspace = true }
 kb-docs = { workspace = true }
 kb-doctext = { workspace = true }
 kb-draw = { workspace = true }
+kb-files = { workspace = true }
 kb-fuzzy = { workspace = true }
 kb-ideas = { workspace = true }
 kb-notify = { workspace = true }
@@ -37,5 +38,8 @@ tracing = { workspace = true }
 
 [dev-dependencies]
 fake-claude = { path = "../fake-claude" }
+testkit = { workspace = true }
+# the same sqlx as testkit: tests add rows to the server's SQLite file where no ported route can
+sqlx = { version = "0.9", default-features = false, features = ["sqlite", "runtime-tokio"] }
 sha2 = "0.10"
 tempfile = "3"

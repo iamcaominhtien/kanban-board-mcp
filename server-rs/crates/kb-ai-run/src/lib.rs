@@ -8,19 +8,33 @@
 //! terminal); part 2a, `teams` (AI teams: making, editing, pausing, removing, checking and describing them) and
 //! `launch` (what a run's CLI is started with); part 2b, `runs` (queueing, starting, reading and ending the runs of the
 //! teams), `messaging` (a note to a ticket's team or a page's assistant) and `runner` (the process that owns the CLIs
-//! with `KANBAN_RUNNER=process`). `seams` lists what waits for the modules of part 3 and the assistant.
+//! with `KANBAN_RUNNER=process`); part 3, `schedules` (a team works on a ticket at a set time: the slots, the loop
+//! that starts and follows them), `compact` (`/compact` in the ticket chat), `session_history` (the closed
+//! conversations of a team on a ticket), `touches` (the tab "You stepped in") and `health` (the Health page).
+//! `seams` lists what waits for the assistant and Docs comments, which live in crates above this one.
+//!
+//! At startup the app calls `register()`, then `runs::start_scheduler().await` and, after the assistant's chat has
+//! recovered, `schedules::start_scheduler()` (not async; it must be called inside the runtime). At shutdown:
+//! `schedules::stop_scheduler().await`, then `runs::stop_scheduler().await`.
 
 pub mod accounts;
 pub mod cli;
+pub mod clock;
+pub mod compact;
+pub mod health;
 pub mod launch;
 pub mod messaging;
+pub(crate) mod pynum;
 pub mod resources;
 pub mod runner;
 pub mod runs;
+pub mod schedules;
 pub mod seams;
+pub mod session_history;
 pub mod signin;
 pub mod stream;
 pub mod teams;
+pub mod touches;
 
 /// Fill the slots of lower crates that this crate's modules back (once, at startup; a later call replaces the
 /// earlier one, except the hooks of the board and of the canvases, which keep the first):

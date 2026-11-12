@@ -1,0 +1,719 @@
+{
+  "ask": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Which API style?",
+      "kind": "ask",
+      "member_id": null,
+      "metered": false,
+      "page_id": null,
+      "project_id": "<uuid:1>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "page_id": null,
+        "question": "Which API style?",
+        "scope": "space"
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "ask: blank": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Write a question first."
+    }
+  },
+  "ask: feedback": {
+    "status": 200,
+    "json": {
+      "comment_id": null,
+      "cost": 0.02,
+      "ended_at": "<time>",
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Which API style?",
+      "kind": "ask",
+      "member_id": null,
+      "metered": false,
+      "page_id": null,
+      "project_id": "<uuid:1>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "answer": "REST [1].",
+        "asked_model": true,
+        "citations": [
+          {
+            "n": 1,
+            "page_id": "PAGE",
+            "section": null,
+            "title": "API"
+          }
+        ],
+        "closest": [],
+        "conflicts": [],
+        "cost": 0.02,
+        "feedback": {
+          "at": "<time>",
+          "by": "user",
+          "rating": "up",
+          "reason": ""
+        },
+        "index_updated_at": null,
+        "metered": false,
+        "page_id": null,
+        "pages_cited": 1,
+        "pages_read": 2,
+        "question": "Which API style?",
+        "scope": "space",
+        "too_long": null,
+        "verdict": "answered"
+      },
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "finished",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 200,
+      "tokens_out": 40
+    }
+  },
+  "ask: feedback, bad rating": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Thumbs up or down."
+    }
+  },
+  "ask: feedback, none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "That Docs AI job does not exist."
+    }
+  },
+  "ask: job": {
+    "status": 200,
+    "json": {
+      "comment_id": null,
+      "cost": 0.02,
+      "ended_at": "<time>",
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Which API style?",
+      "kind": "ask",
+      "member_id": null,
+      "metered": false,
+      "page_id": null,
+      "project_id": "<uuid:1>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "answer": "REST [1].",
+        "asked_model": true,
+        "citations": [
+          {
+            "n": 1,
+            "page_id": "PAGE",
+            "section": null,
+            "title": "API"
+          }
+        ],
+        "closest": [],
+        "conflicts": [],
+        "cost": 0.02,
+        "index_updated_at": null,
+        "metered": false,
+        "page_id": null,
+        "pages_cited": 1,
+        "pages_read": 2,
+        "question": "Which API style?",
+        "scope": "space",
+        "too_long": null,
+        "verdict": "answered"
+      },
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "finished",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 200,
+      "tokens_out": 40
+    }
+  },
+  "ask: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "ask: no such page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "ask: no such project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "ask: open as chat": {
+    "status": 201,
+    "json": {
+      "chat_id": "<uuid:1>"
+    }
+  },
+  "ask: open as chat, none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "That Docs AI job does not exist."
+    }
+  },
+  "ask: page scope without a page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "ask: scope": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Scope: this space, this page or all my projects."
+    }
+  },
+  "ask: this page": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "About this",
+      "kind": "ask",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "page_id": "<uuid:1>",
+        "question": "About this",
+        "scope": "page"
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "ask: too long": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Keep the question under 1000 characters."
+    }
+  },
+  "check": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Check this page",
+      "kind": "check",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "markdown": null
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "check: another person": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "docs_no_access",
+        "message": "Docs in Kanban Board is limited to project members.",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "check: no body": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Check this page",
+      "kind": "check",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "markdown": null
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "diagram": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Draw the flow",
+      "kind": "diagram",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "diagram_id": null,
+          "label": null,
+          "markdown": null,
+          "request": "Draw the flow",
+          "selection": "REST"
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "diagram: nothing": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Draw a diagram",
+      "kind": "diagram",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "diagram_id": null,
+          "label": null,
+          "markdown": null,
+          "request": null,
+          "selection": null
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "explain": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Explain: REST",
+      "kind": "explain",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "section": null,
+          "selection": "REST"
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "explain: blank": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Select a passage (up to 4,000 characters) first."
+    }
+  },
+  "explain: no selection": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "selection"
+        ]
+      ]
+    }
+  },
+  "explain: too long": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Select a passage (up to 4,000 characters) first."
+    }
+  },
+  "fix": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Fix: Say which version.",
+      "kind": "check_fix",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "finding": {
+            "id": "c28b8b1f70",
+            "kind": "unclear",
+            "message": "Say which version.",
+            "quote": "The API uses REST.",
+            "section": null,
+            "suggestion": "The API uses REST v2."
+          },
+          "markdown": null
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "fix: GET is not served": {
+    "status": 404,
+    "json": {
+      "detail": "UI not built"
+    }
+  },
+  "fix: job of another kind": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "That finding is gone. Check the page again."
+    }
+  },
+  "fix: no body": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Fix: Say which version.",
+      "kind": "check_fix",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "finding": {
+            "id": "c28b8b1f70",
+            "kind": "unclear",
+            "message": "Say which version.",
+            "quote": "The API uses REST.",
+            "section": null,
+            "suggestion": "The API uses REST v2."
+          },
+          "markdown": null
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "fix: no finding": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "That finding is gone. Check the page again."
+    }
+  },
+  "ignore": {
+    "status": 200,
+    "json": {
+      "key": "86583bb0a3",
+      "ok": true
+    }
+  },
+  "ignore: no key": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "key"
+        ]
+      ]
+    }
+  },
+  "ignore: no page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "report-stale": {
+    "status": 200,
+    "json": {
+      "job_id": "<dj:1>",
+      "ok": true
+    }
+  },
+  "report-stale: no page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "report-stale: no reason": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "reason"
+        ]
+      ]
+    }
+  },
+  "summary": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Summarise this page",
+      "kind": "summary",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "markdown": "# Draft\n"
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "summary: no body": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Summarise this page",
+      "kind": "summary",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "markdown": null
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "summary: no page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "translate": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Translate into Vietnamese",
+      "kind": "translate",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "language": "Vietnamese",
+          "section": null
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "translate: blank": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Pick a language."
+    }
+  }
+}

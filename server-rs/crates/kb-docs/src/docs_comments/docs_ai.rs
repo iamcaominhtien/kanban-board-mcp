@@ -16,8 +16,8 @@ use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use serde_json::{Map, Value, json};
 
 use super::json_list;
-use crate::{Result, hooks};
 use crate::util::casefold;
+use crate::{Result, hooks};
 
 /// The kinds of job that belong to a thread.
 const THREAD_KINDS: [&str; 2] = ["thread_reply", "thread_summary"];

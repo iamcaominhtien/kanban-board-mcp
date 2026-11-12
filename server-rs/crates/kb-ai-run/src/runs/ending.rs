@@ -18,7 +18,7 @@ use serde_json::{Map, Value, json};
 
 use super::describe::publish_run;
 use super::{ENDED, RT, RunError, clip, ctx_for, thousands};
-use crate::{seams, teams};
+use crate::{compact, teams, touches};
 
 /// The keyword arguments of `_end` besides the state and the reason.
 #[derive(Debug, Clone, Default)]
@@ -205,7 +205,7 @@ pub(crate) async fn finish(run_id: &str, result: &Value) -> Result<(), RunError>
                 "to": run.started_by,
                 "asked_at": now_iso(),
                 "more": more,
-                "previous": seams::carry_answer(run.question.as_deref(), run.answer.as_deref()),
+                "previous": touches::carry_answer(run.question.as_deref(), run.answer.as_deref()),
             });
             let mut row = run.into_active_model();
             row.question = Set(Some(pyjson::dumps(&question)));
@@ -574,9 +574,7 @@ pub async fn end(
         // a Review hand-over (push, pull request) that waited for this run to stop goes now
         worktrees::after_run(ticket_id);
         // a compaction asked for in the chat is a convenience
-        if let Some(compact) = seams::compact() {
-            compact.after_run(ticket_id, &run.id);
-        }
+        compact::after_run(ticket_id, &run.id);
     }
     super::forget_append_lock(run_id);
     RT.wake.set();

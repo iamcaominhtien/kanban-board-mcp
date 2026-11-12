@@ -107,13 +107,25 @@ pub async fn record_activity_actor(request: Request, next: Next) -> Response {
 }
 
 /// FastAPI answers HEAD with 405 (its routes list GET only, so `Allow` is `GET`) and names no `HEAD` in the `Allow`
-/// of any 405; axum answers HEAD for every GET route, so the difference is put back here, next to the routes.
+/// of any 405; axum answers HEAD for every GET route, so the difference is put back here, next to the routes. The
+/// same for the headers of a 204.
 pub async fn starlette_methods(request: Request, next: Next) -> Response {
     // (the MCP endpoint is a mounted app in Python: it answers every method itself)
     if request.method() == Method::HEAD && !request.uri().path().starts_with("/mcp/") {
         return crate::method_not_allowed_for("GET");
     }
+    let mounted = request.uri().path().starts_with("/mcp/");
     let mut response = next.run(request).await;
+    // A FastAPI route declared with `status_code=204` answers through its JSON response class with the body taken
+    // out: no body, no `content-length`, but `content-type: application/json`.
+    if response.status() == StatusCode::NO_CONTENT
+        && !mounted
+        && !response.headers().contains_key(axum::http::header::CONTENT_TYPE)
+    {
+        response
+            .headers_mut()
+            .insert(axum::http::header::CONTENT_TYPE, axum::http::HeaderValue::from_static("application/json"));
+    }
     if response.status() == StatusCode::METHOD_NOT_ALLOWED {
         let allow = response.headers().get(axum::http::header::ALLOW).and_then(|v| v.to_str().ok()).map(str::to_string);
         if let Some(allow) = allow {

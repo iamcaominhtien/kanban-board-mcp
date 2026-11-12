@@ -41,7 +41,8 @@ export class Session {
       // the exchange is still recorded and marked as `spa` (reported once in diff.md, not per step).
       await this.context.route((u) => u.origin === new URL(this.server.base).origin && !/\/events$|\.(?:js|css|png|svg|woff2?)$/.test(u.pathname), async (route) => {
         const req = route.request();
-        if (!['fetch', 'xhr'].includes(req.resourceType()) || /event-stream/.test(req.headers()['accept'] || '')) return route.continue();
+        // only reads are looked at: re-sending a request body through the route would corrupt multipart uploads
+        if (req.method() !== 'GET' || !['fetch', 'xhr'].includes(req.resourceType()) || /event-stream/.test(req.headers()['accept'] || '')) return route.continue();
         let res;
         try { res = await route.fetch(); } catch { return route.abort(); }
         if ((res.headers()['content-type'] || '').includes('text/html')) {
@@ -89,6 +90,10 @@ export class Session {
       const rb = req.postData();
       if (rb && /json/.test(req.headers()['content-type'] || '')) {
         try { ex.request = this.norm.json(JSON.parse(rb)); } catch {}
+      }
+      if (ex.type !== 'application/json') {
+        const h = res.headers();
+        ex.h = { cache: h['cache-control'] || null, etag: !!h['etag'], lastModified: !!h['last-modified'], disposition: h['content-disposition'] ? this.norm.str(h['content-disposition']) : null };
       }
       cur.exchanges.push(ex);
       if (ex.type === 'application/json') {

@@ -919,7 +919,8 @@ async fn post_ticket_doc_comments_send(
 ) -> Result<(StatusCode, Json<Value>), Failure> {
     let hook = docs_ai_hook()?;
     let session = kb_db::session();
-    let out = hooked(&headers, hook.send_ticket_doc_comments(&session, &ticket_id, body.give_team_id.as_deref()).await)?;
+    let out =
+        hooked(&headers, hook.send_ticket_doc_comments(&session, &ticket_id, body.give_team_id.as_deref()).await)?;
     events::publish("invalidate", &[]).await;
     Ok((StatusCode::ACCEPTED, obj(out)))
 }

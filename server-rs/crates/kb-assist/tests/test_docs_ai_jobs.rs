@@ -148,27 +148,36 @@ async fn a_running_job_is_stopped_and_its_cli_is_gone() {
 async fn the_hooks_of_other_crates_answer_through_the_runs_seam() {
     let _guard = common::init().await;
     kb_assist::register();
+    // `register` fills the seams of `kb-ai-run` and of this crate, and the Docs AI hook of `kb-docs`; the canvas
+    // delivery is `kb_ai_run::register()`'s (one slot), not this crate's
+    assert!(kb_draw::hooks::canvas_delivery().is_none());
+    assert!(kb_ai_run::seams::page_notes().is_some());
+    assert!(kb_docs::hooks::docs_ai().is_some() && kb_docs::hooks::assign().is_some());
+    assert_eq!(seams::board_url(), kb_ai_run::runs::url());
+    // the seam a later call replaces: a test's fake answers in its place
     let deliveries = Arc::new(common::Deliveries::default());
     seams::set_runs(Some(deliveries.clone()));
-    let delivery = kb_draw::hooks::canvas_delivery().expect("registered by kb_assist::register");
-    delivery.deliver_to_ticket("KAN-1", "a note", "An Nguyen", "docs_threads", 0).await.expect("delivered");
+    let runs = seams::runs().expect("the seam");
+    runs.deliver_to_ticket_with("KAN-1", "a note", "An Nguyen", "docs_threads", 0).await.expect("delivered");
     assert_eq!(
         deliveries.sent.lock().expect("lock").clone(),
         vec![("KAN-1".to_string(), "a note".to_string(), "An Nguyen".to_string())]
     );
     // the default of `deliver_to_page` says the messaging is not connected
-    assert!(matches!(
-        delivery.deliver_to_page("pg", "a note", "An Nguyen", 0).await,
-        Err(kb_draw::hooks::DeliverError::Other(_))
-    ));
+    assert!(matches!(runs.deliver_to_page("pg", "a note", "An Nguyen", 0).await, Err(seams::DeliverError::Other(_))));
     *deliveries.refuse.lock().expect("lock") = Some(seams::DeliverError::Run("The team waits for a person.".into()));
     assert!(matches!(
-        delivery.deliver_to_ticket("KAN-1", "a note", "An Nguyen", "docs_threads", 0).await,
-        Err(kb_draw::hooks::DeliverError::Run(m)) if m == "The team waits for a person."
+        runs.deliver_to_ticket_with("KAN-1", "a note", "An Nguyen", "docs_threads", 0).await,
+        Err(seams::DeliverError::Run(m)) if m == "The team waits for a person."
     ));
-    // Docs AI on: a project with its row switched on, and off
+    seams::set_runs(None);
+    // Docs AI on: a project with its row switched on
     let (pid, _an) = common::project().await;
     let s = database::session();
-    assert!(delivery.docs_ai_on(&s, &pid).await.expect("on"));
-    seams::set_runs(None);
+    let notes = kb_ai_run::seams::page_notes().expect("the page seam");
+    assert!(notes.docs_ai_on(&s, &pid).await.expect("on"));
+    assert!(kb_docs::hooks::docs_ai().expect("hook").docs_ai_on(&s, &pid).await.expect("on"));
+    // a note to a page that is not there is refused as `deliver_to_page` refuses it
+    let refused = kb_ai_run::messaging::deliver_to_page("nope", "x", "An Nguyen", 1).await.expect_err("no such page");
+    assert!(refused.to_string().starts_with("The note could not be left on the page: "), "{refused}");
 }

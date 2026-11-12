@@ -1,0 +1,838 @@
+{
+  "advice": {
+    "status": 200,
+    "json": {
+      "advice": [
+        {
+          "action": "merge",
+          "archive_reason": null,
+          "confidence": "high",
+          "cost": 0.02,
+          "created_at": "<time>",
+          "id": "<uuid:1>",
+          "idea_id": "IDEA-2",
+          "park_days": null,
+          "reason": "Same as Dark mode.",
+          "stale": false,
+          "target_id": "IDEA-1",
+          "target_title": "Dark mode"
+        }
+      ],
+      "errors": [
+        {
+          "code": "not_found",
+          "idea_id": "nope",
+          "message": "Idea not found"
+        }
+      ],
+      "none": []
+    }
+  },
+  "advice: 31": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "idea_ids"
+        ]
+      ]
+    }
+  },
+  "advice: get": {
+    "status": 200,
+    "json": [
+      {
+        "action": "merge",
+        "archive_reason": null,
+        "confidence": "high",
+        "cost": 0.02,
+        "created_at": "<time>",
+        "id": "<uuid:1>",
+        "idea_id": "IDEA-2",
+        "park_days": null,
+        "reason": "Same as Dark mode.",
+        "stale": false,
+        "target_id": "IDEA-1",
+        "target_title": "Dark mode"
+      }
+    ]
+  },
+  "advice: get, bad flag": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "include_none"
+        ]
+      ]
+    }
+  },
+  "advice: get, no ids": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "idea_ids"
+        ]
+      ]
+    }
+  },
+  "advice: get, with none": {
+    "status": 200,
+    "json": [
+      {
+        "action": "merge",
+        "archive_reason": null,
+        "confidence": "high",
+        "cost": 0.02,
+        "created_at": "<time>",
+        "id": "<uuid:1>",
+        "idea_id": "IDEA-2",
+        "park_days": null,
+        "reason": "Same as Dark mode.",
+        "stale": false,
+        "target_id": "IDEA-1",
+        "target_title": "Dark mode"
+      },
+      {
+        "action": "none",
+        "archive_reason": null,
+        "confidence": "low",
+        "cost": 0.02,
+        "created_at": "<time>",
+        "id": "<uuid:2>",
+        "idea_id": "IDEA-1",
+        "park_days": null,
+        "reason": "Not sure.",
+        "stale": false,
+        "target_id": null,
+        "target_title": null
+      }
+    ]
+  },
+  "advice: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "idea_ids"
+        ]
+      ]
+    }
+  },
+  "advice: none": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "idea_ids"
+        ]
+      ]
+    }
+  },
+  "advice: not a member": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "not_member",
+        "message": "Only members can ask the AI. You can still read what it suggested."
+      }
+    }
+  },
+  "advice: state": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "state": "accepted"
+    }
+  },
+  "advice: state, bad": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "state"
+        ]
+      ]
+    }
+  },
+  "advice: state, no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "state"
+        ]
+      ]
+    }
+  },
+  "advice: state, none": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "not_found",
+        "message": "Advice not found"
+      }
+    }
+  },
+  "advice: unsure": {
+    "status": 200,
+    "json": {
+      "advice": [],
+      "errors": [],
+      "none": [
+        "IDEA-1"
+      ]
+    }
+  },
+  "advice: unusable answer": {
+    "status": 200,
+    "json": {
+      "advice": [],
+      "errors": [
+        {
+          "code": "bad_answer",
+          "idea_id": "IDEA-1",
+          "message": "The AI gave an answer that could not be used."
+        }
+      ],
+      "none": []
+    }
+  },
+  "ask": {
+    "status": 200,
+    "json": {
+      "actions": [],
+      "answer": "Test Dark mode first.",
+      "cost": 0.02,
+      "ideas_read": 2,
+      "member": "Board AI",
+      "sources": []
+    }
+  },
+  "ask: bad scope": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "scope"
+        ]
+      ]
+    }
+  },
+  "ask: empty": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "question"
+        ]
+      ]
+    }
+  },
+  "ask: everywhere": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "code": "off",
+        "message": "This helper is off for these ideas."
+      }
+    }
+  },
+  "ask: long": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "question"
+        ]
+      ]
+    }
+  },
+  "ask: none": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "code": "off",
+        "message": "This helper is off for these ideas."
+      }
+    }
+  },
+  "ask: not a member": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "not_member",
+        "message": "Only members can ask the AI. You can still read what it suggested."
+      }
+    }
+  },
+  "digest": {
+    "status": 200,
+    "json": {
+      "ai": true,
+      "cost": 0.02,
+      "created_at": "<time>",
+      "id": "<uuid:1>",
+      "ideas_read": 2,
+      "items": [
+        {
+          "idea_ids": [],
+          "kind": "ready",
+          "text": "Dark mode is ready."
+        }
+      ],
+      "project_id": "<uuid:2>",
+      "text": "Two ideas, one duplicate."
+    }
+  },
+  "digest/run": {
+    "status": 201,
+    "json": {
+      "ai": true,
+      "cost": 0.02,
+      "created_at": "<time>",
+      "id": "<uuid:1>",
+      "ideas_read": 2,
+      "items": [
+        {
+          "idea_ids": [],
+          "kind": "ready",
+          "text": "Dark mode is ready."
+        }
+      ],
+      "project_id": "<uuid:2>",
+      "text": "Two ideas, one duplicate."
+    }
+  },
+  "digest/run: everywhere": {
+    "status": 201,
+    "json": {
+      "ai": true,
+      "cost": 0.02,
+      "created_at": "<time>",
+      "id": "<uuid:1>",
+      "ideas_read": 0,
+      "items": [
+        {
+          "idea_ids": [],
+          "kind": "ready",
+          "text": "Dark mode is ready."
+        }
+      ],
+      "project_id": null,
+      "text": "Two ideas, one duplicate."
+    }
+  },
+  "digest/run: not a member": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "not_member",
+        "message": "Only members can ask the AI. You can still read what it suggested."
+      }
+    }
+  },
+  "digest: another project": {
+    "status": 200,
+    "json": null
+  },
+  "digest: none": {
+    "status": 200,
+    "json": null
+  },
+  "off: advice": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "code": "off",
+        "message": "AI help is off for these ideas."
+      }
+    }
+  },
+  "off: digest/run": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "code": "off",
+        "message": "AI help is off for these ideas."
+      }
+    }
+  },
+  "off: prepare-ticket": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "code": "off",
+        "message": "AI help is off for these ideas."
+      }
+    }
+  },
+  "off: shape": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "code": "off",
+        "message": "AI help is off for these ideas."
+      }
+    }
+  },
+  "prepare-ticket": {
+    "status": 200,
+    "json": {
+      "acceptance_criteria": [
+        "Toggle in settings"
+      ],
+      "cost": 0.02,
+      "description": "Do it.",
+      "member": "Idea AI",
+      "sub_tickets": [],
+      "title": "Add a dark theme"
+    }
+  },
+  "prepare-ticket: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "idea_id"
+        ]
+      ]
+    }
+  },
+  "prepare-ticket: none": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "not_found",
+        "message": "Idea ticket 'nope' not found"
+      }
+    }
+  },
+  "prepare-ticket: not a member": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "not_member",
+        "message": "Only members can ask the AI. You can still read what it suggested."
+      }
+    }
+  },
+  "settings": {
+    "status": 200,
+    "json": {
+      "cap": 1.0,
+      "hints": {
+        "advice": 0.02,
+        "ask": 0.03,
+        "exists": 0.05,
+        "grooming": 0.05,
+        "shape": 0.03,
+        "ticket": 0.04
+      },
+      "limited": false,
+      "member": "Idea AI",
+      "message": "",
+      "settings": {
+        "ask": true,
+        "daily_cap": 1.0,
+        "enabled": true,
+        "read_docs": true,
+        "read_repo": true,
+        "triage_advice": true,
+        "weekly_grooming": true
+      },
+      "spent_today": 0.0,
+      "state": "on"
+    }
+  },
+  "settings: none": {
+    "status": 200,
+    "json": {
+      "cap": 1.0,
+      "hints": {
+        "advice": 0.02,
+        "ask": 0.03,
+        "exists": 0.05,
+        "grooming": 0.05,
+        "shape": 0.03,
+        "ticket": 0.04
+      },
+      "limited": true,
+      "member": "Idea AI",
+      "message": "",
+      "settings": {
+        "ask": true,
+        "daily_cap": 1.0,
+        "enabled": true,
+        "read_docs": true,
+        "read_repo": true,
+        "triage_advice": true,
+        "weekly_grooming": true
+      },
+      "spent_today": 0.0,
+      "state": "on"
+    }
+  },
+  "settings: put": {
+    "status": 200,
+    "json": {
+      "cap": 2.5,
+      "hints": {
+        "advice": 0.02,
+        "ask": 0.03,
+        "exists": 0.05,
+        "grooming": 0.05,
+        "shape": 0.03,
+        "ticket": 0.04
+      },
+      "limited": false,
+      "member": "Idea AI",
+      "message": "",
+      "settings": {
+        "ask": true,
+        "daily_cap": 2.5,
+        "enabled": true,
+        "read_docs": false,
+        "read_repo": true,
+        "triage_advice": false,
+        "weekly_grooming": true
+      },
+      "spent_today": 0.0,
+      "state": "on"
+    }
+  },
+  "settings: put, another person": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Only project admins change the AI settings."
+      }
+    }
+  },
+  "settings: put, back on": {
+    "status": 200,
+    "json": {
+      "cap": 2.5,
+      "hints": {
+        "advice": 0.02,
+        "ask": 0.03,
+        "exists": 0.05,
+        "grooming": 0.05,
+        "shape": 0.03,
+        "ticket": 0.04
+      },
+      "limited": false,
+      "member": "Idea AI",
+      "message": "",
+      "settings": {
+        "ask": true,
+        "daily_cap": 2.5,
+        "enabled": true,
+        "read_docs": false,
+        "read_repo": true,
+        "triage_advice": true,
+        "weekly_grooming": true
+      },
+      "spent_today": 0.0,
+      "state": "on"
+    }
+  },
+  "settings: put, cap 0": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "daily_cap"
+        ]
+      ]
+    }
+  },
+  "settings: put, cap 1001": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "daily_cap"
+        ]
+      ]
+    }
+  },
+  "settings: put, no project": {
+    "status": 200,
+    "json": {
+      "cap": 1.0,
+      "hints": {
+        "advice": 0.02,
+        "ask": 0.03,
+        "exists": 0.05,
+        "grooming": 0.05,
+        "shape": 0.03,
+        "ticket": 0.04
+      },
+      "limited": true,
+      "member": "Idea AI",
+      "message": "",
+      "settings": {
+        "ask": false,
+        "daily_cap": 1.0,
+        "enabled": true,
+        "read_docs": true,
+        "read_repo": true,
+        "triage_advice": true,
+        "weekly_grooming": true
+      },
+      "spent_today": 0.0,
+      "state": "on"
+    }
+  },
+  "settings: put, nothing": {
+    "status": 200,
+    "json": {
+      "cap": 2.5,
+      "hints": {
+        "advice": 0.02,
+        "ask": 0.03,
+        "exists": 0.05,
+        "grooming": 0.05,
+        "shape": 0.03,
+        "ticket": 0.04
+      },
+      "limited": false,
+      "member": "Idea AI",
+      "message": "",
+      "settings": {
+        "ask": true,
+        "daily_cap": 2.5,
+        "enabled": true,
+        "read_docs": false,
+        "read_repo": true,
+        "triage_advice": false,
+        "weekly_grooming": true
+      },
+      "spent_today": 0.0,
+      "state": "on"
+    }
+  },
+  "settings: put, wrong type": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "enabled"
+        ]
+      ]
+    }
+  },
+  "shape": {
+    "status": 200,
+    "json": {
+      "ai": true,
+      "assumptions": [
+        {
+          "cheapest_test": "Ask five users",
+          "impact": "high",
+          "text": "People work at night"
+        }
+      ],
+      "cost": 0.02,
+      "kind": "assumptions",
+      "member": "Idea AI",
+      "member_id": "",
+      "model": "stand-in"
+    }
+  },
+  "shape/stop": {
+    "status": 200,
+    "json": {
+      "stopped": false
+    }
+  },
+  "shape: ask without a question": {
+    "status": 400,
+    "json": {
+      "detail": {
+        "code": "invalid",
+        "message": "Write a question first"
+      }
+    }
+  },
+  "shape: bad kind": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "kind"
+        ]
+      ]
+    }
+  },
+  "shape: long question": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "question"
+        ]
+      ]
+    }
+  },
+  "shape: no idea": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "not_found",
+        "message": "Idea ticket 'nope' not found"
+      }
+    }
+  },
+  "shape: not a member": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "not_member",
+        "message": "Only members can ask the AI. You can still read what it suggested."
+      }
+    }
+  },
+  "shape: short request id": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "request_id"
+        ]
+      ]
+    }
+  },
+  "status": {
+    "status": 200,
+    "json": {
+      "cap": 1.0,
+      "hints": {
+        "advice": 0.02,
+        "ask": 0.03,
+        "exists": 0.05,
+        "grooming": 0.05,
+        "shape": 0.03,
+        "ticket": 0.04
+      },
+      "limited": false,
+      "member": "Idea AI",
+      "message": "",
+      "settings": {
+        "ask": true,
+        "daily_cap": 1.0,
+        "enabled": true,
+        "read_docs": true,
+        "read_repo": true,
+        "triage_advice": true,
+        "weekly_grooming": true
+      },
+      "spent_today": 0.0,
+      "state": "on"
+    }
+  },
+  "status: after": {
+    "status": 200,
+    "json": {
+      "cap": 2.5,
+      "hints": {
+        "advice": 0.02,
+        "ask": 0.03,
+        "exists": 0.05,
+        "grooming": 0.05,
+        "shape": 0.03,
+        "ticket": 0.04
+      },
+      "limited": false,
+      "member": "Idea AI",
+      "message": "",
+      "settings": {
+        "ask": true,
+        "daily_cap": 2.5,
+        "enabled": true,
+        "read_docs": false,
+        "read_repo": true,
+        "triage_advice": true,
+        "weekly_grooming": true
+      },
+      "spent_today": 0.16,
+      "state": "on"
+    }
+  },
+  "status: no project": {
+    "status": 200,
+    "json": {
+      "cap": 1.0,
+      "hints": {
+        "advice": 0.02,
+        "ask": 0.03,
+        "exists": 0.05,
+        "grooming": 0.05,
+        "shape": 0.03,
+        "ticket": 0.04
+      },
+      "limited": true,
+      "member": "Idea AI",
+      "message": "",
+      "settings": {
+        "ask": true,
+        "daily_cap": 1.0,
+        "enabled": true,
+        "read_docs": true,
+        "read_repo": true,
+        "triage_advice": true,
+        "weekly_grooming": true
+      },
+      "spent_today": 0.0,
+      "state": "on"
+    }
+  },
+  "status: no team": {
+    "status": 200,
+    "json": {
+      "cap": 1.0,
+      "hints": {
+        "advice": 0.02,
+        "ask": 0.03,
+        "exists": 0.05,
+        "grooming": 0.05,
+        "shape": 0.03,
+        "ticket": 0.04
+      },
+      "limited": false,
+      "member": "Idea AI",
+      "message": "",
+      "settings": {
+        "ask": true,
+        "daily_cap": 1.0,
+        "enabled": true,
+        "read_docs": true,
+        "read_repo": true,
+        "triage_advice": true,
+        "weekly_grooming": true
+      },
+      "spent_today": 0.0,
+      "state": "on"
+    }
+  }
+}

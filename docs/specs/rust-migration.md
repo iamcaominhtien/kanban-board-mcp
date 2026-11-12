@@ -191,8 +191,9 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
       receipt, engine, health, chat)
 - [x] `kb-assist`, part 2: `assistant/docs.py`, `editor.py`, `ideas.py`, `services/docs_ai/` (the services; their
       routes are in the line below)
-- [ ] the other AI routes: `api/ai.py`, `ai_board.py`, `ai_code.py`, `ai_editor.py`, `ai_sketch.py`, `ai_tools.py`,
-      `assist.py`, `schedules.py`, `idea_ai.py`, `api/docs_ai/`
+- [x] the assistants' routes: `assist.py`, `ai_editor.py`, `ai_sketch.py`, `idea_ai.py`, `api/docs_ai/`, and the four
+      Docs hand-off routes of `api/docs.py` (370 recorded answers equal Python's)
+- [ ] the other AI routes: `api/ai.py`, `ai_board.py`, `ai_code.py`, `ai_tools.py`, `schedules.py`
 
 ### P6 Database kit and migrations (`kb-dbkit`, `kb-db`)
 
@@ -223,12 +224,15 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - PDF text (`pdf-extract`) equals `pypdf` on the test fixtures; on the repository's own PDFs it differs in whitespace
   (`pypdf` splits Vietnamese words) and in one file in the bullet character. Accepted unless search quality suffers.
 - On Windows `kb-ai-run` has only been type-checked in part (no Windows C toolchain here): it compiles first in CI.
-- Two crates register `kb_draw::hooks::CanvasDelivery` (`kb-ai-run` first, so it holds; `kb-assist` second). Keep the
-  one of `kb-ai-run`, drop the other, and fill `kb_ai_run::seams::PageNotes` and `kb_assist::seams::Runs` (the
-  delivery calls with a trigger and a depth, a note to a page, waking a new assignee) from `kb-assist`, which sees
-  both crates.
-- A Docs comment that mentions an AI is not delivered to Docs AI yet: `kb-docs/src/docs_comments/docs_ai.rs` answers
-  "not available"; it needs a hook that `kb-assist` fills with `assistant::docs::deliver`.
+- `kb_assist::seams::Runs::wake_new_assignee` gives no error: a failure to start the run of a page's new assignee is
+  logged, where Python answers 500.
+- `mcp_docs_scenario` failed once in many runs on its `notification` comparison (timing): look at it if it returns.
+- The template database of `testkit` no longer carries the workspace settings of the server that made it (three
+  recorded MCP files held a stale folder because of it and were recorded again).
+- The UI end-to-end check (`server-rs/e2e`, `node run.mjs --target both`): 137 core steps pass on both servers. What
+  it found: the screens that need the routes not served yet (AI teams, schedules, board health), the MCP tool count
+  (9 of 13 until the last tools are ported), and the `content-type` of a 204 (fixed). Run it again before the
+  switch; draw.io is not covered (the editor is not in the checkout).
 - Tests that need the UI not to be built read the index page as the recorded 404 (`Resp::is_ui_index` in
   `testkit`), since both servers fall back to `ui/dist` of the checkout.
 - The sign-in route writes its audit entry through a private copy of `touches.record_signin` in

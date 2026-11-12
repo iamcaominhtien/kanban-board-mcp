@@ -128,10 +128,10 @@ async fn session_for(
 ) -> Result<(Option<String>, Option<String>), DbErr> {
     let mut wanted = run.session_id.clone().filter(|s| !s.is_empty());
     let ticket_id = run.ticket_id.as_deref().filter(|t| !t.is_empty());
-    let mut closed: HashSet<String> = HashSet::new();
-    if let (Some(ticket_id), Some(history)) = (ticket_id, seams::session_history()) {
-        closed = history.closed_session_ids(session, ticket_id).await?;
-    }
+    let closed: HashSet<String> = match ticket_id {
+        Some(ticket_id) => seams::closed_session_ids(session, ticket_id).await?,
+        None => HashSet::new(),
+    };
     if wanted.as_ref().is_some_and(|w| closed.contains(w)) {
         wanted = None;
     }

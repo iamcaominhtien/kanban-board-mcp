@@ -87,6 +87,17 @@ export default {
         if (!(await dlg().count())) await openTicket(s, 'ALP-1');
         await dlg().getByText(/Login flow sketch|Flow board/).first().waitFor();
       });
+      await s.step('the sketch picture can be revalidated with If-None-Match', async () => {
+        const src = await p.locator('img[src*="/sketches/"]').first().getAttribute('src');
+        const r1 = await p.request.get(new URL(src, s.server.base).href);
+        const etag = r1.headers()['etag'];
+        const r1b = await p.request.get(new URL(src, s.server.base).href);
+        s.note('etag is the same on a second plain request', r1b.headers()['etag'] === etag);
+        s.note('etag shape', (etag || '').replace(/[0-9a-f]{8,}/g, 'HEX'));
+        s.note('first answer', { status: r1.status(), type: r1.headers()['content-type'], hasEtag: !!etag, cache: r1.headers()['cache-control'] });
+        const r2 = await p.request.get(new URL(src, s.server.base).href, { headers: { 'If-None-Match': etag || 'none' } });
+        s.note('conditional answer status', r2.status());
+      });
     } finally {
       cleanFixtures(fx);
     }

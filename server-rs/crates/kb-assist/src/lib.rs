@@ -4,8 +4,9 @@
 //! Ported: the assistant's engine and the Board AI chat (`assistant::{errors, settings, sessions, skills, drafts,
 //! receipt, engine, health, chat}`, part 1), the Docs AI, the editor assistant and the ideas assistant
 //! (`assistant::{docs, editor, ideas}`) and `docs_ai::{errors, settings, jobs, tidy, health, handoff}` (part 2). The
-//! routes (`api/assist.py`, `api/docs_ai/`, `api/ai_editor.py`, `api/idea_ai.py`, `api/ai_sketch.py`) are a later
-//! task. `seams` lists what waits for `services/ai/runs.py`; `hooks` lists the hooks of other crates this crate backs.
+//! routes (`api/docs_ai/`, `api/assist.py`, `api/ai_editor.py`, `api/ai_sketch.py`, `api/idea_ai.py`) are in `api`,
+//! one block in the order of `main.py`. `seams` lists what this crate asks of `services/ai/runs.py` (filled by
+//! `register`); `hooks` lists the hooks and seams of other crates this crate backs.
 //!
 //! The app's lifespan calls, in `server/main.py` (lines 123 to 126), in this order: `ai_runs.start_scheduler()`, then
 //! `docs_ai_jobs.recover()` (`docs_ai::jobs::recover().await`, line 124), then `assistant_chat.recover()`

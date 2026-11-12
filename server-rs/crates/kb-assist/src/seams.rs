@@ -1,5 +1,6 @@
-//! Places where the assistants meet modules that another task ports. A slot that is not filled behaves as the
-//! Python call would on a board that has not started its runs; each seam says which Python call it stands for.
+//! Places where the assistants meet the AI runs (`services/ai/runs.py`, ported in `kb-ai-run`, which `hooks::CoreRuns`
+//! connects here from `register`). A slot that is not filled behaves as the Python call would on a board that has not
+//! started its runs; each seam says which Python call it stands for.
 //!
 //! | seam | stands for | filled by |
 //! |---|---|---|

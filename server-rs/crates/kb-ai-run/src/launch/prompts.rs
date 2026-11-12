@@ -335,11 +335,9 @@ pub async fn build_prompt(
     }
     if let Some(ticket) = ticket.as_ref().filter(|_| !opts.resume) {
         // `session_history.prompt_block`: what a new conversation is told about the closed ones
-        if let Some(history) = seams::session_history() {
-            let earlier = history.prompt_block(session, &ticket.id).await?;
-            if !earlier.is_empty() {
-                parts.push(earlier);
-            }
+        let earlier = seams::prompt_block(session, &ticket.id).await?;
+        if !earlier.is_empty() {
+            parts.push(earlier);
         }
     }
     if let Some(note) = opts.note.filter(|n| !n.is_empty()) {

@@ -46,6 +46,8 @@ export default {
         }, null, { timeout: 8000 });
       });
       await s.step('the pictures loaded with their real size', async () => {
+        await p.evaluate(() => document.querySelectorAll('[role="dialog"] img').forEach((i) => i.scrollIntoView({ block: 'center' })));
+        await p.waitForFunction(() => [...document.querySelectorAll('[role="dialog"] img')].filter((i) => i.src.includes('/uploads/')).every((i) => i.naturalWidth > 0), null, { timeout: 8000 });
         const sizes = await p.evaluate(() => [...document.querySelectorAll('[role="dialog"] img')].filter((i) => i.src.includes('/uploads/')).map((i) => `${i.naturalWidth}x${i.naturalHeight}`).sort());
         if ([...new Set(sizes)].join() !== '24x24,48x32') throw new Error('unexpected picture sizes: ' + sizes.join());
       });

@@ -1,0 +1,679 @@
+{
+  "accept": {
+    "status": 200,
+    "json": {
+      "applied_at": null,
+      "applied_by": "user",
+      "chat_message_id": "<uuid:1>",
+      "cost": 0.0,
+      "created_at": "<time>",
+      "doc_id": null,
+      "expires_at": null,
+      "id": "<uuid:2>",
+      "insight_id": null,
+      "kind": "sketch",
+      "member_id": null,
+      "member_name": "Board AI",
+      "owner": "user",
+      "payload": {
+        "result": {
+          "added": [
+            0,
+            1
+          ],
+          "dropped": 0,
+          "height": 600,
+          "ideas": [
+            "Add an error state",
+            "Add a logo"
+          ],
+          "kind": "proposal",
+          "layer": "AI",
+          "note": "",
+          "ops": [],
+          "width": 800
+        }
+      },
+      "project_id": "<uuid:3>",
+      "raw": "",
+      "result": {},
+      "status": "applied",
+      "ticket_id": null,
+      "tokens": 0
+    }
+  },
+  "accept: again": {
+    "status": 200,
+    "json": {
+      "applied_at": null,
+      "applied_by": "user",
+      "chat_message_id": "<uuid:1>",
+      "cost": 0.0,
+      "created_at": "<time>",
+      "doc_id": null,
+      "expires_at": null,
+      "id": "<uuid:2>",
+      "insight_id": null,
+      "kind": "sketch",
+      "member_id": null,
+      "member_name": "Board AI",
+      "owner": "user",
+      "payload": {
+        "result": {
+          "added": [
+            0,
+            1
+          ],
+          "dropped": 0,
+          "height": 600,
+          "ideas": [
+            "Add an error state",
+            "Add a logo"
+          ],
+          "kind": "proposal",
+          "layer": "AI",
+          "note": "",
+          "ops": [],
+          "width": 800
+        }
+      },
+      "project_id": "<uuid:3>",
+      "raw": "",
+      "result": {},
+      "status": "applied",
+      "ticket_id": null,
+      "tokens": 0
+    }
+  },
+  "accept: none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "That draft is gone. Ask again."
+    }
+  },
+  "file: another person": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "File not found."
+    }
+  },
+  "file: no chat": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "File not found."
+    }
+  },
+  "file: no turn": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "File not found."
+    }
+  },
+  "file: none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "File not found."
+    }
+  },
+  "file: note": {
+    "note": {
+      "bytes": "A note.",
+      "disposition": "attachment; filename=\"notes.txt\"",
+      "status": 200
+    }
+  },
+  "file: picture": {
+    "note": {
+      "bytes": "�PNG\r\n",
+      "csp": "default-src 'none'; sandbox",
+      "disposition": null,
+      "status": 200,
+      "type": "image/png"
+    }
+  },
+  "file: system.md": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "File not found."
+    }
+  },
+  "idea": {
+    "status": 200,
+    "json": {
+      "applied_at": null,
+      "applied_by": null,
+      "chat_message_id": "<uuid:1>",
+      "cost": 0.0,
+      "created_at": "<time>",
+      "doc_id": null,
+      "expires_at": null,
+      "id": "<uuid:2>",
+      "insight_id": null,
+      "kind": "sketch",
+      "member_id": null,
+      "member_name": "Board AI",
+      "owner": "user",
+      "payload": {
+        "result": {
+          "added": [
+            1
+          ],
+          "dropped": 0,
+          "height": 600,
+          "ideas": [
+            "Add an error state",
+            "Add a logo"
+          ],
+          "kind": "proposal",
+          "layer": "AI",
+          "note": "",
+          "ops": [],
+          "width": 800
+        }
+      },
+      "project_id": "<uuid:3>",
+      "raw": "",
+      "result": {},
+      "status": "open",
+      "ticket_id": null,
+      "tokens": 0
+    }
+  },
+  "idea: again": {
+    "status": 200,
+    "json": {
+      "applied_at": null,
+      "applied_by": null,
+      "chat_message_id": "<uuid:1>",
+      "cost": 0.0,
+      "created_at": "<time>",
+      "doc_id": null,
+      "expires_at": null,
+      "id": "<uuid:2>",
+      "insight_id": null,
+      "kind": "sketch",
+      "member_id": null,
+      "member_name": "Board AI",
+      "owner": "user",
+      "payload": {
+        "result": {
+          "added": [
+            0,
+            1
+          ],
+          "dropped": 0,
+          "height": 600,
+          "ideas": [
+            "Add an error state",
+            "Add a logo"
+          ],
+          "kind": "proposal",
+          "layer": "AI",
+          "note": "",
+          "ops": [],
+          "width": 800
+        }
+      },
+      "project_id": "<uuid:3>",
+      "raw": "",
+      "result": {},
+      "status": "open",
+      "ticket_id": null,
+      "tokens": 0
+    }
+  },
+  "idea: negative": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "That idea is not in the answer."
+    }
+  },
+  "idea: no index": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "index"
+        ]
+      ]
+    }
+  },
+  "idea: none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "That draft is gone. Ask again."
+    }
+  },
+  "idea: out of range": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "That idea is not in the answer."
+    }
+  },
+  "message": {
+    "status": 200,
+    "json": {
+      "ai": {
+        "actions": [],
+        "chat_id": "<uuid:1>",
+        "context": {
+          "label": "New chat",
+          "request": {
+            "doc_ids": [],
+            "extra": {
+              "canvas": {
+                "h": 600,
+                "title": "Login",
+                "w": 800
+              },
+              "title": "Login"
+            },
+            "mode": "ask",
+            "skill": "sketch-ask"
+          },
+          "scope": "sketch"
+        },
+        "cost": 0.0,
+        "created_at": "<time>",
+        "draft": null,
+        "draft_id": null,
+        "error": {},
+        "feedback": null,
+        "finished_at": null,
+        "id": "<uuid:2>",
+        "member_id": null,
+        "metered": false,
+        "model": null,
+        "retry_at": null,
+        "role": "ai",
+        "state": "thinking",
+        "steps": [],
+        "text": "",
+        "tokens_in": 0,
+        "tokens_out": 0
+      },
+      "user": {
+        "actions": [],
+        "chat_id": "<uuid:1>",
+        "context": {},
+        "cost": 0.0,
+        "created_at": "<time>",
+        "draft": null,
+        "draft_id": null,
+        "error": {},
+        "feedback": null,
+        "finished_at": "<time>",
+        "id": "<uuid:3>",
+        "member_id": null,
+        "metered": false,
+        "model": null,
+        "retry_at": null,
+        "role": "user",
+        "state": "done",
+        "steps": [],
+        "text": "What is this?",
+        "tokens_in": 0,
+        "tokens_out": 0
+      }
+    }
+  },
+  "message: JSON is not a form": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "text"
+        ]
+      ]
+    }
+  },
+  "message: answered": {
+    "status": 200,
+    "json": {
+      "actions": [],
+      "chat_id": "<uuid:1>",
+      "context": {
+        "label": "New chat",
+        "request": {
+          "doc_ids": [],
+          "extra": {
+            "canvas": {
+              "h": 600,
+              "title": "Login",
+              "w": 800
+            },
+            "title": "Login"
+          },
+          "mode": "ask",
+          "skill": "sketch-ask"
+        },
+        "run": {
+          "id": "<run:1>"
+        },
+        "scope": "sketch"
+      },
+      "cost": 0.02,
+      "created_at": "<time>",
+      "draft": {
+        "applied_at": null,
+        "applied_by": null,
+        "chat_message_id": "<uuid:2>",
+        "cost": 0.0,
+        "created_at": "<time>",
+        "doc_id": null,
+        "expires_at": null,
+        "id": "<uuid:3>",
+        "insight_id": null,
+        "kind": "sketch",
+        "member_id": null,
+        "member_name": "Board AI",
+        "owner": "user",
+        "payload": {
+          "result": {
+            "added": [],
+            "dropped": 0,
+            "height": 600,
+            "ideas": [
+              "Add an error state",
+              "Add a logo"
+            ],
+            "kind": "proposal",
+            "layer": "AI",
+            "note": "",
+            "ops": [],
+            "width": 800
+          }
+        },
+        "project_id": "<uuid:4>",
+        "raw": "",
+        "result": {},
+        "status": "open",
+        "ticket_id": null,
+        "tokens": 0
+      },
+      "draft_id": "<uuid:3>",
+      "error": {},
+      "feedback": null,
+      "finished_at": "<time>",
+      "id": "<uuid:2>",
+      "member_id": null,
+      "metered": false,
+      "model": "stand-in",
+      "retry_at": null,
+      "role": "ai",
+      "state": "done",
+      "steps": [],
+      "text": "A login flow.",
+      "tokens_in": 200,
+      "tokens_out": 40
+    }
+  },
+  "message: bad flag": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "with_image"
+        ]
+      ]
+    }
+  },
+  "message: bad numbers": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "width"
+        ]
+      ]
+    }
+  },
+  "message: big file": {
+    "status": 413,
+    "json": {
+      "code": "too_large",
+      "detail": "huge.txt is too large (at most 5120 KB)."
+    }
+  },
+  "message: big picture": {
+    "status": 413,
+    "json": {
+      "code": "too_large",
+      "detail": "The picture of the drawing is too large (at most 4096 KB)."
+    }
+  },
+  "message: no chat": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Chat not found."
+    }
+  },
+  "message: no fields": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "text"
+        ]
+      ]
+    }
+  },
+  "message: too long": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Keep the message under 2000 characters."
+    }
+  },
+  "message: too many files": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "At most 7 files can be attached to one message."
+    }
+  },
+  "preview": {
+    "status": 200,
+    "json": {
+      "draw_estimate": null,
+      "estimate": null,
+      "injections": [],
+      "never_sent": [
+        "Other sketches, hidden layers' names and files outside the board"
+      ],
+      "pieces": [
+        {
+          "chars": 15,
+          "kind": "question",
+          "label": "Your question",
+          "preview": " What is this? ",
+          "tokens": 4
+        },
+        {
+          "chars": 5,
+          "kind": "title",
+          "label": "The sketch's title",
+          "preview": "Login",
+          "tokens": 2
+        },
+        {
+          "chars": 0,
+          "kind": "picture",
+          "label": "The drawing (800×600)",
+          "preview": "",
+          "tokens": 1500
+        },
+        {
+          "chars": 401,
+          "kind": "attachment",
+          "label": "notes.txt",
+          "preview": "",
+          "tokens": 100
+        },
+        {
+          "chars": 9,
+          "kind": "attachment",
+          "label": "file",
+          "preview": "",
+          "tokens": 2
+        },
+        {
+          "chars": 0,
+          "kind": "attachment",
+          "label": "file",
+          "preview": "",
+          "tokens": 0
+        }
+      ],
+      "tokens": 1608
+    }
+  },
+  "preview: empty": {
+    "status": 200,
+    "json": {
+      "draw_estimate": null,
+      "estimate": null,
+      "injections": [],
+      "never_sent": [
+        "Other sketches, hidden layers' names and files outside the board"
+      ],
+      "pieces": [],
+      "tokens": 0
+    }
+  },
+  "preview: no owner": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "owner_kind"
+        ]
+      ]
+    }
+  },
+  "state": {
+    "status": 200,
+    "json": {
+      "availability": {
+        "code": "ok"
+      },
+      "estimates": null,
+      "limits": {
+        "attachments": {
+          "image_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp",
+            "image/gif"
+          ],
+          "max_image_bytes": 5242880,
+          "max_images": 4,
+          "max_text_bytes": 204800,
+          "max_text_files": 3
+        },
+        "max_image_bytes": 4194304,
+        "max_ops": 0,
+        "max_points": 0,
+        "max_prompt": 2000,
+        "max_text": 200
+      },
+      "member_id": null,
+      "never_sent": [
+        "Other sketches, hidden layers' names and files outside the board"
+      ]
+    }
+  },
+  "state: no owner": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "owner_kind"
+        ]
+      ]
+    }
+  },
+  "state: no project": {
+    "status": 200,
+    "json": {
+      "availability": {
+        "code": "not_shared",
+        "message": "Put the sketch in a project to ask the AI about it."
+      },
+      "estimates": null,
+      "limits": {
+        "attachments": {
+          "image_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp",
+            "image/gif"
+          ],
+          "max_image_bytes": 5242880,
+          "max_images": 4,
+          "max_text_bytes": 204800,
+          "max_text_files": 3
+        },
+        "max_image_bytes": 4194304,
+        "max_ops": 0,
+        "max_points": 0,
+        "max_prompt": 2000,
+        "max_text": 200
+      },
+      "member_id": null,
+      "never_sent": [
+        "Other sketches, hidden layers' names and files outside the board"
+      ]
+    }
+  },
+  "state: unknown project": {
+    "status": 200,
+    "json": {
+      "availability": {
+        "code": "not_shared",
+        "message": "Put the sketch in a project to ask the AI about it."
+      },
+      "estimates": null,
+      "limits": {
+        "attachments": {
+          "image_types": [
+            "image/png",
+            "image/jpeg",
+            "image/webp",
+            "image/gif"
+          ],
+          "max_image_bytes": 5242880,
+          "max_images": 4,
+          "max_text_bytes": 204800,
+          "max_text_files": 3
+        },
+        "max_image_bytes": 4194304,
+        "max_ops": 0,
+        "max_points": 0,
+        "max_prompt": 2000,
+        "max_text": 200
+      },
+      "member_id": null,
+      "never_sent": [
+        "Other sketches, hidden layers' names and files outside the board"
+      ]
+    }
+  }
+}

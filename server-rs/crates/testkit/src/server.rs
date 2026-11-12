@@ -331,7 +331,8 @@ async fn build_template() -> Option<PathBuf> {
     let key: String = head.trim().chars().filter(|c| c.is_ascii_alphanumeric()).collect();
     let dir = workspace_clean().join("target/testkit");
     std::fs::create_dir_all(&dir).ok()?;
-    let final_path = dir.join(format!("template-{key}.db"));
+    // (`v2`: without the rows about the folders of the server that made it)
+    let final_path = dir.join(format!("template-v2-{key}.db"));
     if final_path.is_file() {
         return Some(final_path);
     }
@@ -347,6 +348,7 @@ async fn build_template() -> Option<PathBuf> {
         let _ = c.wait().await;
     }
     crate::dump::checkpoint(&db).await;
+    crate::dump::forget_own_folders(&db).await;
     let unique = dir.join(format!(".template-{key}.{}.tmp", std::process::id()));
     let copied = std::fs::copy(&db, &unique);
     drop(server);

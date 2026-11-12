@@ -66,11 +66,7 @@ pub fn to_dict(row: &ai_session_history::Model) -> Map<String, Value> {
 }
 
 /// The closed conversations of a ticket, newest first (Python's default `limit`: 20).
-pub async fn rows_for(
-    session: &Session,
-    ticket_id: &str,
-    limit: u64,
-) -> Result<Vec<ai_session_history::Model>, DbErr> {
+pub async fn rows_for(session: &Session, ticket_id: &str, limit: u64) -> Result<Vec<ai_session_history::Model>, DbErr> {
     ai_session_history::Entity::find()
         .filter(ai_session_history::Column::TicketId.eq(ticket_id))
         .order_by_desc(ai_session_history::Column::EndedAt)
@@ -241,17 +237,15 @@ pub async fn start_over(ticket_id: &str, by: &str) -> Result<Map<String, Value>,
     match asked {
         Ok(turn) => {
             let data = turn.structured.unwrap_or_default();
-            let said = match data.get("summary").filter(|v| pyjson::truthy(v)) {
-                Some(value) => text_of(value),
-                None => String::new(),
+            // `(data.get(key) or "").strip()`: a value that is not text fails there, and the digest stands in
+            let text = |key: &str| match data.get(key).filter(|v| pyjson::truthy(v)) {
+                None => Some(""),
+                Some(Value::String(s)) => Some(s.as_str()),
+                Some(_) => None,
             };
-            let said = pytext::strip(&said);
-            if turn.state != "failed" && !said.is_empty() {
-                let wanted = match data.get("title").filter(|v| pyjson::truthy(v)) {
-                    Some(value) => text_of(value),
-                    None => String::new(),
-                };
-                title = Some(head(pytext::strip(&wanted), 80)).filter(|t| !t.is_empty());
+            let said = text("summary").map(pytext::strip).filter(|said| turn.state != "failed" && !said.is_empty());
+            if let (Some(said), Some(wanted)) = (said, text("title")) {
+                title = Some(head(pytext::strip(wanted), 80)).filter(|t| !t.is_empty());
                 summary = Some(head(said, 4000));
                 by_model = turn.model.filter(|m| !m.is_empty()).unwrap_or_else(|| LIGHT_MODEL.to_string());
             }

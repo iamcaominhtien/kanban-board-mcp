@@ -81,10 +81,8 @@ pub async fn create_run(session: &Session, new: NewRun<'_>) -> Result<ai_run::Mo
     let mut resume_session = new.resume_session.filter(|s| !s.is_empty()).map(str::to_string);
     if let (Some(wanted), Some(ticket_id)) = (&resume_session, ticket_id) {
         // a conversation a person started over is closed: the new run starts a new one
-        if let Some(history) = seams::session_history() {
-            if history.closed_session_ids(session, ticket_id).await?.contains(wanted) {
-                resume_session = None;
-            }
+        if seams::closed_session_ids(session, ticket_id).await?.contains(wanted) {
+            resume_session = None;
         }
     }
     let project_id = match (&ticket, &profile) {

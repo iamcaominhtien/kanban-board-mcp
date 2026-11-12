@@ -1,0 +1,461 @@
+{
+  "freshness: check": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Check if up to date",
+      "kind": "freshness",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {},
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "freshness: dismiss": {
+    "status": 200,
+    "json": {
+      "based_on_version": 0,
+      "checked_at": "<time>",
+      "current_version": 0,
+      "hidden": 1,
+      "ok_until": null,
+      "page_id": "<uuid:1>",
+      "reasons": [],
+      "stale": false,
+      "state": "ok"
+    }
+  },
+  "freshness: dismiss, no key": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "key"
+        ]
+      ]
+    }
+  },
+  "freshness: no page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "freshness: stale": {
+    "status": 200,
+    "json": {
+      "based_on_version": 0,
+      "checked_at": "<time>",
+      "current_version": 0,
+      "hidden": 0,
+      "ok_until": null,
+      "page_id": "<uuid:1>",
+      "reasons": [
+        {
+          "key": "54c284cb1c",
+          "quote": "REST",
+          "source": "KAN-1",
+          "text": "The API moved to gRPC."
+        }
+      ],
+      "stale": true,
+      "state": "stale"
+    }
+  },
+  "freshness: still correct": {
+    "status": 200,
+    "json": {
+      "based_on_version": 0,
+      "checked_at": "<time>",
+      "current_version": 0,
+      "hidden": 1,
+      "ok_until": null,
+      "page_id": "<uuid:1>",
+      "reasons": [],
+      "stale": false,
+      "state": "ok"
+    }
+  },
+  "freshness: unchecked": {
+    "status": 200,
+    "json": {
+      "based_on_version": 0,
+      "checked_at": null,
+      "current_version": 0,
+      "hidden": 0,
+      "ok_until": null,
+      "page_id": "<uuid:1>",
+      "reasons": [],
+      "stale": false,
+      "state": "unchecked"
+    }
+  },
+  "health": {
+    "status": 200,
+    "json": {
+      "broken": [],
+      "checked_at": "<time>",
+      "checks": {
+        "asked": 0,
+        "checked": 0,
+        "deferred": 0,
+        "stopped": null
+      },
+      "counts": {
+        "broken": 0,
+        "missing": 0,
+        "out_of_date": 0,
+        "overlaps": 0,
+        "total": 0
+      },
+      "digest": {
+        "last_sent": null,
+        "on": true,
+        "schedule": "Monday 09:00"
+      },
+      "missing": [],
+      "out_of_date": [],
+      "overlaps": []
+    }
+  },
+  "health/count": {
+    "status": 200,
+    "json": {
+      "count": 0
+    }
+  },
+  "health/count: no project": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "project_not_found",
+        "message": "Project not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "health/dismiss": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Unknown kind of finding."
+    }
+  },
+  "health/dismiss: bad kind": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Unknown kind of finding."
+    }
+  },
+  "health/dismiss: bad level": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Unknown kind of finding."
+    }
+  },
+  "health/dismiss: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "kind"
+        ]
+      ]
+    }
+  },
+  "health/run": {
+    "status": 200,
+    "json": {
+      "broken": [],
+      "checked_at": "<time>",
+      "checks": {
+        "asked": 0,
+        "checked": 0,
+        "deferred": 0,
+        "stopped": null
+      },
+      "counts": {
+        "broken": 0,
+        "missing": 0,
+        "out_of_date": 0,
+        "overlaps": 0,
+        "total": 0
+      },
+      "digest": {
+        "last_sent": null,
+        "on": true,
+        "schedule": "Monday 09:00"
+      },
+      "missing": [],
+      "out_of_date": [],
+      "overlaps": []
+    }
+  },
+  "health/run: no project": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "project_not_found",
+        "message": "Project not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "health: no project": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "project_not_found",
+        "message": "Project not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "tickets/create": {
+    "status": 200,
+    "json": {
+      "linked": true,
+      "replaced": false,
+      "tickets": [
+        {
+          "id": "KAN-1",
+          "project_id": "<uuid:1>",
+          "title": "Add paging"
+        }
+      ],
+      "undo_token": "<uuid:2>"
+    }
+  },
+  "tickets/create: no page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "tickets/create: no title": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "drafts",
+          0,
+          "title"
+        ]
+      ]
+    }
+  },
+  "tickets/create: not linked": {
+    "status": 200,
+    "json": {
+      "linked": false,
+      "replaced": false,
+      "tickets": [
+        {
+          "id": "KAN-2",
+          "project_id": "<uuid:1>",
+          "title": "Plain"
+        }
+      ],
+      "undo_token": "<uuid:2>"
+    }
+  },
+  "tickets/create: the ticket": {
+    "status": 200,
+    "json": {
+      "acceptance_criteria": [],
+      "activity_log": [
+        {
+          "actor": "user",
+          "at": "<time>",
+          "field": "created",
+          "from": null,
+          "ref": "Add paging",
+          "to": null
+        },
+        {
+          "actor": "user",
+          "at": "<time>",
+          "field": "doc_ref_added",
+          "from": null,
+          "ref": "Linked docs",
+          "to": "API"
+        }
+      ],
+      "assignee": null,
+      "block_done_if_acs_incomplete": false,
+      "block_done_if_tcs_incomplete": false,
+      "blocked_by": [],
+      "blocks": [],
+      "branches": [],
+      "comments": [],
+      "completed_at": null,
+      "completed_by": null,
+      "created_at": "<time>",
+      "created_by": "user",
+      "description": "From the API page.",
+      "due_date": null,
+      "estimate": null,
+      "from_idea_id": null,
+      "id": "KAN-1",
+      "last_reopen_reason": null,
+      "last_reopened_at": null,
+      "last_reopened_by": null,
+      "links": [],
+      "parent_id": null,
+      "pending": false,
+      "pending_by": null,
+      "pending_member_id": null,
+      "pending_note": null,
+      "pending_party": null,
+      "pending_reason_type": null,
+      "pending_since": null,
+      "pending_ticket_id": null,
+      "priority": "medium",
+      "project_id": "<uuid:1>",
+      "reopen_count": 0,
+      "reopen_history": [],
+      "repo_path": null,
+      "review_requested_from": null,
+      "start_date": null,
+      "status": "backlog",
+      "sub_tasks": [],
+      "tags": [],
+      "test_cases": [],
+      "tests_assumption_id": null,
+      "title": "Add paging",
+      "type": "task",
+      "updated_at": "<time>",
+      "wave_pin": null,
+      "wont_do_reason": null,
+      "work_log": [],
+      "workspace_retention_days": null
+    }
+  },
+  "tickets/draft": {
+    "status": 200,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Draft tickets from this page",
+      "kind": "tickets_draft",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "selection": "Add paging"
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "tickets/draft: no body": {
+    "status": 200,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Draft tickets from this page",
+      "kind": "tickets_draft",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "selection": null
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "tickets/draft: no page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "tickets/undo": {
+    "status": 200,
+    "json": {
+      "removed": [
+        "KAN-1"
+      ],
+      "restored_text": false
+    }
+  },
+  "tickets/undo: again": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Nothing to undo: that creation is too old."
+    }
+  },
+  "tickets/undo: no token": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "undo_token"
+        ]
+      ]
+    }
+  }
+}

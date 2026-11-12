@@ -7,6 +7,9 @@ export default {
   async run(s) {
     const p = s.page;
     const centre = () => p.getByRole('dialog', { name: 'Notifications' });
+    // the centre is a panel; when the page was reloaded while it was open, the app shows it as a full page
+    // the bell in the board header (its name gains ", N needs you"); the sidebar entry "Notifications N" opens the full page
+    const bell = () => p.getByRole('button', { name: /^Notifications(, \d+ needs you)?$/ }).first();
     await s.step('set up: member "Me" and a published page', async () => {
       await ensureProject(s);
       await addMember(s, 'Me');
@@ -16,7 +19,7 @@ export default {
       await publishDoc(s, 'first');
     });
     await s.step('the centre is empty before anything happened', async () => {
-      await p.getByRole('button', { name: 'Notifications' }).first().click();
+      await bell().click();
       await centre().getByText('No notifications yet').waitFor();
       await centre().getByRole('button', { name: 'Close' }).click();
     });
@@ -32,8 +35,14 @@ export default {
       await s.settle(2500);
     });
     await s.step('the mention is in "Needs you"', async () => {
-      await p.getByRole('button', { name: 'Notifications' }).first().click();
-      await centre().getByText(/mentioned you/).waitFor({ timeout: 15000 });
+      // the server writes the notification from a background loop: look again until it is there
+      let seen = false;
+      for (let i = 0; i < 4 && !seen; i++) {
+        if (!(await centre().count())) await bell().click();
+        seen = await p.getByText(/mentioned you/).first().waitFor({ timeout: 10000 }).then(() => true, () => false);
+        if (!seen) { await p.keyboard.press('Escape'); await p.waitForTimeout(1000); }
+      }
+      if (!seen) throw new Error('no "mentioned you" notification after 4 looks');
       await centre().getByRole('tab', { name: /Needs you 1/ }).waitFor();
     });
     await s.step('the Updates tab is empty', async () => {

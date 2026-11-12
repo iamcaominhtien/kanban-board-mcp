@@ -22,6 +22,17 @@ pub async fn checkpoint(path: &Path) {
     let _ = c.close().await;
 }
 
+/// Take out of a template database what the server that made it wrote about its own folders: the workspace
+/// settings row holds the workspace root of that server (a temporary folder that is gone), and it is only there when
+/// the server's sweeper ran before the server was stopped. Without the row every server makes its own, with its own
+/// root.
+pub async fn forget_own_folders(path: &Path) {
+    let mut c = open(path, false).await;
+    sqlx::query("DELETE FROM workspace_settings").execute(&mut c).await.expect("clear the workspace settings");
+    sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)").execute(&mut c).await.expect("wal checkpoint");
+    let _ = c.close().await;
+}
+
 /// Every table -> rows as objects, tables sorted by name, rows sorted by all columns. Blobs are hex strings.
 pub async fn dump(path: &Path) -> Value {
     let mut c = open(path, true).await;
