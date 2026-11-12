@@ -1,6 +1,6 @@
 {
   "name": "kanban-board-desktop",
-  "version": "4.0.2",
+  "version": "4.0.3",
   "description": "Kanban Board MCP Desktop App",
   "main": "main.js",
   "scripts": {
