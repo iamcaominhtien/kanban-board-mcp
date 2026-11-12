@@ -98,7 +98,7 @@ impl Error {
             Error::Docs(kb_docs::Error::Docs(_)) => "DocsError".to_string(),
             Error::Docs(kb_docs::Error::Value(_)) => "ValueError".to_string(),
             Error::Docs(kb_docs::Error::Db(_)) | Error::Db(_) => "OperationalError".to_string(),
-            Error::Docs(kb_docs::Error::Other(_)) => "RuntimeError".to_string(),
+            Error::Docs(kb_docs::Error::Other(_) | kb_docs::Error::Json { .. }) => "RuntimeError".to_string(),
             Error::Ticket(kb_board::tickets::Error::Value(_)) => "ValueError".to_string(),
             Error::Ticket(kb_board::tickets::Error::NoResult(_)) => "NoResultFound".to_string(),
             Error::Ticket(_) => "RuntimeError".to_string(),
