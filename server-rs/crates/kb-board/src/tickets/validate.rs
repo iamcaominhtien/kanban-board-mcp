@@ -23,7 +23,7 @@ pub const MAX_SUB_TASK_TEXT: usize = 500;
 /// Ordered, unique `Page` / `Page#Section` keys of the [[references]] in a text.
 pub(crate) fn doc_ref_keys(text_: Option<&str>) -> Vec<String> {
     let mut seen: Vec<String> = Vec::new();
-    for reference in page_ref_contexts(text_.unwrap_or("")) {
+    for reference in page_ref_contexts(text_.unwrap_or(""), None) {
         let key = match reference.anchor.as_deref().filter(|a| !a.is_empty()) {
             Some(anchor) => format!("{}#{anchor}", reference.title),
             None => reference.title,

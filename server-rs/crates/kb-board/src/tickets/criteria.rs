@@ -3,11 +3,10 @@
 use kb_base::{activity as act, time};
 use kb_db::Session;
 use kb_db::entities::ticket;
-use kb_db::sea_orm::EntityTrait;
 use serde_json::{Value, json};
 
 use super::validate::{MAX_AC_TEXT, clean_text};
-use super::{Error, commit, dumps, field, loads, put};
+use super::{Error, commit, dumps, field, for_edit, loads, put};
 use kb_base::pyjson::truthy;
 
 /// Append a acceptance criterion.
@@ -18,7 +17,7 @@ pub async fn add_acceptance_criterion(
     ticket_id: &str,
     text: &str,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();
@@ -39,7 +38,7 @@ pub async fn toggle_acceptance_criterion(
     ticket_id: &str,
     criterion_id: &str,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();
@@ -73,7 +72,7 @@ pub async fn delete_acceptance_criterion(
     ticket_id: &str,
     criterion_id: &str,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();

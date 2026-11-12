@@ -80,6 +80,18 @@ pub async fn get_ticket(session: &Session, ticket_id: &str) -> Result<Option<tic
     ticket::Entity::find_by_id(ticket_id).one(session).await
 }
 
+/// The ticket, read after the database's write lock is taken, for a change of it.
+///
+/// A ticket keeps its comments, criteria, sub-tasks and logs as JSON lists, and a change rewrites the whole list:
+/// two writers that read the ticket before either wrote (two AIs commenting at once, an AI and a person) would each
+/// write their list, and the second would drop what the first added, while both were told it worked. Taking the lock
+/// first puts them in line: the second reads the ticket once the first has written it. Across processes too (the AI
+/// runner, an editor's MCP server): SQLite's lock (`BEGIN IMMEDIATE`) or the row's (`SELECT ... FOR UPDATE`); see
+/// `Session::read_for_edit`.
+pub(crate) async fn for_edit(session: &Session, ticket_id: &str) -> Result<Option<ticket::Model>, DbErr> {
+    session.read_for_edit::<ticket::Entity, _>(ticket_id).await
+}
+
 pub const MAX_NEW_CRITERIA: usize = 50;
 
 /// The arguments of `create_ticket` after the session and the project, with the Python defaults.

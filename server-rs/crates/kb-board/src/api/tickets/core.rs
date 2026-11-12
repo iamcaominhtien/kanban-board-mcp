@@ -79,7 +79,8 @@ async fn read_upload(multipart: Result<Multipart, MultipartRejection>, limit: us
     upload.ok_or_else(missing)
 }
 
-/// `destination.write_bytes(payload)` in the uploads folder.
+/// `await asyncio.to_thread(destination.write_bytes, payload)` in the uploads folder: `tokio::fs` writes on the
+/// blocking pool, so a big picture does not hold the other requests while it is written.
 async fn store(stored_filename: &str, payload: Vec<u8>) -> ApiResult<()> {
     let destination = uploads::get_uploads_dir(true).join(stored_filename);
     tokio::fs::write(destination, payload).await?;

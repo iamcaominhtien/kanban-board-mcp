@@ -7,13 +7,13 @@ use kb_db::sea_orm::{ColumnTrait, EntityTrait, ModelTrait, QueryFilter};
 use serde_json::Value;
 
 use super::update::prompt_pending_dependents;
-use super::{Error, dumps, loads, save};
+use super::{Error, dumps, for_edit, loads, save};
 use crate::hooks;
 use crate::workspace::remove_ticket_workspace;
 
 /// Delete a ticket; return False if it does not exist.
 pub async fn delete_ticket(session: &Session, ticket_id: &str) -> Result<bool, Error> {
-    let Some(ticket) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(ticket) = for_edit(session, ticket_id).await? else {
         return Ok(false);
     };
     if let Some(ideas) = hooks::idea_promote() {

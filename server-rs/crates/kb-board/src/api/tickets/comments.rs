@@ -8,9 +8,22 @@ use kb_db::entities::ticket;
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 
-use super::{bad_request, changed, not_found, read};
+use super::{bad_request, not_found, read};
 use crate::schemas::TicketRead;
 use crate::tickets::{add_comment, delete_comment, get_ticket, restore_comment, update_comment};
+
+/// A comment changes its ticket (the list's counts, the activity) and the Docs pages it names, nothing else: the app
+/// refetches only those (`ui/src/hooks/invalidationTopics.ts`), not everything every open window holds.
+pub(crate) const COMMENTS_TOPIC: &str = "comments";
+
+/// `changed` of the parent module, with the invalidation named `COMMENTS_TOPIC`.
+async fn changed(ticket: Option<ticket::Model>) -> ApiResult<Json<TicketRead>> {
+    let Some(ticket) = ticket else {
+        return Err(not_found());
+    };
+    events::publish(events::INVALIDATE, &[COMMENTS_TOPIC]).await;
+    read(ticket)
+}
 
 /// The routes of this part.
 pub(super) fn routes() -> Routes {
@@ -90,7 +103,7 @@ async fn post_comment(Path(ticket_id): Path<String>, Body(body): Body<CommentBod
     let Some(ticket) = ticket else {
         return Err(not_found());
     };
-    events::publish("invalidate", &[]).await;
+    events::publish(events::INVALIDATE, &[COMMENTS_TOPIC]).await;
     let latest = loads_comments(&ticket).pop();
     if let Some(latest) = latest.filter(|latest| latest.get("notified").is_some_and(truthy)) {
         let Some(comment_id) = latest.get("id") else {

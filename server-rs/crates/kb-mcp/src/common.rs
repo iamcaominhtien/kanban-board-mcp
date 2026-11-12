@@ -10,8 +10,9 @@
 //! here (`contract/mcp-tools.json`), which `validation` enforces; the lists of allowed values an operation checks
 //! itself are kept below.
 
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::future::Future;
+use std::sync::{Arc, Mutex};
 
 use kb_base::{activity, ctx, events, pyjson, time};
 use kb_board::schemas::TicketRead;
@@ -454,8 +455,56 @@ where
     Ok(Value::Object(ticket_to_dict(ticket, false)?))
 }
 
+/// The tables a tool's commits wrote (`kb_db::changes` tells each write's), to say what changed in its announcement
+/// (`_written`; unset outside a tool).
+#[derive(Clone, Default)]
+struct Written(Arc<Mutex<BTreeSet<String>>>);
+
+fn note_written(tables: &BTreeSet<String>) {
+    if let Some(Written(written)) = ctx::get::<Written>() {
+        written.lock().unwrap_or_else(|e| e.into_inner()).extend(tables.iter().cloned());
+    }
+}
+
+/// `changes.on_write_commit(_note_written)`, which Python runs when this module is imported: every process that
+/// serves MCP tools calls it at startup (a second call changes nothing).
+pub fn install_write_listener() {
+    kb_db::changes::on_write_commit("mcp_tool_written", note_written);
+}
+
+/// What the app refetches for a table (`ui/src/hooks/invalidationTopics.ts`). A ticket holds its comments, criteria,
+/// sub-tasks and logs; its text can name Docs pages, so the pages a ticket names and the backlinks follow it.
+const TABLE_TOPICS: [(&str, &[&str]); 5] = [
+    ("ticket", &["tickets", "ticket_docs"]),
+    // the notification centre announces its own changes (topic "notifications")
+    ("notification", &[]),
+    ("notify_event", &[]),
+    ("notify_follow", &[]),
+    ("ai_audit", &[]),
+];
+const DOCS_PREFIXES: [&str; 3] = ["docs_", "canvas", "diagram"];
+
+/// The topics of an announcement for a change of these tables; `None` when one of them has no topic (refetch all).
+pub fn topics_for<'a>(tables: impl IntoIterator<Item = &'a str>) -> Option<BTreeSet<&'static str>> {
+    let mut topics = BTreeSet::new();
+    for table in tables {
+        if let Some((_, named)) = TABLE_TOPICS.iter().find(|(name, _)| *name == table) {
+            topics.extend(named.iter().copied());
+        } else if DOCS_PREFIXES.iter().any(|prefix| table.starts_with(prefix)) {
+            topics.insert("docs");
+        } else {
+            return None;
+        }
+    }
+    Some(topics)
+}
+
 /// Attribute the change to the AI agent and publish an SSE invalidation after a successful mutation. (The Python
 /// decorator; here it wraps the operation's body.)
+///
+/// The invalidation names what the tool wrote (the tables of its commits), so the board refetches only that: with ten
+/// AIs at work, a plain invalidation from every call refetched every list of the board a few times a second. A tool
+/// that wrote a table without a topic, or nothing the commits saw, announces a plain one, as before.
 pub async fn notify_on_success<Fut>(operation: Fut) -> ToolResult
 where
     Fut: Future<Output = ToolResult>,
@@ -465,11 +514,23 @@ where
     let member_name =
         ai.as_ref().and_then(|ai| ai.get("member_name")).and_then(Value::as_str).filter(|n| !n.is_empty());
     let token = activity::set_actor(Some(member_name.unwrap_or(activity::AGENT_ACTOR)));
+    let written = Written::default();
+    let seen = ctx::set(written.clone());
     let result = operation.await;
+    ctx::reset(seen);
     ctx::reset(token);
     let result = result?;
     if !result.is_null() {
-        events::publish(events::INVALIDATE, &[]).await;
+        let written = written.0.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        let topics = if written.is_empty() { None } else { topics_for(written.iter().map(String::as_str)) };
+        match topics {
+            None => events::publish(events::INVALIDATE, &[]).await,
+            Some(topics) if !topics.is_empty() => {
+                let topics: Vec<&str> = topics.into_iter().collect();
+                events::publish(events::INVALIDATE, &topics).await;
+            }
+            Some(_) => events::mark_announced(),
+        }
     }
     Ok(result)
 }
@@ -501,8 +562,60 @@ mod tests {
         .await;
     }
 
+    /// The tests that count what was published take turns.
+    static TURN: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+    /// `test_an_mcp_tool_announces_what_it_wrote` (tests/test_runner_announcements.py): an MCP mutation names the
+    /// tables it wrote: a ticket refetches the tickets and the Docs a ticket reaches, a table with no topic
+    /// everything, and a write the app does not show nothing.
+    #[tokio::test]
+    async fn test_an_mcp_tool_announces_what_it_wrote() {
+        let _turn = TURN.lock().await;
+        install_write_listener();
+        let dir = std::env::temp_dir().join(format!("kb-mcp-written-{}", time::uuid4_hex()));
+        std::fs::create_dir_all(&dir).expect("a folder");
+        let target = kb_db::targets::Target::sqlite(dir.join("mcp.db").to_string_lossy().into_owned());
+        let engine = kb_db::targets::make_engine(&target, None).await.expect("an engine");
+        for table in ["ticket", "project", "notification"] {
+            kb_db::sea_orm::ConnectionTrait::execute_unprepared(&engine, &format!("CREATE TABLE {table} (id TEXT)"))
+                .await
+                .expect("a table");
+        }
+        let tool = |table: &'static str| {
+            let engine = engine.clone();
+            ctx::scope(notify_on_success(async move {
+                let session = Session::new(engine);
+                let insert = kb_db::sea_orm::Statement::from_string(
+                    kb_db::sea_orm::DbBackend::Sqlite,
+                    format!("INSERT INTO \"{table}\" VALUES ('1')"),
+                );
+                kb_db::sea_orm::ConnectionTrait::execute_raw(&session, insert)
+                    .await
+                    .map_err(|e| ToolError::Other(e.to_string()))?;
+                session.commit().await.map_err(|e| ToolError::Other(e.to_string()))?;
+                Ok(json!({"ok": true}))
+            }))
+        };
+        let q = events::subscribe();
+        tool("ticket").await.expect("written");
+        assert_eq!(q.try_recv().as_deref(), Some(r#"{"type": "invalidate", "topics": ["ticket_docs", "tickets"]}"#));
+        tool("project").await.expect("written");
+        assert_eq!(q.try_recv().as_deref(), Some("invalidate"));
+        let published = events::published();
+        tool("notification").await.expect("written");
+        assert_eq!(q.try_recv(), None);
+        assert_eq!(events::published(), published + 1);
+        events::unsubscribe(&q);
+        assert_eq!(topics_for(["docs_page", "docs_version"]), Some(BTreeSet::from(["docs"])));
+        assert_eq!(topics_for(["*"]), None);
+        assert_eq!(topics_for(["canvas_frame", "diagram"]), Some(BTreeSet::from(["docs"])));
+        drop(engine);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
     #[tokio::test]
     async fn a_change_is_attributed_to_the_agent_and_announced() {
+        let _turn = TURN.lock().await;
         ctx::scope(async {
             let _user = activity::set_actor(Some("Tien"));
             let before = events::published();

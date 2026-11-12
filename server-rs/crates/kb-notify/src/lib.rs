@@ -58,7 +58,10 @@ pub use kinds::{
     REMIND_CHOICES, REMIND_EVERY_S, REMIND_MAX_MIN, SOUND_NAMES, TOPIC, default_prefs, info_kinds, kind_info,
     needs_kinds,
 };
-pub use lifecycle::{RECONCILE_EVERY_S, backfill_waiting, loop_running, remind_unanswered, start, stop, wake_snoozed};
+pub use lifecycle::{
+    RECONCILE_EVERY_S, RECONCILE_MAX_PAUSE_S, backfill_waiting, loop_running, remind_unanswered, start, stop,
+    wake_snoozed,
+};
 pub use reading::{
     DOCS_KINDS, FILTERS, ListOptions, actions, counts, day_card_dict, done_text, feed, is_snoozed, latest_day_card,
     list_rows, log_since, member_names, not_snoozed, readable_by, rows_stmt, snoozed, to_dict, where_family,

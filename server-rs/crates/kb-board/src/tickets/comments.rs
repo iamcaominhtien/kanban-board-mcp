@@ -8,7 +8,7 @@ use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde_json::{Map, Value, json};
 
 use super::validate::{MAX_COMMENT, clean_text, mention_ids, record_doc_refs};
-use super::{Error, commit, dumps, field, loads, put};
+use super::{Error, commit, dumps, field, for_edit, loads, put};
 use kb_base::pyjson::truthy;
 
 /// Who a new comment notifies: reporter, assignee, earlier commenters and anyone @mentioned (not the author).
@@ -60,7 +60,7 @@ pub async fn add_comment(
     author: &str,
     meta: Option<&Map<String, Value>>,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();
@@ -104,7 +104,7 @@ pub async fn delete_comment(
     ticket_id: &str,
     comment_id: &str,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();
@@ -130,7 +130,7 @@ pub async fn restore_comment(
     ticket_id: &str,
     comment_id: &str,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();
@@ -160,7 +160,7 @@ pub async fn update_comment(
     comment_id: &str,
     text: &str,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();

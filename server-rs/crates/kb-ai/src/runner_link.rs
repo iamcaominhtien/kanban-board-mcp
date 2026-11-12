@@ -34,6 +34,18 @@ pub fn token_urlsafe(n: usize) -> String {
 
 /// What the runner shows when it posts events back.
 pub static TOKEN: LazyLock<String> = LazyLock::new(|| token_urlsafe(24));
+/// The runner's process token (`kb_db::targets::PROCESS_TOKEN`): its rows of a server database's change log are not
+/// "another app's".
+pub static RUNNER_ORIGIN: LazyLock<String> = LazyLock::new(|| token_hex(16));
+
+/// `secrets.token_hex(n)`: `n` random bytes in lowercase hex.
+pub fn token_hex(n: usize) -> String {
+    let mut bytes = vec![0u8; n];
+    if getrandom::fill(&mut bytes).is_err() {
+        bytes = uuid::Uuid::new_v4().as_bytes().iter().cycle().take(n).copied().collect();
+    }
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
 /// How long `command` waits for the runner to take a command, in milliseconds.
 static COMMAND_WAIT_MS: AtomicU64 = AtomicU64::new(8000);
 /// Restarts within `RESPAWN_WINDOW_S` before the board gives up.
@@ -96,6 +108,9 @@ fn command_line() -> std::io::Result<(std::path::PathBuf, Vec<String>)> {
 }
 
 fn spawn(board_url: Option<&str>) -> std::io::Result<Child> {
+    // What the runner writes is announced by the runner (typed events, `own_change`): the database watcher must not
+    // take it for another app's change and make every window refetch everything
+    kb_db::changes::ignore_origin(&RUNNER_ORIGIN);
     let log_path = database::get_data_dir().join("ai-v2").join("runner.log");
     if let Some(parent) = log_path.parent() {
         std::fs::create_dir_all(parent)?;
@@ -109,6 +124,7 @@ fn spawn(board_url: Option<&str>) -> std::io::Result<Child> {
         .env("KANBAN_IN_RUNNER", "1")
         .env("KANBAN_BOARD_URL", board_url.unwrap_or(""))
         .env("KANBAN_INTERNAL_TOKEN", TOKEN.as_str())
+        .env(kb_db::targets::PROCESS_TOKEN_ENV, RUNNER_ORIGIN.as_str())
         .env("KANBAN_PARENT_PID", std::process::id().to_string())
         .env("KANBAN_DB_PATH", database::get_db_path())
         // the same config folder as this process, whatever chose it: the runner must open the same database

@@ -7,7 +7,7 @@ use kb_db::entities::ticket;
 use kb_db::sea_orm::EntityTrait;
 use serde_json::{Value, json};
 
-use super::{Error, dumps, loads, save, value_error};
+use super::{Error, dumps, for_edit, loads, save, value_error};
 
 /// True if `start` blocks `target_id`, directly or through a chain of blocks.
 async fn blocks_transitively(session: &Session, start: &ticket::Model, target_id: &str) -> Result<bool, Error> {
@@ -44,8 +44,8 @@ pub async fn link_block(
     if blocker_id == blocked_id {
         return value_error("A ticket cannot block itself");
     }
-    let blocker_stored = ticket::Entity::find_by_id(blocker_id).one(session).await?;
-    let blocked_stored = ticket::Entity::find_by_id(blocked_id).one(session).await?;
+    let blocker_stored = for_edit(session, blocker_id).await?;
+    let blocked_stored = for_edit(session, blocked_id).await?;
     let (Some(blocker_stored), Some(blocked_stored)) = (blocker_stored, blocked_stored) else {
         return Ok(None);
     };
@@ -89,8 +89,8 @@ pub async fn unlink_block(
     blocker_id: &str,
     blocked_id: &str,
 ) -> Result<Option<(ticket::Model, ticket::Model)>, Error> {
-    let blocker_stored = ticket::Entity::find_by_id(blocker_id).one(session).await?;
-    let blocked_stored = ticket::Entity::find_by_id(blocked_id).one(session).await?;
+    let blocker_stored = for_edit(session, blocker_id).await?;
+    let blocked_stored = for_edit(session, blocked_id).await?;
     let (Some(blocker_stored), Some(blocked_stored)) = (blocker_stored, blocked_stored) else {
         return Ok(None);
     };

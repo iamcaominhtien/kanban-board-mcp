@@ -8,6 +8,8 @@
 use kb_db::sea_orm::DbErr;
 use serde::Serialize;
 use serde_json::{Map, Value};
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, LazyLock, Mutex};
 
 /// Domain error carrying an HTTP status and a machine-readable code.
 #[derive(Debug, Clone, PartialEq)]
@@ -468,8 +470,113 @@ pub struct HeadingAnchor {
     pub slug: String,
 }
 
+/// A least-recently-used cache of a parse per text (`functools.lru_cache` of the Python module): it counts its hits
+/// and misses, and what it holds is shared (`Arc`), so a caller that changes its copy changes nobody else's.
+struct TextCache<V> {
+    capacity: usize,
+    inner: Mutex<CacheState<V>>,
+}
+
+struct CacheState<V> {
+    entries: HashMap<String, (Arc<V>, u64)>,
+    clock: u64,
+    hits: u64,
+    misses: u64,
+}
+
+/// What `cache_info()` of an lru cache says.
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct CacheInfo {
+    hits: u64,
+    misses: u64,
+    size: usize,
+}
+
+impl<V> TextCache<V> {
+    fn new(capacity: usize) -> Self {
+        Self { capacity, inner: Mutex::new(CacheState { entries: HashMap::new(), clock: 0, hits: 0, misses: 0 }) }
+    }
+
+    fn lock(&self) -> std::sync::MutexGuard<'_, CacheState<V>> {
+        // a panic while the lock was held leaves nothing half-written: the entries are only inserted whole
+        self.inner.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    /// The parse of `text`, from the cache or made by `parse` (outside the lock) and kept.
+    fn get_or_parse(&self, text: &str, parse: impl FnOnce() -> V) -> Arc<V> {
+        {
+            let mut state = self.lock();
+            state.clock += 1;
+            let clock = state.clock;
+            if let Some((value, used)) = state.entries.get_mut(text) {
+                *used = clock;
+                let value = value.clone();
+                state.hits += 1;
+                return value;
+            }
+            state.misses += 1;
+        }
+        let value = Arc::new(parse());
+        let mut state = self.lock();
+        state.clock += 1;
+        let clock = state.clock;
+        if state.entries.len() >= self.capacity && !state.entries.contains_key(text) {
+            let oldest = state.entries.iter().min_by_key(|(_, (_, used))| *used).map(|(key, _)| key.clone());
+            if let Some(oldest) = oldest {
+                state.entries.remove(&oldest);
+            }
+        }
+        state.entries.insert(text.to_string(), (value.clone(), clock));
+        value
+    }
+
+    #[cfg(test)]
+    fn cache_clear(&self) {
+        let mut state = self.lock();
+        state.entries.clear();
+        state.hits = 0;
+        state.misses = 0;
+    }
+
+    #[cfg(test)]
+    fn cache_info(&self) -> CacheInfo {
+        let state = self.lock();
+        CacheInfo { hits: state.hits, misses: state.misses, size: state.entries.len() }
+    }
+}
+
+/// Short texts (ticket descriptions, comments, criteria: hundreds of them are read to find the tickets that mention a
+/// page) are kept apart, in a larger cache, so they do not push the pages out of theirs.
+pub const SHORT_TEXT: usize = 2048;
+
+/// `len(markdown) < SHORT_TEXT` (a length in characters).
+fn is_short(markdown: &str) -> bool {
+    markdown.len() < SHORT_TEXT || markdown.chars().count() < SHORT_TEXT
+}
+
+type Headings = Vec<HeadingAnchor>;
+type ProseLines = Vec<(String, Option<String>, String)>;
+
+static HEADINGS_CACHED: LazyLock<TextCache<Headings>> = LazyLock::new(|| TextCache::new(64));
+static HEADINGS_SHORT: LazyLock<TextCache<Headings>> = LazyLock::new(|| TextCache::new(4096));
+static PROSE_LINES_CACHED: LazyLock<TextCache<ProseLines>> = LazyLock::new(|| TextCache::new(32));
+static PROSE_LINES_SHORT: LazyLock<TextCache<ProseLines>> = LazyLock::new(|| TextCache::new(4096));
+
 /// Headings with their slug anchors; duplicates get ``-2``, ``-3``...
+///
+/// The same page is read for many requests (an agent reading a ticket reads the headings of every page that links it;
+/// a page open reads those of the pages it links), so the result is kept per text and each call gets its own copy.
 pub fn heading_anchors(markdown: &str) -> Vec<HeadingAnchor> {
+    headings(markdown).as_ref().clone()
+}
+
+fn headings(markdown: &str) -> Arc<Headings> {
+    let cache = if is_short(markdown) { &HEADINGS_SHORT } else { &HEADINGS_CACHED };
+    cache.get_or_parse(markdown, || parse_headings(markdown))
+}
+
+fn parse_headings(markdown: &str) -> Headings {
     let mut out = Vec::new();
     let mut seen: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     let mut in_fence = false;
@@ -495,11 +602,17 @@ pub fn heading_anchors(markdown: &str) -> Vec<HeadingAnchor> {
     out
 }
 
-/// (line without inline code, current section slug, raw line) for lines outside code fences.
-fn prose_lines(markdown: &str) -> Vec<(String, Option<String>, &str)> {
+/// (line without inline code, current section slug, raw line) for lines outside code fences. Kept per text, like the
+/// headings: what is shared cannot be changed by a caller.
+fn prose_lines(markdown: &str) -> Arc<ProseLines> {
+    let cache = if is_short(markdown) { &PROSE_LINES_SHORT } else { &PROSE_LINES_CACHED };
+    cache.get_or_parse(markdown, || parse_prose_lines(markdown))
+}
+
+fn parse_prose_lines(markdown: &str) -> ProseLines {
     // {a["text"]: a["slug"] ...}: the last heading with a text wins
     let anchors: std::collections::HashMap<String, String> =
-        heading_anchors(markdown).into_iter().map(|a| (a.text, a.slug)).collect();
+        headings(markdown).iter().map(|a| (a.text.clone(), a.slug.clone())).collect();
     let mut section: Option<String> = None;
     let mut in_fence = false;
     let mut out = Vec::new();
@@ -516,7 +629,7 @@ fn prose_lines(markdown: &str) -> Vec<(String, Option<String>, &str)> {
                 section = Some(slug.clone());
             }
         }
-        out.push((remove_inline_code(raw), section.clone(), raw));
+        out.push((remove_inline_code(raw), section.clone(), raw.to_string()));
     }
     out
 }
@@ -571,7 +684,7 @@ fn stripped_or_none(chars: &[char], range: Option<(usize, usize)>) -> Option<Str
 /// Every [[page]] and ticket-key reference with its section and a context snippet.
 pub fn parse_references(markdown: &str) -> Vec<Reference> {
     let mut refs = Vec::new();
-    for (line, section, raw) in prose_lines(markdown) {
+    for (line, section, raw) in prose_lines(markdown).iter() {
         let snippet = crate::pystr::head(&strip_block_prefix(&strip_inline(raw), false), 160).to_string();
         let chars: Vec<char> = line.chars().collect();
         let found = find_refs(&chars, 1);
@@ -791,18 +904,24 @@ pub struct PageRefContext {
 }
 
 /// Every [[page]] reference with the sentence it sits in (for 'Referenced by' and ticket mentions).
-pub fn page_ref_contexts(markdown: &str) -> Vec<PageRefContext> {
+///
+/// `titles`: keep only references to these (lower-cased) titles; `None` keeps all.
+pub fn page_ref_contexts(markdown: &str, titles: Option<&HashSet<String>>) -> Vec<PageRefContext> {
     let mut out = Vec::new();
-    for (line, section, _raw) in prose_lines(markdown) {
+    for (line, section, _raw) in prose_lines(markdown).iter() {
         let chars: Vec<char> = line.chars().collect();
         for m in find_refs(&chars, 1) {
+            let title = crate::pystr::strip(&text_of(&chars, m.title)).to_string();
+            if titles.is_some_and(|titles| !titles.contains(&title.to_lowercase())) {
+                continue;
+            }
             let whole = chars_str(&chars[m.start..m.end]);
             out.push(PageRefContext {
-                title: crate::pystr::strip(&text_of(&chars, m.title)).to_string(),
+                title,
                 anchor: stripped_or_none(&chars, m.anchor),
                 section: section.clone(),
-                context: sentence_around(&line, &whole, 200),
-                excerpt: ref_excerpt(&line, &whole, 120),
+                context: sentence_around(line, &whole, 200),
+                excerpt: ref_excerpt(line, &whole, 120),
             });
         }
     }
@@ -821,5 +940,72 @@ mod tests {
         let keys: Vec<&String> = err.extra.keys().collect();
         assert_eq!(keys, ["current_version", "by"]);
         assert_eq!(err.extra["current_version"], 3);
+    }
+
+    /// `tests/test_docs_text_cache.py`: the headings and prose lines of a page are parsed once per text and shared,
+    /// without a caller able to change them. The caches are process-wide, so these tests run one after the other.
+    static CACHE_TESTS: Mutex<()> = Mutex::new(());
+
+    fn serial() -> std::sync::MutexGuard<'static, ()> {
+        CACHE_TESTS.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    #[test]
+    fn test_headings_are_parsed_once_and_each_caller_gets_its_own_copy() {
+        let _one_at_a_time = serial();
+        let md = "# Title\n\n## Setup\n\ntext\n\n## Setup\n\n```\n## not a heading\n```\n";
+        HEADINGS_SHORT.cache_clear();
+        let mut first = heading_anchors(md);
+        let slugs = |list: &[HeadingAnchor]| list.iter().map(|h| h.slug.clone()).collect::<Vec<_>>();
+        assert_eq!(slugs(&first), ["title", "setup", "setup-2"]);
+        first[0].slug = "changed".to_string();
+        first.push(HeadingAnchor { level: 1, text: String::new(), slug: "extra".to_string() });
+        let again = heading_anchors(md);
+        assert_eq!(slugs(&again), ["title", "setup", "setup-2"]);
+        assert!(HEADINGS_SHORT.cache_info().hits >= 1);
+    }
+
+    #[test]
+    fn test_page_references_come_from_the_shared_parse() {
+        let _one_at_a_time = serial();
+        let md = "## Intro\n\nSee [[Spec]] and [[Plan#Goals]].\n";
+        PROSE_LINES_SHORT.cache_clear();
+        let refs = page_ref_contexts(md, None);
+        let found: Vec<(&str, Option<&str>)> = refs.iter().map(|r| (r.title.as_str(), r.section.as_deref())).collect();
+        assert_eq!(found, [("Spec", Some("intro")), ("Plan", Some("intro"))]);
+        let only_plan: HashSet<String> = ["plan".to_string()].into();
+        assert_eq!(page_ref_contexts(md, Some(&only_plan))[0].anchor.as_deref(), Some("Goals"));
+        assert!(PROSE_LINES_SHORT.cache_info().hits >= 1);
+    }
+
+    /// Reading the tickets that mention a page parses hundreds of comments: the page stays parsed.
+    #[test]
+    fn test_many_short_texts_do_not_push_a_page_out_of_the_cache() {
+        let _one_at_a_time = serial();
+        let page =
+            format!("# Spec\n\n{}", (0..200).map(|i| format!("## Part {i}\n\nSee [[Plan]].\n\n")).collect::<String>());
+        assert!(page.chars().count() >= SHORT_TEXT);
+        PROSE_LINES_CACHED.cache_clear();
+        page_ref_contexts(&page, None);
+        for i in 0..500 {
+            page_ref_contexts(&format!("Comment {i}: see [[Spec]]."), None);
+        }
+        page_ref_contexts(&page, None);
+        assert!(PROSE_LINES_CACHED.cache_info().hits >= 1);
+    }
+
+    #[test]
+    fn the_cache_keeps_the_most_recently_used_texts_up_to_its_size() {
+        let cache: TextCache<usize> = TextCache::new(2);
+        let parse = |n: usize| move || n;
+        cache.get_or_parse("a", parse(1));
+        cache.get_or_parse("b", parse(2));
+        cache.get_or_parse("a", parse(1)); // a is the latest used
+        cache.get_or_parse("c", parse(3)); // b goes
+        assert_eq!(cache.cache_info(), CacheInfo { hits: 1, misses: 3, size: 2 });
+        cache.get_or_parse("a", parse(1));
+        assert_eq!(cache.cache_info().hits, 2);
+        cache.get_or_parse("b", parse(2));
+        assert_eq!(cache.cache_info().misses, 4);
     }
 }

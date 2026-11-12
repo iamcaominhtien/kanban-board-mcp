@@ -8,15 +8,18 @@
 //! `main` expects what every process of the server sets up before it runs anything: the logging, the hooks between
 //! the areas and the database pool (`kb_app::lifespan::runner` does that and calls it).
 
+use std::collections::BTreeSet;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use kb_ai::{power, runner_link};
 use kb_base::events;
-use kb_db::database;
 use kb_db::entities::ai_run_command;
 use kb_db::sea_orm::{ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
+use kb_db::{changes, database};
 use serde_json::{Map, Value, json};
 
 use crate::runs::{self, Event, RunError};
@@ -52,13 +55,50 @@ fn parent_alive(pid: i64) -> bool {
     }
 }
 
-/// Posts the board's events to the API.
+/// How the Forwarder sends one body to the API (`Forwarder._post`; a test gives its own).
+pub type Post = Arc<dyn Fn(Value) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
+
+/// What the commits told since the last post (`_wrote`, `_tickets`), and whether a task is posting them (`_noting`).
+#[derive(Default)]
+struct Notes {
+    wrote: Vec<f64>,
+    /// a commit wrote a ticket since the last announcement of it
+    tickets: bool,
+    noting: bool,
+}
+
+/// Posts the board's events to the API, and tells it when this process wrote to the database.
 pub struct Forwarder {
+    post: Post,
+    /// The runtime `note_write` schedules its posts on (`bind`).
+    runtime: Mutex<Option<tokio::runtime::Handle>>,
+    notes: Mutex<Notes>,
+}
+
+/// The HTTP side of the Forwarder: posts to the API, a failure logged (at most every 30 s) and dropped.
+struct Http {
     url: String,
     token: String,
     client: reqwest::Client,
     /// When a failure was last logged (None: never, Python's 0.0).
     failed_at: Mutex<Option<Instant>>,
+}
+
+impl Http {
+    async fn post(&self, body: Value) {
+        let sent = self.client.post(&self.url).header("X-Kanban-Internal", &self.token).json(&body).send().await;
+        let mut failed_at = self.failed_at.lock().unwrap_or_else(|e| e.into_inner());
+        match sent {
+            Ok(_) => *failed_at = None,
+            // the API may be restarting; the rows are in the database anyway
+            Err(err) => {
+                if failed_at.is_none_or(|at| at.elapsed() > Duration::from_secs(30)) {
+                    tracing::warn!(target: "kanban.runner", "Could not forward an event to the API: {err}");
+                    *failed_at = Some(Instant::now());
+                }
+            }
+        }
+    }
 }
 
 impl Forwarder {
@@ -70,32 +110,76 @@ impl Forwarder {
             .timeout(Duration::from_secs(3))
             .build()
             .unwrap_or_else(|_| reqwest::Client::new());
-        Self {
+        let http = Arc::new(Http {
             url: format!("{}/internal/ai/events", board_url.trim_end_matches('/')),
             token: token.to_string(),
             client,
             failed_at: Mutex::new(None),
-        }
+        });
+        Self::with_post(Arc::new(move |body| {
+            let http = http.clone();
+            Box::pin(async move { http.post(body).await })
+        }))
+    }
+
+    /// A Forwarder that sends its bodies through `post` (the tests replace `_post`).
+    pub fn with_post(post: Post) -> Self {
+        Self { post, runtime: Mutex::new(None), notes: Mutex::new(Notes::default()) }
     }
 
     /// Send one event; a failure is logged (at most every 30 s) and dropped.
     pub async fn send(&self, event: String) {
-        let sent = self
-            .client
-            .post(&self.url)
-            .header("X-Kanban-Internal", &self.token)
-            .json(&json!({"event": event}))
-            .send()
-            .await;
-        let mut failed_at = self.failed_at.lock().unwrap_or_else(|e| e.into_inner());
-        match sent {
-            Ok(_) => *failed_at = None,
-            // the API may be restarting; the rows are in the database anyway
-            Err(err) => {
-                if failed_at.is_none_or(|at| at.elapsed() > Duration::from_secs(30)) {
-                    tracing::warn!(target: "kanban.runner", "Could not forward an event to the API: {err}");
-                    *failed_at = Some(Instant::now());
+        (self.post)(json!({"event": event})).await;
+    }
+
+    /// The runtime `note_write` schedules its posts on.
+    pub fn bind(&self, runtime: tokio::runtime::Handle) {
+        *self.runtime.lock().unwrap_or_else(|e| e.into_inner()) = Some(runtime);
+    }
+
+    /// A commit of this process wrote (called inside the write, so it only schedules). The API's database watcher
+    /// would otherwise take it for another app's change and make every window refetch everything: say it was the
+    /// runner's, and when (the watcher matches a commit to its readings by time). Commits while a post is on its way
+    /// are told in one more post.
+    ///
+    /// A commit that wrote a ticket (a run's closing comment, its question, Pending, the work log) is also announced:
+    /// the windows refetch the tickets (topic `tickets`), as they do for a change made through the API.
+    pub fn note_write(self: &Arc<Self>, tables: Option<&BTreeSet<String>>) {
+        let Some(runtime) = self.runtime.lock().unwrap_or_else(|e| e.into_inner()).clone() else { return };
+        let ticket = tables.is_none_or(|t| t.is_empty() || t.contains("ticket") || t.contains("*"));
+        self.kick(&runtime, kb_base::time::epoch(), ticket);
+    }
+
+    fn kick(self: &Arc<Self>, runtime: &tokio::runtime::Handle, at: f64, ticket: bool) {
+        let mut notes = self.notes.lock().unwrap_or_else(|e| e.into_inner());
+        notes.wrote.push(at);
+        notes.tickets = notes.tickets || ticket;
+        if !notes.noting {
+            notes.noting = true;
+            let me = self.clone();
+            runtime.spawn(async move { me.send_notes().await });
+        }
+    }
+
+    async fn send_notes(&self) {
+        loop {
+            let times = {
+                let mut notes = self.notes.lock().unwrap_or_else(|e| e.into_inner());
+                if notes.wrote.is_empty() && !notes.tickets {
+                    notes.noting = false;
+                    return;
                 }
+                let wrote = std::mem::take(&mut notes.wrote);
+                wrote[wrote.len().saturating_sub(500)..].to_vec()
+            };
+            if !times.is_empty() {
+                (self.post)(json!({"own_change": true, "at": times})).await;
+            }
+            // read after the first post, as Python does: a ticket written meanwhile goes in this round
+            let tickets = std::mem::take(&mut self.notes.lock().unwrap_or_else(|e| e.into_inner()).tickets);
+            if tickets {
+                let event = kb_base::pyjson::dumps(&json!({"type": "invalidate", "topics": ["tickets"]}));
+                (self.post)(json!({"event": event})).await;
             }
         }
     }
@@ -183,10 +267,15 @@ pub async fn poll_commands(once: bool) -> Result<usize, DbErr> {
 pub async fn serve(board_url: &str, token: &str, parent_pid: i64, stop: Option<Arc<Event>>) {
     runner_link::set_in_runner(Some(true));
     let forwarder = Arc::new(Forwarder::new(board_url, token));
-    events::set_forwarder(move |event| {
+    forwarder.bind(tokio::runtime::Handle::current());
+    {
         let forwarder = forwarder.clone();
-        async move { forwarder.send(event).await }
-    });
+        events::set_forwarder(move |event| {
+            let forwarder = forwarder.clone();
+            async move { forwarder.send(event).await }
+        });
+    }
+    changes::on_write_commit("runner_forwarder", move |tables| forwarder.note_write(Some(tables)));
     runs::set_board_url(board_url);
     if let Err(err) = runs::start_scheduler().await {
         // Python lets this end the runner (the API starts it again)

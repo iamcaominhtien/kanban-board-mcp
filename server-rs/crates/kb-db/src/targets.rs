@@ -32,7 +32,18 @@ pub const SQLITE_BUSY_TIMEOUT_S: u64 = 30;
 
 /// Which process this is, in the connection's name on PostgreSQL ("kanban-board app 1a2b3c4d"): the board can then
 /// tell another app on the same database from its own MCP process.
-pub static PROCESS_TOKEN: LazyLock<String> = LazyLock::new(kb_base::time::uuid4_hex);
+///
+/// The AI runner gets its token from the API that starts it (`kb_ai::runner_link`, `KANBAN_PROCESS_TOKEN`), so the
+/// API can tell the runner's rows of the change log from another app's. Python takes the variable out of the
+/// environment so the runner's children don't share it; the environment is never changed here, so the runner leaves
+/// `PROCESS_TOKEN_ENV` out of the environment of the commands it starts instead. Read once, at the first use (the
+/// programs force it at startup).
+pub static PROCESS_TOKEN: LazyLock<String> = LazyLock::new(|| {
+    std::env::var(PROCESS_TOKEN_ENV).ok().filter(|v| !v.is_empty()).unwrap_or_else(kb_base::time::uuid4_hex)
+});
+
+/// The variable that hands a process its `PROCESS_TOKEN`.
+pub const PROCESS_TOKEN_ENV: &str = "KANBAN_PROCESS_TOKEN";
 
 static ROLE: RwLock<&'static str> = RwLock::new("app");
 
@@ -525,7 +536,16 @@ pub fn application_name(role_override: Option<&str>) -> String {
 /// timeout does not surface as an error in the board) and renews connections every 30 minutes.
 ///
 /// The pool connects lazily, as SQLAlchemy's engine does: making it never fails because the server is away.
+///
+/// Every statement of the pool is reported to `changes::after_statement`, which tells the listeners of
+/// `changes::on_write_commit` what this process wrote.
 pub async fn make_engine(target: &Target, role_override: Option<&str>) -> Result<DatabaseConnection, DbErr> {
+    let mut conn = connect_pool(target, role_override).await?;
+    conn.set_metric_callback(|info| crate::changes::after_statement(&info.statement.sql, info.failed));
+    Ok(conn)
+}
+
+async fn connect_pool(target: &Target, role_override: Option<&str>) -> Result<DatabaseConnection, DbErr> {
     if target.is_sqlite() {
         let path = target.path.clone();
         let mut options = ConnectOptions::new("sqlite::memory:");

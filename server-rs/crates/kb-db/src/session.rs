@@ -9,11 +9,14 @@
 //! On PostgreSQL and MySQL a commit that wrote something also adds one row to the change log, in the same
 //! transaction, which is how the board hears about changes another process made (`changes`).
 
+use std::any::Any;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex as StdMutex};
 
 use sea_orm::{
-    ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbBackend, DbErr, ExecResult, QueryResult, Statement,
-    TransactionTrait,
+    ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbBackend, DbErr, EntityTrait, ExecResult,
+    PrimaryKeyTrait, QueryResult, QuerySelect, Statement, TransactionTrait,
 };
 use tokio::sync::Mutex;
 
@@ -24,6 +27,7 @@ pub struct Session {
     conn: DatabaseConnection,
     txn: Mutex<Option<DatabaseTransaction>>,
     wrote: AtomicBool,
+    memo: StdMutex<HashMap<String, Arc<dyn Any + Send + Sync>>>,
 }
 
 /// Whether a statement only reads (it does not need a transaction of its own).
@@ -46,7 +50,7 @@ fn reads_only(sql: &str) -> bool {
 impl Session {
     /// A session on `conn` (use `kb_db::session()` for the database in use).
     pub fn new(conn: DatabaseConnection) -> Self {
-        Self { conn, txn: Mutex::new(None), wrote: AtomicBool::new(false) }
+        Self { conn, txn: Mutex::new(None), wrote: AtomicBool::new(false), memo: StdMutex::new(HashMap::new()) }
     }
 
     /// The pool this session runs on.
@@ -66,6 +70,7 @@ impl Session {
 
     /// `await session.commit()`: make what this session wrote permanent. A session that wrote nothing does nothing.
     pub async fn commit(&self) -> Result<(), DbErr> {
+        self.forget();
         let txn = self.txn.lock().await.take();
         let wrote = self.wrote.swap(false, Ordering::SeqCst);
         if let Some(txn) = txn {
@@ -79,12 +84,42 @@ impl Session {
 
     /// `await session.rollback()`: undo what this session wrote since the last commit.
     pub async fn rollback(&self) -> Result<(), DbErr> {
+        self.forget();
         let txn = self.txn.lock().await.take();
         self.wrote.store(false, Ordering::SeqCst);
         if let Some(txn) = txn {
             txn.rollback().await?;
         }
         Ok(())
+    }
+
+    /// What a caller keeps in the session's `info` (SQLAlchemy's `session.info`): an answer that is the same until the
+    /// session writes, a commit or a rollback, after which it is read again. `None` when nothing is kept under `key`.
+    pub fn memo_get<T: Any + Send + Sync>(&self, key: &str) -> Option<Arc<T>> {
+        let kept = self.memo.lock().ok()?.get(key).cloned()?;
+        kept.downcast::<T>().ok()
+    }
+
+    /// Keep `value` under `key` until the session writes, commits or rolls back (see `memo_get`).
+    pub fn memo_set<T: Any + Send + Sync>(&self, key: &str, value: T) -> Arc<T> {
+        let kept = Arc::new(value);
+        if let Ok(mut memo) = self.memo.lock() {
+            memo.insert(key.to_string(), kept.clone());
+        }
+        kept
+    }
+
+    /// Drop everything kept with `memo_set`.
+    fn forget(&self) {
+        if let Ok(mut memo) = self.memo.lock() {
+            memo.clear();
+        }
+    }
+
+    /// A statement that writes is about to run: what was read before is no longer known to be current.
+    fn wrote_something(&self) {
+        self.wrote.store(true, Ordering::SeqCst);
+        self.forget();
     }
 
     /// Whether a transaction is open (something was written and not yet committed).
@@ -99,6 +134,47 @@ impl Session {
             *guard = Some(self.conn.begin().await?);
         }
         Ok(())
+    }
+
+    /// A row, read after the database's write lock is taken, for a change of it (`tickets._for_edit`).
+    ///
+    /// A row that keeps lists as JSON text is changed by rewriting the whole list: two writers that read the row
+    /// before either wrote would each write their list and the second would drop what the first added. Taking the
+    /// lock first puts them in line, so the second reads the row once the first has committed. SQLite: the database's
+    /// write lock (the equivalent of `BEGIN IMMEDIATE`; skipped when this transaction has written already, as it
+    /// holds the lock). PostgreSQL and MySQL: `SELECT ... FOR UPDATE`, which reads the row afresh whatever this
+    /// transaction read before. The transaction stays open until `commit` / `rollback`; on SQLite it is closed
+    /// again when the row does not exist, so that the next writer can come in.
+    pub async fn read_for_edit<E, K>(&self, id: K) -> Result<Option<E::Model>, DbErr>
+    where
+        E: EntityTrait,
+        K: Into<<E::PrimaryKey as PrimaryKeyTrait>::ValueType>,
+    {
+        if self.is_sqlite() {
+            let mut began = false;
+            {
+                let mut guard = self.txn.lock().await;
+                if guard.is_none() {
+                    *guard = Some(self.conn.begin().await?);
+                    began = true;
+                }
+                if began || !self.wrote.load(Ordering::SeqCst) {
+                    // `BEGIN IMMEDIATE` cannot follow the driver's own `BEGIN`: a statement that writes nothing
+                    // takes the same lock (SQLite waits for it, up to the busy timeout).
+                    let table = E::default().table_name().to_owned();
+                    if let Some(txn) = guard.as_ref() {
+                        txn.execute_unprepared(&format!("DELETE FROM \"{table}\" WHERE 0")).await?;
+                    }
+                }
+            }
+            let found = E::find_by_id(id).one(self).await?;
+            if found.is_none() && began {
+                self.rollback().await?;
+            }
+            return Ok(found);
+        }
+        self.begin().await?;
+        E::find_by_id(id).lock_exclusive().one(self).await
     }
 
     /// `async with session.begin_nested():` run `work` in a savepoint of this session's transaction (which it opens
@@ -161,7 +237,7 @@ impl ConnectionTrait for Session {
         if guard.is_none() {
             *guard = Some(self.conn.begin().await?);
         }
-        self.wrote.store(true, Ordering::SeqCst);
+        self.wrote_something();
         match guard.as_ref() {
             Some(txn) => txn.execute_raw(stmt).await,
             None => self.conn.execute_raw(stmt).await,
@@ -179,7 +255,7 @@ impl ConnectionTrait for Session {
         if guard.is_none() {
             *guard = Some(self.conn.begin().await?);
         }
-        self.wrote.store(true, Ordering::SeqCst);
+        self.wrote_something();
         match guard.as_ref() {
             Some(txn) => txn.execute_unprepared(sql).await,
             None => self.conn.execute_unprepared(sql).await,
@@ -193,7 +269,7 @@ impl ConnectionTrait for Session {
             if guard.is_none() {
                 *guard = Some(self.conn.begin().await?);
             }
-            self.wrote.store(true, Ordering::SeqCst);
+            self.wrote_something();
         }
         match guard.as_ref() {
             Some(txn) => txn.query_one_raw(stmt).await,
@@ -207,7 +283,7 @@ impl ConnectionTrait for Session {
             if guard.is_none() {
                 *guard = Some(self.conn.begin().await?);
             }
-            self.wrote.store(true, Ordering::SeqCst);
+            self.wrote_something();
         }
         match guard.as_ref() {
             Some(txn) => txn.query_all_raw(stmt).await,

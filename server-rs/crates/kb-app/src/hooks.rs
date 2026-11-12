@@ -166,4 +166,8 @@ pub fn install() {
     kb_dbkit::hooks::set_docs_search_hook(Box::new(DocsSearch));
     kb_board::hooks::set_db_move_hook(Box::new(DbMove));
     kb_doctext::docs_access::set_notifications_hook(Box::new(Notifications));
+    // `kanban_mcp/common.py` registers its listener when it is imported: an MCP tool names what it wrote
+    kb_mcp::common::install_write_listener();
+    // the database watcher waits longer for an announcement while the AI runner runs (`events._grace_for`)
+    kb_base::events::set_runner_alive_hook(kb_ai::runner_link::alive);
 }

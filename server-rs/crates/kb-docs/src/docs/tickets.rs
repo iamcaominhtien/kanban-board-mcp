@@ -7,12 +7,14 @@ use kb_base::{pyjson, time};
 use kb_db::Session;
 use kb_db::entities::{canvas, docs_link, docs_page, project as project_table, ticket};
 use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, Condition, EntityTrait, ModelTrait, QueryFilter, Set};
-use kb_doctext::docs_text::page_ref_contexts;
+use kb_doctext::docs_text::{PageRefContext, heading_anchors, page_ref_contexts};
 use regex::Regex;
 use serde_json::{Map, Value, json};
 
 use super::pages::{all_pages, get_page};
-use super::refs::{PageRef, aliases_by_page, headings_by_page, resolve_page_ref, title_aliases};
+use super::refs::{
+    AnchorRef, PageIndex, PageRef, aliases_by_page, anchor_headings, headings_by_page, resolve_page_ref, title_aliases,
+};
 use crate::docs_search::path_titles;
 use crate::util::word_count;
 use crate::{Result, docs_err, docs_search};
@@ -101,6 +103,7 @@ async fn tickets_mentioning_pages(session: &Session, project_id: &str) -> Result
 }
 
 /// A `[[page]]` mention in a ticket's text, resolved to a page.
+#[derive(Clone)]
 pub struct Mention {
     /// The ticket that mentions the page.
     pub ticket: ticket::Model,
@@ -120,73 +123,88 @@ pub struct Mention {
     pub anchor: Option<String>,
 }
 
+/// The key a session keeps its ticket mentions under (`_MENTIONS_KEY`).
+const MENTIONS_KEY: &str = "docs_ticket_mentions";
+
 /// Every [[page]] mention in ticket descriptions/comments, resolved to a page.
+///
+/// Opening a page asks for them three times (its stats, its backlinks, the work on it), and each time reads and
+/// parses every ticket that mentions a page: they are kept for the rest of the session, until it writes (the session
+/// forgets what it kept after a write, a commit or a rollback: `Session::memo_get`).
 pub async fn ticket_mentions(session: &Session, project_id: &str) -> Result<Vec<Mention>> {
+    let key = format!("{MENTIONS_KEY}:{project_id}");
+    if let Some(kept) = session.memo_get::<Vec<Mention>>(&key) {
+        return Ok(kept.as_ref().clone());
+    }
+    let read = read_ticket_mentions(session, project_id).await?;
+    Ok(session.memo_set(&key, read).as_ref().clone())
+}
+
+async fn read_ticket_mentions(session: &Session, project_id: &str) -> Result<Vec<Mention>> {
     let tickets = tickets_mentioning_pages(session, project_id).await?;
     if tickets.is_empty() {
         return Ok(Vec::new());
     }
     let pages = all_pages(session, project_id, false).await?;
-    let headings = headings_by_page(session, &pages).await?;
     let ids: Vec<String> = pages.iter().map(|p| p.id.clone()).collect();
     let aliases = aliases_by_page(session, &ids).await?;
     let renamed = title_aliases(session, &ids).await?;
-    let mut out = Vec::new();
-    for t in tickets {
-        for (origin, detail, body) in ticket_texts(&t) {
+    let mut mentions = Vec::new();
+    for t in &tickets {
+        for (origin, detail, body) in ticket_texts(t) {
             if !body.contains("[[") {
                 continue;
             }
-            for r in page_ref_contexts(&body) {
-                let request = PageRef { title: &r.title, anchor: r.anchor.as_deref(), by_slug: false };
-                let res = resolve_page_ref(&pages, &[], &request, &headings, Some(&aliases), Some(&renamed));
-                let Some(page_id) = res.get("page_id").and_then(Value::as_str) else { continue };
-                let (mut context, mut excerpt) = (r.context.clone(), r.excerpt.clone());
-                let old = &r.title;
-                let new_title = res.get("title").and_then(Value::as_str).unwrap_or("");
-                if !old.contains('/') && new_title.to_lowercase() != old.to_lowercase() {
-                    // written with an old title: show the new one
-                    context = context.replacen(old.as_str(), new_title, 1);
-                    excerpt = excerpt.replacen(&format!("[[{old}"), &format!("[[{new_title}"), 1);
-                }
-                out.push(Mention {
-                    ticket: t.clone(),
-                    origin: origin.clone(),
-                    detail: detail.clone(),
-                    page_id: page_id.to_string(),
-                    section: res.get("section").and_then(Value::as_str).map(str::to_string),
-                    context,
-                    excerpt,
-                    anchor: r.anchor.clone(),
-                });
+            for r in page_ref_contexts(&body, None) {
+                mentions.push((t, origin.clone(), detail.clone(), r));
             }
         }
+    }
+    let anchored: Vec<AnchorRef<'_>> =
+        mentions.iter().map(|(_, _, _, r)| (r.title.as_str(), r.anchor.as_deref(), false)).collect();
+    let headings = anchor_headings(session, &pages, &[], &anchored, Some(&aliases), Some(&renamed)).await?;
+    let index = PageIndex::new(&pages);
+    let mut out = Vec::new();
+    for (t, origin, detail, r) in &mentions {
+        let request = PageRef { title: &r.title, anchor: r.anchor.as_deref(), by_slug: false };
+        let res = resolve_page_ref(&pages, &[], &request, &headings, Some(&aliases), Some(&renamed), Some(&index));
+        let Some(page_id) = res.get("page_id").and_then(Value::as_str) else { continue };
+        let (mut context, mut excerpt) = (r.context.clone(), r.excerpt.clone());
+        let old = &r.title;
+        let new_title = res.get("title").and_then(Value::as_str).unwrap_or("");
+        if !old.contains('/') && new_title.to_lowercase() != old.to_lowercase() {
+            // written with an old title: show the new one
+            context = context.replacen(old.as_str(), new_title, 1);
+            excerpt = excerpt.replacen(&format!("[[{old}"), &format!("[[{new_title}"), 1);
+        }
+        out.push(Mention {
+            ticket: (*t).clone(),
+            origin: origin.clone(),
+            detail: detail.clone(),
+            page_id: page_id.to_string(),
+            section: res.get("section").and_then(Value::as_str).map(str::to_string),
+            context,
+            excerpt,
+            anchor: r.anchor.clone(),
+        });
     }
     Ok(out)
 }
 
 /// The sentence and excerpt of the reference a link row stands for (the link's snippet when the page no longer has
-/// it).
-async fn page_row_context(
-    session: &Session,
-    link: &docs_link::Model,
-    src: &docs_page::Model,
-) -> Result<(String, String)> {
-    let contents = docs_search::contents(session, std::slice::from_ref(src)).await?;
+/// it); `refs` is `page_ref_contexts` of the source page.
+fn page_row_context(link: &docs_link::Model, refs: &[PageRefContext]) -> (String, String) {
     let wanted = link.target_title.clone().unwrap_or_default().to_lowercase();
-    let refs: Vec<_> = page_ref_contexts(contents.get(&src.id).map(String::as_str).unwrap_or(""))
-        .into_iter()
-        .filter(|r| r.title.to_lowercase() == wanted)
-        .collect();
+    let refs: Vec<&PageRefContext> = refs.iter().filter(|r| r.title.to_lowercase() == wanted).collect();
     for r in &refs {
         if r.section == link.source_section {
-            return Ok((r.context.clone(), r.excerpt.clone()));
+            return (r.context.clone(), r.excerpt.clone());
         }
     }
-    Ok(match refs.first() {
+    match refs.first() {
         Some(r) => (r.context.clone(), r.excerpt.clone()),
         None => (link.snippet.clone(), link.snippet.clone()),
-    })
+    }
 }
 
 /// The heading text behind a section slug of a page (the slug itself when the heading is gone).
@@ -227,6 +245,12 @@ pub async fn backlinks(session: &Session, page_id: &str) -> Result<Map<String, V
         .await?;
     let mut seen: HashSet<(String, Option<String>)> = HashSet::new();
     let mut pages_out: Vec<Value> = Vec::new();
+    let wanted: HashSet<String> =
+        rows.iter().map(|link| link.target_title.clone().unwrap_or_default().to_lowercase()).collect();
+    // each source page is read and parsed once, not once per link (a long page links to the same page many times),
+    // and only its references to this page get their sentence cut out
+    type Parsed = (Vec<PageRefContext>, Vec<(String, String)>);
+    let mut parsed: HashMap<String, Parsed> = HashMap::new();
     for link in rows {
         let src = docs_page::Entity::find_by_id(link.source_page_id.as_str()).one(session).await?;
         let Some(src) = src.filter(|s| s.deleted_at.as_deref().is_none_or(str::is_empty) && s.id != page.id) else {
@@ -240,8 +264,31 @@ pub async fn backlinks(session: &Session, page_id: &str) -> Result<Map<String, V
             Some(p) => docs_page::Entity::find_by_id(p).one(session).await?,
             None => None,
         };
-        let (context, excerpt) = page_row_context(session, &link, &src).await?;
-        let label = section_label(session, &src, link.source_section.as_deref()).await?.filter(|l| !l.is_empty());
+        if !parsed.contains_key(&src.id) {
+            let contents = docs_search::contents(session, std::slice::from_ref(&src)).await?;
+            let markdown = contents.get(&src.id).map(String::as_str).unwrap_or("");
+            // the headings `section_label` reads: those of the published content only
+            let headings = if src.version > 0 {
+                heading_anchors(markdown).into_iter().map(|h| (h.slug, h.text)).collect()
+            } else {
+                Vec::new()
+            };
+            parsed.insert(src.id.clone(), (page_ref_contexts(markdown, Some(&wanted)), headings));
+        }
+        let (refs, headings) = &parsed[&src.id];
+        let (context, excerpt) = page_row_context(&link, refs);
+        let label = link
+            .source_section
+            .as_deref()
+            .filter(|s| !s.is_empty())
+            .map(|slug| {
+                headings
+                    .iter()
+                    .find(|(s, _)| s == slug)
+                    .map(|(_, text)| text.clone())
+                    .unwrap_or_else(|| slug.to_string())
+            })
+            .filter(|l| !l.is_empty());
         pages_out.push(json!({
             "page_id": src.id,
             "title": src.title,
@@ -253,6 +300,14 @@ pub async fn backlinks(session: &Session, page_id: &str) -> Result<Map<String, V
             "target_anchor": link.target_anchor,
         }));
     }
+    let mut out = Map::new();
+    out.insert("pages".into(), Value::Array(pages_out));
+    out.insert("tickets".into(), Value::Array(ticket_backlinks(session, &page).await?));
+    Ok(out)
+}
+
+/// The tickets half of `backlinks`: tickets that mention the page, are linked to it by hand or show its canvas.
+pub async fn ticket_backlinks(session: &Session, page: &docs_page::Model) -> Result<Vec<Value>> {
     let mut tickets_out: Vec<Value> = Vec::new();
     let mut seen_tickets: HashSet<(String, String, String)> = HashSet::new();
     for m in ticket_mentions(session, &page.project_id).await? {
@@ -279,12 +334,9 @@ pub async fn backlinks(session: &Session, page_id: &str) -> Result<Map<String, V
         }
     }
     if page.kind == "canvas" {
-        canvas_backlinks(session, &page, &mut tickets_out, &mut seen_tickets).await?;
+        canvas_backlinks(session, page, &mut tickets_out, &mut seen_tickets).await?;
     }
-    let mut out = Map::new();
-    out.insert("pages".into(), Value::Array(pages_out));
-    out.insert("tickets".into(), Value::Array(tickets_out));
-    Ok(out)
+    Ok(tickets_out)
 }
 
 /// A canvas page lists the tickets that show it ("KAN-142 uses this canvas") in its backlinks.
@@ -423,39 +475,58 @@ pub async fn docs_for_ticket(session: &Session, ticket_id: &str) -> Result<Vec<M
         let texts = ticket_texts(t);
         let joined = texts.iter().map(|(_, _, x)| x.as_str()).collect::<Vec<_>>().join(" ");
         if !pages.is_empty() && joined.contains("[[") {
-            let headings = headings_by_page(session, &pages).await?;
             let ids: Vec<String> = pages.iter().map(|p| p.id.clone()).collect();
             let aliases = aliases_by_page(session, &ids).await?;
             let renamed = title_aliases(session, &ids).await?;
+            let mut mentions = Vec::new();
             for (origin, detail, body) in &texts {
                 if !body.contains("[[") {
                     continue;
                 }
-                for r in page_ref_contexts(body) {
-                    let request = PageRef { title: &r.title, anchor: r.anchor.as_deref(), by_slug: false };
-                    let res = resolve_page_ref(&pages, &[], &request, &headings, Some(&aliases), Some(&renamed));
-                    if let Some(pid) = res.get("page_id").and_then(Value::as_str) {
-                        if let Some(page) = by_id.get(pid).cloned() {
-                            rows.add(
-                                &page,
-                                &by_id,
-                                origin,
-                                res.get("section").and_then(Value::as_str),
-                                &r.context,
-                                detail,
-                            );
-                        }
+                for r in page_ref_contexts(body, None) {
+                    mentions.push((origin, detail, r));
+                }
+            }
+            let anchored: Vec<AnchorRef<'_>> =
+                mentions.iter().map(|(_, _, r)| (r.title.as_str(), r.anchor.as_deref(), false)).collect();
+            let headings = anchor_headings(session, &pages, &[], &anchored, Some(&aliases), Some(&renamed)).await?;
+            let index = PageIndex::new(&pages);
+            for (origin, detail, r) in &mentions {
+                let request = PageRef { title: &r.title, anchor: r.anchor.as_deref(), by_slug: false };
+                let res =
+                    resolve_page_ref(&pages, &[], &request, &headings, Some(&aliases), Some(&renamed), Some(&index));
+                if let Some(pid) = res.get("page_id").and_then(Value::as_str) {
+                    if let Some(page) = by_id.get(pid).cloned() {
+                        rows.add(&page, &by_id, origin, res.get("section").and_then(Value::as_str), &r.context, detail);
                     }
                 }
             }
         }
     }
     let links = docs_link::Entity::find().filter(docs_link::Column::TargetTicketId.eq(ticket_id)).all(session).await?;
+    let mut sources: HashMap<String, docs_page::Model> = HashMap::new();
+    for link in &links {
+        let src = match by_id.get(&link.source_page_id) {
+            Some(src) => Some(src.clone()),
+            None => docs_page::Entity::find_by_id(link.source_page_id.as_str()).one(session).await?,
+        };
+        if let Some(src) = src.filter(|s| s.deleted_at.as_deref().is_none_or(str::is_empty)) {
+            sources.insert(src.id.clone(), src);
+        }
+    }
+    // the headings of every source page in one read (an agent reads a ticket many times; a long page links it often)
+    let source_pages: Vec<docs_page::Model> = sources.values().cloned().collect();
+    let headings_of = headings_by_page(session, &source_pages).await?;
     for link in links {
-        let src = docs_page::Entity::find_by_id(link.source_page_id.as_str()).one(session).await?;
-        let Some(src) = src.filter(|s| s.deleted_at.as_deref().is_none_or(str::is_empty)) else { continue };
+        let Some(src) = sources.get(&link.source_page_id).cloned() else { continue };
         by_id.entry(src.id.clone()).or_insert_with(|| src.clone());
-        let label = section_label(session, &src, link.source_section.as_deref()).await?;
+        let label = link.source_section.as_deref().filter(|s| !s.is_empty()).map(|slug| {
+            headings_of
+                .get(&src.id)
+                .and_then(|h| h.iter().find(|(s, _)| s == slug))
+                .map(|(_, text)| text.clone())
+                .unwrap_or_else(|| slug.to_string())
+        });
         rows.add(
             &src,
             &by_id,

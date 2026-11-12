@@ -184,9 +184,11 @@ async fn test_comment_activity_carries_comment_id_and_event_is_published() {
             break;
         }
     }
-    assert_eq!(sent.first().map(String::as_str), Some("invalidate"));
     let events: Vec<Value> =
         sent.iter().filter(|m| m.starts_with('{')).map(|m| serde_json::from_str(m).expect("json")).collect();
+    // the comment refetches only what a comment changes, not everything every window holds
+    assert!(events.contains(&json!({"type": "invalidate", "topics": ["comments"]})), "{sent:?}");
+    let events: Vec<Value> = events.into_iter().filter(|e| e["type"] != "invalidate").collect();
     assert!(!events.is_empty() && events[0]["type"] == "comment_added" && events[0]["comment_id"] == json!(cid));
     assert_eq!(names(&events[0]["notified"]), ["Admin", "Hoa Mai"]);
     // the event as `json.dumps` writes it: the keys in this order

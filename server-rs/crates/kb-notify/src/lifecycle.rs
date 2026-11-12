@@ -169,6 +169,8 @@ pub async fn backfill_waiting() -> Result<i64> {
 
 /// How often the loop checks the open Needs you rows without being told, in seconds.
 pub const RECONCILE_EVERY_S: f64 = 15.0;
+/// The longest a busy board waits between two passes, in seconds.
+pub const RECONCILE_MAX_PAUSE_S: f64 = 3.0;
 
 /// When the loop last did each of its jobs (`None`: never, so the first round does them all).
 struct Schedule {
@@ -185,11 +187,16 @@ async fn round(state: &mut Schedule, dirty: &Event) -> Result<()> {
     // many changes at once are one check: wait for a change, but look at the clock every second
     let _ = tokio::time::timeout(Duration::from_secs(1), dirty.wait()).await;
     let t = Instant::now();
+    let mut pause = 0.25; // many changes at once are one check
     if dirty.is_set() || due(state.last_full, t, RECONCILE_EVERY_S) {
         dirty.clear();
         state.last_full = Some(t);
         reconcile().await?;
         wake_snoozed(None).await?;
+        // A pass reads every open row (a quarter of a second on a big board). While AIs change the board without a
+        // pause, it runs at most a tenth of the time: a row closes a little later, the board keeps its CPU for the
+        // requests.
+        pause = f64::min(f64::max(pause, 10.0 * t.elapsed().as_secs_f64()), RECONCILE_MAX_PAUSE_S);
     }
     if due(state.last_remind, t, REMIND_EVERY_S) {
         state.last_remind = Some(t);
@@ -200,7 +207,7 @@ async fn round(state: &mut Schedule, dirty: &Event) -> Result<()> {
         write_day_cards(None, None).await?;
         prune(None).await?;
     }
-    tokio::time::sleep(Duration::from_millis(250)).await; // many changes at once are one check
+    tokio::time::sleep(Duration::from_secs_f64(pause)).await;
     Ok(())
 }
 

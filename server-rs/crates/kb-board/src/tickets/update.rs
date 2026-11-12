@@ -13,7 +13,7 @@ use super::schemas::TicketUpdate;
 use super::validate::{
     check_date_order, clean_date, clean_estimate, clean_tags, clean_title, doc_ref_entries, validate_parent,
 };
-use super::{Error, clear_pending_flags, dumps, loads, save, value_error};
+use super::{Error, clear_pending_flags, dumps, for_edit, loads, save, value_error};
 use crate::ticket_waves::clean_pin;
 use crate::{git_repo, hooks};
 
@@ -134,7 +134,7 @@ pub async fn update_ticket(
     ticket_id: &str,
     data: &TicketUpdate,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();

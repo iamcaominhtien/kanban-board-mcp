@@ -110,13 +110,34 @@ fn same_text(a: &str, b: &str) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }
 
-/// An event from the runner process, broadcast to the SSE subscribers of this API.
+/// An event from the runner process, broadcast to the SSE subscribers of this API; or `{"own_change": true}`: the
+/// runner wrote to the database, so the database watcher does not announce that commit as another app's.
 async fn post_internal_event(headers: HeaderMap, body: Bytes) -> Response {
     let given = header(&headers, "x-kanban-internal").unwrap_or_default();
     if given.is_empty() || !same_text(&given, runner_link::TOKEN.as_str()) {
         return (StatusCode::FORBIDDEN, Json(json!({"detail": "Not the runner"}))).into_response();
     }
     let Ok(body) = serde_json::from_slice::<Value>(&body) else { return ignored("not json") };
+    if let Some(own) = body.as_object().filter(|b| b.get("own_change").is_some_and(pyjson::truthy)) {
+        // The runner committed changes it announces itself (or that need no announcement), at these times: not
+        // another app's
+        match own.get("at") {
+            Some(Value::Array(at)) => {
+                // `[t for t in at[-500:] if isinstance(t, (int, float))]` (a bool is an int there)
+                let times: Vec<f64> = at[at.len().saturating_sub(500)..]
+                    .iter()
+                    .filter_map(|t| match t {
+                        Value::Number(n) => n.as_f64(),
+                        Value::Bool(b) => Some(f64::from(u8::from(*b))),
+                        _ => None,
+                    })
+                    .collect();
+                events::mark_own_change_at(&times);
+            }
+            _ => events::mark_own_change(),
+        }
+        return Json(json!({"ok": true})).into_response();
+    }
     let Some(event) = body.as_object().and_then(|b| b.get("event")).and_then(Value::as_str) else {
         return ignored("no event");
     };
@@ -145,4 +166,43 @@ async fn get_runner_status(headers: HeaderMap) -> Json<Map<String, Value>> {
     out.insert("app_version".into(), json!(kb_base::version::APP_VERSION));
     out.insert("claude_found".into(), json!(path.is_some_and(|p| !p.is_empty())));
     Json(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn post(token: Option<&str>, body: Value) -> (u16, Value) {
+        let mut headers = HeaderMap::new();
+        if let Some(token) = token {
+            headers.insert("x-kanban-internal", token.parse().expect("a header value"));
+        }
+        let response = post_internal_event(headers, Bytes::from(body.to_string())).await;
+        let status = response.status().as_u16();
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.expect("the body");
+        (status, serde_json::from_slice(&bytes).expect("JSON"))
+    }
+
+    /// `test_own_change_over_http_counts_and_reaches_nobody` (tests/test_runner_announcements.py), on the handler.
+    #[tokio::test]
+    async fn test_own_change_over_http_counts_and_reaches_nobody() {
+        let q = events::subscribe();
+        let before = events::published();
+        let now = kb_base::time::epoch();
+        let (status, _) = post(None, json!({"own_change": true})).await;
+        assert_eq!(status, 403);
+        let (status, body) = post(Some(&runner_link::TOKEN), json!({"own_change": true, "at": [now - 0.2, now]})).await;
+        assert_eq!((status, body), (200, json!({"ok": true})));
+        // timed commits are matched to the readings by time, not counted as an announcement
+        assert_eq!(events::published(), before);
+        assert!(events::runner_committed(now - 0.1, now + 0.1));
+        assert!(!events::runner_committed(now + 1.0, now + 2.0));
+        assert_eq!(q.try_recv(), None);
+        // without times: counted as this process's own change, still told to nobody
+        let (status, _) = post(Some(&runner_link::TOKEN), json!({"own_change": 1, "at": "soon"})).await;
+        assert_eq!(status, 200);
+        assert_eq!(events::published(), before + 1);
+        assert_eq!(q.try_recv(), None);
+        events::unsubscribe(&q);
+    }
 }

@@ -27,7 +27,7 @@ struct Affected {
 async fn links_to_rename(session: &Session, page: &docs_page::Model, old_title: &str) -> Result<Vec<Affected>> {
     let pages = all_pages(session, &page.project_id, false).await?;
     let request = PageRef { title: old_title, anchor: None, by_slug: false };
-    let res = resolve_page_ref(&pages, &[], &request, &Headings::new(), None, None);
+    let res = resolve_page_ref(&pages, &[], &request, &Headings::new(), None, None, None);
     if res.get("page_id").and_then(Value::as_str) != Some(page.id.as_str()) {
         // another page with the same title wins that link; nothing to repoint
         return Ok(Vec::new());

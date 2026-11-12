@@ -609,7 +609,12 @@ async fn test_update_test_case_unknown_id_raises() {
 async fn publishes_once(s: &testkit::Server, tool: &str, arguments: Value) -> Value {
     let mut events = s.events().await;
     let result = call(&s.mcp(), tool, arguments).await;
-    assert_eq!(events.next(Duration::from_secs(5)).await.as_deref(), Some("invalidate"));
+    // the tool names what it wrote: a ticket, and the Docs a ticket reaches
+    // (`assert_called_once_with("invalidate", topics={"tickets", "ticket_docs"})`)
+    assert_eq!(
+        events.next(Duration::from_secs(5)).await.as_deref(),
+        Some(r#"{"type": "invalidate", "topics": ["ticket_docs", "tickets"]}"#)
+    );
     assert_eq!(events.next(Duration::from_millis(500)).await, None, "published more than once");
     result
 }

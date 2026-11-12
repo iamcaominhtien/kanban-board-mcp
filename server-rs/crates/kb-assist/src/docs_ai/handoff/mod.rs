@@ -314,12 +314,10 @@ async fn builder_team(
 /// `docs_work._ticket_ids`: the tickets a page mentions or is mentioned by, once each.
 async fn ticket_ids(session: &Session, page_id: &str) -> Result<Vec<String>, Error> {
     let page = kb_docs::docs::get_page(session, page_id, false, false).await?;
-    let back = kb_docs::docs::backlinks(session, &page.id).await?;
-    let mut ids: Vec<String> = back
-        .get("tickets")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
+    // only the tickets: the pages half of the backlinks reads and parses every page that links here
+    let mut ids: Vec<String> = kb_docs::docs::ticket_backlinks(session, &page)
+        .await?
+        .iter()
         .filter_map(|t| t["ticket_id"].as_str().map(str::to_string))
         .collect();
     let out = docs_link::Entity::find()
@@ -427,8 +425,8 @@ pub async fn targets(session: &Session, page_id: &str) -> Result<Map<String, Val
             }
         }
     }
-    let back = kb_docs::docs::backlinks(session, &page.id).await?;
-    for m in back.get("tickets").and_then(Value::as_array).into_iter().flatten() {
+    kb_docs::docs::get_page(session, &page.id, false, false).await?; // the reader check `backlinks` made
+    for m in &kb_docs::docs::ticket_backlinks(session, &page).await? {
         let tid = m["ticket_id"].as_str().unwrap_or("");
         let kind = if m["origin"].as_str() != Some("manual") { "mentions" } else { "linked" };
         add(&mut rel, tid, kind);

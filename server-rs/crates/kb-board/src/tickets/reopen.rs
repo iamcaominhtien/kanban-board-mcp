@@ -10,7 +10,7 @@ use kb_db::sea_orm::EntityTrait;
 use serde_json::{Value, json};
 
 use super::update::sync_idea;
-use super::{Error, clear_pending_flags, commit, dumps, field, loads, put, save, value_error};
+use super::{Error, clear_pending_flags, commit, dumps, field, for_edit, loads, put, save, value_error};
 
 pub const MAX_REASON_LEN: usize = 240;
 
@@ -61,7 +61,7 @@ pub async fn reopen_ticket(
     ticket_id: &str,
     options: ReopenOptions<'_>,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();
@@ -244,7 +244,7 @@ pub async fn set_pending(
     ticket_id: &str,
     reason: PendingReason<'_>,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();
@@ -345,7 +345,7 @@ pub async fn clear_pending(
     add_comment: bool,
     actor: Option<&str>,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();
@@ -408,7 +408,7 @@ pub async fn clear_pending(
 
 /// Revert the latest reopen: back to the status it came from, count and history rolled back.
 pub async fn undo_reopen(session: &Session, ticket_id: &str) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();

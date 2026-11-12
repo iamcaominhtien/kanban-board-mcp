@@ -4,7 +4,9 @@
 //! `--routes` prints the table of REST routes as JSON and exits (the route coverage check reads it). `--runner` is
 //! the runner process of the AI team instead of the server (the API starts it with `KANBAN_RUNNER=process`).
 //!
-//! `--port N` serves on that port of 127.0.0.1 (development: the UI's dev server forwards to 8000).
+//! The port is the one of the last start (or `KANBAN_PORT`) when it is free, so an MCP client's address keeps working
+//! (`kb_app::port_choice`). `--port N` serves on that port of 127.0.0.1 instead (development: the UI's dev server
+//! forwards to 8000); it is not saved for the next start.
 //!
 //! `kanban-server mcp-stdio <words>` is the stdio MCP server (`mcp_stdio.py`), which the `kanban-mcp-stdio` program
 //! beside this one hands over to.
@@ -23,6 +25,9 @@ fn set_env(name: &str, value: &str) {
 
 fn main() -> std::process::ExitCode {
     let t0 = Instant::now();
+    // `KANBAN_PROCESS_TOKEN` (the runner's, from the API that starts it) is read once, now: Python takes it out of
+    // the environment at import
+    std::sync::LazyLock::force(&kb_db::targets::PROCESS_TOKEN);
     let args: Vec<String> = std::env::args().skip(1).collect();
     let started_as = std::env::args().next().unwrap_or_default();
     let started_as = std::path::Path::new(&started_as).file_stem().and_then(|n| n.to_str()).unwrap_or_default();
@@ -77,16 +82,21 @@ fn main() -> std::process::ExitCode {
     kb_log::setup_logging(false);
 
     // `--port N`: a fixed port for development (the UI's dev server forwards to 8000, as `uvicorn main:app --port 8000`
-    // served it); without it any free port, which the desktop app reads from the `READY` line
-    let wanted = match args.iter().position(|a| a == "--port").map(|at| args.get(at + 1).map(|p| p.parse::<u16>())) {
-        None => 0,
-        Some(Some(Ok(port))) => port,
+    // served it); without it the same port as last time (or KANBAN_PORT) when it is free, which the desktop app reads
+    // from the `READY` line
+    let fixed = match args.iter().position(|a| a == "--port").map(|at| args.get(at + 1).map(|p| p.parse::<u16>())) {
+        None => None,
+        Some(Some(Ok(port))) => Some(port),
         Some(_) => {
             eprintln!("--port takes a port number");
             return std::process::ExitCode::FAILURE;
         }
     };
-    let listener = match std::net::TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, wanted))) {
+    let bound = match fixed {
+        Some(port) => std::net::TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, port))),
+        None => kb_app::port_choice::bind_socket(),
+    };
+    let listener = match bound {
         Ok(listener) => listener,
         Err(err) => {
             eprintln!("Cannot open a port on 127.0.0.1: {err}");

@@ -17,7 +17,7 @@ use kb_db::entities::{ai_run, ai_run_step, docs_link, member, ticket};
 use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use serde_json::{Map, Value, json};
 
-use crate::docs::{backlinks, get_page, link_ticket_doc};
+use crate::docs::{get_page, link_ticket_doc, ticket_backlinks};
 use crate::{Error, Result, hooks};
 
 /// The states of a run that is still going.
@@ -46,11 +46,10 @@ async fn doing(session: &Session, run: &ai_run::Model) -> Result<Option<String>>
 
 async fn ticket_ids(session: &Session, page_id: &str) -> Result<Vec<String>> {
     let page = get_page(session, page_id, false, false).await?;
-    let back = backlinks(session, &page.id).await?;
-    let mut ids: Vec<String> = back["tickets"]
-        .as_array()
-        .into_iter()
-        .flatten()
+    // only the tickets: the pages half of the backlinks reads and parses every page that links here
+    let mut ids: Vec<String> = ticket_backlinks(session, &page)
+        .await?
+        .iter()
         .filter_map(|t| t["ticket_id"].as_str().map(str::to_string))
         .collect();
     let out = docs_link::Entity::find()

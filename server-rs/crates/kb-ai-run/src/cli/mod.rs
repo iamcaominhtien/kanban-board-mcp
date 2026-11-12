@@ -209,9 +209,14 @@ pub fn low_priority_prefix() -> Vec<String> {
     }
 }
 
-/// `dict(os.environ)`.
+/// `dict(os.environ)`. Without `KANBAN_PROCESS_TOKEN`, which Python takes out of the environment at startup
+/// (`dbkit/targets.py`) so the runner's children (the CLIs and the board's MCP server they start) do not share the
+/// runner's token: the API would take their changes for the runner's and not announce them.
 pub(crate) fn os_environ() -> Env {
-    std::env::vars_os().map(|(k, v)| (k.to_string_lossy().into_owned(), v.to_string_lossy().into_owned())).collect()
+    std::env::vars_os()
+        .map(|(k, v)| (k.to_string_lossy().into_owned(), v.to_string_lossy().into_owned()))
+        .filter(|(k, _)| k != kb_db::targets::PROCESS_TOKEN_ENV)
+        .collect()
 }
 
 /// `child_env` over a given environment (`os.environ` in `child_env`).

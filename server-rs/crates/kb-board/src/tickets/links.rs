@@ -7,7 +7,7 @@ use kb_db::entities::ticket;
 use kb_db::sea_orm::EntityTrait;
 use serde_json::{Value, json};
 
-use super::{Error, dumps, field, loads, save, value_error};
+use super::{Error, dumps, field, for_edit, loads, save, value_error};
 
 /// The relation types, in the order `sorted(VALID_RELATION_TYPES)` gives (Python keeps a frozenset and sorts it
 /// for the message).
@@ -54,8 +54,8 @@ pub async fn add_ticket_link(
         return value_error(format!("Invalid relation type '{relation_type}'. Valid types: [{}]", valid.join(", ")));
     };
 
-    let ticket_stored = ticket::Entity::find_by_id(ticket_id).one(session).await?;
-    let target_stored = ticket::Entity::find_by_id(target_id).one(session).await?;
+    let ticket_stored = for_edit(session, ticket_id).await?;
+    let target_stored = for_edit(session, target_id).await?;
     let (Some(ticket_stored), Some(target_stored)) = (ticket_stored, target_stored) else {
         return value_error("One or both tickets not found");
     };
@@ -111,7 +111,7 @@ pub async fn add_ticket_link(
 ///
 /// Returns True if removed, False if the ticket or link was not found.
 pub async fn remove_ticket_link(session: &Session, ticket_id: &str, link_id: &str) -> Result<bool, Error> {
-    let Some(ticket_stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(ticket_stored) = for_edit(session, ticket_id).await? else {
         return Ok(false);
     };
     let mut ticket = ticket_stored.clone();

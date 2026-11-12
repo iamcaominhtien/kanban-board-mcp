@@ -1,6 +1,6 @@
 //! Aliases, resolving `[[references]]` and the link index (`services/docs.py` lines 1335-1657).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use kb_base::pyjson;
 use kb_db::Session;
@@ -98,9 +98,30 @@ pub struct PageRef<'a> {
     pub by_slug: bool,
 }
 
+/// The live pages by id and by lower-cased title, built once for a batch of `resolve_page_ref` calls (rebuilding
+/// them for each reference was most of the cost of resolving a long page's links).
+pub struct PageIndex<'a> {
+    pages: &'a [docs_page::Model],
+    by_id: HashMap<&'a str, &'a docs_page::Model>,
+    by_title: HashMap<String, Vec<&'a docs_page::Model>>,
+}
+
+impl<'a> PageIndex<'a> {
+    /// The index of `pages`.
+    pub fn new(pages: &'a [docs_page::Model]) -> Self {
+        let by_id = pages.iter().map(|p| (p.id.as_str(), p)).collect();
+        let mut by_title: HashMap<String, Vec<&docs_page::Model>> = HashMap::new();
+        for p in pages {
+            by_title.entry(p.title.to_lowercase()).or_default().push(p);
+        }
+        Self { pages, by_id, by_title }
+    }
+}
+
 /// Resolve one page reference against the live pages and the Recycle Bin.
 ///
-/// Returns `{status, ...}`: `ok`, `ambiguous`, `section_missing`, `in_bin` or `missing`.
+/// Returns `{status, ...}`: `ok`, `ambiguous`, `section_missing`, `in_bin` or `missing`. `index` is a `PageIndex` of
+/// `pages` when the caller resolves many.
 pub fn resolve_page_ref(
     pages: &[docs_page::Model],
     deleted: &[docs_page::Model],
@@ -108,10 +129,19 @@ pub fn resolve_page_ref(
     headings_of: &Headings,
     aliases: Option<&HashMap<String, HashMap<String, String>>>,
     old_titles: Option<&HashMap<String, String>>,
+    index: Option<&PageIndex<'_>>,
 ) -> Map<String, Value> {
     let title = request.title;
     let needle = kb_base::pytext::strip(title).to_lowercase();
-    let by_id: HashMap<&str, &docs_page::Model> = pages.iter().map(|p| (p.id.as_str(), p)).collect();
+    let own;
+    let index = match index {
+        Some(index) if std::ptr::eq(index.pages, pages) => index,
+        _ => {
+            own = PageIndex::new(pages);
+            &own
+        }
+    };
+    let by_id = &index.by_id;
 
     let depth = |p: &docs_page::Model| -> usize {
         let (mut d, mut cur) = (0, p);
@@ -131,7 +161,7 @@ pub fn resolve_page_ref(
         parts.join("/")
     };
 
-    let mut matches: Vec<&docs_page::Model> = pages.iter().filter(|p| p.title.to_lowercase() == needle).collect();
+    let mut matches: Vec<&docs_page::Model> = index.by_title.get(&needle).cloned().unwrap_or_default();
     let mut status = "ok";
     if matches.is_empty() && needle.contains('/') {
         matches = pages.iter().filter(|p| path_of(p).to_lowercase().ends_with(&needle)).collect();
@@ -220,6 +250,35 @@ pub async fn headings_by_page(session: &Session, pages: &[docs_page::Model]) -> 
         .collect())
 }
 
+/// `(title, anchor, by_slug)` of a reference, as `anchor_headings` reads them.
+pub type AnchorRef<'a> = (&'a str, Option<&'a str>, bool);
+
+/// `headings_by_page` for only the pages that references with an anchor land on, the only headings
+/// `resolve_page_ref` reads: loading and parsing every page of a big space made each page open slow.
+pub async fn anchor_headings(
+    session: &Session,
+    pages: &[docs_page::Model],
+    deleted: &[docs_page::Model],
+    refs: &[AnchorRef<'_>],
+    aliases: Option<&HashMap<String, HashMap<String, String>>>,
+    old_titles: Option<&HashMap<String, String>>,
+) -> Result<Headings> {
+    let mut targets: HashSet<String> = HashSet::new();
+    let index = PageIndex::new(pages);
+    let none = Headings::new();
+    for (title, anchor, by_slug) in refs {
+        if anchor.is_some_and(|a| !a.is_empty()) {
+            let request = PageRef { title, anchor: None, by_slug: *by_slug };
+            let res = resolve_page_ref(pages, deleted, &request, &none, aliases, old_titles, Some(&index));
+            if let Some(id) = str_of_map(&res, "page_id") {
+                targets.insert(id.to_string());
+            }
+        }
+    }
+    let wanted: Vec<docs_page::Model> = pages.iter().filter(|p| targets.contains(&p.id)).cloned().collect();
+    headings_by_page(session, &wanted).await
+}
+
 /// A request value that is a string (anything else reads as absent).
 fn str_of<'a>(r: &'a Value, key: &str) -> Option<&'a str> {
     r.get(key).and_then(Value::as_str)
@@ -241,10 +300,20 @@ pub async fn resolve_refs(
     project(session, project_id, false).await?;
     let pages = all_pages(session, project_id, false).await?;
     let deleted = all_pages(session, project_id, true).await?;
-    let headings = headings_by_page(session, &pages).await?;
     let page_ids: Vec<String> = pages.iter().map(|p| p.id.clone()).collect();
     let aliases = aliases_by_page(session, &page_ids).await?;
     let renamed = if from_ticket { Some(title_aliases(session, &page_ids).await?) } else { None };
+    let mut anchored: Vec<AnchorRef<'_>> = Vec::new();
+    for r in refs.iter().filter(|r| str_of(r, "kind") != Some("ticket")) {
+        // `r.get("title", "")`: a title that is not text fails in Python (a 500)
+        let title = match r.get("title") {
+            None => "",
+            Some(Value::String(s)) => s.as_str(),
+            Some(_) => return Err(Error::Other("title is not a string".to_string())),
+        };
+        anchored.push((title, str_of(r, "anchor"), r.get("by_slug").is_some_and(pyjson::truthy)));
+    }
+    let headings = anchor_headings(session, &pages, &deleted, &anchored, Some(&aliases), renamed.as_ref()).await?;
     let keys: Vec<String> = refs
         .iter()
         .filter(|r| str_of(r, "kind") == Some("ticket"))
@@ -259,6 +328,7 @@ pub async fn resolve_refs(
             .await?;
         tickets = rows.into_iter().map(|t| (t.id.clone(), t)).collect();
     }
+    let index = PageIndex::new(&pages);
     let mut out = Vec::new();
     for r in refs {
         if str_of(r, "kind") == Some("ticket") {
@@ -281,7 +351,8 @@ pub async fn resolve_refs(
             };
             let request =
                 PageRef { title, anchor: str_of(r, "anchor"), by_slug: r.get("by_slug").is_some_and(pyjson::truthy) };
-            let res = resolve_page_ref(&pages, &deleted, &request, &headings, Some(&aliases), renamed.as_ref());
+            let res =
+                resolve_page_ref(&pages, &deleted, &request, &headings, Some(&aliases), renamed.as_ref(), Some(&index));
             let mut m = Map::new();
             m.insert("kind".into(), json!("page"));
             m.extend(res);
@@ -336,20 +407,23 @@ pub async fn refresh_link_targets(session: &Session, project_id: &str) -> Result
     if ids.is_empty() {
         return Ok(());
     }
-    let headings = headings_by_page(session, &pages).await?;
     let aliases = aliases_by_page(session, &pages.iter().map(|p| p.id.clone()).collect::<Vec<_>>()).await?;
-    let rows = docs_link::Entity::find()
+    let links = docs_link::Entity::find()
         .filter(docs_link::Column::SourcePageId.is_in(ids))
         .filter(docs_link::Column::TargetTitle.is_not_null())
         .all(session)
         .await?;
-    for link in rows {
+    let anchored: Vec<AnchorRef<'_>> =
+        links.iter().map(|l| (l.target_title.as_deref().unwrap_or(""), l.target_anchor.as_deref(), false)).collect();
+    let headings = anchor_headings(session, &pages, &deleted, &anchored, Some(&aliases), None).await?;
+    let index = PageIndex::new(&pages);
+    for link in links {
         let request = PageRef {
             title: link.target_title.as_deref().unwrap_or(""),
             anchor: link.target_anchor.as_deref(),
             by_slug: false,
         };
-        let res = resolve_page_ref(&pages, &deleted, &request, &headings, Some(&aliases), None);
+        let res = resolve_page_ref(&pages, &deleted, &request, &headings, Some(&aliases), None, Some(&index));
         let new_target = str_of_map(&res, "page_id").map(str::to_string);
         if new_target != link.target_page_id {
             let mut row = kb_db::edit(link);

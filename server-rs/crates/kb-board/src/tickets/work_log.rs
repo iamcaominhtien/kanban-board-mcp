@@ -4,10 +4,9 @@
 use kb_base::{activity as act, pytext, time};
 use kb_db::Session;
 use kb_db::entities::ticket;
-use kb_db::sea_orm::EntityTrait;
 use serde_json::{Map, Value, json};
 
-use super::{Error, commit, dumps, field, loads, put, py_str, value_error};
+use super::{Error, commit, dumps, field, for_edit, loads, put, py_str, value_error};
 use kb_base::pyjson::truthy;
 
 pub const WORK_LOG_KINDS: [&str; 5] = ["investigation", "fix_attempt", "root_cause", "blocked", "resolved"];
@@ -149,7 +148,7 @@ pub async fn add_work_log(
     ticket_id: &str,
     new: NewWorkLog<'_>,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();
@@ -216,7 +215,7 @@ pub async fn update_work_log(
     log_id: &str,
     changes: WorkLogChanges<'_>,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();
@@ -288,7 +287,7 @@ pub async fn update_work_log(
 ///
 /// Returns the updated ticket (also when no entry has this id), or None if the ticket does not exist.
 pub async fn delete_work_log(session: &Session, ticket_id: &str, log_id: &str) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();

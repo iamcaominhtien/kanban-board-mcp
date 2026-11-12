@@ -224,6 +224,7 @@ pub async fn commit_version(
     commit: bool,
 ) -> Result<Map<String, Value>> {
     let previous = latest_version(session, page).await?;
+    let renamed = previous.is_none() || title != page.title;
     let mut row = kb_db::edit(page.clone());
     row.version = Set(page.version + 1);
     row.status = Set("published".to_string());
@@ -249,7 +250,12 @@ pub async fn commit_version(
     }
     update_aliases(session, page, previous.as_ref().map(|p| p.markdown.as_str()).unwrap_or(""), markdown).await?;
     reindex_links(session, page, markdown).await?;
-    refresh_link_targets(session, &page.project_id).await?;
+    if renamed {
+        // Where a [[link]] leads depends on the pages' titles and places, not on their content: other pages' links
+        // only move when a page appears or changes title. (It reads every link of the project, while this
+        // transaction holds the write lock: half a second on a big project, for each publish.)
+        refresh_link_targets(session, &page.project_id).await?;
+    }
     docs_search::reindex(session, std::slice::from_ref(&page.id)).await?;
     // late import in Python: docs_comments builds on this module
     docs_comments::rematch_page(session, page, markdown).await?;

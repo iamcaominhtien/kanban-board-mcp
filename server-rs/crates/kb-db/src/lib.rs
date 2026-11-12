@@ -11,6 +11,7 @@ pub mod save;
 pub mod schema;
 pub mod session;
 pub mod sql;
+pub mod sqlite_gate;
 pub mod targets;
 
 pub use database::{conn, is_sqlite, session};

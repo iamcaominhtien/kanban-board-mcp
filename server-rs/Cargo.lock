@@ -1738,6 +1738,7 @@ version = "5.0.0"
 dependencies = [
  "kb-app",
  "kb-base",
+ "kb-db",
  "kb-dbkit",
  "kb-log",
  "serde_json",

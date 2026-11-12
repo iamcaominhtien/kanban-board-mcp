@@ -4,11 +4,10 @@
 use kb_base::{activity as act, pytext, time};
 use kb_db::Session;
 use kb_db::entities::ticket;
-use kb_db::sea_orm::EntityTrait;
 use serde_json::{Value, json};
 
 use super::validate::{MAX_TITLE, clean_text, record_doc_refs};
-use super::{Error, commit, dumps, field, loads, put, py_str, value_error};
+use super::{Error, commit, dumps, field, for_edit, loads, put, py_str, value_error};
 use kb_base::pyjson::truthy;
 
 /// The arguments of `add_test_case` after the session and the ticket, with the Python defaults.
@@ -88,7 +87,7 @@ pub async fn add_test_case(
     ticket_id: &str,
     new: NewTestCase<'_>,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();
@@ -194,7 +193,7 @@ pub async fn update_test_case(
     tc_id: &str,
     changes: TestCaseChanges<'_>,
 ) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();
@@ -275,7 +274,7 @@ pub async fn update_test_case(
 ///
 /// Returns the updated ticket (also when no test case has this id), or None if the ticket does not exist.
 pub async fn delete_test_case(session: &Session, ticket_id: &str, tc_id: &str) -> Result<Option<ticket::Model>, Error> {
-    let Some(stored) = ticket::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(stored) = for_edit(session, ticket_id).await? else {
         return Ok(None);
     };
     let mut ticket = stored.clone();

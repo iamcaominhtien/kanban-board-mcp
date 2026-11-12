@@ -453,8 +453,13 @@ pub async fn watch_database(path: Option<PathBuf>, interval: Duration, grace: Du
     let mut trimmed_at = Instant::now();
     // What this process had announced when the version was last read: an announcement since then explains a change
     let mut seen_published = events::published();
+    // when the version was last read: a runner commit since then explains a change
+    let mut read_at = time::epoch();
+    // the last refetch of tickets and Docs for changes the runner's commits explained (Python's 0.0: never)
+    let mut runner_masked_at = 0.0;
     loop {
         tokio::time::sleep(interval).await;
+        let last_read_at = read_at;
         let step: Result<(i64, String, bool), String> = async {
             if path.is_some() || is_sqlite() {
                 let db_path = path.clone().unwrap_or_else(get_db_path);
@@ -486,19 +491,31 @@ pub async fn watch_database(path: Option<PathBuf>, interval: Duration, grace: Du
         .await;
         match step {
             Ok((version, source, server)) => {
+                // after the read: a runner commit made while the version was being read is in this reading
+                read_at = time::epoch();
                 if watching.as_deref() != Some(source.as_str()) {
                     // another database: start over, nothing to announce yet
                     seen = None;
                     watching = Some(source);
                 }
                 if seen.is_some_and(|s| s != version) {
-                    tokio::time::sleep(grace).await;
+                    tokio::time::sleep(Duration::from_secs_f64(events::grace_for(grace.as_secs_f64()))).await;
                     // Counted from the last read, not from now: this process announces right after it commits,
                     // usually before the watcher looks, and a change it announced must not be announced a second
                     // time. The change log of a server database names the writer, so only other processes' rows
-                    // are counted.
+                    // are counted. A commit the AI runner told about counts when it was made between the last
+                    // reading and this one.
                     if server || events::published() == seen_published {
-                        events::invalidate().await;
+                        if server || !events::runner_committed(last_read_at, read_at) {
+                            events::invalidate().await;
+                        } else if time::epoch() - runner_masked_at >= events::runner_mask_refresh_s() {
+                            // SQLite does not say who wrote: a change made by another app in the same moment as one
+                            // of the runner's (an editor's MCP server, while a run streams) would never show. So
+                            // while the runner's commits explain the changes, the tickets and Docs are refetched now
+                            // and then.
+                            runner_masked_at = time::epoch();
+                            events::publish(events::INVALIDATE, &["tickets", "docs"]).await;
+                        }
                     }
                 }
                 seen = Some(version);

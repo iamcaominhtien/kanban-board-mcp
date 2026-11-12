@@ -434,3 +434,74 @@ pub async fn savepoints() {
     session.execute_raw(rename(&found.name)).await.unwrap();
     session.commit().await.unwrap();
 }
+
+/// `Session::read_for_edit`: two writers of one row's text, each reading it and then rewriting the whole text, go in
+/// line (the second reads what the first committed), and a row that does not exist gives nothing and keeps no lock.
+pub async fn read_for_edit_puts_writers_in_line() {
+    let conn = database::conn();
+    let found = project::Entity::find().filter(project::Column::Prefix.eq("DEMO")).one(&conn).await.unwrap().unwrap();
+    let run = a_run(&found.id).await;
+
+    let mut tasks = Vec::new();
+    for word in ["alpha", "beta", "gamma", "delta"] {
+        let id = run.id.clone();
+        tasks.push(tokio::spawn(async move {
+            let session = database::session();
+            let row = session.read_for_edit::<ai_run::Entity, _>(id.clone()).await.unwrap().unwrap();
+            // a slow writer: without the lock, the others read the same text meanwhile
+            tokio::time::sleep(std::time::Duration::from_millis(80)).await;
+            let mut changed = row.clone();
+            changed.answer = Some(format!("{}{word};", row.answer.clone().unwrap_or_default()));
+            kb_db::save_model(&session, &row, changed).await.unwrap();
+            session.commit().await.unwrap();
+        }));
+    }
+    for task in tasks {
+        task.await.unwrap();
+    }
+    let now = ai_run::Entity::find_by_id(run.id.clone()).one(&conn).await.unwrap().unwrap();
+    let answer = now.answer.unwrap();
+    for word in ["alpha", "beta", "gamma", "delta"] {
+        assert!(answer.contains(&format!("{word};")), "{word} was lost: {answer}");
+    }
+
+    // a row that is not there: nothing, and the lock is not kept (another session can write at once)
+    let session = database::session();
+    assert!(session.read_for_edit::<ai_run::Entity, _>("no-such-run".to_string()).await.unwrap().is_none());
+    if database::is_sqlite() {
+        assert!(!session.in_transaction().await);
+    }
+    drop(session);
+    let other = database::session();
+    let row = other.read_for_edit::<ai_run::Entity, _>(run.id.clone()).await.unwrap().unwrap();
+    assert_eq!(row.id, run.id);
+    other.rollback().await.unwrap();
+}
+
+/// `Session::memo_get` / `memo_set`: kept until the session writes, commits or rolls back (SQLAlchemy's `session.info`
+/// as `docs._ticket_mentions` uses it).
+pub async fn memo_lasts_until_the_session_writes() {
+    let conn = database::conn();
+    let found = project::Entity::find().filter(project::Column::Prefix.eq("DEMO")).one(&conn).await.unwrap().unwrap();
+    let session = database::session();
+    assert!(session.memo_get::<Vec<String>>("k").is_none());
+    session.memo_set("k", vec!["a".to_string()]);
+    assert_eq!(session.memo_get::<Vec<String>>("k").as_deref(), Some(&vec!["a".to_string()]));
+    // another type under the key is not that value
+    assert!(session.memo_get::<u32>("k").is_none());
+    // reads keep it
+    project::Entity::find_by_id(found.id.clone()).one(&session).await.unwrap();
+    assert!(session.memo_get::<Vec<String>>("k").is_some());
+    // a write forgets it
+    let mut row = kb_db::edit(found.clone());
+    row.color = Set("#665544".to_string());
+    row.update(&session).await.unwrap();
+    assert!(session.memo_get::<Vec<String>>("k").is_none());
+    // and so do a commit and a rollback
+    session.memo_set("k", 1u32);
+    session.commit().await.unwrap();
+    assert!(session.memo_get::<u32>("k").is_none());
+    session.memo_set("k", 1u32);
+    session.rollback().await.unwrap();
+    assert!(session.memo_get::<u32>("k").is_none());
+}

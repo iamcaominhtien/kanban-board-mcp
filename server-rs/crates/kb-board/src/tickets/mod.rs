@@ -45,6 +45,7 @@ pub mod update;
 pub mod validate;
 pub mod work_log;
 
+pub(crate) use self::core::for_edit;
 pub use self::core::{MAX_NEW_CRITERIA, NewTicket, create_ticket, get_ticket, lane_counts, list_tickets};
 pub use activities::{ActivityEventRead, get_project_activities};
 pub use blocks::{link_block, unlink_block};

@@ -59,7 +59,9 @@ fn golden_docs_text() {
             let refs: Vec<Reference> = docs_text::parse_references(s(&a[0]));
             serde_json::to_value(refs).unwrap_or(Value::Null)
         }
-        "page_ref_contexts" => serde_json::to_value(docs_text::page_ref_contexts(s(&a[0]))).unwrap_or(Value::Null),
+        "page_ref_contexts" => {
+            serde_json::to_value(docs_text::page_ref_contexts(s(&a[0]), None)).unwrap_or(Value::Null)
+        }
         "rewrite_page_links" => {
             let (text, n) = docs_text::rewrite_page_links(s(&a[0]), s(&a[1]), s(&a[2]));
             json!([text, n])

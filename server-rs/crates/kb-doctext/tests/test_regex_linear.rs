@@ -27,7 +27,7 @@ fn test_hostile_input_is_fast() {
         let start = Instant::now();
         strip_inline(&text);
         parse_references(&text);
-        page_ref_contexts(&text);
+        page_ref_contexts(&text, None);
         heading_anchors(&text);
         strip_block_prefix(&text, false);
         strip_block_prefix(&text, true);

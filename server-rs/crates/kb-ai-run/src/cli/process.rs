@@ -104,6 +104,8 @@ fn capture_stdout(argv: &[&str], seconds: u64) -> Option<Vec<u8>> {
     let (program, rest) = argv.split_first()?;
     let mut child = std::process::Command::new(program)
         .args(rest)
+        // the runner's own token stays with the runner (`cli::os_environ`)
+        .env_remove(kb_db::targets::PROCESS_TOKEN_ENV)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
