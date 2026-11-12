@@ -5,7 +5,7 @@ use axum::Json;
 use kb_ai::store::save;
 use kb_ai_work::worktrees::{self as svc_worktrees, Error as WorktreeError};
 use kb_base::error::{Body, Path};
-use kb_base::{ApiError, ApiResult, Routes, activity, pyjson};
+use kb_base::{ApiError, ApiResult, Routes, activity};
 use kb_db::entities::{ai_worktree, ticket};
 use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::Deserialize;
@@ -200,12 +200,12 @@ async fn patch_handover(Path(ticket_id): Path<String>, Body(body): Body<Handover
     Ok(Json(Value::Object(out)))
 }
 
-/// What Python's `OSError` says for a program that could not be started.
-fn os_error_text(err: &std::io::Error, program: &str) -> String {
+/// What Python's `OSError` says for a program that could not be started: asyncio's subprocess does not name the file.
+fn os_error_text(err: &std::io::Error) -> String {
     let text = err.to_string();
     let text = text.rsplit_once(" (os error").map_or(text.as_str(), |(head, _)| head).to_string();
     match err.raw_os_error() {
-        Some(code) => format!("[Errno {code}] {text}: {}", pyjson::py_str(&json!(program))),
+        Some(code) => format!("[Errno {code}] {text}"),
         None => text,
     }
 }
@@ -236,7 +236,7 @@ async fn post_open_worktree(Path(ticket_id): Path<String>) -> ApiResult<Json<Val
             });
         }
         Err(err) => {
-            return Err(ApiError::conflict(format!("Could not open the folder: {}", os_error_text(&err, opener))));
+            return Err(ApiError::conflict(format!("Could not open the folder: {}", os_error_text(&err))));
         }
     }
     Ok(Json(json!({"opened": row.path})))
