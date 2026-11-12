@@ -175,7 +175,13 @@ mod tests {
         use Tag::*;
         assert_eq!(
             opcodes(&a, &b),
-            vec![(Delete, 0, 1, 0, 0), (Equal, 1, 3, 0, 2), (Replace, 3, 4, 2, 3), (Equal, 4, 6, 3, 5), (Insert, 6, 6, 5, 6)]
+            vec![
+                (Delete, 0, 1, 0, 0),
+                (Equal, 1, 3, 0, 2),
+                (Replace, 3, 4, 2, 3),
+                (Equal, 4, 6, 3, 5),
+                (Insert, 6, 6, 5, 6)
+            ]
         );
     }
 

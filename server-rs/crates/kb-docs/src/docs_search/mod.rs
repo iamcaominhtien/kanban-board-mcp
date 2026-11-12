@@ -13,8 +13,8 @@ pub mod query;
 pub mod search;
 
 pub use index::{
-    CREATE_FTS, backfill_sync, create_fts_sync, ensure_fts, index_fields, rebuild_index, reindex, unindex,
-    contents,
+    CREATE_FTS, backfill_sync, contents, create_fts_sync, ensure_fts, index_fields, rebuild_index, reindex,
+    set_fts_broken, unindex,
 };
 pub use query::{MAX_QUERY, MAX_TERMS, Query, build_matches, highlight};
-pub use search::{SearchParams, path_titles, search, similar};
+pub use search::{SearchParams, fts_ranks, path_titles, search, similar};

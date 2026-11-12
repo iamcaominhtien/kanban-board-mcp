@@ -1,0 +1,1023 @@
+{
+  "diff: missing": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "version_not_found",
+        "message": "Version 9 not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "diff: ok": {
+    "status": 200,
+    "json": {
+      "from": 1,
+      "to": 2,
+      "rows": [
+        {
+          "type": "del",
+          "text": "## A",
+          "old_no": 1,
+          "new_no": null,
+          "words": [
+            {
+              "text": "##",
+              "changed": false
+            },
+            {
+              "text": " ",
+              "changed": false
+            },
+            {
+              "text": "A",
+              "changed": true
+            }
+          ]
+        },
+        {
+          "type": "del",
+          "text": "first!",
+          "old_no": 2,
+          "new_no": null,
+          "words": [
+            {
+              "text": "first!",
+              "changed": true
+            }
+          ]
+        },
+        {
+          "type": "add",
+          "text": "## B",
+          "old_no": null,
+          "new_no": 1,
+          "words": [
+            {
+              "text": "##",
+              "changed": false
+            },
+            {
+              "text": " ",
+              "changed": false
+            },
+            {
+              "text": "B",
+              "changed": true
+            }
+          ]
+        },
+        {
+          "type": "add",
+          "text": "[Needs input: who?] and [Needs input]",
+          "old_no": null,
+          "new_no": 2,
+          "words": [
+            {
+              "text": "[Needs",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "input:",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "who?]",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "and",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "[Needs",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "input]",
+              "changed": true
+            }
+          ]
+        }
+      ],
+      "added": 2,
+      "removed": 2,
+      "sections": [
+        {
+          "heading": "A",
+          "added": 0,
+          "removed": 2
+        },
+        {
+          "heading": "B",
+          "added": 2,
+          "removed": 0
+        }
+      ]
+    }
+  },
+  "diff: reversed": {
+    "status": 200,
+    "json": {
+      "from": 2,
+      "to": 1,
+      "rows": [
+        {
+          "type": "del",
+          "text": "## B",
+          "old_no": 1,
+          "new_no": null,
+          "words": [
+            {
+              "text": "##",
+              "changed": false
+            },
+            {
+              "text": " ",
+              "changed": false
+            },
+            {
+              "text": "B",
+              "changed": true
+            }
+          ]
+        },
+        {
+          "type": "del",
+          "text": "[Needs input: who?] and [Needs input]",
+          "old_no": 2,
+          "new_no": null,
+          "words": [
+            {
+              "text": "[Needs",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "input:",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "who?]",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "and",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "[Needs",
+              "changed": true
+            },
+            {
+              "text": " ",
+              "changed": true
+            },
+            {
+              "text": "input]",
+              "changed": true
+            }
+          ]
+        },
+        {
+          "type": "add",
+          "text": "## A",
+          "old_no": null,
+          "new_no": 1,
+          "words": [
+            {
+              "text": "##",
+              "changed": false
+            },
+            {
+              "text": " ",
+              "changed": false
+            },
+            {
+              "text": "A",
+              "changed": true
+            }
+          ]
+        },
+        {
+          "type": "add",
+          "text": "first!",
+          "old_no": null,
+          "new_no": 2,
+          "words": [
+            {
+              "text": "first!",
+              "changed": true
+            }
+          ]
+        }
+      ],
+      "added": 2,
+      "removed": 2,
+      "sections": [
+        {
+          "heading": "B",
+          "added": 0,
+          "removed": 2
+        },
+        {
+          "heading": "A",
+          "added": 2,
+          "removed": 0
+        }
+      ]
+    }
+  },
+  "draft: Mia's own": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Doc",
+      "slug": "doc",
+      "slug_path": "doc",
+      "status": "draft",
+      "version": 0,
+      "markdown": "",
+      "headings": [],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 0,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": {
+        "title": "Doc",
+        "markdown": "mine",
+        "base_version": 0,
+        "saves": 1,
+        "updated_at": "<time>",
+        "author": "Mia",
+        "ai_source": null
+      }
+    }
+  },
+  "draft: blank title": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "title_required",
+        "message": "Give the page a title",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "draft: discard": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Doc 3",
+      "slug": "doc",
+      "slug_path": "doc-3",
+      "status": "published",
+      "version": 2,
+      "markdown": "## B\n[Needs input: who?] and [Needs input]",
+      "headings": [
+        {
+          "level": 2,
+          "text": "B",
+          "slug": "b"
+        }
+      ],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 8,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null
+    }
+  },
+  "draft: discard none": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Doc 3",
+      "slug": "doc",
+      "slug_path": "doc-3",
+      "status": "published",
+      "version": 2,
+      "markdown": "## B\n[Needs input: who?] and [Needs input]",
+      "headings": [
+        {
+          "level": 2,
+          "text": "B",
+          "slug": "b"
+        }
+      ],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 8,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null
+    }
+  },
+  "draft: discard unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "draft: discard viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Only project members can edit pages in this space. You can still read published pages.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "draft: no markdown": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "markdown"
+        ]
+      ]
+    }
+  },
+  "draft: save": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Doc",
+      "slug": "doc",
+      "slug_path": "doc",
+      "status": "draft",
+      "version": 0,
+      "markdown": "",
+      "headings": [],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 0,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": {
+        "title": "Doc",
+        "markdown": "## A\nfirst",
+        "base_version": 0,
+        "saves": 2,
+        "updated_at": "<time>",
+        "author": "user",
+        "ai_source": null
+      }
+    }
+  },
+  "draft: save again with a title and a base": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Doc",
+      "slug": "doc",
+      "slug_path": "doc",
+      "status": "draft",
+      "version": 0,
+      "markdown": "",
+      "headings": [],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 0,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": {
+        "title": "Doc 2",
+        "markdown": "## A\nfirst!",
+        "base_version": 0,
+        "saves": 3,
+        "updated_at": "<time>",
+        "author": "user",
+        "ai_source": null
+      }
+    }
+  },
+  "draft: too large": {
+    "status": 413,
+    "json": {
+      "detail": {
+        "code": "too_large",
+        "message": "Page is too large",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "draft: unknown page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "draft: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Only project members can edit pages in this space. You can still read published pages.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "follow: Ada on": {
+    "status": 200,
+    "json": {
+      "following": true,
+      "count": 1,
+      "names": [
+        "Mia"
+      ]
+    }
+  },
+  "follow: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "on"
+        ]
+      ]
+    }
+  },
+  "follow: off": {
+    "status": 200,
+    "json": {
+      "following": false,
+      "count": 1,
+      "names": [
+        "Ada"
+      ]
+    }
+  },
+  "follow: on": {
+    "status": 200,
+    "json": {
+      "following": true,
+      "count": 0,
+      "names": []
+    }
+  },
+  "follow: unknown project": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "project_not_found",
+        "message": "Project not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "followers: none": {
+    "status": 200,
+    "json": {
+      "following": false,
+      "count": 0,
+      "names": []
+    }
+  },
+  "followers: two": {
+    "status": 200,
+    "json": {
+      "following": true,
+      "count": 1,
+      "names": [
+        "Ada"
+      ]
+    }
+  },
+  "followers: unknown project": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "project_not_found",
+        "message": "Project not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "publish: blank title": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "title_required",
+        "message": "Give the page a title",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "publish: markers, a title and notify": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Doc 3",
+      "slug": "doc",
+      "slug_path": "doc-3",
+      "status": "published",
+      "version": 2,
+      "markdown": "## B\n[Needs input: who?] and [Needs input]",
+      "headings": [
+        {
+          "level": 2,
+          "text": "B",
+          "slug": "b"
+        }
+      ],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 8,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null,
+      "needs_input_markers": 2
+    }
+  },
+  "publish: no base": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "base_version"
+        ]
+      ]
+    }
+  },
+  "publish: no draft for Ada": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "nothing_to_publish",
+        "message": "There is no draft to publish",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "publish: ok with a note": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Doc 2",
+      "slug": "doc",
+      "slug_path": "doc-2",
+      "status": "published",
+      "version": 1,
+      "markdown": "## A\nfirst!",
+      "headings": [
+        {
+          "level": 2,
+          "text": "A",
+          "slug": "a"
+        }
+      ],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 3,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null,
+      "needs_input_markers": 0
+    }
+  },
+  "publish: stale base": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "code": "conflict",
+        "message": "Page was published as v0 since you started from v3",
+        "request_id": "<request id>",
+        "latest_version": 0,
+        "latest_author": null,
+        "latest_at": null
+      }
+    },
+    "has_request_id": true
+  },
+  "publish: too large": {
+    "status": 413,
+    "json": {
+      "detail": {
+        "code": "too_large",
+        "message": "Page is too large",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "publish: unknown page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "publish: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Only project members can edit pages in this space. You can still read published pages.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "restore version: missing": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "version_not_found",
+        "message": "Version 9 not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "restore version: ok": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Doc 2",
+      "slug": "doc",
+      "slug_path": "doc-2",
+      "status": "published",
+      "version": 3,
+      "markdown": "## A\nfirst!",
+      "headings": [
+        {
+          "level": 2,
+          "text": "A",
+          "slug": "a"
+        }
+      ],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 3,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null
+    }
+  },
+  "restore version: unknown page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "restore version: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Only project members can edit pages in this space. You can still read published pages.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "restore version: with a note and notify": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Doc 3",
+      "slug": "doc",
+      "slug_path": "doc-3",
+      "status": "published",
+      "version": 4,
+      "markdown": "## B\n[Needs input: who?] and [Needs input]",
+      "headings": [
+        {
+          "level": 2,
+          "text": "B",
+          "slug": "b"
+        }
+      ],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 8,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null
+    }
+  },
+  "seen: clamped": {
+    "status": 200,
+    "json": {
+      "version": 4
+    }
+  },
+  "seen: mark": {
+    "status": 200,
+    "json": {
+      "version": 2
+    }
+  },
+  "seen: negative": {
+    "status": 200,
+    "json": {
+      "version": 0
+    }
+  },
+  "seen: never": {
+    "status": 200,
+    "json": {
+      "version": null
+    }
+  },
+  "seen: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "version"
+        ]
+      ]
+    }
+  },
+  "seen: read": {
+    "status": 200,
+    "json": {
+      "version": 4
+    }
+  },
+  "seen: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "seen: unknown put": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "version: missing": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "version_not_found",
+        "message": "Version 9 not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "version: not a number": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "path",
+          "version"
+        ]
+      ]
+    }
+  },
+  "version: one": {
+    "status": 200,
+    "json": {
+      "version": 1,
+      "title": "Doc 2",
+      "markdown": "## A\nfirst!",
+      "author": "user",
+      "note": "first cut",
+      "created_at": "<time>",
+      "diagram_versions": {},
+      "with_ai": false
+    }
+  },
+  "versions: after the restores": {
+    "status": 200,
+    "json": [
+      {
+        "version": 4,
+        "title": "Doc 3",
+        "author": "user",
+        "note": "back",
+        "created_at": "<time>",
+        "words": 8,
+        "with_ai": false
+      },
+      {
+        "version": 3,
+        "title": "Doc 2",
+        "author": "user",
+        "note": "Restored from v1",
+        "created_at": "<time>",
+        "words": 3,
+        "with_ai": false
+      },
+      {
+        "version": 2,
+        "title": "Doc 3",
+        "author": "user",
+        "note": null,
+        "created_at": "<time>",
+        "words": 8,
+        "with_ai": false
+      },
+      {
+        "version": 1,
+        "title": "Doc 2",
+        "author": "user",
+        "note": "first cut",
+        "created_at": "<time>",
+        "words": 3,
+        "with_ai": false
+      }
+    ]
+  },
+  "versions: list": {
+    "status": 200,
+    "json": [
+      {
+        "version": 2,
+        "title": "Doc 3",
+        "author": "user",
+        "note": null,
+        "created_at": "<time>",
+        "words": 8,
+        "with_ai": false
+      },
+      {
+        "version": 1,
+        "title": "Doc 2",
+        "author": "user",
+        "note": "first cut",
+        "created_at": "<time>",
+        "words": 3,
+        "with_ai": false
+      }
+    ]
+  },
+  "versions: unknown page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  }
+}

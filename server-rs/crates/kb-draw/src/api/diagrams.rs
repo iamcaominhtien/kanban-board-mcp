@@ -30,11 +30,9 @@ pub fn routes() -> Routes {
         .get("/diagrams/editor-check", get_diagram_editor_check)
         .put("/diagrams/settings", put_diagram_settings)
         // FastAPI falls through a path whose method is not served by the static route to `/diagrams/{diagram_id}`
-        .hidden("/diagrams/settings", delete(delete_settings_as_id))
-        .hidden(
-            "/diagrams/editor-check",
-            put(put_editor_check_as_id).layer(DefaultBodyLimit::disable()).delete(delete_editor_check_as_id),
-        )
+        .hidden("DELETE", "/diagrams/settings", delete(delete_settings_as_id))
+        .hidden("PUT", "/diagrams/editor-check", put(put_editor_check_as_id).layer(DefaultBodyLimit::disable()))
+        .hidden("DELETE", "/diagrams/editor-check", delete(delete_editor_check_as_id))
         .get("/diagrams/{diagram_id}", get_diagram)
         .add("PUT", "/diagrams/{diagram_id}", put(put_diagram).layer(DefaultBodyLimit::disable()))
         .delete("/diagrams/{diagram_id}", del_diagram)

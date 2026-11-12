@@ -4,13 +4,14 @@ use axum::http::HeaderMap;
 use kb_base::{ApiError, ApiResult, Routes};
 use serde_json::{Value, json};
 
+pub mod canvases;
 pub mod diagrams;
 pub mod sketches;
 
 /// Every route of this area (the app merges them, in the order the Python app included its routers).
 pub fn routes() -> Routes {
-    // the order of `main.py`: diagrams, sketches
-    Routes::new().merge(diagrams::routes()).merge(sketches::routes())
+    // the order of `main.py`: diagrams, sketches, canvases
+    Routes::new().merge(diagrams::routes()).merge(sketches::routes()).merge(canvases::routes())
 }
 
 /// `docs_error_handler` of `api/docs.py`: every `DocsError` answers `{detail: {code, message, request_id, ...}}` and

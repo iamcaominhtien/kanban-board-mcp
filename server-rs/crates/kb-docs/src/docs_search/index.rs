@@ -19,8 +19,13 @@ page_id UNINDEXED, project_id UNINDEXED, title, headings, body, tokenize = 'unic
 /// `_fts_broken`: FTS5 is missing in this SQLite.
 static FTS_BROKEN: AtomicBool = AtomicBool::new(false);
 
-const INSERT_ROW: &str =
-    "INSERT INTO docs_fts (page_id, project_id, title, headings, body) VALUES (?, ?, ?, ?, ?)";
+/// Switch FTS5 off (`true`) or on again, as the Python tests do by patching `ensure_fts` / `_fts_broken`: while it is
+/// off the index is not written and every search runs the scan path. For tests that run the service in-process.
+pub fn set_fts_broken(broken: bool) {
+    FTS_BROKEN.store(broken, Ordering::SeqCst);
+}
+
+const INSERT_ROW: &str = "INSERT INTO docs_fts (page_id, project_id, title, headings, body) VALUES (?, ?, ?, ?, ?)";
 
 /// Return the three columns indexed for a page: `(title, headings, body)`.
 pub fn index_fields(title: &str, markdown: &str) -> (String, String, String) {
@@ -148,7 +153,11 @@ pub async fn contents(session: &Session, pages: &[docs_page::Model]) -> Result<H
 
 /// A canvas page has the boards of its canvas as sections, so `[[Settings flow#Sign in]]` and the `[[` suggester
 /// ("INSIDE A CANVAS: Login redesign > Sign in") find them like headings.
-async fn canvas_outline(session: &Session, pages: &[docs_page::Model], out: &mut HashMap<String, String>) -> Result<(), DbErr> {
+async fn canvas_outline(
+    session: &Session,
+    pages: &[docs_page::Model],
+    out: &mut HashMap<String, String>,
+) -> Result<(), DbErr> {
     let ids: Vec<String> = pages.iter().filter(|p| p.kind == "canvas").map(|p| p.id.clone()).collect();
     if ids.is_empty() {
         return Ok(());

@@ -120,7 +120,6 @@ async fn test_the_server_and_the_rust_copy_write_the_same_on_every_engine() {
     }
     kb_dbkit::hooks::set_docs_search_hook(Box::new(DocsSearch));
     let tmp = tempfile::tempdir().expect("tmp");
-    let python = testkit::target() == testkit::Target::Python;
 
     let s = Server::start_with(options(tmp.path())).await;
     let client = s.client();
@@ -166,16 +165,9 @@ async fn test_the_server_and_the_rust_copy_write_the_same_on_every_engine() {
     assert_eq!(dump_server_schema(&my_server_url).await, dump_server_schema(&my_direct_url).await);
     switch(&client, "mysql").await;
 
-    // MySQL → SQLite. The Docs search index of the new file is built by the Docs area: by the Python server, and not
-    // yet by the Rust server (its copy then says that the index is behind, and nothing else).
+    // MySQL → SQLite. The Docs search index of the new file is built by the Docs area, on both servers.
     let (job, verified) = step(&client, (&my_server, &my_server_url), (&back_server, ""), (&back_direct, "")).await;
-    assert_eq!(
-        job["state"],
-        if python { "verified" } else { "verified_with_differences" },
-        "{} {}",
-        job["error"],
-        job["stop"]
-    );
+    assert_eq!(job["state"], "verified", "{} {}", job["error"], job["stop"]);
     let failed: Vec<&str> = job["verify"]["checks"]
         .as_array()
         .expect("checks")
@@ -183,13 +175,13 @@ async fn test_the_server_and_the_rust_copy_write_the_same_on_every_engine() {
         .filter(|c| c["ok"] != true)
         .filter_map(|c| c["key"].as_str())
         .collect();
-    assert_eq!(failed, if python { vec![] } else { vec!["search"] });
+    assert_eq!(failed, Vec::<&str>::new());
     all_ok("the direct copy back to SQLite", &verified["checks"]);
     let mut from_server = board_tables(&dump_sqlite(Path::new(&back_server.path)).await);
     let mut from_direct = board_tables(&dump_sqlite(Path::new(&back_direct.path)).await);
     let live = from_direct["docs_page"].as_array().expect("pages").iter().filter(|p| p["deleted_at"].is_null()).count();
     let indexed = from_server.remove("docs_fts").expect("docs_fts");
-    assert_eq!(indexed.as_array().expect("rows").len(), if python { live } else { 0 });
+    assert_eq!(indexed.as_array().expect("rows").len(), live);
     assert_eq!(from_direct.remove("docs_fts").expect("docs_fts").as_array().expect("rows").len(), live);
     assert_same_dump("back on SQLite", &from_server, &from_direct);
     let (made_by_server, made_directly) = (

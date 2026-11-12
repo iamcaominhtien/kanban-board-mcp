@@ -18,6 +18,7 @@ serde_html_form = "0.2"
 serde_path_to_error = "0.1"
 thiserror = { workspace = true }
 tokio = { workspace = true }
+tower = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
 form_urlencoded = "1"

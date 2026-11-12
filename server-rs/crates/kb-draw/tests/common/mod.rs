@@ -2,6 +2,7 @@
 //! multipart forms of the sketch routes (the harness client sends one file part only).
 #![allow(dead_code)]
 
+pub mod hash;
 pub mod service;
 
 use std::io::Write;

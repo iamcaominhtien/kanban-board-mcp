@@ -1,0 +1,798 @@
+{
+  "bin: empty": {
+    "status": 200,
+    "json": []
+  },
+  "bin: empty again": {
+    "status": 200,
+    "json": {
+      "purged": 0
+    }
+  },
+  "bin: empty it": {
+    "status": 200,
+    "json": {
+      "purged": 1
+    }
+  },
+  "bin: empty unknown project": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "project_not_found",
+        "message": "Project not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "bin: one deletion": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "title": "API",
+        "project_id": "<uuid:2>",
+        "parent_title": "Architecture",
+        "parent_deleted": false,
+        "deleted_at": "<time>",
+        "deleted_by": "user",
+        "page_count": 1,
+        "child_titles": [],
+        "days_left": 30
+      }
+    ]
+  },
+  "bin: unknown project": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "project_not_found",
+        "message": "Project not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "bin: viewer cannot empty it": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Only project members can edit pages in this space. You can still read published pages.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "by-path: by id of the slug": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": "<uuid:3>",
+      "title": "API",
+      "slug": "api",
+      "slug_path": "architecture/api",
+      "status": "published",
+      "version": 1,
+      "markdown": "## Endpoints\nSee [[Architecture#Layers]] and KAN-1.",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Endpoints",
+          "slug": "endpoints"
+        }
+      ],
+      "path": [
+        {
+          "id": "<uuid:3>",
+          "title": "Architecture",
+          "slug": "architecture"
+        }
+      ],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 6,
+        "linked_tickets": 1,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null
+    }
+  },
+  "by-path: no query": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "path"
+        ]
+      ]
+    }
+  },
+  "by-path: ok": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": "<uuid:3>",
+      "title": "API",
+      "slug": "api",
+      "slug_path": "architecture/api",
+      "status": "published",
+      "version": 1,
+      "markdown": "## Endpoints\nSee [[Architecture#Layers]] and KAN-1.",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Endpoints",
+          "slug": "endpoints"
+        }
+      ],
+      "path": [
+        {
+          "id": "<uuid:3>",
+          "title": "Architecture",
+          "slug": "architecture"
+        }
+      ],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 6,
+        "linked_tickets": 1,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null
+    }
+  },
+  "by-path: only slashes": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "No page at this link",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "by-path: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "No page at this link",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "by-path: unknown project": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "No page at this link",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "by-slug: ok": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": "<uuid:3>",
+      "title": "API",
+      "slug": "api",
+      "slug_path": "architecture/api",
+      "status": "published",
+      "version": 1,
+      "markdown": "## Endpoints\nSee [[Architecture#Layers]] and KAN-1.",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Endpoints",
+          "slug": "endpoints"
+        }
+      ],
+      "path": [
+        {
+          "id": "<uuid:3>",
+          "title": "Architecture",
+          "slug": "architecture"
+        }
+      ],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 6,
+        "linked_tickets": 1,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null
+    }
+  },
+  "by-slug: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "No page at 'nope'",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "resolve: from a ticket": {
+    "status": 200,
+    "json": [
+      {
+        "kind": "page",
+        "status": "ok",
+        "page_id": "<uuid:1>",
+        "title": "API",
+        "slug": "api",
+        "path": "Architecture/API",
+        "published": true
+      }
+    ]
+  },
+  "resolve: in the bin": {
+    "status": 200,
+    "json": [
+      {
+        "kind": "page",
+        "status": "in_bin",
+        "title": "API",
+        "page_id": "<uuid:1>",
+        "deleted_at": "<time>",
+        "deleted_by": "user"
+      }
+    ]
+  },
+  "resolve: kinds": {
+    "status": 200,
+    "json": [
+      {
+        "kind": "page",
+        "status": "ok",
+        "page_id": "<uuid:1>",
+        "title": "Architecture",
+        "slug": "architecture",
+        "path": "Architecture",
+        "published": true,
+        "anchor": "layers",
+        "section": "Layers"
+      },
+      {
+        "kind": "page",
+        "status": "ok",
+        "page_id": "<uuid:2>",
+        "title": "API",
+        "slug": "api",
+        "path": "Architecture/API",
+        "published": true
+      },
+      {
+        "kind": "page",
+        "status": "section_missing",
+        "page_id": "<uuid:1>",
+        "title": "Architecture",
+        "slug": "architecture",
+        "path": "Architecture",
+        "published": true,
+        "anchor": "nope"
+      },
+      {
+        "kind": "page",
+        "status": "missing",
+        "title": "Ghost"
+      },
+      {
+        "kind": "ticket",
+        "key": "KAN-1",
+        "status": "ok",
+        "title": "Rate limiting bug",
+        "ticket_status": "backlog"
+      },
+      {
+        "kind": "ticket",
+        "key": "KAN-99",
+        "status": "missing"
+      },
+      {
+        "kind": "ticket",
+        "key": null,
+        "status": "missing"
+      },
+      {
+        "kind": "page",
+        "status": "ok",
+        "page_id": "<uuid:2>",
+        "title": "API",
+        "slug": "api",
+        "path": "Architecture/API",
+        "published": true
+      },
+      {
+        "kind": "page",
+        "status": "ok",
+        "page_id": "<uuid:2>",
+        "title": "API",
+        "slug": "api",
+        "path": "Architecture/API",
+        "published": true
+      },
+      {
+        "kind": "page",
+        "status": "missing",
+        "title": ""
+      }
+    ]
+  },
+  "resolve: no refs": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "refs"
+        ]
+      ]
+    }
+  },
+  "resolve: refs not a list": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "refs"
+        ]
+      ]
+    }
+  },
+  "resolve: unknown project": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "project_not_found",
+        "message": "Project not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "search: all scope": {
+    "status": 200,
+    "json": {
+      "total": 1,
+      "match_count": 1,
+      "facets": {
+        "authors": [
+          {
+            "name": "user",
+            "count": 1
+          }
+        ],
+        "under": [
+          {
+            "page_id": "<uuid:1>",
+            "title": "Architecture",
+            "count": 1
+          }
+        ],
+        "status": [
+          {
+            "name": "published",
+            "count": 1
+          }
+        ],
+        "edited": {
+          "any": 1,
+          "day": 1,
+          "week": 1,
+          "month": 1
+        },
+        "has_tickets": 0
+      },
+      "pages": [
+        {
+          "page_id": "<uuid:1>",
+          "project_id": "<uuid:2>",
+          "project_name": "Kanban",
+          "title": "Architecture",
+          "title_snippet": "Architecture",
+          "path": [],
+          "status": "published",
+          "version": 1,
+          "updated_at": "<time>",
+          "updated_by": "user",
+          "tickets": [],
+          "matches": [
+            {
+              "section": "Layers",
+              "slug": "layers",
+              "snippet": "<mark>Rate</mark> limiting lives in the API layer."
+            }
+          ]
+        }
+      ],
+      "tickets": [
+        {
+          "ticket_id": "KAN-1",
+          "title": "Rate limiting bug",
+          "status": "backlog",
+          "assignee": null,
+          "snippet": "<mark>Rate</mark> limiting bug"
+        }
+      ],
+      "suggestion": null
+    }
+  },
+  "search: bad filter": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_filter",
+        "message": "edited_since must be a date (2026-01-31) or like '7d'",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "search: bad mode": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_mode",
+        "message": "mode must be headings or omitted",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "search: bad scope": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_scope",
+        "message": "scope must be space, all or tickets",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "search: bad sort": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_sort",
+        "message": "sort must be relevance or edited_at",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "search: bool not a bool": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "has_tickets"
+        ]
+      ]
+    }
+  },
+  "search: empty": {
+    "status": 200,
+    "json": {
+      "total": 0,
+      "match_count": 0,
+      "facets": {
+        "authors": [],
+        "under": [],
+        "status": [],
+        "edited": {
+          "any": 0,
+          "day": 0,
+          "week": 0,
+          "month": 0
+        },
+        "has_tickets": 0
+      },
+      "pages": [],
+      "tickets": [],
+      "suggestion": null
+    }
+  },
+  "search: filters": {
+    "status": 200,
+    "json": {
+      "total": 0,
+      "match_count": 0,
+      "facets": {
+        "authors": [
+          {
+            "name": "user",
+            "count": 2
+          }
+        ],
+        "under": [
+          {
+            "page_id": "<uuid:1>",
+            "title": "Architecture",
+            "count": 2
+          }
+        ],
+        "status": [
+          {
+            "name": "published",
+            "count": 2
+          }
+        ],
+        "edited": {
+          "any": 2,
+          "day": 2,
+          "week": 2,
+          "month": 2
+        },
+        "has_tickets": 0
+      },
+      "pages": [],
+      "tickets": [
+        {
+          "ticket_id": "KAN-1",
+          "title": "Rate limiting bug",
+          "status": "backlog",
+          "assignee": null,
+          "snippet": "see <mark>API</mark>"
+        }
+      ],
+      "suggestion": null
+    }
+  },
+  "search: headings": {
+    "status": 200,
+    "json": {
+      "total": 1,
+      "match_count": 1,
+      "facets": {
+        "authors": [
+          {
+            "name": "user",
+            "count": 1
+          }
+        ],
+        "under": [
+          {
+            "page_id": "<uuid:1>",
+            "title": "Architecture",
+            "count": 1
+          }
+        ],
+        "status": [
+          {
+            "name": "published",
+            "count": 1
+          }
+        ],
+        "edited": {
+          "any": 1,
+          "day": 1,
+          "week": 1,
+          "month": 1
+        },
+        "has_tickets": 0
+      },
+      "pages": [
+        {
+          "page_id": "<uuid:1>",
+          "project_id": "<uuid:2>",
+          "project_name": "Kanban",
+          "title": "Architecture",
+          "title_snippet": "Architecture",
+          "path": [],
+          "status": "published",
+          "version": 1,
+          "updated_at": "<time>",
+          "updated_by": "user",
+          "tickets": [],
+          "matches": [
+            {
+              "section": "Layers",
+              "slug": "layers",
+              "snippet": "<mark>Layers</mark>"
+            }
+          ]
+        }
+      ],
+      "tickets": [],
+      "suggestion": null
+    }
+  },
+  "search: limit not a number": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "limit"
+        ]
+      ]
+    }
+  },
+  "search: tickets scope": {
+    "status": 200,
+    "json": {
+      "total": 1,
+      "match_count": 0,
+      "facets": {
+        "authors": [],
+        "under": [],
+        "status": [],
+        "edited": {
+          "any": 0,
+          "day": 0,
+          "week": 0,
+          "month": 0
+        },
+        "has_tickets": 0
+      },
+      "pages": [],
+      "tickets": [
+        {
+          "ticket_id": "KAN-1",
+          "title": "Rate limiting bug",
+          "status": "backlog",
+          "assignee": null,
+          "snippet": "<mark>Rate</mark> limiting bug"
+        }
+      ],
+      "suggestion": null
+    }
+  },
+  "search: typo": {
+    "status": 200,
+    "json": {
+      "total": 0,
+      "match_count": 0,
+      "facets": {
+        "authors": [],
+        "under": [],
+        "status": [],
+        "edited": {
+          "any": 0,
+          "day": 0,
+          "week": 0,
+          "month": 0
+        },
+        "has_tickets": 0
+      },
+      "pages": [],
+      "tickets": [],
+      "suggestion": null
+    }
+  },
+  "search: unknown project": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "project_not_found",
+        "message": "Project not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "search: words": {
+    "status": 200,
+    "json": {
+      "total": 1,
+      "match_count": 1,
+      "facets": {
+        "authors": [
+          {
+            "name": "user",
+            "count": 1
+          }
+        ],
+        "under": [
+          {
+            "page_id": "<uuid:1>",
+            "title": "Architecture",
+            "count": 1
+          }
+        ],
+        "status": [
+          {
+            "name": "published",
+            "count": 1
+          }
+        ],
+        "edited": {
+          "any": 1,
+          "day": 1,
+          "week": 1,
+          "month": 1
+        },
+        "has_tickets": 0
+      },
+      "pages": [
+        {
+          "page_id": "<uuid:1>",
+          "project_id": "<uuid:2>",
+          "project_name": "Kanban",
+          "title": "Architecture",
+          "title_snippet": "Architecture",
+          "path": [],
+          "status": "published",
+          "version": 1,
+          "updated_at": "<time>",
+          "updated_by": "user",
+          "tickets": [],
+          "matches": [
+            {
+              "section": "Layers",
+              "slug": "layers",
+              "snippet": "<mark>Rate</mark> <mark>limiting</mark> lives in the API layer."
+            }
+          ]
+        }
+      ],
+      "tickets": [
+        {
+          "ticket_id": "KAN-1",
+          "title": "Rate limiting bug",
+          "status": "backlog",
+          "assignee": null,
+          "snippet": "<mark>Rate</mark> <mark>limiting</mark> bug"
+        }
+      ],
+      "suggestion": null
+    }
+  },
+  "similar: no slug": {
+    "status": 200,
+    "json": []
+  },
+  "similar: ok": {
+    "status": 200,
+    "json": [
+      {
+        "page_id": "<uuid:1>",
+        "title": "Architecture",
+        "path": []
+      }
+    ]
+  },
+  "similar: unknown project": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "project_not_found",
+        "message": "Project not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  }
+}

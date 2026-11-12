@@ -3,33 +3,45 @@
 
 use std::sync::OnceLock;
 
-/// `canvas_png.Raster`: an RGB picture you can fill rectangles in, and write as a PNG.
-pub trait Raster: Send {
-    /// `Raster.rect(x, y, w, h, color)`: fill a rectangle (clipped to the picture).
-    fn rect(&mut self, x: f64, y: f64, w: f64, h: f64, color: (u8, u8, u8));
-    /// `Raster.frame(x, y, w, h, color, t)`: a rectangle's outline.
-    fn frame(&mut self, x: f64, y: f64, w: f64, h: f64, color: (u8, u8, u8), t: u32);
-    /// `Raster.line(x0, y0, x1, y1, color)`.
-    fn line(&mut self, x0: f64, y0: f64, x1: f64, y1: f64, color: (u8, u8, u8));
-    /// `Raster.png()`.
-    fn png(&self) -> Vec<u8>;
+use async_trait::async_trait;
+use kb_db::Session;
+use serde_json::{Map, Value};
+
+/// `services/docs.py` and `services/docs_search.py`, as the canvases call them (a canvas can be a Docs page).
+#[async_trait]
+pub trait CanvasDocs: Send + Sync {
+    /// `docs.get_page(session, page_id, edit=True)`: fails when the page's space does not let the caller edit.
+    async fn check_page_edit(&self, session: &Session, page_id: &str) -> crate::Result<()>;
+    /// `docs_search.reindex(session, page_ids)`.
+    async fn reindex(&self, session: &Session, page_ids: &[String]) -> crate::Result<()>;
+    /// `docs.create_page(session, project_id, title, parent_id=parent_id, markdown="")`: the page as the API
+    /// returns it.
+    async fn create_page(
+        &self,
+        session: &Session,
+        project_id: &str,
+        title: &str,
+        parent_id: Option<&str>,
+    ) -> crate::Result<Map<String, Value>>;
+    /// `docs.publish_page(session, page_id, base_version=base_version, markdown=markdown, note=note)`.
+    async fn publish_page(
+        &self,
+        session: &Session,
+        page_id: &str,
+        base_version: i32,
+        markdown: &str,
+        note: &str,
+    ) -> crate::Result<()>;
 }
 
-/// `services/canvas_png.py` (the canvases area, which is not ported yet), as far as `diagram_model.wireframe_png`
-/// calls it.
-pub trait CanvasRaster: Send + Sync {
-    /// `canvas_png.Raster(width, height)`: a white picture.
-    fn new_raster(&self, width: u32, height: u32) -> Box<dyn Raster>;
+static CANVAS_DOCS: OnceLock<Box<dyn CanvasDocs>> = OnceLock::new();
+
+/// Register the Docs code (once, at startup; a second call is ignored).
+pub fn set_canvas_docs(hook: Box<dyn CanvasDocs>) {
+    let _ = CANVAS_DOCS.set(hook);
 }
 
-static CANVAS_RASTER: OnceLock<Box<dyn CanvasRaster>> = OnceLock::new();
-
-/// Register the canvas picture code (once, at startup; a second call is ignored).
-pub fn set_canvas_raster(hook: Box<dyn CanvasRaster>) {
-    let _ = CANVAS_RASTER.set(hook);
-}
-
-/// The canvas picture code, when its crate has registered itself.
-pub fn canvas_raster() -> Option<&'static dyn CanvasRaster> {
-    CANVAS_RASTER.get().map(|hook| hook.as_ref())
+/// The Docs code, when its crate has registered itself.
+pub fn canvas_docs() -> Option<&'static dyn CanvasDocs> {
+    CANVAS_DOCS.get().map(|hook| hook.as_ref())
 }

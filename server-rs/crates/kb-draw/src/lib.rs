@@ -1,6 +1,10 @@
 //! Drawings: draw.io diagrams, paint-style sketches, and the exact SVG previews of diagrams.
 
 pub mod api;
+pub mod canvas_html;
+pub mod canvas_locks;
+pub mod canvas_png;
+pub mod canvases;
 pub mod diagram_export;
 pub mod diagram_model;
 pub mod diagrams;

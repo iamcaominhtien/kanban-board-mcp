@@ -111,7 +111,8 @@ impl Query {
             self.words.iter().map(|w| format!("{}*", quote(w))).chain(self.phrases.iter().map(|p| quote(p))).collect();
         let mut expr = pos.join(" AND ");
         if !self.excludes.is_empty() {
-            expr = format!("({expr}) NOT ({})", self.excludes.iter().map(|e| quote(e)).collect::<Vec<_>>().join(" OR "));
+            expr =
+                format!("({expr}) NOT ({})", self.excludes.iter().map(|e| quote(e)).collect::<Vec<_>>().join(" OR "));
         }
         expr
     }
@@ -234,8 +235,9 @@ mod tests {
         assert_eq!(q.phrases, vec!["big world"]);
         assert_eq!(q.excludes, vec!["skip", "not this"]);
         assert_eq!(q.fts(), "(\"hello\"* AND \"x\"* AND \"big world\") NOT (\"skip\" OR \"not this\")");
-        // an unclosed quote is a word
-        assert_eq!(Query::new("\"abc def").words, vec!["abc", "def"]);
+        // an unclosed quote: `"abc` is one token (`\S+`) that starts with a quote, so it is a phrase
+        let open = Query::new("\"abc def");
+        assert_eq!((open.words, open.phrases), (vec!["def".to_string()], vec!["abc".to_string()]));
     }
 
     #[test]

@@ -94,6 +94,29 @@ impl Scores {
     }
 }
 
+/// The MATCH itself: page id and score (higher is better) in the order SQLite gives them, or None when the MATCH
+/// fails (a syntax error of FTS5).
+pub async fn fts_ranks(session: &Session, expr: &str, project_ids: &[String]) -> Result<Option<Vec<(String, f64)>>> {
+    let marks = vec!["?"; project_ids.len()].join(", ");
+    let sql = format!(
+        "SELECT docs_fts.page_id, bm25(docs_fts, 0.0, 0.0, 10.0, 5.0, 1.0) \
+         FROM docs_fts JOIN docs_page p ON p.id = docs_fts.page_id \
+         WHERE docs_fts MATCH ? AND p.deleted_at IS NULL AND p.project_id IN ({marks})"
+    );
+    let mut values: Vec<Value> = vec![expr.into()];
+    values.extend(project_ids.iter().map(|p| Value::from(p.as_str())));
+    let Ok(rows) = session.query_all_raw(statement(session.get_database_backend(), &sql, values)).await else {
+        return Ok(None);
+    };
+    let mut out = Vec::new();
+    for row in rows {
+        let pid: String = row.try_get_by_index(0)?;
+        let rank: f64 = row.try_get_by_index(1)?;
+        out.push((pid, -rank));
+    }
+    Ok(Some(out))
+}
+
 /// page_id -> score from FTS5, or None when FTS5 is unavailable or the MATCH failed.
 async fn fts_candidates(
     session: &Session,
@@ -108,22 +131,10 @@ async fn fts_candidates(
     if headings_only {
         expr = format!("headings : ({expr})");
     }
-    let marks = vec!["?"; project_ids.len()].join(", ");
-    let sql = format!(
-        "SELECT docs_fts.page_id, bm25(docs_fts, 0.0, 0.0, 10.0, 5.0, 1.0) \
-         FROM docs_fts JOIN docs_page p ON p.id = docs_fts.page_id \
-         WHERE docs_fts MATCH ? AND p.deleted_at IS NULL AND p.project_id IN ({marks})"
-    );
-    let mut values: Vec<Value> = vec![expr.into()];
-    values.extend(project_ids.iter().map(|p| Value::from(p.as_str())));
-    let Ok(rows) = session.query_all_raw(statement(session.get_database_backend(), &sql, values)).await else {
-        return Ok(None);
-    };
+    let Some(rows) = fts_ranks(session, &expr, project_ids).await? else { return Ok(None) };
     let mut scores = Scores::default();
-    for row in rows {
-        let pid: String = row.try_get_by_index(0)?;
-        let rank: f64 = row.try_get_by_index(1)?;
-        scores.set(pid, -rank);
+    for (pid, score) in rows {
+        scores.set(pid, score);
     }
     Ok(Some(scores))
 }
@@ -152,7 +163,8 @@ fn fallback_candidates(
         let mut score = 0.0;
         let folded = casefold(md);
         for t in query.positive() {
-            score += 10.0 * f64::from(u8::from(contains(&p.title, &t))) + 5.0 * f64::from(u8::from(contains(&heads, &t)));
+            score +=
+                10.0 * f64::from(u8::from(contains(&p.title, &t))) + 5.0 * f64::from(u8::from(contains(&heads, &t)));
             let n = folded.matches(&casefold(&t)).count().min(10);
             score += n as f64 * 0.1;
         }
@@ -236,10 +248,14 @@ async fn search_tickets(
         scored.push((score, t));
     }
     scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal).then_with(|| a.1.id.cmp(&b.1.id)));
-    let ids: HashSet<String> = scored.iter().filter_map(|(_, t)| t.assignee.clone().filter(|a| !a.is_empty())).collect();
+    let ids: HashSet<String> =
+        scored.iter().filter_map(|(_, t)| t.assignee.clone().filter(|a| !a.is_empty())).collect();
     let mut names: HashMap<String, String> = HashMap::new();
     if !ids.is_empty() {
-        let rows = member::Entity::find().filter(member::Column::Id.is_in(ids.into_iter().collect::<Vec<_>>())).all(session).await?;
+        let rows = member::Entity::find()
+            .filter(member::Column::Id.is_in(ids.into_iter().collect::<Vec<_>>()))
+            .all(session)
+            .await?;
         names = rows.into_iter().map(|m| (m.id, m.name)).collect();
     }
     let mut out = Vec::new();
@@ -253,7 +269,12 @@ async fn search_tickets(
         m.insert("status".into(), json!(t.status));
         m.insert(
             "assignee".into(),
-            t.assignee.as_ref().filter(|a| !a.is_empty()).and_then(|a| names.get(a)).map(|n| json!(n)).unwrap_or(Json::Null),
+            t.assignee
+                .as_ref()
+                .filter(|a| !a.is_empty())
+                .and_then(|a| names.get(a))
+                .map(|n| json!(n))
+                .unwrap_or(Json::Null),
         );
         m.insert("snippet".into(), json!(highlight(&window(&source, &positive, 150), &positive)));
         out.push(m);
@@ -387,7 +408,7 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
     }
     let query = Query::new(&q);
     let limit = params.limit.clamp(1, 100) as usize;
-    let offset = params.offset.max(0) as usize;
+    let offset = Ord::max(params.offset, 0) as usize;
     let mut empty = empty_result();
     if query.positive().is_empty() {
         return Ok(empty);
@@ -406,7 +427,8 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
     if let Some(own) = project::Entity::find_by_id(project_id).one(session).await? {
         projects.insert(own.id.clone(), own);
     }
-    let ticket_pool: Option<Vec<String>> = if params.scope == "all" { None } else { Some(vec![project_id.to_string()]) };
+    let ticket_pool: Option<Vec<String>> =
+        if params.scope == "all" { None } else { Some(vec![project_id.to_string()]) };
 
     let pages = docs_page::Entity::find()
         .filter(docs_page::Column::ProjectId.is_in(project_ids.clone()))
@@ -462,7 +484,11 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
         ticket_linked = rows.into_iter().map(|l| l.source_page_id).collect();
     }
 
-    let scope_root = params.under_page.clone().filter(|s| !s.is_empty()).or_else(|| params.page_id.clone().filter(|s| !s.is_empty()));
+    let scope_root = params
+        .under_page
+        .clone()
+        .filter(|s| !s.is_empty())
+        .or_else(|| params.page_id.clone().filter(|s| !s.is_empty()));
     let mut filtered: Vec<&docs_page::Model> = Vec::new();
     for p in &candidates {
         if params.author.as_deref().is_some_and(|a| !a.is_empty() && p.updated_by != a) {
@@ -486,7 +512,10 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
         filtered.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
     } else {
         filtered.sort_by(|a, b| {
-            score_of(b).partial_cmp(&score_of(a)).unwrap_or(std::cmp::Ordering::Equal).then_with(|| casefold(&a.title).cmp(&casefold(&b.title)))
+            score_of(b)
+                .partial_cmp(&score_of(a))
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| casefold(&a.title).cmp(&casefold(&b.title)))
         });
     }
 
@@ -495,16 +524,22 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
         let owned: Vec<docs_page::Model> = window_pages.iter().map(|p| (*p).clone()).collect();
         contents_map = contents(session, &owned).await?;
     }
-    let page_tickets = tickets_of_pages(session, &window_pages.iter().map(|p| p.id.clone()).collect::<Vec<_>>(), 4).await?;
+    let page_tickets =
+        tickets_of_pages(session, &window_pages.iter().map(|p| p.id.clone()).collect::<Vec<_>>(), 4).await?;
     // "28 matches in 9 pages": every section that holds a hit, not only the 3 shown per result
     let counted: Vec<&docs_page::Model> = filtered.iter().take(300).copied().collect();
-    let extra: Vec<docs_page::Model> = counted.iter().filter(|p| !contents_map.contains_key(&p.id)).map(|p| (*p).clone()).collect();
+    let extra: Vec<docs_page::Model> =
+        counted.iter().filter(|p| !contents_map.contains_key(&p.id)).map(|p| (*p).clone()).collect();
     let mut all_content = contents_map.clone();
     all_content.extend(contents(session, &extra).await?);
     let positive = query.positive();
     let match_count: usize = counted
         .iter()
-        .map(|p| build_matches(all_content.get(&p.id).map(String::as_str).unwrap_or(""), &positive, headings_only, 1000).len().max(1))
+        .map(|p| {
+            build_matches(all_content.get(&p.id).map(String::as_str).unwrap_or(""), &positive, headings_only, 1000)
+                .len()
+                .max(1)
+        })
         .sum();
     let mut out_pages: Vec<Json> = Vec::new();
     for p in &window_pages {
@@ -520,7 +555,8 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
         m.insert("updated_at".into(), json!(p.updated_at));
         m.insert("updated_by".into(), json!(p.updated_by));
         m.insert("tickets".into(), Json::Array(page_tickets.get(&p.id).cloned().unwrap_or_default()));
-        let matches = build_matches(contents_map.get(&p.id).map(String::as_str).unwrap_or(""), &positive, headings_only, 3);
+        let matches =
+            build_matches(contents_map.get(&p.id).map(String::as_str).unwrap_or(""), &positive, headings_only, 3);
         m.insert("matches".into(), Json::Array(matches.into_iter().map(Json::Object).collect()));
         out_pages.push(Json::Object(m));
     }
@@ -574,16 +610,18 @@ pub async fn similar(session: &Session, project_id: &str, slug: &str) -> Result<
     let folded = casefold(&needle);
     let mut scored: Vec<(f64, &docs_page::Model)> = Vec::new();
     for p in &pages {
-        let s = fuzz::wratio(&folded, &casefold(&p.slug.replace('-', " "))).max(fuzz::wratio(&folded, &casefold(&p.title)));
+        let s =
+            fuzz::wratio(&folded, &casefold(&p.slug.replace('-', " "))).max(fuzz::wratio(&folded, &casefold(&p.title)));
         if s >= 60.0 {
             scored.push((s, p));
         }
     }
-    scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal).then_with(|| a.1.title.cmp(&b.1.title)));
+    scored.sort_by(|a, b| {
+        b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal).then_with(|| a.1.title.cmp(&b.1.title))
+    });
     Ok(scored
         .into_iter()
         .take(4)
         .map(|(_, p)| json!({"page_id": p.id, "title": p.title, "path": path_titles(p, &by_id)}))
         .collect())
 }
-

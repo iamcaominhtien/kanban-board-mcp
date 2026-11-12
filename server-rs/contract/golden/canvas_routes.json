@@ -1,0 +1,3936 @@
+{
+  "list_empty": {
+    "status": 200,
+    "body": []
+  },
+  "list_missing_params": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "create": {
+    "status": 201,
+    "body": {
+      "id": "<cv:1>",
+      "project_id": "<uuid:1>",
+      "owner_kind": "doc",
+      "owner_id": "page-1",
+      "page_id": null,
+      "title": "Login redesign",
+      "rev": 1,
+      "version": 1,
+      "board_count": 1,
+      "total_bytes": 0,
+      "created_by": "user",
+      "created_at": "<time>",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "role": "admin",
+      "can_edit": true,
+      "markdown": "![Login redesign](canvas:<cv:1>)",
+      "limits": {
+        "boards": 60,
+        "board_bytes": 5242880,
+        "canvas_bytes": 52428800,
+        "pages": 10,
+        "lock_idle_seconds": 600,
+        "min_width": 320,
+        "max_width": 1920
+      },
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:2>",
+            "name": "Page 1",
+            "rev": 1
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Frame 1",
+            "kind": "empty",
+            "x": 0,
+            "y": 0,
+            "w": 1280,
+            "h": 800,
+            "order": 0,
+            "ref": null,
+            "content": null,
+            "rev": 1,
+            "created_by": "user"
+          }
+        ],
+        "notes": [],
+        "arrows": [],
+        "labels": []
+      },
+      "locks": [],
+      "open_comments": 0
+    }
+  },
+  "create_none_phone": {
+    "status": 201,
+    "body": {
+      "id": "<cv:4>",
+      "project_id": "<uuid:1>",
+      "owner_kind": "doc",
+      "owner_id": "page-2",
+      "page_id": null,
+      "title": "Canvas",
+      "rev": 1,
+      "version": 1,
+      "board_count": 0,
+      "total_bytes": 0,
+      "created_by": "user",
+      "created_at": "<time>",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "role": "admin",
+      "can_edit": true,
+      "markdown": "![Canvas](canvas:<cv:4>)",
+      "limits": {
+        "boards": 60,
+        "board_bytes": 5242880,
+        "canvas_bytes": 52428800,
+        "pages": 10,
+        "lock_idle_seconds": 600,
+        "min_width": 320,
+        "max_width": 1920
+      },
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:5>",
+            "name": "Page 1",
+            "rev": 1
+          }
+        ],
+        "boards": [],
+        "notes": [],
+        "arrows": [],
+        "labels": []
+      },
+      "locks": [],
+      "open_comments": 0
+    }
+  },
+  "create_bad_size_is_desktop": {
+    "status": 201,
+    "body": {
+      "id": "<cv:6>",
+      "project_id": "<uuid:1>",
+      "owner_kind": "doc",
+      "owner_id": "page-3",
+      "page_id": null,
+      "title": "[x] y",
+      "rev": 1,
+      "version": 1,
+      "board_count": 1,
+      "total_bytes": 0,
+      "created_by": "user",
+      "created_at": "<time>",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "role": "admin",
+      "can_edit": true,
+      "markdown": "![x  y](canvas:<cv:6>)",
+      "limits": {
+        "boards": 60,
+        "board_bytes": 5242880,
+        "canvas_bytes": 52428800,
+        "pages": 10,
+        "lock_idle_seconds": 600,
+        "min_width": 320,
+        "max_width": 1920
+      },
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:7>",
+            "name": "Page 1",
+            "rev": 1
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:8>",
+            "page": "<p:7>",
+            "name": "Frame 1",
+            "kind": "empty",
+            "x": 0,
+            "y": 0,
+            "w": 1280,
+            "h": 800,
+            "order": 0,
+            "ref": null,
+            "content": null,
+            "rev": 1,
+            "created_by": "user"
+          }
+        ],
+        "notes": [],
+        "arrows": [],
+        "labels": []
+      },
+      "locks": [],
+      "open_comments": 0
+    }
+  },
+  "create_bad_owner_kind": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "invalid_owner",
+        "message": "owner_kind must be one of ('idea', 'ticket', 'doc', 'comment', 'page')"
+      }
+    }
+  },
+  "create_blank_owner_id": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "invalid_owner",
+        "message": "owner_id is required"
+      }
+    }
+  },
+  "create_unknown_project": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "project_not_found",
+        "message": "Project not found"
+      }
+    }
+  },
+  "create_missing_fields": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "create_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "create_free_idea": {
+    "status": 201,
+    "body": {
+      "id": "<cv:9>",
+      "project_id": null,
+      "owner_kind": "idea",
+      "owner_id": "idea-free",
+      "page_id": null,
+      "title": "Canvas",
+      "rev": 1,
+      "version": 1,
+      "board_count": 1,
+      "total_bytes": 0,
+      "created_by": "user",
+      "created_at": "<time>",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "role": "admin",
+      "can_edit": true,
+      "markdown": "![Canvas](canvas:<cv:9>)",
+      "limits": {
+        "boards": 60,
+        "board_bytes": 5242880,
+        "canvas_bytes": 52428800,
+        "pages": 10,
+        "lock_idle_seconds": 600,
+        "min_width": 320,
+        "max_width": 1920
+      },
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:10>",
+            "name": "Page 1",
+            "rev": 1
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:11>",
+            "page": "<p:10>",
+            "name": "Frame 1",
+            "kind": "empty",
+            "x": 0,
+            "y": 0,
+            "w": 1280,
+            "h": 800,
+            "order": 0,
+            "ref": null,
+            "content": null,
+            "rev": 1,
+            "created_by": "user"
+          }
+        ],
+        "notes": [],
+        "arrows": [],
+        "labels": []
+      },
+      "locks": [],
+      "open_comments": 0
+    }
+  },
+  "list_one": {
+    "status": 200,
+    "body": [
+      {
+        "id": "<cv:1>",
+        "project_id": "<uuid:1>",
+        "owner_kind": "doc",
+        "owner_id": "page-1",
+        "page_id": null,
+        "title": "Login redesign",
+        "rev": 1,
+        "version": 1,
+        "board_count": 1,
+        "total_bytes": 0,
+        "created_by": "user",
+        "created_at": "<time>",
+        "updated_by": "user",
+        "updated_at": "<time>",
+        "deleted_at": null,
+        "role": "admin",
+        "can_edit": true,
+        "markdown": "![Login redesign](canvas:<cv:1>)",
+        "limits": {
+          "boards": 60,
+          "board_bytes": 5242880,
+          "canvas_bytes": 52428800,
+          "pages": 10,
+          "lock_idle_seconds": 600,
+          "min_width": 320,
+          "max_width": 1920
+        }
+      }
+    ]
+  },
+  "get": {
+    "status": 200,
+    "body": {
+      "id": "<cv:1>",
+      "project_id": "<uuid:1>",
+      "owner_kind": "doc",
+      "owner_id": "page-1",
+      "page_id": null,
+      "title": "Login redesign",
+      "rev": 1,
+      "version": 1,
+      "board_count": 1,
+      "total_bytes": 0,
+      "created_by": "user",
+      "created_at": "<time>",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "role": "admin",
+      "can_edit": true,
+      "markdown": "![Login redesign](canvas:<cv:1>)",
+      "limits": {
+        "boards": 60,
+        "board_bytes": 5242880,
+        "canvas_bytes": 52428800,
+        "pages": 10,
+        "lock_idle_seconds": 600,
+        "min_width": 320,
+        "max_width": 1920
+      },
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:2>",
+            "name": "Page 1",
+            "rev": 1
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Frame 1",
+            "kind": "empty",
+            "x": 0,
+            "y": 0,
+            "w": 1280,
+            "h": 800,
+            "order": 0,
+            "ref": null,
+            "content": null,
+            "rev": 1,
+            "created_by": "user"
+          }
+        ],
+        "notes": [],
+        "arrows": [],
+        "labels": []
+      },
+      "locks": [],
+      "open_comments": 0
+    }
+  },
+  "get_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "get_bad_shape": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "get_viewer": {
+    "status": 200,
+    "body": {
+      "id": "<cv:1>",
+      "project_id": "<uuid:1>",
+      "owner_kind": "doc",
+      "owner_id": "page-1",
+      "page_id": null,
+      "title": "Login redesign",
+      "rev": 1,
+      "version": 1,
+      "board_count": 1,
+      "total_bytes": 0,
+      "created_by": "user",
+      "created_at": "<time>",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "role": "viewer",
+      "can_edit": false,
+      "markdown": "![Login redesign](canvas:<cv:1>)",
+      "limits": {
+        "boards": 60,
+        "board_bytes": 5242880,
+        "canvas_bytes": 52428800,
+        "pages": 10,
+        "lock_idle_seconds": 600,
+        "min_width": 320,
+        "max_width": 1920
+      },
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:2>",
+            "name": "Page 1",
+            "rev": 1
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Frame 1",
+            "kind": "empty",
+            "x": 0,
+            "y": 0,
+            "w": 1280,
+            "h": 800,
+            "order": 0,
+            "ref": null,
+            "content": null,
+            "rev": 1,
+            "created_by": "user"
+          }
+        ],
+        "notes": [],
+        "arrows": [],
+        "labels": []
+      },
+      "locks": [],
+      "open_comments": 0
+    }
+  },
+  "patch_save": {
+    "status": 200,
+    "body": {
+      "rev": 2,
+      "version": 1,
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:2>",
+            "name": "Page 1",
+            "rev": 1
+          },
+          {
+            "id": "<p:12>",
+            "name": "Second",
+            "order": 2,
+            "rev": 2
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Moved",
+            "kind": "empty",
+            "x": 500.0,
+            "y": 0,
+            "w": 1920,
+            "h": 120,
+            "order": 3,
+            "ref": null,
+            "content": null,
+            "rev": 2,
+            "created_by": "user",
+            "fit": true
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:13>",
+            "x": 10.0,
+            "y": 20.5,
+            "w": 160,
+            "h": 100,
+            "text": "Copy",
+            "color": "green",
+            "by": "U",
+            "page": "<p:2>",
+            "rev": 2
+          }
+        ],
+        "arrows": [],
+        "labels": [
+          {
+            "id": "<t:14>",
+            "x": 0.0,
+            "y": -60.0,
+            "text": "Step 2",
+            "size": 96,
+            "page": "<p:2>",
+            "rev": 2
+          }
+        ]
+      },
+      "saved": 4
+    }
+  },
+  "patch_arrow": {
+    "status": 200,
+    "body": {
+      "rev": 3,
+      "version": 1,
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:2>",
+            "name": "Page 1",
+            "rev": 1
+          },
+          {
+            "id": "<p:12>",
+            "name": "Second",
+            "order": 2,
+            "rev": 2
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Moved",
+            "kind": "empty",
+            "x": 500.0,
+            "y": 0,
+            "w": 1920,
+            "h": 120,
+            "order": 3,
+            "ref": null,
+            "content": null,
+            "rev": 2,
+            "created_by": "user",
+            "fit": true
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:13>",
+            "x": 10.0,
+            "y": 20.5,
+            "w": 160,
+            "h": 100,
+            "text": "Copy",
+            "color": "green",
+            "by": "U",
+            "page": "<p:2>",
+            "rev": 2
+          }
+        ],
+        "arrows": [
+          {
+            "id": "<a:15>",
+            "from": "<b:3>",
+            "to": "<n:13>",
+            "label": "after",
+            "page": "<p:2>",
+            "rev": 3
+          }
+        ],
+        "labels": [
+          {
+            "id": "<t:14>",
+            "x": 0.0,
+            "y": -60.0,
+            "text": "Step 2",
+            "size": 96,
+            "page": "<p:2>",
+            "rev": 2
+          }
+        ]
+      },
+      "saved": 1
+    }
+  },
+  "patch_arrow_same_end": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "invalid_canvas",
+        "message": "An arrow joins two different frames or notes on this canvas."
+      }
+    }
+  },
+  "patch_conflict": {
+    "status": 409,
+    "body": {
+      "detail": {
+        "code": "canvas_conflict",
+        "message": "user saved a newer version of the same frame or note while you were working.",
+        "latest_rev": 3,
+        "latest_author": "user",
+        "latest_at": "<time>",
+        "conflicts": [
+          "<n:13>"
+        ]
+      }
+    }
+  },
+  "patch_force": {
+    "status": 200,
+    "body": {
+      "rev": 4,
+      "version": 1,
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:2>",
+            "name": "Page 1",
+            "rev": 1
+          },
+          {
+            "id": "<p:12>",
+            "name": "Second",
+            "order": 2,
+            "rev": 2
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Moved",
+            "kind": "empty",
+            "x": 500.0,
+            "y": 0,
+            "w": 1920,
+            "h": 120,
+            "order": 3,
+            "ref": null,
+            "content": null,
+            "rev": 2,
+            "created_by": "user",
+            "fit": true
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:13>",
+            "x": 5.0,
+            "y": 20.5,
+            "w": 160,
+            "h": 100,
+            "text": "Copy",
+            "color": "green",
+            "by": "U",
+            "page": "<p:2>",
+            "rev": 4
+          }
+        ],
+        "arrows": [
+          {
+            "id": "<a:15>",
+            "from": "<b:3>",
+            "to": "<n:13>",
+            "label": "after",
+            "page": "<p:2>",
+            "rev": 3
+          }
+        ],
+        "labels": [
+          {
+            "id": "<t:14>",
+            "x": 0.0,
+            "y": -60.0,
+            "text": "Step 2",
+            "size": 96,
+            "page": "<p:2>",
+            "rev": 2
+          }
+        ]
+      },
+      "saved": 1
+    }
+  },
+  "patch_unknown_list": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "invalid_canvas",
+        "message": "Unknown list “bogus”."
+      }
+    }
+  },
+  "patch_add_board": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "invalid_canvas",
+        "message": "A frame is added with its content (POST /canvases/{id}/boards)."
+      }
+    }
+  },
+  "patch_missing_base_rev": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "patch_bad_upsert": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "patch_no_change": {
+    "status": 200,
+    "body": {
+      "rev": 4,
+      "version": 1,
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:2>",
+            "name": "Page 1",
+            "rev": 1
+          },
+          {
+            "id": "<p:12>",
+            "name": "Second",
+            "order": 2,
+            "rev": 2
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Moved",
+            "kind": "empty",
+            "x": 500.0,
+            "y": 0,
+            "w": 1920,
+            "h": 120,
+            "order": 3,
+            "ref": null,
+            "content": null,
+            "rev": 2,
+            "created_by": "user",
+            "fit": true
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:13>",
+            "x": 5.0,
+            "y": 20.5,
+            "w": 160,
+            "h": 100,
+            "text": "Copy",
+            "color": "green",
+            "by": "U",
+            "page": "<p:2>",
+            "rev": 4
+          }
+        ],
+        "arrows": [
+          {
+            "id": "<a:15>",
+            "from": "<b:3>",
+            "to": "<n:13>",
+            "label": "after",
+            "page": "<p:2>",
+            "rev": 3
+          }
+        ],
+        "labels": [
+          {
+            "id": "<t:14>",
+            "x": 0.0,
+            "y": -60.0,
+            "text": "Step 2",
+            "size": 96,
+            "page": "<p:2>",
+            "rev": 2
+          }
+        ]
+      },
+      "saved": 0
+    }
+  },
+  "patch_checkpoint": {
+    "status": 200,
+    "body": {
+      "rev": 5,
+      "version": 2,
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:2>",
+            "name": "Page 1",
+            "rev": 1
+          },
+          {
+            "id": "<p:12>",
+            "name": "Second",
+            "order": 2,
+            "rev": 2
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Moved",
+            "kind": "empty",
+            "x": 500.0,
+            "y": 0,
+            "w": 1920,
+            "h": 120,
+            "order": 3,
+            "ref": null,
+            "content": null,
+            "rev": 2,
+            "created_by": "user",
+            "fit": true
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:13>",
+            "x": 5.0,
+            "y": 20.5,
+            "w": 160,
+            "h": 100,
+            "text": "Copy",
+            "color": "green",
+            "by": "U",
+            "page": "<p:2>",
+            "rev": 4
+          }
+        ],
+        "arrows": [
+          {
+            "id": "<a:15>",
+            "from": "<b:3>",
+            "to": "<n:13>",
+            "label": "after",
+            "page": "<p:2>",
+            "rev": 3
+          }
+        ],
+        "labels": [
+          {
+            "id": "<t:14>",
+            "x": 0.0,
+            "y": -60.0,
+            "text": "Step 2",
+            "size": 96,
+            "page": "<p:2>",
+            "rev": 2
+          }
+        ]
+      },
+      "saved": 0
+    }
+  },
+  "patch_remove": {
+    "status": 200,
+    "body": {
+      "rev": 6,
+      "version": 2,
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:2>",
+            "name": "Page 1",
+            "rev": 1
+          },
+          {
+            "id": "<p:12>",
+            "name": "Second",
+            "order": 2,
+            "rev": 2
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Moved",
+            "kind": "empty",
+            "x": 500.0,
+            "y": 0,
+            "w": 1920,
+            "h": 120,
+            "order": 3,
+            "ref": null,
+            "content": null,
+            "rev": 2,
+            "created_by": "user",
+            "fit": true
+          }
+        ],
+        "notes": [],
+        "arrows": [],
+        "labels": [
+          {
+            "id": "<t:14>",
+            "x": 0.0,
+            "y": -60.0,
+            "text": "Step 2",
+            "size": 96,
+            "page": "<p:2>",
+            "rev": 2
+          }
+        ]
+      },
+      "saved": 1
+    }
+  },
+  "patch_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "patch_unknown_canvas": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "board_html": {
+    "status": 201,
+    "body": {
+      "board": {
+        "id": "<b:16>",
+        "page": "<p:2>",
+        "name": "Sign in",
+        "kind": "html",
+        "x": 2000.5,
+        "y": 10.0,
+        "w": 1280.0,
+        "h": 800.0,
+        "order": 1,
+        "ref": null,
+        "content": {
+          "entry": "index.html",
+          "files": [
+            {
+              "path": "css/a.css",
+              "bytes": 3
+            },
+            {
+              "path": "index.html",
+              "bytes": 183
+            }
+          ],
+          "bytes": 186,
+          "skipped": [],
+          "title": "Sign in",
+          "rev": 7
+        },
+        "rev": 7,
+        "created_by": "user"
+      },
+      "rev": 7
+    }
+  },
+  "board_image": {
+    "status": 201,
+    "body": {
+      "board": {
+        "id": "<b:17>",
+        "page": "<p:2>",
+        "name": "shot",
+        "kind": "image",
+        "x": 3360.5,
+        "y": 0.0,
+        "w": 820.0,
+        "h": 1180.0,
+        "order": 2,
+        "ref": null,
+        "content": {
+          "entry": "image.png",
+          "files": [
+            {
+              "path": "image.png",
+              "bytes": 3233
+            }
+          ],
+          "bytes": 3233,
+          "skipped": [],
+          "title": "shot",
+          "rev": 8
+        },
+        "rev": 8,
+        "created_by": "user"
+      },
+      "rev": 8
+    }
+  },
+  "board_image_size_from_picture": {
+    "status": 201,
+    "body": {
+      "board": {
+        "id": "<b:18>",
+        "page": "<p:2>",
+        "name": "shot",
+        "kind": "image",
+        "x": 4260.5,
+        "y": 0.0,
+        "w": 1920.0,
+        "h": 128.0,
+        "order": 3,
+        "ref": null,
+        "content": {
+          "entry": "image.png",
+          "files": [
+            {
+              "path": "image.png",
+              "bytes": 2908
+            }
+          ],
+          "bytes": 2908,
+          "skipped": [],
+          "title": "shot",
+          "rev": 9
+        },
+        "rev": 9,
+        "created_by": "user"
+      },
+      "rev": 9
+    }
+  },
+  "board_empty_urlencoded": {
+    "status": 201,
+    "body": {
+      "board": {
+        "id": "<b:19>",
+        "page": "<p:2>",
+        "name": "Frame 5",
+        "kind": "empty",
+        "x": 6260.5,
+        "y": 0.0,
+        "w": 390.0,
+        "h": 844.0,
+        "order": 4,
+        "ref": null,
+        "content": null,
+        "rev": 10,
+        "created_by": "user"
+      },
+      "rev": 10
+    }
+  },
+  "board_default_kind": {
+    "status": 201,
+    "body": {
+      "board": {
+        "id": "<b:20>",
+        "page": "<p:2>",
+        "name": "Frame 6",
+        "kind": "empty",
+        "x": 6730.5,
+        "y": 0.0,
+        "w": 1280.0,
+        "h": 800.0,
+        "order": 5,
+        "ref": null,
+        "content": null,
+        "rev": 11,
+        "created_by": "user"
+      },
+      "rev": 11
+    }
+  },
+  "board_bad_kind": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "invalid_board",
+        "message": "kind must be one of ('html', 'image', 'sketch', 'diagram', 'empty')"
+      }
+    }
+  },
+  "board_html_no_files": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "no_page",
+        "message": "A frame needs an HTML page."
+      }
+    }
+  },
+  "board_html_no_page": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "no_page",
+        "message": "A frame needs an HTML page (for example index.html)."
+      }
+    }
+  },
+  "board_html_bad_entry": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "no_page",
+        "message": "The page “nope.html” is not among the files."
+      }
+    }
+  },
+  "board_html_entry_and_paths": {
+    "status": 201,
+    "body": {
+      "board": {
+        "id": "<b:21>",
+        "page": "<p:2>",
+        "name": "B",
+        "kind": "html",
+        "x": 8090.5,
+        "y": 0.0,
+        "w": 1280.0,
+        "h": 800.0,
+        "order": 6,
+        "ref": null,
+        "content": {
+          "entry": "site/b.html",
+          "files": [
+            {
+              "path": "site/a.html",
+              "bytes": 16
+            },
+            {
+              "path": "site/b.html",
+              "bytes": 16
+            }
+          ],
+          "bytes": 32,
+          "skipped": [],
+          "title": "B",
+          "rev": 12
+        },
+        "rev": 12,
+        "created_by": "user"
+      },
+      "rev": 12
+    }
+  },
+  "board_html_folder_clash": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "invalid_file",
+        "message": "“a.css” is both a file and a folder."
+      }
+    }
+  },
+  "board_html_bad_path": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "invalid_file",
+        "message": "“../evil.html” is not a usable file name."
+      }
+    }
+  },
+  "board_image_two_files": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "invalid_file",
+        "message": "An image frame holds one picture."
+      }
+    }
+  },
+  "board_image_not_a_picture": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "invalid_file",
+        "message": "Pictures can be PNG, JPEG, GIF, WebP or SVG."
+      }
+    }
+  },
+  "board_sketch_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "sketch_not_found",
+        "message": "That sketch was not found."
+      }
+    }
+  },
+  "board_diagram_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "diagram_not_found",
+        "message": "That diagram was not found."
+      }
+    }
+  },
+  "board_bad_float": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "board_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "board_unknown_canvas": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "import": {
+    "status": 201,
+    "body": {
+      "boards": [
+        {
+          "id": "<b:22>",
+          "page": "<p:2>",
+          "name": "Built",
+          "kind": "html",
+          "x": 9450.5,
+          "y": 0.0,
+          "w": 1280.0,
+          "h": 800.0,
+          "order": 7,
+          "ref": null,
+          "content": {
+            "entry": "index.html",
+            "files": [
+              {
+                "path": "a.css",
+                "bytes": 3
+              },
+              {
+                "path": "index.html",
+                "bytes": 30
+              }
+            ],
+            "bytes": 33,
+            "skipped": [],
+            "title": "Built",
+            "rev": 13
+          },
+          "rev": 13,
+          "created_by": "user"
+        },
+        {
+          "id": "<b:23>",
+          "page": "<p:2>",
+          "name": "login",
+          "kind": "html",
+          "x": 10810.5,
+          "y": 0.0,
+          "w": 1280.0,
+          "h": 800.0,
+          "order": 8,
+          "ref": null,
+          "content": {
+            "entry": "index.html",
+            "files": [
+              {
+                "path": "index.html",
+                "bytes": 183
+              }
+            ],
+            "bytes": 183,
+            "skipped": [],
+            "title": "Sign in",
+            "rev": 14
+          },
+          "rev": 14,
+          "created_by": "user"
+        },
+        {
+          "id": "<b:24>",
+          "page": "<p:2>",
+          "name": "Sign in",
+          "kind": "html",
+          "x": 12170.5,
+          "y": 0.0,
+          "w": 1280.0,
+          "h": 800.0,
+          "order": 9,
+          "ref": null,
+          "content": {
+            "entry": "index.html",
+            "files": [
+              {
+                "path": "index.html",
+                "bytes": 183
+              }
+            ],
+            "bytes": 183,
+            "skipped": [],
+            "title": "Sign in",
+            "rev": 15
+          },
+          "rev": 15,
+          "created_by": "user"
+        },
+        {
+          "id": "<b:25>",
+          "page": "<p:2>",
+          "name": "shot",
+          "kind": "image",
+          "x": 13530.5,
+          "y": 0.0,
+          "w": 320.0,
+          "h": 240.0,
+          "order": 10,
+          "ref": null,
+          "content": {
+            "entry": "image.png",
+            "files": [
+              {
+                "path": "image.png",
+                "bytes": 72
+              }
+            ],
+            "bytes": 72,
+            "skipped": [],
+            "title": "shot",
+            "rev": 16
+          },
+          "rev": 16,
+          "created_by": "user"
+        }
+      ],
+      "failed": [
+        {
+          "name": "notes.pdf",
+          "message": "“notes.pdf” cannot become a frame. Use an HTML file, a picture, or a ZIP of a built page.",
+          "code": "invalid_file"
+        },
+        {
+          "name": "x.zip",
+          "message": "That ZIP file could not be read.",
+          "code": "invalid_file"
+        },
+        {
+          "name": "empty.zip",
+          "message": "A frame needs an HTML page.",
+          "code": "no_page"
+        }
+      ],
+      "rev": 16
+    }
+  },
+  "import_no_files": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "import_unknown_canvas": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "duplicate": {
+    "status": 201,
+    "body": {
+      "board": {
+        "id": "<b:26>",
+        "page": "<p:2>",
+        "name": "Sign in copy",
+        "kind": "html",
+        "x": 13930.5,
+        "y": 0.0,
+        "w": 1280.0,
+        "h": 800.0,
+        "order": 11,
+        "ref": null,
+        "content": {
+          "entry": "index.html",
+          "files": [
+            {
+              "path": "css/a.css",
+              "bytes": 3
+            },
+            {
+              "path": "index.html",
+              "bytes": 183
+            }
+          ],
+          "bytes": 186,
+          "skipped": [],
+          "title": "Sign in",
+          "rev": 17
+        },
+        "rev": 17,
+        "created_by": "user"
+      },
+      "rev": 17
+    }
+  },
+  "duplicate_unknown_board": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "board_not_found",
+        "message": "That frame is not on this canvas any more."
+      }
+    }
+  },
+  "duplicate_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "source": {
+    "status": 200,
+    "body": {
+      "board_id": "<b:16>",
+      "rev": 7,
+      "entry": "index.html",
+      "files": [
+        {
+          "path": "css/a.css",
+          "text": "a{}"
+        },
+        {
+          "path": "index.html",
+          "text": "<!doctype html><html><head><title>Sign in</title></head><body><h1>Sign in</h1><label>Email</label><input type=email placeholder=you@example.com><button>Continue</button></body></html>"
+        }
+      ]
+    }
+  },
+  "source_image_board": {
+    "status": 200,
+    "body": {
+      "board_id": "<b:17>",
+      "rev": 8,
+      "entry": "image.png",
+      "files": []
+    }
+  },
+  "source_empty_board": {
+    "status": 200,
+    "body": {
+      "board_id": "<b:3>",
+      "rev": null,
+      "entry": "index.html",
+      "files": []
+    }
+  },
+  "source_unknown_board": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "board_not_found",
+        "message": "That frame is not on this canvas any more."
+      }
+    }
+  },
+  "source_bad_board_id": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "board_not_found",
+        "message": "That frame is not on this canvas any more."
+      }
+    }
+  },
+  "content_locked_by_other": {
+    "status": 423,
+    "body": {
+      "detail": {
+        "code": "board_locked",
+        "message": "An is editing Sign in. You can still look, comment and move it.",
+        "holder": "An",
+        "since": "<time>",
+        "board_id": "<b:16>"
+      }
+    }
+  },
+  "unlock_other": {
+    "status": 200,
+    "body": {
+      "released": true
+    }
+  },
+  "content_save": {
+    "status": 200,
+    "body": {
+      "board": {
+        "id": "<b:16>",
+        "page": "<p:2>",
+        "name": "Sign in",
+        "kind": "html",
+        "x": 2000.5,
+        "y": 10.0,
+        "w": 1280.0,
+        "h": 800.0,
+        "order": 1,
+        "ref": null,
+        "content": {
+          "entry": "index.html",
+          "files": [
+            {
+              "path": "index.html",
+              "bytes": 30
+            }
+          ],
+          "bytes": 30,
+          "skipped": [],
+          "title": "New",
+          "rev": 18
+        },
+        "rev": 18,
+        "created_by": "user"
+      },
+      "rev": 18
+    }
+  },
+  "content_conflict": {
+    "status": 409,
+    "body": {
+      "detail": {
+        "code": "board_conflict",
+        "message": "user saved a newer version of Sign in while you were editing it.",
+        "latest_content_rev": 18,
+        "latest_author": "user"
+      }
+    }
+  },
+  "content_keep_lock": {
+    "status": 200,
+    "body": {
+      "board": {
+        "id": "<b:16>",
+        "page": "<p:2>",
+        "name": "Sign in",
+        "kind": "html",
+        "x": 2000.5,
+        "y": 10.0,
+        "w": 1280.0,
+        "h": 800.0,
+        "order": 1,
+        "ref": null,
+        "content": {
+          "entry": "index.html",
+          "files": [
+            {
+              "path": "index.html",
+              "bytes": 13
+            }
+          ],
+          "bytes": 13,
+          "skipped": [],
+          "title": "keep",
+          "rev": 19
+        },
+        "rev": 19,
+        "created_by": "user"
+      },
+      "rev": 19
+    }
+  },
+  "content_no_page": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "no_page",
+        "message": "A frame needs an HTML page (for example index.html)."
+      }
+    }
+  },
+  "content_bad_entry": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "no_page",
+        "message": "The page “zzz.html” is not among the files."
+      }
+    }
+  },
+  "content_image_board": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "not_editable_here",
+        "message": "Images, Sketches and Diagrams are changed in their own editors."
+      }
+    }
+  },
+  "content_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "content_missing_files": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "content_unknown_board": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "board_not_found",
+        "message": "That frame is not on this canvas any more."
+      }
+    }
+  },
+  "replace_html": {
+    "status": 200,
+    "body": {
+      "board": {
+        "id": "<b:16>",
+        "page": "<p:2>",
+        "name": "Sign in",
+        "kind": "html",
+        "x": 2000.5,
+        "y": 10.0,
+        "w": 1280.0,
+        "h": 800.0,
+        "order": 1,
+        "ref": null,
+        "content": {
+          "entry": "index.html",
+          "files": [
+            {
+              "path": "index.html",
+              "bytes": 10
+            }
+          ],
+          "bytes": 10,
+          "skipped": [],
+          "title": "R",
+          "rev": 20
+        },
+        "rev": 20,
+        "created_by": "user"
+      },
+      "rev": 20
+    }
+  },
+  "replace_zip": {
+    "status": 200,
+    "body": {
+      "board": {
+        "id": "<b:16>",
+        "page": "<p:2>",
+        "name": "Sign in",
+        "kind": "html",
+        "x": 2000.5,
+        "y": 10.0,
+        "w": 1280.0,
+        "h": 800.0,
+        "order": 1,
+        "ref": null,
+        "content": {
+          "entry": "index.html",
+          "files": [
+            {
+              "path": "index.html",
+              "bytes": 10
+            }
+          ],
+          "bytes": 10,
+          "skipped": [],
+          "title": "Z",
+          "rev": 21
+        },
+        "rev": 21,
+        "created_by": "user"
+      },
+      "rev": 21
+    }
+  },
+  "replace_conflict": {
+    "status": 409,
+    "body": {
+      "detail": {
+        "code": "board_conflict",
+        "message": "user saved a newer version of Sign in while you were editing it.",
+        "latest_content_rev": 21,
+        "latest_author": "user"
+      }
+    }
+  },
+  "replace_bad_rev": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "replace_no_files": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "lock": {
+    "status": 200,
+    "body": {
+      "board_id": "<b:16>",
+      "holder": "user",
+      "since": "<time>",
+      "started_seconds_ago": "<n>",
+      "idle_seconds": "<n>",
+      "expires_in": "<n>",
+      "warn": false
+    }
+  },
+  "lock_again": {
+    "status": 200,
+    "body": {
+      "board_id": "<b:16>",
+      "holder": "user",
+      "since": "<time>",
+      "started_seconds_ago": "<n>",
+      "idle_seconds": "<n>",
+      "expires_in": "<n>",
+      "warn": false
+    }
+  },
+  "lock_other": {
+    "status": 423,
+    "body": {
+      "detail": {
+        "code": "board_locked",
+        "message": "user is editing Sign in. You can still look, comment and move it.",
+        "holder": "user",
+        "since": "<time>",
+        "board_id": "<b:16>"
+      }
+    }
+  },
+  "lock_image_board": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "not_editable_here",
+        "message": "Images, Sketches and Diagrams are changed in their own editors."
+      }
+    }
+  },
+  "lock_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "heartbeat": {
+    "status": 200,
+    "body": {
+      "alive": true,
+      "lock": {
+        "board_id": "<b:16>",
+        "holder": "user",
+        "since": "<time>",
+        "started_seconds_ago": "<n>",
+        "idle_seconds": "<n>",
+        "expires_in": "<n>",
+        "warn": false
+      }
+    }
+  },
+  "heartbeat_other": {
+    "status": 200,
+    "body": {
+      "alive": false,
+      "lock": {
+        "board_id": "<b:16>",
+        "holder": "user",
+        "since": "<time>",
+        "started_seconds_ago": "<n>",
+        "idle_seconds": "<n>",
+        "expires_in": "<n>",
+        "warn": false
+      }
+    }
+  },
+  "heartbeat_unknown_canvas": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "unlock_not_holder": {
+    "status": 200,
+    "body": {
+      "released": false
+    }
+  },
+  "unlock": {
+    "status": 200,
+    "body": {
+      "released": true
+    }
+  },
+  "unlock_again": {
+    "status": 200,
+    "body": {
+      "released": false
+    }
+  },
+  "file_html": {
+    "status": 200,
+    "headers": {
+      "content-type": "text/html; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "access-control-allow-origin": "*",
+      "cache-control": "private, max-age=31536000, immutable",
+      "content-security-policy": ""
+    },
+    "body": {
+      "text": "<h1>Z</h1>"
+    }
+  },
+  "file_old_revision": {
+    "status": 200,
+    "headers": {
+      "content-type": "text/css; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "access-control-allow-origin": "*",
+      "cache-control": "private, max-age=31536000, immutable",
+      "content-security-policy": ""
+    },
+    "body": {
+      "text": "a{}"
+    }
+  },
+  "file_missing": {
+    "status": 404,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "detail": {
+        "code": "file_not_found",
+        "message": "That file is not in the frame."
+      }
+    }
+  },
+  "file_unknown_revision": {
+    "status": 404,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "detail": {
+        "code": "file_not_found",
+        "message": "That file is not in the frame."
+      }
+    }
+  },
+  "file_bad_board": {
+    "status": 404,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "detail": {
+        "code": "board_not_found",
+        "message": "There is no such board."
+      }
+    }
+  },
+  "file_bad_revision": {
+    "status": 422,
+    "headers": {},
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "snapshot": {
+    "status": 200,
+    "headers": {
+      "content-type": "image/png",
+      "cache-control": "private, max-age=300"
+    },
+    "body": {
+      "sha256": "15e78d6b250e03915092dfd20190d3f4009c07f69c23b94f91cc49ec49fcc6a8",
+      "len": 871
+    }
+  },
+  "snapshot_old_revision": {
+    "status": 200,
+    "headers": {
+      "content-type": "image/png",
+      "cache-control": "private, max-age=300"
+    },
+    "body": {
+      "sha256": "f3eda2c458c9fdc040931230f9c4c2593b260340d0a765fa000faab24a30e03d",
+      "len": 944
+    }
+  },
+  "snapshot_empty_board": {
+    "status": 200,
+    "headers": {
+      "content-type": "image/png"
+    },
+    "body": {
+      "sha256": "11bdc46616770d961cb8d09db387319731e666a9a66de69cbd99a82c567069d1",
+      "len": 218
+    }
+  },
+  "snapshot_unknown_board": {
+    "status": 404,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "detail": {
+        "code": "board_not_found",
+        "message": "That frame is not on this canvas any more."
+      }
+    }
+  },
+  "snapshot_bad_rev": {
+    "status": 422,
+    "headers": {},
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "overview": {
+    "status": 200,
+    "headers": {
+      "content-type": "image/png",
+      "cache-control": "private, max-age=0, must-revalidate"
+    },
+    "body": {
+      "sha256": "200aeee54b5982925d078fe9fed1f861c47415a9e10cff3c0928ff66b1bea09c",
+      "len": 2882
+    }
+  },
+  "overview_page": {
+    "status": 200,
+    "headers": {
+      "content-type": "image/png"
+    },
+    "body": {
+      "sha256": "200aeee54b5982925d078fe9fed1f861c47415a9e10cff3c0928ff66b1bea09c",
+      "len": 2882
+    }
+  },
+  "overview_unknown_canvas": {
+    "status": 404,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "download": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/zip",
+      "content-disposition": "attachment; filename=\"Renamed-x.zip\"",
+      "access-control-expose-headers": "Content-Disposition"
+    },
+    "body": {
+      "zip": {
+        "B/site/a.html": "7797bb3e9bd1113fbd666c844d2dcd72b60af036a099079841fd23e2dada2b3b",
+        "B/site/b.html": "806c3f41d93278daa039c8dbbe08f8881ac8b9945a54cbd8aec26778d5bb817b",
+        "Built/a.css": "5f546eb4606b5c2b7d2a449a5cc2bbb477ed5a246c7051ce871b12f2dbfc8419",
+        "Built/index.html": "a6680ad8ccaebc604b0c78ecb1a5acc2aea8fa47bb303ac2590193e5e6719af2",
+        "Sign-in-2/index.html": "b996cdc82e9cc2b0a263df1548fcad3ab895962e1d275af7aa0be12d12b8bcb8",
+        "Sign-in-copy/css/a.css": "5f546eb4606b5c2b7d2a449a5cc2bbb477ed5a246c7051ce871b12f2dbfc8419",
+        "Sign-in-copy/index.html": "b996cdc82e9cc2b0a263df1548fcad3ab895962e1d275af7aa0be12d12b8bcb8",
+        "Sign-in/index.html": "f91330aae83f3ed01700dcc94515f394f41c0b4396d6608e1b53c58d95690cc4",
+        "canvas.json": {
+          "format": "kanban-canvas",
+          "version": 1,
+          "pages": [
+            {
+              "id": "<p:2>",
+              "name": "Page 1",
+              "rev": 1
+            },
+            {
+              "id": "<p:12>",
+              "name": "Second",
+              "order": 2,
+              "rev": 2
+            }
+          ],
+          "boards": [
+            {
+              "id": "<b:3>",
+              "page": "<p:2>",
+              "name": "Moved",
+              "kind": "empty",
+              "x": 500.0,
+              "y": 0,
+              "w": 1920,
+              "h": 120,
+              "order": 3,
+              "ref": null,
+              "content": null,
+              "rev": 2,
+              "created_by": "user",
+              "fit": true
+            },
+            {
+              "id": "<b:16>",
+              "page": "<p:2>",
+              "name": "Sign in",
+              "kind": "html",
+              "x": 2000.5,
+              "y": 10.0,
+              "w": 1280.0,
+              "h": 800.0,
+              "order": 1,
+              "ref": null,
+              "content": {
+                "entry": "index.html",
+                "files": [
+                  {
+                    "path": "index.html",
+                    "bytes": 10
+                  }
+                ],
+                "bytes": 10,
+                "skipped": [],
+                "title": "Z",
+                "rev": 21
+              },
+              "rev": 21,
+              "created_by": "user"
+            },
+            {
+              "id": "<b:17>",
+              "page": "<p:2>",
+              "name": "shot",
+              "kind": "image",
+              "x": 3360.5,
+              "y": 0.0,
+              "w": 820.0,
+              "h": 1180.0,
+              "order": 2,
+              "ref": null,
+              "content": {
+                "entry": "image.png",
+                "files": [
+                  {
+                    "path": "image.png",
+                    "bytes": 3233
+                  }
+                ],
+                "bytes": 3233,
+                "skipped": [],
+                "title": "shot",
+                "rev": 8
+              },
+              "rev": 8,
+              "created_by": "user"
+            },
+            {
+              "id": "<b:18>",
+              "page": "<p:2>",
+              "name": "shot",
+              "kind": "image",
+              "x": 4260.5,
+              "y": 0.0,
+              "w": 1920.0,
+              "h": 128.0,
+              "order": 3,
+              "ref": null,
+              "content": {
+                "entry": "image.png",
+                "files": [
+                  {
+                    "path": "image.png",
+                    "bytes": 2908
+                  }
+                ],
+                "bytes": 2908,
+                "skipped": [],
+                "title": "shot",
+                "rev": 9
+              },
+              "rev": 9,
+              "created_by": "user"
+            },
+            {
+              "id": "<b:19>",
+              "page": "<p:2>",
+              "name": "Frame 5",
+              "kind": "empty",
+              "x": 6260.5,
+              "y": 0.0,
+              "w": 390.0,
+              "h": 844.0,
+              "order": 4,
+              "ref": null,
+              "content": null,
+              "rev": 10,
+              "created_by": "user"
+            },
+            {
+              "id": "<b:20>",
+              "page": "<p:2>",
+              "name": "Frame 6",
+              "kind": "empty",
+              "x": 6730.5,
+              "y": 0.0,
+              "w": 1280.0,
+              "h": 800.0,
+              "order": 5,
+              "ref": null,
+              "content": null,
+              "rev": 11,
+              "created_by": "user"
+            },
+            {
+              "id": "<b:21>",
+              "page": "<p:2>",
+              "name": "B",
+              "kind": "html",
+              "x": 8090.5,
+              "y": 0.0,
+              "w": 1280.0,
+              "h": 800.0,
+              "order": 6,
+              "ref": null,
+              "content": {
+                "entry": "site/b.html",
+                "files": [
+                  {
+                    "path": "site/a.html",
+                    "bytes": 16
+                  },
+                  {
+                    "path": "site/b.html",
+                    "bytes": 16
+                  }
+                ],
+                "bytes": 32,
+                "skipped": [],
+                "title": "B",
+                "rev": 12
+              },
+              "rev": 12,
+              "created_by": "user"
+            },
+            {
+              "id": "<b:22>",
+              "page": "<p:2>",
+              "name": "Built",
+              "kind": "html",
+              "x": 9450.5,
+              "y": 0.0,
+              "w": 1280.0,
+              "h": 800.0,
+              "order": 7,
+              "ref": null,
+              "content": {
+                "entry": "index.html",
+                "files": [
+                  {
+                    "path": "a.css",
+                    "bytes": 3
+                  },
+                  {
+                    "path": "index.html",
+                    "bytes": 30
+                  }
+                ],
+                "bytes": 33,
+                "skipped": [],
+                "title": "Built",
+                "rev": 13
+              },
+              "rev": 13,
+              "created_by": "user"
+            },
+            {
+              "id": "<b:23>",
+              "page": "<p:2>",
+              "name": "login",
+              "kind": "html",
+              "x": 10810.5,
+              "y": 0.0,
+              "w": 1280.0,
+              "h": 800.0,
+              "order": 8,
+              "ref": null,
+              "content": {
+                "entry": "index.html",
+                "files": [
+                  {
+                    "path": "index.html",
+                    "bytes": 183
+                  }
+                ],
+                "bytes": 183,
+                "skipped": [],
+                "title": "Sign in",
+                "rev": 14
+              },
+              "rev": 14,
+              "created_by": "user"
+            },
+            {
+              "id": "<b:24>",
+              "page": "<p:2>",
+              "name": "Sign in",
+              "kind": "html",
+              "x": 12170.5,
+              "y": 0.0,
+              "w": 1280.0,
+              "h": 800.0,
+              "order": 9,
+              "ref": null,
+              "content": {
+                "entry": "index.html",
+                "files": [
+                  {
+                    "path": "index.html",
+                    "bytes": 183
+                  }
+                ],
+                "bytes": 183,
+                "skipped": [],
+                "title": "Sign in",
+                "rev": 15
+              },
+              "rev": 15,
+              "created_by": "user"
+            },
+            {
+              "id": "<b:25>",
+              "page": "<p:2>",
+              "name": "shot",
+              "kind": "image",
+              "x": 13530.5,
+              "y": 0.0,
+              "w": 320.0,
+              "h": 240.0,
+              "order": 10,
+              "ref": null,
+              "content": {
+                "entry": "image.png",
+                "files": [
+                  {
+                    "path": "image.png",
+                    "bytes": 72
+                  }
+                ],
+                "bytes": 72,
+                "skipped": [],
+                "title": "shot",
+                "rev": 16
+              },
+              "rev": 16,
+              "created_by": "user"
+            },
+            {
+              "id": "<b:26>",
+              "page": "<p:2>",
+              "name": "Sign in copy",
+              "kind": "html",
+              "x": 13930.5,
+              "y": 0.0,
+              "w": 1280.0,
+              "h": 800.0,
+              "order": 11,
+              "ref": null,
+              "content": {
+                "entry": "index.html",
+                "files": [
+                  {
+                    "path": "css/a.css",
+                    "bytes": 3
+                  },
+                  {
+                    "path": "index.html",
+                    "bytes": 183
+                  }
+                ],
+                "bytes": 186,
+                "skipped": [],
+                "title": "Sign in",
+                "rev": 17
+              },
+              "rev": 17,
+              "created_by": "user"
+            }
+          ],
+          "notes": [],
+          "arrows": [],
+          "labels": [
+            {
+              "id": "<t:14>",
+              "x": 0.0,
+              "y": -60.0,
+              "text": "Step 2",
+              "size": 96,
+              "page": "<p:2>",
+              "rev": 2
+            }
+          ]
+        },
+        "login/index.html": "b996cdc82e9cc2b0a263df1548fcad3ab895962e1d275af7aa0be12d12b8bcb8",
+        "shot-2-2/image.png": "e1d5a690b647bc9bc0084e4be05b151ed48574480869d1846087474c34e7dd20",
+        "shot-2/image.png": "f256f1def45e69c8fff5c4ae5c8b434f9eaa96c64970d57ce4b29d233a976987",
+        "shot/image.png": "fd45a5c13a3dea5deccdb5c4fafefc4914815b75f11ad998bf23f2473c8bb333"
+      }
+    }
+  },
+  "download_board": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/zip",
+      "content-disposition": "attachment; filename=\"Sign-in.zip\"",
+      "access-control-expose-headers": "Content-Disposition"
+    },
+    "body": {
+      "zip": {
+        "index.html": "f91330aae83f3ed01700dcc94515f394f41c0b4396d6608e1b53c58d95690cc4"
+      }
+    }
+  },
+  "download_unknown_board": {
+    "status": 404,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "detail": {
+        "code": "board_not_found",
+        "message": "That frame is not on this canvas any more."
+      }
+    }
+  },
+  "download_version": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/zip",
+      "content-disposition": "attachment; filename=\"Renamed-x.zip\"",
+      "access-control-expose-headers": "Content-Disposition"
+    },
+    "body": {
+      "zip": {
+        "canvas.json": {
+          "format": "kanban-canvas",
+          "version": 1,
+          "pages": [
+            {
+              "id": "<p:2>",
+              "name": "Page 1",
+              "rev": 1
+            }
+          ],
+          "boards": [
+            {
+              "id": "<b:3>",
+              "page": "<p:2>",
+              "name": "Frame 1",
+              "kind": "empty",
+              "x": 0,
+              "y": 0,
+              "w": 1280,
+              "h": 800,
+              "order": 0,
+              "ref": null,
+              "content": null,
+              "rev": 1,
+              "created_by": "user"
+            }
+          ],
+          "notes": [],
+          "arrows": [],
+          "labels": []
+        }
+      }
+    }
+  },
+  "download_unknown_version": {
+    "status": 404,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": {
+      "detail": {
+        "code": "version_not_found",
+        "message": "There is no version 99 of this canvas."
+      }
+    }
+  },
+  "download_bad_version": {
+    "status": 422,
+    "headers": {},
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "versions": {
+    "status": 200,
+    "body": [
+      {
+        "version": 2,
+        "name": "Review",
+        "reason": "done",
+        "author": "user",
+        "note": "First",
+        "summary": "Frame 1 edited",
+        "changes": {
+          "added": [],
+          "removed": [],
+          "changed": [
+            "<b:3>"
+          ],
+          "layout": true,
+          "notes": true,
+          "arrows": true,
+          "labels": true,
+          "pages": true
+        },
+        "created_at": "<time>"
+      },
+      {
+        "version": 1,
+        "name": null,
+        "reason": "create",
+        "author": "user",
+        "note": "Created",
+        "summary": "Created",
+        "changes": {
+          "added": [
+            "<b:3>"
+          ],
+          "removed": [],
+          "changed": [],
+          "layout": false,
+          "notes": false,
+          "arrows": false,
+          "labels": false,
+          "pages": true
+        },
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "version_make": {
+    "status": 201,
+    "body": {
+      "version": 3,
+      "name": "Named",
+      "reason": "named",
+      "author": "user",
+      "note": "n",
+      "summary": "11 frames added",
+      "changes": {
+        "added": [
+          "<b:16>",
+          "<b:17>",
+          "<b:18>",
+          "<b:19>",
+          "<b:20>",
+          "<b:21>",
+          "<b:22>",
+          "<b:23>",
+          "<b:24>",
+          "<b:25>",
+          "<b:26>"
+        ],
+        "removed": [],
+        "changed": [],
+        "layout": false,
+        "notes": true,
+        "arrows": true,
+        "labels": false,
+        "pages": false
+      },
+      "created_at": "<time>"
+    }
+  },
+  "version_make_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "version_get": {
+    "status": 200,
+    "body": {
+      "version": 1,
+      "name": null,
+      "reason": "create",
+      "author": "user",
+      "note": "Created",
+      "summary": "Created",
+      "changes": {
+        "added": [
+          "<b:3>"
+        ],
+        "removed": [],
+        "changed": [],
+        "layout": false,
+        "notes": false,
+        "arrows": false,
+        "labels": false,
+        "pages": true
+      },
+      "created_at": "<time>",
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:2>",
+            "name": "Page 1",
+            "rev": 1
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Frame 1",
+            "kind": "empty",
+            "x": 0,
+            "y": 0,
+            "w": 1280,
+            "h": 800,
+            "order": 0,
+            "ref": null,
+            "content": null,
+            "rev": 1,
+            "created_by": "user"
+          }
+        ],
+        "notes": [],
+        "arrows": [],
+        "labels": []
+      }
+    }
+  },
+  "version_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "version_not_found",
+        "message": "There is no version 99 of this canvas."
+      }
+    }
+  },
+  "version_bad_number": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "version_name": {
+    "status": 200,
+    "body": {
+      "version": 1,
+      "name": "First",
+      "reason": "create",
+      "author": "user",
+      "note": "Created",
+      "summary": "Created",
+      "changes": {
+        "added": [
+          "<b:3>"
+        ],
+        "removed": [],
+        "changed": [],
+        "layout": false,
+        "notes": false,
+        "arrows": false,
+        "labels": false,
+        "pages": true
+      },
+      "created_at": "<time>"
+    }
+  },
+  "version_unname": {
+    "status": 200,
+    "body": {
+      "version": 1,
+      "name": null,
+      "reason": "create",
+      "author": "user",
+      "note": "Created",
+      "summary": "Created",
+      "changes": {
+        "added": [
+          "<b:3>"
+        ],
+        "removed": [],
+        "changed": [],
+        "layout": false,
+        "notes": false,
+        "arrows": false,
+        "labels": false,
+        "pages": true
+      },
+      "created_at": "<time>"
+    }
+  },
+  "version_name_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "version_not_found",
+        "message": "There is no version 99 of this canvas."
+      }
+    }
+  },
+  "compare": {
+    "status": 200,
+    "body": {
+      "a": 1,
+      "b": 3,
+      "boards": [
+        {
+          "board_id": "<b:3>",
+          "name": "Moved",
+          "state": "same",
+          "kind": "empty",
+          "a": {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Frame 1",
+            "kind": "empty",
+            "x": 0,
+            "y": 0,
+            "w": 1280,
+            "h": 800,
+            "order": 0,
+            "ref": null,
+            "content": null,
+            "rev": 1,
+            "created_by": "user"
+          },
+          "b": {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Moved",
+            "kind": "empty",
+            "x": 500.0,
+            "y": 0,
+            "w": 1920,
+            "h": 120,
+            "order": 3,
+            "ref": null,
+            "content": null,
+            "rev": 2,
+            "created_by": "user",
+            "fit": true
+          }
+        },
+        {
+          "board_id": "<b:16>",
+          "name": "Sign in",
+          "state": "added",
+          "kind": "html",
+          "a": null,
+          "b": {
+            "id": "<b:16>",
+            "page": "<p:2>",
+            "name": "Sign in",
+            "kind": "html",
+            "x": 2000.5,
+            "y": 10.0,
+            "w": 1280.0,
+            "h": 800.0,
+            "order": 1,
+            "ref": null,
+            "content": {
+              "entry": "index.html",
+              "files": [
+                {
+                  "path": "index.html",
+                  "bytes": 10
+                }
+              ],
+              "bytes": 10,
+              "skipped": [],
+              "title": "Z",
+              "rev": 21
+            },
+            "rev": 21,
+            "created_by": "user"
+          }
+        },
+        {
+          "board_id": "<b:17>",
+          "name": "shot",
+          "state": "added",
+          "kind": "image",
+          "a": null,
+          "b": {
+            "id": "<b:17>",
+            "page": "<p:2>",
+            "name": "shot",
+            "kind": "image",
+            "x": 3360.5,
+            "y": 0.0,
+            "w": 820.0,
+            "h": 1180.0,
+            "order": 2,
+            "ref": null,
+            "content": {
+              "entry": "image.png",
+              "files": [
+                {
+                  "path": "image.png",
+                  "bytes": 3233
+                }
+              ],
+              "bytes": 3233,
+              "skipped": [],
+              "title": "shot",
+              "rev": 8
+            },
+            "rev": 8,
+            "created_by": "user"
+          }
+        },
+        {
+          "board_id": "<b:18>",
+          "name": "shot",
+          "state": "added",
+          "kind": "image",
+          "a": null,
+          "b": {
+            "id": "<b:18>",
+            "page": "<p:2>",
+            "name": "shot",
+            "kind": "image",
+            "x": 4260.5,
+            "y": 0.0,
+            "w": 1920.0,
+            "h": 128.0,
+            "order": 3,
+            "ref": null,
+            "content": {
+              "entry": "image.png",
+              "files": [
+                {
+                  "path": "image.png",
+                  "bytes": 2908
+                }
+              ],
+              "bytes": 2908,
+              "skipped": [],
+              "title": "shot",
+              "rev": 9
+            },
+            "rev": 9,
+            "created_by": "user"
+          }
+        },
+        {
+          "board_id": "<b:19>",
+          "name": "Frame 5",
+          "state": "added",
+          "kind": "empty",
+          "a": null,
+          "b": {
+            "id": "<b:19>",
+            "page": "<p:2>",
+            "name": "Frame 5",
+            "kind": "empty",
+            "x": 6260.5,
+            "y": 0.0,
+            "w": 390.0,
+            "h": 844.0,
+            "order": 4,
+            "ref": null,
+            "content": null,
+            "rev": 10,
+            "created_by": "user"
+          }
+        },
+        {
+          "board_id": "<b:20>",
+          "name": "Frame 6",
+          "state": "added",
+          "kind": "empty",
+          "a": null,
+          "b": {
+            "id": "<b:20>",
+            "page": "<p:2>",
+            "name": "Frame 6",
+            "kind": "empty",
+            "x": 6730.5,
+            "y": 0.0,
+            "w": 1280.0,
+            "h": 800.0,
+            "order": 5,
+            "ref": null,
+            "content": null,
+            "rev": 11,
+            "created_by": "user"
+          }
+        },
+        {
+          "board_id": "<b:21>",
+          "name": "B",
+          "state": "added",
+          "kind": "html",
+          "a": null,
+          "b": {
+            "id": "<b:21>",
+            "page": "<p:2>",
+            "name": "B",
+            "kind": "html",
+            "x": 8090.5,
+            "y": 0.0,
+            "w": 1280.0,
+            "h": 800.0,
+            "order": 6,
+            "ref": null,
+            "content": {
+              "entry": "site/b.html",
+              "files": [
+                {
+                  "path": "site/a.html",
+                  "bytes": 16
+                },
+                {
+                  "path": "site/b.html",
+                  "bytes": 16
+                }
+              ],
+              "bytes": 32,
+              "skipped": [],
+              "title": "B",
+              "rev": 12
+            },
+            "rev": 12,
+            "created_by": "user"
+          }
+        },
+        {
+          "board_id": "<b:22>",
+          "name": "Built",
+          "state": "added",
+          "kind": "html",
+          "a": null,
+          "b": {
+            "id": "<b:22>",
+            "page": "<p:2>",
+            "name": "Built",
+            "kind": "html",
+            "x": 9450.5,
+            "y": 0.0,
+            "w": 1280.0,
+            "h": 800.0,
+            "order": 7,
+            "ref": null,
+            "content": {
+              "entry": "index.html",
+              "files": [
+                {
+                  "path": "a.css",
+                  "bytes": 3
+                },
+                {
+                  "path": "index.html",
+                  "bytes": 30
+                }
+              ],
+              "bytes": 33,
+              "skipped": [],
+              "title": "Built",
+              "rev": 13
+            },
+            "rev": 13,
+            "created_by": "user"
+          }
+        },
+        {
+          "board_id": "<b:23>",
+          "name": "login",
+          "state": "added",
+          "kind": "html",
+          "a": null,
+          "b": {
+            "id": "<b:23>",
+            "page": "<p:2>",
+            "name": "login",
+            "kind": "html",
+            "x": 10810.5,
+            "y": 0.0,
+            "w": 1280.0,
+            "h": 800.0,
+            "order": 8,
+            "ref": null,
+            "content": {
+              "entry": "index.html",
+              "files": [
+                {
+                  "path": "index.html",
+                  "bytes": 183
+                }
+              ],
+              "bytes": 183,
+              "skipped": [],
+              "title": "Sign in",
+              "rev": 14
+            },
+            "rev": 14,
+            "created_by": "user"
+          }
+        },
+        {
+          "board_id": "<b:24>",
+          "name": "Sign in",
+          "state": "added",
+          "kind": "html",
+          "a": null,
+          "b": {
+            "id": "<b:24>",
+            "page": "<p:2>",
+            "name": "Sign in",
+            "kind": "html",
+            "x": 12170.5,
+            "y": 0.0,
+            "w": 1280.0,
+            "h": 800.0,
+            "order": 9,
+            "ref": null,
+            "content": {
+              "entry": "index.html",
+              "files": [
+                {
+                  "path": "index.html",
+                  "bytes": 183
+                }
+              ],
+              "bytes": 183,
+              "skipped": [],
+              "title": "Sign in",
+              "rev": 15
+            },
+            "rev": 15,
+            "created_by": "user"
+          }
+        },
+        {
+          "board_id": "<b:25>",
+          "name": "shot",
+          "state": "added",
+          "kind": "image",
+          "a": null,
+          "b": {
+            "id": "<b:25>",
+            "page": "<p:2>",
+            "name": "shot",
+            "kind": "image",
+            "x": 13530.5,
+            "y": 0.0,
+            "w": 320.0,
+            "h": 240.0,
+            "order": 10,
+            "ref": null,
+            "content": {
+              "entry": "image.png",
+              "files": [
+                {
+                  "path": "image.png",
+                  "bytes": 72
+                }
+              ],
+              "bytes": 72,
+              "skipped": [],
+              "title": "shot",
+              "rev": 16
+            },
+            "rev": 16,
+            "created_by": "user"
+          }
+        },
+        {
+          "board_id": "<b:26>",
+          "name": "Sign in copy",
+          "state": "added",
+          "kind": "html",
+          "a": null,
+          "b": {
+            "id": "<b:26>",
+            "page": "<p:2>",
+            "name": "Sign in copy",
+            "kind": "html",
+            "x": 13930.5,
+            "y": 0.0,
+            "w": 1280.0,
+            "h": 800.0,
+            "order": 11,
+            "ref": null,
+            "content": {
+              "entry": "index.html",
+              "files": [
+                {
+                  "path": "css/a.css",
+                  "bytes": 3
+                },
+                {
+                  "path": "index.html",
+                  "bytes": 183
+                }
+              ],
+              "bytes": 186,
+              "skipped": [],
+              "title": "Sign in",
+              "rev": 17
+            },
+            "rev": 17,
+            "created_by": "user"
+          }
+        }
+      ]
+    }
+  },
+  "compare_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "version_not_found",
+        "message": "There is no version 99 of this canvas."
+      }
+    }
+  },
+  "compare_missing": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "source_diff": {
+    "status": 200,
+    "body": {
+      "board_id": "<b:16>",
+      "a": 1,
+      "b": 3,
+      "files": [
+        {
+          "path": "index.html",
+          "diff": "--- v1/index.html\n+++ v3/index.html\n@@ -0,0 +1 @@\n+<h1>Z</h1>"
+        }
+      ]
+    }
+  },
+  "source_diff_unknown_board": {
+    "status": 200,
+    "body": {
+      "board_id": "<b:27>",
+      "a": 1,
+      "b": 3,
+      "files": []
+    }
+  },
+  "source_diff_unknown_version": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "version_not_found",
+        "message": "There is no version 99 of this canvas."
+      }
+    }
+  },
+  "restore_locked": {
+    "status": 423,
+    "body": {
+      "detail": {
+        "code": "board_locked",
+        "message": "An is editing a frame. Restore once they save or leave.",
+        "locks": [
+          {
+            "board_id": "<b:16>",
+            "holder": "An",
+            "since": "<time>",
+            "started_seconds_ago": "<n>",
+            "idle_seconds": "<n>",
+            "expires_in": "<n>",
+            "warn": false
+          }
+        ]
+      }
+    }
+  },
+  "restore_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "restore_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "version_not_found",
+        "message": "There is no version 99 of this canvas."
+      }
+    }
+  },
+  "restore": {
+    "status": 200,
+    "body": {
+      "id": "<cv:1>",
+      "project_id": "<uuid:1>",
+      "owner_kind": "doc",
+      "owner_id": "page-1",
+      "page_id": null,
+      "title": "Renamed  x",
+      "rev": 22,
+      "version": 4,
+      "board_count": 1,
+      "total_bytes": 0,
+      "created_by": "user",
+      "created_at": "<time>",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "role": "admin",
+      "can_edit": true,
+      "markdown": "![Renamed  x](canvas:<cv:1>)",
+      "limits": {
+        "boards": 60,
+        "board_bytes": 5242880,
+        "canvas_bytes": 52428800,
+        "pages": 10,
+        "lock_idle_seconds": 600,
+        "min_width": 320,
+        "max_width": 1920
+      },
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:2>",
+            "name": "Page 1",
+            "rev": 22
+          },
+          {
+            "id": "<p:12>",
+            "name": "Second",
+            "order": 2,
+            "rev": 22
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Moved",
+            "kind": "empty",
+            "x": 500.0,
+            "y": 0,
+            "w": 1920,
+            "h": 120,
+            "order": 3,
+            "ref": null,
+            "content": null,
+            "rev": 22,
+            "created_by": "user",
+            "fit": true
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:13>",
+            "x": 5.0,
+            "y": 20.5,
+            "w": 160,
+            "h": 100,
+            "text": "Copy",
+            "color": "green",
+            "by": "U",
+            "page": "<p:2>",
+            "rev": 22
+          }
+        ],
+        "arrows": [
+          {
+            "id": "<a:15>",
+            "from": "<b:3>",
+            "to": "<n:13>",
+            "label": "after",
+            "page": "<p:2>",
+            "rev": 22
+          }
+        ],
+        "labels": [
+          {
+            "id": "<t:14>",
+            "x": 0.0,
+            "y": -60.0,
+            "text": "Step 2",
+            "size": 96,
+            "page": "<p:2>",
+            "rev": 22
+          }
+        ]
+      },
+      "locks": [],
+      "open_comments": 0
+    }
+  },
+  "copy": {
+    "status": 201,
+    "body": {
+      "id": "<cv:28>",
+      "project_id": "<uuid:1>",
+      "owner_kind": "doc",
+      "owner_id": "page-1",
+      "page_id": null,
+      "title": "Renamed  x copy",
+      "rev": 1,
+      "version": 1,
+      "board_count": 1,
+      "total_bytes": 0,
+      "created_by": "user",
+      "created_at": "<time>",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "role": "admin",
+      "can_edit": true,
+      "markdown": "![Renamed  x copy](canvas:<cv:28>)",
+      "limits": {
+        "boards": 60,
+        "board_bytes": 5242880,
+        "canvas_bytes": 52428800,
+        "pages": 10,
+        "lock_idle_seconds": 600,
+        "min_width": 320,
+        "max_width": 1920
+      },
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:2>",
+            "name": "Page 1",
+            "rev": 1
+          },
+          {
+            "id": "<p:12>",
+            "name": "Second",
+            "order": 2,
+            "rev": 1
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Moved",
+            "kind": "empty",
+            "x": 500.0,
+            "y": 0,
+            "w": 1920,
+            "h": 120,
+            "order": 3,
+            "ref": null,
+            "content": null,
+            "rev": 1,
+            "created_by": "user",
+            "fit": true
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:13>",
+            "x": 5.0,
+            "y": 20.5,
+            "w": 160,
+            "h": 100,
+            "text": "Copy",
+            "color": "green",
+            "by": "U",
+            "page": "<p:2>",
+            "rev": 1
+          }
+        ],
+        "arrows": [
+          {
+            "id": "<a:15>",
+            "from": "<b:3>",
+            "to": "<n:13>",
+            "label": "after",
+            "page": "<p:2>",
+            "rev": 1
+          }
+        ],
+        "labels": [
+          {
+            "id": "<t:14>",
+            "x": 0.0,
+            "y": -60.0,
+            "text": "Step 2",
+            "size": 96,
+            "page": "<p:2>",
+            "rev": 1
+          }
+        ]
+      },
+      "locks": [],
+      "open_comments": 0
+    }
+  },
+  "copy_title": {
+    "status": 201,
+    "body": {
+      "id": "<cv:29>",
+      "project_id": "<uuid:1>",
+      "owner_kind": "doc",
+      "owner_id": "page-1",
+      "page_id": null,
+      "title": "Mine  x",
+      "rev": 1,
+      "version": 1,
+      "board_count": 1,
+      "total_bytes": 0,
+      "created_by": "user",
+      "created_at": "<time>",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "role": "admin",
+      "can_edit": true,
+      "markdown": "![Mine  x](canvas:<cv:29>)",
+      "limits": {
+        "boards": 60,
+        "board_bytes": 5242880,
+        "canvas_bytes": 52428800,
+        "pages": 10,
+        "lock_idle_seconds": 600,
+        "min_width": 320,
+        "max_width": 1920
+      },
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:2>",
+            "name": "Page 1",
+            "rev": 1
+          },
+          {
+            "id": "<p:12>",
+            "name": "Second",
+            "order": 2,
+            "rev": 1
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Moved",
+            "kind": "empty",
+            "x": 500.0,
+            "y": 0,
+            "w": 1920,
+            "h": 120,
+            "order": 3,
+            "ref": null,
+            "content": null,
+            "rev": 1,
+            "created_by": "user",
+            "fit": true
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:13>",
+            "x": 5.0,
+            "y": 20.5,
+            "w": 160,
+            "h": 100,
+            "text": "Copy",
+            "color": "green",
+            "by": "U",
+            "page": "<p:2>",
+            "rev": 1
+          }
+        ],
+        "arrows": [
+          {
+            "id": "<a:15>",
+            "from": "<b:3>",
+            "to": "<n:13>",
+            "label": "after",
+            "page": "<p:2>",
+            "rev": 1
+          }
+        ],
+        "labels": [
+          {
+            "id": "<t:14>",
+            "x": 0.0,
+            "y": -60.0,
+            "text": "Step 2",
+            "size": 96,
+            "page": "<p:2>",
+            "rev": 1
+          }
+        ]
+      },
+      "locks": [],
+      "open_comments": 0
+    }
+  },
+  "copy_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "copy_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "move_to_docs_no_project": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "no_project",
+        "message": "Only a canvas in a project can move to Docs."
+      }
+    }
+  },
+  "move_to_docs_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "move_to_docs_missing_body": {
+    "status": 422,
+    "body": {
+      "detail": "validation"
+    }
+  },
+  "move_to_docs_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "delete_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "delete": {
+    "status": 200,
+    "body": {
+      "id": "<cv:1>",
+      "deleted_at": "<time>"
+    }
+  },
+  "delete_again": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "get_deleted": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "restore_canvas_viewer": {
+    "status": 403,
+    "body": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can look at a canvas, open it large, present it and read comments, but cannot edit it."
+      }
+    }
+  },
+  "restore_canvas": {
+    "status": 200,
+    "body": {
+      "id": "<cv:1>",
+      "project_id": "<uuid:1>",
+      "owner_kind": "doc",
+      "owner_id": "page-1",
+      "page_id": null,
+      "title": "Renamed  x",
+      "rev": 22,
+      "version": 4,
+      "board_count": 1,
+      "total_bytes": 0,
+      "created_by": "user",
+      "created_at": "<time>",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "role": "admin",
+      "can_edit": true,
+      "markdown": "![Renamed  x](canvas:<cv:1>)",
+      "limits": {
+        "boards": 60,
+        "board_bytes": 5242880,
+        "canvas_bytes": 52428800,
+        "pages": 10,
+        "lock_idle_seconds": 600,
+        "min_width": 320,
+        "max_width": 1920
+      },
+      "doc": {
+        "format": "kanban-canvas",
+        "version": 1,
+        "pages": [
+          {
+            "id": "<p:2>",
+            "name": "Page 1",
+            "rev": 22
+          },
+          {
+            "id": "<p:12>",
+            "name": "Second",
+            "order": 2,
+            "rev": 22
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:3>",
+            "page": "<p:2>",
+            "name": "Moved",
+            "kind": "empty",
+            "x": 500.0,
+            "y": 0,
+            "w": 1920,
+            "h": 120,
+            "order": 3,
+            "ref": null,
+            "content": null,
+            "rev": 22,
+            "created_by": "user",
+            "fit": true
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:13>",
+            "x": 5.0,
+            "y": 20.5,
+            "w": 160,
+            "h": 100,
+            "text": "Copy",
+            "color": "green",
+            "by": "U",
+            "page": "<p:2>",
+            "rev": 22
+          }
+        ],
+        "arrows": [
+          {
+            "id": "<a:15>",
+            "from": "<b:3>",
+            "to": "<n:13>",
+            "label": "after",
+            "page": "<p:2>",
+            "rev": 22
+          }
+        ],
+        "labels": [
+          {
+            "id": "<t:14>",
+            "x": 0.0,
+            "y": -60.0,
+            "text": "Step 2",
+            "size": 96,
+            "page": "<p:2>",
+            "rev": 22
+          }
+        ]
+      },
+      "locks": [],
+      "open_comments": 0
+    }
+  },
+  "restore_canvas_unknown": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "canvas_not_found",
+        "message": "Canvas not found. It was deleted, or you do not have access."
+      }
+    }
+  },
+  "docs_page_canvas": {
+    "status": 201,
+    "body": {
+      "page": {
+        "id": "<uuid:1>",
+        "project_id": "<uuid:2>",
+        "parent_id": null,
+        "title": "Settings flow",
+        "slug": "settings-flow",
+        "slug_path": "settings-flow",
+        "status": "draft",
+        "version": 0,
+        "markdown": "",
+        "headings": [],
+        "path": [],
+        "created_by": "user",
+        "updated_by": "user",
+        "updated_at": "<time>",
+        "created_at": "<time>",
+        "stats": {
+          "words": 0,
+          "linked_tickets": 0,
+          "inbound_links": 0
+        },
+        "has_unpublished_changes": false,
+        "kind": "canvas",
+        "draft": {
+          "title": "Settings flow",
+          "markdown": "",
+          "base_version": 0,
+          "saves": 1,
+          "updated_at": "<time>",
+          "author": "user",
+          "ai_source": null
+        }
+      },
+      "canvas": {
+        "id": "<cv:30>",
+        "project_id": "<uuid:2>",
+        "owner_kind": "page",
+        "owner_id": "<uuid:1>",
+        "page_id": "<uuid:1>",
+        "title": "Settings flow",
+        "rev": 1,
+        "version": 1,
+        "board_count": 1,
+        "total_bytes": 0,
+        "created_by": "user",
+        "created_at": "<time>",
+        "updated_by": "user",
+        "updated_at": "<time>",
+        "deleted_at": null,
+        "role": "admin",
+        "can_edit": true,
+        "markdown": "![Settings flow](canvas:<cv:30>)",
+        "limits": {
+          "boards": 60,
+          "board_bytes": 5242880,
+          "canvas_bytes": 52428800,
+          "pages": 10,
+          "lock_idle_seconds": 600,
+          "min_width": 320,
+          "max_width": 1920
+        },
+        "doc": {
+          "format": "kanban-canvas",
+          "version": 1,
+          "pages": [
+            {
+              "id": "<p:31>",
+              "name": "Page 1",
+              "rev": 1
+            }
+          ],
+          "boards": [
+            {
+              "id": "<b:32>",
+              "page": "<p:31>",
+              "name": "Frame 1",
+              "kind": "empty",
+              "x": 0,
+              "y": 0,
+              "w": 1280,
+              "h": 800,
+              "order": 0,
+              "ref": null,
+              "content": null,
+              "rev": 1,
+              "created_by": "user"
+            }
+          ],
+          "notes": [],
+          "arrows": [],
+          "labels": []
+        },
+        "locks": [],
+        "open_comments": 0
+      }
+    }
+  },
+  "move_to_docs": {
+    "status": 200,
+    "body": {
+      "page": {
+        "id": "<uuid:1>",
+        "project_id": "<uuid:2>",
+        "parent_id": null,
+        "title": "Login flow",
+        "slug": "login-flow",
+        "slug_path": "login-flow",
+        "status": "draft",
+        "version": 0,
+        "markdown": "",
+        "headings": [],
+        "path": [],
+        "created_by": "user",
+        "updated_by": "user",
+        "updated_at": "<time>",
+        "created_at": "<time>",
+        "stats": {
+          "words": 0,
+          "linked_tickets": 0,
+          "inbound_links": 0
+        },
+        "has_unpublished_changes": false,
+        "kind": "canvas",
+        "draft": {
+          "title": "Login flow",
+          "markdown": "",
+          "base_version": 0,
+          "saves": 1,
+          "updated_at": "<time>",
+          "author": "user",
+          "ai_source": null
+        }
+      },
+      "canvas": {
+        "id": "<cv:33>",
+        "project_id": "<uuid:2>",
+        "owner_kind": "page",
+        "owner_id": "<uuid:1>",
+        "page_id": "<uuid:1>",
+        "title": "Login flow",
+        "rev": 1,
+        "version": 1,
+        "board_count": 1,
+        "total_bytes": 0,
+        "created_by": "user",
+        "created_at": "<time>",
+        "updated_by": "user",
+        "updated_at": "<time>",
+        "deleted_at": null,
+        "role": "admin",
+        "can_edit": true,
+        "markdown": "![Login flow](canvas:<cv:33>)",
+        "limits": {
+          "boards": 60,
+          "board_bytes": 5242880,
+          "canvas_bytes": 52428800,
+          "pages": 10,
+          "lock_idle_seconds": 600,
+          "min_width": 320,
+          "max_width": 1920
+        },
+        "doc": {
+          "format": "kanban-canvas",
+          "version": 1,
+          "pages": [
+            {
+              "id": "<p:34>",
+              "name": "Page 1",
+              "rev": 1
+            }
+          ],
+          "boards": [
+            {
+              "id": "<b:35>",
+              "page": "<p:34>",
+              "name": "Frame 1",
+              "kind": "empty",
+              "x": 0,
+              "y": 0,
+              "w": 1280,
+              "h": 800,
+              "order": 0,
+              "ref": null,
+              "content": null,
+              "rev": 1,
+              "created_by": "user"
+            }
+          ],
+          "notes": [],
+          "arrows": [],
+          "labels": []
+        },
+        "locks": [],
+        "open_comments": 0
+      }
+    }
+  },
+  "move_to_docs_again": {
+    "status": 422,
+    "body": {
+      "detail": {
+        "code": "already_page",
+        "message": "This canvas is already a Docs page."
+      }
+    }
+  },
+  "pages_unknown_project": {
+    "status": 404,
+    "body": {
+      "detail": {
+        "code": "project_not_found",
+        "message": "Project not found"
+      }
+    }
+  }
+}

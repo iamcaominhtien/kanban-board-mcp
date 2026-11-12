@@ -12,7 +12,7 @@ use kb_doctext::docs_text::DocsError;
 use regex::Regex;
 use serde_json::{Map, Value, json};
 
-use crate::hooks;
+use crate::canvas_png::{Raster, WHITE};
 use crate::html;
 use crate::xml::{self, Element, XmlError};
 
@@ -653,11 +653,8 @@ pub fn uncompressed(source: &str) -> String {
 }
 
 /// A picture of the first page made without a browser: shapes as outlined boxes, links as lines, no text. The
-/// picture is drawn by the canvas code (`hooks::canvas_raster`); `None` while that area has not registered itself.
-pub fn wireframe_png(source: &str, max_side: f64) -> Result<Option<Vec<u8>>, Error> {
-    let Some(factory) = hooks::canvas_raster() else {
-        return Ok(None);
-    };
+/// picture is drawn by `canvas_png`.
+pub fn wireframe_png(source: &str, max_side: f64) -> Result<Vec<u8>, Error> {
     let d = Drawing::new(source)?;
     let layers = ["0".to_string(), "1".to_string(), d.default_parent()];
     // (id, box) in insertion order, a later shape with the same id replacing the earlier one
@@ -688,7 +685,7 @@ pub fn wireframe_png(source: &str, max_side: f64) -> Result<Option<Vec<u8>>, Err
         }
     }
     if boxes.is_empty() {
-        return Ok(Some(factory.new_raster(200, 100).png()));
+        return Ok(Raster::new(200, 100, WHITE).png());
     }
     let pad = 20.0;
     let left = boxes.iter().map(|(_, b)| b.0).fold(f64::INFINITY, f64::min) - pad;
@@ -696,7 +693,7 @@ pub fn wireframe_png(source: &str, max_side: f64) -> Result<Option<Vec<u8>>, Err
     let width = boxes.iter().map(|(_, b)| b.0 + b.2).fold(f64::NEG_INFINITY, f64::max) + pad - left;
     let height = boxes.iter().map(|(_, b)| b.1 + b.3).fold(f64::NEG_INFINITY, f64::max) + pad - top;
     let scale = (max_side / width.max(height).max(1.0)).min(1.0);
-    let mut r = factory.new_raster((width * scale) as u32 + 1, (height * scale) as u32 + 1);
+    let mut r = Raster::new((width * scale) as i64 + 1, (height * scale) as i64 + 1, WHITE);
     let (ink, line) = ((51, 51, 51), (120, 120, 120));
     let to_px = |x: f64, y: f64| ((x - left) * scale, (y - top) * scale);
     let find = |id: &str| boxes.iter().find(|(k, _)| k == id).map(|(_, b)| *b);
@@ -719,7 +716,7 @@ pub fn wireframe_png(source: &str, max_side: f64) -> Result<Option<Vec<u8>>, Err
         }
         r.frame(px, py, w * scale, h * scale, ink, if is_container(style) { 1 } else { 2 });
     }
-    Ok(Some(r.png()))
+    Ok(r.png())
 }
 
 // --- SVG preview -----------------------------------------------------------------------------

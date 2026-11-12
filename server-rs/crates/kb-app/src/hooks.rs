@@ -31,8 +31,19 @@ impl kb_doctext::docs_access::NotificationsHook for Notifications {
     }
 }
 
+struct DocsSearch;
+
+#[async_trait]
+impl kb_dbkit::hooks::DocsSearchHook for DocsSearch {
+    async fn backfill(&self, txn: &kb_db::sea_orm::DatabaseTransaction) -> Result<(), kb_db::sea_orm::DbErr> {
+        kb_docs::docs_search::backfill_sync(txn).await
+    }
+}
+
 /// Register every hook (a second call changes nothing).
 pub fn install() {
+    kb_ideas::register();
+    kb_dbkit::hooks::set_docs_search_hook(Box::new(DocsSearch));
     kb_board::hooks::set_db_move_hook(Box::new(DbMove));
     kb_doctext::docs_access::set_notifications_hook(Box::new(Notifications));
 }

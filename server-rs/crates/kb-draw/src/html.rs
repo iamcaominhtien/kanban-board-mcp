@@ -74,7 +74,6 @@ pub fn unescape(text: &str) -> String {
     charref().replace_all(text, |caps: &regex::Captures| replace_charref(&caps[1])).into_owned()
 }
 
-
 // --- html.parser.HTMLParser (convert_charrefs=True, scripting=False) -----------------------------------------------
 
 /// The handlers of `HTMLParser` that a caller overrides (comments, declarations and processing instructions are
@@ -250,14 +249,7 @@ fn attrfind(raw: &[char], k: usize) -> Option<(String, Option<String>, usize)> {
 }
 
 fn starts(raw: &[char], i: usize, pat: &str) -> bool {
-    let mut at = i;
-    for c in pat.chars() {
-        if raw.get(at) != Some(&c) {
-            return false;
-        }
-        at += 1;
-    }
-    true
+    pat.chars().enumerate().all(|(k, c)| raw.get(i + k) == Some(&c))
 }
 
 fn find_char(raw: &[char], c: char, from: usize) -> Option<usize> {
@@ -452,7 +444,7 @@ impl<H: Handler> Parser<'_, H> {
         while k < endpos {
             let Some((name, value, e)) = attrfind(&self.raw, k) else { break };
             let value = value.map(|v| {
-                let quoted = |q: char| v.chars().next() == Some(q) && v.chars().last() == Some(q);
+                let quoted = |q: char| v.starts_with(q) && v.ends_with(q);
                 let v = if (quoted('\'') || quoted('"')) && v.chars().count() >= 2 {
                     v.chars().skip(1).take(v.chars().count() - 2).collect()
                 } else {

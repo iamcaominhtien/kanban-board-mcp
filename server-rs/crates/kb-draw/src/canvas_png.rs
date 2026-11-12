@@ -226,12 +226,8 @@ fn on_page<'a>(doc: &'a Value, key: &str, page: Option<&Value>) -> Vec<&'a Value
 /// `doc` is the canvas file; `page` the page tab to draw (the first when omitted or empty); `max_side` the longest
 /// side of the picture in pixels (1200 when the caller gives none).
 pub fn overview(doc: &Value, page: Option<&str>, max_side: i64) -> Vec<u8> {
-    let first_page = doc
-        .get("pages")
-        .and_then(Value::as_array)
-        .and_then(|pages| pages.first())
-        .and_then(|p| p.get("id"))
-        .cloned();
+    let first_page =
+        doc.get("pages").and_then(Value::as_array).and_then(|pages| pages.first()).and_then(|p| p.get("id")).cloned();
     // `page = page or (pages[0]["id"] if pages else None)`
     let page_value: Option<Value> = match page {
         Some(p) if !p.is_empty() => Some(Value::String(p.to_string())),

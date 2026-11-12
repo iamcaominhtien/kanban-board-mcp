@@ -76,9 +76,9 @@ pub fn drawio_routes() -> Routes {
     // `/drawio/` is a path of its own for axum (a catch-all needs one character); for Starlette `{file_path:path}`
     // matches an empty one
     Routes::new()
-        .hidden(drawio_bundle::PATH, get(drawio_root))
-        .hidden(&format!("{}/", drawio_bundle::PATH), get(serve_drawio_index))
-        .hidden(&format!("{}/{{file_path:path}}", drawio_bundle::PATH), get(serve_drawio))
+        .hidden("GET", drawio_bundle::PATH, get(drawio_root))
+        .hidden("GET", &format!("{}/", drawio_bundle::PATH), get(serve_drawio_index))
+        .hidden("GET", &format!("{}/{{file_path:path}}", drawio_bundle::PATH), get(serve_drawio))
 }
 
 /// `GET /upload-info/{file_path:path}`: where an uploaded file is stored on this computer, for the desktop app's
@@ -225,9 +225,9 @@ async fn serve_upload_root(
 pub fn upload_routes() -> Routes {
     Routes::new()
         .get("/upload-info/{file_path:path}", upload_info)
-        .hidden("/upload-info/", get(upload_info_root))
+        .hidden("GET", "/upload-info/", get(upload_info_root))
         .get("/uploads/{file_path:path}", serve_upload)
-        .hidden("/uploads/", get(serve_upload_root))
+        .hidden("GET", "/uploads/", get(serve_upload_root))
 }
 
 // ---------------------------------------------------------------------------

@@ -1,0 +1,182 @@
+{
+  "access: Ada": {
+    "status": 200,
+    "json": {
+      "access": true,
+      "role": "admin",
+      "can_edit": true,
+      "policy": "members",
+      "me": "Ada",
+      "admins": [
+        "Ada"
+      ]
+    }
+  },
+  "access: Mia": {
+    "status": 200,
+    "json": {
+      "access": true,
+      "role": "member",
+      "can_edit": true,
+      "policy": "members",
+      "me": "Mia",
+      "admins": [
+        "Ada"
+      ]
+    }
+  },
+  "access: Stranger": {
+    "status": 200,
+    "json": {
+      "access": false,
+      "role": null,
+      "can_edit": false,
+      "policy": "members",
+      "me": "Stranger",
+      "admins": [
+        "Ada"
+      ]
+    }
+  },
+  "access: Vera": {
+    "status": 200,
+    "json": {
+      "access": true,
+      "role": "viewer",
+      "can_edit": false,
+      "policy": "members",
+      "me": "Vera",
+      "admins": [
+        "Ada"
+      ]
+    }
+  },
+  "access: admins only, Mia": {
+    "status": 200,
+    "json": {
+      "access": true,
+      "role": "member",
+      "can_edit": false,
+      "policy": "admins",
+      "me": "Mia",
+      "admins": [
+        "Ada"
+      ]
+    }
+  },
+  "access: agent": {
+    "status": 200,
+    "json": {
+      "access": true,
+      "role": "member",
+      "can_edit": true,
+      "policy": "members",
+      "me": "agent",
+      "admins": [
+        "Ada"
+      ]
+    }
+  },
+  "access: docs disabled": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "docs_disabled",
+        "message": "Docs are turned off for this project",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "access: unknown project": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "project_not_found",
+        "message": "Project not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "access: user": {
+    "status": 200,
+    "json": {
+      "access": true,
+      "role": "admin",
+      "can_edit": true,
+      "policy": "members",
+      "me": "user",
+      "admins": [
+        "Ada"
+      ]
+    }
+  },
+  "request: a member": {
+    "status": 201,
+    "json": {
+      "sent": false,
+      "admins": [
+        "Ada"
+      ]
+    }
+  },
+  "request: again": {
+    "status": 201,
+    "json": {
+      "sent": false,
+      "admins": [
+        "Ada"
+      ]
+    }
+  },
+  "request: another stranger": {
+    "status": 201,
+    "json": {
+      "sent": true,
+      "admins": [
+        "Ada"
+      ]
+    }
+  },
+  "request: docs disabled still answers": {
+    "status": 201,
+    "json": {
+      "sent": true,
+      "admins": [
+        "Ada"
+      ]
+    }
+  },
+  "request: note not text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "note"
+        ]
+      ]
+    }
+  },
+  "request: stranger": {
+    "status": 201,
+    "json": {
+      "sent": true,
+      "admins": [
+        "Ada"
+      ]
+    }
+  },
+  "request: unknown project": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "project_not_found",
+        "message": "Project not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  }
+}

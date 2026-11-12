@@ -148,10 +148,16 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 
 - [x] the low-level Docs text modules (`docs_text`, `docs_anchors`, `docs_checklist`, `docs_edit`, `docs_templates`,
       `docs_guide` in `kb-doctext`)
-- [ ] docs (`services/docs.py`, `docs_comments.py`, `docs_search.py`, `docs_import.py`, `docs_work.py`, `api/docs.py`)
+- [x] docs, part 1: pages, versions, links, the bin, search with FTS5 (`services/docs.py`, `docs_search.py`,
+      `docs_work.py`, 38 routes of `api/docs.py`)
+- [ ] docs, part 2: comments and import (`docs_comments.py`, `docs_import.py`, the other routes of `api/docs.py`)
 - [x] diagrams and sketches (`services/diagram*.py`, `sketches.py`, `api/diagrams.py`, `sketches.py`)
-- [ ] canvases, screenshots (`services/canvas*.py`, `screenshots.py`, `visual_guides.py`, `api/canvases.py`)
-- [ ] ideas (`services/idea_*.py`, `api/idea_space.py`, `idea_tickets.py`)
+- [x] canvases, part 1 (`services/canvases.py`, `canvas_png.py`, `canvas_html.py`, `canvas_locks.py`, 30 routes of
+      `api/canvases.py`)
+- [ ] canvases, part 2: comment threads, delivery, design guide, screenshots (`canvas_comments.py`,
+      `canvas_delivery.py`, `canvas_design.py`, `screenshots.py`, `visual_guides.py`)
+- [x] ideas (`services/idea_*.py`, `api/idea_space.py`, `idea_tickets.py`; the nine tests of the
+      `f4a6b8c0d2e4` migration wait for the migration port)
 
 ### P4 MCP (`kb-mcp`)
 
@@ -180,9 +186,9 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
   did, or widen the columns in the first Rust migration.
 - `GET /database/command` still prints the `uv run python -m dbkit.cli` command; the Rust CLI is
   `kb_dbkit::cli::main` and needs a binary entry (`kanban-server db ...`).
-- Hooks still without an implementation (their areas are not ported): `kb_board::hooks::{AiTeamsHook, AiRunsHook,
-  IdeaPromoteHook}`, `kb_dbkit::hooks::{AssistantHook, DocsSearchHook}`, `kb_draw::hooks::CanvasRaster`. Registered in
-  `kb-app/src/hooks.rs`.
+- Hooks still without an implementation: `kb_board::hooks::{AiTeamsHook, AiRunsHook}`, `kb_dbkit::hooks::AssistantHook`,
+  `kb_docs::hooks::{AiGuardHook, AssignHook, CommentsHook, CanvasesHook}`, `kb_draw::hooks::CanvasDocs`. Hooks are
+  registered in `kb-app/src/hooks.rs`.
 - Tests waiting for another port: the two data-import tests that need an older database (migrations),
   `test_data_path_validation` on Rust (`api/settings.py`), the `test_mcp_*` tests (MCP), the wave-5 idea tests.
 - A JSON body that leaves out several required fields names only the first in the 422; FastAPI lists all.

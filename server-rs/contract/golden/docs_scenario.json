@@ -1,0 +1,363 @@
+{
+  "docs_ai_health": [],
+  "docs_ai_ignore": [],
+  "docs_ai_job": [],
+  "docs_ai_session": [],
+  "docs_ai_settings": [
+    {
+      "project_id": "<project>",
+      "enabled": 0,
+      "member_id": null,
+      "style_page_id": null,
+      "freshness_on": 1,
+      "digest_on": 1,
+      "updated_by": null,
+      "updated_at": "<time>"
+    }
+  ],
+  "docs_anchor_aliases": [
+    {
+      "id": "<id>",
+      "page_id": "<page:plan>",
+      "old_slug": "aims",
+      "new_slug": "goals"
+    }
+  ],
+  "docs_comment": [],
+  "docs_comment_event": [],
+  "docs_comment_read": [],
+  "docs_comment_thread": [],
+  "docs_draft": [
+    {
+      "id": "<id>",
+      "page_id": "<page:notes-2>",
+      "author": "user",
+      "title": "Notes",
+      "markdown": "draft with [[Spec]]",
+      "base_version": 0,
+      "updated_at": "<time>",
+      "saves": 1,
+      "ai_source": null
+    },
+    {
+      "id": "<id>",
+      "page_id": "<page:plan>",
+      "author": "Mia",
+      "title": "Mia's title",
+      "markdown": "mia's draft",
+      "base_version": 2,
+      "updated_at": "<time>",
+      "saves": 1,
+      "ai_source": null
+    },
+    {
+      "id": "<id>",
+      "page_id": "<page:roadmap-copy>",
+      "author": "user",
+      "title": "Roadmap (copy)",
+      "markdown": "## Aims\nship\n## Risks\nnone",
+      "base_version": 0,
+      "updated_at": "<time>",
+      "saves": 1,
+      "ai_source": null
+    },
+    {
+      "id": "<id>",
+      "page_id": "<page:spec-2>",
+      "author": "user",
+      "title": "Spec",
+      "markdown": "## Design\nsee [[Roadmap#Goals]] and [[Roadmap#Risks|risks]] and KAN-1 and [[Ghost]]",
+      "base_version": 0,
+      "updated_at": "<time>",
+      "saves": 1,
+      "ai_source": null
+    }
+  ],
+  "docs_fts": [
+    {
+      "page_id": "<page:notes-2>",
+      "project_id": "<project>",
+      "title": "Notes",
+      "headings": "",
+      "body": "draft with [[Spec]]"
+    },
+    {
+      "page_id": "<page:plan>",
+      "project_id": "<project>",
+      "title": "Plan",
+      "headings": "Goals\nRisks",
+      "body": "## Goals\nship\n## Risks\nnone"
+    },
+    {
+      "page_id": "<page:roadmap-copy>",
+      "project_id": "<project>",
+      "title": "Roadmap (copy)",
+      "headings": "Aims\nRisks",
+      "body": "## Aims\nship\n## Risks\nnone"
+    },
+    {
+      "page_id": "<page:spec-2>",
+      "project_id": "<project>",
+      "title": "Spec",
+      "headings": "Design",
+      "body": "## Design\nsee [[Roadmap#Goals]] and [[Roadmap#Risks|risks]] and KAN-1 and [[Ghost]]"
+    },
+    {
+      "page_id": "<page:spec>",
+      "project_id": "<project>",
+      "title": "Spec",
+      "headings": "Design",
+      "body": "## Design\nsee [[Roadmap#Goals]] and [[Roadmap#Risks|risks]] and KAN-1 and [[Ghost]]"
+    }
+  ],
+  "docs_link": [
+    {
+      "id": "<id>",
+      "source_page_id": "<page:spec>",
+      "source_section": "design",
+      "target_page_id": null,
+      "target_title": "Ghost",
+      "target_anchor": null,
+      "target_ticket_id": null,
+      "display_text": null,
+      "snippet": "see Roadmap and risks and KAN-1 and Ghost",
+      "origin": "page"
+    },
+    {
+      "id": "<id>",
+      "source_page_id": "<page:spec>",
+      "source_section": "design",
+      "target_page_id": null,
+      "target_title": "Roadmap",
+      "target_anchor": "Goals",
+      "target_ticket_id": null,
+      "display_text": null,
+      "snippet": "see Roadmap and risks and KAN-1 and Ghost",
+      "origin": "page"
+    },
+    {
+      "id": "<id>",
+      "source_page_id": "<page:spec>",
+      "source_section": "design",
+      "target_page_id": null,
+      "target_title": "Roadmap",
+      "target_anchor": "Risks",
+      "target_ticket_id": null,
+      "display_text": "risks",
+      "snippet": "see Roadmap and risks and KAN-1 and Ghost",
+      "origin": "page"
+    },
+    {
+      "id": "<id>",
+      "source_page_id": "<page:spec>",
+      "source_section": "design",
+      "target_page_id": null,
+      "target_title": null,
+      "target_anchor": null,
+      "target_ticket_id": "KAN-1",
+      "display_text": null,
+      "snippet": "see Roadmap and risks and KAN-1 and Ghost",
+      "origin": "page"
+    }
+  ],
+  "docs_page": [
+    {
+      "id": "<page:archive>",
+      "project_id": "<project>",
+      "parent_id": null,
+      "position": 0,
+      "title": "Archive",
+      "slug": "archive",
+      "status": "published",
+      "version": 1,
+      "created_by": "user",
+      "updated_by": "user",
+      "created_at": "<time>",
+      "updated_at": "<time>",
+      "deleted_at": "<time>",
+      "deleted_by": "user",
+      "deleted_root_id": "<page:archive>",
+      "kind": "page"
+    },
+    {
+      "id": "<page:notes-2>",
+      "project_id": "<project>",
+      "parent_id": "<page:spec-2>",
+      "position": 0,
+      "title": "Notes",
+      "slug": "notes-2",
+      "status": "draft",
+      "version": 0,
+      "created_by": "user",
+      "updated_by": "user",
+      "created_at": "<time>",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "deleted_by": null,
+      "deleted_root_id": null,
+      "kind": "page"
+    },
+    {
+      "id": "<page:plan>",
+      "project_id": "<project>",
+      "parent_id": null,
+      "position": 1,
+      "title": "Plan",
+      "slug": "plan",
+      "status": "published",
+      "version": 3,
+      "created_by": "user",
+      "updated_by": "user",
+      "created_at": "<time>",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "deleted_by": null,
+      "deleted_root_id": null,
+      "kind": "page"
+    },
+    {
+      "id": "<page:roadmap-copy>",
+      "project_id": "<project>",
+      "parent_id": null,
+      "position": 2,
+      "title": "Roadmap (copy)",
+      "slug": "roadmap-copy",
+      "status": "draft",
+      "version": 0,
+      "created_by": "user",
+      "updated_by": "user",
+      "created_at": "<time>",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "deleted_by": null,
+      "deleted_root_id": null,
+      "kind": "page"
+    },
+    {
+      "id": "<page:spec-2>",
+      "project_id": "<project>",
+      "parent_id": "<page:roadmap-copy>",
+      "position": 0,
+      "title": "Spec",
+      "slug": "spec-2",
+      "status": "draft",
+      "version": 0,
+      "created_by": "user",
+      "updated_by": "user",
+      "created_at": "<time>",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "deleted_by": null,
+      "deleted_root_id": null,
+      "kind": "page"
+    },
+    {
+      "id": "<page:spec>",
+      "project_id": "<project>",
+      "parent_id": "<page:plan>",
+      "position": 0,
+      "title": "Spec",
+      "slug": "spec",
+      "status": "published",
+      "version": 2,
+      "created_by": "user",
+      "updated_by": "user",
+      "created_at": "<time>",
+      "updated_at": "<time>",
+      "deleted_at": null,
+      "deleted_by": null,
+      "deleted_root_id": null,
+      "kind": "page"
+    }
+  ],
+  "docs_page_seen": [
+    {
+      "id": "<id>",
+      "page_id": "<page:plan>",
+      "viewer": "Mia",
+      "version": 2,
+      "seen_at": "<time>"
+    }
+  ],
+  "docs_title_aliases": [
+    {
+      "id": "<id>",
+      "page_id": "<page:plan>",
+      "old_title": "plan"
+    }
+  ],
+  "docs_version": [
+    {
+      "id": "<id>",
+      "page_id": "<page:archive>",
+      "version": 1,
+      "title": "Archive",
+      "markdown": "old",
+      "author": "user",
+      "note": null,
+      "created_at": "<time>",
+      "diagram_versions": "{}",
+      "with_ai": 0
+    },
+    {
+      "id": "<id>",
+      "page_id": "<page:plan>",
+      "version": 1,
+      "title": "Plan",
+      "markdown": "## Goals\nship\n## Risks\nnone",
+      "author": "user",
+      "note": "first",
+      "created_at": "<time>",
+      "diagram_versions": "{}",
+      "with_ai": 0
+    },
+    {
+      "id": "<id>",
+      "page_id": "<page:plan>",
+      "version": 2,
+      "title": "Plan",
+      "markdown": "## Aims\nship\n## Risks\nnone",
+      "author": "user",
+      "note": "renamed a heading",
+      "created_at": "<time>",
+      "diagram_versions": "{}",
+      "with_ai": 0
+    },
+    {
+      "id": "<id>",
+      "page_id": "<page:plan>",
+      "version": 3,
+      "title": "Plan",
+      "markdown": "## Goals\nship\n## Risks\nnone",
+      "author": "user",
+      "note": "Restored from v1",
+      "created_at": "<time>",
+      "diagram_versions": "{}",
+      "with_ai": 0
+    },
+    {
+      "id": "<id>",
+      "page_id": "<page:spec>",
+      "version": 1,
+      "title": "Spec",
+      "markdown": "## Design\nsee [[Plan#Goals]] and [[Plan#Risks|risks]] and KAN-1 and [[Ghost]]",
+      "author": "user",
+      "note": null,
+      "created_at": "<time>",
+      "diagram_versions": "{}",
+      "with_ai": 0
+    },
+    {
+      "id": "<id>",
+      "page_id": "<page:spec>",
+      "version": 2,
+      "title": "Spec",
+      "markdown": "## Design\nsee [[Roadmap#Goals]] and [[Roadmap#Risks|risks]] and KAN-1 and [[Ghost]]",
+      "author": "user",
+      "note": "Link to \"Roadmap\" updated",
+      "created_at": "<time>",
+      "diagram_versions": "{}",
+      "with_ai": 0
+    }
+  ]
+}

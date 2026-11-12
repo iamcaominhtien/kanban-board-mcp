@@ -83,8 +83,13 @@ does, including the odd cases, and do not improve behavior on the way.
 - A router file `api/foo.py` becomes `src/api/foo.rs` in the area's crate and exposes `pub fn routes() -> Routes`
   (`kb_base::Routes`): `.get("/projects/{project_id}", handler)`, `.nest("/prefix", inner)`. The crate's
   `api::routes()` merges its files in the order `main.py` includes the routers; `kb-app` already merges every crate.
-- Keep the path exactly as FastAPI has it, with one exception: at the same position of a path, every route must use
-  the **same parameter name** (axum refuses `/a/{x}` next to `/a/{y}/b`). Pick one name per position.
+- Keep the path exactly as FastAPI has it, and register the routes of a file **in the order of the Python file**.
+  The app's router (`kb_base::routes`) works as Starlette's does: the first registered route that matches the path
+  and the method serves the request; a route that matches only the path answers 405 when no later route matches
+  fully. So overlapping routes (`/things/{id}` before `/things/counts`, two routers under one prefix) give FastAPI's
+  outcome without any special handling, and parameter names are free. Do not write routes whose only purpose is to
+  imitate a fall-through. The one exception: a `{name:path}` parameter needs at least one character here, so a
+  router that must also serve the empty case registers it with `Routes::hidden("GET", "/prefix/", ...)`.
 - Request and response models (`ProjectCreate`, `ProjectRead`... in `models.py` from line 2031, or declared in the
   router file) become `serde` structs in the area crate, next to the code that uses them, with the same field names,
   order and defaults. A response model lists exactly its fields in its order (FastAPI drops anything else).

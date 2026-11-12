@@ -48,10 +48,6 @@ pub fn routes() -> Routes {
         .merge(files::ui_routes())
 }
 
-async fn not_found() -> Response {
-    (StatusCode::NOT_FOUND, Json(json!({"detail": "Not Found"}))).into_response()
-}
-
 /// FastAPI's 405: `{"detail": "Method Not Allowed"}` and the methods of the route in `Allow`.
 pub(crate) fn method_not_allowed_for(allow: &str) -> Response {
     let mut response = (StatusCode::METHOD_NOT_ALLOWED, Json(json!({"detail": "Method Not Allowed"}))).into_response();
@@ -61,16 +57,12 @@ pub(crate) fn method_not_allowed_for(allow: &str) -> Response {
     response
 }
 
-async fn method_not_allowed() -> Response {
-    method_not_allowed_for("GET")
-}
-
 /// The app: routes, fallbacks and the middlewares in the order the Python app ran them (outermost first: request
 /// logging, the actor, the app's secret, the unreachable-database answer, CORS, and the HTTP methods of FastAPI next to
 /// the routes).
 pub fn app() -> Router {
     let (router, _table) = routes().into_parts();
-    let router = router.fallback(not_found).method_not_allowed_fallback(method_not_allowed);
+    // (the router picks the route as Starlette does and answers 404 and 405 itself: `kb_base::routes`)
     // The middlewares wrap the whole router (not each route: axum adds the `Allow` header of a 405 outside a route's
     // own layers), first the outermost.
     let stack = tower::ServiceBuilder::new()

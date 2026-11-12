@@ -933,6 +933,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "626d4928326b646e70f65ed36fc7cf9f206bdb68a0019ee7c6b4709da4e084c4"
 dependencies = [
  "crc32fast",
+ "libz-sys",
  "miniz_oxide",
 ]
 
@@ -1609,6 +1610,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tokio",
+ "tower",
  "tracing",
  "uuid",
 ]
@@ -1725,9 +1727,11 @@ dependencies = [
 name = "kb-draw"
 version = "5.0.0"
 dependencies = [
+ "async-trait",
  "axum",
  "base64 0.22.1",
  "caseless",
+ "chrono",
  "flate2",
  "futures",
  "kb-base",
@@ -1745,6 +1749,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "tracing",
+ "zip",
 ]
 
 [[package]]
@@ -1778,13 +1783,21 @@ dependencies = [
 name = "kb-ideas"
 version = "5.0.0"
 dependencies = [
+ "async-trait",
  "axum",
+ "chrono",
+ "kb-app",
  "kb-base",
+ "kb-board",
  "kb-db",
+ "kb-doctext",
  "serde",
  "serde_json",
+ "sqlx",
+ "tempfile",
  "testkit",
  "tokio",
+ "tower",
  "tracing",
 ]
 
@@ -1876,6 +1889,17 @@ name = "libsqlite3-sys"
 version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1f111c8c41e7c61a49cd34e44c7619462967221a6443b0ec299e0ac30cfb9b1"
+dependencies = [
+ "cc",
+ "pkg-config",
+ "vcpkg",
+]
+
+[[package]]
+name = "libz-sys"
+version = "1.1.33"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fee3f59f4321dab0c78d828942e7aa09d0bd8ad6e78a501977e6bf3d02938045"
 dependencies = [
  "cc",
  "pkg-config",
