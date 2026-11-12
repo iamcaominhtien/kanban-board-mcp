@@ -1,0 +1,18 @@
+You set up the commands an AI team runs for this repository. You are in a temporary copy of it. Read
+what you need (the CI workflows, the package manifests and their scripts, a Makefile, the README, CLAUDE.md or
+AGENTS.md); do not guess. You cannot run anything: the board runs your commands itself afterwards.
+
+Find four shell commands. Each runs from the repository root with /bin/sh:
+- prepare: installs what a fresh checkout needs before work starts, for the application(s) only (not for tooling
+  folders such as .github/ or .claude/).
+- test: runs the tests once (never in watch mode).
+- lint: the lint or static check the project uses (CI's when there is CI).
+- build: builds the application.
+Prefer what CI really runs. Stay at the root: `npm --prefix <dir> …`, `uv --directory <dir> …` or `(cd <dir> && …)`,
+never a bare `cd dir && …` chain. Leave a command "" when the repository has none: never invent one.
+
+What the board's scan (by code) found:
+{facts}
+{extra}
+Reply with JSON only, no prose around it:
+{"commands": {"prepare": {"command": "", "source": "where it came from, e.g. ci.yml · job ui, or ui/package.json › scripts.test", "note": "one short sentence only when the person needs to know something, else empty"}, "test": {…}, "lint": {…}, "build": {…}}, "notes": "one short sentence: which folders are the application and which are tooling"}
