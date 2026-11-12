@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::Set;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// Per-project switches of the optional AI helpers of the Idea Space; all on by default (table).
 ///
 /// `project_id` "" holds the defaults for ideas that belong to no project.
@@ -19,7 +21,8 @@ pub struct Model {
     pub read_docs: bool,
     pub read_repo: bool,
     /// dollars a day for the Idea Space helpers
-    pub daily_cap: f64,
+    #[sea_orm(column_type = "Double")]
+    pub daily_cap: Float,
     pub updated_at: String,
 }
 
@@ -38,7 +41,7 @@ pub fn new() -> ActiveModel {
         ask: Set(true),
         read_docs: Set(true),
         read_repo: Set(true),
-        daily_cap: Set(1.0),
+        daily_cap: Set(Float(1.0)),
         updated_at: Set(kb_base::time::now_iso()),
     }
 }

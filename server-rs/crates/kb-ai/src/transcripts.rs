@@ -26,7 +26,7 @@ use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{ai_run, ai_run_transcript, ai_skill_use};
 use kb_db::sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter, Value as SqlValue,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, Value as SqlValue,
 };
 use kb_db::sql::statement;
 use serde_json::{Map, Value, json};
@@ -585,10 +585,11 @@ async fn finish_inner(
         use_row.plugin = kb_db::sea_orm::ActiveValue::Set(plugin);
         use_row.insert(&session).await?;
     }
-    // the run is searchable the moment it is recorded as ended; an index that fails loses only itself (a failed
-    // statement of SQLite leaves the transaction usable)
-    if let Err(err) = index(&session, &run, &records).await {
-        tracing::error!("Could not index the transcript of run {run_id}: {err}");
+    // in a savepoint of the same commit: the run is searchable the moment it is recorded as ended, and an index that
+    // fails rolls back only itself
+    match session.nested(index(&session, &run, &records)).await {
+        Ok(Ok(())) => {}
+        Ok(Err(err)) | Err(err) => tracing::error!("Could not index the transcript of run {run_id}: {err}"),
     }
     session.commit().await?;
     if let Some(plain) = plain {

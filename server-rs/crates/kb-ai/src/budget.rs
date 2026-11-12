@@ -131,9 +131,10 @@ async fn float_sum<E: EntityTrait>(
     select: kb_db::sea_orm::Select<E>,
     expr: SimpleExpr,
 ) -> Result<f64, DbErr> {
-    let value: Option<f64> =
-        select.select_only().expr_as(expr, "total").into_tuple::<Option<f64>>().one(session).await?.flatten();
-    Ok(value.unwrap_or(0.0))
+    // `Float`: a sum is double precision on every engine, and a single-precision value would read as Python read it
+    let value: Option<kb_db::Float> =
+        select.select_only().expr_as(expr, "total").into_tuple::<Option<kb_db::Float>>().one(session).await?.flatten();
+    Ok(value.map_or(0.0, kb_db::Float::get))
 }
 
 /// Metered spend since `since`: runs of one agent or one project, plus its one-shot calls. `whole_group` counts the

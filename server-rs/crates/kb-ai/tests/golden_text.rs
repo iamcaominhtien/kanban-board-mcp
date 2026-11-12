@@ -206,8 +206,8 @@ fn ticket_model(kw: &Value) -> ticket::Model {
     t.status = Set(kw.get("status").and_then(Value::as_str).unwrap_or("in-progress").to_string());
     t.estimate = Set(match kw.get("estimate") {
         Some(Value::Null) => None,
-        Some(v) => v.as_f64(),
-        None => Some(3.0),
+        Some(v) => v.as_f64().map(Into::into),
+        None => Some(kb_db::Float(3.0)),
     });
     if let Some(v) = kw.get("acceptance_criteria").and_then(Value::as_str) {
         t.acceptance_criteria = Set(v.to_string());

@@ -12,7 +12,7 @@ use kb_base::{activity, pyjson, pytext, time};
 use kb_db::Session;
 use kb_db::entities::{diagram, diagram_settings, diagram_version, project};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use kb_doctext::docs_access;
 use kb_doctext::docs_text::DocsError;
 use kb_files::drawio_bundle;

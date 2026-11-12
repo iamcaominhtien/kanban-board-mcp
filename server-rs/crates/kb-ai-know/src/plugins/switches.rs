@@ -9,7 +9,7 @@ use kb_base::pyjson;
 use kb_db::Session;
 use kb_db::entities::{ai_plugin, ai_skill_use, ai_team};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder};
+use kb_db::sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder};
 use serde_json::{Map, Value, json};
 
 use super::{CATALOGUE, Error, loads};

@@ -95,7 +95,7 @@ fn set_field(ticket: &mut ticket::Model, field: &str, value: &Value) -> Result<(
         "type" => ticket.r#type = required(value)?,
         "status" => ticket.status = required(value)?,
         "priority" => ticket.priority = required(value)?,
-        "estimate" => ticket.estimate = value.as_f64(),
+        "estimate" => ticket.estimate = value.as_f64().map(Into::into),
         "due_date" => ticket.due_date = text(value),
         "start_date" => ticket.start_date = text(value),
         "parent_id" => ticket.parent_id = text(value),

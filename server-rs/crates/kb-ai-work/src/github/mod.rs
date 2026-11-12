@@ -352,14 +352,15 @@ pub async fn tick_project(project_id: &str) -> Result<Vec<Value>, Error> {
         }
         let got = poll(&row).await?;
         let session = kb_db::session();
-        let Some(mut cur) = ai_watched_pr::Entity::find_by_id(row.ticket_id.as_str()).one(&session).await? else {
+        let Some(read) = ai_watched_pr::Entity::find_by_id(row.ticket_id.as_str()).one(&session).await? else {
             continue;
         };
+        let mut cur = read.clone();
         cur.checked_at = Some(now());
         let (state, ci, failing, comments, base) = match got {
             Polled::Error(text) => {
                 cur.last_error = Some(text);
-                save_pr(&session, cur).await?;
+                save_pr(&session, &read, cur).await?;
                 continue;
             }
             Polled::Read { state, ci, failing, comments, base, .. } => (state, ci, failing, comments, base),
@@ -419,14 +420,18 @@ pub async fn tick_project(project_id: &str) -> Result<Vec<Value>, Error> {
             cur.seen_comments = pyjson::dumps(&json!(seen[from..].to_vec()));
             changes.push(json!({"kind": "review_comments", "ticket_id": cur.ticket_id, "count": comments.len()}));
         }
-        save_pr(&session, cur).await?;
+        save_pr(&session, &read, cur).await?;
     }
     Ok(changes)
 }
 
-/// `session.add(row)` and `await session.commit()`.
-async fn save_pr(session: &Session, row: ai_watched_pr::Model) -> Result<ai_watched_pr::Model, DbErr> {
-    let stored = kb_ai::store::save::<_, ai_watched_pr::Model, ai_watched_pr::ActiveModel>(session, row).await?;
+/// `session.add(row)` and `await session.commit()`: what changed since the row was read (`read`).
+async fn save_pr(
+    session: &Session,
+    read: &ai_watched_pr::Model,
+    row: ai_watched_pr::Model,
+) -> Result<ai_watched_pr::Model, DbErr> {
+    let stored = kb_db::save_model(session, read, row).await?;
     session.commit().await?;
     Ok(stored)
 }

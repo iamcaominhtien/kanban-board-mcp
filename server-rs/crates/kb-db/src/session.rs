@@ -100,7 +100,39 @@ impl Session {
         }
         Ok(())
     }
+
+    /// `async with session.begin_nested():` run `work` in a savepoint of this session's transaction (which it opens
+    /// if needed). When `work` fails, what it wrote is undone and the rest of the transaction is kept; when it
+    /// succeeds, its writes join the transaction. The error of `work` is given back either way.
+    pub async fn nested<T, E, F>(&self, work: F) -> Result<Result<T, E>, DbErr>
+    where
+        F: std::future::Future<Output = Result<T, E>>,
+    {
+        let name = format!("kb_sp_{}", NEXT_SAVEPOINT.fetch_add(1, Ordering::SeqCst));
+        self.savepoint_statement(&format!("SAVEPOINT {name}")).await?;
+        let outcome = work.await;
+        match &outcome {
+            Ok(_) => self.savepoint_statement(&format!("RELEASE SAVEPOINT {name}")).await?,
+            Err(_) => self.savepoint_statement(&format!("ROLLBACK TO SAVEPOINT {name}")).await?,
+        }
+        Ok(outcome)
+    }
+
+    /// A statement about a savepoint, in the transaction (opened if needed) and without counting as a write.
+    async fn savepoint_statement(&self, sql: &str) -> Result<(), DbErr> {
+        let mut guard = self.txn.lock().await;
+        if guard.is_none() {
+            *guard = Some(self.conn.begin().await?);
+        }
+        match guard.as_ref() {
+            Some(txn) => txn.execute_unprepared(sql).await.map(|_| ()),
+            None => Ok(()),
+        }
+    }
 }
+
+/// The number of the next savepoint (names are unique within the process, so nested ones never collide).
+static NEXT_SAVEPOINT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 
 /// The engine as the Python code names it.
 pub fn dialect_name(backend: DbBackend) -> &'static str {

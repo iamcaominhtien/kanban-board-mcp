@@ -16,7 +16,7 @@ use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{docs_ai_health, docs_link, docs_page, ticket};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter};
+use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use regex::Regex;
 use serde_json::{Map, Value, json};
 

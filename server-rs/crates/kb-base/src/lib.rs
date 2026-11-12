@@ -7,6 +7,7 @@ pub mod config;
 pub mod ctx;
 pub mod error;
 pub mod events;
+pub mod isoformat;
 pub mod pyjson;
 pub mod pynum;
 pub mod pypath;

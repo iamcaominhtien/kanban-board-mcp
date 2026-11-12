@@ -12,7 +12,7 @@ use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{ai_team, docs_ai_settings, docs_page, member, project};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, PaginatorTrait, QueryFilter};
+use kb_db::sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter};
 use serde_json::{Map, Value, json};
 
 use super::errors::{DocsAiError, Error};

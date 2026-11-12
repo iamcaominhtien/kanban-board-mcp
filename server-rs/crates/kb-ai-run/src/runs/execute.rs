@@ -17,8 +17,7 @@ use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{ai_account, ai_run, ai_run_message, ticket};
 use kb_db::sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder,
-    QuerySelect,
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
 };
 use serde_json::{Map, Value, json};
 use tokio::sync::watch;
@@ -553,7 +552,7 @@ async fn drive(
             if result.get("tokens_cached").is_some_and(|v| !v.is_null()) {
                 row.tokens_cached = Set(Some(tokens_cached.unwrap_or(0) + number("tokens_cached")));
             }
-            row.cost_usd = Set(cost_usd + result.get("cost_usd").and_then(Value::as_f64).unwrap_or(0.0));
+            row.cost_usd = Set((cost_usd + result.get("cost_usd").and_then(Value::as_f64).unwrap_or(0.0)).into());
             if let Some(structured) = result.get("structured").filter(|s| pyjson::truthy(s)) {
                 row.report = Set(pyjson::dumps(structured));
             }

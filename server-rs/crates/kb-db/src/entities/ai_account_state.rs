@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// The usage window and run limit of one Claude account, or of "local" (members on the person's own login)
 /// (table). Read from the CLI's `rate_limit_event` (services/ai/quota.py).
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
@@ -15,10 +17,12 @@ pub struct Model {
     pub max_parallel: i32,
     pub move_urgent: bool,
     /// 0..1
-    pub five_hour_used: Option<f64>,
+    #[sea_orm(column_type = "Double")]
+    pub five_hour_used: Option<Float>,
     pub five_hour_resets_at: Option<String>,
     pub five_hour_status: Option<String>,
-    pub seven_day_used: Option<f64>,
+    #[sea_orm(column_type = "Double")]
+    pub seven_day_used: Option<Float>,
     pub seven_day_resets_at: Option<String>,
     pub seven_day_status: Option<String>,
     pub held_until: Option<String>,

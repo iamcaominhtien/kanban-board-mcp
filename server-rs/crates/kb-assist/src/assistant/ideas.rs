@@ -15,8 +15,7 @@ use kb_db::entities::{ai_usage, idea_advice, idea_ai_settings, idea_assumption, 
 use kb_db::sea_orm::ActiveValue::Set;
 use kb_db::sea_orm::sea_query::{Expr, Func, SimpleExpr};
 use kb_db::sea_orm::{
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, QueryOrder,
-    QuerySelect,
+    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, ModelTrait, QueryFilter, QueryOrder, QuerySelect,
 };
 use serde_json::{Map, Value, json};
 use tokio::task::AbortHandle;
@@ -145,7 +144,7 @@ pub async fn update_settings(
             "read_repo" => changed.read_repo = Set(on),
             _ => {
                 if let Some(cap) = v.as_f64() {
-                    changed.daily_cap = Set(cap);
+                    changed.daily_cap = Set(cap.into());
                 }
             }
         }
@@ -162,16 +161,16 @@ pub async fn spent_today(session: &Session) -> Result<f64, DbErr> {
     let start = midnight.map_or_else(time::now_iso, |m| time::iso(&m));
     let sum: Expr = Func::sum(Expr::col(ai_usage::Column::Cost)).into();
     let total: SimpleExpr = Func::coalesce([sum, Expr::val(0.0)]).into();
-    let value: Option<f64> = ai_usage::Entity::find()
+    let value: Option<kb_db::Float> = ai_usage::Entity::find()
         .filter(ai_usage::Column::Feature.eq(FEATURE))
         .filter(ai_usage::Column::CreatedAt.gte(start))
         .select_only()
         .expr_as(total, "total")
-        .into_tuple::<Option<f64>>()
+        .into_tuple::<Option<kb_db::Float>>()
         .one(session)
         .await?
         .flatten();
-    Ok(round_to(value.unwrap_or(0.0), 4))
+    Ok(round_to(value.map_or(0.0, kb_db::Float::get), 4))
 }
 
 /// The project a turn is booked on: the idea's own, else the first project of the board.
@@ -411,7 +410,7 @@ pub async fn advise(session: &Session, idea_id: &str, person: &str) -> Result<Op
         None
     });
     row.idea_stamp = Set(stamp);
-    row.cost = Set(out.cost);
+    row.cost = Set(out.cost.into());
     let row = row.insert(session).await?;
     session.commit().await?;
     Ok(if action == "none" { None } else { Some(row) })
@@ -721,7 +720,7 @@ pub async fn groom(session: &Session, project_id: Option<&str>, person: &str) ->
     row.text = Set(data.get("text").filter(|v| pyjson::truthy(v)).map_or_else(|| out.text.clone(), py_text));
     row.items = Set(pyjson::dumps(&digest_items));
     row.ai = Set(true);
-    row.cost = Set(out.cost);
+    row.cost = Set(out.cost.into());
     row.ideas_read = Set(i32::try_from(found.len()).unwrap_or(i32::MAX));
     let row = row.insert(session).await?;
     session.commit().await?;

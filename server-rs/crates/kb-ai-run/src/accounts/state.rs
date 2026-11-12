@@ -5,10 +5,11 @@
 use std::sync::Arc;
 
 use kb_ai::profiles::{self, Profile};
-use kb_ai::store::{now_iso, parse_iso, save};
+use kb_ai::store::{now_iso, parse_iso};
 use kb_base::events;
 use kb_db::Session;
 use kb_db::entities::ai_account;
+use kb_db::save_model;
 use kb_db::sea_orm::DbErr;
 
 use super::{Error, get, list_all, members_of, profile_of};
@@ -84,7 +85,8 @@ async fn ask(account: &ai_account::Model) -> Result<(Option<profiles::Status>, b
 /// Members on an account follow its sign-in: signed out holds them all, signed in frees them all (a queued run
 /// then starts on the next tick). One sign-in, fixed once.
 pub async fn follow(session: &Session, account: &ai_account::Model) -> Result<(), DbErr> {
-    for mut m in members_of(session, &account.id).await? {
+    for read in members_of(session, &account.id).await? {
+        let mut m = read.clone();
         if account.status == "needs_sign_in" && m.health != "not_logged_in" {
             m.health = "not_logged_in".to_string();
             m.health_detail = Some(format!("The account {} needs to sign in.", account.name));
@@ -95,20 +97,22 @@ pub async fn follow(session: &Session, account: &ai_account::Model) -> Result<()
             continue;
         }
         m.checked_at = Some(now_iso());
-        save(session, m).await?;
+        save_model(session, &read, m).await?;
     }
     session.commit().await
 }
 
 /// Ask the CLI whether this account is signed in (never reads the login) and remember the answer. A sign-in that
 /// has just ended is recorded once, with how it was found (`check` or `run`).
-pub async fn check(session: &Session, mut account: ai_account::Model, how: &str) -> Result<ai_account::Model, Error> {
+pub async fn check(session: &Session, account: ai_account::Model, how: &str) -> Result<ai_account::Model, Error> {
+    let read = account.clone();
+    let mut account = account;
     let (answer, found) = ask(&account).await?;
     if apply(&mut account, answer.as_ref(), found) {
         account.signed_out_at = Some(now_iso());
         account.signed_out_how = Some(how.to_string());
     }
-    let account = save(session, account).await?;
+    let account = save_model(session, &read, account).await?;
     session.commit().await?;
     follow(session, &account).await?;
     events::publish(events::INVALIDATE, &[]).await;
@@ -136,8 +140,9 @@ pub async fn check_all(session: &Session, only_stale_s: Option<f64>) -> Result<u
 
     async fn one(
         gate: Arc<tokio::sync::Semaphore>,
-        mut a: ai_account::Model,
-    ) -> Result<(ai_account::Model, bool), Error> {
+        read: ai_account::Model,
+    ) -> Result<(ai_account::Model, ai_account::Model, bool), Error> {
+        let mut a = read.clone();
         let _permit = gate.acquire().await.map_err(|e| Error::Other(e.to_string()))?;
         let before = a.status.clone();
         let (answer, found) = ask(&a).await?;
@@ -146,7 +151,7 @@ pub async fn check_all(session: &Session, only_stale_s: Option<f64>) -> Result<u
             a.signed_out_how = Some("check".to_string());
         }
         let changed = a.status != before;
-        Ok((a, changed))
+        Ok((read, a, changed))
     }
 
     let asked: Vec<_> = todo.into_iter().map(|a| tokio::spawn(one(gate.clone(), a))).collect();
@@ -165,8 +170,8 @@ pub async fn check_all(session: &Session, only_stale_s: Option<f64>) -> Result<u
     }
     let mut stored = Vec::new();
     let mut changed = 0;
-    for (a, was_changed) in done {
-        stored.push(save(session, a).await?);
+    for (read, a, was_changed) in done {
+        stored.push(save_model(session, &read, a).await?);
         changed += usize::from(was_changed);
     }
     session.commit().await?;
@@ -182,19 +187,21 @@ pub async fn check_all(session: &Session, only_stale_s: Option<f64>) -> Result<u
 /// A run failed with a sign-in error: the account is signed out now, and every member on it follows.
 pub async fn mark_signed_out(
     session: &Session,
-    mut account: ai_account::Model,
+    account: ai_account::Model,
     how: &str,
     detail: Option<&str>,
 ) -> Result<ai_account::Model, Error> {
     if account.status == "needs_sign_in" {
         return Ok(account);
     }
+    let read = account.clone();
+    let mut account = account;
     account.status = "needs_sign_in".to_string();
     account.status_detail = Some(detail.filter(|d| !d.is_empty()).unwrap_or("Session expired").to_string());
     account.signed_out_at = Some(now_iso());
     account.signed_out_how = Some(how.to_string());
     account.updated_at = now_iso();
-    let account = save(session, account).await?;
+    let account = save_model(session, &read, account).await?;
     session.commit().await?;
     follow(session, &account).await?;
     events::publish(events::INVALIDATE, &[]).await;
@@ -208,7 +215,8 @@ pub(super) async fn in_thread(profile: Box<dyn Profile>, call: fn(&dyn Profile))
 
 /// The CLI forgets the login; the account stays in the list.
 pub async fn sign_out(session: &Session, account_id: &str) -> Result<ai_account::Model, Error> {
-    let mut account = get(session, account_id).await?;
+    let read = get(session, account_id).await?;
+    let mut account = read.clone();
     let profile = profile_of(&account).await?;
     in_thread(profile, |p| p.sign_out()).await?;
     account.status = "needs_sign_in".to_string();
@@ -218,7 +226,7 @@ pub async fn sign_out(session: &Session, account_id: &str) -> Result<ai_account:
     account.email = None;
     account.plan = None;
     account.updated_at = now_iso();
-    let account = save(session, account).await?;
+    let account = save_model(session, &read, account).await?;
     session.commit().await?;
     follow(session, &account).await?;
     events::publish(events::INVALIDATE, &[]).await;

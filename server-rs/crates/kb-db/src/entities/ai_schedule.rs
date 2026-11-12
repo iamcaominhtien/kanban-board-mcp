@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// An AI member works on a ticket at a set time, once or on repeat (design/screens/ai-schedules.md).
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "ai_schedule")]
@@ -37,7 +39,8 @@ pub struct Model {
     pub limits: String,
     /// run | skip | ask
     pub catch_up: String,
-    pub catch_up_hours: f64,
+    #[sea_orm(column_type = "Double")]
+    pub catch_up_hours: Float,
     pub notify: String,
     /// JSON extra people besides the creator
     pub notify_people: String,
@@ -82,7 +85,7 @@ pub fn new() -> ActiveModel {
         review: Set("{}".to_string()),
         limits: Set("{}".to_string()),
         catch_up: Set("run".to_string()),
-        catch_up_hours: Set(2.0),
+        catch_up_hours: Set(Float(2.0)),
         notify: Set("[\"started\",\"needs_input\",\"failed\",\"finished\"]".to_string()),
         notify_people: Set("[]".to_string()),
         instruction: Set("".to_string()),

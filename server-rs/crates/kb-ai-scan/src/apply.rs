@@ -10,9 +10,8 @@ use kb_ai_run::teams;
 use kb_base::{pyjson, pytext, time};
 use kb_db::Session;
 use kb_db::entities::{ai_plugin, ai_project_settings, ai_repo_scan};
-use kb_db::sea_orm::ActiveModelTrait;
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter};
+use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde_json::{Map, Value, json};
 
 use crate::Error;
@@ -50,7 +49,8 @@ pub async fn apply(session: &Session, scan_id: &str, choice: &Value, by: &str) -
     let Some(row) = ai_repo_scan::Entity::find_by_id(scan_id).one(session).await? else {
         return Err(Error::Lookup("Scan not found.".into()));
     };
-    let mut settings: ai_project_settings::Model = store::get_settings(session, &row.project_id).await?;
+    let read: ai_project_settings::Model = store::get_settings(session, &row.project_id).await?;
+    let mut settings = read.clone();
     let checks_off: Vec<Value> = py_iter(choice.get("checks_off"))?
         .into_iter()
         .filter(|n| matches!(n.as_str(), Some("test" | "lint" | "build")))
@@ -77,7 +77,7 @@ pub async fn apply(session: &Session, scan_id: &str, choice: &Value, by: &str) -
         }),
     );
     ops::update(&mut settings, &patch);
-    store::save::<_, ai_project_settings::Model, ai_project_settings::ActiveModel>(session, settings.clone()).await?;
+    kb_db::save_model(session, &read, settings.clone()).await?;
     session.commit().await?;
     let mut created: Vec<Value> = Vec::new();
     let mut skipped: Vec<Value> = Vec::new();

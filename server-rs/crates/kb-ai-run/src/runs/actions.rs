@@ -9,7 +9,7 @@ use kb_ai::{audit, guard, runner_link, steps, transcripts};
 use kb_board::tickets as svc_tickets;
 use kb_db::database;
 use kb_db::entities::{ai_run, ai_run_message, ticket};
-use kb_db::sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter};
+use kb_db::sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter};
 use serde_json::{Map, Value, json};
 
 use super::describe::publish_run;

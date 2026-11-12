@@ -8,7 +8,7 @@ use kb_base::{activity, pytext};
 use kb_db::Session;
 use kb_db::entities::ticket;
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, EntityTrait, IntoActiveModel};
+use kb_db::sea_orm::EntityTrait;
 use serde_json::{Value, json};
 
 use super::{Error, enabled_folder, folder_for, get_workspace_settings, to_thread};

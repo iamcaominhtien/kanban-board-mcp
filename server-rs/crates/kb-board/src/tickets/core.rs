@@ -207,7 +207,7 @@ pub async fn create_ticket(session: &Session, project_id: &str, new: NewTicket<'
     ticket.status = Set(new.status.to_string());
     ticket.description = Set(new.description.to_string());
     ticket.parent_id = Set(new.parent_id.map(str::to_string));
-    ticket.estimate = Set(estimate);
+    ticket.estimate = Set(estimate.map(Into::into));
     ticket.due_date = Set(due_date);
     ticket.start_date = Set(start_date);
     ticket.tags = Set(dumps(&tags.into_iter().map(Value::String).collect::<Vec<_>>()));

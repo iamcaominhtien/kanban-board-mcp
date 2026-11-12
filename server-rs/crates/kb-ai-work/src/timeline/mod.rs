@@ -200,7 +200,7 @@ fn bar(r: &ai_run::Model, lane: &str, held: bool) -> Map<String, Value> {
     out.insert("tokens_in".into(), json!(r.tokens_in));
     out.insert("tokens_out".into(), json!(r.tokens_out));
     out.insert("tokens_cached".into(), json!(r.tokens_cached));
-    out.insert("cost_usd".into(), json!(kb_ai::audit::round4(r.cost_usd)));
+    out.insert("cost_usd".into(), json!(kb_ai::audit::round4(r.cost_usd.get())));
     out.insert("metered".into(), json!(r.metered));
     out.insert("summary".into(), json!(first_chars(&summary, 240)));
     out.insert(

@@ -2,11 +2,11 @@
 //! K): worktrees, merge, the hand-over route, a merge conflict, and leaving the synced folder (wave 2 B3).
 
 use axum::Json;
-use kb_ai::store::save;
 use kb_ai_work::worktrees::{self as svc_worktrees, Error as WorktreeError};
 use kb_base::error::{Body, Path};
 use kb_base::{ApiError, ApiResult, Routes, activity};
 use kb_db::entities::{ai_worktree, ticket};
+use kb_db::save_model;
 use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
@@ -114,9 +114,10 @@ async fn worktree_row(ticket_id: &str) -> ApiResult<(kb_db::Session, ai_worktree
 
 /// Keep a finished worktree (Clean up finished skips it).
 async fn post_keep_worktree(Path(ticket_id): Path<String>) -> ApiResult<Json<Value>> {
-    let (session, mut row) = worktree_row(&ticket_id).await?;
+    let (session, read) = worktree_row(&ticket_id).await?;
+    let mut row = read.clone();
     row.state = "kept".to_string();
-    let row = save::<_, ai_worktree::Model, ai_worktree::ActiveModel>(&session, row).await?;
+    let row = save_model(&session, &read, row).await?;
     session.commit().await?;
     Ok(Json(svc_worktrees::to_dict(&row, None)))
 }
@@ -183,14 +184,15 @@ struct HandoverBody {
 
 /// Merge here instead (or open a PR, or leave the branch) for this one ticket.
 async fn patch_handover(Path(ticket_id): Path<String>, Body(body): Body<HandoverBody>) -> ApiResult<Json<Value>> {
-    let (session, mut row) = worktree_row(&ticket_id).await?;
+    let (session, read) = worktree_row(&ticket_id).await?;
+    let mut row = read.clone();
     row.handover = match body.route {
         Route::Auto => None,
         Route::Pr => Some("pr".to_string()),
         Route::Local => Some("local".to_string()),
         Route::Branch => Some("branch".to_string()),
     };
-    let row = save::<_, ai_worktree::Model, ai_worktree::ActiveModel>(&session, row).await?;
+    let row = save_model(&session, &read, row).await?;
     session.commit().await?;
     let mut out = match svc_worktrees::to_dict(&row, None) {
         Value::Object(map) => map,

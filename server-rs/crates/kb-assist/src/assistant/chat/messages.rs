@@ -10,7 +10,7 @@ use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::ai_chat_message;
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter};
+use kb_db::sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
 use serde_json::{Map, Value, json};
 
 use super::{ACTIVE, cancel_task, dict, message_of, msg_out, run_of, spawn, undoing};

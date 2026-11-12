@@ -258,7 +258,7 @@ pub fn measures(
         .collect();
 
     let priced_runs: Vec<&ai_run::Model> = runs.iter().copied().filter(|r| priced(r)).collect();
-    let costs: Vec<f64> = runs.iter().map(|r| r.cost_usd).collect();
+    let costs: Vec<f64> = runs.iter().map(|r| r.cost_usd.get()).collect();
     let spend = rounded_sum_or_zero(&costs, 2);
     let spend_f = spend.as_f64().unwrap_or(0.0);
     let tokens: i64 = runs.iter().map(|r| i64::from(r.tokens_in) + i64::from(r.tokens_out)).sum();
@@ -399,7 +399,7 @@ pub async fn health(session: &Session, project_id: &str, range_key: &str) -> Res
         all_runs
             .iter()
             .filter(|r| r.queued_at >= month_iso && team_id.is_none_or(|id| r.member_id == id))
-            .map(|r| r.cost_usd)
+            .map(|r| r.cost_usd.get())
             .collect()
     };
 

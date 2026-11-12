@@ -5,8 +5,7 @@ use kb_db::entities::{member, ticket};
 use kb_db::sea_orm::ActiveValue::Set;
 use kb_db::sea_orm::sea_query::Expr;
 use kb_db::sea_orm::{
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, QueryOrder,
-    QuerySelect,
+    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, ModelTrait, QueryFilter, QueryOrder, QuerySelect,
 };
 
 /// What a function of this module fails with.

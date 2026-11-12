@@ -70,12 +70,12 @@ async fn test_record_keeps_the_latest_reading_and_a_rejected_window_holds() {
     common::clear::<ai_account_state::Entity>().await;
     let row =
         quota::record("local", &reading(event("allowed", Value::Null, "five_hour", 0.65, 0.1))).await.expect("record");
-    assert!(row.five_hour_used == Some(0.65) && row.held_until.is_none());
+    assert!(row.five_hour_used == Some(kb_db::Float(0.65)) && row.held_until.is_none());
     let reset = in_seconds(3600);
     let ts = kb_ai::store::parse_iso(Some(&reset)).expect("time").timestamp();
     let row =
         quota::record("local", &reading(event("rejected", json!(ts), "seven_day", 0.7, 1.0))).await.expect("record");
-    assert!(row.seven_day_used == Some(1.0) && row.seven_day_status.as_deref() == Some("rejected"));
+    assert!(row.seven_day_used == Some(kb_db::Float(1.0)) && row.seven_day_status.as_deref() == Some("rejected"));
     assert_eq!(row.held_reason.as_deref(), Some("The weekly window is used up"));
     assert!(quota::held(Some(&row), None) == row.held_until);
     assert!(row.held_until.as_deref().expect("held").starts_with(&reset[..16]));
@@ -172,9 +172,10 @@ async fn test_blocking_counts_the_runs_going_on_the_same_account() {
         quota::blocking(&session, &run, &profile).await.expect("blocking").as_deref(),
         Some("Waiting for a free slot on the account (2 of 2 in use)")
     );
-    let mut row = state_row("local").await.expect("row");
+    let read = state_row("local").await.expect("row");
+    let mut row = read.clone();
     row.max_parallel = 3;
-    kb_ai::store::save(&session, row).await.expect("save");
+    kb_db::save_model(&session, &read, row).await.expect("save");
     session.commit().await.expect("commit");
     assert_eq!(quota::blocking(&database::session(), &run, &profile).await.expect("blocking"), None);
 }
@@ -199,9 +200,10 @@ async fn accounts_with_room_overview_and_settings() {
         quota::set_account(&session, &busy.id, Some(1), None).await.expect("set");
         quota::set_account(&session, &free.id, Some(500), Some(true)).await.expect("set");
         quota::hold_until(&held.id, &in_seconds(600), Some("seven_day")).await.expect("hold");
-        let mut row = quota::state(&session, &free.id).await.expect("state");
-        row.five_hour_used = Some(0.9);
-        kb_ai::store::save(&session, row).await.expect("save");
+        let read = quota::state(&session, &free.id).await.expect("state");
+        let mut row = read.clone();
+        row.five_hour_used = Some(kb_db::Float(0.9));
+        kb_db::save_model(&session, &read, row).await.expect("save");
         session.commit().await.expect("commit");
     }
     let session = database::session();
@@ -323,7 +325,7 @@ async fn test_spend_and_tokens_add_up_metered_runs_of_today_only() {
         [(1.5, true, now), (2.0, false, now), (4.0, true, budget::today_start() - Duration::hours(1))]
     {
         common::run(&pid, &profile.id, None, "finished", |r| {
-            r.cost_usd = Set(cost);
+            r.cost_usd = Set(cost.into());
             r.metered = Set(metered);
             r.tokens_in = Set(100);
             r.tokens_out = Set(20);
@@ -348,7 +350,7 @@ async fn test_spend_and_tokens_add_up_metered_runs_of_today_only() {
         let mut call = ai_usage::new();
         call.project_id = Set(pid.clone());
         call.member_id = Set(Some(profile.id.clone()));
-        call.cost = Set(0.25);
+        call.cost = Set(kb_db::Float(0.25));
         call.metered = Set(true);
         call.feature = Set("chat".into());
         call.insert(&s).await.expect("usage");

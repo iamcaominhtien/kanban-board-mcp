@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use kb_base::{activity, time};
 use kb_db::Session;
 use kb_db::entities::{docs_draft, docs_link, docs_page};
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set};
+use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
 use kb_doctext::docs_text::{count_page_links, rewrite_page_links};
 use serde_json::{Map, Value, json};
 

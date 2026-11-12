@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// A comment thread pinned to a board (moves with it) or to a point of the plane.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "canvas_thread")]
@@ -14,8 +16,10 @@ pub struct Model {
     /// pins are numbered in the order they were made
     pub number: i32,
     pub board_id: Option<String>,
-    pub x: f64,
-    pub y: f64,
+    #[sea_orm(column_type = "Double")]
+    pub x: Float,
+    #[sea_orm(column_type = "Double")]
+    pub y: Float,
     /// page tab of a plane pin
     pub page: Option<String>,
     /// JSON {sel, text, ox, oy, w}: the element a pin was put on (CSS selector or visible text), where inside it, and at
@@ -42,8 +46,8 @@ pub fn new() -> ActiveModel {
         canvas_id: NotSet,
         number: Set(1),
         board_id: Set(None),
-        x: Set(0.5),
-        y: Set(0.5),
+        x: Set(Float(0.5)),
+        y: Set(Float(0.5)),
         page: Set(None),
         anchor: Set(None),
         status: Set("open".to_string()),

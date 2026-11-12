@@ -5,7 +5,7 @@
 use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::ai_run;
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, PaginatorTrait, QueryFilter};
+use kb_db::sea_orm::{ColumnTrait, DbErr, EntityTrait, PaginatorTrait, QueryFilter};
 use serde_json::{Map, Value, json};
 
 use crate::seams::{self, BOARD_CLOSED};

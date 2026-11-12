@@ -6,9 +6,7 @@ use std::sync::LazyLock;
 use kb_base::{pyjson, time};
 use kb_db::Session;
 use kb_db::entities::{canvas, docs_link, docs_page, project as project_table, ticket};
-use kb_db::sea_orm::{
-    ActiveModelTrait, ColumnTrait, Condition, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, Set,
-};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, Condition, EntityTrait, ModelTrait, QueryFilter, Set};
 use kb_doctext::docs_text::page_ref_contexts;
 use regex::Regex;
 use serde_json::{Map, Value, json};

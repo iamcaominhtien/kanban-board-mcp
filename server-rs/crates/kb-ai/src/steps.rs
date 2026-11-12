@@ -12,8 +12,8 @@ use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{ai_run, ai_run_agent, ai_run_step};
 use kb_db::sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter,
-    QueryOrder, QuerySelect,
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, ModelTrait, QueryFilter, QueryOrder,
+    QuerySelect,
 };
 use serde_json::{Map, Value, json};
 use tokio::task::JoinHandle;

@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// Ticket with its checklists, comments, activity and relations stored as JSON (table).
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "ticket")]
@@ -22,7 +24,8 @@ pub struct Model {
     pub status: String,
     /// low|medium|high|critical
     pub priority: String,
-    pub estimate: Option<f64>,
+    #[sea_orm(column_type = "Double")]
+    pub estimate: Option<Float>,
     /// ISO date string
     pub due_date: Option<String>,
     /// JSON array

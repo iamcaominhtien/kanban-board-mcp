@@ -11,9 +11,7 @@ use kb_board::tickets as svc_tickets;
 use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{ai_run, ai_team, member, ticket};
-use kb_db::sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder, QuerySelect,
-};
+use kb_db::sea_orm::{ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use serde_json::{Map, Value, json};
 
 use super::{NewRun, RT, RunError, cancel, cancel_for_ticket, clip, create_run, refuse, send_message};

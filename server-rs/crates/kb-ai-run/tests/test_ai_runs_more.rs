@@ -45,7 +45,7 @@ async fn test_a_weekly_limit_in_a_run_holds_the_account_and_the_next_run_waits()
         ai_account_state::Entity::find_by_id("local").one(&session).await.expect("query").expect("the account's row")
     };
     assert!(quota::held(Some(&row), None).is_some());
-    assert!(row.seven_day_used == Some(1.0) && row.seven_day_status.as_deref() == Some("rejected"));
+    assert!(row.seven_day_used == Some(kb_db::Float(1.0)) && row.seven_day_status.as_deref() == Some("rejected"));
     // the next run of the same account is not started: it waits, and says for which window
     let second = common::ticket(&pid, "Second", "todo").await.id;
     run_button(&second).await;

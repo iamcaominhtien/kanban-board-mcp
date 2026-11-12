@@ -182,8 +182,11 @@ fn row(
 ) -> Value {
     let reading = if live { MON.reading(&run.id) } else { None };
     let readable = reading.as_ref().is_none_or(|r| r.readable);
-    let peak =
-        if live { Some(run.peak_rss_mb.unwrap_or(0.0).max(MON.peak(&run.id).unwrap_or(0.0))) } else { run.peak_rss_mb };
+    let peak = if live {
+        Some(run.peak_rss_mb.map_or(0.0, |mb| mb.get()).max(MON.peak(&run.id).unwrap_or(0.0)))
+    } else {
+        run.peak_rss_mb.map(Into::into)
+    };
     json!({
         "run_id": run.id,
         "number": run.number,
@@ -203,7 +206,7 @@ fn row(
         "readable": readable,
         "cli_rss_mb": match &reading {
             Some(r) => r.cli_rss_mb,
-            None => run.last_rss_mb,
+            None => run.last_rss_mb.map(Into::into),
         },
         "extra_mb": reading.as_ref().and_then(|r| r.extra_mb),
         "cpu_pct": reading.as_ref().and_then(|r| r.cpu_pct),
@@ -305,14 +308,14 @@ pub async fn snapshot(project_id: &str) -> Result<Map<String, Value>, DbErr> {
 /// What the AI's card in Now shows about a run: the CLI's RAM and CPU now, its peak and its restarts.
 pub fn card_view(run: &ai_run::Model, limit_mb: i64) -> Option<Value> {
     let reading = MON.reading(&run.id);
-    if reading.is_none() && run.peak_rss_mb.unwrap_or(0.0) == 0.0 {
+    if reading.is_none() && run.peak_rss_mb.map_or(0.0, |mb| mb.get()) == 0.0 {
         return None;
     }
-    let peak = run.peak_rss_mb.unwrap_or(0.0).max(MON.peak(&run.id).unwrap_or(0.0));
+    let peak = run.peak_rss_mb.map_or(0.0, |mb| mb.get()).max(MON.peak(&run.id).unwrap_or(0.0));
     Some(json!({
         "cli_rss_mb": match &reading {
             Some(r) => r.cli_rss_mb,
-            None => run.last_rss_mb,
+            None => run.last_rss_mb.map(Into::into),
         },
         "extra_mb": reading.as_ref().and_then(|r| r.extra_mb),
         "cpu_pct": reading.as_ref().and_then(|r| r.cpu_pct),

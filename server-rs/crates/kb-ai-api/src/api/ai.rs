@@ -5,7 +5,7 @@ use axum::Json;
 use axum::extract::RawQuery;
 use axum::http::StatusCode;
 use chrono::{DateTime, FixedOffset, TimeZone, Utc};
-use kb_ai::store::{active_runs, get_profile, get_settings, loads, save};
+use kb_ai::store::{active_runs, get_profile, get_settings, loads};
 use kb_ai::{budget as svc_budget, ops as svc_ops, steps as svc_steps};
 use kb_ai_know::roles as svc_roles;
 use kb_ai_run::runs::RunError;
@@ -18,6 +18,7 @@ use kb_base::error::{Body, Path, Query};
 use kb_base::{ApiError, ApiResult, Routes, activity, events, pyjson, pytext, time as kbtime};
 use kb_db::Session;
 use kb_db::entities::{ai_project_settings, ai_run, ai_run_message, ai_team, member, project};
+use kb_db::save_model;
 use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
@@ -410,8 +411,8 @@ fn set_column(settings: &mut ai_project_settings::Model, key: &str, value: &Valu
     }
     let text = || value.as_str().unwrap_or_default().to_string();
     match key {
-        "board_daily_cap" => settings.board_daily_cap = value.as_f64(),
-        "board_monthly_budget" => settings.board_monthly_budget = value.as_f64(),
+        "board_daily_cap" => settings.board_daily_cap = value.as_f64().map(Into::into),
+        "board_monthly_budget" => settings.board_monthly_budget = value.as_f64().map(Into::into),
         "board_tokens_per_day" => settings.board_tokens_per_day = int_column(key, value)?,
         "board_max_parallel" => settings.board_max_parallel = int_column(key, value)?.unwrap_or_default(),
         "board_runs_per_day" => settings.board_runs_per_day = int_column(key, value)?,
@@ -434,7 +435,8 @@ async fn patch_ai_settings(
     let data = fields(body, &SETTINGS_FIELDS)?;
     let session = kb_db::session();
     project_exists(&session, &project_id).await?;
-    let mut settings = get_settings(&session, &project_id).await?;
+    let read = get_settings(&session, &project_id).await?;
+    let mut settings = read.clone();
     if !matches!(text_in(&data, "permission_mode"), None | Some("bypass" | "auto")) {
         return Err(ApiError::unprocessable("The permission mode is bypass or auto."));
     }
@@ -462,7 +464,7 @@ async fn patch_ai_settings(
     if let Some(Value::Object(patch)) = data.get("ops") {
         svc_ops::update(&mut settings, patch);
     }
-    let settings = save(&session, settings).await?;
+    let settings = save_model(&session, &read, settings).await?;
     session.commit().await?;
     invalidate().await;
     settings_view(&session, &settings).await
@@ -485,7 +487,8 @@ fn yes() -> bool {
 async fn post_pause_all(Path(project_id): Path<String>, Body(body): Body<PauseAllBody>) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
     project_exists(&session, &project_id).await?;
-    let mut settings = get_settings(&session, &project_id).await?;
+    let read = get_settings(&session, &project_id).await?;
+    let mut settings = read.clone();
     settings.paused_all = true;
     settings.paused_at = Some(kbtime::now_iso());
     // `body.reason or f"Paused by {_by()}"`
@@ -493,7 +496,7 @@ async fn post_pause_all(Path(project_id): Path<String>, Body(body): Body<PauseAl
         Some(reason) if !reason.is_empty() => reason.to_string(),
         _ => format!("Paused by {}", by()),
     });
-    let settings = save(&session, settings).await?;
+    let settings = save_model(&session, &read, settings).await?;
     session.commit().await?;
     let reason = settings.paused_reason.clone().unwrap_or_default();
     let mut detail = Map::new();
@@ -519,11 +522,12 @@ async fn post_pause_all(Path(project_id): Path<String>, Body(body): Body<PauseAl
 async fn post_resume_all(Path(project_id): Path<String>) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
     project_exists(&session, &project_id).await?;
-    let mut settings = get_settings(&session, &project_id).await?;
+    let read = get_settings(&session, &project_id).await?;
+    let mut settings = read.clone();
     settings.paused_all = false;
     settings.paused_at = None;
     settings.paused_reason = None;
-    let settings = save(&session, settings).await?;
+    let settings = save_model(&session, &read, settings).await?;
     session.commit().await?;
     svc_touches::record_pause(&project_id, "project_resumed", &by(), None).await;
     svc_runs::RT.wake.set();
@@ -1009,29 +1013,19 @@ fn today() -> String {
     "today".to_string()
 }
 
-/// `Optional[datetime]` of a query string, as Pydantic reads it: ISO 8601 (a date alone is midnight), or seconds
-/// since the epoch. A value with no zone is read as UTC.
+/// `Optional[datetime]` of a query string, as Pydantic reads it (`kb_base::time::parse_query_datetime`: a date and
+/// a time, a date alone, or a number of seconds or milliseconds since the epoch). A value with no zone is read as
+/// UTC.
 fn datetime_query(name: &str, value: Option<&str>) -> ApiResult<Option<DateTime<FixedOffset>>> {
     let Some(text) = value else { return Ok(None) };
-    let bad = || {
-        ApiError::new(
+    match kbtime::parse_query_datetime(text) {
+        Some(kbtime::Parsed::Aware(at)) => Ok(Some(at)),
+        Some(kbtime::Parsed::Naive(at)) => Ok(Some(Utc.from_utc_datetime(&at).fixed_offset())),
+        None => Err(ApiError::new(
             StatusCode::UNPROCESSABLE_ENTITY,
             json!([{"type": "datetime_from_date_parsing", "loc": ["query", name],
                     "msg": "Input should be a valid datetime or date"}]),
-        )
-    };
-    if let Some(parsed) = kbtime::parse_iso(text) {
-        return Ok(Some(match parsed {
-            kbtime::Parsed::Aware(at) => at,
-            kbtime::Parsed::Naive(at) => Utc.from_utc_datetime(&at).fixed_offset(),
-        }));
-    }
-    match pytext::strip(text).parse::<f64>() {
-        Ok(seconds) if seconds.is_finite() => {
-            let micros = (seconds * 1_000_000.0).round() as i64;
-            DateTime::<Utc>::from_timestamp_micros(micros).map(|at| Some(at.fixed_offset())).ok_or_else(bad)
-        }
-        _ => Err(bad()),
+        )),
     }
 }
 

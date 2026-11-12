@@ -7,7 +7,7 @@ use kb_base::{pyjson, pytext, time};
 use kb_board::tickets::{NewTicket, create_ticket};
 use kb_db::Session;
 use kb_db::entities::{idea_assumption, idea_ticket, project, ticket};
-use kb_db::sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter};
+use kb_db::sea_orm::{ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter};
 use kb_doctext::pystr::lstrip;
 use serde_json::{Map, Value, json};
 

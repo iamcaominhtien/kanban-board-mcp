@@ -104,10 +104,10 @@ pub fn apply(s: &mut ai_schedule::Model, data: &Map<String, Value>) -> Result<Ve
                 s.catch_up_hours = match value {
                     Value::Null => {
                         nulls.push(key);
-                        0.0
+                        kb_db::Float(0.0)
                     }
-                    Value::Number(n) => n.as_f64().unwrap_or(0.0),
-                    Value::Bool(b) => f64::from(u8::from(*b)),
+                    Value::Number(n) => n.as_f64().unwrap_or(0.0).into(),
+                    Value::Bool(b) => f64::from(u8::from(*b)).into(),
                     other => return wrong_kind(key, other),
                 };
             }
@@ -212,7 +212,7 @@ fn hours_text(s: &ai_schedule::Model, nulls: &[&str]) -> Result<String, Error> {
     if nulls.contains(&"catch_up_hours") {
         return Err(Error::Other("unsupported format string passed to NoneType.__format__".to_string()));
     }
-    Ok(fmt_g(s.catch_up_hours))
+    Ok(fmt_g(s.catch_up_hours.get()))
 }
 
 fn is_blocking(check: &Value) -> bool {

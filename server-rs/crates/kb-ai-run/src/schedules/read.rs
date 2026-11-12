@@ -104,7 +104,7 @@ pub fn run_to_dict(r: &ai_schedule_run::Model, names: Option<&HashMap<String, St
     out.insert("started_at".into(), json!(r.started_at));
     out.insert("ended_at".into(), json!(r.ended_at));
     out.insert("duration_s".into(), json!(r.duration_s));
-    out.insert("cost_usd".into(), json!(round_to(r.cost_usd, 4)));
+    out.insert("cost_usd".into(), json!(round_to(r.cost_usd.get(), 4)));
     out
 }
 

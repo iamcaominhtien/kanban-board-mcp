@@ -11,7 +11,7 @@ use kb_ai_run::cli::session_exists;
 use kb_db::database;
 use kb_db::entities::docs_ai_session;
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, ModelTrait, QueryFilter};
 use tokio::sync::OwnedMutexGuard;
 
 /// The `member_id` of a conversation's row: it belongs to the assistant, not to a team.

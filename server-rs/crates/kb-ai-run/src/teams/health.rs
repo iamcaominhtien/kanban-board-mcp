@@ -3,11 +3,12 @@
 use chrono::Utc;
 use kb_ai::audit;
 use kb_ai::providers::providers;
-use kb_ai::store::{get_profile, now_iso, parse_iso, save};
+use kb_ai::store::{get_profile, now_iso, parse_iso};
 use kb_base::pyjson;
 use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{ai_account, ai_team, member};
+use kb_db::save_model;
 use kb_db::sea_orm::EntityTrait;
 use serde_json::{Map, Value, json};
 
@@ -63,13 +64,14 @@ pub async fn detect_local(
 
 /// Check the team's runner and sign-in and record its health.
 pub async fn test_connection(session: &Session, member_id: &str) -> Result<Map<String, Value>, Error> {
-    let (Some(_member), Some(mut profile)) = get_profile(session, member_id).await? else {
+    let (Some(_member), Some(read)) = get_profile(session, member_id).await? else {
         return refuse("AI team not found.");
     };
+    let mut profile = read.clone();
     let info = detect_local(Some(session), profile.cli_path.as_deref(), profile.account_id.as_deref()).await?;
     apply_health(&mut profile, &info).await;
     profile.checked_at = Some(now_iso());
-    let profile = save(session, profile).await?;
+    let profile = save_model(session, &read, profile).await?;
     session.commit().await?;
     // a usage limit is not a missing or signed-out runner
     let ok = matches!(profile.health.as_str(), "ok" | "rate_limited");
@@ -152,7 +154,8 @@ pub async fn health_check() -> Result<usize, Error> {
     let ids: Vec<String> = ai_team::Entity::find().all(&session).await?.into_iter().map(|t| t.id).collect();
     accounts::check_all(&session, Some(ACCOUNT_STALE_S)).await.map_err(|err| Error::Other(err.to_string()))?;
     for id in ids {
-        let Some(mut profile) = ai_team::Entity::find_by_id(id.as_str()).one(&session).await? else { continue };
+        let Some(read) = ai_team::Entity::find_by_id(id.as_str()).one(&session).await? else { continue };
+        let mut profile = read.clone();
         let Some(member) = member::Entity::find_by_id(id.as_str()).one(&session).await? else { continue };
         if member.kind != "ai" {
             continue;
@@ -172,7 +175,7 @@ pub async fn health_check() -> Result<usize, Error> {
         let info = detect_local(Some(&session), profile.cli_path.as_deref(), profile.account_id.as_deref()).await?;
         apply_health(&mut profile, &info).await;
         profile.checked_at = Some(now_iso());
-        let profile = save(&session, profile).await?;
+        let profile = save_model(&session, &read, profile).await?;
         session.commit().await?;
         if profile.health != before {
             changed += 1;

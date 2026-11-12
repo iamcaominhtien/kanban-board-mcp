@@ -23,9 +23,7 @@ use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::docs_ai_job;
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder, QuerySelect,
-};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use serde_json::{Map, Value, json};
 use std::sync::Arc;
 use tokio::sync::Notify;
@@ -95,7 +93,7 @@ pub fn to_dict(j: &docs_ai_job::Model) -> Map<String, Value> {
     out.insert("error".into(), loads(Some(&j.error), json!({})));
     out.insert("tokens_in".into(), json!(j.tokens_in));
     out.insert("tokens_out".into(), json!(j.tokens_out));
-    out.insert("cost".into(), json!(round_to(j.cost_usd, 6)));
+    out.insert("cost".into(), json!(round_to(j.cost_usd.get(), 6)));
     out.insert("metered".into(), json!(j.metered));
     out.insert("reply_comment_id".into(), json!(j.reply_comment_id));
     out.insert("queued_at".into(), json!(j.queued_at));
@@ -327,7 +325,7 @@ pub async fn account(job_id: &str, out: &Turn, member_id: Option<&str>) -> Resul
     let mut row = kb_db::edit(job);
     row.tokens_in = Set(tokens_in);
     row.tokens_out = Set(tokens_out);
-    row.cost_usd = Set(cost);
+    row.cost_usd = Set(cost.into());
     row.metered = Set(metered);
     if let Some(member_id) = member_id.filter(|id| !id.is_empty()) {
         row.member_id = Set(Some(member_id.to_string()));

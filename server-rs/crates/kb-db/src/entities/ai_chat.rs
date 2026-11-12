@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// One Board AI conversation; private to the person who started it, kept 30 days.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "ai_chat")]
@@ -23,7 +25,8 @@ pub struct Model {
     /// The AI member that answers; None means the project's Board AI
     pub member_id: Option<String>,
     pub include_docs: String,
-    pub cost: f64,
+    #[sea_orm(column_type = "Double")]
+    pub cost: Float,
     pub tokens: i32,
     pub applied: bool,
     /// Claude Code conversation of a local Board AI: the whole chat is one session, so it is not resent each time
@@ -59,7 +62,7 @@ pub fn new() -> ActiveModel {
         scope_id: Set(None),
         member_id: Set(None),
         include_docs: Set("[]".to_string()),
-        cost: Set(0.0),
+        cost: Set(Float(0.0)),
         tokens: Set(0),
         applied: Set(false),
         session_id: Set(None),

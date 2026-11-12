@@ -4,7 +4,7 @@
 use kb_db::Session;
 use kb_db::entities::{canvas, docs_page};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, EntityTrait};
+use kb_db::sea_orm::EntityTrait;
 use kb_doctext::docs_text::DocsError;
 use serde_json::{Map, Value, json};
 

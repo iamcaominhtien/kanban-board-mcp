@@ -124,21 +124,9 @@ pub async fn create_ticket(args: CreateTicket<'_>) -> ToolResult {
     .await
 }
 
-/// `datetime.fromisoformat(text)` of Python 3.12 as a UTC instant (a time without an offset is read as UTC). The
-/// date and the time may be separated by any one character (`2000-01-01+00:00` is midnight), which
-/// `kb_base::time::parse_iso` leaves out.
+/// `datetime.fromisoformat(text)` of Python 3.12 as a UTC instant (a time without an offset is read as UTC).
 fn from_isoformat(text: &str) -> Option<chrono::DateTime<chrono::Utc>> {
-    if let Some(moment) = time::parse_iso(text) {
-        return Some(moment.utc());
-    }
-    let trimmed = text.trim();
-    if trimmed.len() <= 10 || !trimmed.is_char_boundary(10) {
-        return None;
-    }
-    let (date, rest) = trimmed.split_at(10);
-    let mut rest = rest.chars();
-    rest.next()?;
-    time::parse_iso(&format!("{date}T{}", rest.as_str())).map(|moment| moment.utc())
+    time::parse_iso(text).map(|moment| moment.utc())
 }
 
 /// `_parse_since`.

@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// The standup summary written at each board-health check.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "ai_digest")]
@@ -14,7 +16,8 @@ pub struct Model {
     pub day: String,
     pub summary: String,
     pub member_id: Option<String>,
-    pub cost: f64,
+    #[sea_orm(column_type = "Double")]
+    pub cost: Float,
     pub tokens: i32,
     pub created_at: String,
 }
@@ -33,7 +36,7 @@ pub fn new() -> ActiveModel {
         day: NotSet,
         summary: Set("{}".to_string()),
         member_id: Set(None),
-        cost: Set(0.0),
+        cost: Set(Float(0.0)),
         tokens: Set(0),
         created_at: Set(kb_base::time::now_iso()),
     }

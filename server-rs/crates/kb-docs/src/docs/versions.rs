@@ -7,9 +7,7 @@ use kb_db::Session;
 use kb_db::entities::{
     docs_anchor_aliases, docs_draft, docs_page, docs_page_seen, docs_version, member, notify_follow,
 };
-use kb_db::sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, QueryOrder, Set,
-};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, ModelTrait, QueryFilter, QueryOrder, Set};
 use kb_doctext::docs_text::{DocsError, heading_anchors, heading_match, strip_inline};
 use kb_draw::diagrams;
 use serde_json::{Map, Value, json};

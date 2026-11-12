@@ -19,8 +19,7 @@ use kb_base::{ctx, pyjson, pytext};
 use kb_db::database;
 use kb_db::entities::{ai_account, ai_run, ai_run_message, ticket};
 use kb_db::sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, QueryOrder,
-    QuerySelect,
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, ModelTrait, QueryFilter, QueryOrder, QuerySelect,
 };
 use serde_json::{Map, Value, json};
 use tokio::io::AsyncReadExt;

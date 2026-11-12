@@ -47,5 +47,7 @@ async fn a_new_database_gets_the_schema_and_sessions_follow_the_python_rules() {
     common::scenario().await;
     common::saving().await;
     common::two_writers_of_one_run().await;
+    common::floats().await;
+    common::savepoints().await;
     common::drop_everything().await;
 }

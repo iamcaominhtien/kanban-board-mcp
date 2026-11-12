@@ -1,10 +1,11 @@
 //! Create, change, pause (`services/ai/schedules.py` lines 738 to 898): `_may_manage`, `create`, `update`,
 //! `set_paused`, `delete`, `get_or_404`, `run_now`, `slot_action`.
 
-use kb_ai::store::{now_iso, save};
+use kb_ai::store::now_iso;
 use kb_base::time;
 use kb_db::Session;
 use kb_db::entities::{ai_schedule, ai_schedule_run, ticket};
+use kb_db::save_model;
 use kb_db::sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, ModelTrait, QueryFilter};
 use serde_json::{Map, Value, json};
 
@@ -98,7 +99,8 @@ pub async fn update(
     data: &Map<String, Value>,
     by: &str,
 ) -> Result<ai_schedule::Model, Error> {
-    let mut s = get_or_404(session, schedule_id).await?;
+    let read = get_or_404(session, schedule_id).await?;
+    let mut s = read.clone();
     may_manage(session, &s, by).await?;
     if data.get("ticket_id").is_some_and(|wanted| *wanted != json!(s.ticket_id)) {
         return refuse("invalid", "A schedule stays on its ticket. Make a new one for another ticket.");
@@ -119,7 +121,7 @@ pub async fn update(
     if s.state == "active" {
         advance(&mut s, clock::now(), true)?;
     }
-    let s = save(session, s).await?;
+    let s = save_model(session, &read, s).await?;
     session.commit().await?;
     publish_board().await;
     Ok(s)
@@ -134,7 +136,8 @@ pub async fn set_paused(
     by: &str,
     reason: Option<&str>,
 ) -> Result<ai_schedule::Model, Error> {
-    let mut s = get_or_404(session, schedule_id).await?;
+    let read = get_or_404(session, schedule_id).await?;
+    let mut s = read.clone();
     may_manage(session, &s, by).await?;
     if paused {
         s.state = "paused".to_string();
@@ -150,7 +153,7 @@ pub async fn set_paused(
         advance(&mut s, clock::now(), true)?;
     }
     s.updated_at = now_iso();
-    let s = save(session, s).await?;
+    let s = save_model(session, &read, s).await?;
     session.commit().await?;
     publish_board().await;
     Ok(s)

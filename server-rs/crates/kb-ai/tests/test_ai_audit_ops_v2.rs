@@ -190,7 +190,7 @@ async fn audit_chain_filters_trace_and_retention() {
         r.trigger = Set("assign".into());
         r.started_by = Set("An Nguyen".into());
         r.metered = Set(true);
-        r.cost_usd = Set(0.123_456_5);
+        r.cost_usd = Set(kb_db::Float(0.123_456_5));
     })
     .await;
     let mut detail = serde_json::Map::new();

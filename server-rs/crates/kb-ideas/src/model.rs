@@ -10,10 +10,7 @@ use std::ops::Deref;
 
 use kb_db::Session;
 use kb_db::entities::{idea_assumption, idea_comment, idea_evidence, idea_log_entry, idea_ticket, idea_vote};
-use kb_db::sea_orm::{
-    ActiveModelBehavior, ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, Iterable, ModelTrait,
-    QueryFilter, QueryOrder,
-};
+use kb_db::sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder};
 use serde_json::{Map, Value, json};
 
 /// `IDEA_STATUSES`.

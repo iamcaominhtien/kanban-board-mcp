@@ -74,7 +74,7 @@ pub fn fixes(
             rs.iter().copied().filter(|r| r.stop_code.as_deref() == Some("memory")).collect();
         let Some(last) = rs.last() else { continue };
         if memory.len() >= MIN_CASES_MEMORY {
-            let peak = memory.iter().map(|r| r.peak_rss_mb.unwrap_or(0.0)).fold(0.0f64, f64::max);
+            let peak = memory.iter().map(|r| r.peak_rss_mb.map_or(0.0, |mb| mb.get())).fold(0.0f64, f64::max);
             let peak_text = if peak != 0.0 { format!(" (peak {} MB)", round_int(peak)) } else { String::new() };
             out.push((
                 memory.len() as i64,

@@ -158,13 +158,14 @@ pub async fn on_review(ticket_id: &str) -> Result<Option<Value>, Error> {
     let url: Option<String> =
         if stdout.is_empty() { None } else { pytext::splitlines(stdout).last().map(|l| (*l).to_string()) };
     let session = kb_db::session();
-    if let Some(mut row) = ai_worktree::Entity::find_by_id(ticket_id).one(&session).await? {
+    if let Some(read) = ai_worktree::Entity::find_by_id(ticket_id).one(&session).await? {
+        let mut row = read.clone();
         row.pr_url = url.clone();
         row.pr_number = PULL_NUMBER
             .captures(url.as_deref().unwrap_or(""))
             .and_then(|m| kb_ai::store::py_int(&Value::String(m[1].to_string())))
             .and_then(|n| i32::try_from(n).ok());
-        commit_row(&session, row).await?;
+        commit_row(&session, &read, row).await?;
     }
     Ok(Some(json!({"route": route, "pr_url": url})))
 }
@@ -236,11 +237,12 @@ pub async fn merge(ticket_id: &str, _by: &str) -> Result<Value, Error> {
             return Ok(json!({"merged": false, "refused": format!("git could not merge: {text}")}));
         }
         let session = kb_db::session();
-        if let Some(mut row) = ai_worktree::Entity::find_by_id(ticket_id).one(&session).await? {
+        if let Some(read) = ai_worktree::Entity::find_by_id(ticket_id).one(&session).await? {
             let shown: Vec<&String> = files.iter().take(50).collect();
+            let mut row = read.clone();
             row.state = "conflict".to_string();
             row.conflict_files = kb_base::pyjson::dumps(&json!(shown));
-            let row = commit_row(&session, row).await?;
+            let row = commit_row(&session, &read, row).await?;
             let recipients = kb_notify::owners_and_admins(&session, Some(&row.project_id))
                 .await
                 .map_err(|e| Error::Other(e.to_string()))?;
@@ -269,16 +271,18 @@ pub async fn merge(ticket_id: &str, _by: &str) -> Result<Value, Error> {
         return Ok(json!({"merged": false, "conflict": files}));
     }
     let session = kb_db::session();
-    if let Some(mut row) = ai_worktree::Entity::find_by_id(ticket_id).one(&session).await? {
+    if let Some(read) = ai_worktree::Entity::find_by_id(ticket_id).one(&session).await? {
+        let mut row = read.clone();
         row.merged_at = Some(time::now_iso());
         row.state = "merged".to_string();
-        commit_row(&session, row).await?;
+        commit_row(&session, &read, row).await?;
         match remove(&session, ticket_id, false).await {
             Ok(_) => {}
             Err(err) if err.is_worktree_error() => {
-                if let Some(mut row) = ai_worktree::Entity::find_by_id(ticket_id).one(&session).await? {
+                if let Some(read) = ai_worktree::Entity::find_by_id(ticket_id).one(&session).await? {
+                    let mut row = read.clone();
                     row.state = "merged".to_string();
-                    commit_row(&session, row).await?;
+                    commit_row(&session, &read, row).await?;
                 }
             }
             Err(other) => return Err(other),

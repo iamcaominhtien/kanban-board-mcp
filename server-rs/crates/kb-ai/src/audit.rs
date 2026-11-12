@@ -260,7 +260,7 @@ pub async fn enrich(session: &Session, rows: &[ai_audit::Model]) -> Result<Vec<M
         let mut d = to_dict(e);
         let run = runs.get(e.run_id.as_deref().unwrap_or(""));
         d.insert("run_number".into(), json!(run.map(|r| r.number)));
-        d.insert("run_cost".into(), run.filter(|r| r.metered).map_or(Value::Null, |r| json!(round4(r.cost_usd))));
+        d.insert("run_cost".into(), run.filter(|r| r.metered).map_or(Value::Null, |r| json!(round4(r.cost_usd.get()))));
         d.insert("redactions".into(), json!(redaction_count(e)));
         out.push(d);
     }

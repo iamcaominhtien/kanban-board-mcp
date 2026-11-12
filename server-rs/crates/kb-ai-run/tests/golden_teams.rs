@@ -247,11 +247,12 @@ async fn update_over_a_table_of_data() {
         if case["data"].get("health").is_some() {
             // a healthy, checked team: only a new folder, CLI or account resets that
             let (_, profile) = teams::get_profile(&session, "u-team").await.expect("rows");
-            let mut profile = profile.expect("the profile");
+            let read = profile.expect("the profile");
+            let mut profile = read.clone();
             profile.health = "ok".into();
             profile.health_detail = Some("was fine".into());
             profile.checked_at = Some(STAMP.into());
-            kb_ai::store::save(&session, profile).await.expect("save");
+            kb_db::save_model(&session, &read, profile).await.expect("save");
             session.commit().await.expect("commit");
         }
         match teams::update(&session, member_id, &data_of(&case), "An Nguyen").await {
@@ -294,10 +295,11 @@ async fn describe_and_list_teams_in_every_shape() {
     assert_eq!(json!(ids(&listed)), d["list_removed"]);
     // with every AI of the project paused
     let settings = ai_project_settings::Entity::find_by_id("p-describe").one(&session).await.expect("db");
-    let mut settings = settings.expect("made by describe");
+    let read = settings.expect("made by describe");
+    let mut settings = read.clone();
     settings.paused_all = true;
     settings.paused_reason = Some("Stopped by An".into());
-    kb_ai::store::save(&session, settings).await.expect("save");
+    kb_db::save_model(&session, &read, settings).await.expect("save");
     session.commit().await.expect("commit");
     let listed = teams::list_teams(&session, "p-describe", true).await.expect("list");
     let statuses: Map<String, Value> =

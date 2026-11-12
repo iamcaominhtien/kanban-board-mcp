@@ -5,11 +5,12 @@
 use std::time::Duration as StdDuration;
 
 use chrono::{DateTime, Duration, Timelike, Utc};
-use kb_ai::store::{loads, now_iso, parse_iso, py_int, save};
+use kb_ai::store::{loads, now_iso, parse_iso, py_int};
 use kb_base::{ctx, events, pyjson, pytext};
 use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{ai_run, ai_schedule, ai_schedule_run, ticket};
+use kb_db::save_model;
 use kb_db::sea_orm::{ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter, SqlErr};
 use serde_json::{Map, Value, json};
 
@@ -72,7 +73,8 @@ pub async fn tick(now: Option<DateTime<Utc>>) -> Result<(), Error> {
             .filter(ai_schedule::Column::NextRunAt.lte(kb_base::time::iso(&now)))
             .all(&session)
             .await?;
-        for mut s in due {
+        for read in due {
+            let mut s = read.clone();
             let Some(slot) = s.next_run_at.clone() else { continue };
             let mut srun = ai_schedule_run::new();
             srun.schedule_id = Set(s.id.clone());
@@ -84,7 +86,7 @@ pub async fn tick(now: Option<DateTime<Utc>>) -> Result<(), Error> {
             advance(&mut s, slot_time(&slot)?, false)?;
             let written = async {
                 let srun = srun.insert(&session).await?;
-                save(&session, s).await?;
+                save_model(&session, &read, s).await?;
                 session.commit().await?;
                 Ok::<_, kb_db::sea_orm::DbErr>(srun)
             };
@@ -93,10 +95,10 @@ pub async fn tick(now: Option<DateTime<Utc>>) -> Result<(), Error> {
                 Err(err) if matches!(err.sql_err(), Some(SqlErr::UniqueConstraintViolation(_))) => {
                     // this slot already started (restart): only move on
                     session.rollback().await?;
-                    if let Some(mut again) = ai_schedule::Entity::find_by_id(schedule_id.as_str()).one(&session).await?
-                    {
+                    if let Some(read) = ai_schedule::Entity::find_by_id(schedule_id.as_str()).one(&session).await? {
+                        let mut again = read.clone();
                         advance(&mut again, slot_time(&slot)?, false)?;
-                        save(&session, again).await?;
+                        save_model(&session, &read, again).await?;
                         session.commit().await?;
                     }
                     continue;
@@ -135,7 +137,7 @@ fn hours(hours: f64) -> Duration {
 
 /// `_deadline`: the latest a slot may start: the catch-up time, or the allowed window's end when set.
 pub fn deadline(s: &ai_schedule::Model, slot: DateTime<Utc>) -> Result<DateTime<Utc>, Error> {
-    let mut end = slot + hours(if s.catch_up_hours != 0.0 { s.catch_up_hours } else { 2.0 });
+    let mut end = slot + hours(if s.catch_up_hours != 0.0 { s.catch_up_hours.get() } else { 2.0 });
     if let Some(window_end) = s.window_end.as_deref().filter(|w| !w.is_empty()) {
         let (h, m) = hm(Some(window_end))?;
         let tz = zone(Some(&s.tz))?;
@@ -270,8 +272,11 @@ pub async fn try_start(srun_id: &str, opts: StartOpts<'_>) -> Result<(), Error> 
     let Some(chosen) = chosen else {
         let why = or_none(why.as_deref());
         if !manual && now > deadline {
-            let note =
-                format!("Skipped: {why} for more than {} hours. {} was told.", fmt_g(s.catch_up_hours), s.created_by);
+            let note = format!(
+                "Skipped: {why} for more than {} hours. {} was told.",
+                fmt_g(s.catch_up_hours.get()),
+                s.created_by
+            );
             return close(srun_id, "skipped", Some(note), told).await;
         }
         if s.catch_up == "skip" && !manual {
@@ -393,9 +398,10 @@ pub(crate) struct SlotFields {
 pub(crate) async fn set(srun_id: &str, fields: SlotFields) -> Result<(), Error> {
     {
         let session = database::session();
-        let Some(mut srun) = ai_schedule_run::Entity::find_by_id(srun_id).one(&session).await? else {
+        let Some(read) = ai_schedule_run::Entity::find_by_id(srun_id).one(&session).await? else {
             return Ok(());
         };
+        let mut srun = read.clone();
         if let Some(state) = fields.state {
             srun.state = state;
         }
@@ -418,7 +424,7 @@ pub(crate) async fn set(srun_id: &str, fields: SlotFields) -> Result<(), Error> 
             srun.started_at = Some(started_at);
         }
         srun.updated_at = now_iso();
-        save(&session, srun).await?;
+        save_model(&session, &read, srun).await?;
         session.commit().await?;
     }
     publish_board().await;
@@ -450,9 +456,10 @@ pub async fn close(srun_id: &str, state: &str, note: Option<String>, opts: Close
     let mut paused_now = false;
     let (s, srun_member, names) = {
         let session = database::session();
-        let Some(mut srun) = ai_schedule_run::Entity::find_by_id(srun_id).one(&session).await? else {
+        let Some(read) = ai_schedule_run::Entity::find_by_id(srun_id).one(&session).await? else {
             return Ok(());
         };
+        let mut srun = read.clone();
         if ENDED.contains(&srun.state.as_str()) {
             return Ok(());
         }
@@ -464,7 +471,7 @@ pub async fn close(srun_id: &str, state: &str, note: Option<String>, opts: Close
         let mut cost = 0.0;
         if !run_ids.is_empty() {
             let rows = ai_run::Entity::find().filter(ai_run::Column::Id.is_in(run_ids)).all(&session).await?;
-            cost = sum(rows.iter().map(|r| r.cost_usd));
+            cost = sum(rows.iter().map(|r| r.cost_usd.get()));
         }
         if srun.state == "running" {
             if let Some(started_with) = srun.note.as_deref().filter(|n| !n.is_empty()) {
@@ -478,13 +485,14 @@ pub async fn close(srun_id: &str, state: &str, note: Option<String>, opts: Close
         srun.ended_at = Some(now_iso());
         let started = parse_iso(srun.started_at.as_deref());
         srun.duration_s = started.map_or(0, |started| seconds(started.to_utc(), clock::now()).trunc() as i32);
-        srun.cost_usd = cost;
+        srun.cost_usd = cost.into();
         srun.updated_at = now_iso();
         let srun_member = srun.member_id.clone();
-        save(&session, srun).await?;
+        save_model(&session, &read, srun).await?;
         let s = match s {
             None => None,
-            Some(mut s) => {
+            Some(read) => {
+                let mut s = read.clone();
                 if state == "failed" {
                     s.failures_in_row += 1;
                     if s.failures_in_row >= AUTO_PAUSE_AFTER && s.state == "active" {
@@ -509,7 +517,7 @@ pub async fn close(srun_id: &str, state: &str, note: Option<String>, opts: Close
                 } else if s.state == "active" && s.next_run_at.as_deref().unwrap_or("").is_empty() {
                     s.state = "ended".to_string();
                 }
-                Some(save(&session, s).await?)
+                Some(save_model(&session, &read, s).await?)
             }
         };
         session.commit().await?;

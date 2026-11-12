@@ -684,9 +684,10 @@ pub async fn plugin_row(
 /// Merge `patch` into the project's AI settings (`ops.update` and a commit).
 pub async fn set_ops(project_id: &str, patch: serde_json::Value) {
     let session = database::session();
-    let mut settings = kb_ai::store::get_settings(&session, project_id).await.expect("settings");
+    let read = kb_ai::store::get_settings(&session, project_id).await.expect("settings");
+    let mut settings = read.clone();
     kb_ai::ops::update(&mut settings, patch.as_object().expect("an object"));
-    kb_ai::store::save(&session, settings).await.expect("save");
+    kb_db::save_model(&session, &read, settings).await.expect("save");
     session.commit().await.expect("commit");
 }
 

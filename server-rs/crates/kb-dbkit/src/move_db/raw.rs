@@ -29,15 +29,6 @@ fn decode_error(err: sqlx::error::BoxDynError) -> sqlx::Error {
     sqlx::Error::Decode(err)
 }
 
-/// A value of the float type MySQL calls FLOAT, as the Python driver read it: the server sent it as text with six
-/// significant digits (`0.1`, not the `0.10000000149011612` the four bytes hold).
-pub(crate) fn mysql_float(value: f32) -> f64 {
-    if !value.is_finite() {
-        return f64::from(value);
-    }
-    format!("{:.5e}", f64::from(value)).parse().unwrap_or(f64::from(value))
-}
-
 /// A DECIMAL (what MySQL's SUM gives) as a number.
 fn decimal(text: &str) -> Cell {
     match text.parse::<i64>() {
@@ -110,7 +101,10 @@ pub(crate) fn mysql_cells(row: &MySqlRow) -> Result<Vec<Cell>, sqlx::Error> {
                 let n = <u64 as Decode<sqlx::MySql>>::decode(value).map_err(decode_error)?;
                 i64::try_from(n).map(Cell::Int).unwrap_or(Cell::Float(n as f64))
             }
-            "FLOAT" => Cell::Float(mysql_float(<f32 as Decode<sqlx::MySql>>::decode(value).map_err(decode_error)?)),
+            // as the Python driver read it: the server's six significant digits (`kb_db::float`)
+            "FLOAT" => Cell::Float(kb_db::float::as_mysql_text(
+                <f32 as Decode<sqlx::MySql>>::decode(value).map_err(decode_error)?,
+            )),
             "DOUBLE" => Cell::Float(<f64 as Decode<sqlx::MySql>>::decode(value).map_err(decode_error)?),
             "DECIMAL" => decimal(&String::from_utf8_lossy(
                 &<Vec<u8> as Decode<sqlx::MySql>>::decode(value).map_err(decode_error)?,
@@ -578,12 +572,12 @@ mod tests {
 
     #[test]
     fn a_mysql_float_is_read_with_six_digits_as_the_python_driver_read_it() {
-        assert_eq!(mysql_float(0.1), 0.1);
-        assert_eq!(mysql_float(1.5), 1.5);
-        assert_eq!(mysql_float(1.234_567_9), 1.23457);
-        assert_eq!(mysql_float(16_777_217.0), 16_777_200.0);
-        assert_eq!(mysql_float(3.40282e38), 3.40282e38);
-        assert_eq!(mysql_float(-0.0), 0.0);
+        assert_eq!(kb_db::float::as_mysql_text(0.1), 0.1);
+        assert_eq!(kb_db::float::as_mysql_text(1.5), 1.5);
+        assert_eq!(kb_db::float::as_mysql_text(1.234_567_9), 1.23457);
+        assert_eq!(kb_db::float::as_mysql_text(16_777_217.0), 16_777_200.0);
+        assert_eq!(kb_db::float::as_mysql_text(3.40282e38), 3.40282e38);
+        assert_eq!(kb_db::float::as_mysql_text(-0.0), 0.0);
     }
 
     #[test]

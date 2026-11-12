@@ -10,9 +10,7 @@ use kb_base::{activity, pyjson, pytext};
 use kb_db::Session;
 use kb_db::entities::{ai_team, canvas, canvas_comment, canvas_thread, member};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, PaginatorTrait, QueryFilter, QueryOrder,
-};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
 use kb_doctext::docs_text::DocsError;
 use regex::Regex;
 use serde_json::{Map, Value, json};
@@ -449,8 +447,8 @@ pub async fn add_thread(session: &Session, canvas_id: &str, new: NewThread<'_>) 
     row.number = Set(number);
     // stored as given: an empty id is kept (and the pin is on the plane)
     row.board_id = Set(new.board_id.map(str::to_string));
-    row.x = Set(x);
-    row.y = Set(y);
+    row.x = Set(x.into());
+    row.y = Set(y.into());
     row.page = Set(page);
     row.anchor = Set(anchor.map(|a| pyjson::dumps(&Value::Object(a))));
     row.created_by = Set(actor.clone());

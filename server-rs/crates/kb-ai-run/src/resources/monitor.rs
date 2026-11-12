@@ -11,7 +11,7 @@ use kb_ai::store::get_settings;
 use kb_base::{events, time};
 use kb_db::database;
 use kb_db::entities::ai_run;
-use kb_db::sea_orm::{ActiveModelTrait, ActiveValue::Set, DbErr, EntityTrait, IntoActiveModel};
+use kb_db::sea_orm::{ActiveValue::Set, DbErr, EntityTrait};
 use serde_json::{Value, json};
 
 use super::{HISTORY_EVERY_S, HISTORY_POINTS, LIMIT_TTL_S, Reading, SAMPLE_S, SAVE_EVERY_S, read_run, snapshot};
@@ -340,10 +340,10 @@ impl Monitor {
         let Some(run) = ai_run::Entity::find_by_id(run_id).one(&session).await? else { return Ok(()) };
         // only these two columns are written: the run's own task writes the row at the same time (its pid, its
         // state, its steps), and a whole row written back from here would undo what it wrote in between
-        let peak_rss_mb = Some(run.peak_rss_mb.unwrap_or(0.0).max(peak));
+        let peak_rss_mb = Some(run.peak_rss_mb.map_or(0.0, |mb| mb.get()).max(peak));
         let mut row = kb_db::edit(run);
-        row.last_rss_mb = Set(reading.cli_rss_mb);
-        row.peak_rss_mb = Set(peak_rss_mb);
+        row.last_rss_mb = Set(reading.cli_rss_mb.map(Into::into));
+        row.peak_rss_mb = Set(peak_rss_mb.map(Into::into));
         row.update(&session).await?;
         session.commit().await
     }

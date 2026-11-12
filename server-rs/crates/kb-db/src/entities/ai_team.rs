@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// An AI team of the project (AI v2): its lead runs a ticket as one Claude Code session and the roles of its pack
 /// work as subagents. `id` is the team's Member id (the row that is the assignee, the avatar, the comment author).
 /// (table)
@@ -29,11 +31,14 @@ pub struct Model {
     /// bypass | auto: how Claude Code answers permission prompts in this team's runs
     pub permission_mode: String,
     pub max_parallel: i32,
-    pub daily_budget: Option<f64>,
-    pub monthly_cap: Option<f64>,
+    #[sea_orm(column_type = "Double")]
+    pub daily_budget: Option<Float>,
+    #[sea_orm(column_type = "Double")]
+    pub monthly_cap: Option<Float>,
     pub max_runs_per_day: Option<i32>,
     pub tokens_per_day: Option<i32>,
-    pub cap_per_run: Option<f64>,
+    #[sea_orm(column_type = "Double")]
+    pub cap_per_run: Option<Float>,
     pub scope: String,
     pub paused: bool,
     pub paused_at: Option<String>,

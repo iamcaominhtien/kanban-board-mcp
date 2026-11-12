@@ -4,7 +4,7 @@ use kb_db::Session;
 use kb_db::entities::{META, TableMeta, docs_ai_settings, project, table_meta};
 use kb_db::sea_orm::ActiveValue::Set;
 use kb_db::sea_orm::sea_query::{Alias, Expr, ExprTrait, Query, SimpleExpr};
-use kb_db::sea_orm::{ActiveModelTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel, QueryOrder, SqlErr};
+use kb_db::sea_orm::{ActiveModelTrait, ConnectionTrait, DbErr, EntityTrait, QueryOrder, SqlErr};
 
 use crate::git_repo::{GitError, normalize_repo_path};
 use crate::members::create_member as _create_member;

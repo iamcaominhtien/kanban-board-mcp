@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use kb_base::pyjson;
 use kb_db::Session;
 use kb_db::entities::{docs_anchor_aliases, docs_link, docs_page, docs_title_aliases, ticket};
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, Set};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, ModelTrait, QueryFilter, Set};
 use kb_doctext::docs_text::{heading_anchors, parse_references, slugify};
 use serde_json::{Map, Value, json};
 

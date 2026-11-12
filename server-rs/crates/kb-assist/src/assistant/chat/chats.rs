@@ -5,9 +5,7 @@ use kb_base::pyjson;
 use kb_db::Session;
 use kb_db::entities::{ai_chat, ai_chat_message};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, QueryOrder,
-};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, ModelTrait, QueryFilter, QueryOrder};
 use serde_json::{Map, Value, json};
 
 use super::{SCOPES, cancel_task, chat_of, chat_out, msg_out, settle_team_messages, target};

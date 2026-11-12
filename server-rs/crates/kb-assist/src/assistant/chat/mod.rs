@@ -25,9 +25,7 @@ use kb_db::database;
 use kb_db::entities::{ai_chat, ai_chat_message, ai_run, docs_page, idea_ticket, member, project, ticket};
 use kb_db::sea_orm::ActiveValue::Set;
 use kb_db::sea_orm::sea_query::{BinOper, Expr, ExprTrait, Func};
-use kb_db::sea_orm::{
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder, QuerySelect,
-};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use serde_json::{Map, Value, json};
 use tokio::sync::Notify;
 
@@ -118,7 +116,7 @@ pub fn msg_out(m: &ai_chat_message::Model) -> Value {
         "retry_at": m.retry_at,
         "member_id": m.member_id,
         "model": m.model,
-        "cost": round_to(m.cost, 6),
+        "cost": round_to(m.cost.get(), 6),
         "tokens_in": m.tokens_in,
         "tokens_out": m.tokens_out,
         "metered": false,
@@ -141,7 +139,7 @@ pub fn chat_out(c: &ai_chat::Model) -> Map<String, Value> {
         "ticket_id": c.ticket_id,
         "doc_id": c.doc_id,
         "include_docs": loads(Some(&c.include_docs), json!([])),
-        "cost": round_to(c.cost, 6),
+        "cost": round_to(c.cost.get(), 6),
         "tokens": c.tokens,
         "applied": c.applied,
         "summary": c.summary,

@@ -30,8 +30,8 @@ use kb_db::Session;
 use kb_db::entities::{ai_account, ai_audit, ai_run, ai_team, ai_touch_mark, member};
 use kb_db::sea_orm::sea_query::Expr;
 use kb_db::sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter,
-    QueryOrder, QuerySelect, SqlErr,
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, ModelTrait, QueryFilter, QueryOrder,
+    QuerySelect, SqlErr,
 };
 use serde_json::{Map, Value, json};
 

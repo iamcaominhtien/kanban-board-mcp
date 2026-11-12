@@ -18,8 +18,8 @@ use chrono::{DateTime, Local, TimeZone, Utc};
 use kb_base::{pyjson, time};
 use kb_db::Session;
 use kb_db::database;
-use kb_db::save_model;
 use kb_db::entities::{ai_account, ai_account_state, ai_run, ai_team};
+use kb_db::save_model;
 use kb_db::sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
 use serde_json::{Map, Value, json};
 
@@ -126,13 +126,13 @@ pub async fn record(key: &str, reading: &Map<String, Value>) -> Result<ai_accoun
         let (resets_at, status) = (text_of(w.get("resets_at")), text_of(w.get("status")));
         if name == "five_hour" {
             if let Some(used) = used {
-                row.five_hour_used = Some(used);
+                row.five_hour_used = Some(used.into());
             }
             row.five_hour_resets_at = resets_at;
             row.five_hour_status = status;
         } else {
             if let Some(used) = used {
-                row.seven_day_used = Some(used);
+                row.seven_day_used = Some(used.into());
             }
             row.seven_day_resets_at = resets_at;
             row.seven_day_status = status;
@@ -228,7 +228,7 @@ pub fn local_in<Z: TimeZone>(when: Option<&str>, tz: &Z) -> String
 where
     Z::Offset: std::fmt::Display,
 {
-    let Some((naive, offset)) = when.filter(|w| !w.is_empty()).and_then(crate::store::isoformat_parts) else {
+    let Some((naive, offset)) = when.filter(|w| !w.is_empty()).and_then(time::isoformat_parts) else {
         return String::new();
     };
     let instant = match offset {
@@ -319,7 +319,7 @@ pub async fn room(session: &Session, exclude: Option<&str>) -> Result<Vec<Value>
             "used": row.five_hour_used,
             "free": limit - going,
         });
-        out.push((row.five_hour_used, entry));
+        out.push((row.five_hour_used.map(Into::into), entry));
     }
     out.sort_by(|a, b| a.0.unwrap_or(0.5).total_cmp(&b.0.unwrap_or(0.5)));
     Ok(out.into_iter().map(|(_, v)| v).collect())

@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// What the AI suggests for an Inbox idea: Keep, Park, Merge or Archive, with a reason; it never applies it (table).
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "idea_advice")]
@@ -22,7 +24,8 @@ pub struct Model {
     pub park_days: Option<i32>,
     pub idea_stamp: String,
     pub member_id: Option<String>,
-    pub cost: f64,
+    #[sea_orm(column_type = "Double")]
+    pub cost: Float,
     /// open | accepted | ignored
     pub state: String,
     pub created_at: String,
@@ -47,7 +50,7 @@ pub fn new() -> ActiveModel {
         park_days: Set(None),
         idea_stamp: Set("".to_string()),
         member_id: Set(None),
-        cost: Set(0.0),
+        cost: Set(Float(0.0)),
         state: Set("open".to_string()),
         created_at: Set(kb_base::time::now_iso()),
     }

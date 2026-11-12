@@ -99,16 +99,17 @@ pub async fn back_to_dev(finding: &Value) -> Result<Option<String>, Error> {
         // nothing was started or reached: it is not marked as given
         return Ok(None);
     };
-    let Some(mut cur) = ai_watched_pr::Entity::find_by_id(ticket_id.as_str()).one(&session).await? else {
+    let Some(read) = ai_watched_pr::Entity::find_by_id(ticket_id.as_str()).one(&session).await? else {
         return Ok(None);
     };
+    let mut cur = read.clone();
     if let Some(map) = red.as_object_mut() {
         map.insert("handled_at".into(), json!(now()));
         map.insert("run_id".into(), json!(run.id));
         map.insert("delivered".into(), out.get("delivered").cloned().unwrap_or(Value::Null));
     }
     cur.red = Some(pyjson::dumps(&red));
-    save_pr(&session, cur).await?;
+    save_pr(&session, &read, cur).await?;
     Ok(Some(run.id))
 }
 
@@ -166,9 +167,9 @@ pub async fn comments_to_dev(ticket_id: &str) -> Result<Option<String>, Error> {
             Value::Object(m)
         })
         .collect();
-    let mut row = row.clone();
-    row.pending_comments = pyjson::dumps(&Value::Array(marked));
-    save_pr(&session, row).await?;
+    let mut changed = row.clone();
+    changed.pending_comments = pyjson::dumps(&Value::Array(marked));
+    save_pr(&session, row, changed).await?;
     Ok(Some(run.id))
 }
 

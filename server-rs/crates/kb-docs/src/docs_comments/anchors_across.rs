@@ -3,7 +3,7 @@
 use kb_db::Session;
 use kb_db::entities::{docs_comment, docs_comment_event, docs_comment_read, docs_comment_thread, docs_page};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter};
+use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use kb_doctext::docs_anchors as anchors;
 use serde_json::{Map, Value, json};
 

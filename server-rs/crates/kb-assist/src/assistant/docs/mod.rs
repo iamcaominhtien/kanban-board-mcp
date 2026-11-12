@@ -17,9 +17,7 @@ use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{ai_chat, ai_chat_message, docs_ai_ignore, docs_ai_job, docs_page};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder, QuerySelect,
-};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use regex::Regex;
 use serde_json::{Map, Value, json};
 use sha1::{Digest, Sha1};

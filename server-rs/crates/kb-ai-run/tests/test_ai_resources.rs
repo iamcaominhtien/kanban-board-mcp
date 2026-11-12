@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use kb_ai::runner_link;
-use kb_ai::store::{get_settings, save};
+use kb_ai::store::get_settings;
 use kb_ai_run::cli::CliProcess;
 use kb_ai_run::resources::{self, MON, Timing};
 use kb_db::database;
@@ -39,9 +39,10 @@ async fn run_row(id: &str) -> ai_run::Model {
 
 async fn set_limit(project_id: &str, mb: i32) {
     let session = database::session();
-    let mut settings = get_settings(&session, project_id).await.expect("settings");
+    let read = get_settings(&session, project_id).await.expect("settings");
+    let mut settings = read.clone();
     settings.run_memory_limit_mb = mb;
-    save(&session, settings).await.expect("save");
+    kb_db::save_model(&session, &read, settings).await.expect("save");
     session.commit().await.expect("commit");
     MON.limit_changed(project_id);
 }
@@ -272,8 +273,8 @@ async fn the_snapshot_lists_running_runs_and_those_that_ended_a_moment_ago() {
     let now = chrono::Utc::now();
     let ago = |seconds: i64| Some(kb_base::time::iso(&(now - chrono::Duration::seconds(seconds))));
     let running = common::run(&project, &team.id, Some(&ticket.id), "running", |r| {
-        r.last_rss_mb = Set(Some(310.5));
-        r.peak_rss_mb = Set(Some(420.0));
+        r.last_rss_mb = Set(Some(kb_db::Float(310.5)));
+        r.peak_rss_mb = Set(Some(kb_db::Float(420.0)));
         r.restarts = Set(
             "[{\"at\": \"x\", \"rss_mb\": 900.0, \"limit_mb\": 512, \"by\": \"system\", \"n\": 1}, \"odd\"]".into(),
         );
@@ -282,14 +283,14 @@ async fn the_snapshot_lists_running_runs_and_those_that_ended_a_moment_ago() {
     let starting = common::run(&project, &team.id, None, "starting", |_| {}).await;
     let ended = common::run(&project, &team.id, Some(&ticket.id), "done", |r| {
         r.ended_at = Set(ago(60));
-        r.peak_rss_mb = Set(Some(512.25));
-        r.last_rss_mb = Set(Some(100.0));
+        r.peak_rss_mb = Set(Some(kb_db::Float(512.25)));
+        r.last_rss_mb = Set(Some(kb_db::Float(100.0)));
         r.ended_reason = Set(Some("finished".into()));
     })
     .await;
     common::run(&project, &team.id, None, "done", |r| {
         r.ended_at = Set(ago(3600));
-        r.peak_rss_mb = Set(Some(1.0));
+        r.peak_rss_mb = Set(Some(kb_db::Float(1.0)));
     })
     .await;
     common::run(&project, &team.id, None, "done", |r| r.ended_at = Set(ago(30))).await; // never measured

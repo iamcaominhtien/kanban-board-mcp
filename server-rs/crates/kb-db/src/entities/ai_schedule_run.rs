@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// One slot of a schedule: the run(s) it started, how each check turned out and what the reviewer said.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "ai_schedule_run")]
@@ -30,7 +32,8 @@ pub struct Model {
     pub started_at: Option<String>,
     pub ended_at: Option<String>,
     pub duration_s: i32,
-    pub cost_usd: f64,
+    #[sea_orm(column_type = "Double")]
+    pub cost_usd: Float,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -61,7 +64,7 @@ pub fn new() -> ActiveModel {
         started_at: Set(None),
         ended_at: Set(None),
         duration_s: Set(0),
-        cost_usd: Set(0.0),
+        cost_usd: Set(Float(0.0)),
         created_at: Set(kb_base::time::now_iso()),
         updated_at: Set(kb_base::time::now_iso()),
     }

@@ -11,9 +11,7 @@ use kb_base::{pyjson, pytext};
 use kb_board::tickets as svc_tickets;
 use kb_db::database;
 use kb_db::entities::{ai_chat, ai_chat_message, ai_run, member, ticket};
-use kb_db::sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QuerySelect,
-};
+use kb_db::sea_orm::{ActiveValue::Set, ColumnTrait, EntityTrait, QueryFilter, QuerySelect};
 use serde_json::{Map, Value, json};
 
 use super::describe::publish_run;
@@ -495,13 +493,10 @@ pub async fn end(
         session.commit().await?;
         let (member, profile) = get_profile(&session, &run.member_id).await?;
         // a run that hit the account's usage limit marks its team "Rate-limited"; the next run that finishes clears it
-        if let Some(mut profile) = profile {
+        if let Some(read) = profile {
+            let mut profile = read.clone();
             if teams::note_run_outcome(&mut profile, state, run.stop_code.as_deref(), reason) {
-                let (health, detail) = (profile.health.clone(), profile.health_detail.clone());
-                let mut row = kb_db::edit(profile);
-                row.health = Set(health);
-                row.health_detail = Set(detail);
-                row.update(&session).await?;
+                kb_db::save_model(&session, &read, profile).await?;
                 session.commit().await?;
             }
         }

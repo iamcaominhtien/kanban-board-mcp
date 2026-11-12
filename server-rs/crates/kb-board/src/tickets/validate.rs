@@ -2,7 +2,7 @@
 //! validators of a ticket's fields, and the rules of a parent.
 
 use chrono::{Datelike, NaiveDate, Weekday};
-use kb_base::{activity as act, pytext};
+use kb_base::{activity as act, pytext, time};
 use kb_db::Session;
 use kb_db::entities::ticket;
 use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QuerySelect};
@@ -137,7 +137,8 @@ pub(crate) fn clean_date(value: Option<&str>, label: &str) -> Result<Option<Stri
     let valid = if raw.chars().count() == 10 {
         date_fromisoformat(raw)
     } else {
-        datetime_fromisoformat(&raw.replace('Z', "+00:00"))
+        // `datetime.fromisoformat`: the shared reader, exactly Python 3.12's
+        time::parse_iso(&raw.replace('Z', "+00:00")).is_some()
     };
     if !valid {
         return value_error(format!("{label} must be an ISO date (YYYY-MM-DD)"));
@@ -215,131 +216,6 @@ fn parse_isoformat_date(buf: &[u8], len: usize) -> bool {
 /// `date.fromisoformat(text)` succeeds (Python 3.12).
 fn date_fromisoformat(text: &str) -> bool {
     parse_isoformat_date(text.as_bytes(), text.len())
-}
-
-/// CPython's `_find_isoformat_datetime_separator`: where the date part of a datetime text ends.
-fn find_isoformat_datetime_separator(buf: &[u8]) -> Option<usize> {
-    let len = buf.len();
-    if len == 7 {
-        return Some(7);
-    }
-    let at = |i: usize| buf.get(i).copied().unwrap_or(0);
-    if at(4) == b'-' {
-        if at(5) == b'W' {
-            if len < 8 {
-                return None;
-            }
-            if len > 8 && at(8) == b'-' {
-                if len == 9 {
-                    return None;
-                }
-                if len > 10 && at(10).is_ascii_digit() {
-                    return Some(8);
-                }
-                return Some(10);
-            }
-            return Some(8);
-        }
-        return Some(10);
-    }
-    if at(4) == b'W' {
-        let mut idx = 7;
-        while idx < len && buf[idx].is_ascii_digit() {
-            idx += 1;
-        }
-        if idx < 9 {
-            return Some(idx);
-        }
-        return Some(if idx % 2 == 0 { 7 } else { 8 });
-    }
-    Some(8)
-}
-
-/// CPython's `parse_hh_mm_ss_ff` over `buf[start..end]` (`HH[:?MM[:?SS[{.,}ffffff]]]`): hour, minute, second and
-/// microsecond, and whether something follows that it did not read.
-fn parse_hh_mm_ss_ff(buf: &[u8], start: usize, end: usize) -> Option<([u32; 4], bool)> {
-    let at = |i: usize| buf.get(i).copied().unwrap_or(0);
-    let mut vals = [0u32; 4];
-    let mut p = start;
-    let mut has_separator = true;
-    for i in 0..3 {
-        let (value, next) = parse_digits(buf, p, 2)?;
-        vals[i] = value;
-        p = next;
-        let c = at(p);
-        p += 1;
-        if i == 0 {
-            has_separator = c == b':';
-        }
-        if p >= end {
-            return Some((vals, c != 0));
-        } else if has_separator && c == b':' {
-            continue;
-        } else if c == b'.' || c == b',' {
-            break;
-        } else if !has_separator {
-            p -= 1;
-        } else {
-            return None;
-        }
-    }
-    // the fraction: at most six digits count, the rest are skipped
-    let to_parse = (end - p).min(6);
-    let (mut microsecond, next) = parse_digits(buf, p, to_parse)?;
-    p = next;
-    for _ in to_parse..6 {
-        microsecond *= 10;
-    }
-    vals[3] = microsecond;
-    while at(p).is_ascii_digit() {
-        p += 1;
-    }
-    Some((vals, at(p) != 0))
-}
-
-/// CPython's `parse_isoformat_time` and the checks of `time(...)` and `timezone(...)`: True when `buf` is a time
-/// with an optional `Z` or `±HH[:MM[:SS[.ffffff]]]` offset under 24 hours.
-fn parse_isoformat_time(buf: &[u8]) -> bool {
-    let end = buf.len();
-    let tz_pos = buf.iter().position(|b| matches!(b, b'Z' | b'+' | b'-'));
-    let Some((time, trailing)) = parse_hh_mm_ss_ff(buf, 0, tz_pos.unwrap_or(end)) else { return false };
-    if time[0] > 23 || time[1] > 59 || time[2] > 59 {
-        return false;
-    }
-    let Some(tz_pos) = tz_pos else { return !trailing };
-    if buf[tz_pos] == b'Z' {
-        return tz_pos + 1 == end;
-    }
-    let Some((tz, trailing)) = parse_hh_mm_ss_ff(buf, tz_pos + 1, end) else { return false };
-    if trailing {
-        return false;
-    }
-    let micros = (u64::from(tz[0]) * 3600 + u64::from(tz[1]) * 60 + u64::from(tz[2])) * 1_000_000 + u64::from(tz[3]);
-    micros < 86_400_000_000
-}
-
-/// `datetime.fromisoformat(text)` succeeds (Python 3.12: the C implementation, byte for byte).
-fn datetime_fromisoformat(text: &str) -> bool {
-    let buf = text.as_bytes();
-    let len = buf.len();
-    if len < 7 {
-        return false;
-    }
-    let Some(separator) = find_isoformat_datetime_separator(buf) else { return false };
-    if !parse_isoformat_date(buf, separator) {
-        return false;
-    }
-    if len <= separator {
-        return true;
-    }
-    // the separator is any one character; in UTF-8 its length is in its first byte
-    let width = match buf[separator] {
-        b if b & 0x80 == 0 => 1,
-        b if b & 0xf0 == 0xe0 => 3,
-        b if b & 0xf0 == 0xf0 => 4,
-        _ => 2,
-    };
-    buf.get(separator + width..).is_some_and(parse_isoformat_time)
 }
 
 pub(crate) fn clean_estimate(value: Option<f64>) -> Result<Option<f64>, Error> {

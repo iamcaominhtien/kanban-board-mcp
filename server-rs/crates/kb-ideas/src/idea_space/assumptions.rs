@@ -4,7 +4,7 @@ use kb_base::pytext;
 use kb_board::tickets::{NewTicket, create_ticket};
 use kb_db::Session;
 use kb_db::entities::{idea_evidence, ticket};
-use kb_db::sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait, IntoActiveModel, ModelTrait};
+use kb_db::sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait, ModelTrait};
 use serde_json::{Map, Value, json};
 
 use super::{get_or_raise, now, save};

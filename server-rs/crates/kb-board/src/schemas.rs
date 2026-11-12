@@ -256,7 +256,7 @@ impl TicketRead {
             r#type: t.r#type,
             status: t.status,
             priority: t.priority,
-            estimate: t.estimate,
+            estimate: t.estimate.map(Into::into),
             due_date: t.due_date,
             start_date: t.start_date,
             parent_id: t.parent_id,

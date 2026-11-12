@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// A message in a Board AI chat; an answer streams into `text` while `state` is thinking/streaming.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "ai_chat_message")]
@@ -25,7 +27,8 @@ pub struct Model {
     pub retry_at: Option<String>,
     pub member_id: Option<String>,
     pub model: Option<String>,
-    pub cost: f64,
+    #[sea_orm(column_type = "Double")]
+    pub cost: Float,
     pub tokens_in: i32,
     pub tokens_out: i32,
     pub metered: bool,
@@ -57,7 +60,7 @@ pub fn new() -> ActiveModel {
         retry_at: Set(None),
         member_id: Set(None),
         model: Set(None),
-        cost: Set(0.0),
+        cost: Set(Float(0.0)),
         tokens_in: Set(0),
         tokens_out: Set(0),
         metered: Set(true),

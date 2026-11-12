@@ -15,9 +15,7 @@ use std::time::Instant;
 use kb_base::{activity, ctx, pyjson, pytext, time};
 use kb_db::database;
 use kb_db::entities::ai_run;
-use kb_db::sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter,
-};
+use kb_db::sea_orm::{ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, QueryFilter};
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 

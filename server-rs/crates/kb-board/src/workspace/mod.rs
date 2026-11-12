@@ -12,7 +12,7 @@ use kb_db::Session;
 use kb_db::database::insert_missing;
 use kb_db::entities::{idea_ticket, ticket, workspace_settings};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, DbErr, EntityTrait, IntoActiveModel};
+use kb_db::sea_orm::{DbErr, EntityTrait};
 use serde_json::{Map, Value, json};
 
 mod files;

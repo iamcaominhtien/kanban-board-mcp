@@ -20,10 +20,11 @@ use std::time::{Instant, SystemTime};
 
 use kb_ai::profiles::{self, Env, Profile};
 use kb_ai::providers;
-use kb_ai::store::{now_iso, save};
+use kb_ai::store::now_iso;
 use kb_base::{events, pypath, pytext};
 use kb_db::Session;
 use kb_db::entities::{ai_account, ai_team, member};
+use kb_db::save_model;
 use kb_db::sea_orm::ActiveValue::Set;
 use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, ModelTrait, QueryFilter, QueryOrder};
 use regex::Regex;
@@ -374,14 +375,15 @@ pub async fn create(session: &Session, name: &str, cli_name: &str, by: &str) -> 
 
 /// Change the name shown everywhere; the folder keeps its name.
 pub async fn rename(session: &Session, account_id: &str, name: &str) -> Result<ai_account::Model, Error> {
-    let mut account = get(session, account_id).await?;
+    let read = get(session, account_id).await?;
+    let mut account = read.clone();
     let name = clean_name(name)?;
     if name_taken(session, &name, Some(&account.id)).await? {
         return refuse("An account with this name exists.", "name_taken");
     }
     account.name = name;
     account.updated_at = now_iso();
-    let account = save(session, account).await?;
+    let account = save_model(session, &read, account).await?;
     session.commit().await?;
     events::publish(events::INVALIDATE, &[]).await;
     Ok(account)
@@ -419,7 +421,8 @@ pub async fn remove(
         }
     }
     let moved = using.len();
-    for mut m in using {
+    for read in using {
+        let mut m = read.clone();
         m.updated_at = now_iso();
         if members == "other" {
             m.account_id = other.as_ref().map(|o| o.id.clone());
@@ -431,7 +434,7 @@ pub async fn remove(
                 m.paused_reason = Some(format!("Account {} was removed: choose an account", account.name));
             }
         }
-        save(session, m).await?;
+        save_model(session, &read, m).await?;
     }
     let profile = profile_of(&account).await?;
     in_thread(profile, |p| p.remove()).await?;
@@ -443,9 +446,10 @@ pub async fn remove(
 
 /// Make an AI member run as an account (None: the login already on this computer).
 pub async fn assign(session: &Session, member_id: &str, account_id: Option<&str>) -> Result<ai_team::Model, Error> {
-    let Some(mut profile) = ai_team::Entity::find_by_id(member_id).one(session).await? else {
+    let Some(read) = ai_team::Entity::find_by_id(member_id).one(session).await? else {
         return refuse("AI member not found.", "member_not_found");
     };
+    let mut profile = read.clone();
     match account_id {
         None => profile.account_id = None,
         Some(account_id) => {
@@ -469,7 +473,7 @@ pub async fn assign(session: &Session, member_id: &str, account_id: Option<&str>
         }
     }
     profile.updated_at = now_iso();
-    let profile = save(session, profile).await?;
+    let profile = save_model(session, &read, profile).await?;
     session.commit().await?;
     events::publish(events::INVALIDATE, &[]).await;
     Ok(profile)

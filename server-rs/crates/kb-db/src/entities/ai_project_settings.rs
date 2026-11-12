@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// Per-project AI settings (AI v2): the kill switch, board-wide limits, the permission mode of runs, the deny list,
 /// how lessons are kept, and the v2 operations JSON (services/ai/ops.py) (table).
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
@@ -14,8 +16,10 @@ pub struct Model {
     pub paused_all: bool,
     pub paused_at: Option<String>,
     pub paused_reason: Option<String>,
-    pub board_daily_cap: Option<f64>,
-    pub board_monthly_budget: Option<f64>,
+    #[sea_orm(column_type = "Double")]
+    pub board_daily_cap: Option<Float>,
+    #[sea_orm(column_type = "Double")]
+    pub board_monthly_budget: Option<Float>,
     pub board_tokens_per_day: Option<i32>,
     pub board_max_parallel: i32,
     pub board_runs_per_day: Option<i32>,

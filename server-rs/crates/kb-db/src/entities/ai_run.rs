@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// One Claude Code session the board started (AI v2): a team's lead on a ticket (`kind` team), an assistant on a
 /// page or the board (`assistant`), or a schedule's run (`schedule`). Steps are rows of `ai_run_step`. (table)
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
@@ -53,7 +55,8 @@ pub struct Model {
     pub tokens_in: i32,
     pub tokens_out: i32,
     pub tokens_cached: Option<i32>,
-    pub cost_usd: f64,
+    #[sea_orm(column_type = "Double")]
+    pub cost_usd: Float,
     pub metered: bool,
     pub context_used: Option<i32>,
     pub context_window: Option<i32>,
@@ -65,8 +68,10 @@ pub struct Model {
     pub paused_at: Option<String>,
     /// Why the run ended when it was not its own doing: budget | memory | board_closed | deleted | reassigned
     pub stop_code: Option<String>,
-    pub peak_rss_mb: Option<f64>,
-    pub last_rss_mb: Option<f64>,
+    #[sea_orm(column_type = "Double")]
+    pub peak_rss_mb: Option<Float>,
+    #[sea_orm(column_type = "Double")]
+    pub last_rss_mb: Option<Float>,
     /// JSON [{at, rss_mb, limit_mb, by, n}]
     pub restarts: String,
     /// JSON: why the run is in trouble
@@ -123,7 +128,7 @@ pub fn new() -> ActiveModel {
         tokens_in: Set(0),
         tokens_out: Set(0),
         tokens_cached: Set(None),
-        cost_usd: Set(0.0),
+        cost_usd: Set(Float(0.0)),
         metered: Set(false),
         context_used: Set(None),
         context_window: Set(None),

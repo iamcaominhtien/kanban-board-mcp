@@ -16,10 +16,7 @@ use kb_ai::{power, runner_link};
 use kb_base::events;
 use kb_db::database;
 use kb_db::entities::ai_run_command;
-use kb_db::sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder,
-    QuerySelect,
-};
+use kb_db::sea_orm::{ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use serde_json::{Map, Value, json};
 
 use crate::runs::{self, Event, RunError};

@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// Board-wide settings of the Board AI assistant: features, language, style, data scope, limits and the
 /// board-health schedule (design/screens/ai-board-assistant.md, H). One row (id 1).
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
@@ -17,8 +19,10 @@ pub struct Model {
     /// neutral | friendly | concise
     pub tone: String,
     pub style_guide: String,
-    pub monthly_cap: Option<f64>,
-    pub per_request_cap: Option<f64>,
+    #[sea_orm(column_type = "Double")]
+    pub monthly_cap: Option<Float>,
+    #[sea_orm(column_type = "Double")]
+    pub per_request_cap: Option<Float>,
     /// pause | warn
     pub over_cap: String,
     /// JSON {project_id: bool}; a project not listed is shared
@@ -43,8 +47,8 @@ pub fn new() -> ActiveModel {
         language: Set("English (US)".to_string()),
         tone: Set("neutral".to_string()),
         style_guide: Set("".to_string()),
-        monthly_cap: Set(Some(20.0)),
-        per_request_cap: Set(Some(0.25)),
+        monthly_cap: Set(Some(Float(20.0))),
+        per_request_cap: Set(Some(Float(0.25))),
         over_cap: Set("pause".to_string()),
         data_scope: Set("{}".to_string()),
         excluded_docs: Set("[]".to_string()),

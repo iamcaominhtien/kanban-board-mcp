@@ -5,7 +5,7 @@ use kb_ai::store::{loads, now_iso};
 use kb_base::{activity, ctx, pyjson};
 use kb_db::database;
 use kb_db::entities::{ai_schedule, ticket};
-use kb_db::sea_orm::{ActiveModelTrait, ActiveValue::Set, DbErr, EntityTrait, IntoActiveModel};
+use kb_db::sea_orm::{ActiveValue::Set, DbErr, EntityTrait};
 use kb_notify::writing::{EmitFields, PendingEvent, enqueue};
 use serde_json::{Map, Value, json};
 

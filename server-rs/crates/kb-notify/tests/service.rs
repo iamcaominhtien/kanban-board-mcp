@@ -487,7 +487,7 @@ async fn what_the_features_write() {
     // a run that finished: the person who started it, the assignee and the followers hear
     add_run("fin", Some("KAN-1"), "finished", |r| {
         r.report = Set(json!({"summary": "  Fixed the bug.\nSecond line"}).to_string());
-        r.cost_usd = Set(0.0);
+        r.cost_usd = Set(kb_db::Float(0.0));
     })
     .await;
     kb_notify::on_run_ended("fin").await;

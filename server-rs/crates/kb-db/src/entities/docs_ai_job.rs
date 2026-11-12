@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// One Docs AI call (ask, thread reply, check, translate, summary, freshness...). The Docs counterpart of an
 /// AI run: who asked, which AI answered, which pages it read, what it cost.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
@@ -32,7 +34,8 @@ pub struct Model {
     pub error: String,
     pub tokens_in: i32,
     pub tokens_out: i32,
-    pub cost_usd: f64,
+    #[sea_orm(column_type = "Double")]
+    pub cost_usd: Float,
     pub metered: bool,
     pub reply_comment_id: Option<String>,
     pub queued_at: String,
@@ -66,7 +69,7 @@ pub fn new() -> ActiveModel {
         error: Set("{}".to_string()),
         tokens_in: Set(0),
         tokens_out: Set(0),
-        cost_usd: Set(0.0),
+        cost_usd: Set(Float(0.0)),
         metered: Set(false),
         reply_comment_id: Set(None),
         queued_at: Set(kb_base::time::now_iso()),

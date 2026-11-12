@@ -23,7 +23,7 @@
 use kb_base::{pyjson, pytext};
 use kb_db::Session;
 use kb_db::entities::ticket;
-use kb_db::sea_orm::{ActiveModelTrait, DbErr, IntoActiveModel, Iterable, ModelTrait};
+use kb_db::sea_orm::DbErr;
 use serde_json::Value;
 
 use crate::git_repo::GitError;

@@ -137,7 +137,7 @@ pub fn ticket_block(ticket: &ticket::Model, ai_names: &HashSet<String>, options:
         format!("Type: {} · Priority: {} · Status: {}", ticket.r#type, ticket.priority, status_label(&ticket.status)),
     ];
     if let Some(estimate) = ticket.estimate {
-        lines.push(format!("Estimate: {}", pyjson::float_repr(estimate)));
+        lines.push(format!("Estimate: {}", pyjson::float_repr(estimate.get())));
     }
     lines.push("Description:".into());
     lines.push(redact(if ticket.description.is_empty() { "(empty)" } else { &ticket.description }));

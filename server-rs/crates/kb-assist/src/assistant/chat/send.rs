@@ -10,9 +10,7 @@ use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{ai_chat, ai_chat_message};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, PaginatorTrait, QueryFilter, QueryOrder,
-};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
 use serde_json::{Map, Value, json};
 use tokio::sync::Notify;
 
@@ -310,7 +308,7 @@ async fn answer(message_id: &str, by: &str, files: Vec<(String, Vec<u8>)>, stop:
         let text =
             answer.or_else(|| Some(out.text.clone()).filter(|t| !t.is_empty())).unwrap_or_else(|| ai.text.clone());
         row.text = Set(text);
-        row.cost = Set(out.cost);
+        row.cost = Set(out.cost.into());
         row.tokens_in = Set(i32::try_from(out.tokens_in).unwrap_or(i32::MAX));
         row.tokens_out = Set(i32::try_from(out.tokens_out).unwrap_or(i32::MAX));
         row.model = Set(out.model.clone());
@@ -418,7 +416,7 @@ async fn answer(message_id: &str, by: &str, files: Vec<(String, Vec<u8>)>, stop:
         if let Some(chat) = ai_chat::Entity::find_by_id(ai.chat_id.as_str()).one(&session).await? {
             let (cost, tokens, session_id) = (chat.cost, chat.tokens, chat.session_id.clone());
             let mut chat = kb_db::edit(chat);
-            chat.cost = Set(round_to(cost + out.cost, 6));
+            chat.cost = Set(round_to(cost + out.cost, 6).into());
             chat.tokens = Set(tokens.saturating_add(i32::try_from(out.tokens_in + out.tokens_out).unwrap_or(i32::MAX)));
             chat.session_id = Set(out.session_id.clone().filter(|s| !s.is_empty()).or(session_id));
             chat.updated_at = Set(now_iso());

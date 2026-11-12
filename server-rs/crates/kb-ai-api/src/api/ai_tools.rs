@@ -7,7 +7,6 @@
 
 use axum::Json;
 use axum::http::StatusCode;
-use kb_ai::store::save;
 use kb_ai_know::plugins::{self as svc_plugins, InstallOpts};
 use kb_ai_know::{board_skills, packs as svc_packs};
 use kb_ai_scan::run::ScanOptions;
@@ -16,6 +15,7 @@ use kb_base::error::{Body, Path};
 use kb_base::{ApiError, ApiResult, Routes, activity, pyjson};
 use kb_db::Session;
 use kb_db::entities::{ai_plugin, ai_repo_scan, project};
+use kb_db::save_model;
 use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
@@ -234,14 +234,15 @@ struct PluginPatch {
 /// Change the project default or the roles; takes effect from the next run.
 async fn patch_plugin(Path(plugin_id): Path<String>, Body(body): Body<PluginPatch>) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
-    let mut row = plugin_row(&session, &plugin_id).await?;
+    let read = plugin_row(&session, &plugin_id).await?;
+    let mut row = read.clone();
     if let Some(default_on) = body.default_on {
         row.default_on = default_on;
     }
     if let Some(roles) = &body.roles {
         row.roles = pyjson::dumps(&json!(roles));
     }
-    let row = save::<_, ai_plugin::Model, ai_plugin::ActiveModel>(&session, row).await?;
+    let row = save_model(&session, &read, row).await?;
     session.commit().await?;
     Ok(Json(svc_plugins::to_dict(&row, None)))
 }

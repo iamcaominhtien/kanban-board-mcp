@@ -9,13 +9,13 @@ use kb_db::entities::{
     docs_ai_ignore, docs_ai_job, docs_anchor_aliases, docs_draft, docs_link, docs_page, docs_page_seen,
     docs_title_aliases, docs_version,
 };
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde_json::{Map, Value, json};
 
 use super::RECYCLE_DAYS;
 use super::pages::{all_pages, clean_title, draft_for, get_page, latest_version, next_position, page_detail, project};
 use super::refs::refresh_link_targets;
-use crate::{Result, docs_comments, docs_err, docs_search};
+use crate::{Error, Result, docs_comments, docs_err, docs_search};
 
 /// All the pages under `page`, depth first (the order `stack.pop()` of the Python code walks them).
 pub async fn descendants(session: &Session, page: &docs_page::Model, deleted: bool) -> Result<Vec<docs_page::Model>> {
@@ -234,11 +234,15 @@ pub async fn restore_page(session: &Session, page_id: &str) -> Result<Map<String
     Ok(out)
 }
 
-/// `(now - deleted_at).days`: whole days since, rounded down.
-fn days_since(deleted_at: &str) -> i64 {
+/// `(datetime.now(UTC) - datetime.fromisoformat(deleted_at)).days`: whole days since, rounded down. A text that is
+/// no time is a `ValueError` and a time without an offset a `TypeError`; nothing catches either.
+fn days_since(deleted_at: &str) -> Result<i64> {
     match time::parse_iso(deleted_at) {
-        Some(p) => (Utc::now() - p.utc()).num_seconds().div_euclid(86_400),
-        None => 0,
+        Some(time::Parsed::Aware(at)) => Ok((Utc::now() - at.with_timezone(&Utc)).num_seconds().div_euclid(86_400)),
+        Some(time::Parsed::Naive(_)) => {
+            Err(Error::Other("can't subtract offset-naive and offset-aware datetimes".to_string()))
+        }
+        None => Err(Error::Other(format!("Invalid isoformat string: {}", kb_base::pytext::repr(deleted_at)))),
     }
 }
 
@@ -271,8 +275,9 @@ pub async fn list_deleted(session: &Session, project_id: &str) -> Result<Vec<Val
             })
             .map(|d| d.title.as_str())
             .collect();
-        let deleted_at = p.deleted_at.clone().unwrap_or_else(time::now_iso);
-        let days_left = (RECYCLE_DAYS - days_since(&deleted_at)).max(0);
+        // `p.deleted_at or _now()`
+        let deleted_at = p.deleted_at.clone().filter(|at| !at.is_empty()).unwrap_or_else(time::now_iso);
+        let days_left = (RECYCLE_DAYS - days_since(&deleted_at)?).max(0);
         out.push((
             p.deleted_at.clone().unwrap_or_default(),
             json!({

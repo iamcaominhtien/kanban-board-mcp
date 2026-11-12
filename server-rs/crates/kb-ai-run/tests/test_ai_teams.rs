@@ -291,14 +291,17 @@ async fn detect_local_says_what_is_installed_and_who_is_signed_in() {
     let mut row = account.clone();
     row.email = Some("an@work.example".into());
     row.plan = Some("max".into());
-    kb_ai::store::save(&session, row).await.expect("save");
+    let account = kb_db::save_model(&session, &account, row).await.expect("save");
     session.commit().await.expect("commit");
     let info = teams::detect_local(Some(&session), None, Some(&account.id)).await.expect("detect");
     assert!(info["found"] == true && info["logged_in"] == true);
     assert_eq!(info["account"], "an@work.example · max");
+    // signed out, and the CLI no longer says who it was
     let mut row = account.clone();
     row.status = "needs_sign_in".into();
-    kb_ai::store::save(&session, row).await.expect("save");
+    row.email = None;
+    row.plan = None;
+    kb_db::save_model(&session, &account, row).await.expect("save");
     session.commit().await.expect("commit");
     let info = teams::detect_local(Some(&session), None, Some(&account.id)).await.expect("detect");
     assert_eq!(info["logged_in"], false);
@@ -335,17 +338,19 @@ async fn health_check_follows_a_runner_that_went_away_and_came_back() {
     assert_eq!(calls.woken.load(Ordering::SeqCst), 1);
     // it is back
     let (_, profile) = teams::get_profile(&session, id).await.expect("rows");
-    let mut profile = profile.expect("profile");
+    let read = profile.expect("profile");
+    let mut profile = read.clone();
     profile.cli_path = Some(common::real_cli());
-    kb_ai::store::save(&session, profile).await.expect("save");
+    kb_db::save_model(&session, &read, profile).await.expect("save");
     session.commit().await.expect("commit");
     assert_eq!(teams::health_check().await.expect("check"), 1);
     assert_eq!(common::described(id).await["health"], "ok");
     // a usage limit is kept by a check (only the next run that ends well clears it), a removed team is left alone
     let (_, profile) = teams::get_profile(&session, id).await.expect("rows");
-    let mut profile = profile.expect("profile");
+    let read = profile.expect("profile");
+    let mut profile = read.clone();
     assert!(teams::note_run_outcome(&mut profile, "failed", Some("rate_limited"), Some("resets 3pm")));
-    kb_ai::store::save(&session, profile).await.expect("save");
+    kb_db::save_model(&session, &read, profile).await.expect("save");
     session.commit().await.expect("commit");
     assert_eq!(teams::health_check().await.expect("check"), 0);
     let now = common::described(id).await;
@@ -414,7 +419,7 @@ async fn post_member_refuses_a_name_that_is_taken() {
     // a removed AI member's name is free, and so is the same name in another project
     let mut gone = ai.clone();
     gone.kind = "ai_removed".into();
-    kb_ai::store::save(&session, gone).await.expect("save");
+    kb_db::save_model(&session, &ai, gone).await.expect("save");
     session.commit().await.expect("commit");
     drop(session);
     let (status, _) = post(&path, json!({"name": "Claude Code"})).await;

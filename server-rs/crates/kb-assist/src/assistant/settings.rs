@@ -9,9 +9,7 @@ use kb_db::database;
 use kb_db::entities::{ai_assist_settings, ai_team, ai_usage, docs_ai_settings, member};
 use kb_db::sea_orm::ActiveValue::Set;
 use kb_db::sea_orm::sea_query::{Expr, Func, SimpleExpr};
-use kb_db::sea_orm::{
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder, QuerySelect,
-};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use serde_json::{Map, Value, json};
 
 use super::errors::{AssistError, Error};
@@ -113,9 +111,9 @@ pub async fn month_spend(session: &Session, feature: Option<&str>) -> Result<f64
     if let Some(feature) = feature.filter(|f| !f.is_empty()) {
         stmt = stmt.filter(ai_usage::Column::Feature.eq(feature));
     }
-    let value: Option<f64> =
-        stmt.select_only().expr_as(total, "total").into_tuple::<Option<f64>>().one(session).await?.flatten();
-    Ok(round_to(value.unwrap_or(0.0), 4))
+    let value: Option<kb_db::Float> =
+        stmt.select_only().expr_as(total, "total").into_tuple::<Option<kb_db::Float>>().one(session).await?.flatten();
+    Ok(round_to(value.map_or(0.0, kb_db::Float::get), 4))
 }
 
 /// The keyword arguments of `record_usage`.
@@ -144,7 +142,7 @@ pub async fn record_usage(
     row.feature = Set(feature.to_string());
     row.member_id = Set(usage.member_id.map(str::to_string));
     row.person = Set(person.map(str::to_string));
-    row.cost = Set(usage.cost);
+    row.cost = Set(usage.cost.into());
     row.tokens_in = Set(i32::try_from(usage.tokens_in).unwrap_or(i32::MAX));
     row.tokens_out = Set(i32::try_from(usage.tokens_out).unwrap_or(i32::MAX));
     row.metered = Set(false);

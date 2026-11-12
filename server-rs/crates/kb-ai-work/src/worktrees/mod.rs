@@ -269,11 +269,6 @@ pub async fn for_ticket(session: &Session, ticket_id: &str) -> Result<Option<ai_
     ai_worktree::Entity::find_by_id(ticket_id).one(session).await
 }
 
-/// `session.add(row)` and the update of every column.
-pub(crate) async fn save(session: &Session, row: ai_worktree::Model) -> Result<ai_worktree::Model, DbErr> {
-    kb_ai::store::save::<_, ai_worktree::Model, ai_worktree::ActiveModel>(session, row).await
-}
-
 /// A text setting: the value when it is truthy, as the text Python would use.
 fn setting_text(cfg: &Map<String, Value>, key: &str) -> Option<String> {
     let value = cfg.get(key)?;
@@ -306,11 +301,14 @@ pub async fn ensure(
         return Ok(None);
     };
     let mut row = ai_worktree::Entity::find_by_id(ticket.id.as_str()).one(session).await?;
+    // the row as it was read: what is written back is what differs from it
+    let read = row.clone();
     if let Some(existing) = row.clone() {
         if matches!(existing.state.as_str(), "active" | "conflict" | "kept") && Path::new(&existing.path).is_dir() {
+            let read = existing.clone();
             let mut existing = existing;
             existing.last_used_at = Some(now());
-            return Ok(Some(commit_row(session, existing).await?));
+            return Ok(Some(commit_row(session, &read, existing).await?));
         }
     }
     if git_try(&repo, &["rev-parse", "--verify", "--quiet", "HEAD"]).await?.returncode != 0 {
@@ -374,6 +372,7 @@ pub async fn ensure(
             kb_db::sea_orm::ActiveModelTrait::insert(fresh, session).await?
         }
     };
+    let read = read.unwrap_or_else(|| saved.clone());
     saved.repo = repo.clone();
     saved.path = path.clone();
     saved.branch = branch.clone();
@@ -381,7 +380,7 @@ pub async fn ensure(
     saved.port = Some(port);
     saved.state = "active".to_string();
     saved.last_used_at = Some(now());
-    let mut saved = commit_row(session, saved).await?;
+    let mut saved = commit_row(session, &read, saved).await?;
     let prepare = pytext::strip(&setting_text(&cfg, "prepare").unwrap_or_default()).to_string();
     if !prepare.is_empty() && saved.prepared_at.as_deref().is_none_or(str::is_empty) {
         let started = chrono::Utc::now();
@@ -405,16 +404,22 @@ pub async fn ensure(
             let tail: String = tail.chars().take(300).collect();
             return fail(format!("The prepare command `{prepare}` failed: {tail}"));
         }
+        let read = saved.clone();
         saved.prepared_at = Some(now());
         saved.prepare_s = Some(i32::try_from((chrono::Utc::now() - started).num_seconds()).unwrap_or(i32::MAX));
-        saved = commit_row(session, saved).await?;
+        saved = commit_row(session, &read, saved).await?;
     }
     Ok(Some(saved))
 }
 
-/// `session.add(row)`, `await session.commit()`: the row stored and made permanent.
-pub(crate) async fn commit_row(session: &Session, row: ai_worktree::Model) -> Result<ai_worktree::Model, DbErr> {
-    let stored = save(session, row).await?;
+/// `session.add(row)`, `await session.commit()`: what changed since the row was read (`read`) stored and made
+/// permanent.
+pub(crate) async fn commit_row(
+    session: &Session,
+    read: &ai_worktree::Model,
+    row: ai_worktree::Model,
+) -> Result<ai_worktree::Model, DbErr> {
+    let stored = kb_db::save_model(session, read, row).await?;
     session.commit().await?;
     Ok(stored)
 }
@@ -624,9 +629,10 @@ pub async fn list_for_project(session: &Session, project_id: &str) -> Result<Vec
 ///
 /// Errors: `Error::Worktree`: something is uncommitted, or git refused.
 pub async fn remove(session: &Session, ticket_id: &str, force: bool) -> Result<ai_worktree::Model, Error> {
-    let Some(mut row) = ai_worktree::Entity::find_by_id(ticket_id).one(session).await? else {
+    let Some(read) = ai_worktree::Entity::find_by_id(ticket_id).one(session).await? else {
         return fail("This ticket has no worktree.");
     };
+    let mut row = read.clone();
     let live = status(&row).await?;
     if !live.uncommitted.is_empty() && !force {
         return fail(format!("{} files are not committed: keep it, or commit them first.", live.uncommitted.len()));
@@ -648,5 +654,5 @@ pub async fn remove(session: &Session, ticket_id: &str, force: bool) -> Result<a
     // a worktree made again for the ticket runs the prepare command again
     row.prepared_at = None;
     row.prepare_s = None;
-    commit_row(session, row).await.map_err(Into::into)
+    commit_row(session, &read, row).await.map_err(Into::into)
 }

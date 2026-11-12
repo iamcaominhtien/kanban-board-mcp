@@ -2,12 +2,13 @@
 
 use kb_ai::audit;
 use kb_ai::providers::{merged_config, providers};
-use kb_ai::store::{active_runs, get_profile, loads, now_iso, save};
+use kb_ai::store::{active_runs, get_profile, loads, now_iso};
 use kb_ai_know::roles;
 use kb_base::{pyjson, pytext};
 use kb_board::tickets::{self, TicketUpdate};
 use kb_db::Session;
 use kb_db::entities::{ai_team, member, ticket};
+use kb_db::save_model;
 use kb_db::sea_orm::ActiveValue::Set;
 use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use serde_json::{Map, Value, json};
@@ -109,11 +110,11 @@ pub async fn create(
         Some(value) => int_column("max_parallel", value)?,
         None => 2,
     });
-    profile.daily_budget = Set(opt_float(data, "daily_budget")?);
-    profile.monthly_cap = Set(opt_float(data, "monthly_cap")?);
+    profile.daily_budget = Set(opt_float(data, "daily_budget")?.map(Into::into));
+    profile.monthly_cap = Set(opt_float(data, "monthly_cap")?.map(Into::into));
     profile.max_runs_per_day = Set(opt_int(data, "max_runs_per_day")?);
     profile.tokens_per_day = Set(opt_int(data, "tokens_per_day")?);
-    profile.cap_per_run = Set(opt_float(data, "cap_per_run")?);
+    profile.cap_per_run = Set(opt_float(data, "cap_per_run")?.map(Into::into));
     profile.scope = Set(opt_text(data, "scope").unwrap_or_else(|| "assigned".to_string()));
     profile.created_by = Set(Some(by.to_string()));
 
@@ -186,11 +187,11 @@ fn set_field(profile: &mut ai_team::Model, key: &str, value: &Value) -> Result<(
         "pack_key" => profile.pack_key = text(&value),
         "permission_mode" => profile.permission_mode = text(&value).ok_or_else(required)?,
         "max_parallel" => profile.max_parallel = int(&value)?.ok_or_else(required)?,
-        "daily_budget" => profile.daily_budget = float(&value)?,
-        "monthly_cap" => profile.monthly_cap = float(&value)?,
+        "daily_budget" => profile.daily_budget = float(&value)?.map(Into::into),
+        "monthly_cap" => profile.monthly_cap = float(&value)?.map(Into::into),
         "max_runs_per_day" => profile.max_runs_per_day = int(&value)?,
         "tokens_per_day" => profile.tokens_per_day = int(&value)?,
-        "cap_per_run" => profile.cap_per_run = float(&value)?,
+        "cap_per_run" => profile.cap_per_run = float(&value)?.map(Into::into),
         "scope" => profile.scope = text(&value).ok_or_else(required)?,
         _ => {}
     }
@@ -204,9 +205,10 @@ pub async fn update(
     data: &Map<String, Value>,
     by: &str,
 ) -> Result<ai_team::Model, Error> {
-    let (Some(mut member), Some(mut profile)) = get_profile(session, member_id).await? else {
+    let (Some(member_read), Some(profile_read)) = get_profile(session, member_id).await? else {
         return refuse("AI team not found.");
     };
+    let (mut member, mut profile) = (member_read.clone(), profile_read.clone());
     if member.kind != "ai" {
         return refuse("AI team not found.");
     }
@@ -248,9 +250,9 @@ pub async fn update(
     }
     profile.updated_at = now_iso();
     if member_changed {
-        member = save(session, member).await?;
+        member = save_model(session, &member_read, member).await?;
     }
-    let profile = save(session, profile).await?;
+    let profile = save_model(session, &profile_read, profile).await?;
     session.commit().await?;
     let mut fields: Vec<&str> = data.keys().map(String::as_str).filter(|k| *k != "config").collect();
     fields.sort_unstable();
@@ -283,14 +285,15 @@ pub async fn set_paused(
     cancel_current: bool,
     reason: Option<&str>,
 ) -> Result<ai_team::Model, Error> {
-    let (Some(member), Some(mut profile)) = get_profile(session, member_id).await? else {
+    let (Some(member), Some(read)) = get_profile(session, member_id).await? else {
         return refuse("AI team not found.");
     };
+    let mut profile = read.clone();
     profile.paused = paused;
     profile.paused_at = paused.then(now_iso);
     profile.paused_reason = paused
         .then(|| reason.filter(|r| !r.is_empty()).map(str::to_string).unwrap_or_else(|| format!("Paused by {by}")));
-    let profile = save(session, profile).await?;
+    let profile = save_model(session, &read, profile).await?;
     session.commit().await?;
     audit::record(
         &member.project_id,
@@ -374,14 +377,16 @@ pub async fn remove(
     for run_id in ids("active_runs") {
         cancel_run(&run_id, by, &format!("{} was removed by {by}", member.name)).await?;
     }
-    let Some(mut member) = member::Entity::find_by_id(member_id).one(session).await? else {
+    let Some(read) = member::Entity::find_by_id(member_id).one(session).await? else {
         return Err(Error::Other(format!("AttributeError: the member {member_id} is gone")));
     };
+    let mut member = read.clone();
     member.kind = "ai_removed".to_string();
-    let member = save(session, member).await?;
-    if let Some(mut profile) = ai_team::Entity::find_by_id(member_id).one(session).await? {
+    let member = save_model(session, &read, member).await?;
+    if let Some(read) = ai_team::Entity::find_by_id(member_id).one(session).await? {
+        let mut profile = read.clone();
         profile.paused = true;
-        save(session, profile).await?;
+        save_model(session, &read, profile).await?;
     }
     session.commit().await?;
     audit::record(&member.project_id, "team_removed", "info", audit_entry(member_id, &member.name, by, json!({})))

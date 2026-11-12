@@ -8,7 +8,7 @@
 use std::collections::BTreeSet;
 
 use chrono::{DateTime, Datelike, Duration, LocalResult, NaiveDate, NaiveDateTime, Offset, TimeZone, Utc};
-use kb_ai::store::{isoformat_parts, loads, py_int};
+use kb_ai::store::{loads, py_int};
 use kb_base::{pyjson, pytext, time};
 use kb_db::entities::ai_schedule;
 use serde_json::{Value, json};
@@ -98,7 +98,7 @@ pub(crate) fn fold_of(tz: &Zone, at: DateTime<Utc>) -> bool {
 /// `_once_at`: when a one-off schedule runs (UTC), or None when its `run_at` is no time.
 pub fn once_at(s: &ai_schedule::Model) -> Result<Option<DateTime<Utc>>, Error> {
     let Some(run_at) = s.run_at.as_deref().filter(|r| !r.is_empty()) else { return Ok(None) };
-    let Some((local, offset)) = isoformat_parts(run_at) else { return Ok(None) };
+    let Some((local, offset)) = time::isoformat_parts(run_at) else { return Ok(None) };
     Ok(Some(match offset {
         Some(offset) => Utc.from_utc_datetime(&(local - Duration::seconds(i64::from(offset)))),
         None => wall_to_utc(&zone(Some(&s.tz))?, local, false),

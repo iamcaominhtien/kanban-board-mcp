@@ -31,7 +31,7 @@ use kb_base::{activity, events, pyjson, pytext};
 use kb_db::database;
 use kb_db::entities::{ai_account, ai_run, project};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, DbErr, EntityTrait, IntoActiveModel};
+use kb_db::sea_orm::{ActiveModelTrait, DbErr, EntityTrait};
 use serde_json::{Map, Value, json};
 
 use super::errors::{AssistError, Error};
@@ -565,7 +565,7 @@ pub(crate) async fn finish(run_id: &str, out: &Turn) -> Result<(), DbErr> {
     row.pid = Set(None);
     row.tokens_in = Set(tokens_in.saturating_add(i32::try_from(out.tokens_in).unwrap_or(i32::MAX)));
     row.tokens_out = Set(tokens_out.saturating_add(i32::try_from(out.tokens_out).unwrap_or(i32::MAX)));
-    row.cost_usd = Set(cost + out.cost);
+    row.cost_usd = Set((cost + out.cost).into());
     row.session_id = Set(out.session_id.clone().filter(|s| !s.is_empty()).or(session_id));
     if let Some(structured) = out.structured.as_ref().filter(|s| !s.is_empty()) {
         row.report = Set(pyjson::dumps(structured));

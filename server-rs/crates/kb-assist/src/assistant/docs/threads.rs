@@ -323,7 +323,7 @@ pub async fn annotate(
                     json!({
                         "text": res["summary"],
                         "count": res.get("count").cloned().unwrap_or(json!(0)),
-                        "cost": super::super::settings::round_to(j.cost_usd, 6),
+                        "cost": super::super::settings::round_to(j.cost_usd.get(), 6),
                         "job_id": j.id,
                         "member_name": "Docs AI",
                         "at": j.ended_at,

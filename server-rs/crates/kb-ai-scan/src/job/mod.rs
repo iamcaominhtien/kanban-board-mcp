@@ -19,7 +19,7 @@ use kb_base::pyjson;
 use kb_db::Session;
 use kb_db::entities::ai_repo_scan;
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, EntityTrait, IntoActiveModel};
+use kb_db::sea_orm::EntityTrait;
 use serde_json::{Map, Value, json};
 use tokio::sync::watch;
 

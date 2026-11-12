@@ -7,13 +7,13 @@ use axum::extract::multipart::Multipart;
 use axum::extract::{FromRequest, Request};
 use axum::http::StatusCode;
 use axum::routing::post;
-use kb_ai::store::save;
 use kb_ai_know::kb::{self as svc_kb, AddOpts};
 use kb_ai_work::github as svc_github;
 use kb_base::error::{Body, Path, Query};
 use kb_base::{ApiError, ApiResult, Routes, activity, pytext};
 use kb_db::Session;
 use kb_db::entities::{ai_knowledge_doc, ai_watched_pr, project};
+use kb_db::save_model;
 use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
@@ -278,7 +278,8 @@ struct KbPatch {
 async fn patch_kb_doc(Path(doc_id): Path<String>, Body(body): Body<KbPatch>) -> ApiResult<Json<Map<String, Value>>> {
     let session = kb_db::session();
     let person = by();
-    let mut doc = visible_doc(&session, &doc_id, &person).await?;
+    let read = visible_doc(&session, &doc_id, &person).await?;
+    let mut doc = read.clone();
     if let Some(owner) = doc.created_by.as_deref().filter(|c| !c.is_empty() && *c != person) {
         return Err(ApiError::forbidden(format!("Only {owner}, who added it, can change who sees it.")));
     }
@@ -309,7 +310,7 @@ async fn patch_kb_doc(Path(doc_id): Path<String>, Body(body): Body<KbPatch>) -> 
     if let Some(private) = body.private {
         doc.private = private;
     }
-    let doc = save::<_, ai_knowledge_doc::Model, ai_knowledge_doc::ActiveModel>(&session, doc).await?;
+    let doc = save_model(&session, &read, doc).await?;
     session.commit().await?;
     svc_kb::reindex(&session, &doc).await?;
     session.commit().await?;

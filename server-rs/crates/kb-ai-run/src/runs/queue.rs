@@ -12,8 +12,7 @@ use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{ai_account, ai_project_settings, ai_run, ai_team, member, ticket};
 use kb_db::sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder,
-    QuerySelect,
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
 };
 use serde_json::{Map, Value, json};
 

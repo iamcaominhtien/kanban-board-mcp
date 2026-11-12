@@ -50,7 +50,8 @@ def rust_type(column) -> str:
     elif isinstance(t, Integer) or py is int:
         base = "i32"
     elif isinstance(t, Float) or py is float:
-        base = "f64"
+        # `kb_db::float::Float`: an f64 that reads a MySQL FLOAT (single precision) as the Python driver did
+        base = "Float"
     elif isinstance(t, String) or py is str:
         base = "String"
     else:
@@ -74,6 +75,7 @@ def rust_literal(value, column) -> str | None:
         lit = repr(value)
         if "." not in lit and "e" not in lit and "inf" not in lit and "nan" not in lit:
             lit += ".0"
+        lit = f"Float({lit})"
     elif isinstance(value, str):
         escaped = value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
         lit = f'"{escaped}".to_string()'
@@ -192,6 +194,8 @@ def generate() -> None:
                 attrs.append("primary_key" if auto else "primary_key, auto_increment = false")
             if name in RUST_KEYWORDS:
                 attrs.append(f'column_name = "{name}"')
+            if "Float" in rust_type(column):
+                attrs.append('column_type = "Double"')
             for comment in comments.get(name, []):
                 lines.append(f"    /// {comment}".rstrip())
             if attrs:
@@ -224,6 +228,8 @@ def generate() -> None:
         lines += ["    }", "}", ""]
         text = "\n".join(lines)
         text = text.replace("{NOTSET_IMPORT}", "{NotSet, Set}" if ": NotSet," in text else "Set")
+        if ": Float," in text or ": Option<Float>," in text:
+            text = text.replace("use serde::{Deserialize, Serialize};", "use serde::{Deserialize, Serialize};\n\nuse crate::float::Float;", 1)
         (OUT / f"{table_name}.rs").write_text(text, encoding="utf-8")
     mod = [
         "//! One module per table, generated from the Python models by `contract/gen_entities.py`.",
@@ -281,7 +287,7 @@ def generate() -> None:
         mod.append("        columns: &[")
         for c in t.columns:
             rt = rust_type(c).replace("Option<", "").replace(">", "")
-            kind = {"String": "str", "i32": "int", "i64": "bigint", "f64": "float", "bool": "bool"}[rt]
+            kind = {"String": "str", "i32": "int", "i64": "bigint", "Float": "float", "bool": "bool"}[rt]
             fks = sorted(c.foreign_keys, key=lambda f: f.target_fullname)
             fk = f'Some(("{fks[0].column.table.name}", "{fks[0].column.name}"))' if fks else "None"
             long_text = "true" if type(c.type).__name__ == "LongText" else "false"

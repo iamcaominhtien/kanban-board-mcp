@@ -5,7 +5,7 @@ use kb_base::{activity, pyjson, time};
 use kb_db::Session;
 use kb_db::entities::{docs_comment, docs_comment_read, docs_comment_thread};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use kb_doctext::docs_anchors as anchors;
 use serde::Deserialize;
 use serde_json::{Map, Value};

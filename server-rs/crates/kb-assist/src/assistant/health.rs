@@ -12,7 +12,7 @@ use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{ai_digest, ai_insight};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder};
+use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder};
 use serde_json::{Map, Value, json};
 use sha1::{Digest, Sha1};
 
@@ -245,7 +245,7 @@ pub async fn check(project_id: &str, by: &str) -> Result<Map<String, Value>, Err
                 row
             }
             Some((_, stored)) => {
-                let mut row = kb_db::edit(stored.clone());
+                let mut row = ai_insight::ActiveModel::from(stored.clone());
                 if stored.state == "resolved" {
                     row.state = Set("open".to_string());
                     row.seen = Set(false);
@@ -255,13 +255,18 @@ pub async fn check(project_id: &str, by: &str) -> Result<Map<String, Value>, Err
         };
         row.detail = Set(text_cut(item.get("detail"), 1000));
         row.data = Set(pyjson::dumps(item.get("data").filter(|d| d.is_object()).unwrap_or(&json!({}))));
-        row.score = Set(py_float(item.get("score"))?);
+        row.score = Set(py_float(item.get("score"))?.into());
         row.updated_at = Set(now_iso());
         match known {
             None => {
                 row.insert(&session).await?;
             }
-            Some(slot) => slot.1 = row.update(&session).await?,
+            Some(slot) => {
+                // only what differs from the row as it was read
+                let mut changed = kb_db::edit(slot.1.clone());
+                *changed = row;
+                slot.1 = changed.update(&session).await?;
+            }
         }
     }
     for (key, stored) in &existing {
@@ -283,7 +288,7 @@ pub async fn check(project_id: &str, by: &str) -> Result<Map<String, Value>, Err
             "blocked": [],
             "tickets": found.len(),
         })));
-        row.cost = Set(out.cost);
+        row.cost = Set(out.cost.into());
         row.tokens = Set(i32::try_from(out.tokens_in + out.tokens_out).unwrap_or(i32::MAX));
         row.insert(&session).await?;
     }

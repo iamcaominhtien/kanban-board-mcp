@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::{NotSet, Set};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// A board-health finding: stuck, WIP overload, blocked chain, unassigned, at risk, priority.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "ai_insight")]
@@ -17,7 +19,8 @@ pub struct Model {
     pub title: String,
     pub detail: String,
     pub data: String,
-    pub score: f64,
+    #[sea_orm(column_type = "Double")]
+    pub score: Float,
     /// open | snoozed | dismissed | acted | resolved
     pub state: String,
     pub snoozed_until: Option<String>,
@@ -44,7 +47,7 @@ pub fn new() -> ActiveModel {
         title: NotSet,
         detail: Set("".to_string()),
         data: Set("{}".to_string()),
-        score: Set(0.0),
+        score: Set(Float(0.0)),
         state: Set("open".to_string()),
         snoozed_until: Set(None),
         seen: Set(false),

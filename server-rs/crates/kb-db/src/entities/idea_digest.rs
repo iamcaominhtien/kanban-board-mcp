@@ -4,6 +4,8 @@ use sea_orm::ActiveValue::Set;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::float::Float;
+
 /// The weekly grooming digest of a project's Idea Space; a digest is not a notification (table).
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "idea_digest")]
@@ -17,7 +19,8 @@ pub struct Model {
     pub items: String,
     pub ai: bool,
     pub member_id: Option<String>,
-    pub cost: f64,
+    #[sea_orm(column_type = "Double")]
+    pub cost: Float,
     pub ideas_read: i32,
     pub created_at: String,
 }
@@ -36,7 +39,7 @@ pub fn new() -> ActiveModel {
         items: Set("[]".to_string()),
         ai: Set(false),
         member_id: Set(None),
-        cost: Set(0.0),
+        cost: Set(Float(0.0)),
         ideas_read: Set(0),
         created_at: Set(kb_base::time::now_iso()),
     }

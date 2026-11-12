@@ -104,12 +104,7 @@ pub async fn set_global(session: &Session, values: &[(&str, Value)]) -> Result<(
 
 /// `session.add(row)` of a `NotifyPrefs` row: an update of what changed when it exists (`row` as it was read), else
 /// an insert.
-async fn save_prefs(
-    session: &Session,
-    row: Option<notify_prefs::Model>,
-    recipient: &str,
-    prefs: String,
-) -> Result<()> {
+async fn save_prefs(session: &Session, row: Option<notify_prefs::Model>, recipient: &str, prefs: String) -> Result<()> {
     match row {
         Some(row) => {
             let mut row = kb_db::edit(row);
