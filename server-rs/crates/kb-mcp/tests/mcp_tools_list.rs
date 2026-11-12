@@ -42,7 +42,8 @@ fn expected_tools(name: &str) -> Vec<Value> {
 /// Entry by entry, as text: the order of the keys counts too.
 fn assert_same_tools(listed: &Value, expected: &[Value]) {
     let listed = listed["tools"].as_array().expect("tools");
-    let names = |tools: &[Value]| tools.iter().map(|t| t["name"].as_str().unwrap_or("?").to_string()).collect::<Vec<_>>();
+    let names =
+        |tools: &[Value]| tools.iter().map(|t| t["name"].as_str().unwrap_or("?").to_string()).collect::<Vec<_>>();
     assert_eq!(names(listed), names(expected));
     for (tool, expected) in listed.iter().zip(expected) {
         assert_eq!(tool.to_string(), expected.to_string(), "{}", expected["name"]);

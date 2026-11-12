@@ -190,7 +190,11 @@ pub fn check_golden(name: &str, got: &Map<String, Value>) {
                 // show the two from a little before where they part
                 let same = expected.chars().zip(reply.chars()).take_while(|(a, b)| a == b).count();
                 let cut = |text: &str| text.chars().skip(same.saturating_sub(80)).take(500).collect::<String>();
-                wrong.push(format!("--- {case} (from character {same})\n expected: …{}\n      got: …{}", cut(&expected), cut(&reply)));
+                wrong.push(format!(
+                    "--- {case} (from character {same})\n expected: …{}\n      got: …{}",
+                    cut(&expected),
+                    cut(&reply)
+                ));
             }
             None => wrong.push(format!("--- {case}: in the golden file, not in the test")),
         }
@@ -201,4 +205,35 @@ pub fn check_golden(name: &str, got: &Map<String, Value>) {
         }
     }
     assert!(wrong.is_empty(), "{} of {} cases differ from Python:\n{}", wrong.len(), golden.len(), wrong.join("\n"));
+}
+
+/// `call(tool, **args)` of the Python tests: call a tool the way a client does and return its payload (the
+/// structured result when the tool has one, else the JSON of its text). Panics when the tool fails.
+pub async fn call(mcp: &testkit::Mcp, tool: &str, arguments: Value) -> Value {
+    let result = mcp.call_tool(tool, arguments.clone()).await;
+    assert!(!result.is_error, "{tool} {arguments}: {}", result.text);
+    match result.raw.get("structuredContent") {
+        // list results come wrapped as {"result": [...]}
+        Some(structured) => structured.get("result").cloned().unwrap_or_else(|| structured.clone()),
+        None => result.json(),
+    }
+}
+
+/// `with pytest.raises(ToolError)`: the call must fail; its message.
+pub async fn call_err(mcp: &testkit::Mcp, tool: &str, arguments: Value) -> String {
+    let result = mcp.call_tool(tool, arguments.clone()).await;
+    assert!(result.is_error, "{tool} {arguments} did not fail: {}", result.text);
+    result.text
+}
+
+/// The tools the server lists, by name. The Rust server lists a tool once it is ported: a check that needs a
+/// tool that is not listed yet is skipped (and runs by itself from the day the tool is ported).
+pub async fn tools(mcp: &testkit::Mcp) -> Map<String, Value> {
+    let listed = mcp.list_tools().await;
+    listed["tools"]
+        .as_array()
+        .expect("tools")
+        .iter()
+        .map(|tool| (tool["name"].as_str().expect("a name").to_string(), tool.clone()))
+        .collect()
 }

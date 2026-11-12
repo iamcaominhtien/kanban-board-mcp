@@ -187,7 +187,10 @@ mod tests {
             ("", "Expecting value: line 1 column 1 (char 0)"),
             ("hello", "Expecting value: line 1 column 1 (char 0)"),
             ("  \n ", "Expecting value: line 2 column 2 (char 4)"),
-            (r#"{"jsonrpc":"2.0","id":1,"#, "Expecting property name enclosed in double quotes: line 1 column 25 (char 24)"),
+            (
+                r#"{"jsonrpc":"2.0","id":1,"#,
+                "Expecting property name enclosed in double quotes: line 1 column 25 (char 24)",
+            ),
             (r#"{"jsonrpc":"2.0","id":1,"method":"ping"} x"#, "Extra data: line 1 column 42 (char 41)"),
             ("{'jsonrpc':'2.0'}", "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"),
             (r#"{"a":1,}"#, "Expecting property name enclosed in double quotes: line 1 column 8 (char 7)"),

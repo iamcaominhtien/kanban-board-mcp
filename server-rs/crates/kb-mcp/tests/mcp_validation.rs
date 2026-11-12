@@ -20,7 +20,11 @@ fn cases() -> Vec<(&'static str, &'static str, Value)> {
         ("required: two missing", "ticket_items", json!({})),
         ("required: two missing and an unknown argument", "ticket_branches", json!({"branch": "x", "nope": true})),
         ("required: null is not text", "list_tickets", json!({"project_id": null})),
-        ("required: missing, with a long input", "get_ticket", json!({"view": "full", "activity_limit": 5, "comment_ids": ["0123456789abcdef", "fedcba9876543210"]})),
+        (
+            "required: missing, with a long input",
+            "get_ticket",
+            json!({"view": "full", "activity_limit": 5, "comment_ids": ["0123456789abcdef", "fedcba9876543210"]}),
+        ),
         ("unknown: after the errors of known ones", "list_tickets", json!({"zzz": 1, "project_id": 7, "aaa": null})),
         // --- text
         ("text: a number", "get_ticket", json!({"ticket_id": 12})),
@@ -53,7 +57,11 @@ fn cases() -> Vec<(&'static str, &'static str, Value)> {
         ("int: nullable, a fraction", "board_wait", json!({"since": 2.5})),
         ("int: nullable, text", "board_wait", json!({"since": "soon"})),
         ("int: nullable with a maximum", "get_ticket", json!({"ticket_id": "T-1", "activity_limit": 1001})),
-        ("int: nullable with a minimum", "ticket_branches", json!({"ticket_id": "T-1", "action": "update", "ahead_count": -3})),
+        (
+            "int: nullable with a minimum",
+            "ticket_branches",
+            json!({"ticket_id": "T-1", "action": "update", "ahead_count": -3}),
+        ),
         ("int: nullable between limits, too low", "manage_ticket", json!({"action": "update", "wave_pin": 0})),
         ("int: nullable between limits, too high", "manage_ticket", json!({"action": "update", "wave_pin": 100})),
         // --- numbers
@@ -66,8 +74,16 @@ fn cases() -> Vec<(&'static str, &'static str, Value)> {
         ("list: an object", "manage_ticket", json!({"action": "update", "tags": {"a": 1}})),
         ("list: items of the wrong type", "manage_ticket", json!({"action": "update", "tags": [1, "a", null, ["x"]]})),
         ("list: items of the wrong type, in text", "manage_ticket", json!({"action": "update", "tags": "[1, \"a\"]"})),
-        ("list: an item that is not allowed", "manage_ticket", json!({"action": "update", "clear_fields": ["estimate", "nope", 3]})),
-        ("list of objects: text items", "ticket_items", json!({"ticket_id": "T-1", "item": "comment", "items": ["a", {"b": 1}, 2]})),
+        (
+            "list: an item that is not allowed",
+            "manage_ticket",
+            json!({"action": "update", "clear_fields": ["estimate", "nope", 3]}),
+        ),
+        (
+            "list of objects: text items",
+            "ticket_items",
+            json!({"ticket_id": "T-1", "item": "comment", "items": ["a", {"b": 1}, 2]}),
+        ),
         ("list of objects: text", "ticket_items", json!({"ticket_id": "T-1", "item": "comment", "items": "all"})),
         ("list of anything: an object", "ai_run", json!({"action": "ask", "options": {"a": 1}})),
         // --- objects
@@ -105,7 +121,10 @@ async fn the_validator_words_every_refusal_as_pydantic_does() {
         let arguments = arguments.as_object().expect("arguments").clone();
         let refused = kb_mcp::validation::validate_arguments(&format!("{tool}Arguments"), &schema_of(tool), &arguments);
         let text = refused.expect_err(&format!("{name}: the case must be an invalid call"));
-        assert!(ours.insert(name.to_string(), json!(format!("Error executing tool {tool}: {text}"))).is_none(), "{name}");
+        assert!(
+            ours.insert(name.to_string(), json!(format!("Error executing tool {tool}: {text}"))).is_none(),
+            "{name}"
+        );
     }
     if target() == Target::Python {
         // ask Pydantic: the reference server's own answers (and the golden file, when it is being written)
@@ -137,5 +156,11 @@ fn check_golden_unwritten(name: &str, got: &Map<String, Value>) {
         }
     }
     assert_eq!(got.len(), golden.len(), "the cases and the golden file differ: record it again");
-    assert!(wrong.is_empty(), "{} of {} refusals differ from Pydantic's:\n{}", wrong.len(), golden.len(), wrong.join("\n"));
+    assert!(
+        wrong.is_empty(),
+        "{} of {} refusals differ from Pydantic's:\n{}",
+        wrong.len(),
+        golden.len(),
+        wrong.join("\n")
+    );
 }

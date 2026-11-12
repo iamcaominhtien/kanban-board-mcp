@@ -16,12 +16,18 @@ pub enum Incoming {
     Request {
         /// The request id: an integer or text, echoed in the reply.
         id: Value,
+        /// The method (`tools/call`).
         method: String,
-        /// `None` when left out or `null`.
+        /// The parameters; `None` when left out or `null`.
         params: Option<Map<String, Value>>,
     },
     /// A notification: accepted, never answered.
-    Notification { method: String, params: Option<Map<String, Value>> },
+    Notification {
+        /// The method (`notifications/initialized`).
+        method: String,
+        /// The parameters; `None` when left out or `null`.
+        params: Option<Map<String, Value>>,
+    },
     /// A response or an error to a request of the server (it sends none): accepted and dropped.
     Reply,
 }
@@ -42,7 +48,12 @@ fn check_method(member: &str, object: &Map<String, Value>, whole: &Value, errors
         None => missing(member, "method", whole, errors),
         Some(Value::String(_)) => {}
         Some(other) => {
-            errors.push(LineError::new(&loc(member, &["method"]), "string_type", "Input should be a valid string", other));
+            errors.push(LineError::new(
+                &loc(member, &["method"]),
+                "string_type",
+                "Input should be a valid string",
+                other,
+            ));
         }
     }
 }
@@ -52,7 +63,12 @@ fn check_params(member: &str, object: &Map<String, Value>, errors: &mut Vec<Line
     match object.get("params") {
         None | Some(Value::Null | Value::Object(_)) => {}
         Some(other) => {
-            errors.push(LineError::new(&loc(member, &["params"]), "dict_type", "Input should be a valid dictionary", other));
+            errors.push(LineError::new(
+                &loc(member, &["params"]),
+                "dict_type",
+                "Input should be a valid dictionary",
+                other,
+            ));
         }
     }
 }
@@ -83,8 +99,18 @@ fn check_id(member: &str, object: &Map<String, Value>, whole: &Value, errors: &m
         None => missing(member, "id", whole, errors),
         Some(id) if is_request_id(id) => {}
         Some(other) => {
-            errors.push(LineError::new(&loc(member, &["id", "int"]), "int_type", "Input should be a valid integer", other));
-            errors.push(LineError::new(&loc(member, &["id", "str"]), "string_type", "Input should be a valid string", other));
+            errors.push(LineError::new(
+                &loc(member, &["id", "int"]),
+                "int_type",
+                "Input should be a valid integer",
+                other,
+            ));
+            errors.push(LineError::new(
+                &loc(member, &["id", "str"]),
+                "string_type",
+                "Input should be a valid string",
+                other,
+            ));
         }
     }
 }
@@ -193,16 +219,27 @@ pub fn classify(raw: &Value) -> Result<Incoming, Vec<LineError>> {
 /// A request a client may send, with what the server needs of its parameters.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ClientRequest {
+    /// `ping`.
     Ping,
+    /// `initialize`.
     /// `protocolVersion` as text (`None` when the client sent a number).
-    Initialize { protocol_version: Option<String> },
+    Initialize {
+        protocol_version: Option<String>,
+    },
     ListTools,
-    CallTool { name: String, arguments: Map<String, Value> },
+    CallTool {
+        name: String,
+        arguments: Map<String, Value>,
+    },
     ListResources,
     ListResourceTemplates,
     ListPrompts,
-    ReadResource { uri: String },
-    GetPrompt { name: String },
+    ReadResource {
+        uri: String,
+    },
+    GetPrompt {
+        name: String,
+    },
     /// A request the SDK knows and FastMCP has no handler for (`Method not found`).
     Unhandled,
 }
@@ -267,7 +304,8 @@ fn capabilities_ok(value: Option<&Value>) -> bool {
         None | Some(Value::Null) => true,
         Some(Value::Object(roots)) => {
             let mut errors = Vec::new();
-            let model = serde_json::json!({"properties": {"listChanged": {"anyOf": [{"type": "boolean"}, {"type": "null"}]}}});
+            let model =
+                serde_json::json!({"properties": {"listChanged": {"anyOf": [{"type": "boolean"}, {"type": "null"}]}}});
             let given: Map<String, Value> =
                 roots.iter().filter(|(k, _)| *k == "listChanged").map(|(k, v)| (k.clone(), v.clone())).collect();
             if let Err(list) = crate::validation::check_arguments(&model, &given) {
@@ -347,7 +385,9 @@ pub fn client_request(method: &str, params: Option<&Map<String, Value>>) -> Opti
             };
             arguments_ok.then(|| ClientRequest::GetPrompt { name: name.to_string() })
         }
-        "resources/subscribe" | "resources/unsubscribe" => is_url(params.get("uri")).then_some(ClientRequest::Unhandled),
+        "resources/subscribe" | "resources/unsubscribe" => {
+            is_url(params.get("uri")).then_some(ClientRequest::Unhandled)
+        }
         "logging/setLevel" => params
             .get("level")
             .and_then(Value::as_str)
@@ -377,7 +417,9 @@ pub fn client_request(method: &str, params: Option<&Map<String, Value>>) -> Opti
             };
             (reference_ok && argument_ok && context_ok).then_some(ClientRequest::Unhandled)
         }
-        "tasks/get" | "tasks/result" | "tasks/cancel" => is_text(params.get("taskId")).then_some(ClientRequest::Unhandled),
+        "tasks/get" | "tasks/result" | "tasks/cancel" => {
+            is_text(params.get("taskId")).then_some(ClientRequest::Unhandled)
+        }
         _ => None,
     }
 }
@@ -419,7 +461,10 @@ mod tests {
             client_request("tools/call", object(json!({"name": "t", "arguments": null})).as_ref()),
             Some(ClientRequest::CallTool { name: "t".into(), arguments: Map::new() })
         );
-        assert_eq!(client_request("logging/setLevel", object(json!({"level": "info"})).as_ref()), Some(ClientRequest::Unhandled));
+        assert_eq!(
+            client_request("logging/setLevel", object(json!({"level": "info"})).as_ref()),
+            Some(ClientRequest::Unhandled)
+        );
         assert_eq!(client_request("logging/setLevel", object(json!({"level": "loud"})).as_ref()), None);
     }
 }

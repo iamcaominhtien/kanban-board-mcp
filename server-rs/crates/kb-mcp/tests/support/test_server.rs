@@ -40,10 +40,7 @@ async fn main() -> std::process::ExitCode {
         eprintln!("The database could not be opened: {err}");
         return std::process::ExitCode::FAILURE;
     }
-    let routes = Routes::new()
-        .merge(kb_mcp::routes())
-        .merge(kb_board::api::routes())
-        .get("/{full_path:path}", ui);
+    let routes = Routes::new().merge(kb_mcp::routes()).merge(kb_board::api::routes()).get("/{full_path:path}", ui);
     let (router, _table) = routes.into_parts();
     let app = router.layer(axum::middleware::from_fn(record_activity_actor));
     let listener = match tokio::net::TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0))).await {
@@ -55,15 +52,11 @@ async fn main() -> std::process::ExitCode {
     };
     let port = listener.local_addr().map(|a| a.port()).unwrap_or(0);
     println!("READY port={port}");
-    match axum::serve(listener, router_service(app)).await {
+    match axum::serve(listener, app.into_make_service()).await {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(err) => {
             eprintln!("The server stopped: {err}");
             std::process::ExitCode::FAILURE
         }
     }
-}
-
-fn router_service(app: axum::Router) -> axum::routing::IntoMakeService<axum::Router> {
-    app.into_make_service()
 }

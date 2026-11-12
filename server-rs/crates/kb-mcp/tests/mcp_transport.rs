@@ -9,7 +9,6 @@ mod common;
 use common::{MCP_HEADERS, RawReply, check_golden, raw};
 use serde_json::{Map, Value, json};
 
-
 /// The headers that are part of the contract (the others are the HTTP server's own: `date`, `server`).
 const KEPT_HEADERS: [&str; 8] = [
     "content-type",
@@ -349,7 +348,9 @@ fn kept(reply: &RawReply) -> Value {
     // the tool list is long, and shorter while tools are still being ported: `mcp_tools_list.rs` compares it with the
     // snapshot; here only its framing counts
     let body = match reply.body.split_once(r#""result":{"tools":["#) {
-        Some((head, rest)) if rest.ends_with("]}}\r\n\r\n") => format!("{head}\"result\":{{\"tools\":[<the tools>]}}}}\r\n\r\n"),
+        Some((head, rest)) if rest.ends_with("]}}\r\n\r\n") => {
+            format!("{head}\"result\":{{\"tools\":[<the tools>]}}}}\r\n\r\n")
+        }
         _ => reply.body.clone(),
     };
     json!({"status": reply.status, "headers": headers, "body": body})

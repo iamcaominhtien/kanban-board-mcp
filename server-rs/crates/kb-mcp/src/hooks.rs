@@ -21,7 +21,8 @@ pub struct RunContext {
     pub member_id: String,
     pub member_name: String,
     pub project_id: String,
-    pub ticket_id: String,
+    /// None for a run that is not on a ticket
+    pub ticket_id: Option<String>,
     pub on_behalf_of: String,
     /// work | ask
     pub mode: String,
@@ -38,10 +39,11 @@ pub type GuardedCall = Box<dyn FnOnce(Map<String, Value>) -> BoxFuture<'static, 
 /// The guard of the AI team: who an MCP call acts for.
 #[async_trait]
 pub trait AiGuardHook: Send + Sync {
-    /// `guard.resolve()`: the run of the current MCP request, or the one already entered. `token` is the run token
-    /// of the request (`common::request_token()`: the `kbr_…` of its `Authorization: Bearer` header), `None`
-    /// outside HTTP or without one. The error is the message of `AiActionError` (the run has ended).
-    async fn resolve(&self, token: Option<&str>) -> Result<Option<RunContext>, String>;
+    /// `guard.resolve()`: the run of the current MCP request, or the one already entered. `authorization` is the
+    /// `Authorization` header of the request being handled (`None` over stdio or without one); a board run sends
+    /// `Bearer kbr_…` (`common::request_token_of` reads the token). The error is the message of `AiActionError`
+    /// (the run has ended).
+    async fn resolve(&self, authorization: Option<&str>) -> Result<Option<RunContext>, String>;
 
     /// `guard.guarded(tool, action, given, call)`: run `call(given)` for an MCP tool, attributed to the AI run it
     /// comes from (and skipped when the run repeats a write it made right before it was resumed). Outside a run
@@ -51,7 +53,7 @@ pub trait AiGuardHook: Send + Sync {
         tool: &str,
         action: &str,
         given: Map<String, Value>,
-        token: Option<&str>,
+        authorization: Option<&str>,
         call: GuardedCall,
     ) -> ToolResult;
 }

@@ -32,8 +32,7 @@ use kb_base::{Routes, ctx};
 
 use super::message::{self, Incoming};
 use super::{
-    DEFAULT_NEGOTIATED_VERSION, INVALID_PARAMS, INVALID_REQUEST, PARSE_ERROR, SUPPORTED_PROTOCOL_VERSIONS,
-    json_errors,
+    DEFAULT_NEGOTIATED_VERSION, INVALID_PARAMS, INVALID_REQUEST, PARSE_ERROR, SUPPORTED_PROTOCOL_VERSIONS, json_errors,
 };
 use crate::common::RequestAuthorization;
 use crate::pydantic::format_errors;
@@ -54,9 +53,11 @@ const METHODS: [&str; 8] = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OP
 pub fn routes() -> Routes {
     let mut routes = Routes::new();
     for method in METHODS {
-        routes = routes
-            .hidden(method, "/mcp/", axum::routing::any(endpoint))
-            .hidden(method, "/mcp/{rest:path}", axum::routing::any(not_found));
+        routes = routes.hidden(method, "/mcp/", axum::routing::any(endpoint)).hidden(
+            method,
+            "/mcp/{rest:path}",
+            axum::routing::any(not_found),
+        );
     }
     routes
 }
@@ -121,7 +122,8 @@ fn accepts(headers: &HeaderMap) -> (bool, bool) {
 
 /// `_validate_protocol_version`: the refusal for a `mcp-protocol-version` header the SDK does not know.
 fn protocol_version_refusal(headers: &HeaderMap) -> Option<Response> {
-    let version = header_text(headers, "mcp-protocol-version").unwrap_or_else(|| DEFAULT_NEGOTIATED_VERSION.to_string());
+    let version =
+        header_text(headers, "mcp-protocol-version").unwrap_or_else(|| DEFAULT_NEGOTIATED_VERSION.to_string());
     if SUPPORTED_PROTOCOL_VERSIONS.contains(&version.as_str()) {
         return None;
     }

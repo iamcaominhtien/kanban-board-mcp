@@ -61,8 +61,14 @@ pub async fn update_project(
     worktree_by_default: Option<bool>,
 ) -> ToolResult {
     notify_on_success(async {
-        let data =
-            ProjectUpdate { name, color, repo_path, worktree_template, worktree_by_default, ..ProjectUpdate::default() };
+        let data = ProjectUpdate {
+            name,
+            color,
+            repo_path,
+            worktree_template,
+            worktree_by_default,
+            ..ProjectUpdate::default()
+        };
         let session = common::async_session();
         let project = svc_projects::update_project(&session, project_id, &data).await.map_err(project_error)?;
         let Some(project) = project else {

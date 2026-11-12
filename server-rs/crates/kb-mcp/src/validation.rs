@@ -18,7 +18,11 @@ use serde_json::{Map, Value, json};
 use crate::pydantic::{LineError, expected_values, format_errors};
 
 /// Validate `arguments` against a tool's `inputSchema`; `title` is the model's name (`<tool>Arguments`).
-pub fn validate_arguments(title: &str, schema: &Value, arguments: &Map<String, Value>) -> Result<Map<String, Value>, String> {
+pub fn validate_arguments(
+    title: &str,
+    schema: &Value,
+    arguments: &Map<String, Value>,
+) -> Result<Map<String, Value>, String> {
     check_arguments(schema, arguments).map_err(|errors| format_errors(title, &errors))
 }
 
@@ -26,8 +30,11 @@ pub fn validate_arguments(title: &str, schema: &Value, arguments: &Map<String, V
 pub fn check_arguments(schema: &Value, arguments: &Map<String, Value>) -> Result<Map<String, Value>, Vec<LineError>> {
     let empty = Map::new();
     let properties = schema.get("properties").and_then(Value::as_object).unwrap_or(&empty);
-    let required: Vec<&str> =
-        schema.get("required").and_then(Value::as_array).map(|r| r.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
+    let required: Vec<&str> = schema
+        .get("required")
+        .and_then(Value::as_array)
+        .map(|r| r.iter().filter_map(Value::as_str).collect())
+        .unwrap_or_default();
     let data = pre_parse_json(properties, arguments);
     let whole = Value::Object(data.clone());
 
@@ -51,7 +58,12 @@ pub fn check_arguments(schema: &Value, arguments: &Map<String, Value>) -> Result
     }
     for (name, value) in &data {
         if !properties.contains_key(name) {
-            errors.push(LineError::new(&[name.clone()], "extra_forbidden", "Extra inputs are not permitted", value));
+            errors.push(LineError::new(
+                std::slice::from_ref(name),
+                "extra_forbidden",
+                "Extra inputs are not permitted",
+                value,
+            ));
         }
     }
     if errors.is_empty() { Ok(out) } else { Err(errors) }
@@ -74,11 +86,8 @@ fn pre_parse_json(properties: &Map<String, Value>, arguments: &Map<String, Value
         if is_plain_text(property) {
             continue;
         }
-        match serde_json::from_str::<Value>(text) {
-            Ok(parsed @ (Value::Null | Value::Array(_) | Value::Object(_))) => {
-                data.insert(name.clone(), parsed);
-            }
-            _ => {}
+        if let Ok(parsed @ (Value::Null | Value::Array(_) | Value::Object(_))) = serde_json::from_str::<Value>(text) {
+            data.insert(name.clone(), parsed);
         }
     }
     data
@@ -156,7 +165,12 @@ fn validate_value(schema: &Value, value: &Value, loc: &[String], errors: &mut Ve
         if allowed.contains(value) {
             return Some(value.clone());
         }
-        errors.push(LineError::new(loc, "literal_error", format!("Input should be {}", expected_values(allowed)), value));
+        errors.push(LineError::new(
+            loc,
+            "literal_error",
+            format!("Input should be {}", expected_values(allowed)),
+            value,
+        ));
         return None;
     }
     if let Some(allowed) = schema.get("const") {
@@ -241,8 +255,8 @@ fn validate_bool(value: &Value, loc: &[String], errors: &mut Vec<LineError>) -> 
             _ => Err(("bool_parsing", UNREADABLE)),
         },
         Value::Number(n) => match n.as_f64() {
-            Some(f) if f == 0.0 => Ok(false),
-            Some(f) if f == 1.0 => Ok(true),
+            Some(0.0) => Ok(false),
+            Some(1.0) => Ok(true),
             _ => Err(("bool_type", "Input should be a valid boolean")),
         },
         _ => Err(("bool_type", "Input should be a valid boolean")),
@@ -304,15 +318,16 @@ fn check_limits(schema: &Value, read: f64, value: &Value, loc: &[String], errors
 fn validate_int(schema: &Value, value: &Value, loc: &[String], errors: &mut Vec<LineError>) -> Option<Value> {
     let read: Result<i64, (&'static str, &str)> = match value {
         Value::Bool(b) => Ok(i64::from(*b)),
-        Value::Number(n) if !n.is_f64() => n.as_i64().ok_or(("int_parsing_size", "Unable to parse input string as an integer, exceeded maximum size")),
+        Value::Number(n) if !n.is_f64() => {
+            n.as_i64().ok_or(("int_parsing_size", "Unable to parse input string as an integer, exceeded maximum size"))
+        }
         Value::Number(n) => match n.as_f64() {
             Some(f) if !f.is_finite() => Err(("finite_number", "Input should be a finite number")),
             Some(f) if f.fract() == 0.0 => Ok(f as i64),
             _ => Err(("int_from_float", "Input should be a valid integer, got a number with a fractional part")),
         },
-        Value::String(text) => {
-            str_as_int(text).ok_or(("int_parsing", "Input should be a valid integer, unable to parse string as an integer"))
-        }
+        Value::String(text) => str_as_int(text)
+            .ok_or(("int_parsing", "Input should be a valid integer, unable to parse string as an integer")),
         _ => Err(("int_type", "Input should be a valid integer")),
     };
     match read {

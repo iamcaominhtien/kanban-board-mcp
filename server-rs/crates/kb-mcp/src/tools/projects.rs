@@ -92,7 +92,11 @@ pub const PROJECT_OPS: &[(&str, Op)] = &[
     (
         "remove_member",
         Op::new(
-            |a| Box::pin(async move { ops::remove_member(&arg_text(&a, "project_id"), &arg_text(&a, "member_id")).await }),
+            |a| {
+                Box::pin(
+                    async move { ops::remove_member(&arg_text(&a, "project_id"), &arg_text(&a, "member_id")).await },
+                )
+            },
             &["project_id", "member_id"],
             &[],
         ),
@@ -109,4 +113,42 @@ pub const PROJECT_OPS: &[(&str, Op)] = &[
 pub async fn manage_project(args: Map<String, Value>) -> ToolResult {
     let action = arg_text(&args, "action");
     dispatch("manage_project", PROJECT_OPS, &action, params_of(args)).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::registry::snapshot;
+
+    fn schema() -> &'static Value {
+        let entry = snapshot(false).iter().find(|e| e["name"] == "manage_project").expect("manage_project");
+        &entry["inputSchema"]
+    }
+
+    /// `test_every_table_entry_names_real_parameters`: a typo in a table would only show when that action is used;
+    /// check them all once. (Here against the tool's schema: the parameters an operation is given are the tool's.)
+    #[test]
+    fn every_table_entry_names_real_parameters() {
+        let properties = schema()["properties"].as_object().expect("properties");
+        for (action, op) in PROJECT_OPS {
+            for name in op.required.iter().chain(op.optional) {
+                assert!(properties.contains_key(*name), "{action}: {name}");
+                assert!(!["action", "item"].contains(name), "{action}: {name} is a selector");
+            }
+            assert!(!op.required.iter().any(|name| op.optional.contains(name)), "{action}");
+        }
+    }
+
+    /// Every action of the schema is a real choice, and the other way round, in the schema's order.
+    #[test]
+    fn the_actions_are_those_of_the_schema() {
+        let actions: Vec<&str> = PROJECT_OPS.iter().map(|(action, _)| *action).collect();
+        let listed: Vec<&str> = schema()["properties"]["action"]["enum"]
+            .as_array()
+            .expect("enum")
+            .iter()
+            .filter_map(Value::as_str)
+            .collect();
+        assert_eq!(actions, listed);
+    }
 }

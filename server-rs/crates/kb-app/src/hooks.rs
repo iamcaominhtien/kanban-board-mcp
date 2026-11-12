@@ -40,8 +40,18 @@ impl kb_dbkit::hooks::DocsSearchHook for DocsSearch {
     }
 }
 
+struct McpTools;
+
+#[async_trait]
+impl kb_skills::hooks::McpToolsHook for McpTools {
+    async fn tool_count(&self) -> usize {
+        kb_mcp::registry::registered(kb_mcp::ideas_enabled()).len()
+    }
+}
+
 /// Register every hook (a second call changes nothing).
 pub fn install() {
+    kb_skills::hooks::set_mcp_tools_hook(Box::new(McpTools));
     kb_docs::hooks::register();
     kb_ideas::register();
     kb_dbkit::hooks::set_docs_search_hook(Box::new(DocsSearch));

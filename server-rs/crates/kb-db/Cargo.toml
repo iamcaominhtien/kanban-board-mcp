@@ -11,6 +11,7 @@ workspace = true
 
 [dependencies]
 kb-base = { workspace = true }
+regex = { workspace = true }
 async-trait = { workspace = true }
 chrono = { workspace = true }
 sea-orm = { workspace = true }

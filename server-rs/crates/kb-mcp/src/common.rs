@@ -92,22 +92,31 @@ pub fn async_session() -> Session {
 #[derive(Debug, Clone, Default)]
 pub struct RequestAuthorization(pub Option<String>);
 
-/// `guard._request_token()`: the run token of the current MCP request (`Authorization: Bearer kbr_…`).
-pub fn request_token() -> Option<String> {
-    let auth = ctx::get::<RequestAuthorization>().and_then(|a| a.0).unwrap_or_default();
+/// The `Authorization` header of the request being handled, as it was sent.
+pub fn request_authorization() -> Option<String> {
+    ctx::get::<RequestAuthorization>().and_then(|a| a.0)
+}
+
+/// The run token in an `Authorization` header (`Bearer kbr_…`, the word in any case), when it holds one.
+pub fn request_token_of(auth: &str) -> Option<String> {
     if !auth.to_lowercase().starts_with("bearer kbr_") {
         return None;
     }
     // `auth.split(None, 1)[1].strip()`
-    let rest = kb_base::pytext::strip(&auth);
+    let rest = kb_base::pytext::strip(auth);
     let after = rest.find(kb_base::pytext::is_space).map(|at| &rest[at..]).unwrap_or_default();
     Some(kb_base::pytext::strip(after).to_string())
+}
+
+/// `guard._request_token()`: the run token of the current MCP request (`Authorization: Bearer kbr_…`).
+pub fn request_token() -> Option<String> {
+    request_token_of(&request_authorization().unwrap_or_default())
 }
 
 /// `guard.resolve()`: the AI run making this call, or `None` for a person or another client.
 pub async fn resolve() -> Result<Option<RunContext>, ToolError> {
     match hooks::ai_guard() {
-        Some(guard) => guard.resolve(request_token().as_deref()).await.map_err(ToolError::Value),
+        Some(guard) => guard.resolve(request_authorization().as_deref()).await.map_err(ToolError::Value),
         None => Ok(None),
     }
 }
@@ -115,7 +124,7 @@ pub async fn resolve() -> Result<Option<RunContext>, ToolError> {
 /// `guard.guarded(tool, action, given, call)`: run `call(given)`, attributed to the AI run the call comes from.
 pub async fn guarded(tool: &str, action: &str, given: Map<String, Value>, call: GuardedCall) -> ToolResult {
     match hooks::ai_guard() {
-        Some(guard) => guard.guarded(tool, action, given, request_token().as_deref(), call).await,
+        Some(guard) => guard.guarded(tool, action, given, request_authorization().as_deref(), call).await,
         None => call(given).await,
     }
 }
@@ -133,13 +142,15 @@ pub async fn run_folder() -> Result<Option<Vec<String>>, ToolError> {
     let Some(run) = resolve().await? else {
         return Ok(None);
     };
+    // `if ctx.ticket_id:`
+    let ticket_id = run.ticket_id.as_deref().filter(|id| !id.is_empty());
     let mut folders: Vec<String> = Vec::new();
     let member = {
         let session = async_session();
         let member = ai_team::Entity::find_by_id(run.member_id.as_str()).one(&session).await?;
-        if !run.ticket_id.is_empty() {
+        if let Some(ticket_id) = ticket_id {
             // `worktrees.for_ticket(session, ticket_id)`: the worktree's row is keyed by the ticket
-            let tree = ai_worktree::Entity::find_by_id(run.ticket_id.as_str()).one(&session).await?;
+            let tree = ai_worktree::Entity::find_by_id(ticket_id).one(&session).await?;
             if let Some(tree) = tree {
                 if ["active", "conflict", "kept"].contains(&tree.state.as_str())
                     && !tree.path.is_empty()
@@ -155,10 +166,10 @@ pub async fn run_folder() -> Result<Option<Vec<String>>, ToolError> {
     if !main.is_empty() {
         folders.push(main);
     }
-    if !run.ticket_id.is_empty() && !folders.is_empty() {
+    if let Some(ticket_id) = ticket_id.filter(|_| !folders.is_empty()) {
         // the ticket's Workspace, where a run keeps the outputs a person should see (issue #269)
         let session = async_session();
-        let ws = kb_board::workspace::get_workspace_path(&session, &run.ticket_id, false)
+        let ws = kb_board::workspace::get_workspace_path(&session, ticket_id, false)
             .await
             .map_err(|err| ToolError::Other(format!("{err:?}")))?;
         if let Some(ws) = ws {
@@ -374,7 +385,12 @@ fn item_kind(kind: &str) -> Option<(&'static str, &'static str, &'static [&'stat
 
 /// Check that `reference` names an existing sub-item of the ticket and return its real id. Lets the call fail with
 /// the list of valid ids instead of silently doing nothing.
-pub async fn resolve_item(session: &Session, ticket_id: &str, kind: &str, reference: &str) -> Result<String, ToolError> {
+pub async fn resolve_item(
+    session: &Session,
+    ticket_id: &str,
+    kind: &str,
+    reference: &str,
+) -> Result<String, ToolError> {
     let (column, label, keys) = item_kind(kind).ok_or_else(|| ToolError::Other(format!("'{kind}'")))?;
     let Some(ticket) = svc_tickets::get_ticket(session, ticket_id).await? else {
         return Err(missing_ticket(ticket_id));
@@ -429,7 +445,8 @@ where
 {
     // Changes made through MCP tools are attributed to the AI agent (by name when it is a board AI member's run)
     let ai = activity::current_ai();
-    let member_name = ai.as_ref().and_then(|ai| ai.get("member_name")).and_then(Value::as_str).filter(|n| !n.is_empty());
+    let member_name =
+        ai.as_ref().and_then(|ai| ai.get("member_name")).and_then(Value::as_str).filter(|n| !n.is_empty());
     let token = activity::set_actor(Some(member_name.unwrap_or(activity::AGENT_ACTOR)));
     let result = operation.await;
     ctx::reset(token);

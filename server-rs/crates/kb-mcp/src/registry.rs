@@ -192,7 +192,11 @@ mod tests {
             let registered = registered(include_ideas);
             for tool in &registered {
                 assert!(snapshot_names.contains(&tool.name), "{} is registered and not in the snapshot", tool.name);
-                assert!(!NOT_PORTED_YET.contains(&tool.name), "{} is registered: remove it from NOT_PORTED_YET", tool.name);
+                assert!(
+                    !NOT_PORTED_YET.contains(&tool.name),
+                    "{} is registered: remove it from NOT_PORTED_YET",
+                    tool.name
+                );
             }
             for name in &snapshot_names {
                 let is_registered = registered.iter().any(|tool| tool.name == *name);
@@ -213,7 +217,13 @@ mod tests {
         assert_eq!(snapshot(true)[..core.len()], snapshot(false)[..]);
         assert_eq!(
             &ideas[core.len()..],
-            ["list_idea_tickets", "get_idea_ticket", "list_idea_assumptions", "get_idea_activity_trail", "create_idea_ticket"]
+            [
+                "list_idea_tickets",
+                "get_idea_ticket",
+                "list_idea_assumptions",
+                "get_idea_activity_trail",
+                "create_idea_ticket"
+            ]
         );
     }
 
@@ -236,7 +246,9 @@ mod tests {
         assert_eq!(convert_to_content(&json!("plain")), [json!({"type": "text", "text": "plain"})]);
         assert_eq!(
             convert_to_content(&json!({"ok": true, "n": [1, 2.0], "e": {}, "t": "é"})),
-            [json!({"type": "text", "text": "{\n  \"ok\": true,\n  \"n\": [\n    1,\n    2.0\n  ],\n  \"e\": {},\n  \"t\": \"é\"\n}"})]
+            [
+                json!({"type": "text", "text": "{\n  \"ok\": true,\n  \"n\": [\n    1,\n    2.0\n  ],\n  \"e\": {},\n  \"t\": \"é\"\n}"})
+            ]
         );
         // a list is one block per item, lists inside it too
         assert_eq!(
@@ -252,7 +264,10 @@ mod tests {
     #[tokio::test]
     async fn an_unknown_tool_and_bad_arguments_are_error_results() {
         let unknown = call_tool_for("no_such_tool", Map::new(), false).await;
-        assert_eq!(unknown, json!({"content": [{"type": "text", "text": "Unknown tool: no_such_tool"}], "isError": true}));
+        assert_eq!(
+            unknown,
+            json!({"content": [{"type": "text", "text": "Unknown tool: no_such_tool"}], "isError": true})
+        );
         let mut arguments = Map::new();
         arguments.insert("field".into(), json!(1));
         let refused = call_tool_for("get_projects", arguments, false).await;

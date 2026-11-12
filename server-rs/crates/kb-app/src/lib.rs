@@ -32,6 +32,8 @@ pub fn routes() -> Routes {
     // in the order `main.py` registers them (the first route that matches a path wins): the draw.io editor, the
     // areas' routers, the app's own routes, and the static UI last, so that every other route wins
     Routes::new()
+        // the MCP endpoint is mounted first in the Python app
+        .merge(kb_mcp::routes())
         .merge(files::drawio_routes())
         .merge(kb_board::api::routes())
         .merge(kb_skills::api::routes())

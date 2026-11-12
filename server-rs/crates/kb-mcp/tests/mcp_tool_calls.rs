@@ -60,10 +60,22 @@ fn calls() -> Vec<Call> {
         call("list: unknown argument", "get_projects", json!({"foo": 1})),
         call("list: two unknown arguments", "get_projects", json!({"zeta": "x", "alpha": [1, 2]})),
         call("list: unknown argument and a bad one", "get_projects", json!({"titel": "it's", "project_id": 7})),
-        call("list: unknown argument with a long value", "get_projects", json!({"note": "0123456789 0123456789 0123456789 0123456789 0123456789 end"})),
-        call("list: unknown argument with a long object", "get_projects", json!({"more": {"name": "A name that is long", "list": [1, 2, 3], "ok": false, "nothing": null}})),
+        call(
+            "list: unknown argument with a long value",
+            "get_projects",
+            json!({"note": "0123456789 0123456789 0123456789 0123456789 0123456789 end"}),
+        ),
+        call(
+            "list: unknown argument with a long object",
+            "get_projects",
+            json!({"more": {"name": "A name that is long", "list": [1, 2, 3], "ok": false, "nothing": null}}),
+        ),
         call("list: unknown argument with quotes", "get_projects", json!({"q": "say \"hi\" it's\nnew"})),
-        call("list: unknown argument with accents", "get_projects", json!({"q": "Hà Nội café ☕ 東京 ééééééééééééééééééééééééééééééééééééééé"})),
+        call(
+            "list: unknown argument with accents",
+            "get_projects",
+            json!({"q": "Hà Nội café ☕ 東京 ééééééééééééééééééééééééééééééééééééééé"}),
+        ),
         call("list: unknown argument with a float", "get_projects", json!({"q": 1.0, "r": 1e22, "s": -0.5})),
         // --- manage_project: arguments
         call("manage: no arguments", "manage_project", json!({})),
@@ -73,57 +85,198 @@ fn calls() -> Vec<Call> {
         call("manage: action a list", "manage_project", json!({"action": ["create"]})),
         call("manage: action in other case", "manage_project", json!({"action": "Create"})),
         call("manage: name a number", "manage_project", json!({"action": "create", "name": 5, "prefix": "AB"})),
-        call("manage: several errors at once", "manage_project", json!({"action": "nope", "name": 5, "prefix": ["x"], "worktree_by_default": "maybe", "extra": 1})),
-        call("manage: worktree_by_default a number", "manage_project", json!({"action": "update", "project_id": "x", "worktree_by_default": 2})),
-        call("manage: worktree_by_default a float", "manage_project", json!({"action": "update", "project_id": "x", "worktree_by_default": 0.5})),
-        call("manage: worktree_by_default a list", "manage_project", json!({"action": "update", "project_id": "x", "worktree_by_default": []})),
-        call("manage: worktree_by_default text", "manage_project", json!({"action": "update", "project_id": "x", "worktree_by_default": "maybe"})),
+        call(
+            "manage: several errors at once",
+            "manage_project",
+            json!({"action": "nope", "name": 5, "prefix": ["x"], "worktree_by_default": "maybe", "extra": 1}),
+        ),
+        call(
+            "manage: worktree_by_default a number",
+            "manage_project",
+            json!({"action": "update", "project_id": "x", "worktree_by_default": 2}),
+        ),
+        call(
+            "manage: worktree_by_default a float",
+            "manage_project",
+            json!({"action": "update", "project_id": "x", "worktree_by_default": 0.5}),
+        ),
+        call(
+            "manage: worktree_by_default a list",
+            "manage_project",
+            json!({"action": "update", "project_id": "x", "worktree_by_default": []}),
+        ),
+        call(
+            "manage: worktree_by_default text",
+            "manage_project",
+            json!({"action": "update", "project_id": "x", "worktree_by_default": "maybe"}),
+        ),
         call("manage: only an unknown argument", "manage_project", json!({"colour": "#fff"})),
         // --- manage_project: what each action takes
         call("create: nothing else", "manage_project", json!({"action": "create"})),
         call("create: no prefix", "manage_project", json!({"action": "create", "name": "Alpha"})),
         call("create: no name", "manage_project", json!({"action": "create", "prefix": "ALP"})),
-        call("create: a parameter it does not use", "manage_project", json!({"action": "create", "name": "Alpha", "prefix": "ALP", "member_id": "m", "repo_path": "/x"})),
-        call("create: null counts as left out", "manage_project", json!({"action": "create", "name": "Alpha", "prefix": null})),
+        call(
+            "create: a parameter it does not use",
+            "manage_project",
+            json!({"action": "create", "name": "Alpha", "prefix": "ALP", "member_id": "m", "repo_path": "/x"}),
+        ),
+        call(
+            "create: null counts as left out",
+            "manage_project",
+            json!({"action": "create", "name": "Alpha", "prefix": null}),
+        ),
         keep("create: Alpha", "manage_project", json!({"action": "create", "name": "Alpha", "prefix": "ALP"}), "alpha"),
-        call("create: the same prefix again", "manage_project", json!({"action": "create", "name": "Again", "prefix": "ALP"})),
-        keep("create: lower case prefix, a color", "manage_project", json!({"action": "create", "name": "Bêta ☕", "prefix": "bet", "color": "#ff0000"}), "beta"),
-        call("create: prefix too long", "manage_project", json!({"action": "create", "name": "Long", "prefix": "TOOLONG"})),
-        call("create: prefix without letters", "manage_project", json!({"action": "create", "name": "Digits", "prefix": "123"})),
+        call(
+            "create: the same prefix again",
+            "manage_project",
+            json!({"action": "create", "name": "Again", "prefix": "ALP"}),
+        ),
+        keep(
+            "create: lower case prefix, a color",
+            "manage_project",
+            json!({"action": "create", "name": "Bêta ☕", "prefix": "bet", "color": "#ff0000"}),
+            "beta",
+        ),
+        call(
+            "create: prefix too long",
+            "manage_project",
+            json!({"action": "create", "name": "Long", "prefix": "TOOLONG"}),
+        ),
+        call(
+            "create: prefix without letters",
+            "manage_project",
+            json!({"action": "create", "name": "Digits", "prefix": "123"}),
+        ),
         call("create: empty prefix", "manage_project", json!({"action": "create", "name": "Empty", "prefix": ""})),
-        keep("create: prefix with spaces around", "manage_project", json!({"action": "create", "name": "Spaced", "prefix": " sp1 "}), "spaced"),
+        keep(
+            "create: prefix with spaces around",
+            "manage_project",
+            json!({"action": "create", "name": "Spaced", "prefix": " sp1 "}),
+            "spaced",
+        ),
         call("create: empty name", "manage_project", json!({"action": "create", "name": "", "prefix": "EMP"})),
-        call("create: text booleans are read", "manage_project", json!({"action": "create", "name": "Flag", "prefix": "FLG", "worktree_by_default": "yes"})),
+        call(
+            "create: text booleans are read",
+            "manage_project",
+            json!({"action": "create", "name": "Flag", "prefix": "FLG", "worktree_by_default": "yes"}),
+        ),
         call("list: three projects", "get_projects", json!({})),
         call("list: one project with its members", "get_projects", json!({"project_id": "$alpha"})),
         call("list: unknown project", "get_projects", json!({"project_id": "ALP"})),
         call("update: nothing else", "manage_project", json!({"action": "update"})),
-        call("update: a parameter it does not use", "manage_project", json!({"action": "update", "project_id": "$alpha", "prefix": "NEW"})),
-        call("update: unknown project", "manage_project", json!({"action": "update", "project_id": "nope", "name": "x"})),
+        call(
+            "update: a parameter it does not use",
+            "manage_project",
+            json!({"action": "update", "project_id": "$alpha", "prefix": "NEW"}),
+        ),
+        call(
+            "update: unknown project",
+            "manage_project",
+            json!({"action": "update", "project_id": "nope", "name": "x"}),
+        ),
         call("update: no fields", "manage_project", json!({"action": "update", "project_id": "$alpha"})),
-        call("update: name and color", "manage_project", json!({"action": "update", "project_id": "$alpha", "name": "Alpha 2", "color": "#00ff00"})),
-        call("update: worktree settings", "manage_project", json!({"action": "update", "project_id": "$alpha", "worktree_template": " ../wt/{project}/{ticket_id}-{branch} ", "worktree_by_default": true})),
-        call("update: worktree_by_default from text", "manage_project", json!({"action": "update", "project_id": "$alpha", "worktree_by_default": "off"})),
-        call("update: worktree_by_default from a number", "manage_project", json!({"action": "update", "project_id": "$alpha", "worktree_by_default": 1})),
-        call("update: worktree_by_default from a whole float", "manage_project", json!({"action": "update", "project_id": "$alpha", "worktree_by_default": 0.0})),
-        call("update: empty template clears it", "manage_project", json!({"action": "update", "project_id": "$alpha", "worktree_template": ""})),
-        call("update: a repository that does not exist", "manage_project", json!({"action": "update", "project_id": "$alpha", "repo_path": "/no/such/folder/anywhere"})),
-        call("update: empty repo_path unlinks", "manage_project", json!({"action": "update", "project_id": "$alpha", "repo_path": ""})),
+        call(
+            "update: name and color",
+            "manage_project",
+            json!({"action": "update", "project_id": "$alpha", "name": "Alpha 2", "color": "#00ff00"}),
+        ),
+        call(
+            "update: worktree settings",
+            "manage_project",
+            json!({"action": "update", "project_id": "$alpha", "worktree_template": " ../wt/{project}/{ticket_id}-{branch} ", "worktree_by_default": true}),
+        ),
+        call(
+            "update: worktree_by_default from text",
+            "manage_project",
+            json!({"action": "update", "project_id": "$alpha", "worktree_by_default": "off"}),
+        ),
+        call(
+            "update: worktree_by_default from a number",
+            "manage_project",
+            json!({"action": "update", "project_id": "$alpha", "worktree_by_default": 1}),
+        ),
+        call(
+            "update: worktree_by_default from a whole float",
+            "manage_project",
+            json!({"action": "update", "project_id": "$alpha", "worktree_by_default": 0.0}),
+        ),
+        call(
+            "update: empty template clears it",
+            "manage_project",
+            json!({"action": "update", "project_id": "$alpha", "worktree_template": ""}),
+        ),
+        call(
+            "update: a repository that does not exist",
+            "manage_project",
+            json!({"action": "update", "project_id": "$alpha", "repo_path": "/no/such/folder/anywhere"}),
+        ),
+        call(
+            "update: empty repo_path unlinks",
+            "manage_project",
+            json!({"action": "update", "project_id": "$alpha", "repo_path": ""}),
+        ),
         call("add_member: nothing else", "manage_project", json!({"action": "add_member"})),
         call("add_member: no name", "manage_project", json!({"action": "add_member", "project_id": "$alpha"})),
-        call("add_member: a parameter it does not use", "manage_project", json!({"action": "add_member", "project_id": "$alpha", "name": "Bao", "prefix": "X"})),
-        keep("add_member: Bao", "manage_project", json!({"action": "add_member", "project_id": "$alpha", "name": "Bao"}), "bao"),
-        keep("add_member: with a color", "manage_project", json!({"action": "add_member", "project_id": "$alpha", "name": "Hà My", "color": "#123456"}), "ha"),
-        keep("add_member: third", "manage_project", json!({"action": "add_member", "project_id": "$alpha", "name": "Chi"}), "chi"),
-        call("add_member: a project that does not exist", "manage_project", json!({"action": "add_member", "project_id": "ghost", "name": "Nobody"})),
+        call(
+            "add_member: a parameter it does not use",
+            "manage_project",
+            json!({"action": "add_member", "project_id": "$alpha", "name": "Bao", "prefix": "X"}),
+        ),
+        keep(
+            "add_member: Bao",
+            "manage_project",
+            json!({"action": "add_member", "project_id": "$alpha", "name": "Bao"}),
+            "bao",
+        ),
+        keep(
+            "add_member: with a color",
+            "manage_project",
+            json!({"action": "add_member", "project_id": "$alpha", "name": "Hà My", "color": "#123456"}),
+            "ha",
+        ),
+        keep(
+            "add_member: third",
+            "manage_project",
+            json!({"action": "add_member", "project_id": "$alpha", "name": "Chi"}),
+            "chi",
+        ),
+        call(
+            "add_member: a project that does not exist",
+            "manage_project",
+            json!({"action": "add_member", "project_id": "ghost", "name": "Nobody"}),
+        ),
         call("list: members of Alpha", "get_projects", json!({"project_id": "$alpha"})),
         call("remove_member: nothing else", "manage_project", json!({"action": "remove_member"})),
-        call("remove_member: no member_id", "manage_project", json!({"action": "remove_member", "project_id": "$alpha"})),
-        call("remove_member: a parameter it does not use", "manage_project", json!({"action": "remove_member", "project_id": "$alpha", "member_id": "$bao", "name": "Bao"})),
-        call("remove_member: unknown member", "manage_project", json!({"action": "remove_member", "project_id": "$alpha", "member_id": "nope"})),
-        call("remove_member: a member of another project", "manage_project", json!({"action": "remove_member", "project_id": "$beta", "member_id": "$bao"})),
-        call("remove_member: Chi", "manage_project", json!({"action": "remove_member", "project_id": "$alpha", "member_id": "$chi"})),
-        call("remove_member: Chi again", "manage_project", json!({"action": "remove_member", "project_id": "$alpha", "member_id": "$chi"})),
+        call(
+            "remove_member: no member_id",
+            "manage_project",
+            json!({"action": "remove_member", "project_id": "$alpha"}),
+        ),
+        call(
+            "remove_member: a parameter it does not use",
+            "manage_project",
+            json!({"action": "remove_member", "project_id": "$alpha", "member_id": "$bao", "name": "Bao"}),
+        ),
+        call(
+            "remove_member: unknown member",
+            "manage_project",
+            json!({"action": "remove_member", "project_id": "$alpha", "member_id": "nope"}),
+        ),
+        call(
+            "remove_member: a member of another project",
+            "manage_project",
+            json!({"action": "remove_member", "project_id": "$beta", "member_id": "$bao"}),
+        ),
+        call(
+            "remove_member: Chi",
+            "manage_project",
+            json!({"action": "remove_member", "project_id": "$alpha", "member_id": "$chi"}),
+        ),
+        call(
+            "remove_member: Chi again",
+            "manage_project",
+            json!({"action": "remove_member", "project_id": "$alpha", "member_id": "$chi"}),
+        ),
         // --- other tools
         call("unknown tool", "no_such_tool", json!({"a": 1})),
         call("tool name in other case", "Get_Projects", json!({})),
@@ -161,7 +314,8 @@ async fn the_project_tools_answer_as_python_does() {
     ticket("One", bao.clone()).await;
     ticket("Two", bao.clone()).await;
     ticket("Three", ha.clone()).await;
-    let dan = mcp.call_tool("manage_project", json!({"action": "add_member", "project_id": alpha, "name": "Dan"})).await;
+    let dan =
+        mcp.call_tool("manage_project", json!({"action": "add_member", "project_id": alpha, "name": "Dan"})).await;
     let dan = dan.json()["id"].as_str().expect("an id").to_string();
     let closed = ticket("Closed", dan.clone()).await;
     let closed_id = closed["id"].as_str().expect("a ticket id");
@@ -187,4 +341,46 @@ async fn the_project_tools_answer_as_python_does() {
     // one value normalized as a whole, so that an id is the same `<uuid:N>` in every call
     let normalized = normalize(&Value::Object(got));
     check_golden("mcp_tool_calls.json", normalized.as_object().expect("an object"));
+}
+
+/// Every failing call is written to the server's log (`registry._log_tool_failures`): a call the agent got wrong
+/// as a warning, with the names of its arguments and never their values.
+#[tokio::test]
+async fn failing_calls_are_logged_without_argument_values() {
+    let s = common::start().await;
+    let mcp = s.mcp();
+    mcp.call_tool("no_such_tool", json!({"zeta": "secret-1", "alpha": 2})).await;
+    mcp.call_tool("get_projects", json!({"titel": "secret-2"})).await;
+    mcp.call_tool("manage_project", json!({"action": "update", "project_id": "secret-3", "name": "secret-4"})).await;
+    mcp.call_tool("get_projects", json!({})).await;
+
+    // the log file is written as the call ends; give a slow disk a moment
+    let mut found: Vec<String> = Vec::new();
+    for _ in 0..50 {
+        found.clear();
+        for entry in std::fs::read_dir(s.log_dir()).expect("the log folder") {
+            let text = std::fs::read_to_string(entry.expect("an entry").path()).unwrap_or_default();
+            found.extend(text.lines().filter(|l| l.contains("MCP tool ")).map(str::to_string));
+        }
+        if found.len() >= 3 {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    let messages: Vec<&str> = found.iter().map(|l| &l[l.find("MCP tool ").expect("the message")..]).collect();
+    assert_eq!(
+        messages,
+        [
+            "MCP tool no_such_tool rejected (arguments: ['alpha', 'zeta']): Unknown tool: no_such_tool",
+            "MCP tool get_projects rejected (arguments: ['titel']): Error executing tool get_projects: 1 validation \
+             error for get_projectsArguments",
+            "MCP tool manage_project rejected (arguments: ['action', 'name', 'project_id']): Error executing tool \
+             manage_project: Project 'secret-3' not found. Use get_projects to see project ids.",
+        ]
+    );
+    for line in &found {
+        assert!(line.contains("WARNING") && line.contains("kanban_mcp.registry"), "{line}");
+    }
+    let whole = found.join("\n");
+    assert!(!whole.contains("secret-1") && !whole.contains("secret-2") && !whole.contains("secret-4"), "{whole}");
 }

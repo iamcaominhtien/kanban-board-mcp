@@ -109,7 +109,8 @@ pub async fn record_activity_actor(request: Request, next: Next) -> Response {
 /// FastAPI answers HEAD with 405 (its routes list GET only, so `Allow` is `GET`) and names no `HEAD` in the `Allow`
 /// of any 405; axum answers HEAD for every GET route, so the difference is put back here, next to the routes.
 pub async fn starlette_methods(request: Request, next: Next) -> Response {
-    if request.method() == Method::HEAD {
+    // (the MCP endpoint is a mounted app in Python: it answers every method itself)
+    if request.method() == Method::HEAD && !request.uri().path().starts_with("/mcp/") {
         return crate::method_not_allowed_for("GET");
     }
     let mut response = next.run(request).await;
