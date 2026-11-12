@@ -7,7 +7,7 @@
 use kb_ai_run::runs;
 use kb_board::hooks::NewAssignee;
 use kb_db::database;
-use kb_db::entities::{ai_account_state, ai_run, ai_run_command};
+use kb_db::entities::{ai_account_state, ai_run, ai_run_agent, ai_run_command, ai_run_message, ai_run_step};
 use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use serde_json::{Value, json};
 
@@ -34,6 +34,10 @@ impl Env {
         kb_ai::runner_link::set_mode(Some("inprocess"));
         kb_ai::runner_link::set_in_runner(None);
         super::clear::<ai_run::Entity>().await;
+        // (the stand-in CLI names its subagent the same in every run, and a subagent's row is found by that name)
+        super::clear::<ai_run_agent::Entity>().await;
+        super::clear::<ai_run_step::Entity>().await;
+        super::clear::<ai_run_message::Entity>().await;
         super::clear::<ai_run_command::Entity>().await;
         super::clear::<ai_account_state::Entity>().await;
         runs::set_cli_env(vars(fake));
