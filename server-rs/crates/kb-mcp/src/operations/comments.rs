@@ -192,7 +192,9 @@ pub async fn list_comments(ticket_id: &str, comment_ids: Option<&[String]>, sinc
         .iter()
         .map(|c| {
             let notified: Vec<Value> = match c.get("notified") {
-                Some(Value::Array(items)) => items.iter().map(|n| n.get("name").cloned().unwrap_or(Value::Null)).collect(),
+                Some(Value::Array(items)) => {
+                    items.iter().map(|n| n.get("name").cloned().unwrap_or(Value::Null)).collect()
+                }
                 _ => Vec::new(),
             };
             json!({
@@ -219,4 +221,37 @@ pub async fn list_comments(ticket_id: &str, comment_ids: Option<&[String]>, sinc
         );
     }
     Ok(Value::Object(out))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_extension_is_what_os_path_splitext_gives() {
+        assert_eq!(extension_of("shot.PNG"), ".PNG");
+        assert_eq!(extension_of("archive.tar.gz"), ".gz");
+        assert_eq!(extension_of("README"), "");
+        assert_eq!(extension_of(".bashrc"), "");
+        assert_eq!(extension_of("..hidden"), "");
+        assert_eq!(extension_of("a."), ".");
+        assert_eq!(extension_of("file"), "");
+    }
+
+    #[test]
+    fn comments_are_picked_by_id_and_by_time() {
+        let comments = vec![
+            json!({"id": "a", "at": "2026-01-01T00:00:00+00:00"}),
+            json!({"id": "b", "at": "2026-02-01T00:00:00+00:00"}),
+            json!({"id": "c"}),
+        ];
+        let ids = |picked: Vec<Value>| -> Vec<String> {
+            picked.iter().map(|c| c["id"].as_str().unwrap_or_default().to_string()).collect()
+        };
+        assert_eq!(ids(pick(comments.clone(), None, None)), ["a", "b", "c"]);
+        assert_eq!(ids(pick(comments.clone(), Some(&["b".to_string(), "x".to_string()]), None)), ["b"]);
+        // an empty list of ids and an empty `since` narrow nothing
+        assert_eq!(ids(pick(comments.clone(), Some(&[]), Some(""))), ["a", "b", "c"]);
+        assert_eq!(ids(pick(comments, None, Some("2026-01-15"))), ["b"]);
+    }
 }

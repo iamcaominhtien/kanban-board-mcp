@@ -13,12 +13,24 @@ use axum::response::Response;
 use kb_base::{Routes, activity, ctx, events};
 use kb_db::database;
 
-/// The app's actor middleware, as far as the tools need it: each request has a context of its own, acting as the
-/// board's user.
+/// The app's actor middleware (`kb-app/src/middleware.rs`), as far as the tools need it: each request has a
+/// context of its own, acting as the board's user, or as `X-Actor` when the header is sent.
 async fn record_activity_actor(request: Request, next: Next) -> Response {
+    // read the headers first: a borrow of the request must not live across the await
+    let (actor, origin) = {
+        let header = |name: &str| {
+            // Starlette decodes header bytes as latin-1
+            let text: Option<String> =
+                request.headers().get(name).map(|v| v.as_bytes().iter().map(|b| *b as char).collect());
+            text.map(|v| kb_base::pytext::strip(&v).to_string()).unwrap_or_default()
+        };
+        (header("x-actor").chars().take(80).collect::<String>(), header("x-origin"))
+    };
     ctx::scope(async move {
-        let token = activity::set_actor(Some(activity::HUMAN_ACTOR));
+        let token = activity::set_actor(Some(if actor.is_empty() { activity::HUMAN_ACTOR } else { &actor }));
+        let origin_token = activity::set_origin(Some(origin.as_str()));
         let response = next.run(request).await;
+        ctx::reset(origin_token);
         ctx::reset(token);
         response
     })
@@ -44,7 +56,8 @@ async fn sse_events() -> axum::response::Response {
     use axum::body::{Body, Bytes};
     use axum::response::IntoResponse;
     let guard = Guard(events::subscribe());
-    let first = futures::stream::once(async { Ok::<_, std::convert::Infallible>(Bytes::from_static(b": connected\n\n")) });
+    let first =
+        futures::stream::once(async { Ok::<_, std::convert::Infallible>(Bytes::from_static(b": connected\n\n")) });
     let rest = futures::stream::unfold(guard, |guard| async move {
         let chunk = match tokio::time::timeout(std::time::Duration::from_secs(30), guard.0.recv()).await {
             Ok(event) => Bytes::from(format!("data: {event}\n\n")),

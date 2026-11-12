@@ -115,9 +115,7 @@ pub async fn before_ticket_change(
     deleting: bool,
 ) -> Result<(), crate::common::ToolError> {
     if let Some(runs) = kb_board::hooks::ai_runs() {
-        runs.before_ticket_change(ticket_id, status, assignee, deleting, "board")
-            .await
-            .map_err(api_error)?;
+        runs.before_ticket_change(ticket_id, status, assignee, deleting, "board").await.map_err(api_error)?;
     }
     Ok(())
 }
@@ -126,9 +124,7 @@ pub async fn before_ticket_change(
 /// `started_by="user"`, which is what is passed).
 pub async fn wake_new_assignee(ticket_id: &str, assignee_id: &str) -> Result<(), crate::common::ToolError> {
     if let Some(runs) = kb_board::hooks::ai_runs() {
-        runs.wake_new_assignee(ticket_id, assignee_id, "user")
-            .await
-            .map_err(api_error)?;
+        runs.wake_new_assignee(ticket_id, assignee_id, "user").await.map_err(api_error)?;
     }
     Ok(())
 }

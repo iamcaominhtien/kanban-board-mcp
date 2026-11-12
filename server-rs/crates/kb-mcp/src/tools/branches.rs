@@ -109,7 +109,11 @@ pub const BRANCH_OPS: &[(&str, Op)] = &[
     (
         "checkout",
         Op::new(
-            |a| Box::pin(async move { ops::checkout_branch(&arg_text(&a, "ticket_id"), &arg_text(&a, "branch_id")).await }),
+            |a| {
+                Box::pin(
+                    async move { ops::checkout_branch(&arg_text(&a, "ticket_id"), &arg_text(&a, "branch_id")).await },
+                )
+            },
             &["ticket_id", "branch"],
             &[],
         )

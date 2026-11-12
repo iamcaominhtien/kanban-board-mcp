@@ -5,9 +5,7 @@ use std::sync::LazyLock;
 
 use kb_base::{activity, pyjson, time};
 use kb_board::hooks::NewAssignee;
-use kb_board::tickets::{
-    self as svc_tickets, NewTicket, PendingReason, ReopenOptions, TicketUpdate,
-};
+use kb_board::tickets::{self as svc_tickets, NewTicket, PendingReason, ReopenOptions, TicketUpdate};
 use regex::Regex;
 use serde_json::{Map, Value, json};
 
@@ -250,7 +248,9 @@ pub async fn get_ticket(args: GetTicket<'_>) -> ToolResult {
         return list_comments(args.ticket_id, args.comment_ids.as_deref(), None).await;
     }
     if args.comment_ids.is_some() {
-        return Err(ToolError::value("comment_ids applies to view='comments' only; view='full' returns every comment."));
+        return Err(ToolError::value(
+            "comment_ids applies to view='comments' only; view='full' returns every comment.",
+        ));
     }
     // `if activity_since`: an empty text is none
     let since = match args.activity_since.filter(|s| !s.is_empty()) {
@@ -434,7 +434,8 @@ pub async fn update_ticket(
         };
         let status = update_data.get("status").and_then(Value::as_str);
         hooks::before_ticket_change(ticket_id, status, assignee, false).await?;
-        let new_assignee = update_data.get("assignee").and_then(Value::as_str).filter(|a| !a.is_empty()).map(str::to_string);
+        let new_assignee =
+            update_data.get("assignee").and_then(Value::as_str).filter(|a| !a.is_empty()).map(str::to_string);
         let update = ticket_update(update_data)?;
         let out = edit_ticket(ticket_id, None, |s, _| async move {
             svc_tickets::update_ticket(&s, ticket_id, &update).await.map_err(ToolError::from)
@@ -463,13 +464,8 @@ pub async fn create_child_ticket(
         let Some(parent) = svc_tickets::get_ticket(&session, parent_ticket_id).await? else {
             return Err(missing_ticket(parent_ticket_id));
         };
-        let new = NewTicket {
-            parent_id: Some(parent_ticket_id),
-            r#type,
-            priority,
-            description,
-            ..NewTicket::new(title)
-        };
+        let new =
+            NewTicket { parent_id: Some(parent_ticket_id), r#type, priority, description, ..NewTicket::new(title) };
         let ticket = svc_tickets::create_ticket(&session, &parent.project_id, new).await?;
         Ok(Value::Object(ticket_to_dict(ticket, false)?))
     })
@@ -552,4 +548,51 @@ pub async fn resume_ticket(ticket_id: &str, reason: Option<&str>, add_comment: b
             .map_err(ToolError::from)
     }))
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_date_and_a_time_may_be_separated_by_any_character() {
+        // `datetime.fromisoformat("2000-01-01+00:00")` is midnight: the `+` is the separator
+        let midnight = from_isoformat("2000-01-01").expect("a date");
+        assert_eq!(from_isoformat("2000-01-01+00:00"), Some(midnight));
+        assert_eq!(from_isoformat("2000-01-01T00:00:00"), Some(midnight));
+        assert_eq!(from_isoformat("2000-01-01T07:00:00+07:00"), Some(midnight));
+        assert_eq!(from_isoformat("2000-01-01 00:00:00.000"), Some(midnight));
+        assert_eq!(from_isoformat("yesterday"), None);
+        assert_eq!(from_isoformat("2000-01-01"), Some(midnight));
+        assert_eq!(from_isoformat("2000-13-01"), None);
+        // a multi-byte character in the separator's place is not a time
+        assert_eq!(from_isoformat("2000-01-01éé"), None);
+    }
+
+    #[test]
+    fn since_is_read_as_the_server_reads_it() {
+        assert_eq!(parse_since(" 2000-01-01Z "), Ok(from_isoformat("2000-01-01").expect("a date")));
+        let refused = parse_since("yesterday").expect_err("not a time");
+        assert_eq!(
+            refused.message(),
+            "activity_since must be an ISO date or time such as '2026-10-05T08:00:00Z' (got 'yesterday')."
+        );
+    }
+
+    #[test]
+    fn the_start_of_a_long_edit_is_enough() {
+        let long = "x".repeat(305);
+        let clipped = clip_activity(vec![json!({"field": "description", "from": "short", "to": long}), json!("text")]);
+        assert_eq!(clipped[0]["from"], "short");
+        assert_eq!(clipped[0]["to"], format!("{}… [5 more chars]", "x".repeat(300)));
+        assert_eq!(clipped[1], "text");
+    }
+
+    #[test]
+    fn the_uploads_of_a_ticket_are_found_in_its_json() {
+        let data = json!({"description": "![a](/uploads/a-1.png) and [b](/uploads/b.pdf), again /uploads/a-1.png?x=1"});
+        let dumped = pyjson::dumps(&data);
+        let found: Vec<&str> = UPLOAD_URL.find_iter(&dumped).map(|m| m.as_str()).collect();
+        assert_eq!(found, ["/uploads/a-1.png", "/uploads/b.pdf", "/uploads/a-1.png"]);
+    }
 }

@@ -35,8 +35,12 @@ async fn test_test_cases_are_added_in_order_and_a_bad_one_does_not_stop_the_rest
     assert_eq!(oks, [&json!(true), &json!(false), &json!(true)]);
     assert!(out["results"][1]["error"].as_str().expect("an error").contains("title"), "{out}");
     // the ticket comes back once, with both test cases in order
-    let titles: Vec<&str> =
-        out["ticket"]["test_cases"].as_array().expect("test cases").iter().filter_map(|t| t["title"].as_str()).collect();
+    let titles: Vec<&str> = out["ticket"]["test_cases"]
+        .as_array()
+        .expect("test cases")
+        .iter()
+        .filter_map(|t| t["title"].as_str())
+        .collect();
     assert_eq!(titles, ["First", "Third"]);
     let got = c.get(&format!("/tickets/{tid}")).await.json();
     let titles: Vec<&str> =
@@ -51,19 +55,18 @@ async fn test_only_light_actions_take_items_and_a_batch_has_a_size_limit() {
     let (_, ticket) = common::rest_ticket(&c, "t", "BAT", json!({})).await;
     let tid = &ticket["id"];
     let many: Vec<serde_json::Value> = (0..26).map(|i| json!({"title": format!("T{i}")})).collect();
-    let refused = call_err(
-        &mcp,
-        "ticket_items",
-        json!({"ticket_id": tid, "item": "test_case", "action": "add", "items": many}),
-    )
-    .await;
+    let refused =
+        call_err(&mcp, "ticket_items", json!({"ticket_id": tid, "item": "test_case", "action": "add", "items": many}))
+            .await;
     assert!(refused.contains("at most 25"), "{refused}");
     let refused =
-        call_err(&mcp, "ticket_items", json!({"ticket_id": tid, "item": "test_case", "action": "add", "items": []})).await;
+        call_err(&mcp, "ticket_items", json!({"ticket_id": tid, "item": "test_case", "action": "add", "items": []}))
+            .await;
     assert!(refused.contains("non-empty list"), "{refused}");
     // without items nothing changes
     let one =
-        call(&mcp, "ticket_items", json!({"ticket_id": tid, "item": "test_case", "action": "add", "title": "Solo"})).await;
+        call(&mcp, "ticket_items", json!({"ticket_id": tid, "item": "test_case", "action": "add", "title": "Solo"}))
+            .await;
     let titles: Vec<&str> =
         one["test_cases"].as_array().expect("test cases").iter().filter_map(|t| t["title"].as_str()).collect();
     assert_eq!(titles, ["Solo"]);

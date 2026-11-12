@@ -14,8 +14,14 @@ async fn test_done_is_refused_while_a_blocker_is_open_and_names_it() {
     let made = c.post("/projects", json!({"name": "P", "prefix": "BLK", "color": "#123456"})).await;
     made.assert_status(201);
     let pid = made.json()["id"].clone();
-    let blocker = rest_ticket_in(&c, &pid, "Store the goal", json!({"status": "todo"})).await["id"].as_str().expect("id").to_string();
-    let blocked = rest_ticket_in(&c, &pid, "Show the goal", json!({"status": "todo"})).await["id"].as_str().expect("id").to_string();
+    let blocker = rest_ticket_in(&c, &pid, "Store the goal", json!({"status": "todo"})).await["id"]
+        .as_str()
+        .expect("id")
+        .to_string();
+    let blocked = rest_ticket_in(&c, &pid, "Show the goal", json!({"status": "todo"})).await["id"]
+        .as_str()
+        .expect("id")
+        .to_string();
     c.post_empty(&format!("/tickets/{blocker}/blocks/{blocked}")).await.assert_status(200);
 
     let r = c.patch(&format!("/tickets/{blocked}"), json!({"status": "done"})).await;

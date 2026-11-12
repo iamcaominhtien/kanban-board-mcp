@@ -9,7 +9,9 @@ use testkit::Options;
 
 #[tokio::test]
 async fn test_an_ai_member_can_read_ideas_and_add_to_the_inbox_only() {
-    let s = common::start_with(Options { env: vec![("KANBAN_MCP_IDEA_TOOLS".into(), "1".into())], ..Options::default() }).await;
+    let s =
+        common::start_with(Options { env: vec![("KANBAN_MCP_IDEA_TOOLS".into(), "1".into())], ..Options::default() })
+            .await;
     let (mcp, c) = (s.mcp(), s.client());
     let made = c.post("/projects", json!({"name": "Idea Project", "prefix": "IDQ", "color": "#123456"})).await;
     made.assert_status(201);

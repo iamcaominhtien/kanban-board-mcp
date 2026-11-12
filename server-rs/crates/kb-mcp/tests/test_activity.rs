@@ -28,7 +28,12 @@ async fn test_mcp_changes_are_attributed_to_the_agent() {
     let second = log(c.get(&format!("/tickets/{id}")).await.json());
     let got: BTreeMap<(String, String), Value> = first
         .iter()
-        .map(|e| ((e["field"].as_str().unwrap_or_default().to_string(), e["to"].as_str().unwrap_or_default().to_string()), e["actor"].clone()))
+        .map(|e| {
+            (
+                (e["field"].as_str().unwrap_or_default().to_string(), e["to"].as_str().unwrap_or_default().to_string()),
+                e["actor"].clone(),
+            )
+        })
         .collect();
     assert_eq!(got[&("status".to_string(), "in-progress".to_string())], "agent");
     assert_eq!(got[&("comment".to_string(), "from agent".to_string())], "claude");

@@ -124,11 +124,18 @@ async fn scenario(s: &testkit::Server, repo: &Path, files: &Path) {
 
     // comments, with a mention of a member and of a page
     let mention = format!("cc @[Bao](member:{}) see [[Login spec]]", text(&bao["id"]));
-    let after = item(&mcp, &a_id, "comment", "add", json!({"text": mention, "author": "Claude", "role": "Reviewer"})).await;
+    let after =
+        item(&mcp, &a_id, "comment", "add", json!({"text": mention, "author": "Claude", "role": "Reviewer"})).await;
     let cid = after["comments"][0]["id"].clone();
     item(&mcp, &a_id, "comment", "add", json!({"text": "second", "author": "user"})).await;
-    item(&mcp, &a_id, "comment", "update", json!({"item_id": cid, "text": "cc again @[Hà My](member:".to_string() + text(&ha["id"]) + ")"}))
-        .await;
+    item(
+        &mcp,
+        &a_id,
+        "comment",
+        "update",
+        json!({"item_id": cid, "text": "cc again @[Hà My](member:".to_string() + text(&ha["id"]) + ")"}),
+    )
+    .await;
     item(&mcp, &a_id, "comment", "delete", json!({"item_id": cid})).await;
     item(&mcp, &a_id, "comment", "restore", json!({"item_id": cid})).await;
 
@@ -145,7 +152,9 @@ async fn scenario(s: &testkit::Server, repo: &Path, files: &Path) {
         json!({"ticket_id": a_id, "action": "update", "branch": "feat/scn-1-login", "status": "merged"}),
     )
     .await;
-    let updated = branch(&mcp, &a_id, "update", json!({"branch": "feat/scn-1-login", "pr_url": "https://example.com/pr/1"})).await;
+    let updated =
+        branch(&mcp, &a_id, "update", json!({"branch": "feat/scn-1-login", "pr_url": "https://example.com/pr/1"}))
+            .await;
     assert!(updated["branches"][0]["commit_hash"].is_string(), "{updated}");
     git(repo, &["merge", "-q", "--ff-only", "feat/scn-1-login"]);
     branch(&mcp, &a_id, "update", json!({"branch": "feat/scn-1-login", "status": "merged"})).await;
@@ -162,11 +171,32 @@ async fn scenario(s: &testkit::Server, repo: &Path, files: &Path) {
 
     // the work log, linked to the branch, and the criteria, sub-tasks and test cases
     item(&mcp, &a_id, "work_log", "add", json!({"author": "Claude", "role": "Developer", "note": "The message is never rendered", "log_kind": "root_cause", "pinned": true, "linked_branch": "feat/scn-1-done"})).await;
-    item(&mcp, &a_id, "work_log", "add", json!({"author": "QA", "role": "Tester", "note": "Blocked on the build", "log_kind": "blocked"})).await;
-    item(&mcp, &a_id, "work_log", "add", json!({"author": "Claude", "role": "Developer", "note": "Fixed", "log_kind": "resolved"})).await;
+    item(
+        &mcp,
+        &a_id,
+        "work_log",
+        "add",
+        json!({"author": "QA", "role": "Tester", "note": "Blocked on the build", "log_kind": "blocked"}),
+    )
+    .await;
+    item(
+        &mcp,
+        &a_id,
+        "work_log",
+        "add",
+        json!({"author": "Claude", "role": "Developer", "note": "Fixed", "log_kind": "resolved"}),
+    )
+    .await;
     let ticket = call(&mcp, "get_ticket", json!({"ticket_id": a_id})).await;
     let log_id = ticket["work_log"][1]["id"].clone();
-    item(&mcp, &a_id, "work_log", "update", json!({"item_id": log_id, "note": "Blocked on the build (cleared)", "pinned": true})).await;
+    item(
+        &mcp,
+        &a_id,
+        "work_log",
+        "update",
+        json!({"item_id": log_id, "note": "Blocked on the build (cleared)", "pinned": true}),
+    )
+    .await;
     item(&mcp, &a_id, "work_log", "delete", json!({"item_id": log_id})).await;
     item(&mcp, &a_id, "sub_task", "add", json!({"text": "Confirm the spec"})).await;
     let ticket = call(&mcp, "get_ticket", json!({"ticket_id": a_id})).await;
@@ -181,13 +211,28 @@ async fn scenario(s: &testkit::Server, repo: &Path, files: &Path) {
 
     // an attachment and a picture in a comment
     let shot = files.join("shot.png");
-    std::fs::write(&shot, b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\0\x01\0\0\0\x01\x08\x06\0\0\0\x1f\x15\xc4\x89").expect("a picture");
+    std::fs::write(&shot, b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\0\x01\0\0\0\x01\x08\x06\0\0\0\x1f\x15\xc4\x89")
+        .expect("a picture");
     let report = files.join("report.txt");
     std::fs::write(&report, "all green\n").expect("a text");
-    item(&mcp, &a_id, "attachment", "add", json!({"path": shot.to_str().expect("text"), "text": "The login screen", "author": "Claude"})).await;
+    item(
+        &mcp,
+        &a_id,
+        "attachment",
+        "add",
+        json!({"path": shot.to_str().expect("text"), "text": "The login screen", "author": "Claude"}),
+    )
+    .await;
     item(&mcp, &a_id, "attachment", "add", json!({"path": report.to_str().expect("text"), "post": false})).await;
     item(&mcp, &a_id, "work_log", "add", json!({"author": "Claude", "role": "Tester", "note": format!("Proof: ![shot]({})", shot.to_str().expect("text"))})).await;
-    item(&mcp, &a_id, "test_case", "update", json!({"item_id": "TC-1", "status": "pass", "proof": format!("![shot]({})", shot.to_str().expect("text"))})).await;
+    item(
+        &mcp,
+        &a_id,
+        "test_case",
+        "update",
+        json!({"item_id": "TC-1", "status": "pass", "proof": format!("![shot]({})", shot.to_str().expect("text"))}),
+    )
+    .await;
 
     // relations: A blocks B, they relate, the block is lifted and made again; a sub-ticket link to the story
     manage(&mcp, "block", json!({"ticket_id": b_id, "target_id": a_id})).await;
@@ -199,14 +244,24 @@ async fn scenario(s: &testkit::Server, repo: &Path, files: &Path) {
     manage(&mcp, "block", json!({"ticket_id": b_id, "target_id": a_id})).await;
 
     // pending and back
-    manage(&mcp, "pend", json!({"ticket_id": b_id, "reason_type": "ticket", "target_id": a_id, "note": "waits for the login"})).await;
+    manage(
+        &mcp,
+        "pend",
+        json!({"ticket_id": b_id, "reason_type": "ticket", "target_id": a_id, "note": "waits for the login"}),
+    )
+    .await;
     manage(&mcp, "pend", json!({"ticket_id": a_id, "reason_type": "person", "member_id": ha["id"]})).await;
     manage(&mcp, "resume", json!({"ticket_id": a_id, "reason": "answered", "add_comment": true})).await;
     manage(&mcp, "pend", json!({"ticket_id": a_id, "reason_type": "party", "party": "Acme"})).await;
     manage(&mcp, "resume", json!({"ticket_id": a_id})).await;
 
     // to done: the guards refuse it until the criteria are checked and every test case passes
-    manage(&mcp, "update", json!({"ticket_id": a_id, "block_done_if_acs_incomplete": true, "block_done_if_tcs_incomplete": true})).await;
+    manage(
+        &mcp,
+        "update",
+        json!({"ticket_id": a_id, "block_done_if_acs_incomplete": true, "block_done_if_tcs_incomplete": true}),
+    )
+    .await;
     manage(&mcp, "update", json!({"ticket_id": a_id, "status": "review"})).await;
     manage(&mcp, "update", json!({"ticket_id": a_id, "status": "testing"})).await;
     call_err(&mcp, "manage_ticket", json!({"action": "update", "ticket_id": a_id, "status": "done"})).await;
@@ -214,10 +269,27 @@ async fn scenario(s: &testkit::Server, repo: &Path, files: &Path) {
         item(&mcp, &a_id, "criterion", "toggle", json!({"item_id": criterion["id"]})).await;
     }
     call_err(&mcp, "manage_ticket", json!({"action": "update", "ticket_id": a_id, "status": "done"})).await;
-    item(&mcp, &a_id, "test_case", "update", json!({"item_id": "TC-2", "status": "pass", "proof": "Not provable: no screen"})).await;
+    item(
+        &mcp,
+        &a_id,
+        "test_case",
+        "update",
+        json!({"item_id": "TC-2", "status": "pass", "proof": "Not provable: no screen"}),
+    )
+    .await;
     manage(&mcp, "update", json!({"ticket_id": a_id, "status": "done"})).await;
-    manage(&mcp, "reopen", json!({"ticket_id": a_id, "reason": "regression", "reset_ac": true, "reset_tests": true, "unassign": true})).await;
-    manage(&mcp, "update", json!({"ticket_id": a_id, "block_done_if_acs_incomplete": false, "block_done_if_tcs_incomplete": false})).await;
+    manage(
+        &mcp,
+        "reopen",
+        json!({"ticket_id": a_id, "reason": "regression", "reset_ac": true, "reset_tests": true, "unassign": true}),
+    )
+    .await;
+    manage(
+        &mcp,
+        "update",
+        json!({"ticket_id": a_id, "block_done_if_acs_incomplete": false, "block_done_if_tcs_incomplete": false}),
+    )
+    .await;
     manage(&mcp, "update", json!({"ticket_id": a_id, "status": "done"})).await;
     manage(&mcp, "update", json!({"ticket_id": b_id, "status": "wont_do", "wont_do_reason": "superseded"})).await;
     manage(&mcp, "reopen", json!({"ticket_id": b_id})).await;
@@ -226,9 +298,13 @@ async fn scenario(s: &testkit::Server, repo: &Path, files: &Path) {
     // what a person does on the board, next to what the tools did: the actor of each change is in the log
     let an = s.client().header("X-Actor", "An Nguyen");
     let mention = format!("Thanks @[Bao](member:{})", text(&bao["id"]));
-    an.post(&format!("/tickets/{a_id}/comments"), json!({"text": mention, "author": "An Nguyen"})).await.assert_status(200);
+    an.post(&format!("/tickets/{a_id}/comments"), json!({"text": mention, "author": "An Nguyen"}))
+        .await
+        .assert_status(200);
     an.patch(&format!("/tickets/{a_id}"), json!({"assignee": bao["id"], "priority": "low"})).await.assert_status(200);
-    an.patch(&format!("/tickets/{a_id}"), json!({"status": "review", "review_requested_from": ha["id"]})).await.assert_status(200);
+    an.patch(&format!("/tickets/{a_id}"), json!({"status": "review", "review_requested_from": ha["id"]}))
+        .await
+        .assert_status(200);
     manage(&mcp, "update", json!({"ticket_id": a_id, "status": "done"})).await;
 }
 
@@ -292,10 +368,8 @@ async fn a_ticket_worked_through_mcp_leaves_the_same_rows_as_python_does() {
 
     if std::env::var("KANBAN_WRITE_GOLDEN").is_ok_and(|v| v == "1") {
         assert_eq!(target(), Target::Python, "the golden file is what the Python server stores");
-        std::fs::write(GOLDEN, serde_json::to_string_pretty(&got).expect("json") + "\n").expect("write the golden file");
-    }
-    if let Ok(path) = std::env::var("KANBAN_DUMP_TO") {
-        std::fs::write(path, serde_json::to_string_pretty(&got).expect("json") + "\n").expect("write the rows");
+        std::fs::write(GOLDEN, serde_json::to_string_pretty(&got).expect("json") + "\n")
+            .expect("write the golden file");
     }
     let golden: Map<String, Value> =
         serde_json::from_str(&std::fs::read_to_string(GOLDEN).expect("the golden file")).expect("it parses");

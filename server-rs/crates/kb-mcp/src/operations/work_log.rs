@@ -24,13 +24,8 @@ pub async fn add_work_log(
     notify_on_success(async {
         let note = attach_from_run(Some(note), None).await?.unwrap_or_default();
         edit_ticket(ticket_id, None, |s, _| async move {
-            let new = NewWorkLog {
-                kind,
-                pinned,
-                linked_branch,
-                linked_test_case,
-                ..NewWorkLog::new(author, role, &note)
-            };
+            let new =
+                NewWorkLog { kind, pinned, linked_branch, linked_test_case, ..NewWorkLog::new(author, role, &note) };
             svc_tickets::add_work_log(&s, ticket_id, new).await.map_err(ToolError::from)
         })
         .await

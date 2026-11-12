@@ -170,7 +170,8 @@ async fn test_tools_work_through_a_real_client_session() {
     let detail = run("get_projects", json!({"project_id": project["id"]})).await;
     assert!(!detail.json()["members"].as_array().expect("members").is_empty());
     assert_eq!(detail.raw["structuredContent"]["result"], detail.json());
-    let ticket = run("manage_ticket", json!({"action": "create", "project_id": project["id"], "title": "t"})).await.json();
+    let ticket =
+        run("manage_ticket", json!({"action": "create", "project_id": project["id"], "title": "t"})).await.json();
     run("ticket_items", json!({"ticket_id": ticket["id"], "item": "criterion", "action": "add", "text": "c"})).await;
     run("ticket_branches", json!({"ticket_id": ticket["id"], "action": "add", "name": "feat/a"})).await;
     run("list_tickets", json!({"project_id": project["id"]})).await;
@@ -194,11 +195,13 @@ async fn test_ticket_lifecycle_and_relations() {
     let child = ticket(&mcp, &p, json!({"title": "child", "parent_id": a["id"]})).await;
     assert!(child["parent_id"] == a["id"] && b["priority"] == "high");
 
-    let moved = call(&mcp, "manage_ticket", json!({"action": "update", "ticket_id": a["id"], "status": "in-progress"})).await;
+    let moved =
+        call(&mcp, "manage_ticket", json!({"action": "update", "ticket_id": a["id"], "status": "in-progress"})).await;
     assert_eq!(moved["status"], "in-progress");
     call(&mcp, "manage_ticket", json!({"action": "update", "ticket_id": a["id"], "estimate": 3})).await;
     let unset =
-        call(&mcp, "manage_ticket", json!({"action": "update", "ticket_id": a["id"], "clear_fields": ["estimate"]})).await;
+        call(&mcp, "manage_ticket", json!({"action": "update", "ticket_id": a["id"], "clear_fields": ["estimate"]}))
+            .await;
     assert_eq!(unset["estimate"], Value::Null);
 
     // b cannot proceed until a is done
@@ -323,9 +326,13 @@ async fn test_comments_work_log_criteria_sub_tasks_and_test_cases() {
     .await;
     let log = call(&mcp, "get_ticket", json!({"ticket_id": i})).await["work_log"][0].clone();
     assert!(log["kind"] == "root_cause" && log["pinned"] == true);
-    let resolved =
-        items(&mcp, i, "work_log", json!({"action": "update", "item_id": log["id"], "note": "rewritten", "pinned": false}))
-            .await;
+    let resolved = items(
+        &mcp,
+        i,
+        "work_log",
+        json!({"action": "update", "item_id": log["id"], "note": "rewritten", "pinned": false}),
+    )
+    .await;
     assert_eq!(resolved["work_log"][0]["note"], "rewritten");
     items(&mcp, i, "work_log", json!({"action": "delete", "item_id": log["id"]})).await;
 
@@ -345,9 +352,13 @@ async fn test_comments_work_log_criteria_sub_tasks_and_test_cases() {
 
     items(&mcp, i, "test_case", json!({"action": "add", "title": "it runs", "expected_result": "ok"})).await;
     // by code
-    let passed =
-        items(&mcp, i, "test_case", json!({"action": "update", "item_id": "TC-1", "status": "pass", "proof": "log.txt"}))
-            .await;
+    let passed = items(
+        &mcp,
+        i,
+        "test_case",
+        json!({"action": "update", "item_id": "TC-1", "status": "pass", "proof": "log.txt"}),
+    )
+    .await;
     assert_eq!(passed["test_cases"][0]["status"], "pass");
     let left = items(&mcp, i, "test_case", json!({"action": "delete", "item_id": "TC-1"})).await;
     assert_eq!(left["test_cases"], json!([]));
@@ -362,23 +373,30 @@ async fn test_ticket_items_explains_a_wrong_call() {
     let i = &t["id"];
     // an action the item does not have: the valid ones are listed
     let refused =
-        call_err(&mcp, "ticket_items", items_arguments(i, "comment", json!({"action": "toggle", "item_id": "x"}))).await;
+        call_err(&mcp, "ticket_items", items_arguments(i, "comment", json!({"action": "toggle", "item_id": "x"})))
+            .await;
     assert!(refused.contains("Valid actions for comment: add, update, delete, restore"), "{refused}");
     // a missing parameter is named, with what the action takes
-    let refused = call_err(&mcp, "ticket_items", items_arguments(i, "comment", json!({"action": "add", "text": "hi"}))).await;
+    let refused =
+        call_err(&mcp, "ticket_items", items_arguments(i, "comment", json!({"action": "add", "text": "hi"}))).await;
     assert!(refused.contains("Missing: author"), "{refused}");
     // a parameter that belongs to another item is refused instead of being silently dropped
     let refused = call_err(
         &mcp,
         "ticket_items",
-        items_arguments(i, "comment", json!({"action": "add", "text": "hi", "author": "C", "log_kind": "investigation"})),
+        items_arguments(
+            i,
+            "comment",
+            json!({"action": "add", "text": "hi", "author": "C", "log_kind": "investigation"}),
+        ),
     )
     .await;
     assert!(refused.contains("does not use: log_kind"), "{refused}");
     // a stale or unknown sub-item id lists the real ones
     items(&mcp, i, "criterion", json!({"action": "add", "text": "ok"})).await;
     let refused =
-        call_err(&mcp, "ticket_items", items_arguments(i, "criterion", json!({"action": "toggle", "item_id": "nope"}))).await;
+        call_err(&mcp, "ticket_items", items_arguments(i, "criterion", json!({"action": "toggle", "item_id": "nope"})))
+            .await;
     assert!(refused.contains("not found"), "{refused}");
 }
 
@@ -422,7 +440,8 @@ async fn test_branch_counts_keep_their_schema_constraint() {
     let mcp = s.mcp();
     let p = project(&mcp, "FAC").await;
     let t = ticket(&mcp, &p, json!({})).await;
-    call_err(&mcp, "ticket_branches", json!({"ticket_id": t["id"], "action": "add", "name": "a", "ahead_count": -1})).await;
+    call_err(&mcp, "ticket_branches", json!({"ticket_id": t["id"], "action": "add", "name": "a", "ahead_count": -1}))
+        .await;
 }
 
 #[tokio::test]
@@ -484,7 +503,8 @@ async fn test_reopen_pend_and_resume_through_manage_ticket() {
     assert_eq!(resumed["pending"], false);
 
     // the ticket it waited on still blocks it: Done is refused until that one is done (3.35.1)
-    let refused = call_err(&mcp, "manage_ticket", json!({"action": "update", "ticket_id": tid, "status": "done"})).await;
+    let refused =
+        call_err(&mcp, "manage_ticket", json!({"action": "update", "ticket_id": tid, "status": "done"})).await;
     assert!(refused.contains("blocked by"), "{refused}");
     call(&mcp, "manage_ticket", json!({"action": "update", "ticket_id": other["id"], "status": "done"})).await;
     call(&mcp, "manage_ticket", json!({"action": "update", "ticket_id": tid, "status": "done"})).await;
@@ -500,7 +520,12 @@ async fn test_list_tickets_filters_pending_and_reopened() {
     let p = project(&mcp, "FAC").await;
     let a = ticket(&mcp, &p, json!({"title": "A"})).await;
     let b = ticket(&mcp, &p, json!({"title": "B"})).await;
-    call(&mcp, "manage_ticket", json!({"action": "pend", "ticket_id": a["id"], "reason_type": "party", "party": "Acme"})).await;
+    call(
+        &mcp,
+        "manage_ticket",
+        json!({"action": "pend", "ticket_id": a["id"], "reason_type": "party", "party": "Acme"}),
+    )
+    .await;
     call(&mcp, "manage_ticket", json!({"action": "update", "ticket_id": b["id"], "status": "done"})).await;
     call(&mcp, "manage_ticket", json!({"action": "reopen", "ticket_id": b["id"]})).await;
 

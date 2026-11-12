@@ -18,7 +18,8 @@ async fn test_mcp_can_delete_work_log_and_is_validated() {
         }
         arguments
     };
-    let added = call(&mcp, "ticket_items", item("add", json!({"author": "agent", "role": "Developer", "note": "n"}))).await;
+    let added =
+        call(&mcp, "ticket_items", item("add", json!({"author": "agent", "role": "Developer", "note": "n"}))).await;
     let lid = added["work_log"][0]["id"].clone();
     // a role the board does not have
     call_err(&mcp, "ticket_items", item("add", json!({"author": "a", "role": "Wizard", "note": "n"}))).await;

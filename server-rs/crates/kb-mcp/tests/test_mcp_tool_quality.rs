@@ -302,7 +302,10 @@ async fn test_list_tickets_is_paginated_and_compact() {
         common::rest_ticket_in(&c, &p["id"], &format!("t{n}"), json!({"description": "long ".repeat(50)})).await;
     }
     let page = call(&mcp, "list_tickets", json!({"project_id": p["id"], "limit": 2})).await;
-    assert_eq!((&page["total"], &page["count"], &page["offset"], &page["has_more"]), (&json!(5), &json!(2), &json!(0), &json!(true)));
+    assert_eq!(
+        (&page["total"], &page["count"], &page["offset"], &page["has_more"]),
+        (&json!(5), &json!(2), &json!(0), &json!(true))
+    );
     let rest = call(&mcp, "list_tickets", json!({"project_id": p["id"], "limit": 2, "offset": 4})).await;
     assert_eq!((&rest["count"], &rest["has_more"]), (&json!(1), &json!(false)));
     let summary = page["tickets"][0].as_object().expect("a summary");
@@ -321,15 +324,23 @@ async fn test_activity_log_is_opt_in_and_branches_have_no_camel_case_twins() {
     let (_, t) = common::rest_ticket(&c, "t", "ACT", json!({})).await;
     let id = t["id"].as_str().expect("an id");
     c.patch(&format!("/tickets/{id}"), json!({"priority": "high"})).await.assert_status(200);
-    c.post(&format!("/tickets/{id}/branches"), json!({"name": "feat/a", "branch_from": "main"})).await.assert_status(201);
+    c.post(&format!("/tickets/{id}/branches"), json!({"name": "feat/a", "branch_from": "main"}))
+        .await
+        .assert_status(201);
     let plain = call(&mcp, "get_ticket", json!({"ticket_id": id})).await;
     // recent entries only
     assert!(plain["activity_log"].as_array().expect("log").len() <= 10);
     let all = call(&mcp, "get_ticket", json!({"ticket_id": id, "activity_limit": -1})).await;
-    assert_eq!(all["activity_log"].as_array().expect("log").len() as u64, plain["activity_total"].as_u64().expect("total"));
-    let commented =
-        call(&mcp, "ticket_items", json!({"ticket_id": id, "item": "comment", "action": "add", "text": "hi", "author": "Claude"}))
-            .await;
+    assert_eq!(
+        all["activity_log"].as_array().expect("log").len() as u64,
+        plain["activity_total"].as_u64().expect("total")
+    );
+    let commented = call(
+        &mcp,
+        "ticket_items",
+        json!({"ticket_id": id, "item": "comment", "action": "add", "text": "hi", "author": "Claude"}),
+    )
+    .await;
     assert!(commented.get("activity_log").is_none());
     let branch = plain["branches"][0].as_object().expect("a branch");
     assert!(branch.contains_key("pr_url") && !branch.contains_key("prUrl") && !branch.contains_key("branchFrom"));
@@ -341,20 +352,29 @@ async fn test_sub_item_errors_list_the_valid_ids() {
     let (mcp, c) = (s.mcp(), s.client());
     let (_, t) = common::rest_ticket(&c, "t", "ACT", json!({})).await;
     let id = &t["id"];
-    let created =
-        call(&mcp, "ticket_items", json!({"ticket_id": id, "item": "comment", "action": "add", "text": "hello", "author": "Claude"}))
-            .await;
+    let created = call(
+        &mcp,
+        "ticket_items",
+        json!({"ticket_id": id, "item": "comment", "action": "add", "text": "hello", "author": "Claude"}),
+    )
+    .await;
     let cid = created["comments"][0]["id"].as_str().expect("an id").to_string();
     // used to "succeed" silently
-    let text =
-        call_err(&mcp, "ticket_items", json!({"ticket_id": id, "item": "comment", "action": "delete", "item_id": "wrong-id"}))
-            .await;
+    let text = call_err(
+        &mcp,
+        "ticket_items",
+        json!({"ticket_id": id, "item": "comment", "action": "delete", "item_id": "wrong-id"}),
+    )
+    .await;
     assert!(text.contains(&cid) && text.contains("get_ticket"), "{text}");
     let got = call(&mcp, "get_ticket", json!({"ticket_id": id})).await;
     assert_eq!(got["comments"].as_array().expect("comments").len(), 1);
-    let text =
-        call_err(&mcp, "ticket_items", json!({"ticket_id": id, "item": "criterion", "action": "toggle", "item_id": "nope"}))
-            .await;
+    let text = call_err(
+        &mcp,
+        "ticket_items",
+        json!({"ticket_id": id, "item": "criterion", "action": "toggle", "item_id": "nope"}),
+    )
+    .await;
     assert!(text.contains("not found"), "{text}");
 }
 
@@ -458,7 +478,8 @@ async fn test_get_ticket_can_return_only_the_recent_activity() {
     let cutoff = all[all.len() - 3]["at"].clone();
     let newer = call(&mcp, "get_ticket", json!({"ticket_id": i, "activity_since": cutoff})).await;
     assert_eq!(tos(&newer), [json!("t3"), json!("t4")]);
-    let both = call(&mcp, "get_ticket", json!({"ticket_id": i, "activity_since": all[0]["at"], "activity_limit": 1})).await;
+    let both =
+        call(&mcp, "get_ticket", json!({"ticket_id": i, "activity_since": all[0]["at"], "activity_limit": 1})).await;
     assert_eq!(tos(&both), [json!("t4")]);
     let future = call(&mcp, "get_ticket", json!({"ticket_id": i, "activity_since": "2999-01-01"})).await;
     assert_eq!(future["activity_log"], json!([]));
@@ -482,7 +503,10 @@ async fn test_default_activity_is_capped_and_long_texts_are_shortened() {
     assert!(recent["activity_total"].as_u64().expect("total") > 10);
     let description = |ticket: &Value| -> String {
         let log = ticket["activity_log"].as_array().expect("log");
-        log.iter().find(|e| e["field"] == "description").expect("a description entry")["to"].as_str().expect("text").to_string()
+        log.iter().find(|e| e["field"] == "description").expect("a description entry")["to"]
+            .as_str()
+            .expect("text")
+            .to_string()
     };
     // shortened by default...
     let short = description(&recent);

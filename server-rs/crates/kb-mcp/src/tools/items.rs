@@ -82,7 +82,11 @@ pub const ITEM_OPS: &[((&str, &str), Op)] = &[
     (
         ("comment", "delete"),
         Op::new(
-            |a| Box::pin(async move { ops::delete_comment(&arg_text(&a, "ticket_id"), &arg_text(&a, "comment_id")).await }),
+            |a| {
+                Box::pin(
+                    async move { ops::delete_comment(&arg_text(&a, "ticket_id"), &arg_text(&a, "comment_id")).await },
+                )
+            },
             &["ticket_id", "item_id"],
             &[],
         )
@@ -92,7 +96,9 @@ pub const ITEM_OPS: &[((&str, &str), Op)] = &[
         ("comment", "restore"),
         Op::new(
             |a| {
-                Box::pin(async move { ops::restore_comment(&arg_text(&a, "ticket_id"), &arg_text(&a, "comment_id")).await })
+                Box::pin(
+                    async move { ops::restore_comment(&arg_text(&a, "ticket_id"), &arg_text(&a, "comment_id")).await },
+                )
             },
             &["ticket_id", "item_id"],
             &[],
@@ -152,7 +158,9 @@ pub const ITEM_OPS: &[((&str, &str), Op)] = &[
     (
         ("work_log", "delete"),
         Op::new(
-            |a| Box::pin(async move { ops::delete_work_log(&arg_text(&a, "ticket_id"), &arg_text(&a, "log_id")).await }),
+            |a| {
+                Box::pin(async move { ops::delete_work_log(&arg_text(&a, "ticket_id"), &arg_text(&a, "log_id")).await })
+            },
             &["ticket_id", "item_id"],
             &[],
         )
@@ -209,7 +217,9 @@ pub const ITEM_OPS: &[((&str, &str), Op)] = &[
         ("sub_task", "toggle"),
         Op::new(
             |a| {
-                Box::pin(async move { ops::toggle_sub_task(&arg_text(&a, "ticket_id"), &arg_text(&a, "sub_task_id")).await })
+                Box::pin(
+                    async move { ops::toggle_sub_task(&arg_text(&a, "ticket_id"), &arg_text(&a, "sub_task_id")).await },
+                )
             },
             &["ticket_id", "item_id"],
             &[],
@@ -220,7 +230,9 @@ pub const ITEM_OPS: &[((&str, &str), Op)] = &[
         ("sub_task", "delete"),
         Op::new(
             |a| {
-                Box::pin(async move { ops::delete_sub_task(&arg_text(&a, "ticket_id"), &arg_text(&a, "sub_task_id")).await })
+                Box::pin(
+                    async move { ops::delete_sub_task(&arg_text(&a, "ticket_id"), &arg_text(&a, "sub_task_id")).await },
+                )
             },
             &["ticket_id", "item_id"],
             &[],
@@ -287,7 +299,9 @@ pub const ITEM_OPS: &[((&str, &str), Op)] = &[
         ("test_case", "delete"),
         Op::new(
             |a| {
-                Box::pin(async move { ops::delete_test_case(&arg_text(&a, "ticket_id"), &arg_text(&a, "test_case_id")).await })
+                Box::pin(async move {
+                    ops::delete_test_case(&arg_text(&a, "ticket_id"), &arg_text(&a, "test_case_id")).await
+                })
             },
             &["ticket_id", "item_id"],
             &[],
@@ -381,6 +395,21 @@ mod tests {
             }
             assert!(!op.required.iter().any(|name| op.optional.contains(name)), "{item}.{action}");
         }
+    }
+
+    /// A call that names an action the item does not have gets the list of the ones it has, in the table's order.
+    #[test]
+    fn an_action_the_item_does_not_have_lists_the_valid_ones() {
+        let refused = item_op("comment", "toggle").err().expect("no such action");
+        assert_eq!(
+            refused.message(),
+            "ticket_items: a comment cannot be 'toggle'. Valid actions for comment: add, update, delete, restore."
+        );
+        let refused = item_op("attachment", "update").err().expect("no such action");
+        assert_eq!(
+            refused.message(),
+            "ticket_items: a attachment cannot be 'update'. Valid actions for attachment: add."
+        );
     }
 
     /// Every item of the schema has actions, and every action is one of the schema's.

@@ -91,8 +91,12 @@ fn update_arguments(ticket_id: &Value, extra: Value) -> Value {
 
 /// `ops.add_comment(ticket_id, text=..., author=...)`: `ticket_items(item='comment')`.
 async fn add_comment(mcp: &Mcp, ticket_id: &Value, text: &str, author: &str) -> Value {
-    call(mcp, "ticket_items", json!({"ticket_id": ticket_id, "item": "comment", "action": "add", "text": text, "author": author}))
-        .await
+    call(
+        mcp,
+        "ticket_items",
+        json!({"ticket_id": ticket_id, "item": "comment", "action": "add", "text": text, "author": author}),
+    )
+    .await
 }
 
 /// The text of a refusal when a call must fail with a "not found" message.
@@ -110,7 +114,8 @@ async fn test_create_ticket_appears_in_list_tickets() {
     let s = common::start().await;
     let mcp = s.mcp();
     let project = seed_project(&mcp, "Test", "LTST").await;
-    let ticket = create_ticket(&mcp, &project["id"], "My first ticket", json!({"type": "task", "priority": "high"})).await;
+    let ticket =
+        create_ticket(&mcp, &project["id"], "My first ticket", json!({"type": "task", "priority": "high"})).await;
     assert_eq!(ticket["title"], "My first ticket");
     assert!(ticket["id"].as_str().expect("an id").starts_with("LTST-"));
 
@@ -322,7 +327,8 @@ async fn test_update_comment() {
         json!({"ticket_id": ticket["id"], "item": "comment", "action": "update", "item_id": comment_id, "text": "**Edited** message"}),
     )
     .await;
-    let updated = result["comments"].as_array().expect("comments").iter().find(|c| c["id"] == comment_id).expect("found");
+    let updated =
+        result["comments"].as_array().expect("comments").iter().find(|c| c["id"] == comment_id).expect("found");
     assert_eq!(updated["text"], "**Edited** message");
     assert_eq!(updated["author"], "alice");
 }
@@ -388,12 +394,22 @@ async fn test_list_and_restore_comment() {
         listed["comments"].as_array().expect("comments").iter().map(|c| c["text"].clone()).collect()
     };
     assert!(listed["count"] == 2 && texts(&listed) == [json!("One"), json!("Two")], "{listed}");
-    call(&mcp, "ticket_items", json!({"ticket_id": ticket["id"], "item": "comment", "action": "delete", "item_id": cid})).await;
+    call(
+        &mcp,
+        "ticket_items",
+        json!({"ticket_id": ticket["id"], "item": "comment", "action": "delete", "item_id": cid}),
+    )
+    .await;
     let after = call(&mcp, "get_ticket", json!({"ticket_id": ticket["id"], "view": "comments"})).await;
     assert_eq!(after["count"], 1);
-    let back = call(&mcp, "ticket_items", json!({"ticket_id": ticket["id"], "item": "comment", "action": "restore", "item_id": cid}))
-        .await;
-    let restored: Vec<Value> = back["comments"].as_array().expect("comments").iter().map(|c| c["text"].clone()).collect();
+    let back = call(
+        &mcp,
+        "ticket_items",
+        json!({"ticket_id": ticket["id"], "item": "comment", "action": "restore", "item_id": cid}),
+    )
+    .await;
+    let restored: Vec<Value> =
+        back["comments"].as_array().expect("comments").iter().map(|c| c["text"].clone()).collect();
     assert_eq!(restored, [json!("One"), json!("Two")]);
 }
 
@@ -425,7 +441,11 @@ async fn test_add_work_log() {
     )
     .await;
     assert!(
-        result["work_log"].as_array().expect("work_log").iter().any(|w| w["author"] == "dev" && w["note"] == "Implemented feature X"),
+        result["work_log"]
+            .as_array()
+            .expect("work_log")
+            .iter()
+            .any(|w| w["author"] == "dev" && w["note"] == "Implemented feature X"),
         "{result}"
     );
 }
@@ -458,7 +478,11 @@ async fn test_add_test_case() {
     )
     .await;
     assert!(
-        result["test_cases"].as_array().expect("test_cases").iter().any(|tc| tc["title"] == "Login works" && tc["status"] == "pending"),
+        result["test_cases"]
+            .as_array()
+            .expect("test_cases")
+            .iter()
+            .any(|tc| tc["title"] == "Login works" && tc["status"] == "pending"),
         "{result}"
     );
 }
@@ -523,7 +547,8 @@ async fn test_create_child_ticket() {
     let mcp = s.mcp();
     let project = seed_project(&mcp, "Test", "CHD").await;
     let parent = create_ticket(&mcp, &project["id"], "Parent ticket", json!({})).await;
-    let child = create_ticket(&mcp, &project["id"], "Child ticket", json!({"type": "task", "parent_id": parent["id"]})).await;
+    let child =
+        create_ticket(&mcp, &project["id"], "Child ticket", json!({"type": "task", "parent_id": parent["id"]})).await;
     assert_eq!(child["parent_id"], parent["id"]);
     assert_eq!(child["title"], "Child ticket");
 }
@@ -658,7 +683,8 @@ async fn test_add_comment_publishes_sse() {
 async fn test_update_ticket_nonexistent_does_not_publish_sse() {
     let s = common::start().await;
     let mut events = s.events().await;
-    not_found(&s.mcp(), "manage_ticket", update_arguments(&json!("MISSING-9999"), json!({"description": "ghost"}))).await;
+    not_found(&s.mcp(), "manage_ticket", update_arguments(&json!("MISSING-9999"), json!({"description": "ghost"})))
+        .await;
     assert_eq!(events.next(Duration::from_millis(800)).await, None);
 }
 
@@ -691,7 +717,8 @@ async fn test_story_nesting_on_update_respects_depth() {
     let sub = create_ticket(&mcp, &project["id"], "S", json!({"parent_id": ticket["id"]})).await;
     let other = create_ticket(&mcp, &project["id"], "Other", json!({"parent_id": story["id"]})).await;
     // a ticket with its own sub-ticket cannot move under another ticket (it would be 3 deep)
-    let text = call_err(&mcp, "manage_ticket", update_arguments(&ticket["id"], json!({"parent_id": other["id"]}))).await;
+    let text =
+        call_err(&mcp, "manage_ticket", update_arguments(&ticket["id"], json!({"parent_id": other["id"]}))).await;
     assert!(text.contains("1 level"), "{text}");
     // a plain ticket can still become a sub-ticket of a ticket under the story
     let moved = update_ticket(&mcp, &other["id"], json!({"parent_id": ticket["id"]})).await;

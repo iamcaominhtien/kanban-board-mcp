@@ -21,14 +21,15 @@ pub use checklists::{
 };
 pub use comments::{add_comment, attach_file, delete_comment, list_comments, restore_comment, update_comment};
 pub use docs::{link_ticket_doc, unlink_ticket_doc};
-pub use ideas::{create_idea_ticket, get_idea_activity_trail, get_idea_ticket, list_idea_assumptions, list_idea_tickets};
+pub use ideas::{
+    create_idea_ticket, get_idea_activity_trail, get_idea_ticket, list_idea_assumptions, list_idea_tickets,
+};
 pub use members::{add_member, list_members, remove_member};
 pub use projects::{create_project, list_projects, update_project};
 pub use relations::{block_ticket, link_tickets, unblock_ticket, unlink_tickets};
 pub use test_cases::{add_test_case, delete_test_case, update_test_case};
 pub use tickets::{
-    DEFAULT_ACTIVITY_ENTRIES, create_child_ticket, create_ticket, delete_ticket, get_ticket,
-    get_ticket_workspace_path, list_tickets, reopen_ticket, resume_ticket, set_ticket_pending, update_ticket,
-    update_ticket_status,
+    DEFAULT_ACTIVITY_ENTRIES, create_child_ticket, create_ticket, delete_ticket, get_ticket, get_ticket_workspace_path,
+    list_tickets, reopen_ticket, resume_ticket, set_ticket_pending, update_ticket, update_ticket_status,
 };
 pub use work_log::{add_work_log, delete_work_log, update_work_log};

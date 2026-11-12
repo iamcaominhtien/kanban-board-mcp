@@ -252,7 +252,9 @@ pub fn arg_list(args: &Map<String, Value>, name: &str) -> Option<Vec<Value>> {
 
 /// A list of texts argument (`None` when left out or null).
 pub fn arg_strings(args: &Map<String, Value>, name: &str) -> Option<Vec<String>> {
-    args.get(name).and_then(Value::as_array).map(|items| items.iter().filter_map(Value::as_str).map(str::to_string).collect())
+    args.get(name)
+        .and_then(Value::as_array)
+        .map(|items| items.iter().filter_map(Value::as_str).map(str::to_string).collect())
 }
 
 /// A text argument the caller has made sure is there (a required parameter after validation); empty otherwise.

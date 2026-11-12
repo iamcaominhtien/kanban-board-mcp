@@ -24,7 +24,8 @@ struct OwnFolder(PathBuf);
 
 impl OwnFolder {
     fn new() -> OwnFolder {
-        let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+        let nanos =
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
         let path = std::env::temp_dir().join(format!("kanban-legacy-db-{}-{nanos}", std::process::id()));
         std::fs::create_dir_all(&path).expect("temporary folder");
         OwnFolder(path)
@@ -85,7 +86,10 @@ async fn test_database_missing_docs_ai_ignore_is_repaired_and_a_project_deletes(
     })
     .await;
     assert_eq!(names(&db_file, "SELECT version_num FROM alembic_version").await, head);
-    assert_eq!(names(&db_file, "SELECT name FROM sqlite_master WHERE name = 'docs_ai_ignore'").await, ["docs_ai_ignore"]);
+    assert_eq!(
+        names(&db_file, "SELECT name FROM sqlite_master WHERE name = 'docs_ai_ignore'").await,
+        ["docs_ai_ignore"]
+    );
 
     let c = server.client();
     let doomed = project(&c, "Doomed", "DOO").await;

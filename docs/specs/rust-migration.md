@@ -163,7 +163,8 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 ### P4 MCP (`kb-mcp`)
 
 - [x] the protocol (HTTP and stdio), registry, argument validation, instructions, the project tools
-- [~] the ticket, item, branch and idea tools
+- [x] the ticket, item, branch and idea tools (`list_tickets`, `get_ticket`, `manage_ticket`, `ticket_items`,
+      `ticket_branches`, the five idea tools)
 - [ ] the docs, canvas, diagram, sketch and picture tools; `ai_run`, `ai_schedules`, knowledge
 - [x] `mcp_stdio.py`, `mcp_bridge.py` (byte-equal to the Python programs)
 - [x] `services/mcp_clients.py`, `shared_skills.py`, `role_skills.py`, skill assets (`kb-skills`; the skill folders are
@@ -185,7 +186,10 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 
 - [x] `dbkit/probe.py`, `move.py`, `jobs.py`, `assist.py`, `cli.py`, `api/database.py` (a database made by the Rust
       server on PostgreSQL or MySQL is identical to one made by the Python server)
-- [~] Migration runner that keeps `alembic_version`; the 80 revisions; a new database from the snapshot, stamped head
+- [x] Migration runner that keeps `alembic_version` and orders revisions as Alembic does; the 80 revisions, each proven
+      on SQLite against Python's upgrade of the same database (`contract/migrations/`, 90 fixtures), and the nine
+      revisions after the head of 3.37.0 on PostgreSQL and MariaDB; a failed upgrade rolls back whole on SQLite and
+      PostgreSQL
 
 ### Open issues (to close before the switch)
 
@@ -197,8 +201,8 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - Hooks still without an implementation: `kb_board::hooks::{AiTeamsHook, AiRunsHook}`, `kb_dbkit::hooks::AssistantHook`,
   `kb_docs::hooks::{AiGuardHook, AssignHook, CommentsHook, CanvasesHook}`, `kb_draw::hooks::{CanvasDocs, CanvasDelivery}`. Hooks are
   registered in `kb-app/src/hooks.rs`.
-- Tests waiting for another port: the two data-import tests that need an older database (migrations),
-  the `test_mcp_*` tests (MCP), the nine tests of the Idea Space migration.
+- Tests waiting for another port:
+  the docs tools tests of MCP.
 - A JSON body that leaves out several required fields names only the first in the 422; FastAPI lists all.
 - `kb_base::time::parse_iso` accepts shapes `datetime.fromisoformat` refuses; `kb_ai::store::parse_iso` is the exact
   port. Make the exact one the shared one.

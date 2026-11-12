@@ -100,7 +100,8 @@ pub const TICKET_OPS: &[(&str, Op)] = &[
             |a| {
                 Box::pin(async move {
                     let (project_id, title) = (arg_text(&a, "project_id"), arg_text(&a, "title"));
-                    let (kind, priority, status) = (arg_str(&a, "type"), arg_str(&a, "priority"), arg_str(&a, "status"));
+                    let (kind, priority, status) =
+                        (arg_str(&a, "type"), arg_str(&a, "priority"), arg_str(&a, "status"));
                     let description = arg_str(&a, "description");
                     let (parent_id, due_date) = (arg_str(&a, "parent_id"), arg_str(&a, "due_date"));
                     let (start_date, assignee) = (arg_str(&a, "start_date"), arg_str(&a, "assignee"));
@@ -146,17 +147,14 @@ pub const TICKET_OPS: &[(&str, Op)] = &[
                 Box::pin(async move {
                     // the `fields` of `update_ticket`, in its order
                     let mut fields = Map::new();
-                    for name in TICKET_FIELDS
-                        .iter()
-                        .chain(&[
-                            "repo_path",
-                            "wont_do_reason",
-                            "block_done_if_acs_incomplete",
-                            "block_done_if_tcs_incomplete",
-                            "wave_pin",
-                            "review_requested_from",
-                        ])
-                    {
+                    for name in TICKET_FIELDS.iter().chain(&[
+                        "repo_path",
+                        "wont_do_reason",
+                        "block_done_if_acs_incomplete",
+                        "block_done_if_tcs_incomplete",
+                        "wave_pin",
+                        "review_requested_from",
+                    ]) {
                         if let Some(value) = a.get(*name) {
                             fields.insert(name.to_string(), value.clone());
                         }
@@ -187,7 +185,10 @@ pub const TICKET_OPS: &[(&str, Op)] = &[
             ],
         ),
     ),
-    ("delete", Op::new(|a| Box::pin(async move { ops::delete_ticket(&arg_text(&a, "ticket_id")).await }), &["ticket_id"], &[])),
+    (
+        "delete",
+        Op::new(|a| Box::pin(async move { ops::delete_ticket(&arg_text(&a, "ticket_id")).await }), &["ticket_id"], &[]),
+    ),
     (
         "reopen",
         Op::new(
@@ -305,7 +306,9 @@ pub const TICKET_OPS: &[(&str, Op)] = &[
     (
         "unlink",
         Op::new(
-            |a| Box::pin(async move { ops::unlink_tickets(&arg_text(&a, "ticket_id"), &arg_text(&a, "link_id")).await }),
+            |a| {
+                Box::pin(async move { ops::unlink_tickets(&arg_text(&a, "ticket_id"), &arg_text(&a, "link_id")).await })
+            },
             &["ticket_id", "link_id"],
             &[],
         ),
@@ -314,7 +317,9 @@ pub const TICKET_OPS: &[(&str, Op)] = &[
         "link_doc",
         Op::new(
             |a| {
-                Box::pin(async move { ops::link_ticket_doc(&arg_text(&a, "ticket_id"), &arg_text(&a, "page_id")).await })
+                Box::pin(
+                    async move { ops::link_ticket_doc(&arg_text(&a, "ticket_id"), &arg_text(&a, "page_id")).await },
+                )
             },
             &["ticket_id", "page_id"],
             &[],

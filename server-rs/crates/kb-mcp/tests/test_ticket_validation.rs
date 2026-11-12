@@ -11,7 +11,12 @@ async fn test_mcp_can_set_and_clear_fields() {
     let s = common::start().await;
     let (mcp, c) = (s.mcp(), s.client());
     let (p, t) = rest_ticket(&c, "t", "ACT", json!({})).await;
-    let made = c.post(&format!("/projects/{}/members", p["id"].as_str().expect("id")), json!({"name": "Bao", "color": "#2E6F40"})).await;
+    let made = c
+        .post(
+            &format!("/projects/{}/members", p["id"].as_str().expect("id")),
+            json!({"name": "Bao", "color": "#2E6F40"}),
+        )
+        .await;
     made.assert_status(201);
     let m = made.json();
     let i = &t["id"];
@@ -69,7 +74,8 @@ async fn test_mcp_block_link_test_case_and_delete_tools() {
     )
     .await;
     assert_eq!(link["target_id"], b);
-    let removed = call(&mcp, "manage_ticket", json!({"action": "unlink", "ticket_id": a["id"], "link_id": link["id"]})).await;
+    let removed =
+        call(&mcp, "manage_ticket", json!({"action": "unlink", "ticket_id": a["id"], "link_id": link["id"]})).await;
     assert_eq!(removed, json!({"removed": link["id"]}));
     let after = call(
         &mcp,

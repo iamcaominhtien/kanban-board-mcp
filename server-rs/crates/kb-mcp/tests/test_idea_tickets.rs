@@ -14,7 +14,9 @@ fn trail_text(entry: &serde_json::Value) -> String {
 
 #[tokio::test]
 async fn test_get_idea_activity_trail_returns_entries_in_reverse_order() {
-    let s = common::start_with(Options { env: vec![("KANBAN_MCP_IDEA_TOOLS".into(), "1".into())], ..Options::default() }).await;
+    let s =
+        common::start_with(Options { env: vec![("KANBAN_MCP_IDEA_TOOLS".into(), "1".into())], ..Options::default() })
+            .await;
     let (mcp, c) = (s.mcp(), s.client());
     let made = c.post("/projects", json!({"name": "Idea Project", "prefix": "IDQ", "color": "#123456"})).await;
     made.assert_status(201);
@@ -24,7 +26,9 @@ async fn test_get_idea_activity_trail_returns_entries_in_reverse_order() {
     let created = made.json();
     let id = created["id"].as_str().expect("an id");
     c.patch(&format!("/api/idea-tickets/{id}/status"), json!({"new_status": "in_review"})).await.assert_status(200);
-    c.post(&format!("/api/idea-tickets/{id}/microthoughts"), json!({"text": "[TEST] Latest event"})).await.assert_status(200);
+    c.post(&format!("/api/idea-tickets/{id}/microthoughts"), json!({"text": "[TEST] Latest event"}))
+        .await
+        .assert_status(200);
 
     let trail = call(&mcp, "get_idea_activity_trail", json!({"ticket_id": id})).await;
     let trail = trail.as_array().expect("a list");

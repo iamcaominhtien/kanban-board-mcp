@@ -56,10 +56,10 @@ pub const CORE_TOOL_TABLE: &[Tool] = &[
     tool!(manage_ticket, tickets::manage_ticket),    // delete, unlink
     tool!(ticket_items, items::ticket_items),        // delete
     tool!(ticket_branches, branches::ticket_branches), // delete (optionally the git branch)
-    // docs_write (delete), ai_schedules (delete),
-    // knowledge: the knowledge base (table of contents, search, read) and the project memory,
-    // board_wait: wait until the board moves (the notification log),
-    // ai_run: only inside a run the board started: ask a person, message a ticket's team, report
+                                                     // docs_write (delete), ai_schedules (delete),
+                                                     // knowledge: the knowledge base (table of contents, search, read) and the project memory,
+                                                     // board_wait: wait until the board moves (the notification log),
+                                                     // ai_run: only inside a run the board started: ask a person, message a ticket's team, report
 ];
 
 /// The Idea Space tools are hidden from the MCP tool list for now (about a quarter of its size). They are fully

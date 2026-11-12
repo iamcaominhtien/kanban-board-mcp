@@ -45,7 +45,8 @@ pub async fn list_idea_tickets(project_id: Option<&str>, stage: Option<&str>, q:
         ..ListFilter::default()
     };
     let ideas = svc_space::list_ideas(&session, &filter).await.map_err(idea_error)?;
-    let listed: Vec<Value> = ideas.iter().map(|i| idea_ticket_to_dict(i).map(Value::Object)).collect::<Result<_, _>>()?;
+    let listed: Vec<Value> =
+        ideas.iter().map(|i| idea_ticket_to_dict(i).map(Value::Object)).collect::<Result<_, _>>()?;
     Ok(Value::Array(listed))
 }
 

@@ -14,10 +14,20 @@ kb-base = { workspace = true }
 kb-db = { workspace = true }
 kb-ai = { workspace = true }
 async-trait = { workspace = true }
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+portable-pty = "0.9"
+regex = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sysinfo = { version = "0.37", default-features = false, features = ["system"] }
+tempfile = "3"
+thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.31", features = ["signal", "process", "fs", "user"] }
+
 [dev-dependencies]
-tempfile = "3"
+fake-claude = { path = "../fake-claude" }

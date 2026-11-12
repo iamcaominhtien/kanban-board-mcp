@@ -11,7 +11,8 @@ async fn test_a_person_names_whose_review_a_ticket_waits_for() {
     let s = common::start().await;
     let (mcp, c) = (s.mcp(), s.client());
     let (p, t) = rest_ticket(&c, "t", "RVW", json!({})).await;
-    let ha = c.post(&format!("/projects/{}/members", p["id"].as_str().expect("id")), json!({"name": "Ha My"})).await.json();
+    let ha =
+        c.post(&format!("/projects/{}/members", p["id"].as_str().expect("id")), json!({"name": "Ha My"})).await.json();
     let tid = t["id"].as_str().expect("an id");
     let r = c.patch(&format!("/tickets/{tid}"), json!({"status": "review", "review_requested_from": ha["id"]})).await;
     r.assert_status(200);
