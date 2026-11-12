@@ -28,6 +28,9 @@ pub struct Session {
     txn: Mutex<Option<DatabaseTransaction>>,
     wrote: AtomicBool,
     memo: StdMutex<HashMap<String, Arc<dyn Any + Send + Sync>>>,
+    /// This transaction's turn at the SQLite file's write gate (`sqlite_gate`): held from the transaction's start to
+    /// its end. Declared after `txn`, so a dropped session rolls back before the next writer gets in.
+    turn: StdMutex<Option<crate::sqlite_gate::WritePermit>>,
 }
 
 /// Whether a statement only reads (it does not need a transaction of its own).
@@ -50,7 +53,13 @@ fn reads_only(sql: &str) -> bool {
 impl Session {
     /// A session on `conn` (use `kb_db::session()` for the database in use).
     pub fn new(conn: DatabaseConnection) -> Self {
-        Self { conn, txn: Mutex::new(None), wrote: AtomicBool::new(false), memo: StdMutex::new(HashMap::new()) }
+        Self {
+            conn,
+            txn: Mutex::new(None),
+            wrote: AtomicBool::new(false),
+            memo: StdMutex::new(HashMap::new()),
+            turn: StdMutex::new(None),
+        }
     }
 
     /// The pool this session runs on.
@@ -68,6 +77,20 @@ impl Session {
         dialect_name(self.conn.get_database_backend())
     }
 
+    /// Begin the transaction of a write: wait in line at the SQLite file's write gate first (writers in line,
+    /// `sqlite_gate`), then begin.
+    async fn open(&self) -> Result<DatabaseTransaction, DbErr> {
+        let turn = crate::sqlite_gate::enter_for(&self.conn).await?;
+        let txn = self.conn.begin().await?;
+        *self.turn.lock().unwrap_or_else(|e| e.into_inner()) = turn;
+        Ok(txn)
+    }
+
+    /// The transaction ended: let the next writer in.
+    fn let_go(&self) {
+        self.turn.lock().unwrap_or_else(|e| e.into_inner()).take();
+    }
+
     /// `await session.commit()`: make what this session wrote permanent. A session that wrote nothing does nothing.
     pub async fn commit(&self) -> Result<(), DbErr> {
         self.forget();
@@ -77,7 +100,9 @@ impl Session {
             if wrote && txn.get_database_backend() != DbBackend::Sqlite {
                 changes::mark(&txn).await?;
             }
-            txn.commit().await?;
+            let done = txn.commit().await;
+            self.let_go();
+            done?;
         }
         Ok(())
     }
@@ -88,7 +113,9 @@ impl Session {
         let txn = self.txn.lock().await.take();
         self.wrote.store(false, Ordering::SeqCst);
         if let Some(txn) = txn {
-            txn.rollback().await?;
+            let done = txn.rollback().await;
+            self.let_go();
+            done?;
         }
         Ok(())
     }
@@ -131,7 +158,7 @@ impl Session {
     pub async fn begin(&self) -> Result<(), DbErr> {
         let mut guard = self.txn.lock().await;
         if guard.is_none() {
-            *guard = Some(self.conn.begin().await?);
+            *guard = Some(self.open().await?);
         }
         Ok(())
     }
@@ -155,7 +182,7 @@ impl Session {
             {
                 let mut guard = self.txn.lock().await;
                 if guard.is_none() {
-                    *guard = Some(self.conn.begin().await?);
+                    *guard = Some(self.open().await?);
                     began = true;
                 }
                 if began || !self.wrote.load(Ordering::SeqCst) {
@@ -198,7 +225,7 @@ impl Session {
     async fn savepoint_statement(&self, sql: &str) -> Result<(), DbErr> {
         let mut guard = self.txn.lock().await;
         if guard.is_none() {
-            *guard = Some(self.conn.begin().await?);
+            *guard = Some(self.open().await?);
         }
         match guard.as_ref() {
             Some(txn) => txn.execute_unprepared(sql).await.map(|_| ()),
@@ -235,7 +262,7 @@ impl ConnectionTrait for Session {
             };
         }
         if guard.is_none() {
-            *guard = Some(self.conn.begin().await?);
+            *guard = Some(self.open().await?);
         }
         self.wrote_something();
         match guard.as_ref() {
@@ -253,7 +280,7 @@ impl ConnectionTrait for Session {
             };
         }
         if guard.is_none() {
-            *guard = Some(self.conn.begin().await?);
+            *guard = Some(self.open().await?);
         }
         self.wrote_something();
         match guard.as_ref() {
@@ -267,7 +294,7 @@ impl ConnectionTrait for Session {
         if !reads_only(&stmt.sql) {
             // INSERT / UPDATE / DELETE ... RETURNING
             if guard.is_none() {
-                *guard = Some(self.conn.begin().await?);
+                *guard = Some(self.open().await?);
             }
             self.wrote_something();
         }
@@ -281,7 +308,7 @@ impl ConnectionTrait for Session {
         let mut guard = self.txn.lock().await;
         if !reads_only(&stmt.sql) {
             if guard.is_none() {
-                *guard = Some(self.conn.begin().await?);
+                *guard = Some(self.open().await?);
             }
             self.wrote_something();
         }
