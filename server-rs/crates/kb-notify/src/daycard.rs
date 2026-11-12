@@ -45,7 +45,10 @@ pub async fn build_day_card(
     until: DateTime<FixedOffset>,
 ) -> Result<Value> {
     let (s_iso, u_iso) = (iso(&since), iso(&until));
-    let runs = runs_of_the_day(session, me, &s_iso, &u_iso).await?;
+    // the stored times are UTC text: the span is compared as UTC text too (a local midnight east of UTC is the day
+    // before in UTC, and its text would come after every time of that evening)
+    let (q_since, q_until) = (iso(&since.with_timezone(&chrono::Utc)), iso(&until.with_timezone(&chrono::Utc)));
+    let runs = runs_of_the_day(session, me, &q_since, &q_until).await?;
     let finished: Vec<&ai_run::Model> = runs.iter().filter(|r| r.state == "finished").collect();
     let failed: Vec<&ai_run::Model> = runs.iter().filter(|r| r.state == "failed" || r.state == "timed_out").collect();
     // `round(sum(cost or 0), 2)`: a sum of zeros is the integer 0, not 0.0
@@ -68,7 +71,7 @@ pub async fn build_day_card(
     if !waiting_open.is_empty() {
         lines.push(waiting_line(&waiting_open, now));
     }
-    let published = published_between(session, &s_iso, &u_iso).await?;
+    let published = published_between(session, &q_since, &q_until).await?;
     if published != 0 {
         lines.push(docs_line(published));
     }

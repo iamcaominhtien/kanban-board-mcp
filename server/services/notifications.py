@@ -2757,7 +2757,10 @@ async def build_day_card(
 ) -> dict:
     """The day in numbers and lines, counted from the log and the runs. Nothing is asked of an AI."""
     s_iso, u_iso = since.isoformat(), until.isoformat()
-    runs = await _runs_of_the_day(session, me, s_iso, u_iso)
+    # the stored times are UTC text: the span is compared as UTC text too (a local midnight east of UTC is the day
+    # before in UTC, and its text would come after every time of that evening)
+    q_since, q_until = since.astimezone(UTC).isoformat(), until.astimezone(UTC).isoformat()
+    runs = await _runs_of_the_day(session, me, q_since, q_until)
     finished = [r for r in runs if r.state == "finished"]
     failed = [r for r in runs if r.state in ("failed", "timed_out")]
     spent = round(sum(r.cost_usd or 0 for r in runs), 2)
@@ -2770,7 +2773,7 @@ async def build_day_card(
         lines.append(_failed_line(failed, not_retried))
     if waiting_open:
         lines.append(_waiting_line(waiting_open, now))
-    published = await _published_between(session, s_iso, u_iso)
+    published = await _published_between(session, q_since, q_until)
     if published:
         lines.append(_docs_line(published))
     if snoozed:
