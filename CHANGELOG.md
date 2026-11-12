@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+### Fixed
+- **The board's port changed on every start**, so an MCP client set to `http://127.0.0.1:<port>/mcp/` lost its connection each time the app restarted. The server now asks for the port it used last time (kept in `config.json`) and takes a random one only when that port is taken by another program (it says so in the log). `KANBAN_PORT` pins a port of your choice.
+
 ## [4.0.2] - 2026-11-12
 
 Performance: the board stays smooth while AIs work on it, and no change of a ticket is lost when several write at once.
