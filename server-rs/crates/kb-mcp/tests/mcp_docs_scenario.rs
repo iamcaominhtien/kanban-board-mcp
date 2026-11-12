@@ -114,6 +114,17 @@ async fn scenario(s: &testkit::Server, files: &Path) -> Vec<String> {
         write(&mcp, "comment", json!({"page_id": root_id, "body": "Which format, @Bao?", "quote": "The API is REST"}))
             .await;
     let thread_id = text(&thread["id"]);
+    // Bao is told of the mention by the notification centre, a moment after the comment: Bao's reply below must come
+    // after that, or the reply is older than the mention and does not close it (on either server). Wait for it.
+    for _ in 0..40 {
+        let told = s.dump_db().await["notification"]
+            .as_array()
+            .is_some_and(|rows| rows.iter().any(|r| r["recipient"] == "bao" && r["kind"] == "mention"));
+        if told {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+    }
     write(&mcp, "comment", json!({"page_id": root_id, "body": "Needs an owner"})).await;
     let reply = c
         .header("x-actor", "Bao")
@@ -355,7 +366,20 @@ async fn docs_worked_through_mcp_leave_the_same_rows_as_python_does() {
     }
     folders.sort_by_key(|(folder, _)| std::cmp::Reverse(folder.len()));
     let uploads = uploaded(&s.uploads_dir(), &skip);
-    let got = tables(&s.dump_db().await, uploads, &folders);
+    // The notification centre closes Bao's mention on a pass of its own (Bao replied in the thread), a moment after
+    // the reply: whether that pass ran before the dump was a matter of timing. Wait for it, up to 30 s.
+    let mut dump = s.dump_db().await;
+    for _ in 0..60 {
+        let open_mention = dump["notification"].as_array().is_some_and(|rows| {
+            rows.iter().any(|r| r["recipient"] == "bao" && r["kind"] == "mention" && r["done_at"].is_null())
+        });
+        if !open_mention {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        dump = s.dump_db().await;
+    }
+    let got = tables(&dump, uploads, &folders);
 
     if std::env::var("KANBAN_WRITE_GOLDEN").is_ok_and(|v| v == "1") {
         assert_eq!(target(), Target::Python, "the golden file is what the Python server stores");
