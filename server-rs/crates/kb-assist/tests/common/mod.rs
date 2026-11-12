@@ -26,7 +26,7 @@
 //! "Added for kb-assist"): `fake` (the `FAKE_CLAUDE_*` variables of the next turns, Python's `monkeypatch.setenv`),
 //! `prompts` (what the stand-in CLI recorded), `board` (a project with a team on the stand-in CLI, `_board(env)`),
 //! `answer` (wait for a chat answer, `_answer(c, message)`), `Deliveries` (a `kb_assist::seams::Runs` that records
-//! the notes sent to a ticket's team), `recorder` (a script that records what a CLI is started with, for the golden
+//! the notes sent to a ticket's team), `install_recorder` (a script that records what a CLI is started with, for the golden
 //! turns), and more tables in `insert_rows` (the chat, the insights, the usage, the assistant's settings and
 //! conversations, Docs pages, ideas).
 #![allow(dead_code)]
@@ -752,19 +752,26 @@ impl kb_assist::seams::Runs for Deliveries {
     }
 }
 
-/// A program that stands in for Claude Code in the golden turns: it records what it was started with into a new
-/// folder of `out` (`args` and `env`, NUL-separated, and `cwd`), keeps the conversation's file where the board looks
-/// for it, and prints the stream-json lines of the file `GOLDEN_STREAM` names. Returns its path (inside the folders a
-/// person may name a program in).
-pub fn recorder(out: &Path) -> String {
-    std::fs::create_dir_all(out).expect("the folder of the recordings");
-    let text = RECORDER.replace("<OUT>", &out.to_string_lossy());
-    let path = folder().join("tools").join(format!("recorder-{}", &kb_base::time::uuid4_hex()[..8]));
-    std::fs::create_dir_all(folder().join("tools")).expect("the tools folder");
-    std::fs::write(&path, text).expect("the recorder");
+/// Put the program that stands in for Claude Code in the golden turns where the board finds it: as `claude` on
+/// `PATH` (in place of `fake-claude`) and as `<temporary folder>/tools/recorder` (a team's `cli_path`). It records
+/// what it was started with into a new folder of `<temporary folder>/recorded` (`args` and `env`, NUL-separated, and
+/// `cwd`), keeps the conversation's file where the board looks for it, and prints the stream-json lines of the file
+/// `GOLDEN_STREAM` names. Returns the folder of the recordings.
+pub fn install_recorder() -> PathBuf {
     use std::os::unix::fs::PermissionsExt;
-    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).expect("the recorder's mode");
-    path.to_string_lossy().into_owned()
+    let out = folder().join("recorded");
+    std::fs::create_dir_all(&out).expect("the folder of the recordings");
+    std::fs::create_dir_all(folder().join("tools")).expect("the tools folder");
+    let text = RECORDER.replace("<OUT>", &out.to_string_lossy());
+    for path in [folder().join("bin").join("claude"), folder().join("tools").join("recorder")] {
+        if std::fs::read_to_string(&path).is_ok_and(|held| held == text) {
+            continue;
+        }
+        let _ = std::fs::remove_file(&path);
+        std::fs::write(&path, &text).expect("the recorder");
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).expect("the recorder's mode");
+    }
+    out
 }
 
 /// The text of the recorder (`RECORDER` of `contract/golden/gen_assist.py`, the same bytes).
@@ -775,7 +782,7 @@ out="<OUT>"
 n=$(ls "$out" | wc -l | tr -d ' ')
 dir="$out/$n"
 mkdir -p "$dir"
-printf '%s\0' "$@" > "$dir/args"
+printf '%s\0' "$0" "$@" > "$dir/args"
 env -0 > "$dir/env"
 pwd > "$dir/cwd"
 sid=""; prev=""

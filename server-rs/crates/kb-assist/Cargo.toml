@@ -31,3 +31,4 @@ tracing = { workspace = true }
 fake-claude = { path = "../fake-claude" }
 sha2 = "0.10"
 tempfile = "3"
+regex = { workspace = true }

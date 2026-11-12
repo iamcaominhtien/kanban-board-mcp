@@ -1,0 +1,378 @@
+{
+  "rows": {
+    "ticket": [
+      {
+        "id": "KAN-1",
+        "project_id": "<uuid:1>",
+        "title": "Fix add()",
+        "description": "",
+        "type": "task",
+        "status": "todo",
+        "priority": "medium",
+        "estimate": null,
+        "due_date": null,
+        "tags": "[]",
+        "parent_id": null,
+        "comments": "[]",
+        "acceptance_criteria": "[]",
+        "activity_log": "[{\"field\": \"created\", \"from\": null, \"to\": null, \"at\": \"<time>\", \"actor\": \"user\", \"ref\": \"Fix add()\"}, {\"field\": \"assignee\", \"from\": null, \"to\": \"mem_<1>\", \"at\": \"<time>\", \"actor\": \"user\"}, {\"field\": \"assignee\", \"from\": \"mem_<1>\", \"to\": null, \"at\": \"<time>\", \"actor\": \"user\"}]",
+        "work_log": "[]",
+        "test_cases": "[]",
+        "created_at": "<time>",
+        "updated_at": "<time>",
+        "wont_do_reason": null,
+        "created_by": "mem_<1>",
+        "assignee": null,
+        "start_date": null,
+        "links": "[]",
+        "blocks": "[]",
+        "blocked_by": "[]",
+        "block_done_if_acs_incomplete": 0,
+        "block_done_if_tcs_incomplete": 0,
+        "branches": "[]",
+        "workspace_retention_days": null,
+        "repo_path": null,
+        "sub_tasks": "[]",
+        "reopen_count": 0,
+        "last_reopened_at": null,
+        "last_reopened_by": null,
+        "last_reopen_reason": null,
+        "reopen_history": "[]",
+        "pending": 0,
+        "pending_reason_type": null,
+        "pending_ticket_id": null,
+        "pending_member_id": null,
+        "pending_party": null,
+        "pending_note": null,
+        "pending_since": null,
+        "pending_by": null,
+        "from_idea_id": null,
+        "tests_assumption_id": null,
+        "wave_pin": null,
+        "review_requested_from": null
+      }
+    ],
+    "ai_run": [
+      {
+        "id": "run_<2>",
+        "project_id": "<uuid:1>",
+        "kind": "team",
+        "ticket_id": "KAN-1",
+        "target": null,
+        "member_id": "mem_<1>",
+        "number": 1,
+        "mode": "work",
+        "trigger": "assign",
+        "state": "cancelled",
+        "started_by": "user",
+        "instruction": "",
+        "reply_comment_id": null,
+        "queued_at": "<time>",
+        "started_at": "<time>",
+        "ended_at": "<time>",
+        "last_output_at": "<time>",
+        "ended_reason": "The ticket was reassigned.",
+        "ended_by": "user",
+        "exit_code": null,
+        "summary": null,
+        "report": "{}",
+        "question": null,
+        "answer": null,
+        "session_id": "<uuid:2>",
+        "session_name": "KAN-1",
+        "files": "[{\"path\": \"calc.py\", \"added\": 1, \"removed\": 1, \"new\": false}]",
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cached": null,
+        "cost_usd": 0.0,
+        "metered": 0,
+        "context_used": null,
+        "context_window": null,
+        "pid": null,
+        "token_hash": null,
+        "model": "claude-haiku-test",
+        "effort": null,
+        "paused": 0,
+        "paused_at": null,
+        "stop_code": "reassigned",
+        "peak_rss_mb": "<measured>",
+        "last_rss_mb": "<measured>",
+        "restarts": "[]",
+        "diagnosis": null,
+        "retries": "[]",
+        "retry_at": null,
+        "account_id": "acct_<3>",
+        "debug_log": null,
+        "steps_count": 8,
+        "waiting_reason": null,
+        "live": 0,
+        "details_removed_at": null,
+        "depth": 0
+      }
+    ],
+    "ai_run_step": [
+      {
+        "id": 1,
+        "run_id": "run_<2>",
+        "seq": 1,
+        "at": "<time>",
+        "agent_id": null,
+        "kind": "start",
+        "tool": null,
+        "title": "Started",
+        "detail": "{}",
+        "output": null,
+        "parent_tool_id": null,
+        "tool_id": null
+      },
+      {
+        "id": 2,
+        "run_id": "run_<2>",
+        "seq": 2,
+        "at": "<time>",
+        "agent_id": null,
+        "kind": "edit",
+        "tool": "Edit",
+        "title": "Edited calc.py",
+        "detail": "{\"path\": \"calc.py\", \"added\": 1, \"removed\": 1, \"new\": false}",
+        "output": null,
+        "parent_tool_id": null,
+        "tool_id": "t1"
+      },
+      {
+        "id": 3,
+        "run_id": "run_<2>",
+        "seq": 3,
+        "at": "<time>",
+        "agent_id": null,
+        "kind": "command",
+        "tool": "Bash",
+        "title": "Ran pytest -q API_TOKEN=••••••••",
+        "detail": "{\"command\": \"pytest -q API_TOKEN=\\u2022\\u2022\\u2022\\u2022\\u2022\\u2022\\u2022\\u2022\", \"exit_code\": 0, \"is_error\": false, \"tests\": {\"passed\": 3, \"failed\": 1, \"failing\": [\"tests/test_calc.py::test_sub\"]}}",
+        "output": "$ pytest -q\n..F.\nFAILED tests/test_calc.py::test_sub\n1 failed, 3 passed in 0.12s\n",
+        "parent_tool_id": null,
+        "tool_id": "t2"
+      },
+      {
+        "id": 4,
+        "run_id": "run_<2>",
+        "seq": 4,
+        "at": "<time>",
+        "agent_id": null,
+        "kind": "command",
+        "tool": "Bash",
+        "title": "Ran pytest -q",
+        "detail": "{\"command\": \"pytest -q\", \"exit_code\": 0, \"is_error\": false, \"tests\": {\"passed\": 4, \"failed\": 0, \"failing\": []}}",
+        "output": "4 passed in 0.10s\n",
+        "parent_tool_id": null,
+        "tool_id": "v2cmd"
+      },
+      {
+        "id": 5,
+        "run_id": "run_<2>",
+        "seq": 5,
+        "at": "<time>",
+        "agent_id": null,
+        "kind": "subagent",
+        "tool": "Agent",
+        "title": "Asked reviewer: Review the diff",
+        "detail": "{\"subagent_type\": \"reviewer\", \"description\": \"Review the diff\", \"exit_code\": 0, \"is_error\": false}",
+        "output": "Looks good.",
+        "parent_tool_id": null,
+        "tool_id": "v2agent"
+      },
+      {
+        "id": 6,
+        "run_id": "run_<2>",
+        "seq": 6,
+        "at": "<time>",
+        "agent_id": "v2agent",
+        "kind": "command",
+        "tool": "Bash",
+        "title": "Ran git diff --stat",
+        "detail": "{\"command\": \"git diff --stat\", \"exit_code\": 0, \"is_error\": false}",
+        "output": " 1 file changed",
+        "parent_tool_id": null,
+        "tool_id": "v2sub"
+      },
+      {
+        "id": 7,
+        "run_id": "run_<2>",
+        "seq": 7,
+        "at": "<time>",
+        "agent_id": "v2agent",
+        "kind": "text",
+        "tool": null,
+        "title": "Looks good: one small change, tests pass.",
+        "detail": "{}",
+        "output": null,
+        "parent_tool_id": null,
+        "tool_id": null
+      },
+      {
+        "id": 8,
+        "run_id": "run_<2>",
+        "seq": 8,
+        "at": "<time>",
+        "agent_id": "v2agent",
+        "kind": "role",
+        "tool": null,
+        "title": "reviewer finished",
+        "detail": "{\"event\": \"stop\"}",
+        "output": null,
+        "parent_tool_id": null,
+        "tool_id": null
+      },
+      {
+        "id": 9,
+        "run_id": "run_<2>",
+        "seq": 9,
+        "at": "<time>",
+        "agent_id": null,
+        "kind": "end",
+        "tool": null,
+        "title": "Cancelled: The ticket was reassigned.",
+        "detail": "{}",
+        "output": null,
+        "parent_tool_id": null,
+        "tool_id": null
+      }
+    ],
+    "ai_run_agent": [
+      {
+        "id": "v2agent",
+        "run_id": "run_<2>",
+        "agent_type": "reviewer",
+        "claude_id": null,
+        "started_at": "<time>",
+        "ended_at": "<time>",
+        "steps_count": 2,
+        "last_text": "Looks good: one small change, tests pass."
+      }
+    ],
+    "ai_run_message": [],
+    "ai_run_command": [
+      {
+        "id": 1,
+        "run_id": "run_<2>",
+        "command": "cancel",
+        "payload": "{\"by\": \"user\", \"reason\": \"The ticket was reassigned.\", \"stop_code\": \"reassigned\"}",
+        "created_at": "<time>",
+        "taken_at": "<time>"
+      }
+    ],
+    "ai_audit": [
+      {
+        "id": "aud_<4>",
+        "seq": 1,
+        "project_id": "<uuid:1>",
+        "member_id": "mem_<1>",
+        "member_name": "Claude Code · Backend",
+        "on_behalf_of": "user",
+        "run_id": "run_<2>",
+        "action": "run_queued",
+        "target": "KAN-1",
+        "result": "info",
+        "detail": "{\"trigger\": \"assign\", \"mode\": \"work\"}",
+        "created_at": "<time>",
+        "reverted_at": null,
+        "reverted_by": null,
+        "prev_hash": "",
+        "hash": "<hash>"
+      },
+      {
+        "id": "aud_<5>",
+        "seq": 2,
+        "project_id": "<uuid:1>",
+        "member_id": "mem_<1>",
+        "member_name": "Claude Code · Backend",
+        "on_behalf_of": "user",
+        "run_id": "run_<2>",
+        "action": "run_cancelled",
+        "target": "KAN-1",
+        "result": "info",
+        "detail": "{\"reason\": \"The ticket was reassigned.\", \"by\": \"user\"}",
+        "created_at": "<time>",
+        "reverted_at": null,
+        "reverted_by": null,
+        "prev_hash": "<hash>",
+        "hash": "<hash>"
+      }
+    ],
+    "ai_account_state": [],
+    "notify_event": [],
+    "notification": []
+  },
+  "events": {
+    "states": {
+      "KAN-1#1": [
+        "queued",
+        "starting",
+        "cancelled"
+      ]
+    },
+    "steps": {
+      "KAN-1#1": [
+        [
+          1,
+          "start",
+          null,
+          "Started"
+        ],
+        [
+          2,
+          "edit",
+          null,
+          "Edited calc.py"
+        ],
+        [
+          3,
+          "command",
+          null,
+          "Ran pytest -q API_TOKEN=••••••••"
+        ],
+        [
+          4,
+          "command",
+          null,
+          "Ran pytest -q"
+        ],
+        [
+          5,
+          "subagent",
+          null,
+          "Asked reviewer: Review the diff"
+        ],
+        [
+          6,
+          "command",
+          "v2agent",
+          "Ran git diff --stat"
+        ],
+        [
+          7,
+          "text",
+          "v2agent",
+          "Looks good: one small change, tests pass."
+        ],
+        [
+          8,
+          "role",
+          "v2agent",
+          "reviewer finished"
+        ],
+        [
+          9,
+          "end",
+          null,
+          "Cancelled: The ticket was reassigned."
+        ]
+      ]
+    },
+    "kinds": [
+      "ai.resources",
+      "ai.run",
+      "ai.step"
+    ]
+  }
+}

@@ -139,8 +139,11 @@ pub fn item_words(field_name: &str, e: &Value) -> String {
     } else {
         "added"
     };
-    let tail =
-        if !text.is_empty() && field_name != "branch" { format!(": {}", first_chars(&text, 80)) } else { String::new() };
+    let tail = if !text.is_empty() && field_name != "branch" {
+        format!(": {}", first_chars(&text, 80))
+    } else {
+        String::new()
+    };
     format!("{what} {verb}{tail}")
 }
 
@@ -275,7 +278,10 @@ fn old_list(old: Option<&Value>, key: &str) -> Vec<Value> {
 /// The indexes a receipt's `undo.put_back` names.
 fn indexes(list: Option<&Value>) -> HashSet<i64> {
     let items = list.and_then(Value::as_array).map(Vec::as_slice).unwrap_or_default();
-    items.iter().filter_map(|v| v.as_i64().or_else(|| v.as_f64().filter(|f| f.fract() == 0.0).map(|f| f as i64))).collect()
+    items
+        .iter()
+        .filter_map(|v| v.as_i64().or_else(|| v.as_f64().filter(|f| f.fract() == 0.0).map(|f| f as i64)))
+        .collect()
 }
 
 /// The receipt of an answer tried again: what the first try did and was not put back stays in it.
@@ -291,7 +297,7 @@ pub fn merge(old: Option<&Value>, changes: Vec<Value>, run_id: &str) -> Option<V
 }
 
 /// `_same`: equal as the Activity keeps them (clipped text, no tags is None).
-fn same(a: &Value, b: &Value) -> bool {
+pub fn same(a: &Value, b: &Value) -> bool {
     if a.is_array() || b.is_array() {
         // `list(a or []) == list(b or [])`
         let items = |v: &Value| -> Vec<Value> {

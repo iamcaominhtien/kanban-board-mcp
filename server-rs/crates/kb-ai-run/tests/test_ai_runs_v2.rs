@@ -71,8 +71,9 @@ async fn test_assigning_a_ticket_to_a_team_runs_its_lead_and_records_the_report(
     let seq = i32::try_from(lead_cmd["seq"].as_i64().expect("seq")).expect("seq");
     let out = kb_ai::steps::output(&session, run_id, seq).await.expect("output").expect("the step");
     assert!(out["output"].as_str().expect("output").contains("4 passed"));
+    // (`GET /ai/runs/{id}/steps?agent=v2agent` leaves the `role` markers out)
     let page = kb_ai::steps::read(&session, run_id, 0, 200, Some("v2agent"), false).await.expect("page");
-    assert_eq!(page.len(), 2);
+    assert_eq!(page.iter().filter(|s| s["kind"] != "role").count(), 2);
     // the report reached the ticket: a summary comment and a work log entry; the lesson was kept
     let ticket = ticket_row(&tid).await;
     let comments = list(&ticket.comments);
@@ -189,12 +190,9 @@ async fn test_a_message_reaches_a_live_lead() {
 #[tokio::test]
 async fn test_cancel_stops_the_run_and_a_second_run_is_refused_while_one_goes() {
     let _guard = common::init().await;
-    let env = Env::start(&[
-        ("FAKE_CLAUDE_MODE", "v2"),
-        ("FAKE_CLAUDE_V2_WAIT_MESSAGE", "1"),
-        ("FAKE_CLAUDE_WAIT", "30"),
-    ])
-    .await;
+    let env =
+        Env::start(&[("FAKE_CLAUDE_MODE", "v2"), ("FAKE_CLAUDE_V2_WAIT_MESSAGE", "1"), ("FAKE_CLAUDE_WAIT", "30")])
+            .await;
     let (pid, _) = common::project().await;
     let team = common::team_of(&pid, "Claude Code · Backend", json!({})).await;
     let team_id = team["id"].as_str().expect("id");
@@ -322,12 +320,9 @@ async fn an_error_result_fails_the_run_with_what_the_cli_said() {
 #[tokio::test]
 async fn two_tickets_of_a_team_with_one_slot_run_one_after_the_other() {
     let _guard = common::init().await;
-    let env = Env::start(&[
-        ("FAKE_CLAUDE_MODE", "v2"),
-        ("FAKE_CLAUDE_V2_WAIT_MESSAGE", "1"),
-        ("FAKE_CLAUDE_WAIT", "30"),
-    ])
-    .await;
+    let env =
+        Env::start(&[("FAKE_CLAUDE_MODE", "v2"), ("FAKE_CLAUDE_V2_WAIT_MESSAGE", "1"), ("FAKE_CLAUDE_WAIT", "30")])
+            .await;
     let (pid, _) = common::project().await;
     let team = common::team_of(&pid, "Claude Code · Backend", json!({"max_parallel": 1})).await;
     let team_id = team["id"].as_str().expect("id");
@@ -356,12 +351,9 @@ async fn two_tickets_of_a_team_with_one_slot_run_one_after_the_other() {
 #[tokio::test]
 async fn a_restart_of_the_board_puts_a_run_in_flight_back_in_the_queue_with_its_conversation() {
     let _guard = common::init().await;
-    let env = Env::start(&[
-        ("FAKE_CLAUDE_MODE", "v2"),
-        ("FAKE_CLAUDE_V2_WAIT_MESSAGE", "1"),
-        ("FAKE_CLAUDE_WAIT", "30"),
-    ])
-    .await;
+    let env =
+        Env::start(&[("FAKE_CLAUDE_MODE", "v2"), ("FAKE_CLAUDE_V2_WAIT_MESSAGE", "1"), ("FAKE_CLAUDE_WAIT", "30")])
+            .await;
     let (pid, _) = common::project().await;
     let team = common::team_of(&pid, "Claude Code · Backend", json!({})).await;
     let tid = common::ticket(&pid, "Fix add()", "todo").await.id;

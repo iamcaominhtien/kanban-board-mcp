@@ -12,8 +12,7 @@ use kb_db::Session;
 use kb_db::database;
 use kb_db::entities::{ai_run, ai_team, member, ticket};
 use kb_db::sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder,
-    QuerySelect,
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder, QuerySelect,
 };
 use serde_json::{Map, Value, json};
 
@@ -103,10 +102,7 @@ pub async fn record_question(
     let mut out = Map::new();
     out.insert("posted".into(), json!(true));
     out.insert("to".into(), json!(ctx.on_behalf_of));
-    out.insert(
-        "next".into(),
-        json!("Stop now and end your turn. The board resumes this run with the answer."),
-    );
+    out.insert("next".into(), json!("Stop now and end your turn. The board resumes this run with the answer."));
     Ok(out)
 }
 
@@ -168,12 +164,7 @@ pub async fn before_ticket_change(
 
 /// A person edited the ticket while a lead works on it: the lead hears it on its live input, and the edit is
 /// recorded as a touch (tab "You stepped in").
-pub async fn note_person_edit(
-    ticket_id: &str,
-    by: Option<&str>,
-    what: &str,
-    tell_lead: bool,
-) -> Result<(), RunError> {
+pub async fn note_person_edit(ticket_id: &str, by: Option<&str>, what: &str, tell_lead: bool) -> Result<(), RunError> {
     let by = by.filter(|b| !b.is_empty());
     if let Some(touches) = seams::touches() {
         let session = database::session();

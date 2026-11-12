@@ -24,7 +24,7 @@ use serde_json::{Map, Value, json};
 use tokio::sync::watch;
 
 use super::{
-    ENDED, EndOpts, RESTART_FRESH_NOTE, RESTART_NOTE, RT, RunLife, RunTask, StepWriter, clip, cli_env, end, finish,
+    ENDED, EndOpts, RESTART_FRESH_NOTE, RESTART_NOTE, RT, RunLife, RunTask, StepWriter, cli_env, clip, end, finish,
     monotonic, needs_input, restart_inside_run, starting_timeout_s, url, watch_every_s,
 };
 use crate::cli::CliProcess;
@@ -404,8 +404,13 @@ pub(crate) fn execute_cli<'a>(
         }
         writer.add(vec![json!({"kind": "start", "title": title})], Vec::new(), Vec::new(), Map::new());
         let first_message = prepared.live.then(|| prepared.prompt.clone());
-        let proc =
-            Arc::new(CliProcess::new(prepared.args.clone(), &prepared.cwd, Some(prepared.env.clone()), true, first_message));
+        let proc = Arc::new(CliProcess::new(
+            prepared.args.clone(),
+            &prepared.cwd,
+            Some(prepared.env.clone()),
+            true,
+            first_message,
+        ));
         let pid = match proc.start().await {
             Ok(pid) => pid,
             Err(err) => {
@@ -428,7 +433,8 @@ pub(crate) fn execute_cli<'a>(
         resources::MON.track(run_id, proc.clone(), &run.project_id);
         // From here the CLI runs. Python leaves it running when anything below raises (the run is ended as failed and
         // nothing holds the process any more); here it is stopped first: no CLI outlives its run.
-        let driven = drive(run_id, token, generation, &proc, &writer, &run, &profile, &prepared, &session_id, pid).await;
+        let driven =
+            drive(run_id, token, generation, &proc, &writer, &run, &profile, &prepared, &session_id, pid).await;
         if driven.is_err() {
             proc.kill();
             let _ = resources::MON.untrack(run_id).await;
@@ -556,13 +562,12 @@ async fn drive(
             finish(run_id, result).await?;
             return Ok(());
         }
-        let said = ["text", "api_error"]
-            .iter()
-            .find_map(|key| result.get(*key).filter(|v| pyjson::truthy(v)))
-            .map(|v| match v {
+        let said = ["text", "api_error"].iter().find_map(|key| result.get(*key).filter(|v| pyjson::truthy(v))).map(
+            |v| match v {
                 Value::String(s) => s.clone(),
                 other => pyjson::py_str(other),
-            });
+            },
+        );
         let reason = said.unwrap_or_else(|| "Claude Code reported an error.".to_string());
         let limit = result.get("api_error").and_then(Value::as_str) == Some("usage_limit_reached")
             || result.get("api_status").and_then(Value::as_f64) == Some(429.0);

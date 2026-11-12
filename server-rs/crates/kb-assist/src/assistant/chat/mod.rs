@@ -31,9 +31,9 @@ use kb_db::sea_orm::{
 use serde_json::{Map, Value, json};
 use tokio::sync::Notify;
 
+use super::drafts;
 use super::errors::{AssistError, Error};
 use super::settings::{self as svc_settings, round_to};
-use super::drafts;
 
 mod chats;
 mod messages;
@@ -319,8 +319,13 @@ pub async fn scope_chat(
             None => return Err(AssistError::new("not_found", "There is no project to book the chat on.").into()),
         },
     };
-    create_chat(session, &project_id, by, NewChat { scope: kind, scope_id: Some(scope_id), fresh, ..Default::default() })
-        .await
+    create_chat(
+        session,
+        &project_id,
+        by,
+        NewChat { scope: kind, scope_id: Some(scope_id), fresh, ..Default::default() },
+    )
+    .await
 }
 
 /// What `ticket_team` gives: the team that works a ticket.

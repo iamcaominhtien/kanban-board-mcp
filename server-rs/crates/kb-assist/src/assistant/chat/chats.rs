@@ -5,7 +5,9 @@ use kb_base::pyjson;
 use kb_db::Session;
 use kb_db::entities::{ai_chat, ai_chat_message};
 use kb_db::sea_orm::ActiveValue::Set;
-use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, QueryOrder};
+use kb_db::sea_orm::{
+    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, QueryOrder,
+};
 use serde_json::{Map, Value, json};
 
 use super::{SCOPES, cancel_task, chat_of, chat_out, msg_out, settle_team_messages, target};
@@ -96,8 +98,10 @@ pub async fn mark_seen(session: &Session, chat_id: &str, by: &str) -> Result<(),
 /// Delete a chat, its messages and its conversation.
 pub async fn delete_chat(session: &Session, chat_id: &str, by: &str) -> Result<(), Error> {
     let chat = chat_of(session, chat_id, by).await?;
-    let rows =
-        ai_chat_message::Entity::find().filter(ai_chat_message::Column::ChatId.eq(chat.id.as_str())).all(session).await?;
+    let rows = ai_chat_message::Entity::find()
+        .filter(ai_chat_message::Column::ChatId.eq(chat.id.as_str()))
+        .all(session)
+        .await?;
     for m in rows {
         cancel_task(&m.id);
         m.delete(session).await?;

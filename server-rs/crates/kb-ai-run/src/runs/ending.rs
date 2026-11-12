@@ -393,7 +393,12 @@ async fn log_work(run: &ai_run::Model, state: &str, reason: Option<&str>) {
             lines.extend([String::new(), "**Files changed**".to_string()]);
             for f in files.iter().take(15) {
                 let shown = |key: &str, default: &str| f.get(key).map_or_else(|| default.to_string(), pyjson::py_str);
-                lines.push(format!("- `{}` (+{} −{})", shown("path", "None"), shown("added", "0"), shown("removed", "0")));
+                lines.push(format!(
+                    "- `{}` (+{} −{})",
+                    shown("path", "None"),
+                    shown("added", "0"),
+                    shown("removed", "0")
+                ));
             }
         }
         let titles = |kind: &str| rows.iter().filter(|s| s.kind == kind).map(|s| s.title.clone()).collect::<Vec<_>>();

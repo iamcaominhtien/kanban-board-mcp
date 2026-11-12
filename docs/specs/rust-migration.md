@@ -186,8 +186,11 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - [~] `kb-ai-run`, part 2b: runs, messaging, `runner/`, the hook and event routes
 - [x] `kb-ai-api`, part 1: the account, sign-in, knowledge and power routes (one account route waits for teams)
 - [ ] `kb-ai-run`, part 3: schedules, compact, messaging, session_history, touches, health
-- [ ] (c) `services/assistant/`, `services/docs_ai/`, `api/ai*.py`, `assist.py`, `schedules.py`, `idea_ai.py`,
-      `api/docs_ai/`
+- [x] `kb-assist`, part 1: the assistant's engine and the Board AI chat (errors, settings, sessions, skills, drafts,
+      receipt, engine, health, chat)
+- [~] `kb-assist`, part 2: `assistant/docs.py`, `editor.py`, `ideas.py`, `services/docs_ai/`
+- [ ] the other AI routes: `api/ai.py`, `ai_board.py`, `ai_code.py`, `ai_editor.py`, `ai_sketch.py`, `ai_tools.py`,
+      `assist.py`, `schedules.py`, `idea_ai.py`, `api/docs_ai/`
 
 ### P6 Database kit and migrations (`kb-dbkit`, `kb-db`)
 

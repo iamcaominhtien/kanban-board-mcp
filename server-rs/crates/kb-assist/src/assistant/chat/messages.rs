@@ -49,8 +49,7 @@ pub async fn undo_receipt(session: &Session, message_id: &str, by: &str) -> Resu
         return Err(AssistError::new("not_found", "This answer changed nothing.").into());
     };
     let before = rec.get("undo").filter(|u| pyjson::truthy(u)).cloned().unwrap_or(json!({}));
-    if rec.get("status").and_then(Value::as_str) == Some("undone")
-        && !before.get("skipped").is_some_and(pyjson::truthy)
+    if rec.get("status").and_then(Value::as_str) == Some("undone") && !before.get("skipped").is_some_and(pyjson::truthy)
     {
         return Err(AssistError::new("conflict", "These changes were already put back.").into());
     }

@@ -1,0 +1,422 @@
+{
+  "rows": {
+    "ticket": [
+      {
+        "id": "KAN-1",
+        "project_id": "<uuid:1>",
+        "title": "Fix add()",
+        "description": "",
+        "type": "task",
+        "status": "todo",
+        "priority": "medium",
+        "estimate": null,
+        "due_date": null,
+        "tags": "[]",
+        "parent_id": null,
+        "comments": "[{\"id\": \"<uuid:2>\", \"text\": \"**Claude Code \\u00b7 Backend asks:** Which database: SQLite or PostgreSQL?\", \"author\": \"Claude Code \\u00b7 Backend\", \"at\": \"<time>\", \"edited_at\": null, \"deleted_at\": null, \"mentions\": [], \"notified\": [], \"kind\": \"question\", \"run_id\": \"run_<1>\", \"run_number\": 1}]",
+        "acceptance_criteria": "[]",
+        "activity_log": "[{\"field\": \"created\", \"from\": null, \"to\": null, \"at\": \"<time>\", \"actor\": \"user\", \"ref\": \"Fix add()\"}, {\"field\": \"assignee\", \"from\": null, \"to\": \"mem_<2>\", \"at\": \"<time>\", \"actor\": \"user\"}, {\"field\": \"comment\", \"from\": null, \"to\": \"**Claude Code \\u00b7 Backend asks:** Which database: SQLite or PostgreSQL?\", \"at\": \"<time>\", \"actor\": \"Claude Code \\u00b7 Backend\", \"ref\": \"<uuid:2>\"}, {\"field\": \"pending_set\", \"changed\": false, \"added_blocked_by\": false, \"actor\": \"user\", \"reason_type\": \"party\", \"target_id\": null, \"member_id\": null, \"party\": \"the board user\", \"note\": \"Claude Code \\u00b7 Backend asks: Which database: SQLite or PostgreSQL?\", \"at\": \"<time>\"}]",
+        "work_log": "[]",
+        "test_cases": "[]",
+        "created_at": "<time>",
+        "updated_at": "<time>",
+        "wont_do_reason": null,
+        "created_by": "mem_<2>",
+        "assignee": "mem_<2>",
+        "start_date": null,
+        "links": "[]",
+        "blocks": "[]",
+        "blocked_by": "[]",
+        "block_done_if_acs_incomplete": 0,
+        "block_done_if_tcs_incomplete": 0,
+        "branches": "[]",
+        "workspace_retention_days": null,
+        "repo_path": null,
+        "sub_tasks": "[]",
+        "reopen_count": 0,
+        "last_reopened_at": null,
+        "last_reopened_by": null,
+        "last_reopen_reason": null,
+        "reopen_history": "[]",
+        "pending": 1,
+        "pending_reason_type": "party",
+        "pending_ticket_id": null,
+        "pending_member_id": null,
+        "pending_party": "the board user",
+        "pending_note": "Claude Code · Backend asks: Which database: SQLite or PostgreSQL?",
+        "pending_since": "<time>",
+        "pending_by": null,
+        "from_idea_id": null,
+        "tests_assumption_id": null,
+        "wave_pin": null,
+        "review_requested_from": null
+      }
+    ],
+    "ai_run": [
+      {
+        "id": "run_<1>",
+        "project_id": "<uuid:1>",
+        "kind": "team",
+        "ticket_id": "KAN-1",
+        "target": null,
+        "member_id": "mem_<2>",
+        "number": 1,
+        "mode": "work",
+        "trigger": "assign",
+        "state": "needs_input",
+        "started_by": "user",
+        "instruction": "",
+        "reply_comment_id": null,
+        "queued_at": "<time>",
+        "started_at": "<time>",
+        "ended_at": null,
+        "last_output_at": "<time>",
+        "ended_reason": null,
+        "ended_by": null,
+        "exit_code": 0,
+        "summary": "I need to know the database.",
+        "report": "{\"status\": \"question\", \"summary\": \"I need to know the database.\", \"asks\": [\"Which database: SQLite or PostgreSQL?\"]}",
+        "question": "{\"text\": \"Which database: SQLite or PostgreSQL?\", \"options\": [], \"to\": \"user\", \"asked_at\": \"<time>\", \"more\": [], \"previous\": []}",
+        "answer": null,
+        "session_id": "<uuid:3>",
+        "session_name": "KAN-1",
+        "files": "[{\"path\": \"calc.py\", \"added\": 1, \"removed\": 1, \"new\": false}]",
+        "tokens_in": 100,
+        "tokens_out": 20,
+        "tokens_cached": 0,
+        "cost_usd": 0.01,
+        "metered": 0,
+        "context_used": null,
+        "context_window": null,
+        "pid": null,
+        "token_hash": null,
+        "model": "claude-haiku-test",
+        "effort": null,
+        "paused": 0,
+        "paused_at": null,
+        "stop_code": null,
+        "peak_rss_mb": "<measured>",
+        "last_rss_mb": "<measured>",
+        "restarts": "[]",
+        "diagnosis": null,
+        "retries": "[]",
+        "retry_at": null,
+        "account_id": "acct_<3>",
+        "debug_log": null,
+        "steps_count": 9,
+        "waiting_reason": null,
+        "live": 0,
+        "details_removed_at": null,
+        "depth": 0
+      }
+    ],
+    "ai_run_step": [
+      {
+        "id": 1,
+        "run_id": "run_<1>",
+        "seq": 1,
+        "at": "<time>",
+        "agent_id": null,
+        "kind": "start",
+        "tool": null,
+        "title": "Started",
+        "detail": "{}",
+        "output": null,
+        "parent_tool_id": null,
+        "tool_id": null
+      },
+      {
+        "id": 2,
+        "run_id": "run_<1>",
+        "seq": 2,
+        "at": "<time>",
+        "agent_id": null,
+        "kind": "edit",
+        "tool": "Edit",
+        "title": "Edited calc.py",
+        "detail": "{\"path\": \"calc.py\", \"added\": 1, \"removed\": 1, \"new\": false}",
+        "output": null,
+        "parent_tool_id": null,
+        "tool_id": "t1"
+      },
+      {
+        "id": 3,
+        "run_id": "run_<1>",
+        "seq": 3,
+        "at": "<time>",
+        "agent_id": null,
+        "kind": "command",
+        "tool": "Bash",
+        "title": "Ran pytest -q API_TOKEN=••••••••",
+        "detail": "{\"command\": \"pytest -q API_TOKEN=\\u2022\\u2022\\u2022\\u2022\\u2022\\u2022\\u2022\\u2022\", \"exit_code\": 0, \"is_error\": false, \"tests\": {\"passed\": 3, \"failed\": 1, \"failing\": [\"tests/test_calc.py::test_sub\"]}}",
+        "output": "$ pytest -q\n..F.\nFAILED tests/test_calc.py::test_sub\n1 failed, 3 passed in 0.12s\n",
+        "parent_tool_id": null,
+        "tool_id": "t2"
+      },
+      {
+        "id": 4,
+        "run_id": "run_<1>",
+        "seq": 4,
+        "at": "<time>",
+        "agent_id": null,
+        "kind": "command",
+        "tool": "Bash",
+        "title": "Ran pytest -q",
+        "detail": "{\"command\": \"pytest -q\", \"exit_code\": 0, \"is_error\": false, \"tests\": {\"passed\": 4, \"failed\": 0, \"failing\": []}}",
+        "output": "4 passed in 0.10s\n",
+        "parent_tool_id": null,
+        "tool_id": "v2cmd"
+      },
+      {
+        "id": 5,
+        "run_id": "run_<1>",
+        "seq": 5,
+        "at": "<time>",
+        "agent_id": null,
+        "kind": "subagent",
+        "tool": "Agent",
+        "title": "Asked reviewer: Review the diff",
+        "detail": "{\"subagent_type\": \"reviewer\", \"description\": \"Review the diff\", \"exit_code\": 0, \"is_error\": false}",
+        "output": "Looks good.",
+        "parent_tool_id": null,
+        "tool_id": "v2agent"
+      },
+      {
+        "id": 6,
+        "run_id": "run_<1>",
+        "seq": 6,
+        "at": "<time>",
+        "agent_id": "v2agent",
+        "kind": "command",
+        "tool": "Bash",
+        "title": "Ran git diff --stat",
+        "detail": "{\"command\": \"git diff --stat\", \"exit_code\": 0, \"is_error\": false}",
+        "output": " 1 file changed",
+        "parent_tool_id": null,
+        "tool_id": "v2sub"
+      },
+      {
+        "id": 7,
+        "run_id": "run_<1>",
+        "seq": 7,
+        "at": "<time>",
+        "agent_id": "v2agent",
+        "kind": "text",
+        "tool": null,
+        "title": "Looks good: one small change, tests pass.",
+        "detail": "{}",
+        "output": null,
+        "parent_tool_id": null,
+        "tool_id": null
+      },
+      {
+        "id": 8,
+        "run_id": "run_<1>",
+        "seq": 8,
+        "at": "<time>",
+        "agent_id": null,
+        "kind": "report",
+        "tool": "StructuredOutput",
+        "title": "Wrote the final report",
+        "detail": "{}",
+        "output": null,
+        "parent_tool_id": null,
+        "tool_id": "v2out"
+      },
+      {
+        "id": 9,
+        "run_id": "run_<1>",
+        "seq": 9,
+        "at": "<time>",
+        "agent_id": "v2agent",
+        "kind": "role",
+        "tool": null,
+        "title": "reviewer finished",
+        "detail": "{\"event\": \"stop\"}",
+        "output": null,
+        "parent_tool_id": null,
+        "tool_id": null
+      },
+      {
+        "id": 10,
+        "run_id": "run_<1>",
+        "seq": 10,
+        "at": "<time>",
+        "agent_id": null,
+        "kind": "question",
+        "tool": null,
+        "title": "Asked user: Which database: SQLite or PostgreSQL?",
+        "detail": "{}",
+        "output": null,
+        "parent_tool_id": null,
+        "tool_id": null
+      }
+    ],
+    "ai_run_agent": [
+      {
+        "id": "v2agent",
+        "run_id": "run_<1>",
+        "agent_type": "reviewer",
+        "claude_id": null,
+        "started_at": "<time>",
+        "ended_at": "<time>",
+        "steps_count": 2,
+        "last_text": "Looks good: one small change, tests pass."
+      }
+    ],
+    "ai_run_message": [],
+    "ai_run_command": [],
+    "ai_audit": [
+      {
+        "id": "aud_<4>",
+        "seq": 1,
+        "project_id": "<uuid:1>",
+        "member_id": "mem_<2>",
+        "member_name": "Claude Code · Backend",
+        "on_behalf_of": "user",
+        "run_id": "run_<1>",
+        "action": "run_queued",
+        "target": "KAN-1",
+        "result": "info",
+        "detail": "{\"trigger\": \"assign\", \"mode\": \"work\"}",
+        "created_at": "<time>",
+        "reverted_at": null,
+        "reverted_by": null,
+        "prev_hash": "",
+        "hash": "<hash>"
+      }
+    ],
+    "ai_account_state": [],
+    "notify_event": [
+      {
+        "id": 1,
+        "project_id": "<uuid:1>",
+        "kind": "question",
+        "op": "new",
+        "needs": 1,
+        "target_kind": "run",
+        "target_id": "run_<1>",
+        "ticket_id": "KAN-1",
+        "page_id": null,
+        "member_id": "mem_<2>",
+        "actor": "Claude Code · Backend",
+        "title": "Claude Code · Backend asks a question",
+        "body": "“Which database: SQLite or PostgreSQL?”",
+        "data": "{\"to\": \"user\", \"options\": [], \"run_number\": 1}",
+        "recipients": "[\"user\"]",
+        "created_at": "<time>"
+      }
+    ],
+    "notification": [
+      {
+        "id": "nt_<5>",
+        "recipient": "user",
+        "event_id": 1,
+        "last_event_id": 1,
+        "project_id": "<uuid:1>",
+        "kind": "question",
+        "needs": 1,
+        "group_key": "question:run:run_<1>",
+        "count": 1,
+        "items": "[{\"event_id\": 1, \"title\": \"Claude Code \\u00b7 Backend asks a question\", \"body\": \"\\u201cWhich database: SQLite or PostgreSQL?\\u201d\", \"ticket_id\": \"KAN-1\", \"member_id\": \"mem_<2>\", \"actor\": \"Claude Code \\u00b7 Backend\", \"at\": \"<time>\"}]",
+        "target_kind": "run",
+        "target_id": "run_<1>",
+        "ticket_id": "KAN-1",
+        "page_id": null,
+        "member_id": "mem_<2>",
+        "actor": "Claude Code · Backend",
+        "title": "Claude Code · Backend asks a question",
+        "body": "“Which database: SQLite or PostgreSQL?”",
+        "data": "{\"to\": \"user\", \"options\": [], \"run_number\": 1}",
+        "inapp": 1,
+        "desktop": 1,
+        "read_at": null,
+        "done_at": null,
+        "done_reason": null,
+        "done_by": null,
+        "snoozed_until": null,
+        "cleared_at": null,
+        "created_at": "<time>",
+        "updated_at": "<time>"
+      }
+    ]
+  },
+  "events": {
+    "states": {
+      "KAN-1#1": [
+        "queued",
+        "starting",
+        "needs_input"
+      ]
+    },
+    "steps": {
+      "KAN-1#1": [
+        [
+          1,
+          "start",
+          null,
+          "Started"
+        ],
+        [
+          2,
+          "edit",
+          null,
+          "Edited calc.py"
+        ],
+        [
+          3,
+          "command",
+          null,
+          "Ran pytest -q API_TOKEN=••••••••"
+        ],
+        [
+          4,
+          "command",
+          null,
+          "Ran pytest -q"
+        ],
+        [
+          5,
+          "subagent",
+          null,
+          "Asked reviewer: Review the diff"
+        ],
+        [
+          6,
+          "command",
+          "v2agent",
+          "Ran git diff --stat"
+        ],
+        [
+          7,
+          "text",
+          "v2agent",
+          "Looks good: one small change, tests pass."
+        ],
+        [
+          8,
+          "report",
+          null,
+          "Wrote the final report"
+        ],
+        [
+          9,
+          "role",
+          "v2agent",
+          "reviewer finished"
+        ],
+        [
+          10,
+          "question",
+          null,
+          "Asked user: Which database: SQLite or PostgreSQL?"
+        ]
+      ]
+    },
+    "kinds": [
+      "ai.resources",
+      "ai.run",
+      "ai.step"
+    ]
+  }
+}

@@ -155,10 +155,7 @@ pub async fn record_usage(
 }
 
 /// The project's first AI team: the assistant runs with its account, model and folder when there is one.
-pub async fn first_team(
-    session: &Session,
-    project_id: &str,
-) -> Result<Option<(member::Model, ai_team::Model)>, DbErr> {
+pub async fn first_team(session: &Session, project_id: &str) -> Result<Option<(member::Model, ai_team::Model)>, DbErr> {
     let rows = member::Entity::find()
         .filter(member::Column::ProjectId.eq(project_id))
         .filter(member::Column::Kind.eq("ai"))

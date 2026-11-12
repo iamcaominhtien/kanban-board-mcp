@@ -13,7 +13,9 @@ use kb_db::entities::{ai_account, ai_run};
 use serde_json::{Map, Value, json};
 
 use super::writer::StepWriter;
-use super::{BOARD_SKILLS, Schema, Turn, cancelled, child_env, first_chars, procs, render_inputs, set_env, system_prompt};
+use super::{
+    BOARD_SKILLS, Schema, Turn, cancelled, child_env, first_chars, procs, render_inputs, set_env, system_prompt,
+};
 use crate::assistant::{sessions, skills};
 use crate::seams;
 

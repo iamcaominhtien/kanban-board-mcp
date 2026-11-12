@@ -7,11 +7,11 @@ use std::pin::Pin;
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
-use kb_ai::store::{get_settings, save};
+use kb_ai::store::get_settings;
 use kb_base::{events, time};
 use kb_db::database;
 use kb_db::entities::ai_run;
-use kb_db::sea_orm::{DbErr, EntityTrait};
+use kb_db::sea_orm::{ActiveModelTrait, ActiveValue::Set, DbErr, EntityTrait, IntoActiveModel};
 use serde_json::{Value, json};
 
 use super::{HISTORY_EVERY_S, HISTORY_POINTS, LIMIT_TTL_S, Reading, SAMPLE_S, SAVE_EVERY_S, read_run, snapshot};
@@ -337,10 +337,14 @@ impl Monitor {
         };
         let Some(reading) = reading.filter(|r| r.readable) else { return Ok(()) };
         let session = database::session();
-        let Some(mut run) = ai_run::Entity::find_by_id(run_id).one(&session).await? else { return Ok(()) };
-        run.last_rss_mb = reading.cli_rss_mb;
-        run.peak_rss_mb = Some(run.peak_rss_mb.unwrap_or(0.0).max(peak));
-        save(&session, run).await?;
+        let Some(run) = ai_run::Entity::find_by_id(run_id).one(&session).await? else { return Ok(()) };
+        // only these two columns are written: the run's own task writes the row at the same time (its pid, its
+        // state, its steps), and a whole row written back from here would undo what it wrote in between
+        let peak_rss_mb = Some(run.peak_rss_mb.unwrap_or(0.0).max(peak));
+        let mut row = run.into_active_model();
+        row.last_rss_mb = Set(reading.cli_rss_mb);
+        row.peak_rss_mb = Set(peak_rss_mb);
+        row.update(&session).await?;
         session.commit().await
     }
 

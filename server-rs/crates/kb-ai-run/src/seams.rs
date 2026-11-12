@@ -221,8 +221,13 @@ pub trait Touches: Send + Sync {
     fn carry_answer(&self, question_json: Option<&str>, answer: Option<&str>) -> Vec<Value>;
     /// `touches.record_edit(session, ticket_id, by=by, what=what)`: a person edited a ticket while a run was on it;
     /// returns how many audit entries were written. The error is the text of the exception (the caller logs it).
-    async fn record_edit(&self, session: &Session, ticket_id: &str, by: Option<&str>, what: &str)
-    -> Result<i64, String>;
+    async fn record_edit(
+        &self,
+        session: &Session,
+        ticket_id: &str,
+        by: Option<&str>,
+        what: &str,
+    ) -> Result<i64, String>;
 }
 
 static TOUCHES: RwLock<Option<Arc<dyn Touches>>> = RwLock::new(None);

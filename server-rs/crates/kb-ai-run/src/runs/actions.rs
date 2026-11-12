@@ -56,7 +56,8 @@ pub async fn cancel(
         stop_code: Some(stop_code.map(str::to_string)),
         reply_comment_id: None,
     };
-    let ended = end(run_id, "cancelled", Some(reason.filter(|r| !r.is_empty()).unwrap_or(&default_reason)), opts).await?;
+    let ended =
+        end(run_id, "cancelled", Some(reason.filter(|r| !r.is_empty()).unwrap_or(&default_reason)), opts).await?;
     if let Some(mut done) = task {
         let over = *done.borrow();
         if !over && !in_task_of(run_id) {
@@ -235,7 +236,8 @@ pub(crate) async fn restart_inside_run(
     }
     let ticket = run.ticket_id.clone().filter(|t| !t.is_empty()).unwrap_or_else(|| "A run".to_string());
     // `if rss` / `if limit`: zero counts as unknown
-    let gb = rss.filter(|r| *r != 0.0).map_or_else(|| "too much memory".to_string(), |r| format!("{:.2} GB", r / 1024.0));
+    let gb =
+        rss.filter(|r| *r != 0.0).map_or_else(|| "too much memory".to_string(), |r| format!("{:.2} GB", r / 1024.0));
     let lim = limit.filter(|l| *l != 0.0).map_or_else(|| "the limit".to_string(), |l| format!("{:.1} GB", l / 1024.0));
     let auto = resources::AUTO_RESTARTS;
     let Some(entry) = entry else {
@@ -352,8 +354,14 @@ pub async fn answer(run_id: &str, by: &str, text: &str) -> Result<Option<ai_run:
             svc_tickets::add_comment(&session, ticket_id, &format!("**Answer:** {text}"), by, Some(&meta)).await?;
             let ticket = ticket::Entity::find_by_id(ticket_id).one(&session).await?;
             if let Some(ticket) = ticket.filter(|t| t.pending) {
-                svc_tickets::reopen::clear_pending(&session, &ticket.id, Some("Answered the AI's question"), false, None)
-                    .await?;
+                svc_tickets::reopen::clear_pending(
+                    &session,
+                    &ticket.id,
+                    Some("Answered the AI's question"),
+                    false,
+                    None,
+                )
+                .await?;
             }
         }
         let Some(run) = ai_run::Entity::find_by_id(run_id).one(&session).await? else {

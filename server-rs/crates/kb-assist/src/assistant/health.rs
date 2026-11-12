@@ -43,6 +43,11 @@ pub fn insight_out(i: &ai_insight::Model) -> Value {
     })
 }
 
+/// `_when`: a stored time, or None when there is none or it cannot be read.
+fn when(iso: Option<&str>) -> Option<chrono::DateTime<chrono::FixedOffset>> {
+    parse_iso(iso)
+}
+
 /// `_rows`: the project's insights; a snooze that is over wakes its insight (open, unseen) on the way.
 async fn rows(session: &Session, project_id: &str) -> Result<Vec<ai_insight::Model>, DbErr> {
     let stored = ai_insight::Entity::find().filter(ai_insight::Column::ProjectId.eq(project_id)).all(session).await?;
@@ -51,7 +56,7 @@ async fn rows(session: &Session, project_id: &str) -> Result<Vec<ai_insight::Mod
     let mut out = Vec::with_capacity(stored.len());
     for i in stored {
         // `(_when(i.snoozed_until) or now) <= now`: a time that cannot be read is over
-        let over = parse_iso(i.snoozed_until.as_deref()).is_none_or(|until| until <= now);
+        let over = when(i.snoozed_until.as_deref()).is_none_or(|until| until <= now);
         if i.state == "snoozed" && over {
             let mut row = i.into_active_model();
             row.state = Set("open".to_string());
@@ -111,8 +116,7 @@ pub async fn panel(session: &Session, project_id: &str) -> Result<Map<String, Va
         }
         None => Value::Null,
     };
-    let of_state =
-        |state: &str| -> Vec<Value> { rows.iter().filter(|i| i.state == state).map(insight_out).collect() };
+    let of_state = |state: &str| -> Vec<Value> { rows.iter().filter(|i| i.state == state).map(insight_out).collect() };
     let mut out = Map::new();
     out.insert("digest".into(), digest);
     out.insert("needs_action".into(), Value::Array(needs.iter().map(insight_out).collect()));
@@ -223,9 +227,8 @@ pub async fn check(project_id: &str, by: &str) -> Result<Map<String, Value>, Err
         }
         let kind = item.get("kind").and_then(Value::as_str).filter(|k| KINDS.contains(k)).unwrap_or("at_risk");
         let ticket_id = item.get("ticket_id").filter(|t| pyjson::truthy(t)).map(py_text);
-        let digest = Sha1::digest(
-            format!("{kind}\0{}\0{}", ticket_id.as_deref().unwrap_or(""), py_text(title)).as_bytes(),
-        );
+        let digest =
+            Sha1::digest(format!("{kind}\0{}\0{}", ticket_id.as_deref().unwrap_or(""), py_text(title)).as_bytes());
         let key: String = digest.iter().map(|b| format!("{b:02x}")).collect::<String>()[..16].to_string();
         if !found.contains(&key) {
             found.push(key.clone());
@@ -308,11 +311,9 @@ pub async fn set_state(session: &Session, insight_id: &str, action: &str, hours:
             row.snoozed_until = Set(None);
         }
         "act" => {
-            return Err(AssistError::new(
-                "gone",
-                "Drafts are gone in AI v2: ask the Board AI in the chat to do this.",
-            )
-            .into());
+            return Err(
+                AssistError::new("gone", "Drafts are gone in AI v2: ask the Board AI in the chat to do this.").into()
+            );
         }
         _ => return Err(AssistError::new("invalid", "Unknown action.").into()),
     }

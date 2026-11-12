@@ -107,7 +107,8 @@ pub async fn send(
         chat_row.title = Set(title.clone());
     }
     chat_row.updated_at = Set(now_iso());
-    let team = match chat.scope_id.as_deref().filter(|id| !id.is_empty() && chat.scope == "ticket" && files.is_empty()) {
+    let team = match chat.scope_id.as_deref().filter(|id| !id.is_empty() && chat.scope == "ticket" && files.is_empty())
+    {
         Some(scope_id) => ticket_team(session, scope_id).await?.map(|team| (team, scope_id.to_string())),
         None => None,
     };
@@ -206,7 +207,7 @@ fn kind_of(err: &Error) -> String {
 
 /// How the turn of an answer ended.
 enum Ended {
-    Turn(Turn),
+    Turn(Box<Turn>),
     Stopped,
     Failed(Value),
 }
@@ -224,7 +225,8 @@ async fn answer(message_id: &str, by: &str, files: Vec<(String, Vec<u8>)>, stop:
         .one(&session)
         .await?;
     let request = or_default(&loads(Some(&ai.context), json!({})), "request", json!({}));
-    let skill = request.get("skill").and_then(Value::as_str).filter(|s| !s.is_empty()).unwrap_or("board-ask").to_string();
+    let skill =
+        request.get("skill").and_then(Value::as_str).filter(|s| !s.is_empty()).unwrap_or("board-ask").to_string();
     let extra = or_default(&request, "extra", json!({}));
     let mut also_read: Vec<Value> = match loads(Some(&chat.include_docs), json!([])) {
         Value::Array(items) => items,
@@ -261,7 +263,7 @@ async fn answer(message_id: &str, by: &str, files: Vec<(String, Vec<u8>)>, stop:
         }));
         tokio::select! {
             turned = engine::turn(&project_id, opts) => match turned {
-                Ok(out) => Ended::Turn(out),
+                Ok(out) => Ended::Turn(Box::new(out)),
                 Err(Error::Assist(exc)) => Ended::Failed(json!({"code": exc.code, "message": exc.message})),
                 // an answer that fails says so in the chat
                 Err(exc) => {
@@ -274,13 +276,13 @@ async fn answer(message_id: &str, by: &str, files: Vec<(String, Vec<u8>)>, stop:
     };
     let run_ref = runs().remove(message_id);
     let (state, error, out) = match ended {
-        Ended::Turn(out) if out.state == "cancelled" => ("stopped", json!({}), Some(out)),
+        Ended::Turn(out) if out.state == "cancelled" => ("stopped", json!({}), Some(*out)),
         Ended::Turn(out) if out.state != "finished" => {
             let message = out.error.clone().filter(|e| !e.is_empty());
             let message = message.unwrap_or_else(|| "Claude Code did not answer.".to_string());
-            ("error", json!({"code": "unavailable", "message": message}), Some(out))
+            ("error", json!({"code": "unavailable", "message": message}), Some(*out))
         }
-        Ended::Turn(out) => ("done", json!({}), Some(out)),
+        Ended::Turn(out) => ("done", json!({}), Some(*out)),
         Ended::Stopped => ("stopped", json!({}), None),
         Ended::Failed(error) => ("error", error, None),
     };
@@ -305,7 +307,8 @@ async fn answer(message_id: &str, by: &str, files: Vec<(String, Vec<u8>)>, stop:
     if let Some(out) = &out {
         let data = if skill == "sketch-ask" { out.data() } else { Map::new() };
         let answer = data.get("answer").filter(|a| pyjson::truthy(a)).map(py_text);
-        let text = answer.or_else(|| Some(out.text.clone()).filter(|t| !t.is_empty())).unwrap_or_else(|| ai.text.clone());
+        let text =
+            answer.or_else(|| Some(out.text.clone()).filter(|t| !t.is_empty())).unwrap_or_else(|| ai.text.clone());
         row.text = Set(text);
         row.cost = Set(out.cost);
         row.tokens_in = Set(i32::try_from(out.tokens_in).unwrap_or(i32::MAX));

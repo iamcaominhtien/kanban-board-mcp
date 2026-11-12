@@ -1,0 +1,11 @@
+{
+  "name": "kanban-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Drives the real UI in headless Chromium against the Python and Rust servers and compares what a person sees. Playwright is expected globally (NODE_PATH).",
+  "scripts": {
+    "python": "node run.mjs --target python",
+    "rust": "node run.mjs --target rust",
+    "both": "node run.mjs --target both"
+  }
+}

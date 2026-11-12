@@ -81,10 +81,8 @@ pub async fn oneshot(skill: &str, inputs: &Map<String, Value>, opts: OneshotOpts
         )
         .into());
     };
-    let folder = launch::data_root()
-        .map_err(other)?
-        .join("assistant-cwd")
-        .join(format!("oneshot-{}", &time::uuid4_hex()[..8]));
+    let folder =
+        launch::data_root().map_err(other)?.join("assistant-cwd").join(format!("oneshot-{}", &time::uuid4_hex()[..8]));
     std::fs::create_dir_all(&folder).map_err(other)?;
     let folder_text = folder.to_string_lossy().into_owned();
     let system_file = folder.join("system.md").to_string_lossy().into_owned();

@@ -316,7 +316,8 @@ async fn run_loop() {
         RT.wake.clear();
         match tick().await {
             Ok(()) => {
-                let due = RT.inner().last_health.is_none_or(|at| at.elapsed().as_secs_f64() >= teams::HEALTH_INTERVAL_S);
+                let due =
+                    RT.inner().last_health.is_none_or(|at| at.elapsed().as_secs_f64() >= teams::HEALTH_INTERVAL_S);
                 if due {
                     RT.inner().last_health = Some(Instant::now());
                     if let Err(err) = teams::health_check().await {
@@ -390,10 +391,8 @@ pub async fn recover_on_startup() -> Result<(), DbErr> {
                 cli::kill_tree(Some(pid));
             }
         }
-        let instruction = join_notes(
-            &run.instruction,
-            "The board restarted while you were working: continue from where you were.",
-        );
+        let instruction =
+            join_notes(&run.instruction, "The board restarted while you were working: continue from where you were.");
         let mut row = run.into_active_model();
         row.state = Set("queued".to_string());
         row.token_hash = Set(None);

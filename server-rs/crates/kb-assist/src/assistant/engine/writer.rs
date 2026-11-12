@@ -81,7 +81,11 @@ impl StepWriter {
     /// waiting row is that tool call (the step is already in the database).
     pub(crate) fn attach_pending(&self, tool_id: &Value, output: &Value, detail: &Map<String, Value>) -> bool {
         let mut pending = self.pending();
-        let hit = pending.rows.iter_mut().filter_map(Value::as_object_mut).find(|row| row.get("tool_id").unwrap_or(&Value::Null) == tool_id);
+        let hit = pending
+            .rows
+            .iter_mut()
+            .filter_map(Value::as_object_mut)
+            .find(|row| row.get("tool_id").unwrap_or(&Value::Null) == tool_id);
         let Some(row) = hit else { return false };
         row.insert("output".into(), output.clone());
         // `{**(hit.get("detail") or {}), **detail}`
