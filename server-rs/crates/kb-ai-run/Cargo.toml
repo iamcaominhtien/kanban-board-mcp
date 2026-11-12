@@ -13,6 +13,8 @@ workspace = true
 kb-base = { workspace = true }
 kb-db = { workspace = true }
 kb-ai = { workspace = true }
+kb-ai-know = { workspace = true }
+kb-board = { workspace = true }
 async-trait = { workspace = true }
 chrono = { workspace = true }
 chrono-tz = { workspace = true }
@@ -31,3 +33,6 @@ nix = { version = "0.31", features = ["signal", "process", "fs"] }
 
 [dev-dependencies]
 fake-claude = { path = "../fake-claude" }
+axum = { workspace = true }
+sha2 = "0.10"
+tower = { workspace = true }

@@ -1,0 +1,459 @@
+{
+  "GET /ai/accounts: signing in": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 2,
+          "members_elsewhere": [
+            {
+              "id": "mem_backend0001",
+              "name": "Backend",
+              "project_id": "<uuid:1>"
+            },
+            {
+              "id": "mem_frontend001",
+              "name": "Frontend",
+              "project_id": "<uuid:1>"
+            }
+          ],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": "user",
+          "status": "signing_in",
+          "status_detail": null,
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "GET one: after a rejected code": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 2,
+      "members_elsewhere": [
+        {
+          "id": "mem_backend0001",
+          "name": "Backend",
+          "project_id": "<uuid:1>"
+        },
+        {
+          "id": "mem_frontend001",
+          "name": "Frontend",
+          "project_id": "<uuid:1>"
+        }
+      ],
+      "members_here": [],
+      "method": null,
+      "name": "Work Claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "not signed in (none)",
+      "unavailable": null
+    }
+  },
+  "GET one: after done": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": "an@work.example",
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 2,
+      "members_elsewhere": [
+        {
+          "id": "mem_backend0001",
+          "name": "Backend",
+          "project_id": "<uuid:1>"
+        },
+        {
+          "id": "mem_frontend001",
+          "name": "Frontend",
+          "project_id": "<uuid:1>"
+        }
+      ],
+      "members_here": [],
+      "method": "subscription",
+      "name": "Work Claude",
+      "plan": "max",
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "signed_in",
+      "status_detail": "signed in (claude.ai, max)",
+      "unavailable": null
+    }
+  },
+  "GET one: signed in": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": "an@work.example",
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 2,
+      "members_elsewhere": [
+        {
+          "id": "mem_backend0001",
+          "name": "Backend",
+          "project_id": "<uuid:1>"
+        },
+        {
+          "id": "mem_frontend001",
+          "name": "Frontend",
+          "project_id": "<uuid:1>"
+        }
+      ],
+      "members_here": [],
+      "method": "subscription",
+      "name": "Work Claude",
+      "plan": "max",
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "signed_in",
+      "status_detail": "signed in (claude.ai, max)",
+      "unavailable": null
+    }
+  },
+  "GET one: signing in": {
+    "status": 200,
+    "json": {
+      "checked_at": null,
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 2,
+      "members_elsewhere": [
+        {
+          "id": "mem_backend0001",
+          "name": "Backend",
+          "project_id": "<uuid:1>"
+        },
+        {
+          "id": "mem_frontend001",
+          "name": "Frontend",
+          "project_id": "<uuid:1>"
+        }
+      ],
+      "members_here": [],
+      "method": null,
+      "name": "Work Claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": "user",
+      "status": "signing_in",
+      "status_detail": null,
+      "unavailable": null
+    }
+  },
+  "check while signing in": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 2,
+      "members_elsewhere": [
+        {
+          "id": "mem_backend0001",
+          "name": "Backend",
+          "project_id": "<uuid:1>"
+        },
+        {
+          "id": "mem_frontend001",
+          "name": "Frontend",
+          "project_id": "<uuid:1>"
+        }
+      ],
+      "members_here": [],
+      "method": null,
+      "name": "Work Claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": "user",
+      "status": "signing_in",
+      "status_detail": "not signed in (none)",
+      "unavailable": null
+    }
+  },
+  "done: after a stop": {
+    "status": 200,
+    "json": {
+      "done": false
+    }
+  },
+  "done: after the login ended": {
+    "status": 200,
+    "json": {
+      "done": true
+    }
+  },
+  "done: nothing was open": {
+    "status": 200,
+    "json": {
+      "done": false
+    }
+  },
+  "done: while open": {
+    "status": 200,
+    "json": {
+      "done": true
+    }
+  },
+  "remove while signing in": {
+    "status": 409,
+    "json": {
+      "detail": "A sign-in is open for this account."
+    }
+  },
+  "sign-out while signing in": {
+    "status": 409,
+    "json": {
+      "detail": "A sign-in is open for this account."
+    }
+  },
+  "signin": {
+    "status": 200,
+    "json": {
+      "mode": "terminal"
+    }
+  },
+  "signin: a signed in account": {
+    "status": 200,
+    "json": {
+      "mode": "terminal"
+    }
+  },
+  "signin: again": {
+    "status": 200,
+    "json": {
+      "mode": "terminal"
+    }
+  },
+  "signin: busy": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "by": "user",
+        "code": "signing_in",
+        "message": "user is signing in to this account"
+      }
+    }
+  },
+  "signin: busy, by someone": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "by": "user",
+        "code": "signing_in",
+        "message": "user is signing in to this account"
+      }
+    }
+  },
+  "signin: size not a number": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "cols"
+        ]
+      ]
+    }
+  },
+  "signin: third": {
+    "status": 200,
+    "json": {
+      "mode": "terminal"
+    }
+  },
+  "signin: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "not_found",
+        "message": "AI account not found."
+      }
+    }
+  },
+  "stop": {
+    "status": 200,
+    "json": {
+      "stopped": true
+    }
+  },
+  "stop: again": {
+    "status": 200,
+    "json": {
+      "stopped": false
+    }
+  },
+  "stop: nothing was open": {
+    "status": 200,
+    "json": {
+      "stopped": false
+    }
+  },
+  "terminal: a rejected code": {
+    "note": {
+      "exit_code": 1,
+      "signed_in": false
+    }
+  },
+  "terminal: another computer": {
+    "note": {
+      "handshake": 403
+    }
+  },
+  "terminal: first state": {
+    "note": {
+      "ended": null,
+      "keys": [
+        "account",
+        "duplicate_of",
+        "elapsed",
+        "ended",
+        "exit_code",
+        "phase",
+        "running",
+        "signed_in",
+        "type",
+        "url"
+      ],
+      "phase": "paste_code",
+      "running": true,
+      "signed_in": false,
+      "url": "https://claude.example/oauth/authorize?code=true&client_id=x",
+      "url_in_output": true
+    }
+  },
+  "terminal: no origin": {
+    "note": {
+      "handshake": "open"
+    }
+  },
+  "terminal: no sign-in open": {
+    "note": {
+      "handshake": 403
+    }
+  },
+  "terminal: origin another site": {
+    "note": {
+      "handshake": 403
+    }
+  },
+  "terminal: origin file": {
+    "note": {
+      "handshake": "open"
+    }
+  },
+  "terminal: origin localhost": {
+    "note": {
+      "handshake": "open"
+    }
+  },
+  "terminal: origin loopback address": {
+    "note": {
+      "handshake": "open"
+    }
+  },
+  "terminal: origin null": {
+    "note": {
+      "handshake": "open"
+    }
+  },
+  "terminal: origin that starts like localhost": {
+    "note": {
+      "handshake": 403
+    }
+  },
+  "terminal: origin uppercase host": {
+    "note": {
+      "handshake": "open"
+    }
+  },
+  "terminal: origin without a host": {
+    "note": {
+      "handshake": 403
+    }
+  },
+  "terminal: signed in": {
+    "note": {
+      "email": "an@work.example",
+      "status": "signed_in"
+    }
+  },
+  "the sign-in was written to the audit trail of the project": {
+    "note": "account_signin:info:user:{\"account\": \"Work Claude\", \"account_id\": \"<acct:1>\", \"team_ids\": [\"mem_backend0001\", \"mem_frontend001\"]}"
+  }
+}

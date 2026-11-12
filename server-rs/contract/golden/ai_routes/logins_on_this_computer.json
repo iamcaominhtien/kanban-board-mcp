@@ -1,0 +1,22 @@
+{
+  "on this computer": {
+    "status": 200,
+    "json": [
+      {
+        "cli": "claude",
+        "label": "Claude Code",
+        "signed_in_with": "subscription login"
+      }
+    ]
+  },
+  "web: on this computer": {
+    "status": 200,
+    "json": [
+      {
+        "cli": "claude",
+        "label": "Claude Code",
+        "signed_in_with": "subscription login"
+      }
+    ]
+  }
+}

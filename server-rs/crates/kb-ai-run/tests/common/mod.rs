@@ -14,6 +14,13 @@
 //! `KANBAN_AI_ROOTS` and `KANBAN_AI_ACCOUNTS_HOME` point into the temporary folder; `init_with` takes more variables
 //! (the environment cannot change once the tests run, so what the Python tests set with `monkeypatch.setenv` for a
 //! whole file is given there).
+//!
+//! Added for `teams` and `launch` (everything below "Added for teams and launch"): `KANBAN_WORKSPACE_ROOT`; rows from a
+//! golden file put into their tables (`insert_rows`), with the folders of the generator's run replaced by this
+//! process's (`to_local`, `to_golden`: `<ROOT>` is `folder()`, `<TMP>` the system's temporary folder, `<TODAY>` today's
+//! date in UTC); a long text against its hash and length, printing both texts around the first difference
+//! (`same_text`); `team_of` (a team made by `teams::create` on the stand-in CLI, as `_runner` of the Python helpers);
+//! `Cancels` (a `seams::Runs` that records what `teams` asks of the runs).
 #![allow(dead_code)]
 
 use std::path::{Path, PathBuf};
@@ -57,6 +64,7 @@ pub async fn init_with(extra: &[(&str, &str)]) -> MutexGuard<'static, ()> {
                 std::env::set_var("CLAUDE_CONFIG_DIR", dir.join("claude-config"));
                 std::env::set_var("KANBAN_AI_RUNS_DIR", dir.join("ai-runs"));
                 std::env::set_var("KANBAN_UPLOADS_DIR", dir.join("uploads"));
+                std::env::set_var("KANBAN_WORKSPACE_ROOT", dir.join("workspace"));
                 std::env::set_var("HOME", dir.join("home"));
                 std::env::remove_var("KANBAN_DATABASE_URL");
                 std::env::remove_var("KANBAN_RUNNER");
@@ -342,4 +350,196 @@ pub fn script(folder: &Path, name: &str, text: &str, executable: bool) -> PathBu
     let mode = if executable { 0o755 } else { 0o644 };
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode)).expect("the script's mode");
     path
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Added for teams and launch
+// ---------------------------------------------------------------------------------------------------------------
+
+/// The system's temporary folder as texts name it (`tempfile.gettempdir()`).
+pub fn tmp_text() -> String {
+    std::env::temp_dir().to_string_lossy().trim_end_matches('/').to_string()
+}
+
+/// Today's date in UTC (`<TODAY>` of the golden files).
+pub fn today() -> String {
+    chrono::Utc::now().date_naive().to_string()
+}
+
+/// A text of a golden file with this process's folders in place of `<ROOT>`, `<TMP>` and `<TODAY>`.
+pub fn local_text(text: &str) -> String {
+    text.replace("<ROOT>", &folder().to_string_lossy()).replace("<TMP>", &tmp_text()).replace("<TODAY>", &today())
+}
+
+/// A value of a golden file with this process's folders in every text and key (`local_text`).
+pub fn to_local(value: &serde_json::Value) -> serde_json::Value {
+    use serde_json::Value;
+    match value {
+        Value::String(s) => Value::String(local_text(s)),
+        Value::Array(items) => Value::Array(items.iter().map(to_local).collect()),
+        Value::Object(map) => Value::Object(map.iter().map(|(k, v)| (local_text(k), to_local(v))).collect()),
+        other => other.clone(),
+    }
+}
+
+/// A text this process made, as the golden file writes it: `<ROOT>`, `<TMP>` and `<TODAY>` in place of this
+/// process's folders and of today's date.
+pub fn golden_text(text: &str) -> String {
+    text.replace(&*folder().to_string_lossy(), "<ROOT>").replace(&tmp_text(), "<TMP>").replace(&today(), "<TODAY>")
+}
+
+/// A value this process made, as the golden file writes it (`golden_text`).
+pub fn to_golden(value: &serde_json::Value) -> serde_json::Value {
+    use serde_json::Value;
+    match value {
+        Value::String(s) => Value::String(golden_text(s)),
+        Value::Array(items) => Value::Array(items.iter().map(to_golden).collect()),
+        Value::Object(map) => Value::Object(map.iter().map(|(k, v)| (golden_text(k), to_golden(v))).collect()),
+        other => other.clone(),
+    }
+}
+
+async fn put<E>(rows: &[serde_json::Value])
+where
+    E: kb_db::sea_orm::EntityTrait,
+    E::Model: serde::de::DeserializeOwned + kb_db::sea_orm::IntoActiveModel<E::ActiveModel>,
+    E::ActiveModel: ActiveModelTrait<Entity = E> + kb_db::sea_orm::ActiveModelBehavior + Send,
+{
+    let session = database::session();
+    for row in rows {
+        let model: E::Model =
+            serde_json::from_value(to_local(row)).unwrap_or_else(|e| panic!("a row of {}: {e}: {row}", E::default().table_name()));
+        let active = kb_db::sea_orm::IntoActiveModel::into_active_model(model).reset_all();
+        E::insert(active).exec_without_returning(&session).await.expect("insert");
+    }
+    session.commit().await.expect("commit");
+}
+
+/// Put the rows of a golden file into `table` as the Python models dumped them (`<ROOT>` and the other marks replaced
+/// by this process's). The one row of `workspace_settings` replaces the one that is there.
+pub async fn insert_rows(table: &str, rows: &[serde_json::Value]) {
+    use kb_db::entities as e;
+    match table {
+        "project" => put::<e::project::Entity>(rows).await,
+        "member" => put::<e::member::Entity>(rows).await,
+        "ai_team" => put::<e::ai_team::Entity>(rows).await,
+        "ticket" => put::<e::ticket::Entity>(rows).await,
+        "ai_run" => put::<e::ai_run::Entity>(rows).await,
+        "ai_project_settings" => put::<e::ai_project_settings::Entity>(rows).await,
+        "ai_plugin" => put::<e::ai_plugin::Entity>(rows).await,
+        "ai_project_knowledge" => put::<e::ai_project_knowledge::Entity>(rows).await,
+        "ai_lesson" => put::<e::ai_lesson::Entity>(rows).await,
+        "ai_memory_note" => put::<e::ai_memory_note::Entity>(rows).await,
+        "ai_role_pack" => put::<e::ai_role_pack::Entity>(rows).await,
+        "ai_account" => put::<e::ai_account::Entity>(rows).await,
+        "workspace_settings" => {
+            clear::<e::workspace_settings::Entity>().await;
+            put::<e::workspace_settings::Entity>(rows).await;
+        }
+        other => panic!("no table {other} in insert_rows"),
+    }
+}
+
+/// Every table of a golden case's `rows`, in an order that suits a reader of the database.
+pub async fn insert_all(rows: &serde_json::Value) {
+    for (table, list) in rows.as_object().expect("rows by table") {
+        insert_rows(table, list.as_array().expect("a list of rows")).await;
+    }
+}
+
+fn sha256_hex(text: &str) -> String {
+    use sha2::Digest;
+    sha2::Sha256::digest(text.as_bytes()).iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// `got` (already written as the golden file writes paths) against `want`: the text itself when it is short, else
+/// `{sha256, chars}` with the text in `blobs`. On a mismatch both texts are printed around the first difference.
+pub fn same_text(got: &str, want: &serde_json::Value, blobs: &serde_json::Value, what: &str) {
+    let expected: Option<&str> = match want {
+        serde_json::Value::String(s) => Some(s.as_str()),
+        other => {
+            let sha = other["sha256"].as_str().unwrap_or_else(|| panic!("{what}: neither a text nor a hash: {other}"));
+            if sha256_hex(got) == sha && got.chars().count() as u64 == other["chars"].as_u64().unwrap_or(u64::MAX) {
+                return;
+            }
+            blobs[sha].as_str()
+        }
+    };
+    let Some(expected) = expected else {
+        panic!("{what}: the text differs and the golden file does not hold the expected one:\n{got}");
+    };
+    if got == expected {
+        return;
+    }
+    let (g, e): (Vec<char>, Vec<char>) = (got.chars().collect(), expected.chars().collect());
+    let at = g.iter().zip(&e).position(|(a, b)| a != b).unwrap_or(g.len().min(e.len()));
+    let around = |text: &[char]| -> String {
+        let from = at.saturating_sub(160);
+        let to = (at + 160).min(text.len());
+        text[from..to].iter().collect()
+    };
+    panic!(
+        "{what}: differs at character {at} (lengths {} and {})\n--- Rust ---\n{}\n--- Python ---\n{}\n",
+        g.len(),
+        e.len(),
+        around(&g),
+        around(&e)
+    );
+}
+
+/// `_runner(c, pid, repo, name=...)` of the Python helpers at service level: what `POST /projects/{id}/ai/teams` does
+/// (`teams::create`, `teams::test_connection`, `teams::describe`) with the stand-in CLI and a folder as its working
+/// folder. `extra` adds to the body or replaces its keys.
+pub async fn team_of(project_id: &str, name: &str, extra: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
+    use kb_ai_run::teams;
+    let repo = tmp_path("repo");
+    std::fs::write(repo.join("calc.py"), "def add(a, b):\n    return a - b\n").expect("calc.py");
+    let mut body = serde_json::json!({
+        "name": name,
+        "working_dir": repo.to_string_lossy(),
+        "cli_path": fake_cli(),
+        "model": "haiku",
+    });
+    for (k, v) in extra.as_object().cloned().unwrap_or_default() {
+        body[k] = v;
+    }
+    let session = database::session();
+    let member = teams::create(&session, project_id, body.as_object().expect("body"), "An Nguyen").await.expect("create");
+    teams::test_connection(&session, &member.id).await.expect("test");
+    described(&member.id).await
+}
+
+/// `GET /ai/teams/{id}` at service level: the team, described.
+pub async fn described(member_id: &str) -> serde_json::Map<String, serde_json::Value> {
+    use kb_ai_run::teams;
+    let session = database::session();
+    let (member, profile) = teams::get_profile(&session, member_id).await.expect("rows");
+    teams::describe(&session, &member.expect("member"), &profile.expect("profile"), None).await.expect("describe")
+}
+
+/// A `seams::Runs` that records what `teams` asks of the runs: the cancelled runs and how often the scheduler was
+/// woken.
+#[derive(Default)]
+pub struct Cancels {
+    /// (run id, by, reason) of each `cancel`.
+    pub cancelled: std::sync::Mutex<Vec<(String, String, String)>>,
+    /// How often `wake` was called.
+    pub woken: std::sync::atomic::AtomicUsize,
+    /// What `cancel` answers; None: it succeeds.
+    pub refuse: std::sync::Mutex<Option<kb_ai_run::seams::CancelError>>,
+}
+
+#[async_trait::async_trait]
+impl kb_ai_run::seams::Runs for Cancels {
+    async fn cancel(&self, run_id: &str, by: &str, reason: &str) -> Result<(), kb_ai_run::seams::CancelError> {
+        self.cancelled.lock().expect("lock").push((run_id.into(), by.into(), reason.into()));
+        match self.refuse.lock().expect("lock").clone() {
+            Some(err) => Err(err),
+            None => Ok(()),
+        }
+    }
+
+    fn wake(&self) {
+        self.woken.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    }
 }

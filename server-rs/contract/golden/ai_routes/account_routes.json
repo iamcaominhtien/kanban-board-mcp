@@ -1,0 +1,1397 @@
+{
+  "GET /ai/accounts: DELETE is not served": {
+    "status": 405,
+    "json": {
+      "detail": "Method Not Allowed"
+    }
+  },
+  "GET /ai/accounts: after": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/account",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/a-b",
+          "id": "<acct:2>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "a/b",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude-2",
+          "id": "<acct:3>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "work-claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/account-2",
+          "id": "<acct:4>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "..",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "GET /ai/accounts: members here and elsewhere": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": "<time>",
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 3,
+          "members_elsewhere": [
+            {
+              "id": "mem_elsewhere01",
+              "name": "Elsewhere",
+              "project_id": "<uuid:1>"
+            }
+          ],
+          "members_here": [
+            {
+              "id": "mem_backend0001",
+              "name": "Backend",
+              "project_id": "<uuid:2>"
+            },
+            {
+              "id": "mem_frontend001",
+              "name": "Frontend",
+              "project_id": "<uuid:2>"
+            }
+          ],
+          "method": "subscription",
+          "name": "main",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": "Signed out",
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/account",
+          "id": "<acct:2>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/a-b",
+          "id": "<acct:3>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "a/b",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude-2",
+          "id": "<acct:4>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "work-claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/account-2",
+          "id": "<acct:5>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "..",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/second",
+          "id": "<acct:6>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Second",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "GET /ai/accounts: members, no project": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": "<time>",
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 3,
+          "members_elsewhere": [
+            {
+              "id": "mem_backend0001",
+              "name": "Backend",
+              "project_id": "<uuid:1>"
+            },
+            {
+              "id": "mem_frontend001",
+              "name": "Frontend",
+              "project_id": "<uuid:1>"
+            },
+            {
+              "id": "mem_elsewhere01",
+              "name": "Elsewhere",
+              "project_id": "<uuid:2>"
+            }
+          ],
+          "members_here": [],
+          "method": "subscription",
+          "name": "main",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": "Signed out",
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/account",
+          "id": "<acct:2>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/a-b",
+          "id": "<acct:3>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "a/b",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude-2",
+          "id": "<acct:4>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "work-claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/account-2",
+          "id": "<acct:5>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "..",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/second",
+          "id": "<acct:6>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Second",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "GET /ai/accounts: none": {
+    "status": 200,
+    "json": {
+      "accounts": [],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "GET /ai/accounts: project_id": {
+    "status": 200,
+    "json": {
+      "accounts": [],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "GET /ai/accounts: two": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": "<time>",
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": "an@work.example",
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": "subscription",
+          "name": "main",
+          "plan": "max",
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "signed_in",
+          "status_detail": "signed in (claude.ai, max)",
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/account",
+          "id": "<acct:2>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/a-b",
+          "id": "<acct:3>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "a/b",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude-2",
+          "id": "<acct:4>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "work-claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/account-2",
+          "id": "<acct:5>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "..",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        },
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/second",
+          "id": "<acct:6>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Second",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "GET one": {
+    "status": 200,
+    "json": {
+      "checked_at": null,
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Work Claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": null,
+      "unavailable": null
+    }
+  },
+  "GET one: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "not_found",
+        "message": "AI account not found."
+      }
+    }
+  },
+  "GET one: with members": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 3,
+      "members_elsewhere": [
+        {
+          "id": "mem_backend0001",
+          "name": "Backend",
+          "project_id": "<uuid:1>"
+        },
+        {
+          "id": "mem_frontend001",
+          "name": "Frontend",
+          "project_id": "<uuid:1>"
+        },
+        {
+          "id": "mem_elsewhere01",
+          "name": "Elsewhere",
+          "project_id": "<uuid:2>"
+        }
+      ],
+      "members_here": [],
+      "method": "subscription",
+      "name": "main",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "Signed out",
+      "unavailable": null
+    }
+  },
+  "check: not signed in": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "main",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "not signed in (none)",
+      "unavailable": null
+    }
+  },
+  "check: signed in": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": "an@work.example",
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": "subscription",
+      "name": "main",
+      "plan": "max",
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "signed_in",
+      "status_detail": "signed in (claude.ai, max)",
+      "unavailable": null
+    }
+  },
+  "check: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "not_found",
+        "message": "AI account not found."
+      }
+    }
+  },
+  "create": {
+    "status": 201,
+    "json": {
+      "checked_at": null,
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Work Claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": null,
+      "unavailable": null
+    }
+  },
+  "create: blank name": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "name_required",
+        "message": "Give the account a name."
+      }
+    }
+  },
+  "create: dots": {
+    "status": 201,
+    "json": {
+      "checked_at": null,
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/account-2",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "..",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": null,
+      "unavailable": null
+    }
+  },
+  "create: empty body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "name"
+        ]
+      ]
+    }
+  },
+  "create: name not text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "name"
+        ]
+      ]
+    }
+  },
+  "create: name too long": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "name_too_long",
+        "message": "Use at most 60 characters."
+      }
+    }
+  },
+  "create: no cli": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_cli",
+        "message": "Choose one of the supported CLIs."
+      }
+    }
+  },
+  "create: null cli": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_cli",
+        "message": "Choose one of the supported CLIs."
+      }
+    }
+  },
+  "create: other cli": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_cli",
+        "message": "Choose one of the supported CLIs."
+      }
+    }
+  },
+  "create: same folder name": {
+    "status": 201,
+    "json": {
+      "checked_at": null,
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude-2",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "work-claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": null,
+      "unavailable": null
+    }
+  },
+  "create: same name": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "code": "name_taken",
+        "message": "An account with this name exists."
+      }
+    }
+  },
+  "create: same name in other case": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "code": "name_taken",
+        "message": "An account with this name exists."
+      }
+    }
+  },
+  "create: second": {
+    "status": 201,
+    "json": {
+      "checked_at": null,
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/second",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Second",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": null,
+      "unavailable": null
+    }
+  },
+  "create: sixty characters": {
+    "status": 201,
+    "json": {
+      "checked_at": null,
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/account",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": null,
+      "unavailable": null
+    }
+  },
+  "create: slash in the name": {
+    "status": 201,
+    "json": {
+      "checked_at": null,
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/a-b",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "a/b",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": null,
+      "unavailable": null
+    }
+  },
+  "create: unknown cli": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_cli",
+        "message": "Choose one of the supported CLIs."
+      }
+    }
+  },
+  "members moved to the other account": {
+    "note": "mem_backend0001:<acct:1>,mem_elsewhere01:<acct:1>,mem_frontend001:<acct:1>"
+  },
+  "name-check: blank": {
+    "status": 200,
+    "json": {
+      "message": "Give the account a name.",
+      "ok": false
+    }
+  },
+  "name-check: free": {
+    "status": 200,
+    "json": {
+      "message": null,
+      "ok": true
+    }
+  },
+  "name-check: free again": {
+    "status": 200,
+    "json": {
+      "message": null,
+      "ok": true
+    }
+  },
+  "name-check: no name": {
+    "status": 200,
+    "json": {
+      "message": "Give the account a name.",
+      "ok": false
+    }
+  },
+  "name-check: taken": {
+    "status": 200,
+    "json": {
+      "message": "An account with this name exists.",
+      "ok": false
+    }
+  },
+  "nothing was removed": {
+    "note": true
+  },
+  "on this computer: nobody": {
+    "status": 200,
+    "json": []
+  },
+  "on this computer: signed in": {
+    "status": 200,
+    "json": [
+      {
+        "cli": "claude",
+        "label": "Claude Code",
+        "signed_in_with": "me@home.example · Max plan"
+      }
+    ]
+  },
+  "remove: again": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "not_found",
+        "message": "AI account not found."
+      }
+    }
+  },
+  "remove: bad members": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "members"
+        ]
+      ]
+    }
+  },
+  "remove: members to the login of this computer": {
+    "status": 200,
+    "json": {
+      "members_moved": 1,
+      "removed": true
+    }
+  },
+  "remove: no members": {
+    "status": 200,
+    "json": {
+      "members_moved": 3,
+      "removed": true
+    }
+  },
+  "remove: other, itself": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "other_required",
+        "message": "Pick the other account."
+      }
+    }
+  },
+  "remove: other, no other_id": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "other_required",
+        "message": "Pick the other account."
+      }
+    }
+  },
+  "remove: other, unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "not_found",
+        "message": "AI account not found."
+      }
+    }
+  },
+  "remove: pause the members": {
+    "status": 200,
+    "json": {
+      "members_moved": 1,
+      "removed": true
+    }
+  },
+  "remove: to another account": {
+    "status": 200,
+    "json": {
+      "members_moved": 3,
+      "removed": true
+    }
+  },
+  "remove: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "not_found",
+        "message": "AI account not found."
+      }
+    }
+  },
+  "rename": {
+    "status": 200,
+    "json": {
+      "checked_at": null,
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Main",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": null,
+      "unavailable": null
+    }
+  },
+  "rename: blank": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "name_required",
+        "message": "Give the account a name."
+      }
+    }
+  },
+  "rename: no name": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "name"
+        ]
+      ]
+    }
+  },
+  "rename: same name": {
+    "status": 200,
+    "json": {
+      "checked_at": null,
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "main",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": null,
+      "unavailable": null
+    }
+  },
+  "rename: taken by another": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "code": "name_taken",
+        "message": "An account with this name exists."
+      }
+    }
+  },
+  "rename: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "not_found",
+        "message": "AI account not found."
+      }
+    }
+  },
+  "sign-out": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": "subscription",
+      "name": "main",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "Signed out",
+      "unavailable": null
+    }
+  },
+  "sign-out: again": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": "subscription",
+      "name": "main",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "Signed out",
+      "unavailable": null
+    }
+  },
+  "sign-out: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "not_found",
+        "message": "AI account not found."
+      }
+    }
+  },
+  "the login file is gone": {
+    "note": true
+  },
+  "the member is paused": {
+    "note": "1|-|Account Third was removed: choose an account"
+  }
+}

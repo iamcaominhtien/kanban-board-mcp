@@ -1,0 +1,65 @@
+{
+  "power: DELETE is not served": {
+    "status": 405,
+    "json": {
+      "detail": "Method Not Allowed"
+    }
+  },
+  "power: after": {
+    "status": 200,
+    "json": {
+      "active": 0
+    }
+  },
+  "power: nothing": {
+    "status": 200,
+    "json": {
+      "active": 0
+    }
+  },
+  "power: two live runs": {
+    "status": 200,
+    "json": {
+      "active": 2
+    }
+  },
+  "the runs after the wake": {
+    "note": "failed:board_closed:board:-:The computer slept and t|failed:board_closed:board:-:The computer slept and t|finished:-:-:-:-|needs_input:-:-:-:-|queued:-:-:-:-"
+  },
+  "wake: GET is not served": {
+    "status": 404,
+    "json": {
+      "detail": "UI not built"
+    }
+  },
+  "wake: again": {
+    "status": 200,
+    "json": {
+      "alive": [],
+      "checked": 0,
+      "dead": [],
+      "orphans": []
+    }
+  },
+  "wake: nothing": {
+    "status": 200,
+    "json": {
+      "alive": [],
+      "checked": 0,
+      "dead": [],
+      "orphans": []
+    }
+  },
+  "wake: runs with no process": {
+    "status": 200,
+    "json": {
+      "alive": [],
+      "checked": 2,
+      "dead": [],
+      "orphans": [
+        "<run:1>",
+        "<run:2>"
+      ]
+    }
+  }
+}

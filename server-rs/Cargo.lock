@@ -1730,17 +1730,22 @@ version = "5.0.0"
 dependencies = [
  "async-trait",
  "axum",
+ "fake-claude",
+ "futures",
  "kb-ai",
  "kb-ai-know",
  "kb-ai-run",
  "kb-ai-work",
  "kb-base",
  "kb-db",
+ "regex",
  "serde",
  "serde_json",
+ "sqlx",
  "tempfile",
  "testkit",
  "tokio",
+ "tokio-tungstenite",
  "tracing",
 ]
 
@@ -1772,21 +1777,26 @@ name = "kb-ai-run"
 version = "5.0.0"
 dependencies = [
  "async-trait",
+ "axum",
  "chrono",
  "chrono-tz",
  "fake-claude",
  "kb-ai",
+ "kb-ai-know",
  "kb-base",
+ "kb-board",
  "kb-db",
  "nix 0.31.3",
  "portable-pty",
  "regex",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "sysinfo",
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
+ "tower",
  "tracing",
 ]
 
@@ -1795,14 +1805,21 @@ name = "kb-ai-work"
 version = "5.0.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "kb-ai",
+ "kb-ai-know",
  "kb-base",
+ "kb-board",
  "kb-db",
+ "kb-notify",
+ "regex",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tempfile",
  "tokio",
  "tracing",
+ "unicode-normalization",
 ]
 
 [[package]]
