@@ -31,6 +31,8 @@ kb-docs = { workspace = true }
 kb-draw = { workspace = true }
 kb-ideas = { workspace = true }
 kb-ai = { workspace = true }
+kb-ai-api = { workspace = true }
+kb-ai-run = { workspace = true }
 kb-assist = { workspace = true }
 kb-dbkit = { workspace = true }
 

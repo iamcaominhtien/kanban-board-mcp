@@ -165,7 +165,9 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - [x] the protocol (HTTP and stdio), registry, argument validation, instructions, the project tools
 - [x] the ticket, item, branch and idea tools (`list_tickets`, `get_ticket`, `manage_ticket`, `ticket_items`,
       `ticket_branches`, the five idea tools)
-- [ ] the docs, canvas, diagram, sketch and picture tools; `ai_run`, `ai_schedules`, knowledge
+- [x] `docs_read` and `docs_write` with every action (pages, comments, import, diagrams, sketches, canvases, pictures,
+      guides)
+- [ ] `ai_run`, `ai_schedules`, `knowledge`, `board_wait` (with the AI team)
 - [x] `mcp_stdio.py`, `mcp_bridge.py` (byte-equal to the Python programs)
 - [x] `services/mcp_clients.py`, `shared_skills.py`, `role_skills.py`, skill assets (`kb-skills`; the skill folders are
       embedded unchanged)
@@ -174,10 +176,12 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 
 - [x] base (`kb-ai`): store, config_model, paths, providers, ops, injection, hook_guard, pictures, power, quota, budget,
       profiles, mcp_sources, runner_link, audit, context, guard, comment_view, steps, transcripts
-- [ ] `kb-ai-know`: packs, roles, board_skills, memory, kb, knowledge, plugins
-- [ ] `kb-ai-work`: project_env, worktrees, github, timeline, flow, activity
-- [~] `kb-ai-run`, part 1: cli, stream, resources, accounts, signin
-- [ ] `kb-ai-run`, part 2: launch, teams, runs, repo_scan, `runner/`
+- [x] `kb-ai-know`: packs, roles, board_skills, memory, kb, knowledge, plugins
+- [~] `kb-ai-work`: project_env, worktrees, github, timeline, flow, activity
+- [x] `kb-ai-run`, part 1: cli, stream, resources, accounts, signin; `fake-claude`, the stand-in CLI of the tests
+- [~] `kb-ai-run`, part 2a: teams, launch
+- [ ] `kb-ai-run`, part 2b: runs, `runner/`, repo_scan
+- [~] `kb-ai-api`, part 1: the account, sign-in, knowledge and power routes
 - [ ] `kb-ai-run`, part 3: schedules, compact, messaging, session_history, touches, health
 - [ ] (c) `services/assistant/`, `services/docs_ai/`, `api/ai*.py`, `assist.py`, `schedules.py`, `idea_ai.py`,
       `api/docs_ai/`
@@ -209,6 +213,11 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - `Session` has no savepoint (`begin_nested`): `transcripts::finish` logs a failed FTS statement and commits.
 - The adapter for `kb_mcp::hooks::AiGuardHook` (run tokens on MCP calls) is not registered yet: until then an MCP
   call with a run token is not attributed to its run.
+- PDF text (`pdf-extract`) equals `pypdf` on the test fixtures; on the repository's own PDFs it differs in whitespace
+  (`pypdf` splits Vietnamese words) and in one file in the bullet character. Accepted unless search quality suffers.
+- On Windows `kb-ai-run` has only been type-checked in part (no Windows C toolchain here): it compiles first in CI.
+- `kb_docs::hooks::AssignHook` and `kb_mcp::hooks::BoardSkillsHook` are not registered yet (they need AI teams and
+  the plugin folder).
 - `kb_base::secrets` has no test backend for the keychain: the two tests of `test_ai_keychain.py` are not ported.
 - Carried over from Python unchanged, to review after the switch: the screenshot helper's local server lists
   directories, and its host check lets decimal and hexadecimal IP hosts through.

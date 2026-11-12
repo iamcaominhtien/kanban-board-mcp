@@ -52,6 +52,7 @@ impl kb_skills::hooks::McpToolsHook for McpTools {
 /// Register every hook (a second call changes nothing).
 pub fn install() {
     kb_ai::hooks::register();
+    kb_ai_run::register();
     kb_skills::hooks::set_mcp_tools_hook(Box::new(McpTools));
     kb_docs::hooks::register();
     kb_ideas::register();

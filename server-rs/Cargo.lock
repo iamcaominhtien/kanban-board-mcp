@@ -1725,6 +1725,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "kb-ai-api"
+version = "5.0.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "kb-ai",
+ "kb-ai-know",
+ "kb-ai-run",
+ "kb-ai-work",
+ "kb-base",
+ "kb-db",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "testkit",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "kb-ai-know"
 version = "5.0.0"
 dependencies = [
@@ -1794,6 +1814,8 @@ dependencies = [
  "bytes",
  "futures",
  "kb-ai",
+ "kb-ai-api",
+ "kb-ai-run",
  "kb-assist",
  "kb-base",
  "kb-board",

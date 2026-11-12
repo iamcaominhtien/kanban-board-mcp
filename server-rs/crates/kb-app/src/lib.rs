@@ -43,6 +43,7 @@ pub fn routes() -> Routes {
         .merge(kb_docs::api::routes())
         .merge(kb_draw::api::routes())
         .merge(kb_ai::api::routes())
+        .merge(kb_ai_api::api::routes())
         .merge(kb_assist::api::routes())
         .get("/health", health)
         .get("/version", version)
