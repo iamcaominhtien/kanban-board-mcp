@@ -37,4 +37,6 @@ async fn a_new_database_gets_the_schema_and_sessions_follow_the_python_rules() {
     assert_eq!(idea_counter::Entity::find().all(&conn).await.unwrap().len(), 1);
 
     common::scenario().await;
+    common::saving().await;
+    common::two_writers_of_one_run().await;
 }

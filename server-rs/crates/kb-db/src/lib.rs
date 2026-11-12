@@ -6,12 +6,14 @@ pub mod changes;
 pub mod database;
 pub mod entities;
 pub mod migrations;
+pub mod save;
 pub mod schema;
 pub mod session;
 pub mod sql;
 pub mod targets;
 
 pub use database::{conn, is_sqlite, session};
+pub use save::{Edit, edit, save_model};
 pub use sea_orm;
 pub use session::Session;
 

@@ -174,7 +174,7 @@ pub async fn apply(session: &Session, scan_id: &str, choice: &Value, by: &str) -
             Err(e) => return Err(Error::Other(e.to_string())),
         }
     }
-    let mut applied = row.into_active_model();
+    let mut applied = kb_db::edit(row);
     applied.applied_at = Set(Some(time::now_iso()));
     applied.update(session).await?;
     session.commit().await?;

@@ -5,7 +5,7 @@
 <h1 align="center">Kanban Board MCP</h1>
 
 <p align="center">
-  A personal Kanban board with a polished React UI and a Python MCP server — built for AI agent integration.
+  A personal Kanban board with a polished React UI and a native Rust MCP server — built for AI agent integration.
 </p>
 
 <p align="center">
@@ -13,8 +13,8 @@
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React" />
   <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite" />
-  <img src="https://img.shields.io/badge/Python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
-  <img src="https://img.shields.io/badge/FastAPI-0.135-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Rust-1.94+-000000?style=flat-square&logo=rust&logoColor=white" alt="Rust" />
+  <img src="https://img.shields.io/badge/axum-0.8-DEA584?style=flat-square" alt="axum" />
   <img src="https://img.shields.io/badge/MCP-1.27-FF6B35?style=flat-square" alt="MCP" />
   <img src="https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite" />
 </p>
@@ -37,7 +37,7 @@
 - **AI members**: add Claude Code (your signed-in CLI) or an API-key model as a member, assign it tickets or @mention it; it works through a real run with live steps, asks back when it needs a decision, stops at Review, and every action goes through permissions, approvals, budgets, a kill switch and an audit log.
 - **Board AI**: an Ask AI dock (Ctrl/Cmd+J) that answers about the board, a ticket or a doc and proposes changes as drafts you apply yourself; Draft with AI for new tickets, Improve description, Split with AI, test cases tied to acceptance criteria, a daily board-health digest, and Docs AI (Ask the docs with cited answers, a page AI menu, Check this page, Write with AI, AI members that edit pages (or propose edits), @AI in comment threads, Draw a diagram, freshness checks and Docs health; on by default, off per project in Settings).
 - **AI schedules**: let an AI member work on a ticket at a set time, once or on repeat, with "done when" checks (criteria, a test command, summary, branch) and a second AI that reviews the result; a pass moves the ticket to Review, never further. Shown in a Schedules tab (list and week), on the ticket and on its card.
-- **MCP server for AI agents**: 12 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
+- **MCP server for AI agents**: 13 tools over stdio or HTTP, with clear descriptions, annotations and fix-it error messages.
 - **Splash screen and loading states** on web and desktop, plus an update-required notice when the UI is too old for the server.
 - **Local-first**: SQLite, no external services; also packaged as an Electron desktop app.
 - **Or your own database**: PostgreSQL 14+ or MySQL 8 / MariaDB 10.6+, chosen in Settings › Storage & backup, with a move between them that copies, verifies and switches without a restart ([guide](docs/guideline/databases.md)).
@@ -87,19 +87,19 @@ npm run dev        # http://localhost:5173
 
 ### MCP Server (Backend)
 
-Requires the Rust toolchain (see `rust-version` in `server-rs/Cargo.toml`). The database is created and migrated automatically on first start. The server picks a free port and prints `READY port=<N>` on stdout.
+Requires the Rust toolchain (see `rust-version` in `server/Cargo.toml`). The database is created and migrated automatically on first start. The server picks a free port and prints `READY port=<N>` on stdout.
 
 ```bash
-cd server-rs
+cd server
 cargo build -p kanban-server -p kanban-mcp-stdio
 ./target/debug/kanban-server
 ```
 
-To run the desktop app against this build: `cd desktop && npm run dev` (it starts `server-rs/target/debug/kanban-server`; set `KANBAN_SERVER_BIN` to use another path).
+To run the desktop app against this build: `cd desktop && npm run dev` (it starts `server/target/debug/kanban-server`; set `KANBAN_SERVER_BIN` to use another path). More about the server (the crates, the tests, the `kanban-db` command) is in the [Server README](server/README.md).
 
 ## MCP Tools
 
-The server exposes **12 tools** for AI agents over MCP (17 with the Idea Space tools enabled); `ai_run` only works inside a run the board started for an AI team, and `ai_schedules` refuses calls from inside a run. The write tools each cover one area and take an `action`; every action's parameters are listed in the tool description, and a wrong call is answered with what that action accepts. The code is the `server/kanban_mcp/` package: `tools/` (the 12 tools), `operations/` (one function per verb, grouped by area), `common.py`, `registry.py`, `instructions.py`. AI members live in `server/services/ai/` (members, runs and the CLI runner, the API agent loop, the permission guard, approvals, audit).
+The server exposes **13 tools** for AI agents over MCP (18 with the Idea Space tools enabled); `ai_run` only works inside a run the board started for an AI team, and `ai_schedules` refuses calls from inside a run. The write tools each cover one area and take an `action`; every action's parameters are listed in the tool description, and a wrong call is answered with what that action accepts. The code is the `server/crates/kb-mcp/` crate: `src/tools/` (the 13 tools), `src/operations/` (one function per verb, grouped by area), `src/common.rs`, `src/registry.rs`, `src/instructions.rs`. The AI team lives in the `server/crates/kb-ai*` crates (teams, runs and the CLI runner, schedules, the guard, audit).
 
 | Tool | Read / write | What it does |
 |---|---|---|
@@ -113,6 +113,8 @@ The server exposes **12 tools** for AI agents over MCP (17 with the Idea Space t
 | `ticket_branches` | write | `add`, `update`, `delete`, `checkout`: real git branches when the project has a linked repo |
 | `docs_write` | write | `create`, `update` (a stale `base_version` is rejected; optional `title` renames and rewrites `[[links]]`), `edit` (one section or passage, published as a new version; refused if that part changed since `base_version`), `upload` (a file to a page and/or a ticket, by path or base64), `tickets` (a page's open tasks become linked tickets), `assign` (give a page to an AI member to write or review), `move`, `duplicate`, `delete` (to the Recycle Bin), `restore`, `restore_version`, `import` (a local `.md` file or folder), `diagram_create` / `diagram_save` (a local `.drawio` file; a stale `base_version` is rejected; an optional `svg_path` is used as the preview), `diagram_delete`, `diagram_restore`, `sketch_create` / `sketch_save` (a local PNG and its `.sketch.json`; a stale `base_version` is rejected; at most 4096 px, 10 layers, 10 MB) |
 | `ai_run` | write | Only inside a run the board started for an AI team: `ask` (a question for the person it acts for; the run waits and resumes with the answer), `message` (a note to another ticket's team or a Docs page), `team`, `runs`, `report` |
+| `knowledge` | write | The knowledge base and the project memory: `index`, `search`, `read`, `memory`, `remember`, `forget` |
+| `board_wait` | read | Wait for the board to move: the events after `since`, or none after `timeout_s`, instead of sleeping in a loop |
 | `ai_schedules` | destructive | AI schedules: `list`, `get`, `create`, `update`, `preview` (check the fields, save nothing), `pause`, `resume`, `delete`, `run_now`; settings go in `fields` (AI team, once or repeat, time zone, limits) |
 
 **Diagram previews.** A diagram an agent saves gets its picture from the draw.io editor itself, in a hidden browser: the desktop app's own executable (`KANBAN_EXPORT_CMD`, set for you), or a Chrome / Chromium / Edge on the machine (`KANBAN_CHROME_PATH` to point at one). It needs the editor address from Settings › Diagrams (the self-hosted draw.io); the public diagrams.net is never used unless `KANBAN_DIAGRAM_EXPORT=public`, and `KANBAN_DIAGRAM_EXPORT=off` switches this off. Without either, the server draws a plain preview and the diagram footer says "Simple preview" until someone opens it in the editor and saves.
@@ -135,7 +137,7 @@ Open **Settings** in the app and use **MCP integrations** to install the server 
 
 ### Option 1 — Stdio (recommended for VS Code / Claude Desktop)
 
-The server launches as a subprocess — no manual startup needed. The database schema is created automatically on first run.
+The server launches as a subprocess — no manual startup needed. The database schema is created automatically on first run. `kanban-mcp-stdio` is a small launcher that hands over to `kanban-server mcp-stdio` in the same folder, so both programs must sit side by side (`cargo build -p kanban-server -p kanban-mcp-stdio` builds both).
 
 Add to VS Code `mcp.json` or Claude Desktop config:
 ```json
@@ -143,7 +145,7 @@ Add to VS Code `mcp.json` or Claude Desktop config:
   "servers": {
     "kanban": {
       "type": "stdio",
-      "command": "/path/to/kanban-board-mcp/server-rs/target/debug/kanban-mcp-stdio"
+      "command": "/path/to/kanban-board-mcp/server/target/debug/kanban-mcp-stdio"
     }
   }
 }
@@ -153,14 +155,14 @@ Add to VS Code `mcp.json` or Claude Desktop config:
 
 Start the server first (it prints the port it chose as `READY port=<N>`):
 ```bash
-cd server-rs && cargo run -p kanban-server
+cd server && cargo run -p kanban-server
 ```
 
 Then connect any MCP-compatible client to `http://localhost:<N>/mcp/` (note the trailing slash — the mount only matches with it).
 
 ## Desktop App
 
-The desktop app packages the full stack (React UI + FastAPI server + MCP stdio) into a single installable application via Electron. Download the installer from the [latest release](https://github.com/iamcaominhtien/kanban-board-mcp/releases/latest); the badge at the top shows its version, so this page needs no edit when a new one comes out.
+The desktop app packages the full stack (React UI + Rust server + MCP stdio) into a single installable application via Electron. Download the installer from the [latest release](https://github.com/iamcaominhtien/kanban-board-mcp/releases/latest); the badge at the top shows its version, so this page needs no edit when a new one comes out.
 
 | Platform | Artifact |
 |---|---|

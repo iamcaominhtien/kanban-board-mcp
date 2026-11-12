@@ -50,7 +50,7 @@ pub async fn rematch_page(session: &Session, page: &docs_page::Model, markdown: 
             continue;
         }
         let id = t.id.clone();
-        let mut update = t.into_active_model();
+        let mut update = kb_db::edit(t);
         match hit {
             None => {
                 update.anchor_state = Set("orphaned".to_string());

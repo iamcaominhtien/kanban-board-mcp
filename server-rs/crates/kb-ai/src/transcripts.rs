@@ -568,7 +568,7 @@ async fn finish_inner(
         path = target;
     }
     let size = std::fs::metadata(&path).map_or(0, |m| m.len());
-    let mut active = row.into_active_model();
+    let mut active = kb_db::edit(row);
     active.path = kb_db::sea_orm::ActiveValue::Set(path.to_string_lossy().into_owned());
     active.bytes = kb_db::sea_orm::ActiveValue::Set(i32::try_from(size).unwrap_or(i32::MAX));
     active.events = kb_db::sea_orm::ActiveValue::Set(i32::try_from(records.len()).unwrap_or(i32::MAX));
@@ -602,7 +602,7 @@ async fn finish_inner(
 pub async fn pin(run_id: &str, on: bool, by: &str) -> Result<Option<ai_run_transcript::Model>, DbErr> {
     let session = database::session();
     let Some(row) = ai_run_transcript::Entity::find_by_id(run_id).one(&session).await? else { return Ok(None) };
-    let mut active = row.into_active_model();
+    let mut active = kb_db::edit(row);
     active.pinned = kb_db::sea_orm::ActiveValue::Set(on);
     active.pinned_by = kb_db::sea_orm::ActiveValue::Set(on.then(|| by.to_string()));
     let row = active.update(&session).await?;
@@ -625,7 +625,7 @@ pub async fn prune(retention_days: i64, now_at: Option<DateTime<Utc>>) -> Result
     let mut removed = 0;
     for row in rows {
         let _ = std::fs::remove_file(existing(Path::new(&row.path)));
-        let mut active = row.into_active_model();
+        let mut active = kb_db::edit(row);
         active.deleted_at = kb_db::sea_orm::ActiveValue::Set(Some(now()));
         active.bytes = kb_db::sea_orm::ActiveValue::Set(0);
         active.update(&session).await?;

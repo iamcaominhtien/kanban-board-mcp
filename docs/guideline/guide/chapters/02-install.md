@@ -23,12 +23,11 @@ The installers are on the project’s Releases page, `github.com/iamcaominhtien/
 
 ## Run it from source
 
-Use this to develop the app or to run it on a server. It needs Python 3.12 or newer with [uv](https://docs.astral.sh/uv/), and Node.js for the interface.
+Use this to develop the app or to run it on a server. It needs the [Rust toolchain](https://rustup.rs) (the version is `rust-version` in `server/Cargo.toml`), and Node.js for the interface.
 
 ```bash
 cd server
-uv sync
-uv run uvicorn main:app --port 8000
+cargo run -p kanban-server      # prints READY port=<N>
 
 cd ../ui
 npm install

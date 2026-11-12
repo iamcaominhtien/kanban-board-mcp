@@ -102,7 +102,7 @@ pub async fn set_instructions(
         history.push(json!({"at": row.updated_at, "by": row.updated_by, "text": row.instructions}));
     }
     let keep = history.len().saturating_sub(30);
-    let mut active = ai_project_knowledge::ActiveModel::from(row);
+    let mut active = kb_db::edit(row);
     active.instructions = Set(text.to_string());
     active.history = Set(pyjson::dumps(&history[keep..].to_vec()));
     active.updated_at = Set(Some(now()));
@@ -189,7 +189,7 @@ pub async fn update_lesson(
     let Some(row) = ai_lesson::Entity::find_by_id(lesson_id).one(session).await? else {
         return Err(Error::Lookup("Lesson not found.".into()));
     };
-    let mut active = ai_lesson::ActiveModel::from(row);
+    let mut active = kb_db::edit(row);
     if let Some(text) = text {
         let clean = lesson_text(text);
         if clean.is_empty() {
@@ -337,13 +337,13 @@ they are wrong):\n{}",
     if opts.record_use && (!kept.is_empty() || !own.is_empty() || !on_ticket.is_empty()) {
         let at = now();
         for r in &kept {
-            let mut active = ai_lesson::ActiveModel::from(r.clone());
+            let mut active = kb_db::edit(r.clone());
             active.uses = Set(r.uses + 1);
             active.last_used_at = Set(Some(at.clone()));
             active.update(session).await?;
         }
         for n in notes {
-            let mut active = kb_db::entities::ai_memory_note::ActiveModel::from(n.clone());
+            let mut active = kb_db::edit(n.clone());
             active.uses = Set(n.uses + 1);
             active.last_used_at = Set(Some(at.clone()));
             active.update(session).await?;

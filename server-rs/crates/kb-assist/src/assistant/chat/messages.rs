@@ -73,7 +73,7 @@ pub async fn undo_receipt(session: &Session, message_id: &str, by: &str) -> Resu
     rec.insert("status".into(), json!(if undone != 0 { "undone" } else { "done" }));
     rec.insert("undo".into(), Value::Object(result));
     ctx.insert("receipt".into(), Value::Object(rec));
-    let mut row = m.into_active_model();
+    let mut row = kb_db::edit(m);
     row.context = Set(pyjson::dumps(&ctx));
     let m = row.update(session).await?;
     session.commit().await?;
@@ -97,7 +97,7 @@ pub async fn set_feedback(
         Some(thumb) => json!({"thumb": thumb, "reason": reason.chars().take(500).collect::<String>(), "at": now_iso()}),
         None => json!({}),
     };
-    let mut row = m.into_active_model();
+    let mut row = kb_db::edit(m);
     row.feedback = Set(pyjson::dumps(&feedback));
     let m = row.update(session).await?;
     session.commit().await?;
@@ -116,7 +116,7 @@ pub async fn stop(session: &Session, message_id: &str, by: &str) -> Result<Value
         }
         None => cancel_task(message_id),
     }
-    let mut row = m.into_active_model();
+    let mut row = kb_db::edit(m);
     row.state = Set("stopped".to_string());
     row.finished_at = Set(Some(now_iso()));
     let m = row.update(session).await?;
@@ -138,7 +138,7 @@ pub async fn retry(session: &Session, message_id: &str, by: &str, continue_: boo
         let message = info.get("message").and_then(Value::as_str).unwrap_or("");
         return Err(AssistError::new("not_configured", message).into());
     }
-    let mut row = m.into_active_model();
+    let mut row = kb_db::edit(m);
     row.state = Set("thinking".to_string());
     row.error = Set("{}".to_string());
     row.finished_at = Set(None);
@@ -181,7 +181,7 @@ pub async fn post_as_comment(
     };
     let mut ctx = dict(&m.context);
     ctx.insert("posted".into(), json!({"comment_id": comment_id, "at": now_iso(), "by": by}));
-    let mut row = m.into_active_model();
+    let mut row = kb_db::edit(m);
     row.context = Set(pyjson::dumps(&ctx));
     row.update(session).await?;
     session.commit().await?;
@@ -199,7 +199,7 @@ pub async fn recover() -> Result<(), DbErr> {
         ai_chat_message::Entity::find().filter(ai_chat_message::Column::State.is_in(ACTIVE)).all(&session).await?;
     let any = !rows.is_empty();
     for m in rows {
-        let mut row = m.into_active_model();
+        let mut row = kb_db::edit(m);
         row.state = Set("error".to_string());
         row.finished_at = Set(Some(now_iso()));
         row.error = Set(pyjson::dumps(&json!({

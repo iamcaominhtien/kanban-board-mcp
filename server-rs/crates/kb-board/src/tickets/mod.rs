@@ -139,17 +139,7 @@ pub(crate) async fn save(
     before: &ticket::Model,
     after: ticket::Model,
 ) -> Result<ticket::Model, DbErr> {
-    let mut row = before.clone().into_active_model();
-    for column in ticket::Column::iter() {
-        let value = after.get(column);
-        if value != before.get(column) {
-            row.set(column, value);
-        }
-    }
-    if !row.is_changed() {
-        return Ok(after);
-    }
-    row.update(session).await
+    kb_db::save_model(session, before, after).await
 }
 
 /// `session.add(ticket)`, `await session.commit()`, `await session.refresh(ticket)`: the changed ticket stored and

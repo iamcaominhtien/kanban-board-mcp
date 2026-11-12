@@ -411,7 +411,7 @@ pub async fn reply_from_team(
         ));
     };
     let mid = m.id.clone();
-    let mut row = m.into_active_model();
+    let mut row = kb_db::edit(m);
     row.text = Set(text.chars().take(20000).collect());
     row.state = Set("done".to_string());
     row.finished_at = Set(Some(now_iso()));
@@ -438,7 +438,7 @@ pub async fn settle_team_messages(session: &Session, chat: &ai_chat::Model) -> R
         return Ok(());
     }
     for m in waiting {
-        let mut row = m.into_active_model();
+        let mut row = kb_db::edit(m);
         row.text =
             Set("The team stopped before it answered here. What it did is in its report on the ticket.".to_string());
         row.state = Set("done".to_string());

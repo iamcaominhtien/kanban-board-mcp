@@ -109,7 +109,7 @@ pub async fn update_project(
 
     // `data.model_dump(exclude_none=True)`: only the fields that were given, in the model's order
     let unchanged = project.clone();
-    let mut project = project.into_active_model();
+    let mut project = kb_db::edit(project);
     if let Some(name) = &data.name {
         project.name = Set(name.clone());
     }

@@ -148,7 +148,7 @@ pub(crate) async fn activity(ticket_id: &str, text: &str, actor: &str, ai: Optio
     if let Some(token) = token {
         ctx::reset(token);
     }
-    let mut row = ticket.into_active_model();
+    let mut row = kb_db::edit(ticket);
     row.activity_log = Set(log);
     row.update(&session).await?;
     session.commit().await

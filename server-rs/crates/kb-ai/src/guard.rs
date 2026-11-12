@@ -154,7 +154,7 @@ pub async fn context_for_token(token: &str) -> Result<RunContext, Error> {
     };
     let (member, profile) = get_profile(&session, &run.member_id).await?;
     if let Some(profile) = profile {
-        let mut row = profile.into_active_model();
+        let mut row = kb_db::edit(profile);
         row.mcp_last_used_at = Set(Some(now_iso()));
         row.update(&session).await?;
         session.commit().await?;

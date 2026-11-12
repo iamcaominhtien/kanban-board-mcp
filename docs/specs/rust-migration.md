@@ -234,28 +234,15 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
   failed in the evening on both servers.
 - The template database of `testkit` no longer carries the workspace settings of the server that made it (three
   recorded MCP files held a stale folder because of it and were recorded again).
-- The UI end-to-end check (`server-rs/e2e`, `node run.mjs --target both`): 137 core steps pass on both servers. What
-  it found: the screens that need the routes not served yet (AI teams, schedules, board health), the MCP tool count
-  (9 of 13 until the last tools are ported), and the `content-type` of a 204 (fixed). Run it again before the
-  switch; draw.io is not covered (the editor is not in the checkout).
-- Fixed in both servers while porting the schedule loop (two bugs of 4.0.x; the vectors were recorded again from the
-  fixed Python): a scheduled run over its time or cost limit was never stopped (`runs.cancel` was called with a
-  parameter it no longer has, so every tick failed there), and a slot that had been opened before stopped the
-  scheduler (the schedule's id was read after a rollback). Name both in the 5.0.0 changelog.
-- Carried over from Python unchanged in schedules: `update` with `null` for a column that cannot be empty is a 500;
-  a time zone name that is a folder of the tz database (`Europe`) is a 500 and not "Unknown time zone"; a slot in
-  `ask` whose team is available is set again on every tick.
-- Time zones are read as `zoneinfo` reads them (`kb_ai_run::zones`): the system's database first, and a copy carried
-  in the program for a name the system does not have and for Windows (Python carried the `tzdata` package). The
-  vectors include a zone whose rules changed in 2026.
-- Python 3.12 adds floats with a compensated sum; `kb_ai_run::pynum` has it. Check the other places that add costs
-  (`kb-ai` quota and budget) and move the helper to `kb-base`.
-- Known differences of the AI routes: a `since` or `until` without a time zone on the team timeline and flow is read
-  as UTC (Python answers 500 once runs exist); a path parameter that is no integer answers 422 with `loc`
-  `["path"]` and not `["path", "seq"]`.
-- `kb-assist` `a_running_job_is_stopped_and_its_cli_is_gone` failed once while every core was busy with other
-  tests (the job was still `running` when the test looked) and passes on its own: give it a longer wait if it
-  returns.
+- The UI end-to-end check (`server-rs/e2e`, `node run.mjs --target both`) with every route served: 137 core steps and
+  the 10 AI screens pass on both servers with no console error. What still differs is expected (the version number,
+  the development command of the MCP entry) or changes from run to run (whether the toast of a mention is shown
+  before the page marks it read). The servers run in the morning zone here too. draw.io is not covered (the editor
+  is not in the checkout).
+- To do at the switch, found while writing the documentation: `docs/guideline/guide/facts.py` reads Python files of
+  the server (version, MCP tools, models): read them from `Cargo.toml` and `contract/` instead; the `Databases` job
+  of `ci.yml` is switched off (`if: false`); the README's feature list still names API-key models, which 4.0.0
+  removed. `kanban-server --port N` serves on a fixed port for the UI's dev server (8000).
 - Tests that need the UI not to be built read the index page as the recorded 404 (`Resp::is_ui_index` in
   `testkit`), since both servers fall back to `ui/dist` of the checkout.
 - The sign-in route writes its audit entry through a private copy of `touches.record_signin` in

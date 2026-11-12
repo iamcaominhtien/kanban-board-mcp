@@ -74,7 +74,7 @@ pub async fn move_page(
     ids.insert(idx, page.id.clone());
     let by_pos: HashMap<&str, i32> = ids.iter().enumerate().map(|(i, id)| (id.as_str(), i as i32)).collect();
     let current: HashMap<&str, i32> = siblings.iter().map(|p| (p.id.as_str(), p.position)).collect();
-    let mut me = page.clone().into_active_model();
+    let mut me = kb_db::edit(page.clone());
     me.parent_id = Set(parent_id.map(str::to_string));
     me.updated_at = Set(time::now_iso());
     me.updated_by = Set(activity::current_actor());
@@ -179,7 +179,7 @@ pub async fn delete_page(session: &Session, page_id: &str) -> Result<Map<String,
     subtree.extend(descendants(session, &page, false).await?);
     let (now, actor) = (time::now_iso(), activity::current_actor());
     for p in &subtree {
-        let mut row = p.clone().into_active_model();
+        let mut row = kb_db::edit(p.clone());
         row.deleted_at = Set(Some(now.clone()));
         row.deleted_by = Set(Some(actor.clone()));
         row.deleted_root_id = Set(Some(page.id.clone()));
@@ -214,7 +214,7 @@ pub async fn restore_page(session: &Session, page_id: &str) -> Result<Map<String
     let reparented = parent.is_some_and(|p| p.deleted_at.as_deref().is_some_and(|d| !d.is_empty()));
     let new_position = if reparented { Some(next_position(session, &page.project_id, None).await?) } else { None };
     for p in &subtree {
-        let mut row = p.clone().into_active_model();
+        let mut row = kb_db::edit(p.clone());
         if reparented && p.id == page.id {
             row.parent_id = Set(None);
             row.position = Set(new_position.unwrap_or(0));

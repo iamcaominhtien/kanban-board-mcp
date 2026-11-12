@@ -1,9 +1,9 @@
 # Code navigation
 
-This repo has a CodeGraph index (symbols, calls, imports for the Python server and the TS/React UI), exposed as the `codegraph` MCP server (`.mcp.json`, `.vscode/mcp.json`).
+This repo has a CodeGraph index (symbols, calls, imports for the Rust server and the TS/React UI), exposed as the `codegraph` MCP server (`.mcp.json`, `.vscode/mcp.json`).
 
 - To find callers, callees, or the blast radius of a symbol, or to explore an unfamiliar area, use `codegraph_explore` before reading files or grepping.
-- Several symbols share names (for example `_clean_title` exists in both `server/services/tickets.py` and `server/services/docs.py`); the results list each definition separately, so check the file before editing.
+- Several symbols share names (for example `clean_title` exists in `server/crates/kb-board/src/tickets/validate.rs` and in `server/crates/kb-docs/src/docs/pages.rs`, and a third one in `server/crates/kb-doctext/src/docs_checklist.rs`); the results list each definition separately, so check the file before editing.
 - If the MCP tool is not available, use the same index from the shell: `.claude/scripts/codegraph.sh run callers <symbol>` (also `callees`, `impact`, `query`, `node`, `context`).
 - The index is local (`.codegraph/`, git-ignored) and is synced by `.claude/scripts/codegraph.sh`; the CLI version is pinned there.
 
@@ -35,13 +35,20 @@ Pick the model and effort for each subagent from the task, not by default:
 
 Run only the tests related to what you changed, never the whole suite (it is slow, and some tests fail in a cloud container for reasons that have nothing to do with the change). Related means:
 
-- the test files of the modules you changed, and the suites that exercise them (for a change in `server/services/docs*.py` or the Docs MCP tools: `tests/test_docs*.py`; for the MCP tool list or instructions: `tests/test_mcp_tool_quality.py`; for the board's skills: `tests/test_shared_skills_277.py`; for the AI team (`services/ai`): `tests/test_ai_teams.py`, `tests/test_ai_runs_v2.py`, `tests/test_ai_launch_v2.py`, `tests/test_runner.py` and the `tests/test_ai_*_v2.py` of the module you changed);
+- in `server/` (the Cargo workspace, one crate per area): `cargo test -p <crate>` for each crate you changed, or one file with `cargo test -p <crate> --test <file>`. When you changed a public function, also the crates that use it (`cargo tree -i <crate> --depth 1` lists them, or use CodeGraph `callers`). The suite of each area:
+  - Docs (pages, versions, search, comments, import): `kb-docs`; the Docs text and access rules: `kb-doctext`;
+  - the MCP layer (protocol, stdio and the bridge, the tools, including the Docs tools): `kb-mcp`; for the tool list or the instructions: `tests/test_mcp_tool_quality.rs`;
+  - the board's skills and the MCP client installs: `kb-skills`;
+  - the AI team: `kb-ai` (base), `kb-ai-know`, `kb-ai-work`, `kb-ai-run` (runs, launch, teams, schedules, the runner), `kb-ai-scan`, and its routes `kb-ai-api`, with the `test_ai_*` files of the module you changed; the assistants (Board AI, Docs AI, editor and ideas AI): `kb-assist`;
+  - tickets, projects, members, workspaces, data and logs: `kb-board`; drawings and canvases: `kb-draw`; ideas: `kb-ideas`; notifications: `kb-notify`;
+  - the database layer and the migrations: `kb-db`; moving data between databases and the `kanban-db` command: `kb-dbkit`;
+  - the app shell (middlewares, `/events`, uploads, the static UI, the route table): `kb-app`;
 - in `ui/`, `npx vitest run <the folders you changed>` plus `npx tsc --noEmit -p .`, eslint and prettier on the files you touched;
 - in `desktop/`, `npm test` when you changed `desktop/`.
 
-A test that starts a process (a real server, the AI runner) must give it its own `KANBAN_CONFIG_DIR` and `KANBAN_DB_PATH`: `tests/conftest.py` exports temporary ones, never remove that. Without them the process opens the database named in the developer's `~/.kanban-board/config.json` and migrates it.
+Tests that go through HTTP or MCP use the `testkit` crate, which starts the built server binary, so build it first, from `server/`: `cargo build -p kanban-server -p kanban-mcp-stdio -p fake-claude` (`KANBAN_SERVER_BIN` names another binary; the default is `target/debug/kanban-server`). A test that starts a process (a real server, the AI runner) must give it its own `KANBAN_CONFIG_DIR` and `KANBAN_DB_PATH`: `testkit` does, so start servers only through it and never remove that. Without them the process opens the database named in the developer's `~/.kanban-board/config.json` and migrates it. The tests that need PostgreSQL or MariaDB are skipped unless `KANBAN_TEST_POSTGRES_URL` / `KANBAN_TEST_MYSQL_URL` is set (`server/scripts/dev-databases.sh start` starts both).
 
-Find the related suites with CodeGraph (`callers`, `impact`) or a grep for the module's name in `server/tests` and the `*.test.ts(x)` files. Say in the PR which suites you ran. Run the whole suite only when the user asks for it.
+Find the related suites with CodeGraph (`callers`, `impact`) or a grep for the module's name in `server/crates/*/tests` and the `*.test.ts(x)` files. Say in the PR which suites you ran. Run the whole suite only when the user asks for it.
 
 # Pull requests
 
@@ -52,4 +59,4 @@ Every pull request you create gets an assignee and labels. If the tool that crea
   - `bug`: fixes broken behavior.
   - `enhancement`: a new feature, an improvement, or a chore or CI change.
   - `documentation`: design docs, guides, README or other docs.
-  - `dependencies`: adds, removes or bumps a dependency (`pyproject.toml`/`uv.lock`, `package.json`/lockfiles).
+  - `dependencies`: adds, removes or bumps a dependency (`Cargo.toml`/`Cargo.lock`, `package.json`/lockfiles).

@@ -237,7 +237,7 @@ pub(crate) async fn compact_idle(last: &ai_run::Model, _by: &str) -> Result<Map<
         let Some(run) = ai_run::Entity::find_by_id(last.id.as_str()).one(&session).await? else {
             return Err(RunError::Other(format!("run {} is gone", last.id)));
         };
-        let mut row = run.into_active_model();
+        let mut row = kb_db::edit(run);
         row.session_id = Set(Some(match &new_id {
             Value::String(s) => s.clone(),
             other => pyjson::py_str(other),

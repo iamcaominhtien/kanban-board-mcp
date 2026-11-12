@@ -341,7 +341,7 @@ impl Monitor {
         // only these two columns are written: the run's own task writes the row at the same time (its pid, its
         // state, its steps), and a whole row written back from here would undo what it wrote in between
         let peak_rss_mb = Some(run.peak_rss_mb.unwrap_or(0.0).max(peak));
-        let mut row = run.into_active_model();
+        let mut row = kb_db::edit(run);
         row.last_rss_mb = Set(reading.cli_rss_mb);
         row.peak_rss_mb = Set(peak_rss_mb);
         row.update(&session).await?;

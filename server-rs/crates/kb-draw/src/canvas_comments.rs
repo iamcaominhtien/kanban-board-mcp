@@ -509,7 +509,7 @@ pub async fn edit_comment(session: &Session, comment_id: &str, text: &str) -> Re
     }
     let text = body(text)?;
     let ids: Vec<String> = mentioned(session, &c, &text).await?.into_iter().map(|x| x.id).collect();
-    let mut row = m.into_active_model();
+    let mut row = kb_db::edit(m);
     row.body = Set(text);
     row.mentions = Set(pyjson::dumps(&ids));
     row.edited_at = Set(Some(canvases::now()));
@@ -559,7 +559,7 @@ pub async fn set_status(session: &Session, thread_id: &str, status: &str) -> Res
         return Err(DocsError::new(403, "ai_cannot_resolve", "AI teams do not resolve a person's thread.").into());
     }
     let resolved = status == "resolved";
-    let mut row = t.into_active_model();
+    let mut row = kb_db::edit(t);
     row.status = Set(status.to_string());
     row.resolved_by = Set(resolved.then_some(actor));
     row.resolved_at = Set(resolved.then(canvases::now));

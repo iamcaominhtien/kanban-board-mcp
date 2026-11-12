@@ -558,7 +558,7 @@ pub(crate) async fn finish(run_id: &str, out: &Turn) -> Result<(), DbErr> {
     };
     let (tokens_in, tokens_out, cost, session_id) =
         (run.tokens_in, run.tokens_out, run.cost_usd, run.session_id.clone());
-    let mut row = run.into_active_model();
+    let mut row = kb_db::edit(run);
     row.state = Set(out.state.clone());
     row.ended_at = Set(Some(now_iso()));
     row.ended_reason = Set(out.error.clone());

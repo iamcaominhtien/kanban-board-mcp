@@ -275,7 +275,7 @@ pub async fn run(
     if let Some(day) = freshness_day.filter(|d| !d.is_empty()) {
         data.insert("freshness_day".into(), json!(day));
     }
-    let mut changed = row.into_active_model();
+    let mut changed = kb_db::edit(row);
     changed.data = Set(pyjson::dumps(&data));
     changed.checked_at = Set(Some(now_iso()));
     changed.update(session).await?;
@@ -461,7 +461,7 @@ pub async fn dismiss(
     let until = if level == "30d" { json!(time::iso(&(Utc::now() + Duration::days(30)))) } else { Value::Null };
     entries.push(json!({"kind": kind, "id": item_id, "level": level, "until": until, "run": row.checked_at, "by": by}));
     data.insert("dismissed".into(), Value::Array(entries));
-    let mut changed = row.into_active_model();
+    let mut changed = kb_db::edit(row);
     changed.data = Set(pyjson::dumps(&data));
     changed.update(session).await?;
     session.commit().await?;

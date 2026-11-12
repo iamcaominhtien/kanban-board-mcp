@@ -56,10 +56,10 @@ pub async fn move_to_ticket(
         None,
     );
     let target_id = target.id.clone();
-    let mut source = source.into_active_model();
+    let mut source = kb_db::edit(source);
     source.activity_log = Set(source_log);
     source.update(session).await?;
-    let mut target = target.into_active_model();
+    let mut target = kb_db::edit(target);
     target.activity_log = Set(target_log);
     target.update(session).await?;
     session.commit().await?;

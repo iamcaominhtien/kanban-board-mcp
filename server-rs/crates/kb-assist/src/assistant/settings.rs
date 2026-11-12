@@ -260,7 +260,7 @@ fn cut(value: &Value, limit: usize) -> Result<String, Error> {
 /// Change the board-wide assistant settings; keys left out stay as they are.
 pub async fn update(session: &Session, data: &Map<String, Value>) -> Result<ai_assist_settings::Model, Error> {
     let row = get(session).await?;
-    let mut changed = row.clone().into_active_model();
+    let mut changed = kb_db::edit(row.clone());
     if let Some(Value::Object(given)) = data.get("features") {
         let mut switches = features(&row);
         for (key, value) in given {

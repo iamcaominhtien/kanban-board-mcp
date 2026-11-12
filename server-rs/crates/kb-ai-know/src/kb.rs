@@ -575,7 +575,7 @@ pub async fn read(
         return Err(Error::Lookup("No such document in this project's knowledge base.".into()));
     };
     let body = py_slice(&d.text, start, start + length);
-    let mut active = ai_knowledge_doc::ActiveModel::from(d.clone());
+    let mut active = kb_db::edit(d.clone());
     active.last_read_at = Set(Some(now()));
     active.update(session).await?;
     session.commit().await?;
@@ -623,7 +623,7 @@ pub fn to_dict(d: &ai_knowledge_doc::Model) -> Map<String, Value> {
 
 /// Delete a document and its index row (the document is marked deleted, as the Python code does).
 pub async fn remove(session: &Session, doc: &ai_knowledge_doc::Model) -> Result<(), DbErr> {
-    let mut active = ai_knowledge_doc::ActiveModel::from(doc.clone());
+    let mut active = kb_db::edit(doc.clone());
     active.deleted_at = Set(Some(now()));
     active.update(session).await?;
     if fts(session).await {

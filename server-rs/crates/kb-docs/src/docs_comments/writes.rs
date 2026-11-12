@@ -162,7 +162,7 @@ pub async fn edit_comment(session: &Session, comment_id: &str, body: &str) -> Re
     let text = clean_body(Some(body))?;
     if text != comment.body {
         let ids: Vec<&str> = mentions_in(&text, &members).iter().map(|m| m.id.as_str()).collect();
-        let mut update = comment.into_active_model();
+        let mut update = kb_db::edit(comment);
         update.mentions = Set(pyjson::dumps(&ids));
         update.body = Set(text);
         update.edited_at = Set(Some(time::now_iso()));
@@ -236,7 +236,7 @@ pub async fn set_status(session: &Session, thread_id: &str, status: &str) -> Res
             );
         }
     }
-    let mut update = row.into_active_model();
+    let mut update = kb_db::edit(row);
     update.status = Set(status.to_string());
     update.resolved_by = Set(if status == "resolved" { Some(actor.clone()) } else { None });
     update.resolved_at = Set(if status == "resolved" { Some(time::now_iso()) } else { None });
@@ -279,7 +279,7 @@ pub async fn reattach(session: &Session, thread_id: &str, anchor: &Anchor) -> Re
         &anchor.suffix,
         section.as_deref(),
     );
-    let mut update = row.into_active_model();
+    let mut update = kb_db::edit(row);
     update.anchor_quote = Set(Some(quote));
     update.anchor_prefix = Set(anchor.prefix.clone());
     update.anchor_suffix = Set(anchor.suffix.clone());
@@ -306,7 +306,7 @@ async fn mark_read_of(session: &Session, thread_id: &str, reader: &str) -> Resul
             row.insert(session).await?;
         }
         Some(mark) => {
-            let mut update = mark.into_active_model();
+            let mut update = kb_db::edit(mark);
             update.read_at = Set(time::now_iso());
             update.update(session).await?;
         }

@@ -515,7 +515,7 @@ pub async fn freshness_mark(
             held.dedup();
             result.insert("dismissed".into(), json!(held));
         }
-        let mut changed = row.into_active_model();
+        let mut changed = kb_db::edit(row);
         changed.result = Set(pyjson::dumps(&result));
         changed.update(session).await?;
         session.commit().await?;
@@ -658,7 +658,7 @@ pub async fn feedback(
         _ => Map::new(),
     };
     result.insert("feedback".into(), json!({"rating": rating, "reason": clip(reason, 500), "by": by, "at": now_iso()}));
-    let mut changed = job.into_active_model();
+    let mut changed = kb_db::edit(job);
     changed.result = Set(pyjson::dumps(&result));
     let job = changed.update(session).await?;
     session.commit().await?;

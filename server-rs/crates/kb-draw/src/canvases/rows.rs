@@ -3,7 +3,7 @@
 use kb_base::activity;
 use kb_db::Session;
 use kb_db::entities::canvas;
-use kb_db::sea_orm::ActiveValue::{Set, Unchanged};
+use kb_db::sea_orm::ActiveValue::Set;
 use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use kb_doctext::docs_text::DocsError;
 use serde_json::{Map, Value, json};
@@ -57,31 +57,10 @@ pub async fn get_row(session: &Session, canvas_id: &str, deleted_ok: bool) -> Re
     }
 }
 
-/// An `ActiveModel` that writes every column of the row (`session.add(c)` after the attributes were changed).
-pub fn active(c: &canvas::Model) -> canvas::ActiveModel {
-    canvas::ActiveModel {
-        id: Unchanged(c.id.clone()),
-        project_id: Set(c.project_id.clone()),
-        owner_kind: Set(c.owner_kind.clone()),
-        owner_id: Set(c.owner_id.clone()),
-        page_id: Set(c.page_id.clone()),
-        title: Set(c.title.clone()),
-        rev: Set(c.rev),
-        version: Set(c.version),
-        board_count: Set(c.board_count),
-        total_bytes: Set(c.total_bytes),
-        created_by: Set(c.created_by.clone()),
-        created_at: Set(c.created_at.clone()),
-        updated_by: Set(c.updated_by.clone()),
-        updated_at: Set(c.updated_at.clone()),
-        deleted_at: Set(c.deleted_at.clone()),
-        deleted_by: Set(c.deleted_by.clone()),
-    }
-}
-
-/// `session.add(c)`: write the row (the caller commits).
-pub async fn persist(session: &Session, c: &canvas::Model) -> Result<canvas::Model> {
-    Ok(active(c).update(session).await?)
+/// `session.add(c)`: write what changed since the row was read (`read`); the caller commits. Returns the row as
+/// stored.
+pub async fn persist(session: &Session, read: &canvas::Model, c: &canvas::Model) -> Result<canvas::Model> {
+    Ok(kb_db::save_model(session, read, c.clone()).await?)
 }
 
 /// `_owner_for_project(kind)`.
@@ -326,10 +305,11 @@ pub async fn list_for_project(session: &Session, project_id: &str) -> Result<Vec
 /// Unlink a canvas: it stops resolving but its row and files are kept and it can be restored.
 pub async fn delete_canvas(session: &Session, canvas_id: &str) -> Result<Map<String, Value>> {
     let mut c = get_row(session, canvas_id, false).await?;
+    let read = c.clone();
     member_role(session, &c).await?;
     c.deleted_at = Some(now());
     c.deleted_by = Some(activity::current_actor());
-    let c = persist(session, &c).await?;
+    let c = persist(session, &read, &c).await?;
     session.commit().await?;
     canvas_locks::release_all(&c.id, None);
     let mut out = Map::new();
@@ -341,10 +321,11 @@ pub async fn delete_canvas(session: &Session, canvas_id: &str) -> Result<Map<Str
 /// Bring an unlinked canvas back.
 pub async fn restore_canvas(session: &Session, canvas_id: &str) -> Result<Map<String, Value>> {
     let mut c = get_row(session, canvas_id, true).await?;
+    let read = c.clone();
     member_role(session, &c).await?;
     c.deleted_at = None;
     c.deleted_by = None;
-    let c = persist(session, &c).await?;
+    let c = persist(session, &read, &c).await?;
     session.commit().await?;
     get_canvas(session, &c.id).await
 }
@@ -352,7 +333,8 @@ pub async fn restore_canvas(session: &Session, canvas_id: &str) -> Result<Map<St
 /// Change a canvas's name (not a new revision). The row is written but not committed, as in Python.
 pub async fn rename_canvas(session: &Session, canvas_id: &str, title: &str) -> Result<canvas::Model> {
     let mut c = get_row(session, canvas_id, false).await?;
+    let read = c.clone();
     member_role(session, &c).await?;
     c.title = sketches::title(Some(title), &c.title);
-    persist(session, &c).await
+    persist(session, &read, &c).await
 }

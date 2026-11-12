@@ -58,6 +58,7 @@ pub struct SaveArgs {
 pub async fn save(session: &Session, canvas_id: &str, args: SaveArgs) -> Result<Map<String, Value>> {
     let _guard = serial(canvas_id).await;
     let mut c = get_row(session, canvas_id, false).await?;
+    let read = c.clone();
     member_role(session, &c).await?;
     let mut doc = read_doc(&c.id)?;
     let actor = activity::current_actor();
@@ -180,7 +181,7 @@ pub async fn save(session: &Session, canvas_id: &str, args: SaveArgs) -> Result<
         c.rev = (new_rev - 1) as i32;
         touch(&mut c, &doc);
         write_doc(&c.id, &doc)?;
-        c = persist(session, &c).await?;
+        c = persist(session, &read, &c).await?;
         session.commit().await?;
         if args.checkpoint {
             versions::version(session, &mut c, "done", args.name.as_deref(), args.note.as_deref(), None).await?;

@@ -352,7 +352,7 @@ pub async fn refresh_link_targets(session: &Session, project_id: &str) -> Result
         let res = resolve_page_ref(&pages, &deleted, &request, &headings, Some(&aliases), None);
         let new_target = str_of_map(&res, "page_id").map(str::to_string);
         if new_target != link.target_page_id {
-            let mut row = link.into_active_model();
+            let mut row = kb_db::edit(link);
             row.target_page_id = Set(new_target);
             row.update(session).await?;
         }

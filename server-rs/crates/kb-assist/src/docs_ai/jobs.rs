@@ -198,7 +198,7 @@ pub async fn run(job_id: &str) -> Result<(), DbErr> {
         if job.state != "queued" {
             return Ok(());
         }
-        let mut row = job.into_active_model();
+        let mut row = kb_db::edit(job);
         row.state = Set("running".to_string());
         row.started_at = Set(Some(now_iso()));
         let job = row.update(&session).await?;
@@ -234,7 +234,7 @@ pub async fn finish(job_id: &str, state: &str, result: Option<Value>, error: Opt
         let session = database::session();
         let Some(job) = docs_ai_job::Entity::find_by_id(job_id).one(&session).await? else { return Ok(()) };
         let stored = job.result.clone();
-        let mut row = job.into_active_model();
+        let mut row = kb_db::edit(job);
         row.state = Set(state.to_string());
         row.ended_at = Set(Some(now_iso()));
         if let Some(Value::Object(result)) = result {
@@ -261,7 +261,7 @@ pub async fn finish(job_id: &str, state: &str, result: Option<Value>, error: Opt
 pub async fn update(job_id: &str, fields: &[(&str, Value)]) -> Result<(), DbErr> {
     let session = database::session();
     let Some(job) = docs_ai_job::Entity::find_by_id(job_id).one(&session).await? else { return Ok(()) };
-    let mut row = job.into_active_model();
+    let mut row = kb_db::edit(job);
     for (key, value) in fields {
         let text = || value.as_str().map(str::to_string);
         match *key {
@@ -297,7 +297,7 @@ pub async fn add_step(job_id: &str, text: &str) -> Result<(), DbErr> {
         steps.push(json!({"at": now_iso(), "text": text}));
         let skip = steps.len().saturating_sub(MAX_STEPS);
         let kept: Vec<Value> = steps.into_iter().skip(skip).collect();
-        let mut row = job.into_active_model();
+        let mut row = kb_db::edit(job);
         row.steps = Set(pyjson::dumps(&kept));
         row.update(&session).await?;
         session.commit().await?;
@@ -324,7 +324,7 @@ pub async fn account(job_id: &str, out: &Turn, member_id: Option<&str>) -> Resul
     let tokens_out = job.tokens_out.saturating_add(i32::try_from(out.tokens_out).unwrap_or(i32::MAX));
     let cost = round_to(job.cost_usd + out.cost, 6);
     let metered = job.metered || out.metered;
-    let mut row = job.into_active_model();
+    let mut row = kb_db::edit(job);
     row.tokens_in = Set(tokens_in);
     row.tokens_out = Set(tokens_out);
     row.cost_usd = Set(cost);
@@ -392,7 +392,7 @@ pub async fn cancel(session: &Session, job_id: &str, by: &str) -> Result<docs_ai
     if let Some(stop) = stop {
         stop.notify_one();
     }
-    let mut row = job.into_active_model();
+    let mut row = kb_db::edit(job);
     row.state = Set("cancelled".to_string());
     row.ended_at = Set(Some(now_iso()));
     row.error = Set(pyjson::dumps(&json!({"code": "cancelled", "message": format!("Stopped by {by}.")})));
@@ -408,7 +408,7 @@ pub async fn recover() -> Result<(), DbErr> {
     let rows = docs_ai_job::Entity::find().filter(docs_ai_job::Column::State.is_in(ACTIVE)).all(&session).await?;
     let any = !rows.is_empty();
     for j in rows {
-        let mut row = j.into_active_model();
+        let mut row = kb_db::edit(j);
         row.state = Set("failed".to_string());
         row.ended_at = Set(Some(now_iso()));
         row.error = Set(pyjson::dumps(&json!({

@@ -14,7 +14,8 @@ use serde_json::{Map, Value, json};
 use crate::error::{Error, rule_error_with, value_error};
 use crate::idea_space::{self as space, IdeaRuleError};
 use crate::idea_tickets::{DEFAULT_AUTHOR, add_trail, dumps, safe_json, select_ideas};
-use crate::model::{AssumptionRecord, Idea, idea_readiness, save_model};
+use crate::model::{AssumptionRecord, Idea, idea_readiness};
+use kb_db::save_model;
 
 /// The stages an idea can be promoted from (`PROMOTABLE_STAGES`).
 pub const PROMOTABLE_STAGES: [&str; 3] = ["inbox", "exploring", "ready"];
@@ -311,7 +312,7 @@ pub async fn promote(
         };
         checklist.push(json!({"id": time::uuid4(), "text": head(&text, 300), "done": false}));
     }
-    let mut linked = created.clone().into_active_model();
+    let mut linked = kb_db::edit(created.clone());
     linked.from_idea_id = Set(Some(idea.row.id.clone()));
     linked.sub_tasks = Set(dumps(&checklist));
     let parent = linked.update(session).await?;
@@ -325,7 +326,7 @@ pub async fn promote(
             ..NewTicket::new(child_title)
         };
         let child = create_ticket(session, &target, new).await?;
-        let mut linked = child.into_active_model();
+        let mut linked = kb_db::edit(child);
         linked.from_idea_id = Set(Some(idea.row.id.clone()));
         children.push(linked.update(session).await?);
     }

@@ -246,7 +246,7 @@ async fn set_up(run_id: &str, token: &str, note: Option<&str>, restart_why: Opti
         .filter(|s| !s.is_empty())
         .or_else(|| run.ticket_id.clone().filter(|t| !t.is_empty()))
         .or_else(|| run.target.clone());
-    let mut row = run.into_active_model();
+    let mut row = kb_db::edit(run);
     row.session_id = Set(Some(session_id.clone()));
     row.session_name = Set(session_name);
     let run = row.update(&session).await?;
@@ -475,7 +475,7 @@ async fn drive(
     {
         let session = database::session();
         if let Some(cur) = ai_run::Entity::find_by_id(run_id).one(&session).await? {
-            let mut row = cur.into_active_model();
+            let mut row = kb_db::edit(cur);
             row.pid = Set(Some(pid));
             row.live = Set(prepared.live);
             row.update(&session).await?;
@@ -521,7 +521,7 @@ async fn drive(
             let session = database::session();
             if let Some(cur) = ai_run::Entity::find_by_id(run_id).one(&session).await? {
                 let window = window_tokens.and_then(|w| i32::try_from(w).ok()).or(cur.context_window);
-                let mut row = cur.into_active_model();
+                let mut row = kb_db::edit(cur);
                 row.context_used = Set(i32::try_from(held).ok());
                 row.context_window = Set(window);
                 row.update(&session).await?;
@@ -541,7 +541,7 @@ async fn drive(
         let question = run.question.clone();
         let (tokens_in, tokens_out, tokens_cached, cost_usd, context_window) =
             (run.tokens_in, run.tokens_out, run.tokens_cached, run.cost_usd, run.context_window);
-        let mut row = run.into_active_model();
+        let mut row = kb_db::edit(run);
         if let Some(held) = held_tokens {
             row.context_used = Set(i32::try_from(held).ok());
             row.context_window = Set(window_tokens.and_then(|w| i32::try_from(w).ok()).or(context_window));

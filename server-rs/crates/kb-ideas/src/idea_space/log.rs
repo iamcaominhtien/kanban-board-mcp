@@ -10,7 +10,8 @@ use super::{CLOSED_STAGES, add_evidence, get_or_raise, neg, now, save};
 use crate::error::{Error, rule_error, value_error};
 use crate::idea_tickets::add_trail;
 use crate::idea_tickets::find_assumption;
-use crate::model::{Idea, LOG_KINDS, save_model};
+use crate::model::{Idea, LOG_KINDS};
+use kb_db::save_model;
 
 /// `text[:n]` by characters.
 fn head(text: &str, n: usize) -> String {

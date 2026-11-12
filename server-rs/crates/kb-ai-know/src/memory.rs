@@ -160,7 +160,7 @@ pub async fn write(
         let Some(row) = row.filter(|r| r.project_id == project_id) else {
             return Err(Error::Lookup("No such note in this project.".into()));
         };
-        let mut active = ai_memory_note::ActiveModel::from(row);
+        let mut active = kb_db::edit(row);
         active.text = Set(body);
         active.kind = Set(kind.to_string());
         active.updated_at = Set(now());

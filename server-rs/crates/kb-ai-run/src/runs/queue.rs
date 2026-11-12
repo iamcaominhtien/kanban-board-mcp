@@ -106,7 +106,7 @@ pub async fn create_run(session: &Session, new: NewRun<'_>) -> Result<ai_run::Mo
             if r.state == "queued" && r.member_id == member_id {
                 // one queue entry per team and ticket: the new request joins it
                 let instruction = join_notes(&r.instruction, new.instruction);
-                let mut row = r.into_active_model();
+                let mut row = kb_db::edit(r);
                 row.instruction = Set(instruction);
                 let r = row.update(session).await?;
                 session.commit().await?;
@@ -282,7 +282,7 @@ pub async fn tick() -> Result<(), DbErr> {
         }
         let (member, profile) = get_profile(&session, &run.member_id).await?;
         let (Some(member), Some(profile)) = (member, profile) else {
-            let mut row = run.into_active_model();
+            let mut row = kb_db::edit(run);
             row.state = Set("failed".to_string());
             row.ended_at = Set(Some(now_iso()));
             row.ended_reason = Set(Some("The team no longer exists.".to_string()));
@@ -295,7 +295,7 @@ pub async fn tick() -> Result<(), DbErr> {
         if let Some(reason) = reason.filter(|r| !r.is_empty()) {
             if run.waiting_reason.as_deref() != Some(reason.as_str()) {
                 RT.inner().waiting.insert(run.id.clone(), reason.clone());
-                let mut row = run.into_active_model();
+                let mut row = kb_db::edit(run);
                 row.waiting_reason = Set(Some(reason));
                 let run = row.update(&session).await?;
                 session.commit().await?;
@@ -391,7 +391,7 @@ pub async fn recover_on_startup() -> Result<(), DbErr> {
         }
         let instruction =
             join_notes(&run.instruction, "The board restarted while you were working: continue from where you were.");
-        let mut row = run.into_active_model();
+        let mut row = kb_db::edit(run);
         row.state = Set("queued".to_string());
         row.token_hash = Set(None);
         row.pid = Set(None);
@@ -406,7 +406,7 @@ pub async fn recover_on_startup() -> Result<(), DbErr> {
 pub(crate) async fn start(session: &Session, run: ai_run::Model) -> Result<(), DbErr> {
     let token = guard::new_token();
     let started_at = run.started_at.clone().filter(|s| !s.is_empty()).unwrap_or_else(now_iso);
-    let mut row = run.into_active_model();
+    let mut row = kb_db::edit(run);
     row.waiting_reason = Set(None);
     row.state = Set("starting".to_string());
     row.started_at = Set(Some(started_at));

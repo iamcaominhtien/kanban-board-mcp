@@ -18,11 +18,12 @@ use chrono::{DateTime, Local, TimeZone, Utc};
 use kb_base::{pyjson, time};
 use kb_db::Session;
 use kb_db::database;
+use kb_db::save_model;
 use kb_db::entities::{ai_account, ai_account_state, ai_run, ai_team};
 use kb_db::sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
 use serde_json::{Map, Value, json};
 
-use crate::store::{py_int, save};
+use crate::store::py_int;
 
 /// The account key of this computer's own Claude Code login.
 pub const LOCAL: &str = "local";
@@ -117,7 +118,8 @@ fn text_of(value: Option<&Value>) -> Option<String> {
 /// Keep the latest reading of an account; a rejected window holds the account until it reopens.
 pub async fn record(key: &str, reading: &Map<String, Value>) -> Result<ai_account_state::Model, DbErr> {
     let session = database::session();
-    let mut row = state(&session, key).await?;
+    let read = state(&session, key).await?;
+    let mut row = read.clone();
     for name in ["five_hour", "seven_day"] {
         let Some(w) = reading.get(name).filter(|w| pyjson::truthy(w)) else { continue };
         let used = w.get("used").and_then(as_float);
@@ -142,7 +144,7 @@ pub async fn record(key: &str, reading: &Map<String, Value>) -> Result<ai_accoun
         }
     }
     row.updated_at = Some(time::now_iso());
-    let row = save(&session, row).await?;
+    let row = save_model(&session, &read, row).await?;
     session.commit().await?;
     Ok(row)
 }
@@ -163,10 +165,11 @@ pub fn hold(row: &mut ai_account_state::Model, until: &str, window: Option<&str>
 /// Hold an account from outside a reading (a result that says the limit was hit).
 pub async fn hold_until(key: &str, until: &str, window: Option<&str>) -> Result<(), DbErr> {
     let session = database::session();
-    let mut row = state(&session, key).await?;
+    let read = state(&session, key).await?;
+    let mut row = read.clone();
     hold(&mut row, until, window);
     row.updated_at = Some(time::now_iso());
-    save(&session, row).await?;
+    save_model(&session, &read, row).await?;
     session.commit().await
 }
 
@@ -183,12 +186,13 @@ pub async fn release_expired(session: &Session) -> Result<Vec<String>, DbErr> {
     let rows =
         ai_account_state::Entity::find().filter(ai_account_state::Column::HeldUntil.is_not_null()).all(session).await?;
     let mut out = Vec::new();
-    for mut row in rows {
-        if held(Some(&row), None).is_none() {
+    for read in rows {
+        if held(Some(&read), None).is_none() {
+            let mut row = read.clone();
             row.held_until = None;
             row.held_reason = None;
             out.push(row.key.clone());
-            save(session, row).await?;
+            save_model(session, &read, row).await?;
         }
     }
     if !out.is_empty() {
@@ -399,7 +403,8 @@ pub async fn set_account(
     max_parallel: Option<i64>,
     move_urgent: Option<bool>,
 ) -> Result<ai_account_state::Model, DbErr> {
-    let mut row = state(session, key).await?;
+    let read = state(session, key).await?;
+    let mut row = read.clone();
     if let Some(max_parallel) = max_parallel {
         row.max_parallel = max_parallel.clamp(1, 20) as i32;
     }
@@ -407,7 +412,7 @@ pub async fn set_account(
         row.move_urgent = move_urgent;
     }
     row.updated_at = Some(time::now_iso());
-    let row = save(session, row).await?;
+    let row = save_model(session, &read, row).await?;
     session.commit().await?;
     Ok(row)
 }

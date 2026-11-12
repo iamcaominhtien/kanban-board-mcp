@@ -8,6 +8,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+## [5.0.0] - (release date)
+
+**The server is now a native program.** The backend, which was Python (FastAPI, the `mcp` SDK, SQLModel, Alembic) shipped in the desktop app as a PyInstaller bundle, is rewritten in Rust. The app carries no Python runtime any more. What you see and what an AI agent calls did not change: the same REST routes, the same event stream, the same MCP tools with the same names, descriptions and schemas. Plan and what was checked: `docs/specs/rust-migration.md`.
+
+- **Start time, memory and installer size** (measured at release)
+
+### Before you upgrade
+- **Your data and settings are unchanged.** The database (SQLite, PostgreSQL or MySQL/MariaDB), its schema, the `alembic_version` table, `~/.kanban-board/config.json`, the uploads folder and the stored keys are the same. The 80 migrations are ported, so a database made by 4.0.x opens in 5.0.0 and a database made by 5.0.0 opens in 4.0.x: going back to 4.0.x works.
+- **MCP entries keep working.** The program that editors and AI clients start is still `kanban-mcp-stdio`, in the same place; it is now a small launcher that hands over to `kanban-server mcp-stdio` beside it.
+
+### Changed
+- **One program, `kanban-server`.** With no argument it is the HTTP server (REST, the `/events` stream and MCP over HTTP at `/mcp/`); it still prints `READY port=N` and still reads the API secret on its standard input. `kanban-server --runner` is the AI runner process (it was `main.py --runner`), `kanban-server mcp-stdio` is the stdio MCP server (it was `mcp_stdio.py`; `mcp-stdio --bridge` is the bridge), and `kanban-server --routes` prints the route table.
+- **The database command line is `kanban-server db ...`** (`test`, `migrate`, `use`; the same program is `kanban-db` when started under that name). It was `python -m dbkit.cli`. Options and exit codes are the same. See `docs/guideline/databases.md`.
+- **Building and testing the server uses Cargo, not uv.** The server is a Cargo workspace in `server/` (one crate per area): `cargo build -p kanban-server -p kanban-mcp-stdio`, `cargo test -p <crate>`. The desktop build (`desktop/scripts/build-server.sh`) builds the two Rust programs in place of the PyInstaller bundle, and `cd desktop && npm run dev` starts `server/target/debug/kanban-server` (`KANBAN_SERVER_BIN` names another program). The recorded answers of the Python server are kept in `server/contract/` as the regression baseline of the tests. `server/e2e/` checks the real UI against the server with Playwright. Architecture: `docs/arch/backend-architecture.md`; the crates: `server/README.md`.
+- **The tests of the server are Rust tests.** Each crate has its own; the ones that go through HTTP or MCP start the built server on temporary folders (`testkit`), and `fake-claude` stands in for the Claude Code command line.
+
+### Fixed
+- **A scheduled AI run over its time or cost limit is stopped again.** The schedule loop asked to cancel the run with a parameter that call no longer had, so every tick failed at that point and the run went on past its limit. The loop now cancels it.
+- **A schedule slot that had already been opened no longer stops the scheduler.** When the loop met such a slot it read the schedule's id after a rollback, and the error stopped the scheduler.
+
+### Known differences
+- A JSON body that gives a string for a number or a boolean (`"3"`, `"true"`) is refused with 422; the app sends typed JSON, so it is not affected. A body that leaves out several required fields names only the first in the 422.
+- The text taken from a PDF can differ in whitespace from what 4.0.x took, on some PDFs.
+
 ## [4.0.1] - 2026-11-08
 
 Hotfix: a Story's tickets can have sub-tickets.

@@ -4,6 +4,8 @@
 //! `--routes` prints the table of REST routes as JSON and exits (the route coverage check reads it). `--runner` is
 //! the runner process of the AI team instead of the server (the API starts it with `KANBAN_RUNNER=process`).
 //!
+//! `--port N` serves on that port of 127.0.0.1 (development: the UI's dev server forwards to 8000).
+//!
 //! `kanban-server mcp-stdio <words>` is the stdio MCP server (`mcp_stdio.py`), which the `kanban-mcp-stdio` program
 //! beside this one hands over to.
 //!
@@ -74,7 +76,17 @@ fn main() -> std::process::ExitCode {
     }
     kb_log::setup_logging(false);
 
-    let listener = match std::net::TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0))) {
+    // `--port N`: a fixed port for development (the UI's dev server forwards to 8000, as `uvicorn main:app --port 8000`
+    // served it); without it any free port, which the desktop app reads from the `READY` line
+    let wanted = match args.iter().position(|a| a == "--port").map(|at| args.get(at + 1).map(|p| p.parse::<u16>())) {
+        None => 0,
+        Some(Some(Ok(port))) => port,
+        Some(_) => {
+            eprintln!("--port takes a port number");
+            return std::process::ExitCode::FAILURE;
+        }
+    };
+    let listener = match std::net::TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, wanted))) {
         Ok(listener) => listener,
         Err(err) => {
             eprintln!("Cannot open a port on 127.0.0.1: {err}");

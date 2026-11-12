@@ -335,7 +335,7 @@ async fn remark(
     mark: &str,
     by: &str,
 ) -> Result<ai_touch_mark::Model, DbErr> {
-    let mut row = row.into_active_model();
+    let mut row = kb_db::edit(row);
     row.mark = Set(mark.to_string());
     row.marked_by = Set(Some(by.to_string()));
     row.marked_at = Set(now_iso());

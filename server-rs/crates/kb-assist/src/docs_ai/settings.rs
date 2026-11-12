@@ -186,7 +186,7 @@ pub async fn update(
 ) -> Result<docs_ai_settings::Model, Error> {
     project_of(session, project_id).await?;
     let row = get(session, project_id).await?;
-    let mut changed = row.into_active_model();
+    let mut changed = kb_db::edit(row);
     if let Some(enabled) = data.get("enabled").filter(|v| !v.is_null()) {
         changed.enabled = Set(pyjson::truthy(enabled));
     }

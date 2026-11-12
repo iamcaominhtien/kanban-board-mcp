@@ -9,7 +9,7 @@ use kb_db::sea_orm::{
 
 use super::{get_or_raise, now};
 use crate::error::{Error, value_error};
-use crate::model::save_model;
+use kb_db::save_model;
 
 /// `session.get(IdeaComment, comment_id)` of a comment of this idea, or `ValueError`.
 async fn find(session: &Session, idea_id: &str, comment_id: &str) -> Result<idea_comment::Model, Error> {

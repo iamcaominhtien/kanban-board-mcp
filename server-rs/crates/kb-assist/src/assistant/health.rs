@@ -58,7 +58,7 @@ async fn rows(session: &Session, project_id: &str) -> Result<Vec<ai_insight::Mod
         // `(_when(i.snoozed_until) or now) <= now`: a time that cannot be read is over
         let over = when(i.snoozed_until.as_deref()).is_none_or(|until| until <= now);
         if i.state == "snoozed" && over {
-            let mut row = i.into_active_model();
+            let mut row = kb_db::edit(i);
             row.state = Set("open".to_string());
             row.seen = Set(false);
             out.push(row.update(session).await?);
@@ -245,7 +245,7 @@ pub async fn check(project_id: &str, by: &str) -> Result<Map<String, Value>, Err
                 row
             }
             Some((_, stored)) => {
-                let mut row = stored.clone().into_active_model();
+                let mut row = kb_db::edit(stored.clone());
                 if stored.state == "resolved" {
                     row.state = Set("open".to_string());
                     row.seen = Set(false);
@@ -266,7 +266,7 @@ pub async fn check(project_id: &str, by: &str) -> Result<Map<String, Value>, Err
     }
     for (key, stored) in &existing {
         if !found.contains(key) && stored.state == "open" {
-            let mut row = stored.clone().into_active_model();
+            let mut row = kb_db::edit(stored.clone());
             row.state = Set("resolved".to_string());
             row.updated_at = Set(now_iso());
             row.update(&session).await?;
@@ -299,7 +299,7 @@ pub async fn set_state(session: &Session, insight_id: &str, action: &str, hours:
     let Some(i) = ai_insight::Entity::find_by_id(insight_id).one(session).await? else {
         return Err(AssistError::new("not_found", "Insight not found.").into());
     };
-    let mut row = i.into_active_model();
+    let mut row = kb_db::edit(i);
     match action {
         "snooze" => {
             row.state = Set("snoozed".to_string());
@@ -334,7 +334,7 @@ pub async fn snooze_all(session: &Session, project_id: &str, hours: i64) -> Resu
     let until = time::iso(&(Utc::now() + Duration::hours(hours)));
     let count = rows.len();
     for i in rows {
-        let mut row = i.into_active_model();
+        let mut row = kb_db::edit(i);
         row.state = Set("snoozed".to_string());
         row.snoozed_until = Set(Some(until.clone()));
         row.update(session).await?;
@@ -352,7 +352,7 @@ pub async fn mark_seen(session: &Session, project_id: &str) -> Result<(), DbErr>
         .all(session)
         .await?;
     for i in rows {
-        let mut row = i.into_active_model();
+        let mut row = kb_db::edit(i);
         row.seen = Set(true);
         row.update(session).await?;
     }

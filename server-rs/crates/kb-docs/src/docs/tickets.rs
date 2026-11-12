@@ -596,7 +596,7 @@ fn mention_words(origin: &str) -> &'static str {
 async fn ticket_activity(session: &Session, t: &ticket::Model, field: &str, from: Value, to: Value) -> Result<()> {
     let mut log = t.activity_log.clone();
     kb_base::activity::record(&mut log, field, from, to, Some("Linked docs"), None);
-    let mut row = t.clone().into_active_model();
+    let mut row = kb_db::edit(t.clone());
     row.activity_log = Set(log);
     row.updated_at = Set(time::now_iso());
     row.update(session).await?;

@@ -184,7 +184,7 @@ pub async fn set_member(
             overrides.insert(member_id.to_string(), json!(on));
         }
     }
-    let mut active = ai_plugin::ActiveModel::from(row);
+    let mut active = kb_db::edit(row);
     active.members = Set(pyjson::dumps(&Value::Object(overrides)));
     let saved = active.update(session).await?;
     session.commit().await?;

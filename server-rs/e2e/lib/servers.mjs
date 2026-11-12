@@ -6,6 +6,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+/** A POSIX `TZ` value in which it is about nine in the morning now (its sign is the other way round). */
+function morningZone() {
+  const hour = new Date().getUTCHours();
+  let east = 9 - hour;
+  if (east < -12) east += 24;
+  return `KBT${-east}`;
+}
+
 export const REPO = path.resolve(here, '../../..');
 const STARTUP_MS = 60_000;
 
@@ -51,6 +59,10 @@ export async function startServer(target, { uiDist = path.join(REPO, 'ui/dist') 
     KANBAN_DRAWIO_DIR: path.join(root, 'none'),
     KANBAN_AI_ROOTS: [root, os.tmpdir()].join(path.delimiter),
     PYTHONUNBUFFERED: '1',
+    // From 18:00 on a working day the board writes each person's card of the day into the notifications, by the
+    // computer's clock: the servers run in a zone where it is about nine in the morning, whenever the check runs
+    // (the same rule as `testkit::morning_zone` of the Rust tests).
+    TZ: morningZone(),
   });
   let cmd, args, cwd;
   if (target === 'python') {

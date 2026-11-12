@@ -91,7 +91,7 @@ pub async fn remember(name: &str, project_id: &str, session_id: &str) -> Result<
         }
         Some(row) => {
             let calls = row.calls + 1;
-            let mut row = row.into_active_model();
+            let mut row = kb_db::edit(row);
             row.session_id = Set(session_id.to_string());
             row.calls = Set(calls);
             row.updated_at = Set(now_iso());

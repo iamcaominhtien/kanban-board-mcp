@@ -118,14 +118,14 @@ pub async fn rename_page(
         }
         affected = links_to_rename(session, &page, &old_title).await?;
     }
-    let mut row = page.clone().into_active_model();
+    let mut row = kb_db::edit(page.clone());
     row.title = Set(new_title.clone());
     row.updated_at = Set(time::now_iso());
     row.updated_by = Set(actor.clone());
     let page = row.update(session).await?;
     remember_title(session, &page, &old_title, &new_title).await?;
     if let Some(draft) = draft_for(session, &page.id, &actor).await? {
-        let mut d = draft.into_active_model();
+        let mut d = kb_db::edit(draft);
         d.title = Set(page.title.clone());
         d.update(session).await?;
     }
@@ -162,7 +162,7 @@ pub async fn rename_page(
             }
             draft_n = draft_n.max(n);
             let base = d.base_version;
-            let mut active = d.into_active_model();
+            let mut active = kb_db::edit(d);
             if published_n > 0 && base == old_version {
                 // the rewrite is in this draft too: no false conflict
                 active.base_version = Set(src.version);

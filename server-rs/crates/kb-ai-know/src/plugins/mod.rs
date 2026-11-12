@@ -485,7 +485,7 @@ async fn reinstall(
     copy_blocking(staging, dest.clone()).await?;
     drop(tmp);
     let dest_text = dest.to_string_lossy().into_owned();
-    let mut active = ai_plugin::ActiveModel::from(row.clone());
+    let mut active = kb_db::edit(row.clone());
     match row.path.as_deref().filter(|p| !p.is_empty()) {
         Some(path) if keep_previous => {
             active.previous = Set(Some(pyjson::dumps(&json!({
@@ -612,7 +612,7 @@ pub async fn rollback(session: &Session, row: ai_plugin::Model) -> Result<ai_plu
         "version": row.version,
         "skills": loads(Some(&row.skills), json!([])),
     });
-    let mut active = ai_plugin::ActiveModel::from(row);
+    let mut active = kb_db::edit(row);
     active.path = Set(Some(prev_path.to_string()));
     active.commit = Set(prev.get("commit").and_then(Value::as_str).map(str::to_string));
     active.version = Set(prev.get("version").and_then(Value::as_str).map(str::to_string));
@@ -638,7 +638,7 @@ pub async fn reset(session: &Session, row: ai_plugin::Model) -> Result<ai_plugin
 
 /// Pin to the installed commit (no update is offered until unpinned).
 pub async fn pin(session: &Session, row: ai_plugin::Model, on: bool) -> Result<ai_plugin::Model, Error> {
-    let mut active = ai_plugin::ActiveModel::from(row.clone());
+    let mut active = kb_db::edit(row.clone());
     active.pinned = Set(on);
     if on && row.commit.as_deref().is_some_and(|c| !c.is_empty()) {
         active.r#ref = Set(row.commit.clone());

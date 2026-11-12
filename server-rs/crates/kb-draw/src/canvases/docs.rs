@@ -22,7 +22,7 @@ async fn mark_page_as_canvas(session: &Session, page_id: &str) -> Result<docs_pa
         .one(session)
         .await?
         .ok_or_else(|| crate::Error::Value("the new Docs page is not in the database".into()))?;
-    let mut am: docs_page::ActiveModel = row.into();
+    let mut am = kb_db::edit(row);
     am.kind = Set("canvas".to_string());
     let row = am.update(session).await?;
     session.commit().await?;
@@ -82,6 +82,7 @@ pub async fn move_to_docs(
     parent_id: Option<&str>,
 ) -> Result<Map<String, Value>> {
     let mut c = get_row(session, canvas_id, false).await?;
+    let read = c.clone();
     member_role(session, &c).await?;
     if c.page_id.as_deref().is_some_and(|p| !p.is_empty()) {
         return Err(DocsError::new(422, "already_page", "This canvas is already a Docs page.").into());
@@ -102,7 +103,7 @@ pub async fn move_to_docs(
     if let Some(t) = title.filter(|t| !t.is_empty()) {
         c.title = sketches::title(Some(t), &c.title);
     }
-    let c: canvas::Model = persist(session, &c).await?;
+    let c: canvas::Model = persist(session, &read, &c).await?;
     session.commit().await?;
     publish_page_line(session, &row.id, &summary(&c, "member")).await?;
     let mut result = Map::new();

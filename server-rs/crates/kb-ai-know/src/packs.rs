@@ -358,7 +358,7 @@ pub async fn save_pack(
             for (k, v) in fields {
                 merged.insert(k, v);
             }
-            let mut row = ai_role_pack::ActiveModel::from(current.clone());
+            let mut row = kb_db::edit(current.clone());
             row.history = Set(pyjson::dumps(&history[keep..].to_vec()));
             row.version = Set(current.version + 1);
             let name = current.name.clone();

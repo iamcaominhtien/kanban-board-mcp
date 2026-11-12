@@ -139,7 +139,7 @@ pub(crate) async fn finish(run_id: &str, result: &Value) -> Result<(), RunError>
         let kept = if report.is_empty() { json!({"summary": summary}) } else { Value::Object(report.clone()) };
         let (ticket_id, number, project_id, member_id) =
             (run.ticket_id.clone(), run.number, run.project_id.clone(), run.member_id.clone());
-        let mut row = run.into_active_model();
+        let mut row = kb_db::edit(run);
         row.summary = Set(Some(clip(&summary, 8000)));
         row.report = Set(pyjson::dumps(&kept));
         row.update(&session).await?;
@@ -207,7 +207,7 @@ pub(crate) async fn finish(run_id: &str, result: &Value) -> Result<(), RunError>
                 "more": more,
                 "previous": touches::carry_answer(run.question.as_deref(), run.answer.as_deref()),
             });
-            let mut row = run.into_active_model();
+            let mut row = kb_db::edit(run);
             row.question = Set(Some(pyjson::dumps(&question)));
             row.update(&session).await?;
             session.commit().await?;
@@ -327,7 +327,7 @@ pub(crate) async fn needs_input(run_id: &str) -> Result<(), RunError> {
             q.insert("asked_at".into(), json!(now_iso()));
         }
         let started_by = run.started_by.clone();
-        let mut row = run.into_active_model();
+        let mut row = kb_db::edit(run);
         row.state = Set("needs_input".to_string());
         row.token_hash = Set(None);
         row.pid = Set(None);
@@ -475,7 +475,7 @@ pub async fn end(
         if ENDED.contains(&run.state.as_str()) {
             return Ok(Some(run));
         }
-        let mut row = run.into_active_model();
+        let mut row = kb_db::edit(run);
         row.state = Set(state.to_string());
         row.ended_at = Set(Some(now_iso()));
         row.ended_reason = Set(reason.map(str::to_string));
@@ -498,7 +498,7 @@ pub async fn end(
         if let Some(mut profile) = profile {
             if teams::note_run_outcome(&mut profile, state, run.stop_code.as_deref(), reason) {
                 let (health, detail) = (profile.health.clone(), profile.health_detail.clone());
-                let mut row = profile.into_active_model();
+                let mut row = kb_db::edit(profile);
                 row.health = Set(health);
                 row.health_detail = Set(detail);
                 row.update(&session).await?;

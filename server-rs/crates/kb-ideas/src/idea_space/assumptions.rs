@@ -10,7 +10,8 @@ use serde_json::{Map, Value, json};
 use super::{get_or_raise, now, save};
 use crate::error::{Error, rule_error, value_error};
 use crate::idea_tickets::{add_trail, assumption_meta, find_assumption, update_assumption_status};
-use crate::model::{EVIDENCE_KINDS, Idea, save_model};
+use crate::model::{EVIDENCE_KINDS, Idea};
+use kb_db::save_model;
 
 /// `text[:n]` by characters.
 fn head(text: &str, n: usize) -> String {
@@ -160,7 +161,7 @@ pub async fn create_test_ticket(
     let Some(stored) = ticket::Entity::find_by_id(created.id.as_str()).one(session).await? else {
         return Err(Error::Other("the ticket just created is missing".to_string()));
     };
-    let mut linked = stored.clone().into_active_model();
+    let mut linked = kb_db::edit(stored.clone());
     linked.tests_assumption_id = Set(Some(assumption_id.to_string()));
     let ticket_row = linked.update(session).await?;
     let mut idea = get_or_raise(session, idea_id).await?;

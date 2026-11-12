@@ -50,7 +50,7 @@ pub async fn save_draft(
         }
         Some(draft) => {
             let saves = draft.saves + 1;
-            let mut row = draft.into_active_model();
+            let mut row = kb_db::edit(draft);
             row.markdown = Set(markdown.to_string());
             row.saves = Set(saves);
             if let Some(t) = new_title.filter(|t| !t.is_empty()) {
@@ -147,7 +147,7 @@ pub async fn mark_seen(session: &Session, page_id: &str, version: i64) -> Result
             row.insert(session).await?;
         }
         Some(row) => {
-            let mut row = row.into_active_model();
+            let mut row = kb_db::edit(row);
             row.version = Set(version);
             row.seen_at = Set(time::now_iso());
             row.update(session).await?;
@@ -226,7 +226,7 @@ pub async fn commit_version(
     commit: bool,
 ) -> Result<Map<String, Value>> {
     let previous = latest_version(session, page).await?;
-    let mut row = page.clone().into_active_model();
+    let mut row = kb_db::edit(page.clone());
     row.version = Set(page.version + 1);
     row.status = Set("published".to_string());
     row.title = Set(title.to_string());
@@ -317,7 +317,7 @@ async fn update_aliases(session: &Session, page: &docs_page::Model, old_md: &str
                 row.delete(session).await?;
             }
             (Some(row), false) if alias.changed => {
-                let mut active = row.into_active_model();
+                let mut active = kb_db::edit(row);
                 active.new_slug = Set(alias.new_slug);
                 active.update(session).await?;
             }

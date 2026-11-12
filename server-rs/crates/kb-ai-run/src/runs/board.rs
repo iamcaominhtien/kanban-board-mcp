@@ -78,7 +78,7 @@ pub async fn record_question(
             return Err(RunError::Value("Run not found.".to_string()));
         };
         q.insert("previous".into(), json!(touches::carry_answer(run.question.as_deref(), run.answer.as_deref())));
-        let mut row = run.into_active_model();
+        let mut row = kb_db::edit(run);
         row.question = Set(Some(pyjson::dumps(&Value::Object(q.clone()))));
         row.update(&session).await?;
         session.commit().await?;
@@ -112,7 +112,7 @@ pub async fn record_report(ctx: &RunContext, report: &Map<String, Value>) -> Res
     let Some(run) = ai_run::Entity::find_by_id(ctx.run_id.as_str()).one(&session).await? else {
         return Err(RunError::Value("Run not found.".to_string()));
     };
-    let mut row = run.into_active_model();
+    let mut row = kb_db::edit(run);
     row.report = Set(pyjson::dumps(&Value::Object(report.clone())));
     if let Some(summary) = report.get("summary").filter(|v| pyjson::truthy(v)) {
         let summary = match summary {
@@ -341,7 +341,7 @@ pub async fn deliver_to_ticket(
         let run_id = first.id.clone();
         if depth != 0 && first.depth < depth {
             // a note that reaches a run already going counts as a hand-off too: its next note starts one deeper
-            let mut row = first.into_active_model();
+            let mut row = kb_db::edit(first);
             row.depth = Set(depth);
             row.update(&session).await?;
             session.commit().await?;

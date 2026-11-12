@@ -10,9 +10,8 @@ use kb_db::sql::bump_counter;
 use serde_json::{Map, Value, json};
 
 use crate::error::{Error, value_error};
-use crate::model::{
-    ASSUMPTION_IMPACTS, ASSUMPTION_STATUSES, IDEA_SOURCES, IDEA_STATUSES, Idea, load, load_many, save_model,
-};
+use crate::model::{ASSUMPTION_IMPACTS, ASSUMPTION_STATUSES, IDEA_SOURCES, IDEA_STATUSES, Idea, load, load_many};
+use kb_db::save_model;
 
 /// Who an activity entry is credited to when the caller does not say.
 pub const DEFAULT_AUTHOR: &str = "user";

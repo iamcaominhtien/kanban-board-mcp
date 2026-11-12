@@ -223,7 +223,7 @@ pub(crate) async fn restart_inside_run(
             });
             let mut all = log.clone();
             all.push(entry.clone());
-            let mut row = run.into_active_model();
+            let mut row = kb_db::edit(run);
             row.restarts = Set(resources::dump(&Value::Array(all)));
             let run = row.update(&session).await?;
             session.commit().await?;
@@ -375,7 +375,7 @@ pub async fn answer(run_id: &str, by: &str, text: &str) -> Result<Option<ai_run:
             None => String::new(),
         };
         let token = guard::new_token();
-        let mut row = run.into_active_model();
+        let mut row = kb_db::edit(run);
         row.question = Set(Some(kb_base::pyjson::dumps(&Value::Object(q))));
         row.answer = Set(Some(text.to_string()));
         row.state = Set("starting".to_string());
@@ -503,7 +503,7 @@ pub async fn send_message(
             {
                 let session = database::session();
                 if let Some(row) = ai_run_message::Entity::find_by_id(row_id).one(&session).await? {
-                    let mut row = row.into_active_model();
+                    let mut row = kb_db::edit(row);
                     row.delivered_at = Set(Some(now_iso()));
                     row.update(&session).await?;
                     session.commit().await?;

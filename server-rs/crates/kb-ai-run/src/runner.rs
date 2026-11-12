@@ -165,7 +165,7 @@ pub async fn poll_commands(once: bool) -> Result<usize, DbErr> {
                 .await?;
             let mut taken = Vec::new();
             for row in rows {
-                let mut active = row.into_active_model();
+                let mut active = kb_db::edit(row);
                 active.taken_at = Set(Some(kb_ai::store::now_iso()));
                 taken.push(active.update(&session).await?);
             }

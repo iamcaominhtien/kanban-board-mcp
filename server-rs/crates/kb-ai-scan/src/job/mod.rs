@@ -271,7 +271,7 @@ impl Job {
         let Some(row) = ai_repo_scan::Entity::find_by_id(self.scan_id.as_str()).one(&session).await? else {
             return Ok(());
         };
-        let mut active = row.into_active_model();
+        let mut active = kb_db::edit(row);
         active.job = Set(doc);
         active.trial = Set(trial);
         active.proposal = Set(proposal);
@@ -346,7 +346,7 @@ pub async fn start_job(session: &Session, scan_id: &str, opts: StartOptions) -> 
         COMMANDS.iter().map(|n| ((*n).to_string(), previous.get(*n).cloned().unwrap_or(Value::Null))).collect()
     };
     let job = Arc::new(Job::new(scan_id, &mode, &opts.hint, trial, proposal));
-    let mut active = row.clone().into_active_model();
+    let mut active = kb_db::edit(row.clone());
     active.job = Set(pyjson::dumps(&job.doc()));
     active.update(session).await?;
     session.commit().await?;

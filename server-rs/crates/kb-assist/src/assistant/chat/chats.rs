@@ -42,7 +42,7 @@ pub async fn update_chat(
     data: &Map<String, Value>,
 ) -> Result<ai_chat::Model, Error> {
     let chat = chat_of(session, chat_id, by).await?;
-    let mut row = chat.clone().into_active_model();
+    let mut row = kb_db::edit(chat.clone());
     let thing = given(data, "ticket_id").or_else(|| given(data, "doc_id"));
     if given(data, "scope").is_some_and(|scope| scope != chat.scope) || thing.is_some() {
         let scope = given(data, "scope").unwrap_or(chat.scope.as_str());
@@ -88,7 +88,7 @@ pub async fn update_chat(
 /// The owner has this chat open and in front of them now (the page tells every ~15 s).
 pub async fn mark_seen(session: &Session, chat_id: &str, by: &str) -> Result<(), Error> {
     let chat = chat_of(session, chat_id, by).await?;
-    let mut row = chat.into_active_model();
+    let mut row = kb_db::edit(chat);
     row.seen_at = Set(Some(now_iso()));
     row.update(session).await?;
     session.commit().await?;

@@ -76,6 +76,7 @@ pub async fn add_board(session: &Session, canvas_id: &str, args: AddBoard) -> Re
     }
     let kind = args.kind.as_str();
     let mut c = get_row(session, canvas_id, false).await?;
+    let read = c.clone();
     member_role(session, &c).await?;
     let mut doc = read_doc(&c.id)?;
     if list(&doc, "boards").len() >= MAX_BOARDS {
@@ -190,7 +191,7 @@ pub async fn add_board(session: &Session, canvas_id: &str, args: AddBoard) -> Re
     c.rev = (new_rev - 1) as i32;
     touch(&mut c, &doc);
     write_doc(&c.id, &doc)?;
-    c = persist(session, &c).await?;
+    c = persist(session, &read, &c).await?;
     session.commit().await?;
     rows::reindex(session, &c).await?;
     let mut out = Map::new();
@@ -272,6 +273,7 @@ pub async fn put_board_content(
 ) -> Result<Map<String, Value>> {
     let _guard = serial(canvas_id).await;
     let mut c = get_row(session, canvas_id, false).await?;
+    let read = c.clone();
     member_role(session, &c).await?;
     let mut doc = read_doc(&c.id)?;
     let bi = board_of(&doc, board_id)?;
@@ -334,7 +336,7 @@ pub async fn put_board_content(
         c.rev = (new_rev - 1) as i32;
         touch(&mut c, &doc);
         write_doc(&c.id, &doc)?;
-        c = persist(session, &c).await?;
+        c = persist(session, &read, &c).await?;
         session.commit().await?;
         Ok(())
     }
@@ -400,6 +402,7 @@ pub async fn unlock_board(session: &Session, canvas_id: &str, board_id: &str) ->
 pub async fn duplicate_board(session: &Session, canvas_id: &str, board_id: &str) -> Result<Map<String, Value>> {
     let _guard = serial(canvas_id).await;
     let mut c = get_row(session, canvas_id, false).await?;
+    let read = c.clone();
     member_role(session, &c).await?;
     let mut doc = read_doc(&c.id)?;
     let src = list(&doc, "boards")[board_of(&doc, board_id)?].clone();
@@ -443,7 +446,7 @@ pub async fn duplicate_board(session: &Session, canvas_id: &str, board_id: &str)
     c.rev = (new_rev - 1) as i32;
     touch(&mut c, &doc);
     write_doc(&c.id, &doc)?;
-    c = persist(session, &c).await?;
+    c = persist(session, &read, &c).await?;
     session.commit().await?;
     rows::reindex(session, &c).await?;
     let mut out = Map::new();

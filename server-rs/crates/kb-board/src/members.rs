@@ -145,7 +145,7 @@ pub async fn set_member_role(
     let Some(member) = get_member(session, member_id).await?.filter(|m| m.project_id == project_id) else {
         return Ok(None);
     };
-    let mut member = member.into_active_model();
+    let mut member = kb_db::edit(member);
     member.role = Set(role.to_string());
     let member = member.update(session).await?;
     session.commit().await?;

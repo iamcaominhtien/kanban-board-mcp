@@ -10,7 +10,8 @@ use serde_json::{Map, Value, json};
 use super::{get, get_or_raise, json_or, legacy_status_for_stage, now, save};
 use crate::error::{Error, rule_error, rule_error_with, value_error};
 use crate::idea_tickets::{DEFAULT_AUTHOR, add_trail};
-use crate::model::{ARCHIVE_REASONS, IDEA_STAGES, Idea, idea_readiness, save_model};
+use crate::model::{ARCHIVE_REASONS, IDEA_STAGES, Idea, idea_readiness};
+use kb_db::save_model;
 
 /// Where an idea may move from each stage (`_MOVES`).
 fn moves(from: &str) -> &'static [&'static str] {

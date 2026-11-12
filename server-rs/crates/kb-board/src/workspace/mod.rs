@@ -104,7 +104,7 @@ pub async fn update_workspace_settings(
 ) -> Result<workspace_settings::Model, Error> {
     let settings = get_workspace_settings(session).await?;
     let unchanged = settings.clone();
-    let mut settings = settings.into_active_model();
+    let mut settings = kb_db::edit(settings);
     if let Some(enabled) = enabled {
         settings.enabled = Set(enabled);
     }
@@ -451,7 +451,7 @@ pub async fn set_ticket_workspace_retention(
             None,
         );
     }
-    let mut row = ticket.into_active_model();
+    let mut row = kb_db::edit(ticket);
     row.activity_log = Set(activity_log);
     row.workspace_retention_days = Set(retention_days);
     row.updated_at = Set(time::now_iso());

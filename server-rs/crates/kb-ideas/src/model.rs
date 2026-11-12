@@ -149,28 +149,6 @@ pub async fn load(session: &Session, row: idea_ticket::Model) -> Result<Idea, Db
     Ok(ideas.remove(0))
 }
 
-/// `session.add(row)` of a row that was loaded and changed: an UPDATE of the columns that differ from `before`
-/// (nothing is sent when none does). Returns the row as stored.
-pub(crate) async fn save_model<M, A>(session: &Session, before: &M, after: M) -> Result<M, DbErr>
-where
-    M: ModelTrait + IntoActiveModel<A> + Clone + PartialEq + Send + Sync,
-    A: ActiveModelTrait<Entity = M::Entity> + ActiveModelBehavior + Send,
-    M::Entity: EntityTrait<Model = M>,
-    <M::Entity as EntityTrait>::Column: Iterable,
-{
-    let mut row = before.clone().into_active_model();
-    for column in <<M::Entity as EntityTrait>::Column as Iterable>::iter() {
-        let value = after.get(column);
-        if value != before.get(column) {
-            row.set(column, value);
-        }
-    }
-    if !row.is_changed() {
-        return Ok(after);
-    }
-    row.update(session).await
-}
-
 /// `idea_readiness(assumptions)`: how ready an idea is, worked out from its assumptions (design: "F. Readiness").
 ///
 /// Only high-impact assumptions decide it; if none is high-impact, every assumption must be validated. An idea with

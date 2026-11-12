@@ -173,7 +173,7 @@ pub async fn append(run_id: &str, rows: Vec<Value>, extras: Extras) -> Result<Ve
         }
         written.push(step);
     }
-    let mut run_row = run.clone().into_active_model();
+    let mut run_row = kb_db::edit(run.clone());
     let steps_count = run.steps_count + rows.len() as i32;
     run_row.steps_count = Set(steps_count);
     let mut last_output_at = run.last_output_at.clone();
@@ -202,8 +202,7 @@ pub async fn append(run_id: &str, rows: Vec<Value>, extras: Extras) -> Result<Ve
         }
         let id = a.get("id").map(pyjson::py_str).unwrap_or_default();
         let existing = ai_run_agent::Entity::find_by_id(id.as_str()).one(&session).await?;
-        let is_new = existing.is_none();
-        let mut agent = existing.unwrap_or_else(|| ai_run_agent::Model {
+        let mut agent = existing.clone().unwrap_or_else(|| ai_run_agent::Model {
             id: id.clone(),
             run_id: run_id.to_string(),
             agent_type: text_or(&a, "agent_type").unwrap_or("").to_string(),
@@ -251,18 +250,22 @@ pub async fn append(run_id: &str, rows: Vec<Value>, extras: Extras) -> Result<Ve
         if let Some(at) = per_agent.iter().position(|(id, _)| *id == agent.id) {
             agent.steps_count += per_agent.remove(at).1;
         }
-        if is_new {
-            ai_run_agent::ActiveModel::from(agent).reset_all().insert(&session).await?;
-        } else {
-            ai_run_agent::ActiveModel::from(agent).reset_all().update(&session).await?;
+        match &existing {
+            None => {
+                ai_run_agent::ActiveModel::from(agent).reset_all().insert(&session).await?;
+            }
+            Some(read) => {
+                kb_db::save_model(&session, read, agent).await?;
+            }
         }
     }
     let leftover = !per_agent.is_empty();
     for (agent_id, n) in &per_agent {
         match ai_run_agent::Entity::find_by_id(agent_id.as_str()).one(&session).await? {
-            Some(mut agent) => {
+            Some(read) => {
+                let mut agent = read.clone();
                 agent.steps_count += n;
-                ai_run_agent::ActiveModel::from(agent).reset_all().update(&session).await?;
+                kb_db::save_model(&session, &read, agent).await?;
             }
             None => {
                 let mut agent = ai_run_agent::new();
@@ -484,7 +487,7 @@ pub async fn attach_result(
         Ok(Value::Object(map)) => map,
         _ => Map::new(),
     };
-    let mut active = row.into_active_model();
+    let mut active = kb_db::edit(row);
     if let Some(text) = output_text.filter(|t| !t.is_empty()) {
         active.output = Set(Some(text.chars().take(OUTPUT_MAX).collect()));
     }

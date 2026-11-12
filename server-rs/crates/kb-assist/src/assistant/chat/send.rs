@@ -101,7 +101,7 @@ pub async fn send(
         },
     })));
     let mut title = chat.title.clone();
-    let mut chat_row = chat.clone().into_active_model();
+    let mut chat_row = kb_db::edit(chat.clone());
     if first && matches!(chat.title.as_str(), "New chat" | "") {
         title = pytext::squash(text).chars().take(60).collect();
         chat_row.title = Set(title.clone());
@@ -134,7 +134,7 @@ pub async fn send(
                     ));
                 }
             };
-            let mut row = ai.into_active_model();
+            let mut row = kb_db::edit(ai);
             row.context = Set(pyjson::dumps(&json!({
                 "scope": chat.scope,
                 "label": title,
@@ -288,7 +288,7 @@ async fn answer(message_id: &str, by: &str, files: Vec<(String, Vec<u8>)>, stop:
     };
     let session = database::session();
     let Some(ai) = ai_chat_message::Entity::find_by_id(message_id).one(&session).await? else { return Ok(()) };
-    let mut row = ai.clone().into_active_model();
+    let mut row = kb_db::edit(ai.clone());
     row.state = Set(state.to_string());
     row.error = Set(pyjson::dumps(&error));
     row.finished_at = Set(Some(now_iso()));
@@ -410,14 +410,14 @@ async fn answer(message_id: &str, by: &str, files: Vec<(String, Vec<u8>)>, stop:
                         "attachments": attachments,
                     }),
                 );
-                let mut asked = asked.into_active_model();
+                let mut asked = kb_db::edit(asked);
                 asked.context = Set(pyjson::dumps(&qctx));
                 asked.update(&session).await?;
             }
         }
         if let Some(chat) = ai_chat::Entity::find_by_id(ai.chat_id.as_str()).one(&session).await? {
             let (cost, tokens, session_id) = (chat.cost, chat.tokens, chat.session_id.clone());
-            let mut chat = chat.into_active_model();
+            let mut chat = kb_db::edit(chat);
             chat.cost = Set(round_to(cost + out.cost, 6));
             chat.tokens = Set(tokens.saturating_add(i32::try_from(out.tokens_in + out.tokens_out).unwrap_or(i32::MAX)));
             chat.session_id = Set(out.session_id.clone().filter(|s| !s.is_empty()).or(session_id));

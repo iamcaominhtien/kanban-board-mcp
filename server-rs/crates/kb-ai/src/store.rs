@@ -321,18 +321,6 @@ pub async fn active_runs(
     stmt.all(session).await
 }
 
-/// Write every column of a row that the caller changed in memory: SQLAlchemy's `session.add(row)` followed by a
-/// commit. Returns the stored row. The caller commits.
-pub async fn save<C, M, A>(conn: &C, model: M) -> Result<<A::Entity as EntityTrait>::Model, DbErr>
-where
-    C: kb_db::sea_orm::ConnectionTrait,
-    M: kb_db::sea_orm::IntoActiveModel<A>,
-    A: kb_db::sea_orm::ActiveModelTrait + kb_db::sea_orm::ActiveModelBehavior + Send,
-    <A::Entity as EntityTrait>::Model: kb_db::sea_orm::IntoActiveModel<A>,
-{
-    kb_db::sea_orm::ActiveModelTrait::update(model.into_active_model().reset_all(), conn).await
-}
-
 /// Python's `int(value)` for the JSON values a setting or an event may hold: `None` where Python raises.
 pub fn py_int(value: &Value) -> Option<i128> {
     crate::ops::py_int(value)

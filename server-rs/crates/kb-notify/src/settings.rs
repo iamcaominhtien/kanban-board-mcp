@@ -99,25 +99,31 @@ pub async fn set_global(session: &Session, values: &[(&str, Value)]) -> Result<(
     for (k, v) in values {
         g.insert((*k).to_string(), v.clone());
     }
-    save_prefs(session, row.is_some(), "*", dumps(&Value::Object(g))).await
+    save_prefs(session, row, "*", dumps(&Value::Object(g))).await
 }
 
-/// `session.add(row)` of a `NotifyPrefs` row: an update when it exists, else an insert.
-async fn save_prefs(session: &Session, exists: bool, recipient: &str, prefs: String) -> Result<()> {
-    if exists {
-        notify_prefs::ActiveModel {
-            recipient: ActiveValue::Unchanged(recipient.to_string()),
-            prefs: ActiveValue::Set(prefs),
-            updated_at: ActiveValue::Set(now_iso()),
+/// `session.add(row)` of a `NotifyPrefs` row: an update of what changed when it exists (`row` as it was read), else
+/// an insert.
+async fn save_prefs(
+    session: &Session,
+    row: Option<notify_prefs::Model>,
+    recipient: &str,
+    prefs: String,
+) -> Result<()> {
+    match row {
+        Some(row) => {
+            let mut row = kb_db::edit(row);
+            row.prefs = ActiveValue::Set(prefs);
+            row.updated_at = ActiveValue::Set(now_iso());
+            row.update(session).await?;
         }
-        .update(session)
-        .await?;
-    } else {
-        let mut row = notify_prefs::new();
-        row.recipient = ActiveValue::Set(recipient.to_string());
-        row.prefs = ActiveValue::Set(prefs);
-        row.updated_at = ActiveValue::Set(now_iso());
-        row.insert(session).await?;
+        None => {
+            let mut row = notify_prefs::new();
+            row.recipient = ActiveValue::Set(recipient.to_string());
+            row.prefs = ActiveValue::Set(prefs);
+            row.updated_at = ActiveValue::Set(now_iso());
+            row.insert(session).await?;
+        }
     }
     Ok(())
 }
@@ -331,7 +337,7 @@ pub async fn update_settings(session: &Session, recipient: &str, body: &Map<Stri
         }
         None => None,
     };
-    save_prefs(session, row.is_some(), recipient, dumps(&Value::Object(mine))).await?;
+    save_prefs(session, row, recipient, dumps(&Value::Object(mine))).await?;
     if let Some(days) = days {
         set_global(session, &[("retention_days", json!(days))]).await?;
     }

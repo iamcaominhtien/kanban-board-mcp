@@ -471,7 +471,7 @@ pub async fn update_diagram(session: &Session, diagram_id: &str, change: Diagram
     let clean_svg = sanitize_svg(&change.svg)?;
     let actor = activity::current_actor();
     let new_version = d.version + 1;
-    let mut row = d.into_active_model();
+    let mut row = kb_db::edit(d);
     row.version = Set(new_version);
     row.updated_by = Set(actor.clone());
     row.updated_at = Set(time::now_iso());
@@ -500,7 +500,7 @@ pub async fn update_diagram(session: &Session, diagram_id: &str, change: Diagram
 pub async fn delete_diagram(session: &Session, diagram_id: &str) -> Result<Map<String, Value>> {
     let d = get_row(session, diagram_id, false).await?;
     need_member(&role_of(session, &d.project_id).await?)?;
-    let mut row = d.into_active_model();
+    let mut row = kb_db::edit(d);
     row.deleted_at = Set(Some(time::now_iso()));
     row.deleted_by = Set(Some(activity::current_actor()));
     let d = row.update(session).await?;
@@ -515,7 +515,7 @@ pub async fn delete_diagram(session: &Session, diagram_id: &str) -> Result<Map<S
 pub async fn restore_diagram(session: &Session, diagram_id: &str) -> Result<Map<String, Value>> {
     let d = get_row(session, diagram_id, true).await?;
     need_member(&role_of(session, &d.project_id).await?)?;
-    let mut row = d.into_active_model();
+    let mut row = kb_db::edit(d);
     row.deleted_at = Set(None);
     row.deleted_by = Set(None);
     let d = row.update(session).await?;
@@ -611,7 +611,7 @@ pub async fn restore_pins(session: &Session, pins: &Map<String, Value>) -> Resul
         };
         let current = d.version;
         let id = d.id.clone();
-        let mut row = d.into_active_model();
+        let mut row = kb_db::edit(d);
         row.deleted_at = Set(None);
         row.deleted_by = Set(None);
         let mut copy = None;
@@ -757,7 +757,7 @@ pub async fn set_settings(
     }
     match diagram_settings::Entity::find_by_id(1).one(session).await? {
         Some(row) => {
-            let mut row = row.into_active_model();
+            let mut row = kb_db::edit(row);
             row.mode = Set(mode.to_string());
             row.url = Set(clean);
             row.update(session).await?;

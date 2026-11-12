@@ -90,7 +90,7 @@ async fn end_orphans(run_ids: &[String]) -> Result<(), DbErr> {
         {
             continue;
         }
-        let mut row = run.into_active_model();
+        let mut row = kb_db::edit(run);
         row.state = kb_db::sea_orm::ActiveValue::Set("failed".into());
         row.ended_at = kb_db::sea_orm::ActiveValue::Set(Some(now_iso()));
         row.ended_reason = kb_db::sea_orm::ActiveValue::Set(Some(

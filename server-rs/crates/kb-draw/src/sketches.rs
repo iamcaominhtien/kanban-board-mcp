@@ -458,7 +458,7 @@ pub async fn update_sketch(
     let id = s.id.clone();
     let new_title = title_text.map(|t| title(Some(t), &s.title));
     let new_version = s.version + 1;
-    let mut row = s.into_active_model();
+    let mut row = kb_db::edit(s);
     row.version = Set(new_version);
     row.updated_by = Set(activity::current_actor());
     row.updated_at = Set(time::now_iso());
@@ -522,7 +522,7 @@ pub async fn copy_sketch(
 pub async fn delete_sketch(session: &Session, sketch_id: &str) -> Result<Map<String, Value>> {
     let s = get_row(session, sketch_id, false).await?;
     need_member(&role_of(session, s.project_id.as_deref()).await?)?;
-    let mut row = s.into_active_model();
+    let mut row = kb_db::edit(s);
     row.deleted_at = Set(Some(time::now_iso()));
     row.deleted_by = Set(Some(activity::current_actor()));
     let s = row.update(session).await?;
@@ -537,7 +537,7 @@ pub async fn delete_sketch(session: &Session, sketch_id: &str) -> Result<Map<Str
 pub async fn restore_sketch(session: &Session, sketch_id: &str) -> Result<Map<String, Value>> {
     let s = get_row(session, sketch_id, true).await?;
     need_member(&role_of(session, s.project_id.as_deref()).await?)?;
-    let mut row = s.into_active_model();
+    let mut row = kb_db::edit(s);
     row.deleted_at = Set(None);
     row.deleted_by = Set(None);
     let s = row.update(session).await?;

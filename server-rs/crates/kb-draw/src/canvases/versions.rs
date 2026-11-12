@@ -148,6 +148,8 @@ pub async fn version(
     note: Option<&str>,
     author: Option<&str>,
 ) -> Result<canvas_version::Model> {
+    // the caller has stored every other change to `c`: from here only the version number changes
+    let read = c.clone();
     let doc = read_doc(&c.id)?;
     let prev = latest_version(session, &c.id).await?;
     let old: Option<Doc> = match &prev {
@@ -189,7 +191,7 @@ pub async fn version(
     });
     row.doc = Set(pyjson::Dumps::new().ensure_ascii(false).dump(&doc));
     let v = row.insert(session).await?;
-    *c = persist(session, c).await?;
+    *c = persist(session, &read, c).await?;
     Ok(v)
 }
 
@@ -252,7 +254,7 @@ pub async fn name_version(
     let v = get_version_row(session, canvas_id, n).await?;
     let cleaned = text(name.map(|n| json!(n)).as_ref(), 80);
     let cleaned = kb_base::pytext::strip(&cleaned).to_string();
-    let mut am: canvas_version::ActiveModel = v.into();
+    let mut am = kb_db::edit(v);
     am.name = Set(if cleaned.is_empty() { None } else { Some(cleaned) });
     let v = am.update(session).await?;
     session.commit().await?;
@@ -280,6 +282,7 @@ pub async fn make_version(
 pub async fn restore_version(session: &Session, canvas_id: &str, n: i32) -> Result<Map<String, Value>> {
     let _guard = serial(canvas_id).await;
     let mut c = get_row(session, canvas_id, false).await?;
+    let read = c.clone();
     member_role(session, &c).await?;
     let live = canvas_locks::locks_of(&c.id);
     if let Some(first) = live.first() {
@@ -308,7 +311,7 @@ pub async fn restore_version(session: &Session, canvas_id: &str, n: i32) -> Resu
     c.rev = new_rev - 1;
     touch(&mut c, &doc);
     write_doc(&c.id, &doc)?;
-    c = persist(session, &c).await?;
+    c = persist(session, &read, &c).await?;
     session.commit().await?;
     version(session, &mut c, "restore", None, Some(&format!("Restored version {n}")), None).await?;
     session.commit().await?;

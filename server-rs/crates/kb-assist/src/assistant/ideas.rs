@@ -130,7 +130,7 @@ pub async fn update_settings(
     values: &Map<String, Value>,
 ) -> Result<idea_ai_settings::Model, DbErr> {
     let row = get_settings(session, project_id).await?;
-    let mut changed = row.into_active_model();
+    let mut changed = kb_db::edit(row);
     for (k, v) in values {
         if !SETTING_KEYS.contains(&k.as_str()) || v.is_null() {
             continue;
@@ -462,7 +462,7 @@ pub async fn set_advice_state(session: &Session, advice_id: &str, state: &str) -
     let Some(a) = idea_advice::Entity::find_by_id(advice_id).one(session).await? else {
         return Err(Error::Value("Advice not found".to_string()));
     };
-    let mut row = a.into_active_model();
+    let mut row = kb_db::edit(a);
     row.state = Set(state.to_string());
     let row = row.update(session).await?;
     session.commit().await?;
