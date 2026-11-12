@@ -358,7 +358,7 @@ pub async fn save_pack(
             for (k, v) in fields {
                 merged.insert(k, v);
             }
-            let mut row = kb_db::edit(current.clone());
+            let mut row = ai_role_pack::ActiveModel::from(current.clone());
             row.history = Set(pyjson::dumps(&history[keep..].to_vec()));
             row.version = Set(current.version + 1);
             let name = current.name.clone();
@@ -371,7 +371,12 @@ pub async fn save_pack(
     row.updated_by = Set(Some(by.to_string()));
     let saved = match existing {
         None => row.insert(session).await?,
-        Some(_) => row.update(session).await?,
+        Some(read) => {
+            // only what differs from the row as it was read
+            let mut changed = kb_db::edit(read);
+            *changed = row;
+            changed.update(session).await?
+        }
     };
     session.commit().await?;
     Ok(to_dict(&saved))
