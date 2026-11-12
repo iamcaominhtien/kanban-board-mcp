@@ -101,11 +101,13 @@ pub async fn serve(listener: std::net::TcpListener, t0: Instant) -> std::io::Res
     let port = listener.local_addr()?.port();
     listener.set_nonblocking(true)?;
     let listener = tokio::net::TcpListener::from_std(listener)?;
+    // `ai_runs.set_board_url(os.environ["KANBAN_BOARD_URL"])` of `main.py`, which runs before the app starts: a run
+    // recovered at startup must already know where the board listens
+    kb_ai_run::runs::set_board_url(&format!("http://127.0.0.1:{port}"));
     let running = lifespan::startup().await.map_err(std::io::Error::other)?;
     let app = app();
     startup_mark(t0, "server-startup-done");
     kb_files::drawio_bundle::set_origin("127.0.0.1", port);
-    // ai_runs.set_board_url: wired when kb-ai is ported
     println!("READY port={port}");
     let served = axum::serve(listener, app.into_make_service_with_connect_info::<LocalAddr>())
         .with_graceful_shutdown(lifespan::stop_signal())

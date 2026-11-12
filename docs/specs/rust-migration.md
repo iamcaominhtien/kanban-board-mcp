@@ -179,7 +179,8 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - [x] `kb-ai-know`: packs, roles, board_skills, memory, kb, knowledge, plugins
 - [x] `kb-ai-work`: project_env, worktrees, github, timeline, flow, activity (the GitHub watcher runs from the app's
       lifespan)
-- [~] `kb-ai-scan`: repo_scan
+- [x] `kb-ai-scan`: repo_scan (59 repository layouts give the same findings as Python; the rescan loop is wired into
+      the app's lifespan with the runs port)
 - [x] `kb-ai-run`, part 1: cli, stream, resources, accounts, signin; `fake-claude`, the stand-in CLI of the tests
 - [x] `kb-ai-run`, part 2a: teams, launch (everything a run is started with equals Python in 52 situations)
 - [~] `kb-ai-run`, part 2b: runs, messaging, `runner/`, the hook and event routes

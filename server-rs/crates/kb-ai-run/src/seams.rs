@@ -7,6 +7,17 @@
 //! | `Runs::cancel` | `runs.cancel(run_id, by=, reason=)` (`teams.set_paused` with `cancel_current`, `teams.remove`); a `runs.RunError` is `CancelError::Run` | `runs` |
 //! | `Runs::wake` | `runs.RT.wake.set()` (`teams.set_paused`, `teams.health_check`) | `runs` |
 //! | `SessionHistory::prompt_block` | `session_history.prompt_block(session, ticket.id)` (`launch.build_prompt`, a new conversation on a ticket) | `session_history` |
+//! | `SessionHistory::closed_session_ids` | `session_history.closed_session_ids(session, ticket_id)` (`runs.create_run`, `runs._session_for`) | `session_history` |
+//! | `Touches::carry_answer` | `touches.carry_answer(run.question, run.answer)` (`runs._finish`, `runs.record_question`); not filled: `carry_answer` below, the function itself | `touches` |
+//! | `Touches::record_edit` | `touches.record_edit(session, ticket_id, by=, what=)` (`runs.note_person_edit`) | `touches` |
+//! | `Compact::after_run` | `compact.after_run(ticket_id, run_id)` (`runs._end`) | `compact` |
+//! | `PageNotes::create_thread` | `docs_comments.create_thread(session, page_id, kind="page", body=text)` (`messaging.deliver_to_page`) | Docs comments |
+//! | `PageNotes::docs_ai_on` | `assistant_docs.docs_ai_on(session, project_id)` (`messaging.deliver_to_page`, and `kb_draw::hooks::CanvasDelivery::docs_ai_on`) | the assistant |
+//! | `PageNotes::ready_state` | `(await engine.ready(project_id))["state"]` | the assistant |
+//! | `PageNotes::start_thread_reply` | `jobs.start(session, project_id=, kind="thread_reply", ...)` of `services/docs_ai/jobs.py` | Docs AI |
+//!
+//! `runs` (part 2b) fills `RunProcs` and `Runs` (`RunsSeam`), `kb_ai::seams::TicketRuns` (`TicketSeam`),
+//! `kb_ai_work::seams::Runs` (`WorkRuns`) and `kb_draw::hooks::CanvasDelivery` (`CanvasNotes`): see `register()`.
 //!
 //! `kb_ai::seams::RunsRuntime` is one trait with four calls: `looks_like_cli` belongs to `cli` (ported here), the
 //! other three to `runs` (not yet). `register()` of this crate fills the whole trait with `Runtime`, which answers
@@ -116,6 +127,15 @@ pub trait SessionHistory: Send + Sync {
     /// `session_history.prompt_block(session, ticket_id)`: what a new conversation is told about the closed ones,
     /// or an empty text.
     async fn prompt_block(&self, session: &Session, ticket_id: &str) -> Result<String, DbErr>;
+    /// `session_history.closed_session_ids(session, ticket_id)`: every Claude Code session id that a history row of
+    /// the ticket has closed; none of them is resumed again. (A ticket with no history row: none.)
+    async fn closed_session_ids(
+        &self,
+        _session: &Session,
+        _ticket_id: &str,
+    ) -> Result<std::collections::HashSet<String>, DbErr> {
+        Ok(std::collections::HashSet::new())
+    }
 }
 
 static SESSION_HISTORY: RwLock<Option<Arc<dyn SessionHistory>>> = RwLock::new(None);
@@ -187,5 +207,261 @@ impl kb_board::hooks::AiTeamsHook for TeamNames {
         exclude_id: Option<&str>,
     ) -> Result<Map<String, Value>, DbErr> {
         crate::teams::check_name(session, project_id, name, exclude_id).await
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Slots of `runs` and `messaging` (part 2b) for the modules of part 3 and the assistant
+// ---------------------------------------------------------------------------------------------------------------
+
+/// What `runs` asks of `services/ai/touches.py`.
+#[async_trait]
+pub trait Touches: Send + Sync {
+    /// `touches.carry_answer(question_json, answer)`: the answered questions of a run to keep when it asks a new one.
+    fn carry_answer(&self, question_json: Option<&str>, answer: Option<&str>) -> Vec<Value>;
+    /// `touches.record_edit(session, ticket_id, by=by, what=what)`: a person edited a ticket while a run was on it;
+    /// returns how many audit entries were written. The error is the text of the exception (the caller logs it).
+    async fn record_edit(&self, session: &Session, ticket_id: &str, by: Option<&str>, what: &str)
+    -> Result<i64, String>;
+}
+
+static TOUCHES: RwLock<Option<Arc<dyn Touches>>> = RwLock::new(None);
+
+/// Fill the touches seam of `runs` (a later call replaces the earlier one, which tests use).
+pub fn set_touches(touches: Option<Arc<dyn Touches>>) {
+    *TOUCHES.write().unwrap_or_else(|e| e.into_inner()) = touches;
+}
+
+/// The touches seam of `runs`, when `touches` has been ported and registered.
+pub fn touches() -> Option<Arc<dyn Touches>> {
+    TOUCHES.read().unwrap_or_else(|e| e.into_inner()).clone()
+}
+
+/// `touches.carry_answer(question_json, answer)`: through the slot when `touches` is registered. Until then the
+/// function itself, as it is in `services/ai/touches.py` (it only reads its two arguments, and what it returns is
+/// stored in the run's question, so no run may go without it): the answered questions of a run to keep when it asks
+/// a new one (a run holds one question; the earlier ones, with their answers, move to `previous` so each answer
+/// stays a touch).
+pub fn carry_answer(question_json: Option<&str>, answer: Option<&str>) -> Vec<Value> {
+    if let Some(touches) = touches() {
+        return touches.carry_answer(question_json, answer);
+    }
+    let old = match kb_ai::store::loads(question_json, serde_json::json!({})) {
+        Value::Object(map) => map,
+        _ => Map::new(),
+    };
+    let mut previous: Vec<Value> = match old.get("previous") {
+        Some(Value::Array(items)) => items.clone(),
+        _ => Vec::new(),
+    };
+    let answered_at = old.get("answered_at").filter(|v| kb_base::pyjson::truthy(v));
+    if let (Some(answer), Some(answered_at)) = (answer.filter(|a| !a.is_empty()), answered_at) {
+        previous.push(serde_json::json!({
+            "text": old.get("text").cloned().unwrap_or_else(|| serde_json::json!("")),
+            "answer": answer,
+            "answered_at": answered_at,
+            "answered_by": old.get("answered_by").cloned().unwrap_or(Value::Null),
+        }));
+    }
+    let from = previous.len().saturating_sub(20);
+    previous.split_off(from)
+}
+
+/// What `runs` asks of `services/ai/compact.py`.
+pub trait Compact: Send + Sync {
+    /// `compact.after_run(ticket_id, run_id)`: a run ended; compact the lead's conversation now when someone asked
+    /// for it while the run worked (started in the background).
+    fn after_run(&self, ticket_id: &str, run_id: &str);
+}
+
+static COMPACT: RwLock<Option<Arc<dyn Compact>>> = RwLock::new(None);
+
+/// Fill the compact seam of `runs` (a later call replaces the earlier one, which tests use).
+pub fn set_compact(compact: Option<Arc<dyn Compact>>) {
+    *COMPACT.write().unwrap_or_else(|e| e.into_inner()) = compact;
+}
+
+/// The compact seam of `runs`, when `compact` has been ported and registered.
+pub fn compact() -> Option<Arc<dyn Compact>> {
+    COMPACT.read().unwrap_or_else(|e| e.into_inner()).clone()
+}
+
+/// What `messaging.deliver_to_page` asks of Docs comments, the assistant and the Docs AI jobs (late imports there).
+#[async_trait]
+pub trait PageNotes: Send + Sync {
+    /// `docs_comments.create_thread(session, page_id, kind="page", body=text)`: the thread as a dict (`id`, and
+    /// `project_id` when it has one). The error is the text of the exception.
+    async fn create_thread(&self, session: &Session, page_id: &str, body: &str) -> Result<Map<String, Value>, String>;
+    /// `assistant_docs.docs_ai_on(session, project_id)`: whether the Docs assistant is on for the project.
+    async fn docs_ai_on(&self, session: &Session, project_id: &str) -> Result<bool, DbErr>;
+    /// `(await engine.ready(project_id))["state"]`.
+    async fn ready_state(&self, project_id: &str) -> Result<String, String>;
+    /// `jobs.start(session, project_id=, kind="thread_reply", started_by=by, page_id=, thread_id=,
+    /// instruction=text[:300], result={"input": {"depth": depth}})`: the id of the job.
+    async fn start_thread_reply(
+        &self,
+        session: &Session,
+        project_id: &str,
+        by: &str,
+        page_id: &str,
+        thread_id: &str,
+        instruction: &str,
+        depth: i64,
+    ) -> Result<String, String>;
+}
+
+static PAGE_NOTES: RwLock<Option<Arc<dyn PageNotes>>> = RwLock::new(None);
+
+/// Fill the page seam of `messaging` (a later call replaces the earlier one, which tests use).
+pub fn set_page_notes(notes: Option<Arc<dyn PageNotes>>) {
+    *PAGE_NOTES.write().unwrap_or_else(|e| e.into_inner()) = notes;
+}
+
+/// The page seam of `messaging`, when Docs comments and the assistant have been ported and registered.
+pub fn page_notes() -> Option<Arc<dyn PageNotes>> {
+    PAGE_NOTES.read().unwrap_or_else(|e| e.into_inner()).clone()
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Filled by `runs` and `messaging` for this crate and the crates below
+// ---------------------------------------------------------------------------------------------------------------
+
+/// `RunProcs` and `Runs` as `runs` backs them (`runs.RT.procs`, `runs.RT.tasks`, `runs.cancel`, `runs.RT.wake`).
+pub struct RunsSeam;
+
+impl RunProcs for RunsSeam {
+    fn proc_alive(&self, run_id: &str) -> Option<bool> {
+        crate::runs::RT.proc(run_id).map(|proc| proc.running())
+    }
+
+    fn kill_proc(&self, run_id: &str) {
+        if let Some(proc) = crate::runs::RT.proc(run_id) {
+            proc.kill();
+        }
+    }
+
+    fn has_task(&self, run_id: &str) -> bool {
+        crate::runs::RT.has_task(run_id)
+    }
+}
+
+#[async_trait]
+impl Runs for RunsSeam {
+    async fn cancel(&self, run_id: &str, by: &str, reason: &str) -> Result<(), CancelError> {
+        match crate::runs::cancel(run_id, by, Some(reason), None, false).await {
+            Ok(_) => Ok(()),
+            Err(err) if err.is_run_error() => Err(CancelError::Run(err.to_string())),
+            Err(err) => Err(CancelError::Other(err.to_string())),
+        }
+    }
+
+    fn wake(&self) {
+        crate::runs::RT.wake.set();
+    }
+}
+
+/// `kb_ai::seams::TicketRuns` as `runs` backs it. `on_status` is `worktrees.on_status` (what `kb_ai_work::register()`
+/// installs), called directly, so the result is the same whichever of the two crates registers first: this object
+/// never asks an earlier one, and `kb_ai_work`'s hands the three run calls to whatever was there before it.
+pub struct TicketSeam;
+
+fn api_error(err: crate::runs::RunError) -> kb_base::ApiError {
+    match err {
+        crate::runs::RunError::Db(err) => err.into(),
+        other => kb_base::ApiError::internal(other),
+    }
+}
+
+#[async_trait]
+impl kb_ai::seams::TicketRuns for TicketSeam {
+    async fn before_ticket_change(
+        &self,
+        ticket_id: &str,
+        status: Option<&str>,
+        assignee: kb_board::hooks::NewAssignee<'_>,
+        deleting: bool,
+        by: &str,
+    ) -> kb_base::ApiResult<()> {
+        let by = Some(by).filter(|b| !b.is_empty());
+        crate::runs::before_ticket_change(ticket_id, status, assignee, deleting, by).await.map_err(api_error)
+    }
+
+    async fn note_person_edit(&self, ticket_id: &str, by: &str, what: &str, tell_lead: bool) -> kb_base::ApiResult<()> {
+        let by = Some(by).filter(|b| !b.is_empty());
+        crate::runs::note_person_edit(ticket_id, by, what, tell_lead).await.map_err(api_error)
+    }
+
+    async fn wake_new_assignee(&self, ticket_id: &str, assignee_id: &str, by: &str) -> kb_base::ApiResult<()> {
+        let by = Some(by).filter(|b| !b.is_empty());
+        crate::runs::wake_new_assignee(ticket_id, Some(assignee_id), by, "").await.map(|_| ()).map_err(api_error)
+    }
+
+    fn on_status(&self, ticket_id: &str, status: &str, previous: &str, by_ai: bool) {
+        kb_ai_work::worktrees::on_status(ticket_id, status, previous, by_ai);
+    }
+}
+
+/// `kb_ai_work::seams::Runs` as `runs` backs it (`runs.deliver_to_ticket` for the GitHub watcher).
+pub struct WorkRuns;
+
+#[async_trait]
+impl kb_ai_work::seams::Runs for WorkRuns {
+    async fn deliver_to_ticket(&self, ticket_id: &str, text: &str, by: &str, trigger: &str) -> Result<Value, String> {
+        crate::runs::deliver_to_ticket(ticket_id, text, by, trigger, 0)
+            .await
+            .map(Value::Object)
+            .map_err(|err| err.to_string())
+    }
+}
+
+/// `kb_draw::hooks::CanvasDelivery` as `messaging` backs it. `docs_ai_on` belongs to the assistant: it answers
+/// through the `PageNotes` slot, and "off" until the assistant fills it (what the canvas code did with no hook).
+pub struct CanvasNotes;
+
+fn deliver_error(err: crate::runs::RunError) -> kb_draw::hooks::DeliverError {
+    use kb_draw::hooks::DeliverError;
+    if err.is_run_error() {
+        DeliverError::Run(err.to_string())
+    } else if err.is_value_error() {
+        DeliverError::Value(err.to_string())
+    } else {
+        DeliverError::Other(err.to_string())
+    }
+}
+
+#[async_trait]
+impl kb_draw::hooks::CanvasDelivery for CanvasNotes {
+    async fn docs_ai_on(&self, session: &Session, project_id: &str) -> kb_draw::Result<bool> {
+        match page_notes() {
+            Some(notes) => Ok(notes.docs_ai_on(session, project_id).await?),
+            None => Ok(false),
+        }
+    }
+
+    async fn deliver_to_ticket(
+        &self,
+        ticket_id: &str,
+        note: &str,
+        by: &str,
+        trigger: &str,
+        depth: i32,
+    ) -> Result<(), kb_draw::hooks::DeliverError> {
+        crate::messaging::deliver_to_ticket(ticket_id, note, by, trigger, i64::from(depth))
+            .await
+            .map(|_| ())
+            .map_err(deliver_error)
+    }
+
+    async fn deliver_to_page(
+        &self,
+        page_id: &str,
+        note: &str,
+        by: &str,
+        depth: i32,
+    ) -> Result<Option<String>, kb_draw::hooks::DeliverError> {
+        crate::messaging::deliver_to_page(page_id, note, by, i64::from(depth))
+            .await
+            .map(|out| out.get("delivered").and_then(Value::as_str).map(str::to_string))
+            .map_err(deliver_error)
     }
 }

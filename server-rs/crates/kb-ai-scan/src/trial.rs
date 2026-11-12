@@ -1,6 +1,6 @@
-//! 3. **Try**: the prepare and test commands run once in a scratch worktree; a command that fails is shown failing
-//! (`repo_scan.py` lines 441-655: `COMMANDS`, `CHECKS`, `_WRONG`, `classify`, `_why_wrong`, `_Scratch`, `_run_one`,
-//! `try_commands`, `_try`).
+//! Step 3, **try** (`repo_scan.py` lines 441-655: `COMMANDS`, `CHECKS`, `_WRONG`, `classify`, `_why_wrong`, `_Scratch`,
+//! `_run_one`, `try_commands`, `_try`): the prepare and test commands run once in a scratch worktree; a command that
+//! fails is shown failing.
 //!
 //! A command found in a repository is run through the shell as Python's `asyncio.create_subprocess_shell` does it
 //! (`/bin/sh -c`; `cmd /C` on Windows), in a folder of its own with the project's environment, its output (standard
@@ -14,8 +14,8 @@ use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
 use kb_ai_run::cli;
-use kb_ai_work::project_env;
 use kb_ai_work::proc::{self, Spec};
+use kb_ai_work::project_env;
 use kb_base::pytext;
 use regex::Regex;
 use serde_json::{Map, Value, json};
@@ -294,7 +294,7 @@ async fn read_lines(
     on_line: Option<&(dyn Fn(&str) + Send + Sync)>,
 ) -> Result<(), Error> {
     let mut pending: Vec<u8> = Vec::new();
-    let mut take = |raw: &[u8], lines: &mut Vec<String>| {
+    let take = |raw: &[u8], lines: &mut Vec<String>| {
         let line = String::from_utf8_lossy(raw).trim_end_matches(pytext::is_space).to_string();
         lines.push(line.clone());
         if lines.len() > 2000 {
@@ -364,7 +364,6 @@ pub async fn run_one(
             () = stop => Ended::Cancelled,
         }
     };
-    let timed_out = matches!(ended, Ended::TimedOut);
     let status = match ended {
         Ended::Exited(status) => status.map_err(|e| os_error(&e, cmd))?,
         other => {
@@ -378,7 +377,6 @@ pub async fn run_one(
             }
         }
     };
-    let _ = timed_out;
     Ok(finish(cmd, &lines, Some(returncode(status)), false, timeout, started))
 }
 

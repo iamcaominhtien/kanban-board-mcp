@@ -25,6 +25,9 @@ pub enum AskError {
     Cancelled,
 }
 
+/// What gets each thing the AI does (`on_line`).
+pub type OnLine<'a> = dyn Fn(&str) + Send + Sync + 'a;
+
 /// What the scan asks of the models.
 #[async_trait]
 pub trait Asker: Send + Sync {
@@ -38,7 +41,7 @@ pub trait Asker: Send + Sync {
         prompt: &str,
         cwd: &str,
         account: Option<&ai_account::Model>,
-        on_line: &(dyn Fn(&str) + Send + Sync),
+        on_line: &OnLine<'_>,
         cancel: &Cancel,
     ) -> Result<Option<String>, AskError>;
 
@@ -61,7 +64,7 @@ impl Asker for Real {
         prompt: &str,
         cwd: &str,
         account: Option<&ai_account::Model>,
-        on_line: &(dyn Fn(&str) + Send + Sync),
+        on_line: &OnLine<'_>,
         cancel: &Cancel,
     ) -> Result<Option<String>, AskError> {
         crate::job::ask_ai_real(prompt, cwd, account, on_line, cancel).await

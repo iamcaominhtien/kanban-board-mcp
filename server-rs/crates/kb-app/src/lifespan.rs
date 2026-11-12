@@ -24,7 +24,10 @@ pub async fn startup() -> Result<Running, DatabaseError> {
     let sweeper = tokio::spawn(kb_board::workspace::sweep_loop());
     let db_watcher =
         tokio::spawn(database::watch_database(None, Duration::from_millis(400), Duration::from_millis(150)));
-    // (the AI run scheduler, the Docs AI and assistant recovery and the AI schedules start here once ported)
+    // the AI runs: recover what the last start left and start the scheduler (or, with KANBAN_RUNNER=process, the
+    // runner process, which does both)
+    kb_ai_run::runs::start_scheduler().await.map_err(DatabaseError::from)?;
+    // (the Docs AI and assistant recovery and the AI schedules start here once ported)
     kb_notify::start();
     kb_ai_work::github::start();
     Ok(Running { follow, sweeper, db_watcher })
@@ -35,6 +38,9 @@ pub async fn shutdown(running: Running) {
     kb_ai_work::github::stop().await;
     // (the repository rescan stops here once ported)
     kb_notify::stop().await;
+    // (the AI schedules stop here once ported)
+    // No CLI process outlives the board: cancel the AI runs and kill their process trees
+    kb_ai_run::runs::stop_scheduler().await;
     running.sweeper.abort();
     running.db_watcher.abort();
     running.follow.abort();
@@ -63,4 +69,16 @@ pub async fn stop_signal() {
         () = ctrl_c => {}
         () = terminate => {}
     }
+}
+
+/// The runner process (`kanban-server --runner`, `runner/main.py`): the hooks between the areas and the database
+/// pool as in the server, then the runner itself; it never brings the database up to date (the API did before it
+/// started the runner). Returns the exit code of the process.
+pub async fn runner() -> i32 {
+    crate::hooks::install();
+    if let Err(err) = database::setup().await {
+        tracing::error!(target: "kanban.runner", "The AI runner cannot open the database: {err}");
+        return 1;
+    }
+    kb_ai_run::runner::main().await
 }

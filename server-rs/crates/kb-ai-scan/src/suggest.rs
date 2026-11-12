@@ -1,9 +1,9 @@
 //! What the scan proposes (`repo_scan.py` lines 299-438: `_dir`, `_npm`, `_py`, `_pkg_cmd`, `_ROLE_NAMES`, `_wanted`,
 //! `suggest`).
 //!
-//! 2. **Suggest**: test, lint and build commands, the prepare command for a worktree, a port, the team (the usual
-//!    roles, plus a Designer and a User tester when there is a UI), the plugins of the catalogue for those roles, and
-//!    the hand-over route. A person changes any of it before anything is created.
+//! Step 2, **suggest**: test, lint and build commands, the prepare command for a worktree, a port, the team (the usual
+//! roles, plus a Designer and a User tester when there is a UI), the plugins of the catalogue for those roles, and the
+//! hand-over route. A person changes any of it before anything is created.
 
 use std::sync::LazyLock;
 
@@ -136,8 +136,7 @@ fn is_test_command(low: &str) -> bool {
 
 /// `re.search(r"\b(lint|ruff|eslint)\b", low)`
 fn is_lint_command(low: &str) -> bool {
-    static LINT: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"\b(lint|ruff|eslint)\b").expect("a fixed pattern"));
+    static LINT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b(lint|ruff|eslint)\b").expect("a fixed pattern"));
     LINT.is_match(low)
 }
 
@@ -228,8 +227,7 @@ pub fn suggest(found: &Value) -> Result<Value, Error> {
         roles.insert(3, "designer");
         roles.push("user_tester");
     }
-    let team: Vec<Value> =
-        roles.iter().map(|r| json!({"pack": r, "name": role_name(r).unwrap_or_default()})).collect();
+    let team: Vec<Value> = roles.iter().map(|r| json!({"pack": r, "name": role_name(r).unwrap_or_default()})).collect();
     let suggested_plugins: Vec<Value> = CATALOGUE
         .iter()
         .filter(|c| {

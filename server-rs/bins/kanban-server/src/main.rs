@@ -1,7 +1,8 @@
 //! The board's HTTP server: REST, the event stream and MCP over HTTP. The desktop app starts it, reads the
 //! `READY port=N` line from its standard output and writes the API secret to its standard input.
 //!
-//! `--routes` prints the table of REST routes as JSON and exits (the route coverage check reads it).
+//! `--routes` prints the table of REST routes as JSON and exits (the route coverage check reads it). `--runner` is
+//! the runner process of the AI team instead of the server (the API starts it with `KANBAN_RUNNER=process`).
 
 use std::net::{Ipv4Addr, SocketAddr};
 use std::time::Instant;
@@ -21,6 +22,19 @@ fn main() -> std::process::ExitCode {
             table.into_iter().map(|(method, path)| serde_json::json!({"method": method, "path": path})).collect();
         println!("{}", serde_json::Value::Array(table));
         return std::process::ExitCode::SUCCESS;
+    }
+    if args.iter().any(|a| a == "--runner") {
+        // `main.py --runner`: checked before anything of the server starts
+        kb_log::setup_logging(false);
+        let runtime = match tokio::runtime::Builder::new_multi_thread().enable_all().build() {
+            Ok(runtime) => runtime,
+            Err(err) => {
+                eprintln!("Cannot start the runtime: {err}");
+                return std::process::ExitCode::FAILURE;
+            }
+        };
+        let code = runtime.block_on(kb_app::lifespan::runner());
+        return std::process::ExitCode::from(u8::try_from(code).unwrap_or(1));
     }
     kb_base::api_secret::init();
     if std::env::var("KANBAN_RUNNER").unwrap_or_default().is_empty() {

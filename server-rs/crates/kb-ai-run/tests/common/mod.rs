@@ -23,6 +23,8 @@
 //! `Cancels` (a `seams::Runs` that records what `teams` asks of the runs).
 #![allow(dead_code)]
 
+pub mod runs_env;
+
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 

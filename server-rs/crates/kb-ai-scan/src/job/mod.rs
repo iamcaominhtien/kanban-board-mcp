@@ -25,15 +25,15 @@ use tokio::sync::watch;
 
 use crate::Error;
 use crate::cancel::Cancel;
-use crate::seams;
 
 mod ai;
 mod body;
 
-pub use ai::{
-    ai_prompt, ai_status, ai_status_real, ask_ai_real, code_proposal, describe_tool, parse_proposal, AI_PROMPT_TEMPLATE,
-};
 pub use crate::trial::COMMANDS;
+pub use ai::{
+    AI_PROMPT_TEMPLATE, ai_prompt, ai_status, ai_status_real, ask_ai_real, code_proposal, describe_tool,
+    forget_ai_status, parse_proposal,
+};
 
 /// `JOB_LIMIT_S`: a job is stopped after this many seconds.
 pub const JOB_LIMIT_S: u64 = 10 * 60;
@@ -397,9 +397,4 @@ pub async fn cancel_job(session: &Session, scan_id: &str) -> Result<ai_repo_scan
     }
     let fresh = ai_repo_scan::Entity::find_by_id(scan_id).one(session).await?;
     fresh.ok_or_else(|| Error::Lookup("Scan not found.".into()))
-}
-
-/// The calls to the models go through `seams::asker()`.
-pub(crate) fn asker() -> Arc<dyn seams::Asker> {
-    seams::asker()
 }

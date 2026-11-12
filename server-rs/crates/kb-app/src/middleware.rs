@@ -81,7 +81,7 @@ pub async fn record_activity_actor(request: Request, next: Next) -> Response {
     if let Some(ConnectInfo(LocalAddr(server))) = request.extensions().get::<ConnectInfo<LocalAddr>>() {
         if server.ip().is_loopback() {
             // A local runner's CLI reaches the board's MCP server on the same socket
-            // ai_runs.set_board_url: wired when kb-ai is ported
+            kb_ai_run::runs::set_board_url(&format!("http://127.0.0.1:{}", server.port()));
             drawio_bundle::set_origin(&server.ip().to_string(), server.port());
         }
     }

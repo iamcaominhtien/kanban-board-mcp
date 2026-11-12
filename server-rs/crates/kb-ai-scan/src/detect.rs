@@ -1,9 +1,8 @@
-//! Scan by code, no quota: what the repository is, read from its files (`repo_scan.py` lines 37-296: `TRIAL_TIMEOUT_S`,
-//! `_FP_NAMES`, `_CI_HINT`, `_ci_commands`, `fingerprint`, `_committed`, `_in_worktree`, `_hidden`, `scan`).
-//!
-//! 1. **Scan by code, no quota**: `package.json` scripts and frameworks, `pyproject.toml`/`uv.lock`, `go.mod`,
-//!    `Cargo.toml`, `Makefile`, a `Dockerfile`, the CI workflows (the commands CI really runs win over the README),
-//!    `CLAUDE.md`/`AGENTS.md`, an existing `.claude/`, a monorepo, test folders, a web UI, the git remote.
+//! Step 1, **scan by code, no quota**: what the repository is, read from its files (`repo_scan.py` lines 37-296:
+//! `TRIAL_TIMEOUT_S`, `_FP_NAMES`, `_CI_HINT`, `_ci_commands`, `fingerprint`, `_committed`, `_in_worktree`, `_hidden`,
+//! `scan`): `package.json` scripts and frameworks, `pyproject.toml`/`uv.lock`, `go.mod`, `Cargo.toml`, `Makefile`, a
+//! `Dockerfile`, the CI workflows (the commands CI really runs win over the README), `CLAUDE.md`/`AGENTS.md`, an
+//! existing `.claude/`, a monorepo, test folders, a web UI, the git remote.
 //!
 //! The result is shown to people and fed to the AI: every key, label and its order is the Python one.
 
@@ -54,8 +53,7 @@ static CI_HINT: LazyLock<Regex> = LazyLock::new(|| {
 /// `fnmatch("*.y*ml")` (case-sensitive, as `pathlib` matches on Linux and macOS' default).
 static WORKFLOW_NAME: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?s)^.*\.y.*ml$").expect("a fixed pattern"));
 
-static MAKE_TARGET: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?m)^([a-zA-Z][\w-]*):").expect("a fixed pattern"));
+static MAKE_TARGET: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?m)^([a-zA-Z][\w-]*):").expect("a fixed pattern"));
 
 static URL_USER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"//[^@/]+@").expect("a fixed pattern"));
 
@@ -284,13 +282,9 @@ fn read_repository(root: &Path, shown: &str, committed: &Option<HashSet<String>>
             push_unique(list, "python");
         }
     }
-    for (name, lang) in [
-        ("go.mod", "go"),
-        ("Cargo.toml", "rust"),
-        ("Gemfile", "ruby"),
-        ("pom.xml", "java"),
-        ("build.gradle", "java"),
-    ] {
+    for (name, lang) in
+        [("go.mod", "go"), ("Cargo.toml", "rust"), ("Gemfile", "ruby"), ("pom.xml", "java"), ("build.gradle", "java")]
+    {
         if root.join(name).exists() {
             if let Some(list) = found.get_mut("languages") {
                 push_unique(list, lang);
@@ -298,11 +292,7 @@ fn read_repository(root: &Path, shown: &str, committed: &Option<HashSet<String>>
         }
     }
     let targets: Vec<Value> = if root.join("Makefile").exists() {
-        MAKE_TARGET
-            .captures_iter(&pyfs::read_default(&root.join("Makefile")))
-            .take(20)
-            .map(|c| json!(&c[1]))
-            .collect()
+        MAKE_TARGET.captures_iter(&pyfs::read_default(&root.join("Makefile"))).take(20).map(|c| json!(&c[1])).collect()
     } else {
         Vec::new()
     };

@@ -12,11 +12,22 @@ workspace = true
 [dependencies]
 kb-base = { workspace = true }
 kb-db = { workspace = true }
+kb-board = { workspace = true }
+kb-ai = { workspace = true }
+kb-ai-know = { workspace = true }
+kb-ai-run = { workspace = true }
+kb-dbkit = { workspace = true }
+async-trait = { workspace = true }
 axum = { workspace = true }
+chrono = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sha1 = "0.10"
+thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]
-testkit = { workspace = true }
+fake-claude = { path = "../fake-claude" }
+sha2 = "0.10"
+tempfile = "3"

@@ -58,6 +58,19 @@ pub fn get<'a>(value: &'a Value, key: &str) -> Result<Option<&'a Value>, Error> 
     }
 }
 
+/// `for x in value` for what a file or a model put in a list's place: a list, but also a text (its characters) or an
+/// object (its keys); a value that is not there or is false is an empty loop (`value or []`); anything else is the
+/// `TypeError`.
+pub fn py_iter(value: Option<&Value>) -> Result<Vec<Value>, Error> {
+    let Some(value) = value.filter(|v| kb_base::pyjson::truthy(v)) else { return Ok(Vec::new()) };
+    match value {
+        Value::Array(items) => Ok(items.clone()),
+        Value::String(s) => Ok(s.chars().map(|c| Value::String(c.to_string())).collect()),
+        Value::Object(map) => Ok(map.keys().map(|k| Value::String(k.clone())).collect()),
+        other => Err(Error::Other(format!("'{}' object is not iterable", type_name(other)))),
+    }
+}
+
 /// `{**value}` of a value that is not None / empty: only a dict is a mapping (the `TypeError` otherwise).
 pub fn mapping(value: &Value) -> Result<Map<String, Value>, Error> {
     match value {

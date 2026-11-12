@@ -14,12 +14,17 @@ kb-base = { workspace = true }
 kb-db = { workspace = true }
 kb-ai = { workspace = true }
 kb-ai-know = { workspace = true }
+kb-ai-work = { workspace = true }
 kb-board = { workspace = true }
+kb-draw = { workspace = true }
+kb-notify = { workspace = true }
 async-trait = { workspace = true }
 chrono = { workspace = true }
 chrono-tz = { workspace = true }
 portable-pty = "0.9"
 regex = { workspace = true }
+# the runner process posts the board's events to the API (`runner/main.py`'s httpx client)
+reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sysinfo = { version = "0.37", default-features = false, features = ["system"] }

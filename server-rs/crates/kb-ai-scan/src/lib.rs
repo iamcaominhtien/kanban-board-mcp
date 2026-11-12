@@ -43,7 +43,7 @@ pub use job::{
     start_job,
 };
 pub use refine::{REFINE_PROMPT, parse_refined, refine_suggestion};
-pub use rows::{latest, rescan_if_changed, sweep, to_api, to_dict};
+pub use rows::{job_view, latest, rescan_if_changed, sweep, to_api, to_dict};
 pub use run::run_scan;
 pub use suggest::suggest;
 pub use trial::{CHECKS, classify, try_, try_commands, why_wrong};
