@@ -22,16 +22,18 @@
 //! `runs` (part 2b) fills `RunProcs` and `Runs` (`RunsSeam`), `kb_ai::seams::TicketRuns` (`TicketSeam`),
 //! `kb_ai_work::seams::Runs` (`WorkRuns`) and `kb_draw::hooks::CanvasDelivery` (`CanvasNotes`): see `register()`.
 //!
-//! `kb_ai::seams::RunsRuntime` is one trait with four calls: `looks_like_cli` belongs to `cli` (ported here), the
-//! other three to `runs` (not yet). `register()` of this crate fills the whole trait with `Runtime`, which answers
-//! `looks_like_cli` itself and hands the three others to the `RunProcs` slot below; `runs` then only calls
-//! `set_run_procs`.
+//! `kb_ai::seams::RunsRuntime` is one trait with four calls: `looks_like_cli` belongs to `cli`, the other three to
+//! `runs`. `register()` of this crate fills the whole trait with `Runtime`, which answers `looks_like_cli` itself
+//! and hands the three others to the `RunProcs` slot below.
 //!
 //! Filled here for the crates below: `kb_ai_know::seams::Cli` with `KnowCli` (`cli.find_cli`, `cli.child_env`,
 //! `cli.kill_tree`, `accounts.env_for`), and `kb_board::hooks::AiTeamsHook` with `TeamNames` (`teams.check_name`).
 //!
-//! Not seams, but set by `runs` when it is ported: `resources::MON.set_on_breach` and `set_on_child_breach` (Python
-//! assigns `resources.MON.on_breach` and `on_child_breach`).
+//! Not a seam, but set in `register()`: `resources::MON.set_on_breach` (Python assigns `resources.MON.on_breach`).
+//!
+//! Until `kb-assist` fills `Assistant` (`set_assistant`): `session_history::start_over` closes a conversation with
+//! the digest of its runs as the summary (what Python does when the assistant fails), and `schedules::dry_run`
+//! fails.
 //!
 //! `launch` needs nothing of `worktrees`: the folder a run works in (`cwd`) and the ticket's Workspace are arguments
 //! of `launch::prepare`, which `runs` gives.

@@ -41,5 +41,8 @@ async fn register_fills_the_cli_seam_of_the_knowledge_crate() {
 #[test]
 fn the_slots_for_later_modules_start_empty() {
     assert!(seams::run_procs().is_none());
+    // (`session_history` is called directly; its slot is for a test that replaces it)
     assert!(seams::session_history().is_none());
+    // the assistant lives in a crate above: `kb-assist` fills the slot
+    assert!(seams::assistant().is_none());
 }

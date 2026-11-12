@@ -51,6 +51,10 @@ pub mod touches;
 /// - `kb_ai_work::seams::Runs` (`runs.deliver_to_ticket` for the GitHub watcher);
 /// - `kb_draw::hooks::CanvasDelivery` (`messaging.deliver_to_ticket`, `messaging.deliver_to_page`);
 /// - `resources::MON.set_on_breach` (`resources.MON.on_breach = _memory_breach`; Python sets no `on_child_breach`).
+///
+/// The modules of part 3 need nothing registered: `runs` and `launch` call `touches`, `compact` and
+/// `session_history` directly. What they ask of the board's assistant (`seams::Assistant`: the summary of
+/// `session_history::start_over`, the plan of `schedules::dry_run`) is filled by `kb-assist`, above this crate.
 pub fn register() {
     use std::sync::Arc;
     kb_ai::seams::set_runs_runtime(Some(Arc::new(seams::Runtime)));
