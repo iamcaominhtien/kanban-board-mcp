@@ -26,6 +26,9 @@ function jsonDiff(a, b, p = '$', out = []) {
   return out;
 }
 
+// Differences that are by design and carry no meaning for parity.
+const IGNORE_BODY = new Set(['GET /version']); // the two servers report their own release number
+
 const key = (e) => `${e.method} ${e.path.split('?')[0]}`;
 const short = (v) => { const s = typeof v === 'string' ? JSON.stringify(v) : JSON.stringify(v); return s && s.length > 160 ? s.slice(0, 157) + '...' : s; };
 
@@ -44,7 +47,8 @@ export function compareStep(a, b) {
   if (!a || !b) return [{ kind: 'step', msg: `step exists only on ${a ? 'python' : 'rust'}` }];
   if (!!a.error !== !!b.error) diffs.push({ kind: 'failure', msg: `step ${a.error ? 'failed on python' : 'failed on rust'}: ${a.error || b.error}` });
   // requests
-  const ga = groupEx(a.exchanges.filter((e) => !e.spa)), gb = groupEx(b.exchanges.filter((e) => !e.spa));
+  const spaKeys = new Set(b.exchanges.filter((e) => e.spa).map(key));
+  const ga = groupEx(a.exchanges.filter((e) => !spaKeys.has(key(e)))), gb = groupEx(b.exchanges.filter((e) => !e.spa));
   for (const k of new Set([...ga.keys(), ...gb.keys()])) {
     const xa = ga.get(k), xb = gb.get(k);
     if (!xa) { diffs.push({ kind: 'request missing on python', msg: `${k} (rust: ${xb.map((e) => e.status).join(',')})` }); continue; }
@@ -57,7 +61,7 @@ export function compareStep(a, b) {
     if (onlyA.length || onlyB.length) diffs.push({ kind: 'query', msg: `${k}: python ${onlyA.join(' ')} / rust ${onlyB.join(' ')}` });
     const mutating = a.exchanges.length && !['GET', 'HEAD'].includes(xa[0].method);
     const pa = mutating ? xa[0] : xa[xa.length - 1], pb = mutating ? xb[0] : xb[xb.length - 1];
-    if (pa.body !== undefined || pb.body !== undefined) {
+    if (!IGNORE_BODY.has(k) && (pa.body !== undefined || pb.body !== undefined)) {
       const d = jsonDiff(pa.body, pb.body);
       if (d.length) diffs.push({ kind: 'body', msg: `${k}`, detail: d });
     }

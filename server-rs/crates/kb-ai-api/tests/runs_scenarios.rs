@@ -333,9 +333,8 @@ fn rows_of(dump: &Value, tidy: &mut Tidy) -> Value {
             for (measured_table, columns) in MEASURED {
                 if measured_table == table {
                     for column in columns {
-                        if !row[*column].is_null() {
-                            row[*column] = json!("<measured>");
-                        }
+                        // (also when there is none: a CLI that ends within two seconds may never be read)
+                        row[*column] = json!("<measured>");
                     }
                 }
             }
@@ -375,6 +374,8 @@ fn events_of(typed: &[Value], dump: &Value, tidy: &mut Tidy) -> Value {
                     list.push(json!([step["seq"], step["kind"], step["agent_id"], step["title"]]));
                 }
             }
+            // the monitor's readings come every two seconds while a CLI runs: none for a short run
+            "ai.resources" => continue,
             _ => {}
         }
         kinds.insert(kind);
@@ -412,6 +413,13 @@ fn differences(path: &str, want: &Value, got: &Value, out: &mut Vec<String>) {
             for (i, (x, y)) in a.iter().zip(b).enumerate() {
                 differences(&format!("{path}[{i}]"), x, y, out);
             }
+        }
+        (Value::String(a), Value::String(b)) if a != b => {
+            // a long text: from a little before where the two part
+            let (x, y): (Vec<char>, Vec<char>) = (a.chars().collect(), b.chars().collect());
+            let at = x.iter().zip(&y).position(|(p, q)| p != q).unwrap_or(x.len().min(y.len()));
+            let part = |t: &[char]| t[at.saturating_sub(80)..(at + 240).min(t.len())].iter().collect::<String>();
+            out.push(format!("{path} (at character {at})\n    python: …{}\n    here:   …{}", part(&x), part(&y)));
         }
         _ if want != got => out.push(format!("{path}\n    python: {want}\n    here:   {got}")),
         _ => {}
@@ -510,7 +518,11 @@ async fn asks_a_question(mode: &str) {
     }
     let _turn = turn();
     let f = folders();
-    let b = start(&f, mode, &[("FAKE_CLAUDE_MODE", "v2_ask")], None).await;
+    // The lead takes a few seconds for each turn (it waits that long for a message before it asks): the board's
+    // notification centre closes the answered question in its own loop, and a lead that asked again at once would
+    // race it (the second question then lands before or after the first one's row is closed).
+    let fake = [("FAKE_CLAUDE_MODE", "v2_ask"), ("FAKE_CLAUDE_V2_WAIT_MESSAGE", "1"), ("FAKE_CLAUDE_WAIT", "3")];
+    let b = start(&f, mode, &fake, None).await;
     let (pid, team_id, _) = team_on_an_account(&b, json!({})).await;
     let tid = ticket(&b.c, &pid, "Fix add()", "todo").await;
     let mut heard = Heard::open(&b).await;

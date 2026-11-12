@@ -10,6 +10,7 @@ const STEP_TIMEOUT_MS = 60_000;
 export class Session {
   constructor({ browser, server, scenario, reportDir, apiFallback404 = false }) {
     this.apiFallback404 = apiFallback404;
+    this.spaUrls = new Set();
     this.browser = browser;
     this.server = server;
     this.scenario = scenario;
@@ -44,6 +45,7 @@ export class Session {
         let res;
         try { res = await route.fetch(); } catch { return route.abort(); }
         if ((res.headers()['content-type'] || '').includes('text/html')) {
+          this.spaUrls.add(req.url());
           return route.fulfill({ status: 404, contentType: 'application/json', headers: { 'x-e2e-spa-fallback': '1' }, body: '{"detail":"Not Found"}' });
         }
         return route.fulfill({ response: res });
@@ -100,6 +102,7 @@ export class Session {
       if (msg.type() !== 'error') return;
       const t = msg.text();
       if (/Failed to load resource/.test(t) && /\/events/.test(msg.location()?.url || '')) return;
+      if (/Failed to load resource/.test(t) && this.spaUrls.has(msg.location()?.url)) return;
       this.cur?.console.push(this.norm.text(t));
     });
     page.on('pageerror', (e) => this.cur?.pageErrors.push(this.norm.text(String(e.message || e))));
