@@ -357,7 +357,8 @@ pub async fn prepare(
         }
     }
     plugin_dirs.extend(project_plugin_dirs);
-    let account_id = [run.account_id.as_deref(), profile.account_id.as_deref()].into_iter().flatten().find(|id| !id.is_empty());
+    let account_id =
+        [run.account_id.as_deref(), profile.account_id.as_deref()].into_iter().flatten().find(|id| !id.is_empty());
     let account = match account_id {
         Some(id) => ai_account::Entity::find_by_id(id).one(session).await?,
         None => None,

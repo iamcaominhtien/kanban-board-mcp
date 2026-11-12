@@ -205,7 +205,8 @@ fn args_of(kw: &Value) -> Vec<String> {
 
 fn same_args(got: &[String], want: &Value, blobs: &Value, what: &str) {
     let want = want.as_array().expect("args");
-    let flags = |args: &[String]| args.iter().filter(|a| a.starts_with("--") || *a == "-p").cloned().collect::<Vec<_>>();
+    let flags =
+        |args: &[String]| args.iter().filter(|a| a.starts_with("--") || *a == "-p").cloned().collect::<Vec<_>>();
     assert_eq!(got.len(), want.len(), "{what}: {:?}", flags(got));
     for (i, (g, w)) in got.iter().zip(want).enumerate() {
         common::same_text(&shown(g), w, blobs, &format!("{what}: argument {i}"));

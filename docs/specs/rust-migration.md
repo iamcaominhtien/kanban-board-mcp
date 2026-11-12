@@ -181,8 +181,8 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
       lifespan)
 - [~] `kb-ai-scan`: repo_scan
 - [x] `kb-ai-run`, part 1: cli, stream, resources, accounts, signin; `fake-claude`, the stand-in CLI of the tests
-- [~] `kb-ai-run`, part 2a: teams, launch
-- [ ] `kb-ai-run`, part 2b: runs, `runner/`, repo_scan
+- [x] `kb-ai-run`, part 2a: teams, launch (everything a run is started with equals Python in 52 situations)
+- [~] `kb-ai-run`, part 2b: runs, messaging, `runner/`, the hook and event routes
 - [x] `kb-ai-api`, part 1: the account, sign-in, knowledge and power routes (one account route waits for teams)
 - [ ] `kb-ai-run`, part 3: schedules, compact, messaging, session_history, touches, health
 - [ ] (c) `services/assistant/`, `services/docs_ai/`, `api/ai*.py`, `assist.py`, `schedules.py`, `idea_ai.py`,

@@ -407,8 +407,8 @@ where
 {
     let session = database::session();
     for row in rows {
-        let model: E::Model =
-            serde_json::from_value(to_local(row)).unwrap_or_else(|e| panic!("a row of {}: {e}: {row}", E::default().table_name()));
+        let model: E::Model = serde_json::from_value(to_local(row))
+            .unwrap_or_else(|e| panic!("a row of {}: {e}: {row}", E::default().table_name()));
         let active = kb_db::sea_orm::IntoActiveModel::into_active_model(model).reset_all();
         E::insert(active).exec_without_returning(&session).await.expect("insert");
     }
@@ -468,6 +468,9 @@ pub fn same_text(got: &str, want: &serde_json::Value, blobs: &serde_json::Value,
     let Some(expected) = expected else {
         panic!("{what}: the text differs and the golden file does not hold the expected one:\n{got}");
     };
+    // a path written out in the golden file (`/tmp/pictures/...`) may sit under this machine's temporary folder, which
+    // `golden_text` replaced on the Rust side: compare both sides in the golden spelling
+    let (got, expected) = (golden_text(got), golden_text(expected));
     if got == expected {
         return;
     }
@@ -490,7 +493,11 @@ pub fn same_text(got: &str, want: &serde_json::Value, blobs: &serde_json::Value,
 /// `_runner(c, pid, repo, name=...)` of the Python helpers at service level: what `POST /projects/{id}/ai/teams` does
 /// (`teams::create`, `teams::test_connection`, `teams::describe`) with the stand-in CLI and a folder as its working
 /// folder. `extra` adds to the body or replaces its keys.
-pub async fn team_of(project_id: &str, name: &str, extra: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
+pub async fn team_of(
+    project_id: &str,
+    name: &str,
+    extra: serde_json::Value,
+) -> serde_json::Map<String, serde_json::Value> {
     use kb_ai_run::teams;
     let repo = tmp_path("repo");
     std::fs::write(repo.join("calc.py"), "def add(a, b):\n    return a - b\n").expect("calc.py");
@@ -504,7 +511,8 @@ pub async fn team_of(project_id: &str, name: &str, extra: serde_json::Value) -> 
         body[k] = v;
     }
     let session = database::session();
-    let member = teams::create(&session, project_id, body.as_object().expect("body"), "An Nguyen").await.expect("create");
+    let member =
+        teams::create(&session, project_id, body.as_object().expect("body"), "An Nguyen").await.expect("create");
     teams::test_connection(&session, &member.id).await.expect("test");
     described(&member.id).await
 }
@@ -561,7 +569,12 @@ pub fn real_cli() -> String {
 
 /// A run of a team that is about to start (`AiRun(project_id=, ticket_id=, member_id=, state="starting",
 /// started_by="An")`) and what `launch::prepare` gives for it, with the team's working folder as the run's folder.
-pub async fn launch_of(team_id: &str, ticket_id: Option<&str>, token: &str, session_id: &str) -> kb_ai_run::launch::Launch {
+pub async fn launch_of(
+    team_id: &str,
+    ticket_id: Option<&str>,
+    token: &str,
+    session_id: &str,
+) -> kb_ai_run::launch::Launch {
     let session = database::session();
     let (m, profile) = kb_ai_run::teams::get_profile(&session, team_id).await.expect("rows");
     let (m, profile) = (m.expect("member"), profile.expect("profile"));

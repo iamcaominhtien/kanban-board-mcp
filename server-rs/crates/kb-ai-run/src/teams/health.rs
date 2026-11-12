@@ -47,8 +47,11 @@ pub async fn detect_local(
     if let Some(account) = &account {
         if info.get("found").is_some_and(pyjson::truthy) {
             info.insert("logged_in".into(), json!(account.status == "signed_in"));
-            let parts: Vec<&str> =
-                [account.email.as_deref(), account.plan.as_deref()].into_iter().flatten().filter(|x| !x.is_empty()).collect();
+            let parts: Vec<&str> = [account.email.as_deref(), account.plan.as_deref()]
+                .into_iter()
+                .flatten()
+                .filter(|x| !x.is_empty())
+                .collect();
             let who = parts.join(" · ");
             info.insert("account".into(), json!(if who.is_empty() { account.name.clone() } else { who }));
         }

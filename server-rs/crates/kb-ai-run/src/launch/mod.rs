@@ -326,11 +326,8 @@ pub fn board_plugin_dir() -> std::io::Result<String> {
 /// `Path(path).resolve()`: absolute, without `.`, `..` or symbolic links; a part that does not exist is kept as
 /// written.
 fn resolve(path: &Path) -> PathBuf {
-    let absolute = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        std::env::current_dir().unwrap_or_default().join(path)
-    };
+    let absolute =
+        if path.is_absolute() { path.to_path_buf() } else { std::env::current_dir().unwrap_or_default().join(path) };
     let mut todo: Vec<std::ffi::OsString> = Vec::new();
     let push_parts = |todo: &mut Vec<std::ffi::OsString>, p: &Path| {
         let parts: Vec<std::ffi::OsString> = p

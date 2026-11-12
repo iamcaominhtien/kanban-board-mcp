@@ -18,6 +18,7 @@ use kb_ai::context::RunContext;
 use kb_ai_run::launch::{self, ArgsFor};
 use kb_ai_run::stream::Parser;
 use kb_base::pyjson;
+use kb_db::sea_orm::ActiveValue::Set;
 use serde_json::{Value, json};
 
 fn line(obj: Value) -> String {
@@ -383,7 +384,10 @@ async fn test_pictures_a_prompt_names_are_copied_where_the_cli_may_read_them() {
     assert!(!staged.join("secret.png").exists());
     assert!(out.starts_with(text) && out.contains("open each with Read"));
     assert!(out.split(text).nth(1).expect("the note").contains("shot.png"));
-    assert_eq!(kb_ai::pictures::stage("no pictures here", "run_y").expect("stage"), ("no pictures here".to_string(), None));
+    assert_eq!(
+        kb_ai::pictures::stage("no pictures here", "run_y").expect("stage"),
+        ("no pictures here".to_string(), None)
+    );
     // and the CLI is allowed to read that folder
     let add: &'static [String] = Vec::leak(vec![folder.clone()]);
     let a = args(|a| a.add_dirs = add);

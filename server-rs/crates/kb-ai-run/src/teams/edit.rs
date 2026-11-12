@@ -384,13 +384,8 @@ pub async fn remove(
         save(session, profile).await?;
     }
     session.commit().await?;
-    audit::record(
-        &member.project_id,
-        "team_removed",
-        "info",
-        audit_entry(member_id, &member.name, by, json!({})),
-    )
-    .await?;
+    audit::record(&member.project_id, "team_removed", "info", audit_entry(member_id, &member.name, by, json!({})))
+        .await?;
     let mut out = Map::new();
     out.insert("removed".into(), json!(true));
     Ok(out)

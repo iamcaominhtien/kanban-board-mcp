@@ -62,7 +62,8 @@ async fn test_a_team_is_made_with_its_pack_and_checked() {
     assert_eq!(team["name"], "Dev An");
     assert_eq!(team["kind"], "ai");
     assert_eq!(team["pack_key"], "standard");
-    let keys: Vec<&str> = team["roles"].as_array().expect("roles").iter().map(|r| r["key"].as_str().expect("key")).collect();
+    let keys: Vec<&str> =
+        team["roles"].as_array().expect("roles").iter().map(|r| r["key"].as_str().expect("key")).collect();
     assert_eq!(keys, ["dev", "reviewer", "qa"]);
     assert_eq!(team["permission_mode"], "bypass");
     assert_eq!(team["model"], "haiku");
@@ -85,7 +86,8 @@ async fn test_names_are_unique_across_people_and_teams() {
     common::team_of(&pid, "Dev An", json!({})).await;
     let session = database::session();
     let repo = common::tmp_path("repo");
-    let data = |name: &str| body(json!({"name": name, "working_dir": repo.to_string_lossy(), "cli_path": common::real_cli()}));
+    let data =
+        |name: &str| body(json!({"name": name, "working_dir": repo.to_string_lossy(), "cli_path": common::real_cli()}));
     let detail = refusal(teams::create(&session, &pid, &data("dev an"), "user").await);
     assert!(detail.contains("Dev An 2") || detail.contains("already"), "{detail}");
     refusal(teams::create(&session, &pid, &data("An Nguyen"), "user").await);
@@ -134,7 +136,10 @@ async fn test_pause_resume_and_remove_unassign_the_tickets() {
     teams::set_paused(&session, id, false, "user", false, None).await.expect("resume");
     assert_eq!(common::described(id).await["paused"], false);
     let impact = teams::removal_impact(&session, id).await.expect("impact");
-    assert_eq!(impact["open_tickets"].as_array().expect("tickets").iter().map(|t| t["id"].clone()).collect::<Vec<_>>(), [json!(tid)]);
+    assert_eq!(
+        impact["open_tickets"].as_array().expect("tickets").iter().map(|t| t["id"].clone()).collect::<Vec<_>>(),
+        [json!(tid)]
+    );
     let removed = teams::remove(&session, id, "user", "reassign", Some(&an)).await.expect("remove");
     assert_eq!(Value::Object(removed), json!({"removed": true}));
     let stored = ticket::Entity::find_by_id(tid.as_str()).one(&session).await.expect("db").expect("ticket");
@@ -344,7 +349,11 @@ async fn health_check_follows_a_runner_that_went_away_and_came_back() {
     session.commit().await.expect("commit");
     assert_eq!(teams::health_check().await.expect("check"), 0);
     let now = common::described(id).await;
-    assert!(now["health"] == "rate_limited" && now["health_detail"] == "resets 3pm" && now["status"]["label"] == "Rate-limited");
+    assert!(
+        now["health"] == "rate_limited"
+            && now["health_detail"] == "resets 3pm"
+            && now["status"]["label"] == "Rate-limited"
+    );
     let r = teams::test_connection(&session, id).await.expect("test");
     assert!(r["ok"] == true && r["health"] == "rate_limited", "{r:?}");
     // the audit log has both changes, by the board

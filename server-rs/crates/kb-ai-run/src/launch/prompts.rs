@@ -37,7 +37,8 @@ fn truthy<'a>(role: &'a Role, key: &str) -> Option<&'a Value> {
 fn files_rules(team_roles: &[Role]) -> Vec<String> {
     let keep = "commit as you go with clear messages; never force-push, never rewrite history on a shared branch, never \
                 leave the folder.";
-    let codes = team_roles.iter().any(|r| r.get("key").and_then(Value::as_str).is_some_and(|k| CODE_ROLES.contains(&k)));
+    let codes =
+        team_roles.iter().any(|r| r.get("key").and_then(Value::as_str).is_some_and(|k| CODE_ROLES.contains(&k)));
     if team_roles.is_empty() || codes {
         return vec![
             format!("Code: you work in the ticket's own git worktree and branch; {keep}"),
@@ -86,7 +87,8 @@ pub fn board_rules(
         .iter()
         .map(|r| {
             let key = r.get("key").map(text_of).unwrap_or_else(|| "None".to_string());
-            let what = truthy(r, "description").or_else(|| truthy(r, "name")).map(text_of).unwrap_or_else(|| key.clone());
+            let what =
+                truthy(r, "description").or_else(|| truthy(r, "name")).map(text_of).unwrap_or_else(|| key.clone());
             format!("- {key}: {what}")
         })
         .collect();
@@ -282,13 +284,8 @@ pub async fn build_prompt(
         depth: i64::from(run.depth),
         acts_by_tier: false,
     };
-    let mut system = board_rules(
-        &ctx,
-        project.as_ref().map_or("", |p| p.name.as_str()),
-        opts.team_roles,
-        opts.live,
-        opts.workspace,
-    );
+    let mut system =
+        board_rules(&ctx, project.as_ref().map_or("", |p| p.name.as_str()), opts.team_roles, opts.live, opts.workspace);
     let known = knowledge::for_run(session, run, profile).await?;
     if !known.is_empty() {
         system.push_str(&format!("\n\n{known}"));
