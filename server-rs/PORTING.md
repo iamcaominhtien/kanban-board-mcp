@@ -148,3 +148,7 @@ you write anything, and write yours the same way.
   session), call the reaction right after `session.commit().await?`.
 - Golden vector files are committed: keep each under about 2 MB (sample the generated cases; a few hundred
   well-chosen cases per function find what thousands do).
+- `str(x)` / an f-string of a Python list or dict is its `repr` (`['a', 1]`, single quotes), not JSON:
+  `kb_base::pyjson::py_str` / `py_repr`.
+- A header read as text is latin-1 in Starlette (`request.headers.get(...)`): decode bytes one to a char, do not use
+  `HeaderValue::to_str` (it refuses non-ASCII).

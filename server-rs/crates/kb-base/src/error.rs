@@ -223,19 +223,25 @@ where
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         // a key may repeat (`kind=a&kind=b` fills a `Vec`), as FastAPI reads a `list[str]` query parameter
-        match serde_html_form::from_str::<T>(parts.uri.query().unwrap_or_default()) {
+        let query = parts.uri.query().unwrap_or_default();
+        let de = serde_html_form::Deserializer::new(form_urlencoded::parse(query.as_bytes()));
+        match serde_path_to_error::deserialize::<_, T>(de) {
             Ok(value) => Ok(Query(value)),
-            Err(err) => Err(query_error(&err.to_string())),
+            Err(err) => Err(query_error(&err.path().to_string(), &err.inner().to_string())),
         }
     }
 }
 
-fn query_error(text: &str) -> ApiError {
-    let msg = text.strip_prefix("Failed to deserialize query string: ").unwrap_or(text).to_string();
-    if let Some(field) = msg.strip_prefix("missing field `").and_then(|m| m.split('`').next()) {
+/// FastAPI's 422 for a query string: the parameter is named in `loc` (`["query", "limit"]`).
+fn query_error(path: &str, text: &str) -> ApiError {
+    if let Some(field) = text.strip_prefix("missing field `").and_then(|m| m.split('`').next()) {
         return ApiError::validation(&["query", field], "Field required", "missing");
     }
-    ApiError::validation(&["query"], msg, "value_error")
+    let field = path.split(['.', '[']).next().unwrap_or("");
+    if field.is_empty() || field == "?" {
+        return ApiError::validation(&["query"], text, "value_error");
+    }
+    ApiError::validation(&["query", field], text, "value_error")
 }
 
 /// A JSON body that may be left out (`data: Model | None = None`): no body, or an empty one, is `None`.

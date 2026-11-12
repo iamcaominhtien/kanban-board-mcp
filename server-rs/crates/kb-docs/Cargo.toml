@@ -12,11 +12,25 @@ workspace = true
 [dependencies]
 kb-base = { workspace = true }
 kb-db = { workspace = true }
+kb-doctext = { workspace = true }
+kb-draw = { workspace = true }
+kb-fuzzy = { workspace = true }
+kb-notify = { workspace = true }
+async-trait = { workspace = true }
 axum = { workspace = true }
+chrono = { workspace = true }
+regex = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+caseless = "0.2.2"
+serde_urlencoded = "0.7"
+unicode-normalization = "0.1"
 
 [dev-dependencies]
+reqwest = { workspace = true }
 testkit = { workspace = true }
+tempfile = "3"
+# the same sqlx as testkit: tests add rows to the server's SQLite file where no ported route can
+sqlx = { version = "0.9", default-features = false, features = ["sqlite", "runtime-tokio"] }

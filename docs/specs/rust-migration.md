@@ -138,7 +138,8 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - [x] workspace (`services/workspace.py`, `api/workspace.py`)
 - [x] tickets, part 1: the ticket itself, search, uploads (`services/tickets.py` to line 800, `ticket_guide.py`,
       `ticket_waves.py`, `proofs.py`, the core routes of `api/tickets.py`)
-- [~] tickets, part 2: comments, criteria, sub-tasks, work log, test cases, blocks, links, branches, reopen, pending
+- [x] tickets, part 2: comments, criteria, sub-tasks, work log, test cases, blocks, links, branches, reopen, pending
+      (all 43 routes of `api/tickets.py` are served)
 - [x] notifications (`services/notifications.py`, `api/notifications.py`; the notification checks inside the docs and
       ticket suites are ported with those areas)
 - [x] data and logs (`api/data.py`, `api/logs.py`)

@@ -88,7 +88,10 @@ pub async fn record_activity_actor(request: Request, next: Next) -> Response {
     // read the headers first: a borrow of the request must not live across the await
     let (actor, origin) = {
         let header = |name: &str| {
-            request.headers().get(name).and_then(|v| v.to_str().ok()).map(|v| v.trim().to_string()).unwrap_or_default()
+            // Starlette decodes header bytes as latin-1, so a name with an accent is kept (as its latin-1 reading)
+            let text: Option<String> =
+                request.headers().get(name).map(|v| v.as_bytes().iter().map(|b| *b as char).collect());
+            text.map(|v| kb_base::pytext::strip(&v).to_string()).unwrap_or_default()
         };
         (header("x-actor").chars().take(80).collect::<String>(), header("x-origin"))
     };

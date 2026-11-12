@@ -216,7 +216,23 @@ pub fn py_str(value: &Value) -> String {
             out
         }
         Value::String(s) => s.clone(),
-        other => dumps(other),
+        other => py_repr(other),
+    }
+}
+
+/// `repr(value)` of the Python object a JSON value came from: `['a', 1, None, True]`, `{'k': 1.0}`, `'text'`.
+pub fn py_repr(value: &Value) -> String {
+    match value {
+        Value::String(s) => crate::pytext::repr(s),
+        Value::Array(items) => format!("[{}]", items.iter().map(py_repr).collect::<Vec<_>>().join(", ")),
+        Value::Object(map) => format!(
+            "{{{}}}",
+            map.iter()
+                .map(|(k, v)| format!("{}: {}", crate::pytext::repr(k), py_repr(v)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        other => py_str(other),
     }
 }
 
@@ -260,6 +276,14 @@ mod tests {
             Dumps::new().indent(2).dump(&v),
             "{\n  \"a\": 1,\n  \"b\": [],\n  \"c\": [\n    1,\n    {\n      \"d\": 2\n    }\n  ]\n}"
         );
+    }
+
+    #[test]
+    fn str_and_repr_like_python() {
+        let v = json!(["a", 1, null, true, 1.0, {"k": "it's"}]);
+        assert_eq!(py_str(&v), r#"['a', 1, None, True, 1.0, {'k': "it's"}]"#);
+        assert_eq!(py_str(&json!("plain")), "plain");
+        assert_eq!(py_repr(&json!("plain")), "'plain'");
     }
 
     #[test]

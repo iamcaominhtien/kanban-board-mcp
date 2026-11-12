@@ -14,7 +14,7 @@ use std::time::Duration;
 use sea_orm::sqlx::mysql::{MySqlConnectOptions, MySqlSslMode};
 use sea_orm::sqlx::postgres::{PgConnectOptions, PgSslMode};
 use sea_orm::sqlx::sqlite::{SqliteConnectOptions, SqliteSynchronous};
-use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DbErr};
+use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
 use serde_json::{Map, Value, json};
 
 use kb_base::{config as app_config, secrets};

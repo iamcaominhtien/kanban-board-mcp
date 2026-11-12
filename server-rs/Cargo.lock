@@ -1598,6 +1598,7 @@ dependencies = [
  "axum",
  "chrono",
  "fernet",
+ "form_urlencoded",
  "keyring",
  "regex",
  "sea-orm",
@@ -1684,14 +1685,27 @@ dependencies = [
 name = "kb-docs"
 version = "5.0.0"
 dependencies = [
+ "async-trait",
  "axum",
+ "caseless",
+ "chrono",
  "kb-base",
  "kb-db",
+ "kb-doctext",
+ "kb-draw",
+ "kb-fuzzy",
+ "kb-notify",
+ "regex",
+ "reqwest",
  "serde",
  "serde_json",
+ "serde_urlencoded",
+ "sqlx",
+ "tempfile",
  "testkit",
  "tokio",
  "tracing",
+ "unicode-normalization",
 ]
 
 [[package]]

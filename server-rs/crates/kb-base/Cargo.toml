@@ -20,6 +20,7 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
+form_urlencoded = "1"
 fernet = { version = "0.2", default-features = false, features = ["rustcrypto"] }
 regex = { workspace = true }
 sea-orm = { workspace = true }
