@@ -56,6 +56,20 @@ def set_data_folder(path: Path) -> None:
     _save(data)
 
 
+def get_port() -> int | None:
+    """The port the server listened on last time (`port`), or None when it never saved one."""
+    value = _load().get("port")
+    return value if isinstance(value, int) and 0 < value < 65536 else None
+
+
+def set_port(port: int) -> None:
+    """Remember the port the server listens on, so the next start asks for the same one."""
+    data = _load()
+    if data.get("port") != port:
+        data["port"] = port
+        _save(data)
+
+
 def get_section(name: str) -> dict:
     """A saved group of settings (for example "database"); empty when never saved."""
     value = _load().get(name)
