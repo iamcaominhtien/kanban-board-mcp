@@ -404,10 +404,8 @@ fn drop_final_break(value: &mut Yaml) {
                 drop_final_break(last);
             }
         }
-        Yaml::Str(s) => {
-            if s.ends_with('\n') {
-                s.pop();
-            }
+        Yaml::Str(s) if s.ends_with('\n') => {
+            s.pop();
         }
         _ => {}
     }

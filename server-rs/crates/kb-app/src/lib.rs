@@ -34,6 +34,7 @@ pub fn routes() -> Routes {
     Routes::new()
         .merge(files::drawio_routes())
         .merge(kb_board::api::routes())
+        .merge(kb_skills::api::routes())
         .merge(kb_notify::api::routes())
         .merge(kb_dbkit::api::routes())
         .merge(kb_ideas::api::routes())

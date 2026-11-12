@@ -134,7 +134,7 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 
 - [x] projects, members, git (`services/projects.py`, `members.py`, `git_repo.py`, `docs_access.py`, `api/projects.py`,
       `members.py`)
-- [ ] settings (`api/settings.py`; it calls `mcp_clients`, so it goes with the skills and MCP clients)
+- [x] settings (`api/settings.py`, in `kb-skills` with the MCP clients it calls)
 - [x] workspace (`services/workspace.py`, `api/workspace.py`)
 - [x] tickets, part 1: the ticket itself, search, uploads (`services/tickets.py` to line 800, `ticket_guide.py`,
       `ticket_waves.py`, `proofs.py`, the core routes of `api/tickets.py`)
@@ -164,7 +164,8 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 
 - [ ] registry, instructions, tools, operations (`kanban_mcp/`)
 - [ ] `mcp_stdio.py`, `mcp_bridge.py`
-- [ ] `services/mcp_clients.py`, `shared_skills.py`, `role_skills.py`, skill assets
+- [x] `services/mcp_clients.py`, `shared_skills.py`, `role_skills.py`, skill assets (`kb-skills`; the skill folders are
+      embedded unchanged)
 
 ### P5 AI (`kb-ai`, `kb-assist`)
 
@@ -191,12 +192,17 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
   `kb_docs::hooks::{AiGuardHook, AssignHook, CommentsHook, CanvasesHook}`, `kb_draw::hooks::{CanvasDocs, CanvasDelivery}`. Hooks are
   registered in `kb-app/src/hooks.rs`.
 - Tests waiting for another port: the two data-import tests that need an older database (migrations),
-  `test_data_path_validation` on Rust (`api/settings.py`), the `test_mcp_*` tests (MCP), the wave-5 idea tests.
+  the `test_mcp_*` tests (MCP), the nine tests of the Idea Space migration.
 - A JSON body that leaves out several required fields names only the first in the 422; FastAPI lists all.
 - Carried over from Python unchanged, to review after the switch: the screenshot helper's local server lists
   directories, and its host check lets decimal and hexadecimal IP hosts through.
 
 ### P7 Switch
+
+- [ ] The development command of the MCP entry (`uv --directory <repo>/server run mcp_stdio.py` today, in
+      `kb_skills::mcp_clients`) and `demo_video_skill/scripts/start_board.py` lines 16 and 34 (`uv run python main.py`)
+      must name the Rust binaries
+- [ ] One copy of the BA templates and the design examples (now in `kb-skills`, `kb-doctext` and `kb-draw`)
 
 - [ ] Desktop: `build-desktop.sh`, `desktop/package.json`, `main-helpers.js`; remove the PyInstaller spec and script
 - [ ] CI: `ci.yml`, `release.yml`, `nightly-quality.yml`, `sonar-project.properties`

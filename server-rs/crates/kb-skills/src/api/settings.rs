@@ -100,11 +100,8 @@ async fn set_mcp_control(Body(req): Body<McpControlRequest>) -> ApiResult<Json<V
 
 /// `os.environ[name] = value` for the uploads folder: `uploads::resolve_uploads_dir` reads it first, so the folder
 /// the app serves follows the move at once.
-#[allow(unsafe_code)]
 fn set_uploads_env(value: &Path) {
-    // SAFETY: the server reads the environment through std (which locks it), and this runs once per request of a
-    // route the person uses a few times in the life of an install.
-    unsafe { std::env::set_var(uploads::UPLOADS_DIR_ENV_VAR, value) };
+    uploads::set_uploads_dir_env(value);
 }
 
 /// `shutil.move(src, dst)`: a rename, or a copy and delete across file systems; a folder `dst` takes `src` inside it.

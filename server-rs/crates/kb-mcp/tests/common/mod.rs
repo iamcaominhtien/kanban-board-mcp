@@ -72,10 +72,8 @@ pub async fn raw(
     let mut lines = head.split("\r\n");
     let status: u16 =
         lines.next().and_then(|l| l.split(' ').nth(1)).and_then(|s| s.parse().ok()).expect("a status line");
-    let headers: Vec<(String, String)> = lines
-        .filter_map(|l| l.split_once(':'))
-        .map(|(n, v)| (n.trim().to_lowercase(), v.trim().to_string()))
-        .collect();
+    let headers: Vec<(String, String)> =
+        lines.filter_map(|l| l.split_once(':')).map(|(n, v)| (n.trim().to_lowercase(), v.trim().to_string())).collect();
     let mut rest = buf[head_end + 4..].to_vec();
     let get = |name: &str| headers.iter().find(|(n, _)| n == name).map(|(_, v)| v.clone());
     let body = if open_stream || method == "HEAD" {
@@ -96,7 +94,8 @@ pub async fn raw(
                 }
                 continue;
             };
-            let size = usize::from_str_radix(String::from_utf8_lossy(&rest[..line_end]).trim(), 16).expect("chunk size");
+            let size =
+                usize::from_str_radix(String::from_utf8_lossy(&rest[..line_end]).trim(), 16).expect("chunk size");
             while rest.len() < line_end + 2 + size + 2 {
                 if read_more(&mut stream, &mut rest).await.is_none() {
                     break;

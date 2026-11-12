@@ -135,6 +135,30 @@ pub fn supported_image_mime_types() -> Vec<&'static str> {
     types
 }
 
+/// What the Python server did with `os.environ["KANBAN_UPLOADS_DIR"] = ...` when the data folder moved: a value for
+/// this process that wins over the real environment (changing the environment of a running, multi-threaded
+/// process is not safe in Rust).
+static UPLOADS_DIR_OVERRIDE: std::sync::RwLock<Option<(String, Option<String>)>> = std::sync::RwLock::new(None);
+
+/// Use `value` as `KANBAN_UPLOADS_DIR` from now on in this process.
+pub fn set_uploads_dir_env(value: &Path) {
+    let seen = std::env::var(UPLOADS_DIR_ENV_VAR).ok();
+    *UPLOADS_DIR_OVERRIDE.write().unwrap_or_else(|e| e.into_inner()) =
+        Some((value.to_string_lossy().into_owned(), seen));
+}
+
+/// `os.environ.get("KANBAN_UPLOADS_DIR")`: the value set by `set_uploads_dir_env`, else the environment's. The
+/// last assignment wins: if the real variable changed after the override was set (a test that gives the process a
+/// new folder), the variable is read again. A child process that must see the same folder is started with this
+/// value in its environment.
+pub fn uploads_dir_env() -> Option<String> {
+    let current = std::env::var(UPLOADS_DIR_ENV_VAR).ok();
+    match UPLOADS_DIR_OVERRIDE.read().unwrap_or_else(|e| e.into_inner()).as_ref() {
+        Some((value, seen)) if *seen == current => Some(value.clone()),
+        _ => current,
+    }
+}
+
 /// Where `resolve_uploads_dir` found the folder: `KANBAN_UPLOADS_DIR` (the app sets it for its own processes).
 pub const SOURCE_ENV: &str = "env";
 /// `data_folder` of the config file: `<data folder>/uploads`.
@@ -185,7 +209,7 @@ fn pick_uploads_dir(
 /// config file, the folder of `KANBAN_DB_PATH`, `uploads_dir` of the config file (recorded by the desktop app), then
 /// `uploads` next to the program.
 pub fn resolve_uploads_dir() -> (PathBuf, &'static str) {
-    let env_value = std::env::var(UPLOADS_DIR_ENV_VAR).ok();
+    let env_value = uploads_dir_env();
     let db_env = std::env::var("KANBAN_DB_PATH").ok();
     pick_uploads_dir(
         env_value.as_deref(),

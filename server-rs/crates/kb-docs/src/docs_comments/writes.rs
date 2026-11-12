@@ -104,7 +104,7 @@ async fn insert_comment(
     comment.body = Set(text.to_string());
     let ids: Vec<&str> = mentions_in(text, members).iter().map(|m| m.id.as_str()).collect();
     comment.mentions = Set(pyjson::dumps(&ids));
-    comment.ai = Set(ai.filter(|a| pyjson::truthy(a)).map(|a| pyjson::dumps(a)));
+    comment.ai = Set(ai.filter(|a| pyjson::truthy(a)).map(pyjson::dumps));
     Ok(comment.insert(session).await?)
 }
 

@@ -564,8 +564,8 @@ mod tests {
     #[test]
     fn a_typed_mention_needs_a_word_boundary_and_ignores_case() {
         let members = [member("1", "Ann"), member("2", "Ann Lee"), member("3", "Bo")];
-        // the longest names are tried first; the picker's links come first in the result
-        assert_eq!(names(&mentions_in("hi @ann lee and @BO!", &members)), ["Ann Lee", "Bo"]);
+        // the longest names are tried first ("@ann lee" is also "@ann", as in Python); the picker's links come first
+        assert_eq!(names(&mentions_in("hi @ann lee and @BO!", &members)), ["Ann Lee", "Ann", "Bo"]);
         // not after a word character or an @, and not before one
         assert!(mentions_in("mail@Ann, @@Bo, @Bobby", &members).is_empty());
         assert_eq!(names(&mentions_in("x @[Ann](member:1) y @Ann Lee", &members)), ["Ann", "Ann Lee"]);
@@ -577,10 +577,10 @@ mod tests {
 
     #[test]
     fn a_link_that_follows_a_bang_is_not_a_link() {
-        // `(?<!!)\[...\]` : the search goes on one character after the bang
-        assert_eq!(snippet_of("![a [b](c)](d) and [e](f)"), "![a b](d) and e");
+        // an image takes the first `[` it can ("![a [b](c)" with the alt "a [b"); the rest is text and links
+        assert_eq!(snippet_of("![a [b](c)](d) and [e](f)"), "[image]](d) and e");
         assert_eq!(snippet_of("![alt](diagram:dg_1) [x](diagram:dg_2) [y](z)"), "[diagram] [diagram] y");
-        assert_eq!(snippet_of(&format!("{}", "word ".repeat(100))).chars().count(), SNIPPET - 1);
+        assert_eq!(snippet_of(&"word ".repeat(100)).chars().count(), SNIPPET);
     }
 
     #[test]

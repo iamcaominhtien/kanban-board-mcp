@@ -157,3 +157,7 @@ you write anything, and write yours the same way.
   `kb_base::pyjson::py_str` / `py_repr`.
 - A header read as text is latin-1 in Starlette (`request.headers.get(...)`): decode bytes one to a char, do not use
   `HeaderValue::to_str` (it refuses non-ASCII).
+- Never change the process environment after startup (`std::env::set_var` is unsafe with threads). Where Python
+  assigns `os.environ[...]` at run time, keep the value in a static with a setter and a getter that falls back to
+  the environment (`kb_files::uploads::{set_uploads_dir_env, uploads_dir_env}` is the example), and pass it
+  explicitly to child processes that inherited it in Python.

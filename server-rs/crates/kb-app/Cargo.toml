@@ -24,6 +24,7 @@ tokio = { workspace = true }
 tower = { workspace = true }
 tracing = { workspace = true }
 kb-board = { workspace = true }
+kb-skills = { workspace = true }
 kb-notify = { workspace = true }
 kb-docs = { workspace = true }
 kb-draw = { workspace = true }

@@ -1600,6 +1600,7 @@ dependencies = [
  "kb-ideas",
  "kb-log",
  "kb-notify",
+ "kb-skills",
  "regex",
  "reqwest",
  "serde_json",
