@@ -186,7 +186,8 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 - [x] `kb-ai-run`, part 2b: runs, messaging, `runner/`, the hook and event routes (16 run scenarios give the same
       answers, rows and events as Python, with the runs in the board's process and in the runner process)
 - [x] `kb-ai-api`, part 1: the account, sign-in, knowledge and power routes (one account route waits for teams)
-- [ ] `kb-ai-run`, part 3: schedules, compact, messaging, session_history, touches, health
+- [x] `kb-ai-run`, part 3: schedules, compact, session_history, touches, health (692 slot cases over 25 time zones
+      and both clock changes, 34 loop stories compared row by row, the real loop with the stand-in CLI)
 - [x] `kb-assist`, part 1: the assistant's engine and the Board AI chat (errors, settings, sessions, skills, drafts,
       receipt, engine, health, chat)
 - [x] `kb-assist`, part 2: `assistant/docs.py`, `editor.py`, `ideas.py`, `services/docs_ai/` (the services; their
@@ -233,6 +234,19 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
   it found: the screens that need the routes not served yet (AI teams, schedules, board health), the MCP tool count
   (9 of 13 until the last tools are ported), and the `content-type` of a 204 (fixed). Run it again before the
   switch; draw.io is not covered (the editor is not in the checkout).
+- Fixed in both servers while porting the schedule loop (two bugs of 4.0.x; the vectors were recorded again from the
+  fixed Python): a scheduled run over its time or cost limit was never stopped (`runs.cancel` was called with a
+  parameter it no longer has, so every tick failed there), and a slot that had been opened before stopped the
+  scheduler (the schedule's id was read after a rollback). Name both in the 5.0.0 changelog.
+- Carried over from Python unchanged in schedules: `update` with `null` for a column that cannot be empty is a 500;
+  a time zone name that is a folder of the tz database (`Europe`) is a 500 and not "Unknown time zone"; a slot in
+  `ask` whose team is available is set again on every tick.
+- Time zone rules: the Rust server carries its own tz database (`chrono-tz`, 2025b today); Python read the
+  system's on macOS and Linux (2026e here) and the `tzdata` package on Windows. A zone whose rules changed between
+  the two (`Europe/Chisinau` in 2026) gives other slots. Decide before the switch: read the system's zone files
+  where there are some and keep the carried copy for Windows.
+- Python 3.12 adds floats with a compensated sum; `kb_ai_run::pynum` has it. Check the other places that add costs
+  (`kb-ai` quota and budget) and move the helper to `kb-base`.
 - Tests that need the UI not to be built read the index page as the recorded 404 (`Resp::is_ui_index` in
   `testkit`), since both servers fall back to `ui/dist` of the checkout.
 - The sign-in route writes its audit entry through a private copy of `touches.record_signin` in

@@ -2,18 +2,25 @@
 
 use kb_base::Routes;
 
+pub mod ai;
 pub mod ai_accounts;
+pub mod ai_board;
+pub mod ai_code;
 pub mod ai_hooks;
 pub mod ai_knowledge;
 pub mod ai_power;
+pub mod ai_tools;
 
-/// Every route of this area (the app merges them, in the order the Python app included its routers).
+/// Every route of this area (the app merges them, in the order `main.py` includes the routers): accounts, `ai`, hooks,
+/// knowledge, code, tools, board, power. `schedules` is ported with the schedules service.
 pub fn routes() -> Routes {
-    // the order of `main.py` (the routers of the other `api/ai*.py` files come in between, with the next routes
-    // task): accounts, hooks, knowledge, power
     Routes::new()
         .merge(ai_accounts::routes())
+        .merge(ai::routes())
         .merge(ai_hooks::routes())
         .merge(ai_knowledge::routes())
+        .merge(ai_code::routes())
+        .merge(ai_tools::routes())
+        .merge(ai_board::routes())
         .merge(ai_power::routes())
 }

@@ -31,7 +31,7 @@ pub async fn startup() -> Result<Running, DatabaseError> {
     // (as in `main.py`, a failure of either stops the start)
     kb_assist::docs_ai::jobs::recover().await.map_err(DatabaseError::from)?;
     kb_assist::assistant::chat::recover().await.map_err(DatabaseError::from)?;
-    // (the AI schedules start here once ported)
+    kb_ai_run::schedules::start_scheduler();
     kb_notify::start();
     kb_ai_work::github::start();
     let rescans = tokio::spawn(rescan_loop());
@@ -56,9 +56,10 @@ pub async fn shutdown(running: Running) {
     kb_ai_work::github::stop().await;
     running.rescans.abort();
     kb_notify::stop().await;
-    // (the AI schedules stop here once ported)
     // No CLI process outlives the board: cancel the AI runs and kill their process trees
+    kb_ai_run::schedules::stop_scheduler().await;
     kb_ai_run::runs::stop_scheduler().await;
+    kb_ai_run::signin::stop_all().await;
     running.sweeper.abort();
     running.db_watcher.abort();
     running.follow.abort();

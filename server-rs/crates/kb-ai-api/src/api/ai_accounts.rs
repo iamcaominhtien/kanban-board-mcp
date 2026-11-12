@@ -4,9 +4,6 @@
 //! request to come from this computer (the desktop app): the web build cannot start a CLI on the person's machine. No
 //! AI member has a route here; the MCP tools only read and assign.
 //!
-//! Left out (needs `services/ai/teams`, not ported yet): `PUT /ai/teams/{member_id}/account` (`put_member_account`:
-//! `teams.get_profile` and `teams.describe`).
-//!
 //! Where the request comes from: Python's `request.client.host` is uvicorn's, and uvicorn trusts the
 //! `X-Forwarded-For` header of a peer at `127.0.0.1` (its `ProxyHeadersMiddleware`, `forwarded_allow_ips`). The server
 //! only listens on `127.0.0.1`, so the peer is always that address and `client_host` is what the middleware makes of
@@ -21,7 +18,7 @@ use axum::response::{IntoResponse, Response};
 use futures::{SinkExt, StreamExt};
 use kb_ai::audit;
 use kb_ai_run::accounts::{self as svc_accounts, AccountError};
-use kb_ai_run::{cli, signin};
+use kb_ai_run::{cli, signin, teams as svc_teams, touches};
 use kb_base::error::{Body, Path, Query};
 use kb_base::{ApiError, ApiResult, Routes, activity, pyjson, pytext};
 use kb_db::Session;
@@ -30,12 +27,10 @@ use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 
-use crate::schemas::AccountBody;
+use crate::schemas::{AccountBody, AssignBody};
 
 /// What `signin::write` takes of one message: the first 20000 characters.
 const MAX_INPUT_CHARS: usize = 20_000;
-/// The action `touches.record_signin` writes (`SIGNIN_ACTION`).
-const SIGNIN_ACTION: &str = "account_signin";
 
 /// The routes of this file.
 pub fn routes() -> Routes {
@@ -48,7 +43,7 @@ pub fn routes() -> Routes {
         .post("/ai/accounts/{account_id}/check", post_check)
         .post("/ai/accounts/{account_id}/sign-out", post_sign_out)
         .delete("/ai/accounts/{account_id}", delete_account)
-        // PUT /ai/teams/{member_id}/account waits for `teams`
+        .put("/ai/teams/{member_id}/account", put_member_account)
         .get("/ai/accounts-on-this-computer", logins_on_this_computer)
         .post("/ai/accounts/{account_id}/signin", post_signin)
         .delete("/ai/accounts/{account_id}/signin", delete_signin)
@@ -282,6 +277,24 @@ async fn delete_account(
     Ok(Json(json!({"removed": true, "members_moved": moved})))
 }
 
+/// Choose the account an AI member runs as.
+async fn put_member_account(
+    Path(member_id): Path<String>,
+    Body(body): Body<AssignBody>,
+) -> ApiResult<Json<Map<String, Value>>> {
+    let session = kb_db::session();
+    svc_accounts::assign(&session, &member_id, body.account_id.as_deref()).await.map_err(account_failure)?;
+    let (member, profile) = kb_ai::store::get_profile(&session, &member_id).await?;
+    let (Some(member), Some(profile)) = (member, profile) else {
+        return Err(ApiError::internal("'NoneType' object has no attribute 'project_id'"));
+    };
+    match svc_teams::describe(&session, &member, &profile, None).await {
+        Ok(team) => Ok(Json(team)),
+        Err(svc_teams::Error::Db(err)) => Err(err.into()),
+        Err(other) => Err(ApiError::internal(other)),
+    }
+}
+
 /// The logins the CLIs already have on this computer (what members use with no account chosen). Only Claude Code
 /// says who; the others are not listed.
 async fn logins_on_this_computer() -> ApiResult<Json<Vec<Value>>> {
@@ -306,40 +319,6 @@ async fn logins_on_this_computer() -> ApiResult<Json<Vec<Value>>> {
 async fn fallback(account: &ai_account::Model) -> ApiResult<Value> {
     let command = signin::fallback_command(account).await.map_err(ApiError::internal)?;
     Ok(json!(command))
-}
-
-/// `touches.record_signin` (`services/ai/touches.py`, not ported yet; replace this with it): a person opened the
-/// sign-in of an AI account: one audit entry per project whose teams run as this account. A failure is logged, never
-/// raised: a note about the sign-in must never fail the sign-in.
-async fn record_signin(session: &Session, account: &ai_account::Model, by: &str) -> usize {
-    let written = async {
-        let teams =
-            ai_team::Entity::find().filter(ai_team::Column::AccountId.eq(account.id.as_str())).all(session).await?;
-        let mut by_project: Vec<(String, Vec<String>)> = Vec::new();
-        for team in teams {
-            match by_project.iter_mut().find(|(project_id, _)| *project_id == team.project_id) {
-                Some((_, ids)) => ids.push(team.id),
-                None => by_project.push((team.project_id, vec![team.id])),
-            }
-        }
-        for (project_id, ids) in &by_project {
-            let mut detail = Map::new();
-            detail.insert("account".into(), json!(account.name));
-            detail.insert("account_id".into(), json!(account.id));
-            detail.insert("team_ids".into(), json!(ids));
-            let entry = audit::Entry { on_behalf_of: Some(by.to_string()), detail, ..audit::Entry::default() };
-            audit::record(project_id, SIGNIN_ACTION, "info", entry).await?;
-        }
-        Ok::<usize, kb_db::sea_orm::DbErr>(by_project.len())
-    }
-    .await;
-    match written {
-        Ok(count) => count,
-        Err(err) => {
-            tracing::error!("Could not record the sign-in of {} as a touch: {err}", account.id);
-            0
-        }
-    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -375,7 +354,7 @@ async fn post_signin(
     let who = by();
     let opened = match signin::start(&account, &who, cols, rows).await {
         Ok(opened) => {
-            record_signin(&session, &account, &who).await;
+            touches::record_signin(&session, &account, &who).await;
             opened
         }
         Err(signin::Error::Busy(exc)) => {
@@ -383,7 +362,7 @@ async fn post_signin(
         }
         Err(signin::Error::Pty(exc)) => {
             tracing::warn!("sign-in terminal unavailable: {exc}");
-            record_signin(&session, &account, &who).await;
+            touches::record_signin(&session, &account, &who).await;
             let mut out = Map::new();
             out.insert("mode".into(), json!("fallback"));
             out.insert("reason".into(), json!("The terminal could not start on this computer."));

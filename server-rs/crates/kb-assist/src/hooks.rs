@@ -308,3 +308,58 @@ fn ticket_message(err: tickets::Error) -> String {
         tickets::Error::Db(err) => err.to_string(),
     }
 }
+
+/// `kb_ai_run::seams::Assistant`: the assistant's engine for the modules of the runs that ask it something
+/// (`session_history.start_over`, `schedules.dry_run`).
+pub struct Engine;
+
+fn assist_turn(turn: crate::assistant::engine::Turn) -> kb_ai_run::seams::AssistTurn {
+    let data = turn.data();
+    kb_ai_run::seams::AssistTurn {
+        state: turn.state,
+        error: turn.error,
+        text: turn.text,
+        structured: turn.structured,
+        data,
+        member: turn.member,
+        model: turn.model,
+        cost: turn.cost,
+    }
+}
+
+fn assist_failure(err: crate::assistant::errors::Error) -> kb_ai_run::seams::AssistFailure {
+    use crate::assistant::errors::Error as AssistantError;
+    match err {
+        AssistantError::Assist(refused) => kb_ai_run::seams::AssistFailure::Assist(refused.to_string()),
+        other => kb_ai_run::seams::AssistFailure::Other(other.to_string()),
+    }
+}
+
+#[async_trait]
+impl kb_ai_run::seams::Assistant for Engine {
+    async fn oneshot(
+        &self,
+        skill: &str,
+        inputs: Map<String, Value>,
+        by: &str,
+        model: &str,
+    ) -> Result<kb_ai_run::seams::AssistTurn, kb_ai_run::seams::AssistFailure> {
+        use crate::assistant::engine::{self, OneshotOpts};
+        let opts = OneshotOpts { by, model, ..OneshotOpts::default() };
+        engine::oneshot(skill, &inputs, opts).await.map(assist_turn).map_err(assist_failure)
+    }
+
+    async fn turn(
+        &self,
+        project_id: &str,
+        ask: kb_ai_run::seams::AssistAsk,
+    ) -> Result<kb_ai_run::seams::AssistTurn, kb_ai_run::seams::AssistFailure> {
+        use crate::assistant::engine::{self, TurnOpts};
+        let mut opts = TurnOpts::new(&ask.name, &ask.skill, ask.inputs.clone(), &ask.by);
+        opts.feature = &ask.feature;
+        opts.ticket_id = ask.ticket_id.as_deref();
+        opts.fresh = ask.fresh;
+        opts.timeout_s = ask.timeout_s;
+        engine::turn(project_id, opts).await.map(assist_turn).map_err(assist_failure)
+    }
+}

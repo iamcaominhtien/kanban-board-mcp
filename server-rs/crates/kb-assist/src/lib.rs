@@ -27,7 +27,7 @@ use serde_json::{Map, Value};
 /// - `kb_dbkit::hooks::AssistantHook` (`engine.any_cli()`, `engine.oneshot(skill, inputs)`: the helper of a stopped
 ///   database copy asks the board's assistant);
 /// - `kb_docs::hooks::AssignHook` and `kb_docs::hooks::DocsAiHook` (see `hooks`);
-/// - the seams of `kb-ai-run` (`kb_ai_run::seams::set_page_notes`) and of this crate (`seams::set_runs`, backed by
+/// - the seams of `kb-ai-run` (`kb_ai_run::seams::set_page_notes`, `set_assistant`) and of this crate (`seams::set_runs`, backed by
 ///   `kb_ai_run::runs`);
 /// - the handlers of the Docs AI jobs (`docs_ai::jobs::register`).
 ///
@@ -38,6 +38,7 @@ pub fn register() {
     kb_docs::hooks::set_assign_hook(Box::new(hooks::Assign));
     kb_docs::hooks::set_docs_ai_hook(Box::new(hooks::Docs));
     kb_ai_run::seams::set_page_notes(Some(std::sync::Arc::new(hooks::Notes)));
+    kb_ai_run::seams::set_assistant(Some(std::sync::Arc::new(hooks::Engine)));
     seams::set_runs(Some(std::sync::Arc::new(hooks::CoreRuns)));
 }
 

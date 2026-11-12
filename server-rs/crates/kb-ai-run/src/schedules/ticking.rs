@@ -91,16 +91,15 @@ pub async fn tick(now: Option<DateTime<Utc>>) -> Result<(), Error> {
             match written.await {
                 Ok(srun) => opened.push(srun.id),
                 Err(err) if matches!(err.sql_err(), Some(SqlErr::UniqueConstraintViolation(_))) => {
-                    // This slot already started (restart). Python means to "only move on": roll back, read the
-                    // schedule again, plan its next start, commit. What it does is fail: after the rollback its
-                    // session has let go of the schedule, and reading the row's id to load it again is refused
-                    // (`MissingGreenlet`). So the tick ends here with nothing changed, the schedule stays due, and
-                    // every later tick ends the same way. Ported as it is.
+                    // this slot already started (restart): only move on
                     session.rollback().await?;
-                    return Err(Error::Other(format!(
-                        "the slot {slot} of schedule {schedule_id} was opened before; the tick stops here, as it does \
-                         in the Python server (which fails when it reads the schedule again after the rollback)"
-                    )));
+                    if let Some(mut again) = ai_schedule::Entity::find_by_id(schedule_id.as_str()).one(&session).await?
+                    {
+                        advance(&mut again, slot_time(&slot)?, false)?;
+                        save(&session, again).await?;
+                        session.commit().await?;
+                    }
+                    continue;
                 }
                 Err(err) => return Err(err.into()),
             }
@@ -640,11 +639,19 @@ async fn follow(srun_id: &str, now: DateTime<Utc>) -> Result<(), Error> {
             _ => false,
         };
         if over_time || over_cost {
-            // Python stops the run here with `runs.cancel(run.id, by="schedule", reason=why, revert_status=False)`
-            // and closes the slot as "partly" with "Stopped at the N min limit." (or "Stopped at the $N cost
-            // limit."). `runs.cancel` takes no `revert_status`, so the call is a `TypeError` before anything is
-            // stopped: the tick fails here, every time, the run goes on and the slot stays open. Ported as it is.
-            return Err(Error::Other("cancel() got an unexpected keyword argument 'revert_status'".to_string()));
+            let why = if over_time {
+                format!("Stopped at the {limit} min limit.")
+            } else {
+                let max_cost = max_cost.map(limit_float).transpose()?.unwrap_or_default();
+                format!("Stopped at the ${max_cost:.2} cost limit.")
+            };
+            match svc_runs::cancel(&run.id, "schedule", Some(&why), None, false).await {
+                Ok(_) => {}
+                // (a run that has just ended cannot be stopped: the slot is closed all the same)
+                Err(err) if err.is_run_error() => {}
+                Err(err) => return Err(run_failure(err)),
+            }
+            return close(srun_id, "partly", Some(why), CloseOpts::default()).await;
         }
         if run.state == "needs_input" && RT.inner().asked.insert(run.id.clone()) {
             let mut extra = Map::new();

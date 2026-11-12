@@ -10,6 +10,7 @@ pub mod diagrams;
 pub mod docs;
 pub mod ideas;
 pub mod members;
+pub mod memory;
 pub mod pictures;
 pub mod projects;
 pub mod relations;
@@ -42,6 +43,7 @@ pub use ideas::{
     create_idea_ticket, get_idea_activity_trail, get_idea_ticket, list_idea_assumptions, list_idea_tickets,
 };
 pub use members::{add_member, list_members, remove_member};
+pub use memory::memory_action;
 pub use pictures::picture;
 pub use projects::{create_project, list_projects, update_project};
 pub use relations::{block_ticket, link_tickets, unblock_ticket, unlink_tickets};

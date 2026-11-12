@@ -19,6 +19,9 @@ kb-docs = { workspace = true }
 kb-doctext = { workspace = true }
 kb-draw = { workspace = true }
 kb-ai = { workspace = true }
+kb-ai-know = { workspace = true }
+kb-ai-run = { workspace = true }
+kb-assist = { workspace = true }
 kb-ideas = { workspace = true }
 kb-notify = { workspace = true }
 kb-log = { workspace = true }
@@ -45,3 +48,6 @@ test = false
 [dev-dependencies]
 testkit = { workspace = true }
 flate2 = "1"
+fake-claude = { path = "../fake-claude" }
+# the same sqlx as testkit: a test adds the rows of an AI run to the server's SQLite file
+sqlx = { version = "0.9", default-features = false, features = ["sqlite", "runtime-tokio"] }

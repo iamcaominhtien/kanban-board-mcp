@@ -18,12 +18,15 @@
 //!    remove its name from `registry::NOT_PORTED_YET` (a unit test of the registry fails until both are done).
 //! 4. Add its calls to a differential test like `tests/mcp_tool_calls.rs` and record what Python answers.
 
+pub mod ai_run;
 pub mod branches;
 pub mod docs;
 pub mod ideas;
 pub mod items;
+pub mod knowledge;
 pub mod projects;
 pub mod routing;
+pub mod schedules;
 pub mod tickets;
 
 use serde_json::{Map, Value};
@@ -58,10 +61,12 @@ pub const CORE_TOOL_TABLE: &[Tool] = &[
     tool!(ticket_items, items::ticket_items),          // delete
     tool!(ticket_branches, branches::ticket_branches), // delete (optionally the git branch)
     tool!(docs_write, docs::docs_write),               // delete
-                                                       // ai_schedules (delete),
-                                                       // knowledge: the knowledge base (table of contents, search, read) and the project memory,
-                                                       // board_wait: wait until the board moves (the notification log),
-                                                       // ai_run: only inside a run the board started: ask a person, message a ticket's team, report
+    tool!(ai_schedules, schedules::ai_schedules),      // delete
+    // the knowledge base (table of contents, search, read) and the project memory: read it, remember, forget a note
+    tool!(knowledge, knowledge::knowledge),
+    tool!(board_wait, knowledge::board_wait), // wait until the board moves (the notification log)
+    // only inside a run the board started: ask a person, message a ticket's team, report
+    tool!(ai_run, ai_run::ai_run),
 ];
 
 /// The Idea Space tools are hidden from the MCP tool list for now (about a quarter of its size). They are fully

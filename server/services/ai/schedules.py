@@ -1261,13 +1261,14 @@ async def tick(now: datetime | None = None) -> None:
                 s.runs_count += 1
                 _advance(s, parse_iso(slot), end=False)
                 session.add(s)
+                schedule_id = s.id  # read before a rollback lets go of the row
                 try:
                     await session.commit()
                 except IntegrityError:
                     await (
                         session.rollback()
                     )  # this slot already started (restart): only move on
-                    s = await session.get(AiSchedule, s.id)
+                    s = await session.get(AiSchedule, schedule_id)
                     _advance(s, parse_iso(slot), end=False)
                     session.add(s)
                     await session.commit()
@@ -1652,9 +1653,7 @@ async def _follow(srun_id: str, now: datetime) -> None:
                 else f"Stopped at the ${float(max_cost):.2f} cost limit."
             )
             try:
-                await svc_runs.cancel(
-                    run.id, by="schedule", reason=why, revert_status=False
-                )
+                await svc_runs.cancel(run.id, by="schedule", reason=why)
             except svc_runs.RunError:
                 pass
             return await _close(srun_id, "partly", why)

@@ -1,4 +1,5 @@
-//! Request models of the AI routers (`api/ai_accounts.py`, `api/ai_knowledge.py`). The replies are the dicts the
+//! Request models of the AI routers (`api/ai_accounts.py`, `api/ai_knowledge.py`); the models of the other routers are
+//! next to their handlers. The replies are the dicts the
 //! services build, so there is no response model.
 
 use serde::Deserialize;
@@ -118,4 +119,12 @@ pub struct NoteBody {
     /// What kind of note.
     #[serde(default)]
     pub kind: Option<NoteKind>,
+}
+
+/// The account an AI member should run as, or null for the login already on this computer (`AssignBody`).
+#[derive(Debug, Clone, Deserialize)]
+pub struct AssignBody {
+    /// The account.
+    #[serde(default)]
+    pub account_id: Option<String>,
 }
