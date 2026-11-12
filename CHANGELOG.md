@@ -12,7 +12,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 **The server is now a native program.** The backend, which was Python (FastAPI, the `mcp` SDK, SQLModel, Alembic) shipped in the desktop app as a PyInstaller bundle, is rewritten in Rust. The app carries no Python runtime any more. What you see and what an AI agent calls did not change: the same REST routes, the same event stream, the same MCP tools with the same names, descriptions and schemas. Plan and what was checked: `docs/specs/rust-migration.md`.
 
-- **Start time, memory and installer size** (measured at release)
+- **Starts in a tenth of a second and needs a fifth of the memory.** Measured on one Linux machine, median of five starts
+  on an empty board: the server answers 0.1 s after it is started (4.7 s for the Python server of 4.0.x) and uses 75 MB while idle,
+  the AI runner included (350 MB). Installer sizes: (measured at release; 4.0.3 was 187 MB for the macOS x64 dmg,
+  181 MB for arm64 and 166 MB for the Windows setup).
 
 ### Before you upgrade
 - **Your data and settings are unchanged.** The database (SQLite, PostgreSQL or MySQL/MariaDB), its schema, the `alembic_version` table, `~/.kanban-board/config.json`, the uploads folder and the stored keys are the same. The 80 migrations are ported, so a database made by 4.0.x opens in 5.0.0 and a database made by 5.0.0 opens in 4.0.x: going back to 4.0.x works.
@@ -25,6 +28,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 - **The tests of the server are Rust tests.** Each crate has its own; the ones that go through HTTP or MCP start the built server on temporary folders (`testkit`), and `fake-claude` stands in for the Claude Code command line.
 
 ### Fixed
+- **The card of the day left out the runs that ended after midnight, east of UTC.** It compared the start of the
+  day, written with the local offset, with times stored in UTC as text: in UTC+7 a run that ended between midnight
+  and 7:00 was not counted, and west of UTC runs from the evening before were.
 - **A scheduled AI run over its time or cost limit is stopped again.** The schedule loop asked to cancel the run with a parameter that call no longer had, so every tick failed at that point and the run went on past its limit. The loop now cancels it.
 - **A schedule slot that had already been opened no longer stops the scheduler.** When the loop met such a slot it read the schedule's id after a rollback, and the error stopped the scheduler.
 
