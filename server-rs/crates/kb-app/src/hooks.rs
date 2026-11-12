@@ -42,6 +42,7 @@ impl kb_dbkit::hooks::DocsSearchHook for DocsSearch {
 
 /// Register every hook (a second call changes nothing).
 pub fn install() {
+    kb_docs::hooks::register();
     kb_ideas::register();
     kb_dbkit::hooks::set_docs_search_hook(Box::new(DocsSearch));
     kb_board::hooks::set_db_move_hook(Box::new(DbMove));

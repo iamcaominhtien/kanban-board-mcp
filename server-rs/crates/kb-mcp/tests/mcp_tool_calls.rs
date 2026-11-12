@@ -10,7 +10,7 @@ use std::collections::HashMap;
 
 use common::check_golden;
 use serde_json::{Map, Value, json};
-use testkit::{Server, normalize, skip_unless_available};
+use testkit::normalize;
 
 /// One call: a name for the golden file, the tool, its arguments (`$name` stands for the id captured under that
 /// name), and the name under which the `id` of the result is kept.
@@ -132,10 +132,7 @@ fn calls() -> Vec<Call> {
 
 #[tokio::test]
 async fn the_project_tools_answer_as_python_does() {
-    if !skip_unless_available("the_project_tools_answer_as_python_does") {
-        return;
-    }
-    let s = Server::start().await;
+    let s = common::start().await;
     let mcp = s.mcp();
     let mut ids: HashMap<String, String> = HashMap::new();
     let mut got = Map::new();

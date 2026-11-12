@@ -1856,10 +1856,12 @@ version = "5.0.0"
 dependencies = [
  "async-trait",
  "axum",
+ "chrono",
  "futures",
  "kb-base",
  "kb-board",
  "kb-db",
+ "kb-log",
  "kb-skills",
  "regex",
  "reqwest",

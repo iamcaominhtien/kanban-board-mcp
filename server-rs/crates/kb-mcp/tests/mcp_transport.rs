@@ -8,7 +8,7 @@ mod common;
 
 use common::{MCP_HEADERS, RawReply, check_golden, raw};
 use serde_json::{Map, Value, json};
-use testkit::{Server, skip_unless_available};
+
 
 /// The headers that are part of the contract (the others are the HTTP server's own: `date`, `server`).
 const KEPT_HEADERS: [&str; 8] = [
@@ -346,15 +346,18 @@ fn kept(reply: &RawReply) -> Value {
             headers.insert(name.clone(), json!(value));
         }
     }
-    json!({"status": reply.status, "headers": headers, "body": reply.body})
+    // the tool list is long, and shorter while tools are still being ported: `mcp_tools_list.rs` compares it with the
+    // snapshot; here only its framing counts
+    let body = match reply.body.split_once(r#""result":{"tools":["#) {
+        Some((head, rest)) if rest.ends_with("]}}\r\n\r\n") => format!("{head}\"result\":{{\"tools\":[<the tools>]}}}}\r\n\r\n"),
+        _ => reply.body.clone(),
+    };
+    json!({"status": reply.status, "headers": headers, "body": body})
 }
 
 #[tokio::test]
 async fn the_transport_answers_as_fastmcp_does() {
-    if !skip_unless_available("the_transport_answers_as_fastmcp_does") {
-        return;
-    }
-    let s = Server::start().await;
+    let s = common::start().await;
     let mut got = Map::new();
     for case in cases() {
         let reply =

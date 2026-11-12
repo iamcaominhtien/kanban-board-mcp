@@ -5,9 +5,34 @@
 use std::time::Duration;
 
 use serde_json::{Map, Value, json};
-use testkit::{Target, target};
+use testkit::{Options, Server, Target, target};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+
+/// With the Rust target, the server under test is this crate's own (`tests/support/test_server.rs`: the MCP routes
+/// over a temporary database), unless `KANBAN_SERVER_BIN` names another (the board's server, once it mounts them).
+#[allow(unsafe_code)]
+fn use_the_test_server() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        if target() == Target::Rust && std::env::var("KANBAN_SERVER_BIN").map_or(true, |v| v.trim().is_empty()) {
+            // Every test starts its server through `start`, so this runs before anything else of the test binary
+            // reads the environment (`Once` holds the other test threads back until it is done).
+            unsafe { std::env::set_var("KANBAN_SERVER_BIN", env!("CARGO_BIN_EXE_kb-mcp-test-server")) };
+        }
+    });
+}
+
+/// Start the server of the current target (`PARITY_TARGET`).
+pub async fn start() -> Server {
+    start_with(Options::default()).await
+}
+
+/// `start` with options (extra environment variables).
+pub async fn start_with(options: Options) -> Server {
+    use_the_test_server();
+    Server::start_with(options).await
+}
 
 /// A reply as it came over the socket.
 #[derive(Debug, Clone)]
@@ -160,11 +185,13 @@ pub fn check_golden(name: &str, got: &Map<String, Value>) {
     for (case, expected) in &golden {
         match got.get(case) {
             Some(reply) if reply == expected => {}
-            Some(reply) => wrong.push(format!(
-                "--- {case}\n expected: {}\n      got: {}",
-                serde_json::to_string(expected).expect("json"),
-                serde_json::to_string(reply).expect("json")
-            )),
+            Some(reply) => {
+                let (expected, reply) = (expected.to_string(), reply.to_string());
+                // show the two from a little before where they part
+                let same = expected.chars().zip(reply.chars()).take_while(|(a, b)| a == b).count();
+                let cut = |text: &str| text.chars().skip(same.saturating_sub(80)).take(500).collect::<String>();
+                wrong.push(format!("--- {case} (from character {same})\n expected: …{}\n      got: …{}", cut(&expected), cut(&reply)));
+            }
             None => wrong.push(format!("--- {case}: in the golden file, not in the test")),
         }
     }

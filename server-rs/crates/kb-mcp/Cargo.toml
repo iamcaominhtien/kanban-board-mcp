@@ -14,8 +14,10 @@ kb-base = { workspace = true }
 kb-db = { workspace = true }
 kb-board = { workspace = true }
 kb-skills = { workspace = true }
+kb-log = { workspace = true }
 async-trait = { workspace = true }
 axum = { workspace = true }
+chrono = { workspace = true }
 futures = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }
