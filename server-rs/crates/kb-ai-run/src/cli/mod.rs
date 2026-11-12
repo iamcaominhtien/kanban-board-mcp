@@ -5,8 +5,9 @@
 //! the account shown is what `claude auth status` prints (no token is in that output).
 //!
 //! The Python module is one file; here it is this file (finding the CLI, its environment, short commands, `detect`)
-//! and three more in the order of the Python text: `limits` (what the CLI says when it is rate-limited), `process`
-//! (stopping and pausing process trees, long arguments, `CliProcess`) and `tools` (tool calls as step texts). Every
+//! and four more in the order of the Python text: `limits` (what the CLI says when it is rate-limited), `process`
+//! (stopping and pausing process trees, long arguments), `running` (`CliProcess`) and `tools` (tool calls as step
+//! texts). Every
 //! name of the Python module is `cli::<name>` here too.
 
 use std::path::Path;
@@ -22,10 +23,12 @@ use tokio::io::AsyncReadExt;
 
 mod limits;
 mod process;
+mod running;
 mod tools;
 
 pub use limits::*;
 pub use process::*;
+pub use running::*;
 pub use tools::*;
 
 /// The command name of the local runner (AI v2: Claude Code only)
@@ -164,18 +167,34 @@ pub async fn missing(binary: &str, explicit: Option<&str>) -> String {
 /// Python starts a new session (`start_new_session=True`, `setsid`); the standard library of Rust has no stable call
 /// for that, so the child gets a process group of its own (`setpgid(0, 0)`), which is all the board uses: the group id
 /// is the CLI's pid and every signal goes to the group. The child keeps the board's controlling terminal, if any.
-pub(crate) fn own_group(command: &mut tokio::process::Command) {
+pub fn popen_kwargs(command: &mut tokio::process::Command) {
     #[cfg(unix)]
     {
         command.process_group(0);
     }
     #[cfg(windows)]
     {
-        /// `subprocess.CREATE_NEW_PROCESS_GROUP`
-        const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
         command.creation_flags(CREATE_NEW_PROCESS_GROUP);
     }
 }
+
+/// `popen_kwargs` for a command of the standard library (`subprocess.Popen(..., **_popen_kwargs())`).
+pub fn popen_kwargs_std(command: &mut std::process::Command) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        command.process_group(0);
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(CREATE_NEW_PROCESS_GROUP);
+    }
+}
+
+/// `subprocess.CREATE_NEW_PROCESS_GROUP`
+#[cfg(windows)]
+const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
 
 /// `taskpolicy -b` on macOS, only when KANBAN_CLI_LOW_PRIORITY=1: the CLI and its children run on the efficiency
 /// cores with a lower disk priority. Off by default: five real CLIs took 144 s instead of 106 s with it and the
@@ -295,7 +314,7 @@ pub async fn run_capture(
     if let Some(cwd) = cwd {
         command.current_dir(cwd);
     }
-    own_group(&mut command);
+    popen_kwargs(&mut command);
     let mut child = command.spawn()?;
     let pid = child.id().and_then(|id| i32::try_from(id).ok());
     let mut guard = TreeGuard(pid);
@@ -371,8 +390,12 @@ pub async fn detect(
             } else {
                 Some(json!(format!("{} plan", capitalize(plan))))
             };
-            let parts: Vec<String> =
-                [account, method.as_ref()].into_iter().flatten().filter(|v| pyjson::truthy(v)).map(pyjson::py_str).collect();
+            let parts: Vec<String> = [account, method.as_ref()]
+                .into_iter()
+                .flatten()
+                .filter(|v| pyjson::truthy(v))
+                .map(pyjson::py_str)
+                .collect();
             info.insert("account".into(), if parts.is_empty() { Value::Null } else { json!(parts.join(" · ")) });
         }
     }

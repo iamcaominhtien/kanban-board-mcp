@@ -232,6 +232,11 @@ async fn test_schema_enums_match_the_services() {
     // every action name in a description is a real choice, and the other way round
     let project_actions: Vec<&str> = kb_mcp::tools::projects::PROJECT_OPS.iter().map(|(action, _)| *action).collect();
     assert_eq!(enum_set("manage_project", "action"), Some(sorted(&project_actions)));
+    let read_actions: Vec<&str> = kb_mcp::tools::docs::DOCS_READ_OPS.iter().map(|(action, _)| *action).collect();
+    assert_eq!(enum_set("docs_read", "action"), Some(sorted(&read_actions)));
+    let mut write_actions: Vec<&str> = kb_mcp::tools::docs::DOCS_WRITE_OPS.iter().map(|(action, _)| *action).collect();
+    write_actions.extend(kb_mcp::tools::docs::DOCS_WRITE_COMPOSITE);
+    assert_eq!(enum_set("docs_write", "action"), Some(sorted(&write_actions)));
     // (the enums of the ticket, branch, docs, idea and ai_run tools are compared with their tables and with the
     // services' own lists when those tools are ported; what the schema says is fixed by the snapshot meanwhile)
     if let Some(statuses) = enum_set("manage_ticket", "status") {
@@ -544,9 +549,11 @@ async fn test_sketches_are_actions_of_the_docs_tools_not_tools_of_their_own() {
     let (read_text, write_text) =
         (read["description"].as_str().expect("text"), write["description"].as_str().expect("text"));
     for action in ["sketches", "sketch"] {
+        assert!(kb_mcp::tools::docs::DOCS_READ_OPS.iter().any(|(a, _)| *a == action), "{action}");
         assert!(read_text.contains(&format!("- {action}:")), "{action}");
     }
     for action in ["sketch_create", "sketch_save"] {
+        assert!(kb_mcp::tools::docs::DOCS_WRITE_OPS.iter().any(|(a, _)| *a == action), "{action}");
         assert!(write_text.contains(&format!("- {action}:")), "{action}");
     }
     // the limits an agent must respect are in front of it

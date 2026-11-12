@@ -68,6 +68,11 @@ const MONTHS: [&str; 12] = [
     "december",
 ];
 
+/// Python's dates run from the year 1 to the year 9999; past them it raises, and `reset_wait` gives None.
+fn in_python_range(when: &NaiveDateTime) -> bool {
+    (1..=9999).contains(&when.year())
+}
+
 /// Seconds until the time a plan-limit message says the limit resets, or None when it names none. `now` is the
 /// moment to count from (None: now). A message without a zone means this computer's own.
 pub fn reset_wait(text: &str, now: Option<DateTime<Utc>>) -> Option<f64> {
@@ -91,6 +96,9 @@ pub fn reset_wait_in<Z: TimeZone>(text: &str, now: DateTime<Utc>, local: &Z) -> 
         Some(zone) => now.with_timezone(&zone).naive_local(),
         None => now.with_timezone(local).naive_local(), // zone None: this computer's own
     };
+    if !in_python_range(&now) {
+        return None; // OverflowError
+    }
     let pm = m.name("ap").is_some_and(|ap| ap.as_str().eq_ignore_ascii_case("pm"));
     let hour = h % 12 + if pm { 12 } else { 0 };
     let mut when = now.with_hour(hour)?.with_minute(minute)?.with_second(0)?.with_nanosecond(0)?;
@@ -99,11 +107,11 @@ pub fn reset_wait_in<Z: TimeZone>(text: &str, now: DateTime<Utc>, local: &Z) -> 
         let month = MONTHS.iter().position(|name| name.starts_with(&head))? + 1;
         let day = number("day")?;
         when = when.date().with_day(1)?.with_month(u32::try_from(month).ok()?)?.with_day(day)?.and_time(when.time());
-        if when < now.checked_sub_days(Days::new(1))? {
-            when = when.with_year(when.year() + 1).filter(|w| w.year() <= 9999)?;
+        if when < now.checked_sub_days(Days::new(1)).filter(in_python_range)? {
+            when = when.with_year(when.year() + 1).filter(in_python_range)?;
         }
     } else if when < now {
-        when = when.checked_add_days(Days::new(1)).filter(|w| w.year() <= 9999)?;
+        when = when.checked_add_days(Days::new(1)).filter(in_python_range)?;
     }
     let delta = when - now;
     Some(delta.num_microseconds()? as f64 / 1e6)
@@ -134,5 +142,5 @@ pub fn rate_limit_wait_at<Z: TimeZone>(text: Option<&str>, epoch: f64, now: Date
     } else {
         RETRY_AFTER.captures(text).and_then(|after| after[1].parse::<f64>().ok()).unwrap_or(RATE_WAIT_DEFAULT)
     };
-    Some(f64::max(5.0, f64::min(wait, RATE_WAIT_MAX)))
+    Some(wait.clamp(5.0, RATE_WAIT_MAX))
 }

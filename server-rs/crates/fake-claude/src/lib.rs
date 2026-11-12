@@ -49,7 +49,11 @@ pub fn bin_path() -> PathBuf {
 fn profile_dir() -> PathBuf {
     let exe = std::env::current_exe().expect("the path of the running test");
     let dir = exe.parent().expect("a test program is inside a folder");
-    if dir.file_name().is_some_and(|n| n == "deps") { dir.parent().unwrap_or(dir).to_path_buf() } else { dir.to_path_buf() }
+    if dir.file_name().is_some_and(|n| n == "deps") {
+        dir.parent().unwrap_or(dir).to_path_buf()
+    } else {
+        dir.to_path_buf()
+    }
 }
 
 fn build(profile_dir: &Path) {

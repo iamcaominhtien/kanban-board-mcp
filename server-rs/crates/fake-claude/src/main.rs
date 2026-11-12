@@ -144,12 +144,7 @@ fn strip(text: &str) -> &str {
 /// command line (the command the AI "ran"), as the Python script appends it after `-c <code>`.
 fn spawn_sleeper(tail: &[&str]) -> std::process::Child {
     let exe = std::env::current_exe().unwrap_or_else(|e| crash(&format!("OSError: {e}")));
-    Command::new(exe)
-        .arg(SLEEP_CHILD)
-        .arg("300")
-        .args(tail)
-        .spawn()
-        .unwrap_or_else(|e| crash(&format!("OSError: {e}")))
+    Command::new(exe).arg(SLEEP_CHILD).arg("300").args(tail).spawn().unwrap_or_else(|e| crash(&format!("OSError: {e}")))
 }
 
 /// `sys.stdin` as the Python script reads it: text lines out of a buffer filled by single reads of up to 8192 bytes,
@@ -417,6 +412,8 @@ fn main() {
     }
     if mode == "spawn" {
         let Some(pidfile) = env("FAKE_CLAUDE_PIDFILE") else { crash("KeyError: 'FAKE_CLAUDE_PIDFILE'") };
+        // left running on purpose: the test checks that the board stops it with the CLI
+        #[allow(clippy::zombie_processes)]
         let child = spawn_sleeper(&[]);
         write(&pidfile, &child.id().to_string());
         emit(json!({"type": "assistant", "message": {"content": [{"type": "text", "text": "Working…"}]}}));
@@ -728,6 +725,8 @@ fn main() {
     emit(Value::Object(result));
     if mode == "linger" {
         // it answered, but a server it started in the background keeps it open (a web server to look at its frames)
+        // left running on purpose: the test checks that the board stops it with the CLI
+        #[allow(clippy::zombie_processes)]
         let server = spawn_sleeper(&["http.server"]);
         if let Some(pidfile) = env_set("FAKE_CLAUDE_PIDFILE") {
             write(&pidfile, &server.id().to_string());
@@ -764,9 +763,8 @@ fn auth_login(login_file: &str) -> ! {
         // `print` without a flush, then one with: both reach the terminal before the prompt
         let mut out = std::io::stdout().lock();
         let _ = out.write_all("Opening your browser to sign in…\n".as_bytes());
-        let _ = out.write_all(
-            b"If it does not open, visit: https://claude.example/oauth/authorize?code=true&client_id=x\n",
-        );
+        let _ = out
+            .write_all(b"If it does not open, visit: https://claude.example/oauth/authorize?code=true&client_id=x\n");
         let _ = out.flush();
     }
     // `input(prompt)`: on a terminal Python writes the prompt to stderr, otherwise to stdout

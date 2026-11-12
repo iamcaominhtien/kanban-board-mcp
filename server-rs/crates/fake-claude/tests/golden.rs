@@ -105,12 +105,21 @@ fn prompt(name: &'static str, text: &str) -> Case {
 }
 
 fn user_line(text: &str) -> String {
-    format!("{{\"type\": \"user\", \"message\": {{\"role\": \"user\", \"content\": [{{\"type\": \"text\", \"text\": \"{text}\"}}]}}}}\n")
+    format!(
+        "{{\"type\": \"user\", \"message\": {{\"role\": \"user\", \"content\": [{{\"type\": \"text\", \"text\": \"{text}\"}}]}}}}\n"
+    )
 }
 
 fn cases() -> Vec<Case> {
     let live = ["--input-format", "stream-json", "--output-format", "stream-json", "--session-id", "live-1"];
-    let resume = ["-p", "The person answered your question:  use SQLite  ", "--output-format", "stream-json", "--resume", "sess-9"];
+    let resume = [
+        "-p",
+        "The person answered your question:  use SQLite  ",
+        "--output-format",
+        "stream-json",
+        "--resume",
+        "sess-9",
+    ];
     vec![
         case("version", &["--version"]),
         case("version with more arguments", &["--version", "--verbose"]),
@@ -312,8 +321,17 @@ fn run(case: &Case, program: &[&Path]) -> Outcome {
     std::fs::write(root.join("calc.py"), "def add(a, b):\n    return a - b\n").expect("calc.py");
     let system_path = "/usr/local/bin:/usr/bin:/bin";
     if case.git {
-        for argv in [vec!["init", "-q"], vec!["add", "-A"], vec!["-c", "user.email=t@t", "-c", "user.name=T", "commit", "-q", "-m", "first"]] {
-            let done = Command::new("git").args(&argv).current_dir(&root).env("HOME", root.join("home")).output().expect("git");
+        for argv in [
+            vec!["init", "-q"],
+            vec!["add", "-A"],
+            vec!["-c", "user.email=t@t", "-c", "user.name=T", "commit", "-q", "-m", "first"],
+        ] {
+            let done = Command::new("git")
+                .args(&argv)
+                .current_dir(&root)
+                .env("HOME", root.join("home"))
+                .output()
+                .expect("git");
             assert!(done.status.success(), "git {argv:?}: {}", String::from_utf8_lossy(&done.stderr));
         }
     }
@@ -374,7 +392,11 @@ fn run(case: &Case, program: &[&Path]) -> Outcome {
             if case.env.iter().any(|(k, _)| *k == "FAKE_CLAUDE_PIDFILE") {
                 wait_for("the pid file", deadline, || pid_in_file().is_some());
                 // what it started is alive, and is one of its own group (stopped with it below)
-                assert!(kill(Pid::from_raw(pid_in_file().expect("pid")), None).is_ok(), "{}: the child runs", case.name);
+                assert!(
+                    kill(Pid::from_raw(pid_in_file().expect("pid")), None).is_ok(),
+                    "{}: the child runs",
+                    case.name
+                );
             }
             std::thread::sleep(Duration::from_millis(150)); // nothing more may follow
             let _ = killpg(group, Signal::SIGKILL);
@@ -416,9 +438,11 @@ fn run(case: &Case, program: &[&Path]) -> Outcome {
     let mut files = BTreeMap::new();
     snapshot(&root, &root, &mask, &mut files);
     if case.git {
-        let log = Command::new("git").args(["log", "--format=%an <%ae> %s"]).current_dir(&root).output().expect("git log");
+        let log =
+            Command::new("git").args(["log", "--format=%an <%ae> %s"]).current_dir(&root).output().expect("git log");
         files.insert("(git log)".into(), String::from_utf8_lossy(&log.stdout).into_owned());
-        let dirty = Command::new("git").args(["status", "--porcelain"]).current_dir(&root).output().expect("git status");
+        let dirty =
+            Command::new("git").args(["status", "--porcelain"]).current_dir(&root).output().expect("git status");
         files.insert("(git status)".into(), String::from_utf8_lossy(&dirty.stdout).into_owned());
     }
     let code = status.code().or_else(|| status.signal().map(|s| -s));

@@ -1,0 +1,221 @@
+[
+ {
+  "key": "triage",
+  "name": "Triage",
+  "glyph": "TR",
+  "tagline": "Reads a new ticket and sorts it",
+  "model": "haiku",
+  "effort": "low",
+  "writes": "nothing",
+  "hands_in": "Labels and the review depth: a ticket sorted for the team",
+  "plugins": [],
+  "mcp": [],
+  "limits": {
+   "max_parallel": 2,
+   "max_runs_per_day": 40
+  }
+ },
+ {
+  "key": "pm",
+  "name": "PM",
+  "glyph": "PM",
+  "tagline": "PM: plans, splits, and settles disagreements",
+  "model": "opus",
+  "effort": "high",
+  "writes": "nothing",
+  "hands_in": "A plan, or a verdict",
+  "plugins": [],
+  "mcp": [
+   "playwright"
+  ],
+  "limits": {
+   "max_parallel": 1,
+   "max_runs_per_day": 15
+  }
+ },
+ {
+  "key": "ba",
+  "name": "BA",
+  "glyph": "BA",
+  "tagline": "Turns a wish into criteria",
+  "model": "sonnet",
+  "effort": "medium",
+  "writes": "ticket",
+  "hands_in": "Acceptance criteria",
+  "plugins": [],
+  "mcp": [],
+  "limits": {
+   "max_parallel": 1,
+   "max_runs_per_day": 15
+  }
+ },
+ {
+  "key": "designer",
+  "name": "Designer",
+  "glyph": "DS",
+  "tagline": "Draws before anyone builds",
+  "model": "opus",
+  "effort": "high",
+  "writes": "canvas",
+  "hands_in": "A mock-up for you to approve",
+  "plugins": [
+   "design",
+   "emil-design-eng",
+   "motion-design",
+   "tufte-data-viz"
+  ],
+  "mcp": [
+   "playwright"
+  ],
+  "limits": {
+   "max_parallel": 1,
+   "max_runs_per_day": 10
+  }
+ },
+ {
+  "key": "dev",
+  "name": "Dev (TDD)",
+  "glyph": "DV",
+  "tagline": "A failing test before the fix",
+  "model": "sonnet",
+  "retry_model": "opus",
+  "effort": "medium",
+  "writes": "worktree",
+  "hands_in": "A run where the test failed, and a later run where it passed",
+  "plugins": [
+   "tdd"
+  ],
+  "mcp": [],
+  "limits": {
+   "max_parallel": 1,
+   "max_runs_per_day": 10
+  }
+ },
+ {
+  "key": "reviewer",
+  "name": "Reviewer",
+  "glyph": "RV",
+  "tagline": "Reads the diff, never the transcript",
+  "model": "sonnet",
+  "effort": "medium",
+  "depth_models": {
+   "light": "haiku",
+   "standard": "sonnet",
+   "deep": "opus"
+  },
+  "writes": "nothing",
+  "hands_in": "Pass, or what to change",
+  "plugins": [],
+  "mcp": [],
+  "limits": {
+   "max_parallel": 2,
+   "max_runs_per_day": 30
+  }
+ },
+ {
+  "key": "qa",
+  "name": "QA",
+  "glyph": "QA",
+  "tagline": "Runs it, does not read it",
+  "model": "sonnet",
+  "effort": "low",
+  "writes": "tests",
+  "hands_in": "What passed, what did not",
+  "plugins": [],
+  "mcp": [],
+  "limits": {
+   "max_parallel": 1,
+   "max_runs_per_day": 15
+  }
+ },
+ {
+  "key": "user_tester",
+  "name": "User tester",
+  "glyph": "UT",
+  "tagline": "Plays one kind of person",
+  "model": "sonnet",
+  "effort": "medium",
+  "writes": "nothing",
+  "hands_in": "What it tried, and where it got stuck",
+  "plugins": [],
+  "mcp": [
+   "playwright"
+  ],
+  "personas": [
+   "in a hurry",
+   "first time here",
+   "keyboard only",
+   "on a phone"
+  ],
+  "limits": {
+   "max_parallel": 1,
+   "max_runs_per_day": 10
+  }
+ },
+ {
+  "key": "tech_writer",
+  "name": "Technical writer",
+  "glyph": "TW",
+  "tagline": "Docs a reader can follow, every step tried",
+  "model": "sonnet",
+  "effort": "medium",
+  "writes": "worktree",
+  "hands_in": "A guide or page whose every step was tried, with the commands and their output",
+  "plugins": [],
+  "mcp": [],
+  "limits": {
+   "max_parallel": 1,
+   "max_runs_per_day": 10
+  }
+ },
+ {
+  "key": "devops",
+  "name": "DevOps",
+  "glyph": "DO",
+  "tagline": "CI and environments that run the same every time",
+  "model": "sonnet",
+  "effort": "medium",
+  "writes": "worktree",
+  "hands_in": "The config on a branch, a local run of the commands it runs, and what a person must switch on",
+  "plugins": [],
+  "mcp": [],
+  "limits": {
+   "max_parallel": 1,
+   "max_runs_per_day": 10
+  }
+ },
+ {
+  "key": "security",
+  "name": "Security reviewer",
+  "glyph": "SR",
+  "tagline": "Finds what an attacker could use, and proves it",
+  "model": "sonnet",
+  "effort": "high",
+  "writes": "nothing",
+  "hands_in": "Findings rated by severity, each with a local proof and a fix, and a verdict",
+  "plugins": [],
+  "mcp": [],
+  "limits": {
+   "max_parallel": 1,
+   "max_runs_per_day": 15
+  }
+ },
+ {
+  "key": "data_analyst",
+  "name": "Data analyst",
+  "glyph": "DA",
+  "tagline": "Answers questions with numbers people can trust",
+  "model": "sonnet",
+  "effort": "medium",
+  "writes": "ticket",
+  "hands_in": "The answer with its numbers, a chart, the definitions and caveats, and a script that reruns it",
+  "plugins": [
+   "tufte-data-viz"
+  ],
+  "mcp": [],
+  "limits": {
+   "max_parallel": 1,
+   "max_runs_per_day": 15
+  }
+ }
+]

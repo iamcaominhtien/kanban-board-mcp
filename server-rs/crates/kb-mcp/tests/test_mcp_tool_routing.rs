@@ -4,7 +4,7 @@
 //!
 //! Where a Python test also used a ticket tool, the ticket is made and changed through the REST API here, and a
 //! check that needs a tool the server does not list yet is skipped (`common::tools`): it runs from the day the tool
-//! is ported. The tests that are about other tools wait for them: see the list at the end of this file.
+//! is ported. See the list at the end of this file for what is not ported.
 
 mod common;
 
@@ -176,7 +176,9 @@ async fn test_tools_work_through_a_real_client_session() {
     run("ticket_branches", json!({"ticket_id": ticket["id"], "action": "add", "name": "feat/a"})).await;
     run("list_tickets", json!({"project_id": project["id"]})).await;
     run("get_ticket", json!({"ticket_id": ticket["id"], "view": "comments"})).await;
-    // `docs_write` and `docs_read` calls of the Python test wait for the docs tools
+    let page = run("docs_write", json!({"action": "create", "project_id": project["id"], "title": "Doc"})).await.json();
+    run("docs_read", json!({"action": "get", "page_id": page["id"]})).await;
+    run("docs_read", json!({"action": "search", "project_id": project["id"], "query": "Doc"})).await;
     let failed = mcp.call_tool("manage_project", json!({"action": "update", "project_id": "NOPE", "name": "x"})).await;
     assert!(failed.is_error);
     let failed = mcp.call_tool("manage_ticket", json!({"action": "update", "ticket_id": "NOPE-1", "title": "x"})).await;
@@ -541,7 +543,106 @@ async fn test_list_tickets_filters_pending_and_reopened() {
     assert_eq!(rest["total"], 0);
 }
 
-// Waiting for their tools (ported with them):
-// - docs_read, docs_write: test_docs_read_and_write, test_docs_import
+// --------------------------------------------------------------------------- docs
+
+#[tokio::test]
+async fn test_docs_read_and_write() {
+    let s = common::start().await;
+    let mcp = s.mcp();
+    let p = project(&mcp, "DOC").await;
+    let pid = &p["id"];
+    let page = call(
+        &mcp,
+        "docs_write",
+        json!({"action": "create", "project_id": pid, "title": "Guide", "markdown": "## Intro\nhi"}),
+    )
+    .await;
+    assert_eq!(page["version"], 1);
+    let child = call(
+        &mcp,
+        "docs_write",
+        json!({"action": "create", "project_id": pid, "title": "Child", "parent_id": page["id"]}),
+    )
+    .await;
+
+    let tree = call(&mcp, "docs_read", json!({"action": "list", "project_id": pid})).await;
+    let mut titles: Vec<&str> = tree.as_array().expect("a list").iter().filter_map(|n| n["title"].as_str()).collect();
+    titles.sort_unstable();
+    assert_eq!(titles, ["Child", "Guide"]);
+    let got = call(&mcp, "docs_read", json!({"action": "get", "page_id": page["id"]})).await;
+    assert!(got["markdown"].as_str().expect("text").starts_with("## Intro") && got["version"] == 1);
+
+    let updated = call(
+        &mcp,
+        "docs_write",
+        json!({"action": "update", "page_id": page["id"], "markdown": "## Intro\nchanged", "base_version": 1, "note": "edit", "title": "Guide 2"}),
+    )
+    .await;
+    assert!(updated["version"] == 2 && updated["title"] == "Guide 2");
+    // a stale base_version
+    let refused = call_err(
+        &mcp,
+        "docs_write",
+        json!({"action": "update", "page_id": page["id"], "markdown": "x", "base_version": 1}),
+    )
+    .await;
+    assert!(refused.contains("docs_read"), "{refused}");
+
+    let versions = call(&mcp, "docs_read", json!({"action": "versions", "page_id": page["id"]})).await;
+    let numbers: Vec<&Value> = versions.as_array().expect("a list").iter().map(|v| &v["version"]).collect();
+    assert_eq!(numbers, [&json!(2), &json!(1)]);
+    let old = call(&mcp, "docs_read", json!({"action": "version", "page_id": page["id"], "version": 1})).await;
+    assert!(old["markdown"].as_str().expect("text").contains("hi"));
+    let diff =
+        call(&mcp, "docs_read", json!({"action": "version", "page_id": page["id"], "version": 1, "compare_to": 2}))
+            .await;
+    assert_ne!(diff, old);
+    let restored =
+        call(&mcp, "docs_write", json!({"action": "restore_version", "page_id": page["id"], "version": 1})).await;
+    assert_eq!(restored["version"], 3);
+
+    let found = call(&mcp, "docs_read", json!({"action": "search", "project_id": pid, "query": "Intro"})).await;
+    assert!(found["total"].as_i64().expect("a total") >= 1);
+    let checked =
+        call(&mcp, "docs_read", json!({"action": "check_links", "project_id": pid, "refs": ["[[Guide]]", "[[Nope]]"]}))
+            .await;
+    let statuses: Vec<&Value> = checked.as_array().expect("a list").iter().map(|c| &c["status"]).collect();
+    assert_eq!(statuses, [&json!("ok"), &json!("missing")]);
+
+    let moved = call(&mcp, "docs_write", json!({"action": "move", "page_id": child["id"]})).await;
+    assert!(moved["parent_id"].is_null());
+    let copy =
+        call(&mcp, "docs_write", json!({"action": "duplicate", "page_id": page["id"], "include_children": false}))
+            .await;
+    assert!(copy["title"].as_str().expect("a title").ends_with("(copy)"));
+
+    let t = ticket(&mcp, &p, json!({})).await;
+    call(&mcp, "manage_ticket", json!({"action": "link_doc", "ticket_id": t["id"], "page_id": page["id"]})).await;
+    call(&mcp, "manage_ticket", json!({"action": "unlink_doc", "ticket_id": t["id"], "page_id": page["id"]})).await;
+
+    call(&mcp, "docs_write", json!({"action": "delete", "page_id": child["id"]})).await;
+    let bin = call(&mcp, "docs_read", json!({"action": "recycle_bin", "project_id": pid})).await;
+    let ids: Vec<&Value> = bin.as_array().expect("a list").iter().map(|b| &b["id"]).collect();
+    assert_eq!(ids, [&child["id"]]);
+    call(&mcp, "docs_write", json!({"action": "restore", "page_id": child["id"]})).await;
+    assert_eq!(call(&mcp, "docs_read", json!({"action": "recycle_bin", "project_id": pid})).await, json!([]));
+}
+
+#[tokio::test]
+async fn test_docs_import() {
+    let s = common::start().await;
+    let mcp = s.mcp();
+    let p = project(&mcp, "IMP").await;
+    let dir = tempfile::tempdir().expect("a folder");
+    std::fs::write(dir.path().join("a.md"), "# A\nbody").expect("a file");
+    let out = call(
+        &mcp,
+        "docs_write",
+        json!({"action": "import", "project_id": p["id"], "path": dir.path().to_string_lossy()}),
+    )
+    .await;
+    assert!(out["created"].as_array().expect("created").len() == 1 && out["failed"] == json!([]));
+}
+
 // - `test_every_table_entry_names_real_parameters` is a unit test next to each table (`src/tools/projects.rs`,
 //   `tickets.rs`, `items.rs`, `branches.rs`).

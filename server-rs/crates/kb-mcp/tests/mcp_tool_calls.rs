@@ -5,8 +5,11 @@
 //! normalized): `mcp_tool_calls.json` for the project tools, `mcp_tool_calls_tickets.json` for the ticket tools,
 //! `mcp_tool_calls_ideas.json` for the Idea Space tools; both servers are compared with them. To record them again
 //! after adding a call: `PARITY_TARGET=python KANBAN_WRITE_GOLDEN=1 cargo test -p kb-mcp --test mcp_tool_calls`.
+//! The Docs tools (`docs_read`, `docs_write`) are in `docs_calls/`, one golden file per area
+//! (`mcp_tool_calls_docs_{pages,comments,drawings,canvases,guides}.json`).
 
 mod common;
+mod docs_calls;
 
 use std::collections::HashMap;
 

@@ -1,0 +1,4336 @@
+{
+  "setup: project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Docs\",\n  \"prefix\": \"DOC\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: other project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:2>\",\n  \"name\": \"Other\",\n  \"prefix\": \"OTH\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: a ticket": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"DOC-1\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Rate limit\",\n  \"description\": \"\",\n  \"type\": \"task\",\n  \"status\": \"backlog\",\n  \"priority\": \"medium\",\n  \"estimate\": null,\n  \"due_date\": null,\n  \"start_date\": null,\n  \"tags\": [],\n  \"parent_id\": null,\n  \"comments\": [],\n  \"acceptance_criteria\": [],\n  \"sub_tasks\": [],\n  \"work_log\": [],\n  \"test_cases\": [],\n  \"wont_do_reason\": null,\n  \"created_by\": \"<uuid:3>\",\n  \"assignee\": null,\n  \"blocks\": [],\n  \"blocked_by\": [],\n  \"block_done_if_acs_incomplete\": false,\n  \"block_done_if_tcs_incomplete\": false,\n  \"links\": [],\n  \"branches\": [],\n  \"workspace_retention_days\": null,\n  \"repo_path\": null,\n  \"reopen_count\": 0,\n  \"last_reopened_at\": null,\n  \"last_reopened_by\": null,\n  \"last_reopen_reason\": null,\n  \"reopen_history\": [],\n  \"pending\": false,\n  \"pending_reason_type\": null,\n  \"pending_ticket_id\": null,\n  \"pending_member_id\": null,\n  \"pending_party\": null,\n  \"pending_note\": null,\n  \"pending_since\": null,\n  \"pending_by\": null,\n  \"from_idea_id\": null,\n  \"tests_assumption_id\": null,\n  \"wave_pin\": null,\n  \"review_requested_from\": null,\n  \"completed_at\": null,\n  \"completed_by\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "read: no arguments": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\naction\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"
+      }
+    ],
+    "isError": true
+  },
+  "read: an unknown action": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\naction\n  Input should be 'list', 'get', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value='nope', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "read: action null": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\naction\n  Input should be 'list', 'get', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "read: action a number": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\naction\n  Input should be 'list', 'get', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "read: action in other case": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\naction\n  Input should be 'list', 'get', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value='List', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "read: an unknown argument": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\nproject\n  Extra inputs are not permitted [type=extra_forbidden, input_value='x', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "read: two errors at once": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: 3 validation errors for docs_readArguments\naction\n  Input should be 'list', 'get', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value='nope', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error\nlimit\n  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='many', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/int_parsing\nrefs\n  Input should be a valid list [type=list_type, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/list_type"
+      }
+    ],
+    "isError": true
+  },
+  "read: limit text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\nlimit\n  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='many', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/int_parsing"
+      }
+    ],
+    "isError": true
+  },
+  "read: scope unknown": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\nscope\n  Input should be 'space', 'all' or 'tickets' [type=literal_error, input_value='web', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "read: state unknown": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\nstate\n  Input should be 'all', 'open' or 'resolved' [type=literal_error, input_value='closed', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "read: refs not a list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\nrefs\n  Input should be a valid list [type=list_type, input_value='[[A]]', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/list_type"
+      }
+    ],
+    "isError": true
+  },
+  "list: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='list') requires project_id. Missing: project_id."
+      }
+    ],
+    "isError": true
+  },
+  "list: null counts as left out": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='list') requires project_id. Missing: project_id."
+      }
+    ],
+    "isError": true
+  },
+  "list: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='list') does not use: page_id. It requires project_id."
+      }
+    ],
+    "isError": true
+  },
+  "list: two parameters it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='list') does not use: query, limit. It requires project_id."
+      }
+    ],
+    "isError": true
+  },
+  "list: a project that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Project not found."
+      }
+    ],
+    "isError": true
+  },
+  "list: an empty project": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "get: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='get') requires page_id; optional: section. Missing: page_id."
+      }
+    ],
+    "isError": true
+  },
+  "get: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "get: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='get') does not use: version. It requires page_id; optional: section."
+      }
+    ],
+    "isError": true
+  },
+  "search: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='search') requires project_id, query; optional: scope, limit. Missing: project_id, query."
+      }
+    ],
+    "isError": true
+  },
+  "search: no query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='search') requires project_id, query; optional: scope, limit. Missing: query."
+      }
+    ],
+    "isError": true
+  },
+  "search: an empty project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 0,\n  \"pages\": [],\n  \"tickets\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 0,
+        "pages": [],
+        "tickets": []
+      }
+    },
+    "isError": false
+  },
+  "search: a project that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 0,\n  \"pages\": [],\n  \"tickets\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 0,
+        "pages": [],
+        "tickets": []
+      }
+    },
+    "isError": false
+  },
+  "search: a blank query": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 0,\n  \"pages\": [],\n  \"tickets\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 0,
+        "pages": [],
+        "tickets": []
+      }
+    },
+    "isError": false
+  },
+  "versions: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='versions') requires page_id. Missing: page_id."
+      }
+    ],
+    "isError": true
+  },
+  "versions: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "version: no version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='version') requires page_id, version; optional: compare_to. Missing: version."
+      }
+    ],
+    "isError": true
+  },
+  "version: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "recycle_bin: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='recycle_bin') requires project_id. Missing: project_id."
+      }
+    ],
+    "isError": true
+  },
+  "recycle_bin: empty": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "recycle_bin: a project that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Project not found."
+      }
+    ],
+    "isError": true
+  },
+  "check_links: no refs": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='check_links') requires project_id, refs. Missing: refs."
+      }
+    ],
+    "isError": true
+  },
+  "check_links: not a link": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: 'plain words' is not a [[Page]] link or a ticket key"
+      }
+    ],
+    "isError": true
+  },
+  "check_links: an empty list": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "write: no arguments": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\naction\n  Input should be 'create', 'update', 'edit', 'upload', 'tickets', 'assign', 'move', 'duplicate', 'delete', 'restore', 'restore_version', 'import', 'comment', 'reply', 'edit_comment', 'delete_comment', 'resolve', 'reopen', 'diagram_create', 'diagram_save', 'diagram_delete', 'diagram_restore', 'sketch_create', 'sketch_save', 'canvas_create', 'canvas_comment' or 'canvas_update' [type=literal_error, input_value='', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "write: no arguments at all": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\naction\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"
+      }
+    ],
+    "isError": true
+  },
+  "write: an unknown action": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\naction\n  Input should be 'create', 'update', 'edit', 'upload', 'tickets', 'assign', 'move', 'duplicate', 'delete', 'restore', 'restore_version', 'import', 'comment', 'reply', 'edit_comment', 'delete_comment', 'resolve', 'reopen', 'diagram_create', 'diagram_save', 'diagram_delete', 'diagram_restore', 'sketch_create', 'sketch_save', 'canvas_create', 'canvas_comment' or 'canvas_update' [type=literal_error, input_value='nope', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "write: action null": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\naction\n  Input should be 'create', 'update', 'edit', 'upload', 'tickets', 'assign', 'move', 'duplicate', 'delete', 'restore', 'restore_version', 'import', 'comment', 'reply', 'edit_comment', 'delete_comment', 'resolve', 'reopen', 'diagram_create', 'diagram_save', 'diagram_delete', 'diagram_restore', 'sketch_create', 'sketch_save', 'canvas_create', 'canvas_comment' or 'canvas_update' [type=literal_error, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "write: an unknown argument": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\nfolder\n  Extra inputs are not permitted [type=extra_forbidden, input_value='x', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "write: two errors at once": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 3 validation errors for docs_writeArguments\naction\n  Input should be 'create', 'update', 'edit', 'upload', 'tickets', 'assign', 'move', 'duplicate', 'delete', 'restore', 'restore_version', 'import', 'comment', 'reply', 'edit_comment', 'delete_comment', 'resolve', 'reopen', 'diagram_create', 'diagram_save', 'diagram_delete', 'diagram_restore', 'sketch_create', 'sketch_save', 'canvas_create', 'canvas_comment' or 'canvas_update' [type=literal_error, input_value='nope', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error\nbase_version\n  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='v2', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/int_parsing\npublish\n  Input should be a valid boolean, unable to interpret input [type=bool_parsing, input_value='maybe', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/bool_parsing"
+      }
+    ],
+    "isError": true
+  },
+  "create: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='create') requires project_id, title; optional: markdown, parent_id. Missing: project_id, title."
+      }
+    ],
+    "isError": true
+  },
+  "create: no title": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='create') requires project_id, title; optional: markdown, parent_id. Missing: title."
+      }
+    ],
+    "isError": true
+  },
+  "create: no project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='create') requires project_id, title; optional: markdown, parent_id. Missing: project_id."
+      }
+    ],
+    "isError": true
+  },
+  "create: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='create') does not use: page_id. It requires project_id, title; optional: markdown, parent_id."
+      }
+    ],
+    "isError": true
+  },
+  "create: a parameter of the other actions": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='create') does not use: section."
+      }
+    ],
+    "isError": true
+  },
+  "create: two parameters of the other actions": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='create') does not use: find."
+      }
+    ],
+    "isError": true
+  },
+  "create: a project that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Project not found."
+      }
+    ],
+    "isError": true
+  },
+  "create: an empty title": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Give the page a title."
+      }
+    ],
+    "isError": true
+  },
+  "create: a long title": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Title is limited to 200 characters."
+      }
+    ],
+    "isError": true
+  },
+  "create: a parent that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "create: a picture that is not there": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: /no/such/shot.png: no such file. Save it first, then attach it."
+      }
+    ],
+    "isError": true
+  },
+  "items: only the light actions take them": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write: items only works with comment, reopen, reply, resolve."
+      }
+    ],
+    "isError": true
+  },
+  "items: not a list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\nitems\n  Input should be a valid list [type=list_type, input_value='text', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/list_type"
+      }
+    ],
+    "isError": true
+  },
+  "items: an empty list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: items: a non-empty list of objects, one per call."
+      }
+    ],
+    "isError": true
+  },
+  "items: too many": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: items: at most 25 per call; send the rest in another call."
+      }
+    ],
+    "isError": true
+  },
+  "update: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='update') requires page_id, markdown, base_version; optional: note, publish, title. Missing: page_id, markdown, base_version."
+      }
+    ],
+    "isError": true
+  },
+  "update: no base_version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='update') requires page_id, markdown, base_version; optional: note, publish, title. Missing: base_version."
+      }
+    ],
+    "isError": true
+  },
+  "update: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "update: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='update') does not use: kind."
+      }
+    ],
+    "isError": true
+  },
+  "move: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='move') requires page_id; optional: parent_id, after_id. Missing: page_id."
+      }
+    ],
+    "isError": true
+  },
+  "move: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "duplicate: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "delete: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "restore: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "restore_version: no version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='restore_version') requires page_id, version. Missing: version."
+      }
+    ],
+    "isError": true
+  },
+  "restore_version: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "edit: no page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='edit') requires page_id."
+      }
+    ],
+    "isError": true
+  },
+  "edit: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "edit: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='edit') does not use: title, kind. It takes page_id, markdown, section | find [, mode, base_version, note, publish] or items."
+      }
+    ],
+    "isError": true
+  },
+  "edit: items and one edit": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: edit: give items, or one edit (section | find, markdown), not both."
+      }
+    ],
+    "isError": true
+  },
+  "edit: items not a list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\nitems\n  Input should be a valid list [type=list_type, input_value='text', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/list_type"
+      }
+    ],
+    "isError": true
+  },
+  "edit: items empty": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: items: a list of 1 to 25 edits."
+      }
+    ],
+    "isError": true
+  },
+  "edit: too many items": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: items: a list of 1 to 25 edits."
+      }
+    ],
+    "isError": true
+  },
+  "upload: nothing": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: upload: give path (a local file) or data (base64 with name), not both."
+      }
+    ],
+    "isError": true
+  },
+  "upload: both a path and data": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: upload: give path (a local file) or data (base64 with name), not both."
+      }
+    ],
+    "isError": true
+  },
+  "upload: data without a name": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: upload: data needs name (with its extension, e.g. 'flow.png')."
+      }
+    ],
+    "isError": true
+  },
+  "upload: data that is not base64": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: upload: data is not valid base64."
+      }
+    ],
+    "isError": true
+  },
+  "upload: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='upload') does not use: title. It takes path | data+name [, page_id, section, find, mode, ticket_id, body, author]."
+      }
+    ],
+    "isError": true
+  },
+  "upload: section without a page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: upload: section, find and mode place the file on a page: give page_id."
+      }
+    ],
+    "isError": true
+  },
+  "upload: body without a ticket": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: upload: body is the comment's text on a ticket: give ticket_id."
+      }
+    ],
+    "isError": true
+  },
+  "tickets: no page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='tickets') requires page_id."
+      }
+    ],
+    "isError": true
+  },
+  "tickets: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='tickets') does not use: title. It takes page_id [, find, items, publish]."
+      }
+    ],
+    "isError": true
+  },
+  "tickets: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "assign: no page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='assign') requires page_id."
+      }
+    ],
+    "isError": true
+  },
+  "assign: no member": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='assign') requires member_id."
+      }
+    ],
+    "isError": true
+  },
+  "assign: no kind": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='assign') requires kind."
+      }
+    ],
+    "isError": true
+  },
+  "assign: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='assign') does not use: title. It takes page_id, member_id, kind (write|review) [, body]."
+      }
+    ],
+    "isError": true
+  },
+  "assign: a kind that is not one": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\nkind\n  Input should be 'write' or 'review' [type=literal_error, input_value='read', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "assign: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page not found"
+      }
+    ],
+    "isError": true
+  },
+  "import: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='import') requires project_id, path; optional: parent_id, publish. Missing: project_id, path."
+      }
+    ],
+    "isError": true
+  },
+  "import: a path that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Path not found: /no/such/folder"
+      }
+    ],
+    "isError": true
+  },
+  "create: Runbook": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: a child": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:5>\",\n  \"title\": \"Child\",\n  \"slug\": \"child\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: a page with no body": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"title\": \"Empty page\",\n  \"slug\": \"empty-page\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: the same title again": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook-2\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: in the other project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:8>\",\n  \"title\": \"Elsewhere\",\n  \"slug\": \"elsewhere\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: a parent of another project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Parent belongs to another project."
+      }
+    ],
+    "isError": true
+  },
+  "create: a title with a link and quotes": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:9>\",\n  \"title\": \"Limits \\\"v2\\\" & more\",\n  \"slug\": \"limits-v2-more\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: a picture that exists": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:10>\",\n  \"title\": \"Pictures\",\n  \"slug\": \"pictures\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: a key file is never copied": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:11>\",\n  \"title\": \"Keys\",\n  \"slug\": \"keys\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "list: the tree": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"parent_id\": null,\n  \"position\": 0,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:5>\",\n  \"parent_id\": \"<uuid:4>\",\n  \"position\": 0,\n  \"title\": \"Child\",\n  \"slug\": \"child\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"parent_id\": null,\n  \"position\": 1,\n  \"title\": \"Empty page\",\n  \"slug\": \"empty-page\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"parent_id\": null,\n  \"position\": 2,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook-2\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:9>\",\n  \"parent_id\": null,\n  \"position\": 3,\n  \"title\": \"Limits \\\"v2\\\" & more\",\n  \"slug\": \"limits-v2-more\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:10>\",\n  \"parent_id\": null,\n  \"position\": 4,\n  \"title\": \"Pictures\",\n  \"slug\": \"pictures\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:11>\",\n  \"parent_id\": null,\n  \"position\": 5,\n  \"title\": \"Keys\",\n  \"slug\": \"keys\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<uuid:4>",
+          "parent_id": null,
+          "position": 0,
+          "title": "Runbook",
+          "slug": "runbook",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:5>",
+          "parent_id": "<uuid:4>",
+          "position": 0,
+          "title": "Child",
+          "slug": "child",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:6>",
+          "parent_id": null,
+          "position": 1,
+          "title": "Empty page",
+          "slug": "empty-page",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:7>",
+          "parent_id": null,
+          "position": 2,
+          "title": "Runbook",
+          "slug": "runbook-2",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:9>",
+          "parent_id": null,
+          "position": 3,
+          "title": "Limits \"v2\" & more",
+          "slug": "limits-v2-more",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:10>",
+          "parent_id": null,
+          "position": 4,
+          "title": "Pictures",
+          "slug": "pictures",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:11>",
+          "parent_id": null,
+          "position": 5,
+          "title": "Keys",
+          "slug": "keys",
+          "status": "published",
+          "version": 1
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: the other project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:8>\",\n  \"parent_id\": null,\n  \"position\": 0,\n  \"title\": \"Elsewhere\",\n  \"slug\": \"elsewhere\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<uuid:8>",
+          "parent_id": null,
+          "position": 0,
+          "title": "Elsewhere",
+          "slug": "elsewhere",
+          "status": "published",
+          "version": 1
+        }
+      ]
+    },
+    "isError": false
+  },
+  "get: Runbook": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 1,\n  \"markdown\": \"## Overview\\n\\nThe API is REST.\\n\\n## Endpoints\\n\\n| Method | Path |\\n|---|---|\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n## Limits\\n\\nRate limits are not enforced yet.\\n\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [\n      {\n        \"page_id\": \"<uuid:9>\",\n        \"title\": \"Limits \\\"v2\\\" & more\",\n        \"in\": null,\n        \"snippet\": \"See Runbook and Ghost and $t1.\",\n        \"origin\": \"page\",\n        \"context\": \"See Runbook and Ghost and $t1.\",\n        \"excerpt\": \"See [[Runbook#Limits]] and Ghost and $t1.\",\n        \"target_anchor\": \"Limits\"\n      }\n    ],\n    \"tickets\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:4>",
+        "project_id": "<uuid:1>",
+        "parent_id": null,
+        "title": "Runbook",
+        "slug": "runbook",
+        "status": "published",
+        "version": 1,
+        "markdown": "## Overview\n\nThe API is REST.\n\n## Endpoints\n\n| Method | Path |\n|---|---|\n| GET | /tickets |\n\n### Errors\n\n401 when the token is missing.\n\n## Limits\n\nRate limits are not enforced yet.\n",
+        "headings": [
+          {
+            "level": 2,
+            "text": "Overview",
+            "slug": "overview"
+          },
+          {
+            "level": 2,
+            "text": "Endpoints",
+            "slug": "endpoints"
+          },
+          {
+            "level": 3,
+            "text": "Errors",
+            "slug": "errors"
+          },
+          {
+            "level": 2,
+            "text": "Limits",
+            "slug": "limits"
+          }
+        ],
+        "updated_by": "agent",
+        "updated_at": "<time>",
+        "referenced_by": {
+          "pages": [
+            {
+              "page_id": "<uuid:9>",
+              "title": "Limits \"v2\" & more",
+              "in": null,
+              "snippet": "See Runbook and Ghost and $t1.",
+              "origin": "page",
+              "context": "See Runbook and Ghost and $t1.",
+              "excerpt": "See [[Runbook#Limits]] and Ghost and $t1.",
+              "target_anchor": "Limits"
+            }
+          ],
+          "tickets": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "get: a section": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 1,\n  \"section\": \"Endpoints\",\n  \"markdown\": \"## Endpoints\\n\\n| Method | Path |\\n|---|---|\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:4>",
+        "title": "Runbook",
+        "version": 1,
+        "section": "Endpoints",
+        "markdown": "## Endpoints\n\n| Method | Path |\n|---|---|\n| GET | /tickets |\n\n### Errors\n\n401 when the token is missing.",
+        "headings": [
+          {
+            "level": 2,
+            "text": "Overview",
+            "slug": "overview"
+          },
+          {
+            "level": 2,
+            "text": "Endpoints",
+            "slug": "endpoints"
+          },
+          {
+            "level": 3,
+            "text": "Errors",
+            "slug": "errors"
+          },
+          {
+            "level": 2,
+            "text": "Limits",
+            "slug": "limits"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "get: a section by slug": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 1,\n  \"section\": \"errors\",\n  \"markdown\": \"### Errors\\n\\n401 when the token is missing.\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:4>",
+        "title": "Runbook",
+        "version": 1,
+        "section": "errors",
+        "markdown": "### Errors\n\n401 when the token is missing.",
+        "headings": [
+          {
+            "level": 2,
+            "text": "Overview",
+            "slug": "overview"
+          },
+          {
+            "level": 2,
+            "text": "Endpoints",
+            "slug": "endpoints"
+          },
+          {
+            "level": 3,
+            "text": "Errors",
+            "slug": "errors"
+          },
+          {
+            "level": 2,
+            "text": "Limits",
+            "slug": "limits"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "get: a section that is not there": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: section 'Billing' is not on the page. Its headings: 'Overview', 'Endpoints', 'Errors', 'Limits'. To add a new section, use mode='after' on an existing one, or mode='append' with no section."
+      }
+    ],
+    "isError": true
+  },
+  "get: the page with a link": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:9>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Limits \\\"v2\\\" & more\",\n  \"slug\": \"limits-v2-more\",\n  \"status\": \"published\",\n  \"version\": 1,\n  \"markdown\": \"See [[Runbook#Limits]] and [[Ghost]] and $t1.\",\n  \"headings\": [],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:9>",
+        "project_id": "<uuid:1>",
+        "parent_id": null,
+        "title": "Limits \"v2\" & more",
+        "slug": "limits-v2-more",
+        "status": "published",
+        "version": 1,
+        "markdown": "See [[Runbook#Limits]] and [[Ghost]] and $t1.",
+        "headings": [],
+        "updated_by": "agent",
+        "updated_at": "<time>",
+        "referenced_by": {
+          "pages": [],
+          "tickets": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "get: a page with a picture": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:10>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Pictures\",\n  \"slug\": \"pictures\",\n  \"status\": \"published\",\n  \"version\": 1,\n  \"markdown\": \"![shot](/uploads/pic-<random>.png)\\n\\nand [notes](/uploads/notes-<random>.txt)\",\n  \"headings\": [],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:10>",
+        "project_id": "<uuid:1>",
+        "parent_id": null,
+        "title": "Pictures",
+        "slug": "pictures",
+        "status": "published",
+        "version": 1,
+        "markdown": "![shot](/uploads/pic-<random>.png)\n\nand [notes](/uploads/notes-<random>.txt)",
+        "headings": [],
+        "updated_by": "agent",
+        "updated_at": "<time>",
+        "referenced_by": {
+          "pages": [],
+          "tickets": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "get: the page that is linked to": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 1,\n  \"markdown\": \"## Overview\\n\\nThe API is REST.\\n\\n## Endpoints\\n\\n| Method | Path |\\n|---|---|\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n## Limits\\n\\nRate limits are not enforced yet.\\n\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [\n      {\n        \"page_id\": \"<uuid:9>\",\n        \"title\": \"Limits \\\"v2\\\" & more\",\n        \"in\": null,\n        \"snippet\": \"See Runbook and Ghost and $t1.\",\n        \"origin\": \"page\",\n        \"context\": \"See Runbook and Ghost and $t1.\",\n        \"excerpt\": \"See [[Runbook#Limits]] and Ghost and $t1.\",\n        \"target_anchor\": \"Limits\"\n      }\n    ],\n    \"tickets\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:4>",
+        "project_id": "<uuid:1>",
+        "parent_id": null,
+        "title": "Runbook",
+        "slug": "runbook",
+        "status": "published",
+        "version": 1,
+        "markdown": "## Overview\n\nThe API is REST.\n\n## Endpoints\n\n| Method | Path |\n|---|---|\n| GET | /tickets |\n\n### Errors\n\n401 when the token is missing.\n\n## Limits\n\nRate limits are not enforced yet.\n",
+        "headings": [
+          {
+            "level": 2,
+            "text": "Overview",
+            "slug": "overview"
+          },
+          {
+            "level": 2,
+            "text": "Endpoints",
+            "slug": "endpoints"
+          },
+          {
+            "level": 3,
+            "text": "Errors",
+            "slug": "errors"
+          },
+          {
+            "level": 2,
+            "text": "Limits",
+            "slug": "limits"
+          }
+        ],
+        "updated_by": "agent",
+        "updated_at": "<time>",
+        "referenced_by": {
+          "pages": [
+            {
+              "page_id": "<uuid:9>",
+              "title": "Limits \"v2\" & more",
+              "in": null,
+              "snippet": "See Runbook and Ghost and $t1.",
+              "origin": "page",
+              "context": "See Runbook and Ghost and $t1.",
+              "excerpt": "See [[Runbook#Limits]] and Ghost and $t1.",
+              "target_anchor": "Limits"
+            }
+          ],
+          "tickets": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "update: stale base_version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page was published as v1 since you started from v5. Call docs_read(action='get') again, re-apply your edit on the new version, and retry."
+      }
+    ],
+    "isError": true
+  },
+  "update: base_version 0": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page was published as v1 since you started from v0. Call docs_read(action='get') again, re-apply your edit on the new version, and retry."
+      }
+    ],
+    "isError": true
+  },
+  "update: replace the text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 2,\n  \"published\": true\n}"
+      }
+    ],
+    "isError": false
+  },
+  "update: and rename": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"title\": \"Filled page\",\n  \"version\": 2,\n  \"published\": true\n}"
+      }
+    ],
+    "isError": false
+  },
+  "update: rename to the same title": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"title\": \"Filled page\",\n  \"version\": 3,\n  \"published\": true\n}"
+      }
+    ],
+    "isError": false
+  },
+  "update: rename to a title in use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"title\": \"Runbook\",\n  \"version\": 4,\n  \"published\": true\n}"
+      }
+    ],
+    "isError": false
+  },
+  "update: a draft only": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"title\": \"Runbook\",\n  \"version\": 4,\n  \"published\": false\n}"
+      }
+    ],
+    "isError": false
+  },
+  "update: a draft with a stale base": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"title\": \"Runbook\",\n  \"version\": 4,\n  \"published\": false\n}"
+      }
+    ],
+    "isError": false
+  },
+  "update: too large": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page was published as v4 since you started from v3. Call docs_read(action='get') again, re-apply your edit on the new version, and retry."
+      }
+    ],
+    "isError": true
+  },
+  "get: after the update": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 2,\n  \"markdown\": \"## Overview\\n\\nThe API is REST.\\n\\n## Endpoints\\n\\n| Method | Path |\\n|---|---|\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n## Limits\\n\\nRate limits are 100 per minute.\\n\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [\n      {\n        \"page_id\": \"<uuid:9>\",\n        \"title\": \"Limits \\\"v2\\\" & more\",\n        \"in\": null,\n        \"snippet\": \"See Runbook and Ghost and $t1.\",\n        \"origin\": \"page\",\n        \"context\": \"See Runbook and Ghost and $t1.\",\n        \"excerpt\": \"See [[Runbook#Limits]] and Ghost and $t1.\",\n        \"target_anchor\": \"Limits\"\n      }\n    ],\n    \"tickets\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:4>",
+        "project_id": "<uuid:1>",
+        "parent_id": null,
+        "title": "Runbook",
+        "slug": "runbook",
+        "status": "published",
+        "version": 2,
+        "markdown": "## Overview\n\nThe API is REST.\n\n## Endpoints\n\n| Method | Path |\n|---|---|\n| GET | /tickets |\n\n### Errors\n\n401 when the token is missing.\n\n## Limits\n\nRate limits are 100 per minute.\n",
+        "headings": [
+          {
+            "level": 2,
+            "text": "Overview",
+            "slug": "overview"
+          },
+          {
+            "level": 2,
+            "text": "Endpoints",
+            "slug": "endpoints"
+          },
+          {
+            "level": 3,
+            "text": "Errors",
+            "slug": "errors"
+          },
+          {
+            "level": 2,
+            "text": "Limits",
+            "slug": "limits"
+          }
+        ],
+        "updated_by": "agent",
+        "updated_at": "<time>",
+        "referenced_by": {
+          "pages": [
+            {
+              "page_id": "<uuid:9>",
+              "title": "Limits \"v2\" & more",
+              "in": null,
+              "snippet": "See Runbook and Ghost and $t1.",
+              "origin": "page",
+              "context": "See Runbook and Ghost and $t1.",
+              "excerpt": "See [[Runbook#Limits]] and Ghost and $t1.",
+              "target_anchor": "Limits"
+            }
+          ],
+          "tickets": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "get: with an unpublished draft": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"empty-page\",\n  \"status\": \"published\",\n  \"version\": 4,\n  \"markdown\": \"x\",\n  \"headings\": [],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:6>",
+        "project_id": "<uuid:1>",
+        "parent_id": null,
+        "title": "Runbook",
+        "slug": "empty-page",
+        "status": "published",
+        "version": 4,
+        "markdown": "x",
+        "headings": [],
+        "updated_by": "agent",
+        "updated_at": "<time>",
+        "referenced_by": {
+          "pages": [],
+          "tickets": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "edit: an unpublished draft is never dropped": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"title\": \"Runbook\",\n  \"version\": 5,\n  \"published\": true,\n  \"changed\": [\n    \"the end of the page\"\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "update: publish over the draft": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page was published as v5 since you started from v3. Call docs_read(action='get') again, re-apply your edit on the new version, and retry."
+      }
+    ],
+    "isError": true
+  },
+  "versions: Runbook": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"version\": 2,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Rate limits\",\n  \"created_at\": \"<time>\",\n  \"words\": 35,\n  \"with_ai\": false\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"version\": 1,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Created via MCP\",\n  \"created_at\": \"<time>\",\n  \"words\": 35,\n  \"with_ai\": false\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "version": 2,
+          "title": "Runbook",
+          "author": "agent",
+          "note": "Rate limits",
+          "created_at": "<time>",
+          "words": 35,
+          "with_ai": false
+        },
+        {
+          "version": 1,
+          "title": "Runbook",
+          "author": "agent",
+          "note": "Created via MCP",
+          "created_at": "<time>",
+          "words": 35,
+          "with_ai": false
+        }
+      ]
+    },
+    "isError": false
+  },
+  "versions: a page with one": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"version\": 1,\n  \"title\": \"Child\",\n  \"author\": \"agent\",\n  \"note\": \"Created via MCP\",\n  \"created_at\": \"<time>\",\n  \"words\": 1,\n  \"with_ai\": false\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "version": 1,
+          "title": "Child",
+          "author": "agent",
+          "note": "Created via MCP",
+          "created_at": "<time>",
+          "words": 1,
+          "with_ai": false
+        }
+      ]
+    },
+    "isError": false
+  },
+  "version: the first": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"version\": 1,\n  \"title\": \"Runbook\",\n  \"markdown\": \"## Overview\\n\\nThe API is REST.\\n\\n## Endpoints\\n\\n| Method | Path |\\n|---|---|\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n## Limits\\n\\nRate limits are not enforced yet.\\n\",\n  \"author\": \"agent\",\n  \"note\": \"Created via MCP\",\n  \"created_at\": \"<time>\",\n  \"diagram_versions\": {},\n  \"with_ai\": false\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "version": 1,
+        "title": "Runbook",
+        "markdown": "## Overview\n\nThe API is REST.\n\n## Endpoints\n\n| Method | Path |\n|---|---|\n| GET | /tickets |\n\n### Errors\n\n401 when the token is missing.\n\n## Limits\n\nRate limits are not enforced yet.\n",
+        "author": "agent",
+        "note": "Created via MCP",
+        "created_at": "<time>",
+        "diagram_versions": {},
+        "with_ai": false
+      }
+    },
+    "isError": false
+  },
+  "version: a diff": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"from\": 1,\n  \"to\": 2,\n  \"rows\": [\n    {\n      \"type\": \"same\",\n      \"text\": \"## Overview\",\n      \"old_no\": 1,\n      \"new_no\": 1\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 2,\n      \"new_no\": 2\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"The API is REST.\",\n      \"old_no\": 3,\n      \"new_no\": 3\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 4,\n      \"new_no\": 4\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"## Endpoints\",\n      \"old_no\": 5,\n      \"new_no\": 5\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 6,\n      \"new_no\": 6\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"| Method | Path |\",\n      \"old_no\": 7,\n      \"new_no\": 7\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"|---|---|\",\n      \"old_no\": 8,\n      \"new_no\": 8\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"| GET | /tickets |\",\n      \"old_no\": 9,\n      \"new_no\": 9\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 10,\n      \"new_no\": 10\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"### Errors\",\n      \"old_no\": 11,\n      \"new_no\": 11\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 12,\n      \"new_no\": 12\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"401 when the token is missing.\",\n      \"old_no\": 13,\n      \"new_no\": 13\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 14,\n      \"new_no\": 14\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"## Limits\",\n      \"old_no\": 15,\n      \"new_no\": 15\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 16,\n      \"new_no\": 16\n    },\n    {\n      \"type\": \"del\",\n      \"text\": \"Rate limits are not enforced yet.\",\n      \"old_no\": 17,\n      \"new_no\": null,\n      \"words\": [\n        {\n          \"text\": \"Rate\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"limits\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"are\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"not\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"enforced\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"yet.\",\n          \"changed\": true\n        }\n      ]\n    },\n    {\n      \"type\": \"add\",\n      \"text\": \"Rate limits are 100 per minute.\",\n      \"old_no\": null,\n      \"new_no\": 17,\n      \"words\": [\n        {\n          \"text\": \"Rate\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"limits\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"are\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"100\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"per\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"minute.\",\n          \"changed\": true\n        }\n      ]\n    }\n  ],\n  \"added\": 1,\n  \"removed\": 1,\n  \"sections\": [\n    {\n      \"heading\": \"Limits\",\n      \"added\": 1,\n      \"removed\": 1\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "from": 1,
+        "to": 2,
+        "rows": [
+          {
+            "type": "same",
+            "text": "## Overview",
+            "old_no": 1,
+            "new_no": 1
+          },
+          {
+            "type": "same",
+            "text": "",
+            "old_no": 2,
+            "new_no": 2
+          },
+          {
+            "type": "same",
+            "text": "The API is REST.",
+            "old_no": 3,
+            "new_no": 3
+          },
+          {
+            "type": "same",
+            "text": "",
+            "old_no": 4,
+            "new_no": 4
+          },
+          {
+            "type": "same",
+            "text": "## Endpoints",
+            "old_no": 5,
+            "new_no": 5
+          },
+          {
+            "type": "same",
+            "text": "",
+            "old_no": 6,
+            "new_no": 6
+          },
+          {
+            "type": "same",
+            "text": "| Method | Path |",
+            "old_no": 7,
+            "new_no": 7
+          },
+          {
+            "type": "same",
+            "text": "|---|---|",
+            "old_no": 8,
+            "new_no": 8
+          },
+          {
+            "type": "same",
+            "text": "| GET | /tickets |",
+            "old_no": 9,
+            "new_no": 9
+          },
+          {
+            "type": "same",
+            "text": "",
+            "old_no": 10,
+            "new_no": 10
+          },
+          {
+            "type": "same",
+            "text": "### Errors",
+            "old_no": 11,
+            "new_no": 11
+          },
+          {
+            "type": "same",
+            "text": "",
+            "old_no": 12,
+            "new_no": 12
+          },
+          {
+            "type": "same",
+            "text": "401 when the token is missing.",
+            "old_no": 13,
+            "new_no": 13
+          },
+          {
+            "type": "same",
+            "text": "",
+            "old_no": 14,
+            "new_no": 14
+          },
+          {
+            "type": "same",
+            "text": "## Limits",
+            "old_no": 15,
+            "new_no": 15
+          },
+          {
+            "type": "same",
+            "text": "",
+            "old_no": 16,
+            "new_no": 16
+          },
+          {
+            "type": "del",
+            "text": "Rate limits are not enforced yet.",
+            "old_no": 17,
+            "new_no": null,
+            "words": [
+              {
+                "text": "Rate",
+                "changed": false
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "limits",
+                "changed": false
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "are",
+                "changed": false
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "not",
+                "changed": true
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "enforced",
+                "changed": true
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "yet.",
+                "changed": true
+              }
+            ]
+          },
+          {
+            "type": "add",
+            "text": "Rate limits are 100 per minute.",
+            "old_no": null,
+            "new_no": 17,
+            "words": [
+              {
+                "text": "Rate",
+                "changed": false
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "limits",
+                "changed": false
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "are",
+                "changed": false
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "100",
+                "changed": true
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "per",
+                "changed": true
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "minute.",
+                "changed": true
+              }
+            ]
+          }
+        ],
+        "added": 1,
+        "removed": 1,
+        "sections": [
+          {
+            "heading": "Limits",
+            "added": 1,
+            "removed": 1
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "version: a diff backwards": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"from\": 2,\n  \"to\": 1,\n  \"rows\": [\n    {\n      \"type\": \"same\",\n      \"text\": \"## Overview\",\n      \"old_no\": 1,\n      \"new_no\": 1\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 2,\n      \"new_no\": 2\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"The API is REST.\",\n      \"old_no\": 3,\n      \"new_no\": 3\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 4,\n      \"new_no\": 4\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"## Endpoints\",\n      \"old_no\": 5,\n      \"new_no\": 5\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 6,\n      \"new_no\": 6\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"| Method | Path |\",\n      \"old_no\": 7,\n      \"new_no\": 7\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"|---|---|\",\n      \"old_no\": 8,\n      \"new_no\": 8\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"| GET | /tickets |\",\n      \"old_no\": 9,\n      \"new_no\": 9\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 10,\n      \"new_no\": 10\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"### Errors\",\n      \"old_no\": 11,\n      \"new_no\": 11\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 12,\n      \"new_no\": 12\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"401 when the token is missing.\",\n      \"old_no\": 13,\n      \"new_no\": 13\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 14,\n      \"new_no\": 14\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"## Limits\",\n      \"old_no\": 15,\n      \"new_no\": 15\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 16,\n      \"new_no\": 16\n    },\n    {\n      \"type\": \"del\",\n      \"text\": \"Rate limits are 100 per minute.\",\n      \"old_no\": 17,\n      \"new_no\": null,\n      \"words\": [\n        {\n          \"text\": \"Rate\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"limits\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"are\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"100\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"per\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"minute.\",\n          \"changed\": true\n        }\n      ]\n    },\n    {\n      \"type\": \"add\",\n      \"text\": \"Rate limits are not enforced yet.\",\n      \"old_no\": null,\n      \"new_no\": 17,\n      \"words\": [\n        {\n          \"text\": \"Rate\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"limits\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"are\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"not\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"enforced\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"yet.\",\n          \"changed\": true\n        }\n      ]\n    }\n  ],\n  \"added\": 1,\n  \"removed\": 1,\n  \"sections\": [\n    {\n      \"heading\": \"Limits\",\n      \"added\": 1,\n      \"removed\": 1\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "from": 2,
+        "to": 1,
+        "rows": [
+          {
+            "type": "same",
+            "text": "## Overview",
+            "old_no": 1,
+            "new_no": 1
+          },
+          {
+            "type": "same",
+            "text": "",
+            "old_no": 2,
+            "new_no": 2
+          },
+          {
+            "type": "same",
+            "text": "The API is REST.",
+            "old_no": 3,
+            "new_no": 3
+          },
+          {
+            "type": "same",
+            "text": "",
+            "old_no": 4,
+            "new_no": 4
+          },
+          {
+            "type": "same",
+            "text": "## Endpoints",
+            "old_no": 5,
+            "new_no": 5
+          },
+          {
+            "type": "same",
+            "text": "",
+            "old_no": 6,
+            "new_no": 6
+          },
+          {
+            "type": "same",
+            "text": "| Method | Path |",
+            "old_no": 7,
+            "new_no": 7
+          },
+          {
+            "type": "same",
+            "text": "|---|---|",
+            "old_no": 8,
+            "new_no": 8
+          },
+          {
+            "type": "same",
+            "text": "| GET | /tickets |",
+            "old_no": 9,
+            "new_no": 9
+          },
+          {
+            "type": "same",
+            "text": "",
+            "old_no": 10,
+            "new_no": 10
+          },
+          {
+            "type": "same",
+            "text": "### Errors",
+            "old_no": 11,
+            "new_no": 11
+          },
+          {
+            "type": "same",
+            "text": "",
+            "old_no": 12,
+            "new_no": 12
+          },
+          {
+            "type": "same",
+            "text": "401 when the token is missing.",
+            "old_no": 13,
+            "new_no": 13
+          },
+          {
+            "type": "same",
+            "text": "",
+            "old_no": 14,
+            "new_no": 14
+          },
+          {
+            "type": "same",
+            "text": "## Limits",
+            "old_no": 15,
+            "new_no": 15
+          },
+          {
+            "type": "same",
+            "text": "",
+            "old_no": 16,
+            "new_no": 16
+          },
+          {
+            "type": "del",
+            "text": "Rate limits are 100 per minute.",
+            "old_no": 17,
+            "new_no": null,
+            "words": [
+              {
+                "text": "Rate",
+                "changed": false
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "limits",
+                "changed": false
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "are",
+                "changed": false
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "100",
+                "changed": true
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "per",
+                "changed": true
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "minute.",
+                "changed": true
+              }
+            ]
+          },
+          {
+            "type": "add",
+            "text": "Rate limits are not enforced yet.",
+            "old_no": null,
+            "new_no": 17,
+            "words": [
+              {
+                "text": "Rate",
+                "changed": false
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "limits",
+                "changed": false
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "are",
+                "changed": false
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "not",
+                "changed": true
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "enforced",
+                "changed": true
+              },
+              {
+                "text": " ",
+                "changed": false
+              },
+              {
+                "text": "yet.",
+                "changed": true
+              }
+            ]
+          }
+        ],
+        "added": 1,
+        "removed": 1,
+        "sections": [
+          {
+            "heading": "Limits",
+            "added": 1,
+            "removed": 1
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "version: one that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Version 9 not found."
+      }
+    ],
+    "isError": true
+  },
+  "version: a diff with one that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Version 9 not found."
+      }
+    ],
+    "isError": true
+  },
+  "restore_version: the first": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 3\n}"
+      }
+    ],
+    "isError": false
+  },
+  "restore_version: one that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Version 9 not found."
+      }
+    ],
+    "isError": true
+  },
+  "versions: after the restore": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"version\": 3,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Restored from v1\",\n  \"created_at\": \"<time>\",\n  \"words\": 35,\n  \"with_ai\": false\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"version\": 2,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Rate limits\",\n  \"created_at\": \"<time>\",\n  \"words\": 35,\n  \"with_ai\": false\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"version\": 1,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Created via MCP\",\n  \"created_at\": \"<time>\",\n  \"words\": 35,\n  \"with_ai\": false\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "version": 3,
+          "title": "Runbook",
+          "author": "agent",
+          "note": "Restored from v1",
+          "created_at": "<time>",
+          "words": 35,
+          "with_ai": false
+        },
+        {
+          "version": 2,
+          "title": "Runbook",
+          "author": "agent",
+          "note": "Rate limits",
+          "created_at": "<time>",
+          "words": 35,
+          "with_ai": false
+        },
+        {
+          "version": 1,
+          "title": "Runbook",
+          "author": "agent",
+          "note": "Created via MCP",
+          "created_at": "<time>",
+          "words": 35,
+          "with_ai": false
+        }
+      ]
+    },
+    "isError": false
+  },
+  "edit: replace a section": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 4,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Limits'\"\n  ],\n  \"now\": \"## Limits\\n\\nRate limits are 100 per minute.\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "edit: replace a section by slug with its heading": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 5,\n  \"published\": true,\n  \"changed\": [\n    \"section 'limits'\"\n  ],\n  \"now\": \"## Limits and quotas\\n\\nSee the plan.\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "edit: append to a section": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 6,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Endpoints'\"\n  ],\n  \"now\": \"## Endpoints\\n\\n| Method | Path |\\n|---|---|\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n| POST | /tickets |\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "edit: prepend to a section": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 7,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Overview'\"\n  ],\n  \"now\": \"## Overview\\n\\n> [!NOTE]\\n> Draft.\\n\\nThe API is REST.\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "edit: after a section": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 8,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Overview'\"\n  ],\n  \"now\": \"## Overview\\n\\n> [!NOTE]\\n> Draft.\\n\\nThe API is REST.\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "edit: before a section": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 9,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Auth'\"\n  ],\n  \"now\": \"## Auth\\n\\nTokens.\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "edit: a section that is not there": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: section 'Billing' is not on the page. Its headings: 'Overview', 'Intro', 'Auth', 'Endpoints', 'Errors', 'Limits and quotas'. To add a new section, use mode='after' on an existing one, or mode='append' with no section. Nothing was changed."
+      }
+    ],
+    "isError": true
+  },
+  "edit: a passage": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: find: that text is not on the page (it may have been changed since you read it). Read the page again with docs_read(get) and copy the text exactly. Nothing was changed."
+      }
+    ],
+    "isError": true
+  },
+  "edit: a passage that is not there": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: find: that text is not on the page (it may have been changed since you read it). Read the page again with docs_read(get) and copy the text exactly. Nothing was changed."
+      }
+    ],
+    "isError": true
+  },
+  "edit: a passage that is not unique": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: find: that text is not on the page (it may have been changed since you read it). Read the page again with docs_read(get) and copy the text exactly. Nothing was changed."
+      }
+    ],
+    "isError": true
+  },
+  "edit: a passage with a mode": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 10,\n  \"published\": true,\n  \"changed\": [\n    \"a passage\"\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "edit: section and find": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Give section or find, not both. Nothing was changed."
+      }
+    ],
+    "isError": true
+  },
+  "edit: no text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: markdown: the new text. Nothing was changed."
+      }
+    ],
+    "isError": true
+  },
+  "edit: a mode that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\nmode\n  Input should be 'replace', 'append', 'prepend', 'before' or 'after' [type=literal_error, input_value='swap', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "edit: the end of the page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 11,\n  \"published\": true,\n  \"changed\": [\n    \"the end of the page\"\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "edit: the end of the page, replace": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Name what to change: section (a heading) or find (exact text); or mode='append' to add to the end. Nothing was changed."
+      }
+    ],
+    "isError": true
+  },
+  "edit: nothing changes": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 11,\n  \"published\": false,\n  \"changed\": [],\n  \"message\": \"The text is the same as the published page; nothing was changed.\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "edit: several in one version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 12,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Appendix'\",\n    \"a passage\"\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "edit: several, one fails": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: items[1]: section 'Nope' is not on the page. Its headings: 'Overview', 'Intro', 'Auth', 'Endpoints', 'Errors', 'Limits and quotas', 'Appendix'. To add a new section, use mode='after' on an existing one, or mode='append' with no section. Nothing was changed."
+      }
+    ],
+    "isError": true
+  },
+  "edit: an item that is not an object": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\nitems.0\n  Input should be a valid dictionary [type=dict_type, input_value='text', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/dict_type"
+      }
+    ],
+    "isError": true
+  },
+  "edit: an item with a key it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: items[0] does not use: title."
+      }
+    ],
+    "isError": true
+  },
+  "edit: a stale base_version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: base_version 99: the page is at v12."
+      }
+    ],
+    "isError": true
+  },
+  "edit: a base_version of 0": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: base_version 0: the page is at v12."
+      }
+    ],
+    "isError": true
+  },
+  "edit: from an older version, other section": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: conflict: section 'Appendix' was changed since the version you read. It now reads:\n\n## Appendix\n\nLast.\n\nFinal words!\n\nApply your change to this text and retry with the page's current version as base_version. Nothing was changed."
+      }
+    ],
+    "isError": true
+  },
+  "edit: from an older version, changed section": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: conflict: section 'Limits and quotas' was changed since the version you read. It now reads:\n\n## Limits and quotas\n\nSee the plan.\n\nApply your change to this text and retry with the page's current version as base_version. Nothing was changed."
+      }
+    ],
+    "isError": true
+  },
+  "edit: without publishing": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 12,\n  \"published\": false,\n  \"changed\": [\n    \"section 'Appendix'\"\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "get: after the edits": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 12,\n  \"markdown\": \"## Overview\\n\\n> [!NOTE]\\n> Draft.\\n\\nThe API is REST.\\n\\n## Intro\\n\\nHi.\\n\\n## Auth\\n\\nTokens.More tokens.\\n\\n## Endpoints\\n\\n| Method | Path |\\n|---|---|\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n| POST | /tickets |\\n\\n## Limits and quotas\\n\\nSee the plan.\\n\\n## Appendix\\n\\nLast.\\n\\nFinal words!\\n\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Intro\",\n      \"slug\": \"intro\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Auth\",\n      \"slug\": \"auth\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits and quotas\",\n      \"slug\": \"limits-and-quotas\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Appendix\",\n      \"slug\": \"appendix\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [\n      {\n        \"page_id\": \"<uuid:9>\",\n        \"title\": \"Limits \\\"v2\\\" & more\",\n        \"in\": null,\n        \"snippet\": \"See Runbook and Ghost and $t1.\",\n        \"origin\": \"page\",\n        \"context\": \"See Runbook and Ghost and $t1.\",\n        \"excerpt\": \"See [[Runbook#Limits]] and Ghost and $t1.\",\n        \"target_anchor\": \"Limits\"\n      }\n    ],\n    \"tickets\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:4>",
+        "project_id": "<uuid:1>",
+        "parent_id": null,
+        "title": "Runbook",
+        "slug": "runbook",
+        "status": "published",
+        "version": 12,
+        "markdown": "## Overview\n\n> [!NOTE]\n> Draft.\n\nThe API is REST.\n\n## Intro\n\nHi.\n\n## Auth\n\nTokens.More tokens.\n\n## Endpoints\n\n| Method | Path |\n|---|---|\n| GET | /tickets |\n\n### Errors\n\n401 when the token is missing.\n\n| POST | /tickets |\n\n## Limits and quotas\n\nSee the plan.\n\n## Appendix\n\nLast.\n\nFinal words!\n",
+        "headings": [
+          {
+            "level": 2,
+            "text": "Overview",
+            "slug": "overview"
+          },
+          {
+            "level": 2,
+            "text": "Intro",
+            "slug": "intro"
+          },
+          {
+            "level": 2,
+            "text": "Auth",
+            "slug": "auth"
+          },
+          {
+            "level": 2,
+            "text": "Endpoints",
+            "slug": "endpoints"
+          },
+          {
+            "level": 3,
+            "text": "Errors",
+            "slug": "errors"
+          },
+          {
+            "level": 2,
+            "text": "Limits and quotas",
+            "slug": "limits-and-quotas"
+          },
+          {
+            "level": 2,
+            "text": "Appendix",
+            "slug": "appendix"
+          }
+        ],
+        "updated_by": "agent",
+        "updated_at": "<time>",
+        "referenced_by": {
+          "pages": [
+            {
+              "page_id": "<uuid:9>",
+              "title": "Limits \"v2\" & more",
+              "in": null,
+              "snippet": "See Runbook and Ghost and $t1.",
+              "origin": "page",
+              "context": "See Runbook and Ghost and $t1.",
+              "excerpt": "See [[Runbook#Limits]] and Ghost and $t1.",
+              "target_anchor": "Limits"
+            }
+          ],
+          "tickets": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "move: under another page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"title\": \"Runbook\",\n  \"parent_id\": \"<uuid:4>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "move: into itself": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: A page cannot be moved into itself or its own sub-pages."
+      }
+    ],
+    "isError": true
+  },
+  "move: into its own sub-page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: A page cannot be moved into itself or its own sub-pages."
+      }
+    ],
+    "isError": true
+  },
+  "move: under a page of another project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Parent belongs to another project."
+      }
+    ],
+    "isError": true
+  },
+  "move: to the top level after a sibling": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Anchor page is not a sibling at the target."
+      }
+    ],
+    "isError": true
+  },
+  "move: after a page that is not a sibling": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Anchor page is not a sibling at the target."
+      }
+    ],
+    "isError": true
+  },
+  "move: after a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Anchor page is not a sibling at the target."
+      }
+    ],
+    "isError": true
+  },
+  "move: under a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "duplicate: with its sub-pages": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:12>\",\n  \"title\": \"Runbook (copy)\",\n  \"slug\": \"runbook-copy\",\n  \"status\": \"draft\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "duplicate: with a title": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:13>\",\n  \"title\": \"Copy of the child\",\n  \"slug\": \"copy-of-the-child\",\n  \"status\": \"draft\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "duplicate: alone": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:14>\",\n  \"title\": \"Runbook (copy)\",\n  \"slug\": \"runbook-copy-2\",\n  \"status\": \"draft\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "list: after the copies": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"parent_id\": null,\n  \"position\": 0,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 12\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:5>\",\n  \"parent_id\": \"<uuid:4>\",\n  \"position\": 0,\n  \"title\": \"Child\",\n  \"slug\": \"child\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:15>\",\n  \"parent_id\": \"<uuid:12>\",\n  \"position\": 0,\n  \"title\": \"Child\",\n  \"slug\": \"child-2\",\n  \"status\": \"draft\",\n  \"version\": 0\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"parent_id\": \"<uuid:4>\",\n  \"position\": 1,\n  \"title\": \"Runbook\",\n  \"slug\": \"empty-page\",\n  \"status\": \"published\",\n  \"version\": 5\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:16>\",\n  \"parent_id\": \"<uuid:12>\",\n  \"position\": 1,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook-3\",\n  \"status\": \"draft\",\n  \"version\": 0\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"parent_id\": null,\n  \"position\": 2,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook-2\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:13>\",\n  \"parent_id\": \"<uuid:4>\",\n  \"position\": 2,\n  \"title\": \"Copy of the child\",\n  \"slug\": \"copy-of-the-child\",\n  \"status\": \"draft\",\n  \"version\": 0\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:9>\",\n  \"parent_id\": null,\n  \"position\": 3,\n  \"title\": \"Limits \\\"v2\\\" & more\",\n  \"slug\": \"limits-v2-more\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:10>\",\n  \"parent_id\": null,\n  \"position\": 4,\n  \"title\": \"Pictures\",\n  \"slug\": \"pictures\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:11>\",\n  \"parent_id\": null,\n  \"position\": 5,\n  \"title\": \"Keys\",\n  \"slug\": \"keys\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:12>\",\n  \"parent_id\": null,\n  \"position\": 6,\n  \"title\": \"Runbook (copy)\",\n  \"slug\": \"runbook-copy\",\n  \"status\": \"draft\",\n  \"version\": 0\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:14>\",\n  \"parent_id\": null,\n  \"position\": 7,\n  \"title\": \"Runbook (copy)\",\n  \"slug\": \"runbook-copy-2\",\n  \"status\": \"draft\",\n  \"version\": 0\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<uuid:4>",
+          "parent_id": null,
+          "position": 0,
+          "title": "Runbook",
+          "slug": "runbook",
+          "status": "published",
+          "version": 12
+        },
+        {
+          "id": "<uuid:5>",
+          "parent_id": "<uuid:4>",
+          "position": 0,
+          "title": "Child",
+          "slug": "child",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:15>",
+          "parent_id": "<uuid:12>",
+          "position": 0,
+          "title": "Child",
+          "slug": "child-2",
+          "status": "draft",
+          "version": 0
+        },
+        {
+          "id": "<uuid:6>",
+          "parent_id": "<uuid:4>",
+          "position": 1,
+          "title": "Runbook",
+          "slug": "empty-page",
+          "status": "published",
+          "version": 5
+        },
+        {
+          "id": "<uuid:16>",
+          "parent_id": "<uuid:12>",
+          "position": 1,
+          "title": "Runbook",
+          "slug": "runbook-3",
+          "status": "draft",
+          "version": 0
+        },
+        {
+          "id": "<uuid:7>",
+          "parent_id": null,
+          "position": 2,
+          "title": "Runbook",
+          "slug": "runbook-2",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:13>",
+          "parent_id": "<uuid:4>",
+          "position": 2,
+          "title": "Copy of the child",
+          "slug": "copy-of-the-child",
+          "status": "draft",
+          "version": 0
+        },
+        {
+          "id": "<uuid:9>",
+          "parent_id": null,
+          "position": 3,
+          "title": "Limits \"v2\" & more",
+          "slug": "limits-v2-more",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:10>",
+          "parent_id": null,
+          "position": 4,
+          "title": "Pictures",
+          "slug": "pictures",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:11>",
+          "parent_id": null,
+          "position": 5,
+          "title": "Keys",
+          "slug": "keys",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:12>",
+          "parent_id": null,
+          "position": 6,
+          "title": "Runbook (copy)",
+          "slug": "runbook-copy",
+          "status": "draft",
+          "version": 0
+        },
+        {
+          "id": "<uuid:14>",
+          "parent_id": null,
+          "position": 7,
+          "title": "Runbook (copy)",
+          "slug": "runbook-copy-2",
+          "status": "draft",
+          "version": 0
+        }
+      ]
+    },
+    "isError": false
+  },
+  "delete: the copy": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:12>\",\n  \"deleted_pages\": 3\n}"
+      }
+    ],
+    "isError": false
+  },
+  "delete: a page that is already in the bin": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page is in the Recycle Bin."
+      }
+    ],
+    "isError": true
+  },
+  "recycle_bin: the copy": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:12>\",\n  \"title\": \"Runbook (copy)\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_title\": null,\n  \"parent_deleted\": false,\n  \"deleted_at\": \"<time>\",\n  \"deleted_by\": \"agent\",\n  \"page_count\": 3,\n  \"child_titles\": [\n    \"Child\",\n    \"Runbook\"\n  ],\n  \"days_left\": 30\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<uuid:12>",
+          "title": "Runbook (copy)",
+          "project_id": "<uuid:1>",
+          "parent_title": null,
+          "parent_deleted": false,
+          "deleted_at": "<time>",
+          "deleted_by": "agent",
+          "page_count": 3,
+          "child_titles": [
+            "Child",
+            "Runbook"
+          ],
+          "days_left": 30
+        }
+      ]
+    },
+    "isError": false
+  },
+  "get: a deleted page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Page is in the Recycle Bin."
+      }
+    ],
+    "isError": true
+  },
+  "restore: the copy": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:12>\",\n  \"restored_pages\": 3,\n  \"moved_to_top_level\": false\n}"
+      }
+    ],
+    "isError": false
+  },
+  "restore: a page that is not in the bin": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page is not in the Recycle Bin."
+      }
+    ],
+    "isError": true
+  },
+  "recycle_bin: empty again": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "delete: with sub-pages": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"deleted_pages\": 4\n}"
+      }
+    ],
+    "isError": false
+  },
+  "recycle_bin: the tree": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_title\": null,\n  \"parent_deleted\": false,\n  \"deleted_at\": \"<time>\",\n  \"deleted_by\": \"agent\",\n  \"page_count\": 4,\n  \"child_titles\": [\n    \"Child\",\n    \"Runbook\",\n    \"Copy of the child\"\n  ],\n  \"days_left\": 30\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<uuid:4>",
+          "title": "Runbook",
+          "project_id": "<uuid:1>",
+          "parent_title": null,
+          "parent_deleted": false,
+          "deleted_at": "<time>",
+          "deleted_by": "agent",
+          "page_count": 4,
+          "child_titles": [
+            "Child",
+            "Runbook",
+            "Copy of the child"
+          ],
+          "days_left": 30
+        }
+      ]
+    },
+    "isError": false
+  },
+  "restore: the tree": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"restored_pages\": 4,\n  \"moved_to_top_level\": false\n}"
+      }
+    ],
+    "isError": false
+  },
+  "check_links: every status": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"kind\": \"page\",\n  \"status\": \"ambiguous\",\n  \"page_id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"path\": \"Runbook\",\n  \"published\": true\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"kind\": \"page\",\n  \"status\": \"ambiguous\",\n  \"page_id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"path\": \"Runbook\",\n  \"published\": true,\n  \"anchor\": \"limits-and-quotas\",\n  \"section\": \"Limits and quotas\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"kind\": \"page\",\n  \"status\": \"section_missing\",\n  \"page_id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"path\": \"Runbook\",\n  \"published\": true,\n  \"anchor\": \"nope\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"kind\": \"page\",\n  \"status\": \"missing\",\n  \"title\": \"Ghost\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"kind\": \"ticket\",\n  \"key\": \"DOC-1\",\n  \"status\": \"ok\",\n  \"title\": \"Rate limit\",\n  \"ticket_status\": \"backlog\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"kind\": \"ticket\",\n  \"key\": \"DOC-99\",\n  \"status\": \"missing\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"kind\": \"page\",\n  \"status\": \"ambiguous\",\n  \"page_id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"path\": \"Runbook\",\n  \"published\": true\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "kind": "page",
+          "status": "ambiguous",
+          "page_id": "<uuid:4>",
+          "title": "Runbook",
+          "slug": "runbook",
+          "path": "Runbook",
+          "published": true
+        },
+        {
+          "kind": "page",
+          "status": "ambiguous",
+          "page_id": "<uuid:4>",
+          "title": "Runbook",
+          "slug": "runbook",
+          "path": "Runbook",
+          "published": true,
+          "anchor": "limits-and-quotas",
+          "section": "Limits and quotas"
+        },
+        {
+          "kind": "page",
+          "status": "section_missing",
+          "page_id": "<uuid:4>",
+          "title": "Runbook",
+          "slug": "runbook",
+          "path": "Runbook",
+          "published": true,
+          "anchor": "nope"
+        },
+        {
+          "kind": "page",
+          "status": "missing",
+          "title": "Ghost"
+        },
+        {
+          "kind": "ticket",
+          "key": "DOC-1",
+          "status": "ok",
+          "title": "Rate limit",
+          "ticket_status": "backlog"
+        },
+        {
+          "kind": "ticket",
+          "key": "DOC-99",
+          "status": "missing"
+        },
+        {
+          "kind": "page",
+          "status": "ambiguous",
+          "page_id": "<uuid:4>",
+          "title": "Runbook",
+          "slug": "runbook",
+          "path": "Runbook",
+          "published": true
+        }
+      ]
+    },
+    "isError": false
+  },
+  "check_links: a ticket and a page together": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"kind\": \"ticket\",\n  \"key\": \"DOC-1\",\n  \"status\": \"ok\",\n  \"title\": \"Rate limit\",\n  \"ticket_status\": \"backlog\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "kind": "ticket",
+          "key": "DOC-1",
+          "status": "ok",
+          "title": "Rate limit",
+          "ticket_status": "backlog"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "check_links: a project that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Project not found."
+      }
+    ],
+    "isError": true
+  },
+  "search: a word": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 3,\n  \"pages\": [\n    {\n      \"page_id\": \"<uuid:4>\",\n      \"project_id\": \"<uuid:1>\",\n      \"project_name\": \"Docs\",\n      \"title\": \"Runbook\",\n      \"title_snippet\": \"Runbook\",\n      \"path\": [],\n      \"status\": \"published\",\n      \"version\": 12,\n      \"updated_at\": \"<time>\",\n      \"updated_by\": \"agent\",\n      \"tickets\": [],\n      \"matches\": [\n        {\n          \"section\": \"Auth\",\n          \"slug\": \"auth\",\n          \"snippet\": \"<mark>Tokens</mark>.More <mark>tokens</mark>.\"\n        }\n      ]\n    },\n    {\n      \"page_id\": \"<uuid:14>\",\n      \"project_id\": \"<uuid:1>\",\n      \"project_name\": \"Docs\",\n      \"title\": \"Runbook (copy)\",\n      \"title_snippet\": \"Runbook (copy)\",\n      \"path\": [],\n      \"status\": \"draft\",\n      \"version\": 0,\n      \"updated_at\": \"<time>\",\n      \"updated_by\": \"agent\",\n      \"tickets\": [],\n      \"matches\": [\n        {\n          \"section\": \"Auth\",\n          \"slug\": \"auth\",\n          \"snippet\": \"<mark>Tokens</mark>.More <mark>tokens</mark>.\"\n        }\n      ]\n    },\n    {\n      \"page_id\": \"<uuid:12>\",\n      \"project_id\": \"<uuid:1>\",\n      \"project_name\": \"Docs\",\n      \"title\": \"Runbook (copy)\",\n      \"title_snippet\": \"Runbook (copy)\",\n      \"path\": [],\n      \"status\": \"draft\",\n      \"version\": 0,\n      \"updated_at\": \"<time>\",\n      \"updated_by\": \"agent\",\n      \"tickets\": [],\n      \"matches\": [\n        {\n          \"section\": \"Auth\",\n          \"slug\": \"auth\",\n          \"snippet\": \"<mark>Tokens</mark>.More <mark>tokens</mark>.\"\n        }\n      ]\n    }\n  ],\n  \"tickets\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 3,
+        "pages": [
+          {
+            "page_id": "<uuid:4>",
+            "project_id": "<uuid:1>",
+            "project_name": "Docs",
+            "title": "Runbook",
+            "title_snippet": "Runbook",
+            "path": [],
+            "status": "published",
+            "version": 12,
+            "updated_at": "<time>",
+            "updated_by": "agent",
+            "tickets": [],
+            "matches": [
+              {
+                "section": "Auth",
+                "slug": "auth",
+                "snippet": "<mark>Tokens</mark>.More <mark>tokens</mark>."
+              }
+            ]
+          },
+          {
+            "page_id": "<uuid:14>",
+            "project_id": "<uuid:1>",
+            "project_name": "Docs",
+            "title": "Runbook (copy)",
+            "title_snippet": "Runbook (copy)",
+            "path": [],
+            "status": "draft",
+            "version": 0,
+            "updated_at": "<time>",
+            "updated_by": "agent",
+            "tickets": [],
+            "matches": [
+              {
+                "section": "Auth",
+                "slug": "auth",
+                "snippet": "<mark>Tokens</mark>.More <mark>tokens</mark>."
+              }
+            ]
+          },
+          {
+            "page_id": "<uuid:12>",
+            "project_id": "<uuid:1>",
+            "project_name": "Docs",
+            "title": "Runbook (copy)",
+            "title_snippet": "Runbook (copy)",
+            "path": [],
+            "status": "draft",
+            "version": 0,
+            "updated_at": "<time>",
+            "updated_by": "agent",
+            "tickets": [],
+            "matches": [
+              {
+                "section": "Auth",
+                "slug": "auth",
+                "snippet": "<mark>Tokens</mark>.More <mark>tokens</mark>."
+              }
+            ]
+          }
+        ],
+        "tickets": []
+      }
+    },
+    "isError": false
+  },
+  "search: a phrase": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 3,\n  \"pages\": [\n    {\n      \"page_id\": \"<uuid:4>\",\n      \"project_id\": \"<uuid:1>\",\n      \"project_name\": \"Docs\",\n      \"title\": \"Runbook\",\n      \"title_snippet\": \"Runbook\",\n      \"path\": [],\n      \"status\": \"published\",\n      \"version\": 12,\n      \"updated_at\": \"<time>\",\n      \"updated_by\": \"agent\",\n      \"tickets\": [],\n      \"matches\": [\n        {\n          \"section\": \"Auth\",\n          \"slug\": \"auth\",\n          \"snippet\": \"Tokens.<mark>More tokens</mark>.\"\n        }\n      ]\n    },\n    {\n      \"page_id\": \"<uuid:14>\",\n      \"project_id\": \"<uuid:1>\",\n      \"project_name\": \"Docs\",\n      \"title\": \"Runbook (copy)\",\n      \"title_snippet\": \"Runbook (copy)\",\n      \"path\": [],\n      \"status\": \"draft\",\n      \"version\": 0,\n      \"updated_at\": \"<time>\",\n      \"updated_by\": \"agent\",\n      \"tickets\": [],\n      \"matches\": [\n        {\n          \"section\": \"Auth\",\n          \"slug\": \"auth\",\n          \"snippet\": \"Tokens.<mark>More tokens</mark>.\"\n        }\n      ]\n    },\n    {\n      \"page_id\": \"<uuid:12>\",\n      \"project_id\": \"<uuid:1>\",\n      \"project_name\": \"Docs\",\n      \"title\": \"Runbook (copy)\",\n      \"title_snippet\": \"Runbook (copy)\",\n      \"path\": [],\n      \"status\": \"draft\",\n      \"version\": 0,\n      \"updated_at\": \"<time>\",\n      \"updated_by\": \"agent\",\n      \"tickets\": [],\n      \"matches\": [\n        {\n          \"section\": \"Auth\",\n          \"slug\": \"auth\",\n          \"snippet\": \"Tokens.<mark>More tokens</mark>.\"\n        }\n      ]\n    }\n  ],\n  \"tickets\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 3,
+        "pages": [
+          {
+            "page_id": "<uuid:4>",
+            "project_id": "<uuid:1>",
+            "project_name": "Docs",
+            "title": "Runbook",
+            "title_snippet": "Runbook",
+            "path": [],
+            "status": "published",
+            "version": 12,
+            "updated_at": "<time>",
+            "updated_by": "agent",
+            "tickets": [],
+            "matches": [
+              {
+                "section": "Auth",
+                "slug": "auth",
+                "snippet": "Tokens.<mark>More tokens</mark>."
+              }
+            ]
+          },
+          {
+            "page_id": "<uuid:14>",
+            "project_id": "<uuid:1>",
+            "project_name": "Docs",
+            "title": "Runbook (copy)",
+            "title_snippet": "Runbook (copy)",
+            "path": [],
+            "status": "draft",
+            "version": 0,
+            "updated_at": "<time>",
+            "updated_by": "agent",
+            "tickets": [],
+            "matches": [
+              {
+                "section": "Auth",
+                "slug": "auth",
+                "snippet": "Tokens.<mark>More tokens</mark>."
+              }
+            ]
+          },
+          {
+            "page_id": "<uuid:12>",
+            "project_id": "<uuid:1>",
+            "project_name": "Docs",
+            "title": "Runbook (copy)",
+            "title_snippet": "Runbook (copy)",
+            "path": [],
+            "status": "draft",
+            "version": 0,
+            "updated_at": "<time>",
+            "updated_by": "agent",
+            "tickets": [],
+            "matches": [
+              {
+                "section": "Auth",
+                "slug": "auth",
+                "snippet": "Tokens.<mark>More tokens</mark>."
+              }
+            ]
+          }
+        ],
+        "tickets": []
+      }
+    },
+    "isError": false
+  },
+  "search: an excluded word": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 0,\n  \"pages\": [],\n  \"tickets\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 0,
+        "pages": [],
+        "tickets": []
+      }
+    },
+    "isError": false
+  },
+  "search: a ticket key": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 0,\n  \"pages\": [],\n  \"tickets\": [\n    {\n      \"ticket_id\": \"DOC-1\",\n      \"title\": \"Rate limit\",\n      \"status\": \"backlog\",\n      \"assignee\": null,\n      \"snippet\": \"Rate limit\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 0,
+        "pages": [],
+        "tickets": [
+          {
+            "ticket_id": "DOC-1",
+            "title": "Rate limit",
+            "status": "backlog",
+            "assignee": null,
+            "snippet": "Rate limit"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "search: tickets only": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 1,\n  \"pages\": [],\n  \"tickets\": [\n    {\n      \"ticket_id\": \"DOC-1\",\n      \"title\": \"Rate limit\",\n      \"status\": \"backlog\",\n      \"assignee\": null,\n      \"snippet\": \"Rate <mark>limit</mark>\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 1,
+        "pages": [],
+        "tickets": [
+          {
+            "ticket_id": "DOC-1",
+            "title": "Rate limit",
+            "status": "backlog",
+            "assignee": null,
+            "snippet": "Rate <mark>limit</mark>"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "search: every project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 1,\n  \"pages\": [\n    {\n      \"page_id\": \"<uuid:8>\",\n      \"project_id\": \"<uuid:2>\",\n      \"project_name\": \"Other\",\n      \"title\": \"Elsewhere\",\n      \"title_snippet\": \"<mark>Elsewhere</mark>\",\n      \"path\": [],\n      \"status\": \"published\",\n      \"version\": 1,\n      \"updated_at\": \"<time>\",\n      \"updated_by\": \"agent\",\n      \"tickets\": [],\n      \"matches\": []\n    }\n  ],\n  \"tickets\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 1,
+        "pages": [
+          {
+            "page_id": "<uuid:8>",
+            "project_id": "<uuid:2>",
+            "project_name": "Other",
+            "title": "Elsewhere",
+            "title_snippet": "<mark>Elsewhere</mark>",
+            "path": [],
+            "status": "published",
+            "version": 1,
+            "updated_at": "<time>",
+            "updated_by": "agent",
+            "tickets": [],
+            "matches": []
+          }
+        ],
+        "tickets": []
+      }
+    },
+    "isError": false
+  },
+  "search: this project does not see the other": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 0,\n  \"pages\": [],\n  \"tickets\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 0,
+        "pages": [],
+        "tickets": []
+      }
+    },
+    "isError": false
+  },
+  "search: a limit": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 5,\n  \"pages\": [\n    {\n      \"page_id\": \"<uuid:4>\",\n      \"project_id\": \"<uuid:1>\",\n      \"project_name\": \"Docs\",\n      \"title\": \"Runbook\",\n      \"title_snippet\": \"Runbook\",\n      \"path\": [],\n      \"status\": \"published\",\n      \"version\": 12,\n      \"updated_at\": \"<time>\",\n      \"updated_by\": \"agent\",\n      \"tickets\": [],\n      \"matches\": [\n        {\n          \"section\": \"Overview\",\n          \"slug\": \"overview\",\n          \"snippet\": \"Dr<mark>a</mark>ft.\"\n        },\n        {\n          \"section\": \"Auth\",\n          \"slug\": \"auth\",\n          \"snippet\": \"<mark>A</mark>uth\"\n        },\n        {\n          \"section\": \"Endpoints\",\n          \"slug\": \"endpoints\",\n          \"snippet\": \"| Method | P<mark>a</mark>th |\"\n        }\n      ]\n    }\n  ],\n  \"tickets\": [\n    {\n      \"ticket_id\": \"DOC-1\",\n      \"title\": \"Rate limit\",\n      \"status\": \"backlog\",\n      \"assignee\": null,\n      \"snippet\": \"R<mark>a</mark>te limit\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 5,
+        "pages": [
+          {
+            "page_id": "<uuid:4>",
+            "project_id": "<uuid:1>",
+            "project_name": "Docs",
+            "title": "Runbook",
+            "title_snippet": "Runbook",
+            "path": [],
+            "status": "published",
+            "version": 12,
+            "updated_at": "<time>",
+            "updated_by": "agent",
+            "tickets": [],
+            "matches": [
+              {
+                "section": "Overview",
+                "slug": "overview",
+                "snippet": "Dr<mark>a</mark>ft."
+              },
+              {
+                "section": "Auth",
+                "slug": "auth",
+                "snippet": "<mark>A</mark>uth"
+              },
+              {
+                "section": "Endpoints",
+                "slug": "endpoints",
+                "snippet": "| Method | P<mark>a</mark>th |"
+              }
+            ]
+          }
+        ],
+        "tickets": [
+          {
+            "ticket_id": "DOC-1",
+            "title": "Rate limit",
+            "status": "backlog",
+            "assignee": null,
+            "snippet": "R<mark>a</mark>te limit"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "search: a limit of 0": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 5,\n  \"pages\": [\n    {\n      \"page_id\": \"<uuid:4>\",\n      \"project_id\": \"<uuid:1>\",\n      \"project_name\": \"Docs\",\n      \"title\": \"Runbook\",\n      \"title_snippet\": \"Runbook\",\n      \"path\": [],\n      \"status\": \"published\",\n      \"version\": 12,\n      \"updated_at\": \"<time>\",\n      \"updated_by\": \"agent\",\n      \"tickets\": [],\n      \"matches\": [\n        {\n          \"section\": \"Overview\",\n          \"slug\": \"overview\",\n          \"snippet\": \"Dr<mark>a</mark>ft.\"\n        },\n        {\n          \"section\": \"Auth\",\n          \"slug\": \"auth\",\n          \"snippet\": \"<mark>A</mark>uth\"\n        },\n        {\n          \"section\": \"Endpoints\",\n          \"slug\": \"endpoints\",\n          \"snippet\": \"| Method | P<mark>a</mark>th |\"\n        }\n      ]\n    }\n  ],\n  \"tickets\": [\n    {\n      \"ticket_id\": \"DOC-1\",\n      \"title\": \"Rate limit\",\n      \"status\": \"backlog\",\n      \"assignee\": null,\n      \"snippet\": \"R<mark>a</mark>te limit\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 5,
+        "pages": [
+          {
+            "page_id": "<uuid:4>",
+            "project_id": "<uuid:1>",
+            "project_name": "Docs",
+            "title": "Runbook",
+            "title_snippet": "Runbook",
+            "path": [],
+            "status": "published",
+            "version": 12,
+            "updated_at": "<time>",
+            "updated_by": "agent",
+            "tickets": [],
+            "matches": [
+              {
+                "section": "Overview",
+                "slug": "overview",
+                "snippet": "Dr<mark>a</mark>ft."
+              },
+              {
+                "section": "Auth",
+                "slug": "auth",
+                "snippet": "<mark>A</mark>uth"
+              },
+              {
+                "section": "Endpoints",
+                "slug": "endpoints",
+                "snippet": "| Method | P<mark>a</mark>th |"
+              }
+            ]
+          }
+        ],
+        "tickets": [
+          {
+            "ticket_id": "DOC-1",
+            "title": "Rate limit",
+            "status": "backlog",
+            "assignee": null,
+            "snippet": "R<mark>a</mark>te limit"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "search: a negative limit": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 5,\n  \"pages\": [\n    {\n      \"page_id\": \"<uuid:4>\",\n      \"project_id\": \"<uuid:1>\",\n      \"project_name\": \"Docs\",\n      \"title\": \"Runbook\",\n      \"title_snippet\": \"Runbook\",\n      \"path\": [],\n      \"status\": \"published\",\n      \"version\": 12,\n      \"updated_at\": \"<time>\",\n      \"updated_by\": \"agent\",\n      \"tickets\": [],\n      \"matches\": [\n        {\n          \"section\": \"Overview\",\n          \"slug\": \"overview\",\n          \"snippet\": \"Dr<mark>a</mark>ft.\"\n        },\n        {\n          \"section\": \"Auth\",\n          \"slug\": \"auth\",\n          \"snippet\": \"<mark>A</mark>uth\"\n        },\n        {\n          \"section\": \"Endpoints\",\n          \"slug\": \"endpoints\",\n          \"snippet\": \"| Method | P<mark>a</mark>th |\"\n        }\n      ]\n    }\n  ],\n  \"tickets\": [\n    {\n      \"ticket_id\": \"DOC-1\",\n      \"title\": \"Rate limit\",\n      \"status\": \"backlog\",\n      \"assignee\": null,\n      \"snippet\": \"R<mark>a</mark>te limit\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 5,
+        "pages": [
+          {
+            "page_id": "<uuid:4>",
+            "project_id": "<uuid:1>",
+            "project_name": "Docs",
+            "title": "Runbook",
+            "title_snippet": "Runbook",
+            "path": [],
+            "status": "published",
+            "version": 12,
+            "updated_at": "<time>",
+            "updated_by": "agent",
+            "tickets": [],
+            "matches": [
+              {
+                "section": "Overview",
+                "slug": "overview",
+                "snippet": "Dr<mark>a</mark>ft."
+              },
+              {
+                "section": "Auth",
+                "slug": "auth",
+                "snippet": "<mark>A</mark>uth"
+              },
+              {
+                "section": "Endpoints",
+                "slug": "endpoints",
+                "snippet": "| Method | P<mark>a</mark>th |"
+              }
+            ]
+          }
+        ],
+        "tickets": [
+          {
+            "ticket_id": "DOC-1",
+            "title": "Rate limit",
+            "status": "backlog",
+            "assignee": null,
+            "snippet": "R<mark>a</mark>te limit"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "search: nothing found": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 0,\n  \"pages\": [],\n  \"tickets\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 0,
+        "pages": [],
+        "tickets": []
+      }
+    },
+    "isError": false
+  },
+  "search: only an excluded word": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 0,\n  \"pages\": [],\n  \"tickets\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 0,
+        "pages": [],
+        "tickets": []
+      }
+    },
+    "isError": false
+  },
+  "search: a fuzzy title": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 0,\n  \"pages\": [],\n  \"tickets\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "total": 0,
+        "pages": [],
+        "tickets": []
+      }
+    },
+    "isError": false
+  },
+  "upload: data": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"url\": \"/uploads/flow-<random>.png\",\n  \"name\": \"flow.png\",\n  \"size\": 70,\n  \"type\": \"image/png\",\n  \"markdown\": \"![flow.png](/uploads/flow-<random>.png)\",\n  \"stored_in\": \"<dir>/uploads\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "upload: data of a name with brackets": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"url\": \"/uploads/a-1-b-<random>.png\",\n  \"name\": \"a[1] b.png\",\n  \"size\": 70,\n  \"type\": \"image/png\",\n  \"markdown\": \"![a1 b.png](/uploads/a-1-b-<random>.png)\",\n  \"stored_in\": \"<dir>/uploads\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "upload: a text as data": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"url\": \"/uploads/hello-<random>.txt\",\n  \"name\": \"hello.txt\",\n  \"size\": 6,\n  \"type\": \"text/plain\",\n  \"markdown\": \"[hello.txt](/uploads/hello-<random>.txt)\",\n  \"stored_in\": \"<dir>/uploads\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "upload: a type the board does not store": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: tool.exe: .exe is not a type the board stores (png, jpg, webp, gif, svg, pdf, txt, log, json, csv, md, xlsx, docx, pptx, zip, mp4 …)."
+      }
+    ],
+    "isError": true
+  },
+  "upload: a name without an extension": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: README: a file without an extension is not a type the board stores (png, jpg, webp, gif, svg, pdf, txt, log, json, csv, md, xlsx, docx, pptx, zip, mp4 …)."
+      }
+    ],
+    "isError": true
+  },
+  "upload: a key": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: id_rsa.pem: .pem is not a type the board stores (png, jpg, webp, gif, svg, pdf, txt, log, json, csv, md, xlsx, docx, pptx, zip, mp4 …)."
+      }
+    ],
+    "isError": true
+  },
+  "upload: a path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"url\": \"/uploads/pic-<random>.png\",\n  \"name\": \"pic.png\",\n  \"size\": 70,\n  \"type\": \"image/png\",\n  \"markdown\": \"![pic.png](/uploads/pic-<random>.png)\",\n  \"stored_in\": \"<dir>/uploads\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "upload: a path with a name": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"url\": \"/uploads/notes-<random>.txt\",\n  \"name\": \"trace.txt\",\n  \"size\": 19,\n  \"type\": \"text/plain\",\n  \"markdown\": \"[trace.txt](/uploads/notes-<random>.txt)\",\n  \"stored_in\": \"<dir>/uploads\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "upload: a path that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: /no/such/file.png: no such file. Save it first, then attach it."
+      }
+    ],
+    "isError": true
+  },
+  "upload: a relative path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: qa/shot.png: outside a board run a file is named by its absolute path on this computer (e.g. /Users/me/project/shots/login.png)."
+      }
+    ],
+    "isError": true
+  },
+  "upload: a key by path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: <files>/secret.pem: this kind of file is never attached."
+      }
+    ],
+    "isError": true
+  },
+  "upload: a folder": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: <files>/canvas: no such file. Save it first, then attach it."
+      }
+    ],
+    "isError": true
+  },
+  "upload: onto a page, at the end": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"url\": \"/uploads/end-<random>.png\",\n  \"name\": \"end.png\",\n  \"size\": 70,\n  \"type\": \"image/png\",\n  \"markdown\": \"![end.png](/uploads/end-<random>.png)\",\n  \"stored_in\": \"<dir>/uploads\",\n  \"page\": {\n    \"id\": \"<uuid:5>\",\n    \"title\": \"Child\",\n    \"version\": 2,\n    \"published\": true,\n    \"changed\": [\n      \"the end of the page\"\n    ]\n  }\n}"
+      }
+    ],
+    "isError": false
+  },
+  "upload: onto a page, in a section": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: You have an unpublished draft of this page (307 characters, published text 293). An edit works on the published text and would drop the draft. Publish the whole text first with docs_write(action='update', markdown, base_version=12), then edit."
+      }
+    ],
+    "isError": true
+  },
+  "upload: onto a page, after a passage": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: You have an unpublished draft of this page (307 characters, published text 293). An edit works on the published text and would drop the draft. Publish the whole text first with docs_write(action='update', markdown, base_version=12), then edit."
+      }
+    ],
+    "isError": true
+  },
+  "upload: onto a page, before a passage": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: You have an unpublished draft of this page (307 characters, published text 293). An edit works on the published text and would drop the draft. Publish the whole text first with docs_write(action='update', markdown, base_version=12), then edit."
+      }
+    ],
+    "isError": true
+  },
+  "upload: onto a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "upload: onto a section that is not there": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: You have an unpublished draft of this page (307 characters, published text 293). An edit works on the published text and would drop the draft. Publish the whole text first with docs_write(action='update', markdown, base_version=12), then edit."
+      }
+    ],
+    "isError": true
+  },
+  "upload: onto a page from an older version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: base_version 99: the page is at v2."
+      }
+    ],
+    "isError": true
+  },
+  "upload: onto a ticket": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"url\": \"/uploads/t-<random>.png\",\n  \"name\": \"t.png\",\n  \"size\": 70,\n  \"type\": \"image/png\",\n  \"markdown\": \"![t.png](/uploads/t-<random>.png)\",\n  \"stored_in\": \"<dir>/uploads\",\n  \"ticket\": {\n    \"id\": \"DOC-1\",\n    \"comment_id\": \"<uuid:17>\"\n  }\n}"
+      }
+    ],
+    "isError": false
+  },
+  "upload: onto a ticket without a text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"url\": \"/uploads/log-<random>.txt\",\n  \"name\": \"log.txt\",\n  \"size\": 6,\n  \"type\": \"text/plain\",\n  \"markdown\": \"[log.txt](/uploads/log-<random>.txt)\",\n  \"stored_in\": \"<dir>/uploads\",\n  \"ticket\": {\n    \"id\": \"DOC-1\",\n    \"comment_id\": \"<uuid:18>\"\n  }\n}"
+      }
+    ],
+    "isError": false
+  },
+  "upload: onto a ticket that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Ticket 'NOPE-1' not found. Ticket IDs look like 'IAM-12' (project prefix + number); use list_tickets to see the IDs of a project."
+      }
+    ],
+    "isError": true
+  },
+  "upload: onto a page and a ticket": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"url\": \"/uploads/both-<random>.png\",\n  \"name\": \"both.png\",\n  \"size\": 70,\n  \"type\": \"image/png\",\n  \"markdown\": \"![both.png](/uploads/both-<random>.png)\",\n  \"stored_in\": \"<dir>/uploads\",\n  \"page\": {\n    \"id\": \"<uuid:5>\",\n    \"title\": \"Child\",\n    \"version\": 3,\n    \"published\": true,\n    \"changed\": [\n      \"the end of the page\"\n    ]\n  },\n  \"ticket\": {\n    \"id\": \"DOC-1\",\n    \"comment_id\": \"<uuid:19>\"\n  }\n}"
+      }
+    ],
+    "isError": false
+  },
+  "get: the page with the files": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:5>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": \"<uuid:4>\",\n  \"title\": \"Child\",\n  \"slug\": \"child\",\n  \"status\": \"published\",\n  \"version\": 3,\n  \"markdown\": \"Body\\n\\n![end.png](/uploads/end-<random>.png)\\n\\n![both.png](/uploads/both-<random>.png)\\n\",\n  \"headings\": [],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:5>",
+        "project_id": "<uuid:1>",
+        "parent_id": "<uuid:4>",
+        "title": "Child",
+        "slug": "child",
+        "status": "published",
+        "version": 3,
+        "markdown": "Body\n\n![end.png](/uploads/end-<random>.png)\n\n![both.png](/uploads/both-<random>.png)\n",
+        "headings": [],
+        "updated_by": "agent",
+        "updated_at": "<time>",
+        "referenced_by": {
+          "pages": [],
+          "tickets": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "get: the section with a file": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 12,\n  \"section\": \"Overview\",\n  \"markdown\": \"## Overview\\n\\n> [!NOTE]\\n> Draft.\\n\\nThe API is REST.\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Intro\",\n      \"slug\": \"intro\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Auth\",\n      \"slug\": \"auth\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits and quotas\",\n      \"slug\": \"limits-and-quotas\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Appendix\",\n      \"slug\": \"appendix\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:4>",
+        "title": "Runbook",
+        "version": 12,
+        "section": "Overview",
+        "markdown": "## Overview\n\n> [!NOTE]\n> Draft.\n\nThe API is REST.",
+        "headings": [
+          {
+            "level": 2,
+            "text": "Overview",
+            "slug": "overview"
+          },
+          {
+            "level": 2,
+            "text": "Intro",
+            "slug": "intro"
+          },
+          {
+            "level": 2,
+            "text": "Auth",
+            "slug": "auth"
+          },
+          {
+            "level": 2,
+            "text": "Endpoints",
+            "slug": "endpoints"
+          },
+          {
+            "level": 3,
+            "text": "Errors",
+            "slug": "errors"
+          },
+          {
+            "level": 2,
+            "text": "Limits and quotas",
+            "slug": "limits-and-quotas"
+          },
+          {
+            "level": 2,
+            "text": "Appendix",
+            "slug": "appendix"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "upload: the ticket afterwards": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"ticket_id\": \"DOC-1\",\n  \"count\": 3,\n  \"comments\": [\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"Reviewer\",\n      \"text\": \"The shot\\n\\n![t.png](/uploads/t-<random>.png)\",\n      \"at\": \"<time>\",\n      \"edited_at\": null,\n      \"notified\": [\n        \"Admin\"\n      ]\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"Agent\",\n      \"text\": \"[log.txt](/uploads/log-<random>.txt)\",\n      \"at\": \"<time>\",\n      \"edited_at\": null,\n      \"notified\": [\n        \"Admin\"\n      ]\n    },\n    {\n      \"id\": \"<uuid:19>\",\n      \"author\": \"Agent\",\n      \"text\": \"![both.png](/uploads/both-<random>.png)\",\n      \"at\": \"<time>\",\n      \"edited_at\": null,\n      \"notified\": [\n        \"Admin\"\n      ]\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "import: a folder": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"created\": [\n    {\n      \"path\": \"guide\",\n      \"page_id\": \"<uuid:20>\",\n      \"title\": \"guide\"\n    },\n    {\n      \"path\": \"guide/deep\",\n      \"page_id\": \"<uuid:21>\",\n      \"title\": \"deep\"\n    },\n    {\n      \"path\": \"guide/deep/more.markdown\",\n      \"page_id\": \"<uuid:22>\",\n      \"title\": \"More\"\n    },\n    {\n      \"path\": \"guide/intro.md\",\n      \"page_id\": \"<uuid:23>\",\n      \"title\": \"Intro\"\n    },\n    {\n      \"path\": \"notes.md\",\n      \"page_id\": \"<uuid:24>\",\n      \"title\": \"Notes\"\n    }\n  ],\n  \"failed\": [],\n  \"skipped\": [],\n  \"published\": true\n}"
+      }
+    ],
+    "isError": false
+  },
+  "import: a file": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"created\": [\n    {\n      \"path\": \"single.md\",\n      \"page_id\": \"<uuid:25>\",\n      \"title\": \"Single\"\n    }\n  ],\n  \"failed\": [],\n  \"skipped\": [],\n  \"published\": true\n}"
+      }
+    ],
+    "isError": false
+  },
+  "import: a folder without Markdown": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: No .md or .markdown files found at that path"
+      }
+    ],
+    "isError": true
+  },
+  "import: a file that is not Markdown": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: No .md or .markdown files found at that path"
+      }
+    ],
+    "isError": true
+  },
+  "import: drafts": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"created\": [\n    {\n      \"path\": \"guide/deep/more.markdown\",\n      \"page_id\": \"<uuid:26>\",\n      \"title\": \"More (copy)\"\n    },\n    {\n      \"path\": \"guide/intro.md\",\n      \"page_id\": \"<uuid:27>\",\n      \"title\": \"Intro (copy)\"\n    },\n    {\n      \"path\": \"notes.md\",\n      \"page_id\": \"<uuid:28>\",\n      \"title\": \"Notes (copy)\"\n    }\n  ],\n  \"failed\": [],\n  \"skipped\": [],\n  \"published\": false,\n  \"note\": \"The pages are your drafts: their published text is still empty. Publish each with docs_write(update, markdown, base_version=0); an edit before that works on the empty page.\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "import: under a page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"created\": [\n    {\n      \"path\": \"single.md\",\n      \"page_id\": \"<uuid:29>\",\n      \"title\": \"Single\"\n    }\n  ],\n  \"failed\": [],\n  \"skipped\": [],\n  \"published\": true\n}"
+      }
+    ],
+    "isError": false
+  },
+  "import: under a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "import: a project that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Project not found."
+      }
+    ],
+    "isError": true
+  },
+  "list: after the imports": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"parent_id\": null,\n  \"position\": 0,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 12\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:5>\",\n  \"parent_id\": \"<uuid:4>\",\n  \"position\": 0,\n  \"title\": \"Child\",\n  \"slug\": \"child\",\n  \"status\": \"published\",\n  \"version\": 3\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:15>\",\n  \"parent_id\": \"<uuid:12>\",\n  \"position\": 0,\n  \"title\": \"Child\",\n  \"slug\": \"child-2\",\n  \"status\": \"draft\",\n  \"version\": 0\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:21>\",\n  \"parent_id\": \"<uuid:20>\",\n  \"position\": 0,\n  \"title\": \"deep\",\n  \"slug\": \"deep\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:22>\",\n  \"parent_id\": \"<uuid:21>\",\n  \"position\": 0,\n  \"title\": \"More\",\n  \"slug\": \"more\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:29>\",\n  \"parent_id\": \"<uuid:5>\",\n  \"position\": 0,\n  \"title\": \"Single\",\n  \"slug\": \"single-2\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"parent_id\": \"<uuid:4>\",\n  \"position\": 1,\n  \"title\": \"Runbook\",\n  \"slug\": \"empty-page\",\n  \"status\": \"published\",\n  \"version\": 5\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:16>\",\n  \"parent_id\": \"<uuid:12>\",\n  \"position\": 1,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook-3\",\n  \"status\": \"draft\",\n  \"version\": 0\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:23>\",\n  \"parent_id\": \"<uuid:20>\",\n  \"position\": 1,\n  \"title\": \"Intro\",\n  \"slug\": \"intro\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:26>\",\n  \"parent_id\": \"<uuid:21>\",\n  \"position\": 1,\n  \"title\": \"More (copy)\",\n  \"slug\": \"more-copy\",\n  \"status\": \"draft\",\n  \"version\": 0\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"parent_id\": null,\n  \"position\": 2,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook-2\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:13>\",\n  \"parent_id\": \"<uuid:4>\",\n  \"position\": 2,\n  \"title\": \"Copy of the child\",\n  \"slug\": \"copy-of-the-child\",\n  \"status\": \"draft\",\n  \"version\": 0\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:27>\",\n  \"parent_id\": \"<uuid:20>\",\n  \"position\": 2,\n  \"title\": \"Intro (copy)\",\n  \"slug\": \"intro-copy\",\n  \"status\": \"draft\",\n  \"version\": 0\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:9>\",\n  \"parent_id\": null,\n  \"position\": 3,\n  \"title\": \"Limits \\\"v2\\\" & more\",\n  \"slug\": \"limits-v2-more\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:10>\",\n  \"parent_id\": null,\n  \"position\": 4,\n  \"title\": \"Pictures\",\n  \"slug\": \"pictures\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:11>\",\n  \"parent_id\": null,\n  \"position\": 5,\n  \"title\": \"Keys\",\n  \"slug\": \"keys\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:12>\",\n  \"parent_id\": null,\n  \"position\": 6,\n  \"title\": \"Runbook (copy)\",\n  \"slug\": \"runbook-copy\",\n  \"status\": \"draft\",\n  \"version\": 0\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:14>\",\n  \"parent_id\": null,\n  \"position\": 7,\n  \"title\": \"Runbook (copy)\",\n  \"slug\": \"runbook-copy-2\",\n  \"status\": \"draft\",\n  \"version\": 0\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:20>\",\n  \"parent_id\": null,\n  \"position\": 8,\n  \"title\": \"guide\",\n  \"slug\": \"guide\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:24>\",\n  \"parent_id\": null,\n  \"position\": 9,\n  \"title\": \"Notes\",\n  \"slug\": \"notes\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:25>\",\n  \"parent_id\": null,\n  \"position\": 10,\n  \"title\": \"Single\",\n  \"slug\": \"single\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:28>\",\n  \"parent_id\": null,\n  \"position\": 11,\n  \"title\": \"Notes (copy)\",\n  \"slug\": \"notes-copy\",\n  \"status\": \"draft\",\n  \"version\": 0\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<uuid:4>",
+          "parent_id": null,
+          "position": 0,
+          "title": "Runbook",
+          "slug": "runbook",
+          "status": "published",
+          "version": 12
+        },
+        {
+          "id": "<uuid:5>",
+          "parent_id": "<uuid:4>",
+          "position": 0,
+          "title": "Child",
+          "slug": "child",
+          "status": "published",
+          "version": 3
+        },
+        {
+          "id": "<uuid:15>",
+          "parent_id": "<uuid:12>",
+          "position": 0,
+          "title": "Child",
+          "slug": "child-2",
+          "status": "draft",
+          "version": 0
+        },
+        {
+          "id": "<uuid:21>",
+          "parent_id": "<uuid:20>",
+          "position": 0,
+          "title": "deep",
+          "slug": "deep",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:22>",
+          "parent_id": "<uuid:21>",
+          "position": 0,
+          "title": "More",
+          "slug": "more",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:29>",
+          "parent_id": "<uuid:5>",
+          "position": 0,
+          "title": "Single",
+          "slug": "single-2",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:6>",
+          "parent_id": "<uuid:4>",
+          "position": 1,
+          "title": "Runbook",
+          "slug": "empty-page",
+          "status": "published",
+          "version": 5
+        },
+        {
+          "id": "<uuid:16>",
+          "parent_id": "<uuid:12>",
+          "position": 1,
+          "title": "Runbook",
+          "slug": "runbook-3",
+          "status": "draft",
+          "version": 0
+        },
+        {
+          "id": "<uuid:23>",
+          "parent_id": "<uuid:20>",
+          "position": 1,
+          "title": "Intro",
+          "slug": "intro",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:26>",
+          "parent_id": "<uuid:21>",
+          "position": 1,
+          "title": "More (copy)",
+          "slug": "more-copy",
+          "status": "draft",
+          "version": 0
+        },
+        {
+          "id": "<uuid:7>",
+          "parent_id": null,
+          "position": 2,
+          "title": "Runbook",
+          "slug": "runbook-2",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:13>",
+          "parent_id": "<uuid:4>",
+          "position": 2,
+          "title": "Copy of the child",
+          "slug": "copy-of-the-child",
+          "status": "draft",
+          "version": 0
+        },
+        {
+          "id": "<uuid:27>",
+          "parent_id": "<uuid:20>",
+          "position": 2,
+          "title": "Intro (copy)",
+          "slug": "intro-copy",
+          "status": "draft",
+          "version": 0
+        },
+        {
+          "id": "<uuid:9>",
+          "parent_id": null,
+          "position": 3,
+          "title": "Limits \"v2\" & more",
+          "slug": "limits-v2-more",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:10>",
+          "parent_id": null,
+          "position": 4,
+          "title": "Pictures",
+          "slug": "pictures",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:11>",
+          "parent_id": null,
+          "position": 5,
+          "title": "Keys",
+          "slug": "keys",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:12>",
+          "parent_id": null,
+          "position": 6,
+          "title": "Runbook (copy)",
+          "slug": "runbook-copy",
+          "status": "draft",
+          "version": 0
+        },
+        {
+          "id": "<uuid:14>",
+          "parent_id": null,
+          "position": 7,
+          "title": "Runbook (copy)",
+          "slug": "runbook-copy-2",
+          "status": "draft",
+          "version": 0
+        },
+        {
+          "id": "<uuid:20>",
+          "parent_id": null,
+          "position": 8,
+          "title": "guide",
+          "slug": "guide",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:24>",
+          "parent_id": null,
+          "position": 9,
+          "title": "Notes",
+          "slug": "notes",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:25>",
+          "parent_id": null,
+          "position": 10,
+          "title": "Single",
+          "slug": "single",
+          "status": "published",
+          "version": 1
+        },
+        {
+          "id": "<uuid:28>",
+          "parent_id": null,
+          "position": 11,
+          "title": "Notes (copy)",
+          "slug": "notes-copy",
+          "status": "draft",
+          "version": 0
+        }
+      ]
+    },
+    "isError": false
+  },
+  "tickets: a page with tasks": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:30>\",\n  \"title\": \"Plan\",\n  \"slug\": \"plan\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "tickets: from the checklist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"tickets\": [\n    {\n      \"id\": \"DOC-2\",\n      \"title\": \"Write the spec\",\n      \"status\": \"backlog\"\n    },\n    {\n      \"id\": \"DOC-3\",\n      \"title\": \"Review the spec\",\n      \"status\": \"backlog\"\n    },\n    {\n      \"id\": \"DOC-4\",\n      \"title\": \"Ask the owner\",\n      \"status\": \"backlog\"\n    }\n  ],\n  \"skipped\": [\n    {\n      \"text\": \"Done already\",\n      \"reason\": \"ticked\",\n      \"line\": 4\n    },\n    {\n      \"text\": \"Has a ticket DOC-1\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-1\",\n      \"line\": 6\n    }\n  ],\n  \"page\": {\n    \"id\": \"<uuid:30>\",\n    \"title\": \"Plan\",\n    \"version\": 2,\n    \"published\": true,\n    \"changed\": [\n      \"a passage\",\n      \"a passage\",\n      \"a passage\"\n    ]\n  }\n}"
+      }
+    ],
+    "isError": false
+  },
+  "tickets: the page afterwards": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:30>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Plan\",\n  \"slug\": \"plan\",\n  \"status\": \"published\",\n  \"version\": 2,\n  \"markdown\": \"## Todo\\n\\n- [ ] Write the spec DOC-2\\n- [ ] Review the spec DOC-3\\n- [x] Done already\\n- Action: Ask the owner DOC-4\\n- [ ] Has a ticket DOC-1\\n\\n## Notes\\n\\nNothing here.\\n\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Todo\",\n      \"slug\": \"todo\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Notes\",\n      \"slug\": \"notes\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": [\n      {\n        \"ticket_id\": \"DOC-2\",\n        \"title\": \"Write the spec\",\n        \"status\": \"backlog\",\n        \"origin\": \"description\",\n        \"detail\": \"\",\n        \"context\": \"From the page Plan:\",\n        \"excerpt\": \"From the page [[Plan]]:\",\n        \"target_anchor\": null\n      },\n      {\n        \"ticket_id\": \"DOC-3\",\n        \"title\": \"Review the spec\",\n        \"status\": \"backlog\",\n        \"origin\": \"description\",\n        \"detail\": \"\",\n        \"context\": \"From the page Plan:\",\n        \"excerpt\": \"From the page [[Plan]]:\",\n        \"target_anchor\": null\n      },\n      {\n        \"ticket_id\": \"DOC-4\",\n        \"title\": \"Ask the owner\",\n        \"status\": \"backlog\",\n        \"origin\": \"description\",\n        \"detail\": \"\",\n        \"context\": \"From the page Plan:\",\n        \"excerpt\": \"From the page [[Plan]]:\",\n        \"target_anchor\": null\n      }\n    ]\n  },\n  \"work\": {\n    \"tickets\": [\n      {\n        \"id\": \"DOC-2\",\n        \"title\": \"Write the spec\",\n        \"status\": \"backlog\",\n        \"assignee\": null,\n        \"run\": null\n      },\n      {\n        \"id\": \"DOC-3\",\n        \"title\": \"Review the spec\",\n        \"status\": \"backlog\",\n        \"assignee\": null,\n        \"run\": null\n      },\n      {\n        \"id\": \"DOC-4\",\n        \"title\": \"Ask the owner\",\n        \"status\": \"backlog\",\n        \"assignee\": null,\n        \"run\": null\n      },\n      {\n        \"id\": \"DOC-1\",\n        \"title\": \"Rate limit\",\n        \"status\": \"backlog\",\n        \"assignee\": null,\n        \"run\": null\n      }\n    ],\n    \"active\": 0\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:30>",
+        "project_id": "<uuid:1>",
+        "parent_id": null,
+        "title": "Plan",
+        "slug": "plan",
+        "status": "published",
+        "version": 2,
+        "markdown": "## Todo\n\n- [ ] Write the spec DOC-2\n- [ ] Review the spec DOC-3\n- [x] Done already\n- Action: Ask the owner DOC-4\n- [ ] Has a ticket DOC-1\n\n## Notes\n\nNothing here.\n",
+        "headings": [
+          {
+            "level": 2,
+            "text": "Todo",
+            "slug": "todo"
+          },
+          {
+            "level": 2,
+            "text": "Notes",
+            "slug": "notes"
+          }
+        ],
+        "updated_by": "agent",
+        "updated_at": "<time>",
+        "referenced_by": {
+          "pages": [],
+          "tickets": [
+            {
+              "ticket_id": "DOC-2",
+              "title": "Write the spec",
+              "status": "backlog",
+              "origin": "description",
+              "detail": "",
+              "context": "From the page Plan:",
+              "excerpt": "From the page [[Plan]]:",
+              "target_anchor": null
+            },
+            {
+              "ticket_id": "DOC-3",
+              "title": "Review the spec",
+              "status": "backlog",
+              "origin": "description",
+              "detail": "",
+              "context": "From the page Plan:",
+              "excerpt": "From the page [[Plan]]:",
+              "target_anchor": null
+            },
+            {
+              "ticket_id": "DOC-4",
+              "title": "Ask the owner",
+              "status": "backlog",
+              "origin": "description",
+              "detail": "",
+              "context": "From the page Plan:",
+              "excerpt": "From the page [[Plan]]:",
+              "target_anchor": null
+            }
+          ]
+        },
+        "work": {
+          "tickets": [
+            {
+              "id": "DOC-2",
+              "title": "Write the spec",
+              "status": "backlog",
+              "assignee": null,
+              "run": null
+            },
+            {
+              "id": "DOC-3",
+              "title": "Review the spec",
+              "status": "backlog",
+              "assignee": null,
+              "run": null
+            },
+            {
+              "id": "DOC-4",
+              "title": "Ask the owner",
+              "status": "backlog",
+              "assignee": null,
+              "run": null
+            },
+            {
+              "id": "DOC-1",
+              "title": "Rate limit",
+              "status": "backlog",
+              "assignee": null,
+              "run": null
+            }
+          ],
+          "active": 0
+        }
+      }
+    },
+    "isError": false
+  },
+  "tickets: nothing left": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"tickets\": [],\n  \"skipped\": [\n    {\n      \"text\": \"Write the spec DOC-2\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-2\",\n      \"line\": 2\n    },\n    {\n      \"text\": \"Review the spec DOC-3\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-3\",\n      \"line\": 3\n    },\n    {\n      \"text\": \"Done already\",\n      \"reason\": \"ticked\",\n      \"line\": 4\n    },\n    {\n      \"text\": \"Action: Ask the owner DOC-4\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-4\",\n      \"line\": 5\n    },\n    {\n      \"text\": \"Has a ticket DOC-1\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-1\",\n      \"line\": 6\n    }\n  ],\n  \"message\": \"No unchecked task or action item without a ticket on the page.\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "tickets: from a passage with nothing": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"tickets\": [],\n  \"skipped\": [],\n  \"message\": \"No unchecked task or action item without a ticket in that passage.\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "tickets: another page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:31>\",\n  \"title\": \"Plan two\",\n  \"slug\": \"plan-two\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "tickets: only a passage": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"tickets\": [\n    {\n      \"id\": \"DOC-5\",\n      \"title\": \"First thing\",\n      \"status\": \"backlog\"\n    }\n  ],\n  \"page\": {\n    \"id\": \"<uuid:31>\",\n    \"title\": \"Plan two\",\n    \"version\": 2,\n    \"published\": true,\n    \"changed\": [\n      \"a passage\"\n    ]\n  }\n}"
+      }
+    ],
+    "isError": false
+  },
+  "tickets: drafts": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"tickets\": [\n    {\n      \"id\": \"DOC-6\",\n      \"title\": \"Second thing\",\n      \"status\": \"backlog\"\n    },\n    {\n      \"id\": \"DOC-7\",\n      \"title\": \"A new one\",\n      \"status\": \"todo\"\n    }\n  ],\n  \"page\": {\n    \"id\": \"<uuid:31>\",\n    \"title\": \"Plan two\",\n    \"version\": 3,\n    \"published\": true,\n    \"changed\": [\n      \"a passage\"\n    ]\n  }\n}"
+      }
+    ],
+    "isError": false
+  },
+  "tickets: drafts that are not a list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\nitems\n  Input should be a valid list [type=list_type, input_value='text', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/list_type"
+      }
+    ],
+    "isError": true
+  },
+  "tickets: too many drafts": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: items: 1 to 30 drafts {title, text, type, status, assignee}."
+      }
+    ],
+    "isError": true
+  },
+  "tickets: a draft without a title": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: items[0]: an object with a title."
+      }
+    ],
+    "isError": true
+  },
+  "tickets: a draft with a key it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: items[0] does not use: color."
+      }
+    ],
+    "isError": true
+  },
+  "tickets: a draft with a status that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: manage_ticket(action='create'): status: Input should be 'backlog', 'todo', 'in-progress', 'review', 'testing' or 'done'"
+      }
+    ],
+    "isError": true
+  },
+  "tickets: without marking the page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"tickets\": [\n    {\n      \"id\": \"DOC-8\",\n      \"title\": \"Loose\",\n      \"status\": \"backlog\"\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "tickets: the tickets afterwards": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"total\": 8,\n  \"count\": 8,\n  \"offset\": 0,\n  \"has_more\": false,\n  \"tickets\": [\n    {\n      \"id\": \"DOC-1\",\n      \"title\": \"Rate limit\",\n      \"type\": \"task\",\n      \"status\": \"backlog\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 3,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    },\n    {\n      \"id\": \"DOC-2\",\n      \"title\": \"Write the spec\",\n      \"type\": \"task\",\n      \"status\": \"backlog\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 0,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    },\n    {\n      \"id\": \"DOC-3\",\n      \"title\": \"Review the spec\",\n      \"type\": \"task\",\n      \"status\": \"backlog\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 0,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    },\n    {\n      \"id\": \"DOC-4\",\n      \"title\": \"Ask the owner\",\n      \"type\": \"task\",\n      \"status\": \"backlog\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 0,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    },\n    {\n      \"id\": \"DOC-5\",\n      \"title\": \"First thing\",\n      \"type\": \"task\",\n      \"status\": \"backlog\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 0,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    },\n    {\n      \"id\": \"DOC-6\",\n      \"title\": \"Second thing\",\n      \"type\": \"task\",\n      \"status\": \"backlog\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 0,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    },\n    {\n      \"id\": \"DOC-7\",\n      \"title\": \"A new one\",\n      \"type\": \"bug\",\n      \"status\": \"todo\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 0,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    },\n    {\n      \"id\": \"DOC-8\",\n      \"title\": \"Loose\",\n      \"type\": \"task\",\n      \"status\": \"backlog\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 0,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  }
+}

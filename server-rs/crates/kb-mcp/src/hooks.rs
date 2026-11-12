@@ -137,3 +137,43 @@ fn api_error(err: kb_base::ApiError) -> crate::common::ToolError {
     };
     crate::common::ToolError::Other(format!("{}: {detail}", err.status.as_u16()))
 }
+
+/// Where the board's skills are on this machine (`services/ai/board_skills.py`: `skill_dir`, `examples_dir`), which the
+/// guides that name a folder (`docs_read(guides)`, `role_guide`, `design_guide`) print for an agent outside Claude
+/// Code. The AI team writes the plugin folder (`plugin_dir()`) as it answers; without the hook the same paths are
+/// answered from the data folder and nothing is written.
+pub trait BoardSkillsHook: Send + Sync {
+    /// `board_skills.skill_dir(name)`: the folder of one skill, with the files it carries.
+    fn skill_dir(&self, name: &str) -> String;
+    /// `board_skills.examples_dir()`: the design guide's exemplar boards.
+    fn examples_dir(&self) -> String;
+}
+
+static BOARD_SKILLS: OnceLock<Box<dyn BoardSkillsHook>> = OnceLock::new();
+
+/// Register the AI team's skill folders (once, at startup; a second call is ignored).
+pub fn set_board_skills_hook(hook: Box<dyn BoardSkillsHook>) {
+    let _ = BOARD_SKILLS.set(hook);
+}
+
+/// `str(Path(plugin_dir()) / "skills" / name)`: the plugin folder is `board-skills` beside the database.
+fn plugin_skills(name: &str) -> String {
+    let root = kb_db::database::get_db_path().parent().map(std::path::Path::to_path_buf).unwrap_or_default();
+    root.join("board-skills").join("skills").join(name).to_string_lossy().into_owned()
+}
+
+/// `board_skills.skill_dir(name)`.
+pub fn skill_dir(name: &str) -> String {
+    match BOARD_SKILLS.get() {
+        Some(hook) => hook.skill_dir(name),
+        None => plugin_skills(name),
+    }
+}
+
+/// `board_skills.examples_dir()`.
+pub fn examples_dir() -> String {
+    match BOARD_SKILLS.get() {
+        Some(hook) => hook.examples_dir(),
+        None => format!("{}/examples", plugin_skills("canvas-design")),
+    }
+}

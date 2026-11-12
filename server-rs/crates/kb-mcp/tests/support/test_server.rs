@@ -1,6 +1,6 @@
 //! The server the tests of `kb-mcp` start through `testkit` when the target is Rust: the MCP endpoint over a
 //! database of its own, as the board's server will mount it. Next to it, the routes of the board, the notifications,
-//! the Idea Space and Docs (a test makes its tickets, ideas and pages through them, and reads the notifications a
+//! the Idea Space, Docs and the drawings (a test makes its tickets, ideas and pages through them, and reads the notifications a
 //! change made) and a stand-in for the app's last route (the UI's `GET /{path}`), so that a path outside `/mcp/` is
 //! answered as the app answers it. Prints `READY port=N` like the board's server.
 
@@ -35,6 +35,15 @@ async fn record_activity_actor(request: Request, next: Next) -> Response {
         response
     })
     .await
+}
+
+/// The app's adapter for the notifications the Docs comments raise (`kb-app/src/hooks.rs`).
+struct Notifications;
+
+impl kb_doctext::docs_access::NotificationsHook for Notifications {
+    fn comment_event(&self, event: &kb_db::entities::docs_comment_event::Model) {
+        kb_notify::comment_event(event);
+    }
 }
 
 async fn ui() -> StatusCode {
@@ -85,8 +94,11 @@ async fn main() -> std::process::ExitCode {
         return std::process::ExitCode::FAILURE;
     }
     // the hooks the app registers that the routes and the tools above reach
+    // what `kb-app/src/hooks.rs` registers, as far as the routes and the tools above reach (not the database move)
+    kb_ai::hooks::register();
     kb_docs::hooks::register();
     kb_ideas::register();
+    kb_doctext::docs_access::set_notifications_hook(Box::new(Notifications));
     // in the order `main.py` includes the routers
     let routes = Routes::new()
         .merge(kb_mcp::routes())
@@ -94,6 +106,7 @@ async fn main() -> std::process::ExitCode {
         .merge(kb_notify::api::routes())
         .merge(kb_ideas::api::routes())
         .merge(kb_docs::api::routes())
+        .merge(kb_draw::api::routes())
         .get("/events", sse_events)
         .get("/{full_path:path}", ui);
     let (router, _table) = routes.into_parts();

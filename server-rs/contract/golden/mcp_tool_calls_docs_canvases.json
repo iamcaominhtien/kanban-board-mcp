@@ -1,0 +1,2085 @@
+{
+  "setup: project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Plane\",\n  \"prefix\": \"PLN\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: Dan": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"name\": \"Dan\",\n  \"color\": \"#10B981\",\n  \"role\": \"member\",\n  \"kind\": \"human\",\n  \"created_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: Bao": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:3>\",\n  \"project_id\": \"<uuid:1>\",\n  \"name\": \"Bao\",\n  \"color\": \"#F59E0B\",\n  \"role\": \"member\",\n  \"kind\": \"human\",\n  \"created_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: other project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"name\": \"Away\",\n  \"prefix\": \"AWY\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: a ticket": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"PLN-1\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Mock it\",\n  \"description\": \"\",\n  \"type\": \"task\",\n  \"status\": \"backlog\",\n  \"priority\": \"medium\",\n  \"estimate\": null,\n  \"due_date\": null,\n  \"start_date\": null,\n  \"tags\": [],\n  \"parent_id\": null,\n  \"comments\": [],\n  \"acceptance_criteria\": [],\n  \"sub_tasks\": [],\n  \"work_log\": [],\n  \"test_cases\": [],\n  \"wont_do_reason\": null,\n  \"created_by\": \"<uuid:5>\",\n  \"assignee\": null,\n  \"blocks\": [],\n  \"blocked_by\": [],\n  \"block_done_if_acs_incomplete\": false,\n  \"block_done_if_tcs_incomplete\": false,\n  \"links\": [],\n  \"branches\": [],\n  \"workspace_retention_days\": null,\n  \"repo_path\": null,\n  \"reopen_count\": 0,\n  \"last_reopened_at\": null,\n  \"last_reopened_by\": null,\n  \"last_reopen_reason\": null,\n  \"reopen_history\": [],\n  \"pending\": false,\n  \"pending_reason_type\": null,\n  \"pending_ticket_id\": null,\n  \"pending_member_id\": null,\n  \"pending_party\": null,\n  \"pending_note\": null,\n  \"pending_since\": null,\n  \"pending_by\": null,\n  \"from_idea_id\": null,\n  \"tests_assumption_id\": null,\n  \"wave_pin\": null,\n  \"review_requested_from\": null,\n  \"completed_at\": null,\n  \"completed_by\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: a ticket elsewhere": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"AWY-1\",\n  \"project_id\": \"<uuid:4>\",\n  \"title\": \"Far\",\n  \"description\": \"\",\n  \"type\": \"task\",\n  \"status\": \"backlog\",\n  \"priority\": \"medium\",\n  \"estimate\": null,\n  \"due_date\": null,\n  \"start_date\": null,\n  \"tags\": [],\n  \"parent_id\": null,\n  \"comments\": [],\n  \"acceptance_criteria\": [],\n  \"sub_tasks\": [],\n  \"work_log\": [],\n  \"test_cases\": [],\n  \"wont_do_reason\": null,\n  \"created_by\": \"<uuid:6>\",\n  \"assignee\": null,\n  \"blocks\": [],\n  \"blocked_by\": [],\n  \"block_done_if_acs_incomplete\": false,\n  \"block_done_if_tcs_incomplete\": false,\n  \"links\": [],\n  \"branches\": [],\n  \"workspace_retention_days\": null,\n  \"repo_path\": null,\n  \"reopen_count\": 0,\n  \"last_reopened_at\": null,\n  \"last_reopened_by\": null,\n  \"last_reopen_reason\": null,\n  \"reopen_history\": [],\n  \"pending\": false,\n  \"pending_reason_type\": null,\n  \"pending_ticket_id\": null,\n  \"pending_member_id\": null,\n  \"pending_party\": null,\n  \"pending_note\": null,\n  \"pending_since\": null,\n  \"pending_by\": null,\n  \"from_idea_id\": null,\n  \"tests_assumption_id\": null,\n  \"wave_pin\": null,\n  \"review_requested_from\": null,\n  \"completed_at\": null,\n  \"completed_by\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: a page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"title\": \"Screens\",\n  \"slug\": \"screens\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvases: none yet": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "canvases: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='canvases') requires project_id. Missing: project_id."
+      }
+    ],
+    "isError": true
+  },
+  "canvases: a project that does not exist": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "canvas: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='canvas') requires canvas_id; optional: board_id, path. Missing: canvas_id."
+      }
+    ],
+    "isError": true
+  },
+  "canvas: one that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Canvas not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='canvas_create') requires path; optional: owner_kind, owner_id, title, canvas_id. Missing: path."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='canvas_create') does not use: page_id. It requires path; optional: owner_kind, owner_id, title, canvas_id."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: no owner and no canvas": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Give owner_kind and owner_id for a new canvas, or canvas_id to add frames to one."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: an owner kind without an id": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Give owner_kind and owner_id for a new canvas, or canvas_id to add frames to one."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: a relative path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Give an absolute folder that exists (got 'canvas')."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: a folder that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Give an absolute folder that exists (got '/no/such/folder')."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: a file, not a folder": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Give an absolute folder that exists (got '<files>/pic.png')."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: a folder without a page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Found no HTML page: put an index.html in the folder (one frame) or in each sub-folder (one frame each)."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: an owner kind that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\nowner_kind\n  Input should be 'ticket', 'doc' or 'idea' [type=literal_error, input_value='note', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: a note near a frame that is not there": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: A note says near 'zzz', which is not a frame (frames: ['a'])."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: an arrow to nowhere": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: An arrow to 'nowhere' is not a frame or a note id (frames: ['a'], notes: [])."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: a layout that is not JSON": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: <files>/badjson/a/frame.json must hold a JSON object."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: too many frames": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: A canvas holds up to 60 frames."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: a frame over 5 MB": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: a is over 5 MB, the most a frame can hold."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: too many page tabs": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: A canvas has up to 10 page tabs."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: a ticket that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:1>\",\n  \"title\": \"Canvas\",\n  \"version\": 1,\n  \"markdown\": \"![Canvas](canvas:<cv:1>)\",\n  \"boards\": [\n    {\n      \"id\": \"<b:2>\",\n      \"name\": \"Frame\",\n      \"w\": 1280.0,\n      \"h\": 800.0\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_create: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:3>\",\n  \"title\": \"Canvas\",\n  \"version\": 1,\n  \"markdown\": \"![Canvas](canvas:<cv:3>)\",\n  \"boards\": [\n    {\n      \"id\": \"<b:4>\",\n      \"name\": \"Frame\",\n      \"w\": 1280.0,\n      \"h\": 800.0\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_create: a canvas that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Canvas not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_create: from a folder of frames": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:5>\",\n  \"title\": \"Mockups\",\n  \"version\": 1,\n  \"markdown\": \"![Mockups](canvas:<cv:5>)\",\n  \"boards\": [\n    {\n      \"id\": \"<b:6>\",\n      \"name\": \"Home screen\",\n      \"w\": 390.0,\n      \"h\": 844.0\n    },\n    {\n      \"id\": \"<b:7>\",\n      \"name\": \"detail\",\n      \"w\": 820.0,\n      \"h\": 600.0\n    },\n    {\n      \"id\": \"<b:8>\",\n      \"name\": \"notes\",\n      \"w\": 1280.0,\n      \"h\": 800.0\n    }\n  ],\n  \"pages\": [\n    \"Screens\"\n  ],\n  \"notes\": 2,\n  \"arrows\": 2,\n  \"labels\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_create: from one page at the top": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:9>\",\n  \"title\": \"Canvas\",\n  \"version\": 1,\n  \"markdown\": \"![Canvas](canvas:<cv:9>)\",\n  \"boards\": [\n    {\n      \"id\": \"<b:10>\",\n      \"name\": \"Frame\",\n      \"w\": 1280.0,\n      \"h\": 800.0\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_create: frames added to a canvas": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:5>\",\n  \"title\": \"Mockups\",\n  \"version\": 1,\n  \"markdown\": \"![Mockups](canvas:<cv:5>)\",\n  \"boards\": [\n    {\n      \"id\": \"<b:11>\",\n      \"name\": \"Frame\",\n      \"w\": 1280.0,\n      \"h\": 800.0\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_create: the same folder with a canvas and an owner": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:5>\",\n  \"title\": \"Mockups\",\n  \"version\": 1,\n  \"markdown\": \"![Mockups](canvas:<cv:5>)\",\n  \"boards\": [\n    {\n      \"id\": \"<b:12>\",\n      \"name\": \"ignored\",\n      \"w\": 1280.0,\n      \"h\": 800.0\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_create: for a ticket of another project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:13>\",\n  \"title\": \"Canvas\",\n  \"version\": 1,\n  \"markdown\": \"![Canvas](canvas:<cv:13>)\",\n  \"boards\": [\n    {\n      \"id\": \"<b:14>\",\n      \"name\": \"Frame\",\n      \"w\": 1280.0,\n      \"h\": 800.0\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvases: the list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:5>\",\n  \"title\": \"Mockups\",\n  \"owner_kind\": \"doc\",\n  \"owner_id\": \"<uuid:7>\",\n  \"page_id\": null,\n  \"version\": 1,\n  \"rev\": 8,\n  \"boards\": 5,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"markdown\": \"![Mockups](canvas:<cv:5>)\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:9>\",\n  \"title\": \"Canvas\",\n  \"owner_kind\": \"ticket\",\n  \"owner_id\": \"PLN-1\",\n  \"page_id\": null,\n  \"version\": 1,\n  \"rev\": 2,\n  \"boards\": 1,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"markdown\": \"![Canvas](canvas:<cv:9>)\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<cv:5>",
+          "title": "Mockups",
+          "owner_kind": "doc",
+          "owner_id": "<uuid:7>",
+          "page_id": null,
+          "version": 1,
+          "rev": 8,
+          "boards": 5,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "markdown": "![Mockups](canvas:<cv:5>)"
+        },
+        {
+          "id": "<cv:9>",
+          "title": "Canvas",
+          "owner_kind": "ticket",
+          "owner_id": "PLN-1",
+          "page_id": null,
+          "version": 1,
+          "rev": 2,
+          "boards": 1,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "markdown": "![Canvas](canvas:<cv:9>)"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "canvases: the other project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:13>\",\n  \"title\": \"Canvas\",\n  \"owner_kind\": \"ticket\",\n  \"owner_id\": \"AWY-1\",\n  \"page_id\": null,\n  \"version\": 1,\n  \"rev\": 2,\n  \"boards\": 1,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"markdown\": \"![Canvas](canvas:<cv:13>)\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<cv:13>",
+          "title": "Canvas",
+          "owner_kind": "ticket",
+          "owner_id": "AWY-1",
+          "page_id": null,
+          "version": 1,
+          "rev": 2,
+          "boards": 1,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "markdown": "![Canvas](canvas:<cv:13>)"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "canvas: the plane": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:5>\",\n  \"title\": \"Mockups\",\n  \"rev\": 8,\n  \"version\": 1,\n  \"markdown\": \"![Mockups](canvas:<cv:5>)\",\n  \"owner_kind\": \"doc\",\n  \"owner_id\": \"<uuid:7>\",\n  \"pages\": [\n    {\n      \"id\": \"<p:15>\",\n      \"name\": \"Screens\"\n    }\n  ],\n  \"boards\": [\n    {\n      \"id\": \"<b:6>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"Home screen\",\n      \"kind\": \"html\",\n      \"x\": 0.0,\n      \"y\": 0.0,\n      \"width\": 390.0,\n      \"height\": 844.0,\n      \"order\": 0,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\",\n        \"style.css\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:7>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"detail\",\n      \"kind\": \"html\",\n      \"x\": 470.0,\n      \"y\": 0.0,\n      \"width\": 820.0,\n      \"height\": 600.0,\n      \"order\": 1,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:8>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"notes\",\n      \"kind\": \"html\",\n      \"x\": 1370.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 2,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:11>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"Frame\",\n      \"kind\": \"html\",\n      \"x\": 2730.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 3,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"app.js\",\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:12>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"ignored\",\n      \"kind\": \"html\",\n      \"x\": 4090.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 4,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"extra.css\",\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    }\n  ],\n  \"notes\": [\n    {\n      \"id\": \"<n:16>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Check the empty state\",\n      \"color\": \"green\",\n      \"by\": \"A\"\n    },\n    {\n      \"id\": \"<n:17>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Loose note\",\n      \"color\": \"yellow\",\n      \"by\": \"A\"\n    }\n  ],\n  \"arrows\": [\n    {\n      \"id\": \"<a:18>\",\n      \"from\": \"<b:6>\",\n      \"to\": \"<b:7>\",\n      \"label\": \"tap\"\n    },\n    {\n      \"id\": \"<a:19>\",\n      \"from\": \"<n:16>\",\n      \"to\": \"<b:7>\",\n      \"label\": \"\"\n    }\n  ],\n  \"labels\": [\n    {\n      \"id\": \"<t:20>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Flow A\"\n    }\n  ],\n  \"comments\": [],\n  \"locks\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<cv:5>",
+        "title": "Mockups",
+        "rev": 8,
+        "version": 1,
+        "markdown": "![Mockups](canvas:<cv:5>)",
+        "owner_kind": "doc",
+        "owner_id": "<uuid:7>",
+        "pages": [
+          {
+            "id": "<p:15>",
+            "name": "Screens"
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:6>",
+            "page": "<p:15>",
+            "name": "Home screen",
+            "kind": "html",
+            "x": 0.0,
+            "y": 0.0,
+            "width": 390.0,
+            "height": 844.0,
+            "order": 0,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html",
+              "style.css"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:7>",
+            "page": "<p:15>",
+            "name": "detail",
+            "kind": "html",
+            "x": 470.0,
+            "y": 0.0,
+            "width": 820.0,
+            "height": 600.0,
+            "order": 1,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:8>",
+            "page": "<p:15>",
+            "name": "notes",
+            "kind": "html",
+            "x": 1370.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 2,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:11>",
+            "page": "<p:15>",
+            "name": "Frame",
+            "kind": "html",
+            "x": 2730.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 3,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "app.js",
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:12>",
+            "page": "<p:15>",
+            "name": "ignored",
+            "kind": "html",
+            "x": 4090.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 4,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "extra.css",
+              "index.html"
+            ],
+            "locked_by": null
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:16>",
+            "page": "<p:15>",
+            "text": "Check the empty state",
+            "color": "green",
+            "by": "A"
+          },
+          {
+            "id": "<n:17>",
+            "page": "<p:15>",
+            "text": "Loose note",
+            "color": "yellow",
+            "by": "A"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "<a:18>",
+            "from": "<b:6>",
+            "to": "<b:7>",
+            "label": "tap"
+          },
+          {
+            "id": "<a:19>",
+            "from": "<n:16>",
+            "to": "<b:7>",
+            "label": ""
+          }
+        ],
+        "labels": [
+          {
+            "id": "<t:20>",
+            "page": "<p:15>",
+            "text": "Flow A"
+          }
+        ],
+        "comments": [],
+        "locks": []
+      }
+    },
+    "isError": false
+  },
+  "canvas: a plane with one page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:9>\",\n  \"title\": \"Canvas\",\n  \"rev\": 3,\n  \"version\": 1,\n  \"markdown\": \"![Canvas](canvas:<cv:9>)\",\n  \"owner_kind\": \"ticket\",\n  \"owner_id\": \"PLN-1\",\n  \"pages\": [\n    {\n      \"id\": \"<p:21>\",\n      \"name\": \"Page 1\"\n    }\n  ],\n  \"boards\": [\n    {\n      \"id\": \"<b:10>\",\n      \"page\": \"<p:21>\",\n      \"name\": \"Frame\",\n      \"kind\": \"html\",\n      \"x\": 0.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 0,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"app.js\",\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:22>\",\n      \"page\": \"<p:21>\",\n      \"name\": \"Shot\",\n      \"kind\": \"image\",\n      \"x\": 1360.0,\n      \"y\": 0.0,\n      \"width\": 320.0,\n      \"height\": 320.0,\n      \"order\": 1,\n      \"ref\": null,\n      \"entry\": \"image.png\",\n      \"files\": [\n        \"image.png\"\n      ],\n      \"locked_by\": null\n    }\n  ],\n  \"notes\": [],\n  \"arrows\": [],\n  \"labels\": [],\n  \"comments\": [],\n  \"locks\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<cv:9>",
+        "title": "Canvas",
+        "rev": 3,
+        "version": 1,
+        "markdown": "![Canvas](canvas:<cv:9>)",
+        "owner_kind": "ticket",
+        "owner_id": "PLN-1",
+        "pages": [
+          {
+            "id": "<p:21>",
+            "name": "Page 1"
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:10>",
+            "page": "<p:21>",
+            "name": "Frame",
+            "kind": "html",
+            "x": 0.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 0,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "app.js",
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:22>",
+            "page": "<p:21>",
+            "name": "Shot",
+            "kind": "image",
+            "x": 1360.0,
+            "y": 0.0,
+            "width": 320.0,
+            "height": 320.0,
+            "order": 1,
+            "ref": null,
+            "entry": "image.png",
+            "files": [
+              "image.png"
+            ],
+            "locked_by": null
+          }
+        ],
+        "notes": [],
+        "arrows": [],
+        "labels": [],
+        "comments": [],
+        "locks": []
+      }
+    },
+    "isError": false
+  },
+  "canvas: a frame's source": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:5>\",\n  \"title\": \"Mockups\",\n  \"rev\": 8,\n  \"version\": 1,\n  \"markdown\": \"![Mockups](canvas:<cv:5>)\",\n  \"owner_kind\": \"doc\",\n  \"owner_id\": \"<uuid:7>\",\n  \"pages\": [\n    {\n      \"id\": \"<p:15>\",\n      \"name\": \"Screens\"\n    }\n  ],\n  \"boards\": [\n    {\n      \"id\": \"<b:6>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"Home screen\",\n      \"kind\": \"html\",\n      \"x\": 0.0,\n      \"y\": 0.0,\n      \"width\": 390.0,\n      \"height\": 844.0,\n      \"order\": 0,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\",\n        \"style.css\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:7>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"detail\",\n      \"kind\": \"html\",\n      \"x\": 470.0,\n      \"y\": 0.0,\n      \"width\": 820.0,\n      \"height\": 600.0,\n      \"order\": 1,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:8>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"notes\",\n      \"kind\": \"html\",\n      \"x\": 1370.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 2,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:11>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"Frame\",\n      \"kind\": \"html\",\n      \"x\": 2730.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 3,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"app.js\",\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:12>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"ignored\",\n      \"kind\": \"html\",\n      \"x\": 4090.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 4,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"extra.css\",\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    }\n  ],\n  \"notes\": [\n    {\n      \"id\": \"<n:16>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Check the empty state\",\n      \"color\": \"green\",\n      \"by\": \"A\"\n    },\n    {\n      \"id\": \"<n:17>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Loose note\",\n      \"color\": \"yellow\",\n      \"by\": \"A\"\n    }\n  ],\n  \"arrows\": [\n    {\n      \"id\": \"<a:18>\",\n      \"from\": \"<b:6>\",\n      \"to\": \"<b:7>\",\n      \"label\": \"tap\"\n    },\n    {\n      \"id\": \"<a:19>\",\n      \"from\": \"<n:16>\",\n      \"to\": \"<b:7>\",\n      \"label\": \"\"\n    }\n  ],\n  \"labels\": [\n    {\n      \"id\": \"<t:20>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Flow A\"\n    }\n  ],\n  \"comments\": [],\n  \"locks\": [],\n  \"board\": {\n    \"id\": \"<b:6>\",\n    \"name\": \"Home screen\",\n    \"kind\": \"html\",\n    \"content_rev\": 3,\n    \"entry\": \"index.html\",\n    \"files\": [\n      {\n        \"path\": \"index.html\",\n        \"text\": \"<!doctype html><title>Home</title><h1>Home</h1><button id=\\\"go\\\">Go</button><p>Welcome</p>\"\n      },\n      {\n        \"path\": \"style.css\",\n        \"text\": \"h1{color:#2e6f40}\"\n      }\n    ],\n    \"truncated\": false\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<cv:5>",
+        "title": "Mockups",
+        "rev": 8,
+        "version": 1,
+        "markdown": "![Mockups](canvas:<cv:5>)",
+        "owner_kind": "doc",
+        "owner_id": "<uuid:7>",
+        "pages": [
+          {
+            "id": "<p:15>",
+            "name": "Screens"
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:6>",
+            "page": "<p:15>",
+            "name": "Home screen",
+            "kind": "html",
+            "x": 0.0,
+            "y": 0.0,
+            "width": 390.0,
+            "height": 844.0,
+            "order": 0,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html",
+              "style.css"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:7>",
+            "page": "<p:15>",
+            "name": "detail",
+            "kind": "html",
+            "x": 470.0,
+            "y": 0.0,
+            "width": 820.0,
+            "height": 600.0,
+            "order": 1,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:8>",
+            "page": "<p:15>",
+            "name": "notes",
+            "kind": "html",
+            "x": 1370.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 2,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:11>",
+            "page": "<p:15>",
+            "name": "Frame",
+            "kind": "html",
+            "x": 2730.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 3,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "app.js",
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:12>",
+            "page": "<p:15>",
+            "name": "ignored",
+            "kind": "html",
+            "x": 4090.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 4,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "extra.css",
+              "index.html"
+            ],
+            "locked_by": null
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:16>",
+            "page": "<p:15>",
+            "text": "Check the empty state",
+            "color": "green",
+            "by": "A"
+          },
+          {
+            "id": "<n:17>",
+            "page": "<p:15>",
+            "text": "Loose note",
+            "color": "yellow",
+            "by": "A"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "<a:18>",
+            "from": "<b:6>",
+            "to": "<b:7>",
+            "label": "tap"
+          },
+          {
+            "id": "<a:19>",
+            "from": "<n:16>",
+            "to": "<b:7>",
+            "label": ""
+          }
+        ],
+        "labels": [
+          {
+            "id": "<t:20>",
+            "page": "<p:15>",
+            "text": "Flow A"
+          }
+        ],
+        "comments": [],
+        "locks": [],
+        "board": {
+          "id": "<b:6>",
+          "name": "Home screen",
+          "kind": "html",
+          "content_rev": 3,
+          "entry": "index.html",
+          "files": [
+            {
+              "path": "index.html",
+              "text": "<!doctype html><title>Home</title><h1>Home</h1><button id=\"go\">Go</button><p>Welcome</p>"
+            },
+            {
+              "path": "style.css",
+              "text": "h1{color:#2e6f40}"
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    "isError": false
+  },
+  "canvas: a frame that is not there": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: That frame is not on this canvas any more."
+      }
+    ],
+    "isError": true
+  },
+  "canvas: a frame's files to a folder": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:5>\",\n  \"title\": \"Mockups\",\n  \"rev\": 8,\n  \"version\": 1,\n  \"markdown\": \"![Mockups](canvas:<cv:5>)\",\n  \"owner_kind\": \"doc\",\n  \"owner_id\": \"<uuid:7>\",\n  \"pages\": [\n    {\n      \"id\": \"<p:15>\",\n      \"name\": \"Screens\"\n    }\n  ],\n  \"boards\": [\n    {\n      \"id\": \"<b:6>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"Home screen\",\n      \"kind\": \"html\",\n      \"x\": 0.0,\n      \"y\": 0.0,\n      \"width\": 390.0,\n      \"height\": 844.0,\n      \"order\": 0,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\",\n        \"style.css\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:7>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"detail\",\n      \"kind\": \"html\",\n      \"x\": 470.0,\n      \"y\": 0.0,\n      \"width\": 820.0,\n      \"height\": 600.0,\n      \"order\": 1,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:8>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"notes\",\n      \"kind\": \"html\",\n      \"x\": 1370.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 2,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:11>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"Frame\",\n      \"kind\": \"html\",\n      \"x\": 2730.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 3,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"app.js\",\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:12>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"ignored\",\n      \"kind\": \"html\",\n      \"x\": 4090.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 4,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"extra.css\",\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    }\n  ],\n  \"notes\": [\n    {\n      \"id\": \"<n:16>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Check the empty state\",\n      \"color\": \"green\",\n      \"by\": \"A\"\n    },\n    {\n      \"id\": \"<n:17>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Loose note\",\n      \"color\": \"yellow\",\n      \"by\": \"A\"\n    }\n  ],\n  \"arrows\": [\n    {\n      \"id\": \"<a:18>\",\n      \"from\": \"<b:6>\",\n      \"to\": \"<b:7>\",\n      \"label\": \"tap\"\n    },\n    {\n      \"id\": \"<a:19>\",\n      \"from\": \"<n:16>\",\n      \"to\": \"<b:7>\",\n      \"label\": \"\"\n    }\n  ],\n  \"labels\": [\n    {\n      \"id\": \"<t:20>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Flow A\"\n    }\n  ],\n  \"comments\": [],\n  \"locks\": [],\n  \"board\": {\n    \"id\": \"<b:6>\",\n    \"name\": \"Home screen\",\n    \"kind\": \"html\",\n    \"content_rev\": 3,\n    \"entry\": \"index.html\",\n    \"path\": \"<files>/frame-out\",\n    \"written\": [\n      \"<files>/frame-out/index.html\",\n      \"<files>/frame-out/style.css\"\n    ]\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<cv:5>",
+        "title": "Mockups",
+        "rev": 8,
+        "version": 1,
+        "markdown": "![Mockups](canvas:<cv:5>)",
+        "owner_kind": "doc",
+        "owner_id": "<uuid:7>",
+        "pages": [
+          {
+            "id": "<p:15>",
+            "name": "Screens"
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:6>",
+            "page": "<p:15>",
+            "name": "Home screen",
+            "kind": "html",
+            "x": 0.0,
+            "y": 0.0,
+            "width": 390.0,
+            "height": 844.0,
+            "order": 0,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html",
+              "style.css"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:7>",
+            "page": "<p:15>",
+            "name": "detail",
+            "kind": "html",
+            "x": 470.0,
+            "y": 0.0,
+            "width": 820.0,
+            "height": 600.0,
+            "order": 1,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:8>",
+            "page": "<p:15>",
+            "name": "notes",
+            "kind": "html",
+            "x": 1370.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 2,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:11>",
+            "page": "<p:15>",
+            "name": "Frame",
+            "kind": "html",
+            "x": 2730.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 3,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "app.js",
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:12>",
+            "page": "<p:15>",
+            "name": "ignored",
+            "kind": "html",
+            "x": 4090.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 4,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "extra.css",
+              "index.html"
+            ],
+            "locked_by": null
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:16>",
+            "page": "<p:15>",
+            "text": "Check the empty state",
+            "color": "green",
+            "by": "A"
+          },
+          {
+            "id": "<n:17>",
+            "page": "<p:15>",
+            "text": "Loose note",
+            "color": "yellow",
+            "by": "A"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "<a:18>",
+            "from": "<b:6>",
+            "to": "<b:7>",
+            "label": "tap"
+          },
+          {
+            "id": "<a:19>",
+            "from": "<n:16>",
+            "to": "<b:7>",
+            "label": ""
+          }
+        ],
+        "labels": [
+          {
+            "id": "<t:20>",
+            "page": "<p:15>",
+            "text": "Flow A"
+          }
+        ],
+        "comments": [],
+        "locks": [],
+        "board": {
+          "id": "<b:6>",
+          "name": "Home screen",
+          "kind": "html",
+          "content_rev": 3,
+          "entry": "index.html",
+          "path": "<files>/frame-out",
+          "written": [
+            "<files>/frame-out/index.html",
+            "<files>/frame-out/style.css"
+          ]
+        }
+      }
+    },
+    "isError": false
+  },
+  "canvas: a frame's files to a folder [file 1]": {
+    "sha256": "a24f02b37cf1f1815721a356a341104af334dbefa1183dd976990ce08aecda04",
+    "name": "index.html"
+  },
+  "canvas: a frame's files to a folder [file 2]": {
+    "sha256": "517a88395f630be4c9e65fe684d7c0a2ae80eb2ed3a5e545b854469a725e823f",
+    "name": "style.css"
+  },
+  "canvas: a frame's files to a relative folder": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Give an absolute folder that exists (got 'out')."
+      }
+    ],
+    "isError": true
+  },
+  "canvas: a path without a frame": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:5>\",\n  \"title\": \"Mockups\",\n  \"rev\": 8,\n  \"version\": 1,\n  \"markdown\": \"![Mockups](canvas:<cv:5>)\",\n  \"owner_kind\": \"doc\",\n  \"owner_id\": \"<uuid:7>\",\n  \"pages\": [\n    {\n      \"id\": \"<p:15>\",\n      \"name\": \"Screens\"\n    }\n  ],\n  \"boards\": [\n    {\n      \"id\": \"<b:6>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"Home screen\",\n      \"kind\": \"html\",\n      \"x\": 0.0,\n      \"y\": 0.0,\n      \"width\": 390.0,\n      \"height\": 844.0,\n      \"order\": 0,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\",\n        \"style.css\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:7>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"detail\",\n      \"kind\": \"html\",\n      \"x\": 470.0,\n      \"y\": 0.0,\n      \"width\": 820.0,\n      \"height\": 600.0,\n      \"order\": 1,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:8>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"notes\",\n      \"kind\": \"html\",\n      \"x\": 1370.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 2,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:11>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"Frame\",\n      \"kind\": \"html\",\n      \"x\": 2730.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 3,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"app.js\",\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:12>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"ignored\",\n      \"kind\": \"html\",\n      \"x\": 4090.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 4,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"extra.css\",\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    }\n  ],\n  \"notes\": [\n    {\n      \"id\": \"<n:16>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Check the empty state\",\n      \"color\": \"green\",\n      \"by\": \"A\"\n    },\n    {\n      \"id\": \"<n:17>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Loose note\",\n      \"color\": \"yellow\",\n      \"by\": \"A\"\n    }\n  ],\n  \"arrows\": [\n    {\n      \"id\": \"<a:18>\",\n      \"from\": \"<b:6>\",\n      \"to\": \"<b:7>\",\n      \"label\": \"tap\"\n    },\n    {\n      \"id\": \"<a:19>\",\n      \"from\": \"<n:16>\",\n      \"to\": \"<b:7>\",\n      \"label\": \"\"\n    }\n  ],\n  \"labels\": [\n    {\n      \"id\": \"<t:20>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Flow A\"\n    }\n  ],\n  \"comments\": [],\n  \"locks\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<cv:5>",
+        "title": "Mockups",
+        "rev": 8,
+        "version": 1,
+        "markdown": "![Mockups](canvas:<cv:5>)",
+        "owner_kind": "doc",
+        "owner_id": "<uuid:7>",
+        "pages": [
+          {
+            "id": "<p:15>",
+            "name": "Screens"
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:6>",
+            "page": "<p:15>",
+            "name": "Home screen",
+            "kind": "html",
+            "x": 0.0,
+            "y": 0.0,
+            "width": 390.0,
+            "height": 844.0,
+            "order": 0,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html",
+              "style.css"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:7>",
+            "page": "<p:15>",
+            "name": "detail",
+            "kind": "html",
+            "x": 470.0,
+            "y": 0.0,
+            "width": 820.0,
+            "height": 600.0,
+            "order": 1,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:8>",
+            "page": "<p:15>",
+            "name": "notes",
+            "kind": "html",
+            "x": 1370.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 2,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:11>",
+            "page": "<p:15>",
+            "name": "Frame",
+            "kind": "html",
+            "x": 2730.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 3,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "app.js",
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:12>",
+            "page": "<p:15>",
+            "name": "ignored",
+            "kind": "html",
+            "x": 4090.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 4,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "extra.css",
+              "index.html"
+            ],
+            "locked_by": null
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:16>",
+            "page": "<p:15>",
+            "text": "Check the empty state",
+            "color": "green",
+            "by": "A"
+          },
+          {
+            "id": "<n:17>",
+            "page": "<p:15>",
+            "text": "Loose note",
+            "color": "yellow",
+            "by": "A"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "<a:18>",
+            "from": "<b:6>",
+            "to": "<b:7>",
+            "label": "tap"
+          },
+          {
+            "id": "<a:19>",
+            "from": "<n:16>",
+            "to": "<b:7>",
+            "label": ""
+          }
+        ],
+        "labels": [
+          {
+            "id": "<t:20>",
+            "page": "<p:15>",
+            "text": "Flow A"
+          }
+        ],
+        "comments": [],
+        "locks": []
+      }
+    },
+    "isError": false
+  },
+  "canvas: of another project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:13>\",\n  \"title\": \"Canvas\",\n  \"rev\": 2,\n  \"version\": 1,\n  \"markdown\": \"![Canvas](canvas:<cv:13>)\",\n  \"owner_kind\": \"ticket\",\n  \"owner_id\": \"AWY-1\",\n  \"pages\": [\n    {\n      \"id\": \"<p:23>\",\n      \"name\": \"Page 1\"\n    }\n  ],\n  \"boards\": [\n    {\n      \"id\": \"<b:14>\",\n      \"page\": \"<p:23>\",\n      \"name\": \"Frame\",\n      \"kind\": \"html\",\n      \"x\": 0.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 0,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"app.js\",\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    }\n  ],\n  \"notes\": [],\n  \"arrows\": [],\n  \"labels\": [],\n  \"comments\": [],\n  \"locks\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<cv:13>",
+        "title": "Canvas",
+        "rev": 2,
+        "version": 1,
+        "markdown": "![Canvas](canvas:<cv:13>)",
+        "owner_kind": "ticket",
+        "owner_id": "AWY-1",
+        "pages": [
+          {
+            "id": "<p:23>",
+            "name": "Page 1"
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:14>",
+            "page": "<p:23>",
+            "name": "Frame",
+            "kind": "html",
+            "x": 0.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 0,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "app.js",
+              "index.html"
+            ],
+            "locked_by": null
+          }
+        ],
+        "notes": [],
+        "arrows": [],
+        "labels": [],
+        "comments": [],
+        "locks": []
+      }
+    },
+    "isError": false
+  },
+  "canvas_comment: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='canvas_comment') requires canvas_id, body; optional: board_id, thread_id, at. Missing: canvas_id, body."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_comment: no body": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='canvas_comment') requires canvas_id, body; optional: board_id, thread_id, at. Missing: body."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_comment: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='canvas_comment') does not use: title. It requires canvas_id, body; optional: board_id, thread_id, at."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_comment: a canvas that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Canvas not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_comment: an empty body": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: A comment needs some text."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_comment: a body that is too long": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:8>\",\n  \"canvas_id\": \"<cv:5>\",\n  \"number\": 1,\n  \"board_id\": null,\n  \"x\": 0.5,\n  \"y\": 0.5,\n  \"page\": \"<p:15>\",\n  \"anchor\": null,\n  \"status\": \"open\",\n  \"created_by\": \"agent\",\n  \"created_at\": \"<time>\",\n  \"resolved_by\": null,\n  \"resolved_at\": null,\n  \"comments\": [\n    {\n      \"id\": \"<uuid:9>\",\n      \"thread_id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\n      \"mentions\": [],\n      \"ai\": null,\n      \"is_ai\": false,\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"by_ai\": false\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_comment: an element without a frame": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: `at` needs board_id: it names an element of that frame."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_comment: a frame that is not there": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: That frame is not on this canvas any more."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_comment: on the plane": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:10>\",\n  \"canvas_id\": \"<cv:5>\",\n  \"number\": 2,\n  \"board_id\": null,\n  \"x\": 0.5,\n  \"y\": 0.5,\n  \"page\": \"<p:15>\",\n  \"anchor\": null,\n  \"status\": \"open\",\n  \"created_by\": \"agent\",\n  \"created_at\": \"<time>\",\n  \"resolved_by\": null,\n  \"resolved_at\": null,\n  \"comments\": [\n    {\n      \"id\": \"<uuid:11>\",\n      \"thread_id\": \"<uuid:10>\",\n      \"author\": \"agent\",\n      \"body\": \"Too much grey\",\n      \"mentions\": [],\n      \"ai\": null,\n      \"is_ai\": false,\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"by_ai\": false\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_comment: on a frame": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:12>\",\n  \"canvas_id\": \"<cv:5>\",\n  \"number\": 3,\n  \"board_id\": \"<b:6>\",\n  \"x\": 0.5,\n  \"y\": 0.5,\n  \"page\": null,\n  \"anchor\": null,\n  \"status\": \"open\",\n  \"created_by\": \"agent\",\n  \"created_at\": \"<time>\",\n  \"resolved_by\": null,\n  \"resolved_at\": null,\n  \"comments\": [\n    {\n      \"id\": \"<uuid:13>\",\n      \"thread_id\": \"<uuid:12>\",\n      \"author\": \"agent\",\n      \"body\": \"Align this\",\n      \"mentions\": [],\n      \"ai\": null,\n      \"is_ai\": false,\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"by_ai\": false\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_comment: on an element": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:14>\",\n  \"canvas_id\": \"<cv:5>\",\n  \"number\": 4,\n  \"board_id\": \"<b:6>\",\n  \"x\": 0.5,\n  \"y\": 0.5,\n  \"page\": null,\n  \"anchor\": {\n    \"ox\": 0.5,\n    \"oy\": 0.5,\n    \"sel\": \"#go\"\n  },\n  \"status\": \"open\",\n  \"created_by\": \"agent\",\n  \"created_at\": \"<time>\",\n  \"resolved_by\": null,\n  \"resolved_at\": null,\n  \"comments\": [\n    {\n      \"id\": \"<uuid:15>\",\n      \"thread_id\": \"<uuid:14>\",\n      \"author\": \"agent\",\n      \"body\": \"Bigger button, @Bao\",\n      \"mentions\": [\n        \"<uuid:3>\"\n      ],\n      \"ai\": null,\n      \"is_ai\": false,\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"by_ai\": false\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_comment: on a text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:16>\",\n  \"canvas_id\": \"<cv:5>\",\n  \"number\": 5,\n  \"board_id\": \"<b:6>\",\n  \"x\": 0.5,\n  \"y\": 0.5,\n  \"page\": null,\n  \"anchor\": {\n    \"ox\": 0.5,\n    \"oy\": 0.5,\n    \"text\": \"Welcome\"\n  },\n  \"status\": \"open\",\n  \"created_by\": \"agent\",\n  \"created_at\": \"<time>\",\n  \"resolved_by\": null,\n  \"resolved_at\": null,\n  \"comments\": [\n    {\n      \"id\": \"<uuid:17>\",\n      \"thread_id\": \"<uuid:16>\",\n      \"author\": \"agent\",\n      \"body\": \"Typo\",\n      \"mentions\": [],\n      \"ai\": null,\n      \"is_ai\": false,\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"by_ai\": false\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_comment: a reply": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:14>\",\n  \"canvas_id\": \"<cv:5>\",\n  \"number\": 4,\n  \"board_id\": \"<b:6>\",\n  \"x\": 0.5,\n  \"y\": 0.5,\n  \"page\": null,\n  \"anchor\": {\n    \"ox\": 0.5,\n    \"oy\": 0.5,\n    \"sel\": \"#go\"\n  },\n  \"status\": \"open\",\n  \"created_by\": \"agent\",\n  \"created_at\": \"<time>\",\n  \"resolved_by\": null,\n  \"resolved_at\": null,\n  \"comments\": [\n    {\n      \"id\": \"<uuid:15>\",\n      \"thread_id\": \"<uuid:14>\",\n      \"author\": \"agent\",\n      \"body\": \"Bigger button, @Bao\",\n      \"mentions\": [\n        \"<uuid:3>\"\n      ],\n      \"ai\": null,\n      \"is_ai\": false,\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"thread_id\": \"<uuid:14>\",\n      \"author\": \"agent\",\n      \"body\": \"Fixed\",\n      \"mentions\": [],\n      \"ai\": null,\n      \"is_ai\": false,\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"by_ai\": false\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_comment: a reply to a thread of another canvas": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: That thread belongs to another canvas."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_comment: a reply to a thread that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: That comment thread was not found."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_comment: a reply with a pin it ignores": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:10>\",\n  \"canvas_id\": \"<cv:5>\",\n  \"number\": 2,\n  \"board_id\": null,\n  \"x\": 0.5,\n  \"y\": 0.5,\n  \"page\": \"<p:15>\",\n  \"anchor\": null,\n  \"status\": \"open\",\n  \"created_by\": \"agent\",\n  \"created_at\": \"<time>\",\n  \"resolved_by\": null,\n  \"resolved_at\": null,\n  \"comments\": [\n    {\n      \"id\": \"<uuid:11>\",\n      \"thread_id\": \"<uuid:10>\",\n      \"author\": \"agent\",\n      \"body\": \"Too much grey\",\n      \"mentions\": [],\n      \"ai\": null,\n      \"is_ai\": false,\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:19>\",\n      \"thread_id\": \"<uuid:10>\",\n      \"author\": \"agent\",\n      \"body\": \"x\",\n      \"mentions\": [],\n      \"ai\": null,\n      \"is_ai\": false,\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"by_ai\": false\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas: with its comments": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:5>\",\n  \"title\": \"Mockups\",\n  \"rev\": 8,\n  \"version\": 1,\n  \"markdown\": \"![Mockups](canvas:<cv:5>)\",\n  \"owner_kind\": \"doc\",\n  \"owner_id\": \"<uuid:7>\",\n  \"pages\": [\n    {\n      \"id\": \"<p:15>\",\n      \"name\": \"Screens\"\n    }\n  ],\n  \"boards\": [\n    {\n      \"id\": \"<b:6>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"Home screen\",\n      \"kind\": \"html\",\n      \"x\": 0.0,\n      \"y\": 0.0,\n      \"width\": 390.0,\n      \"height\": 844.0,\n      \"order\": 0,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\",\n        \"style.css\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:7>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"detail\",\n      \"kind\": \"html\",\n      \"x\": 470.0,\n      \"y\": 0.0,\n      \"width\": 820.0,\n      \"height\": 600.0,\n      \"order\": 1,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:8>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"notes\",\n      \"kind\": \"html\",\n      \"x\": 1370.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 2,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:11>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"Frame\",\n      \"kind\": \"html\",\n      \"x\": 2730.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 3,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"app.js\",\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:12>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"ignored\",\n      \"kind\": \"html\",\n      \"x\": 4090.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 4,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"extra.css\",\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    }\n  ],\n  \"notes\": [\n    {\n      \"id\": \"<n:16>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Check the empty state\",\n      \"color\": \"green\",\n      \"by\": \"A\"\n    },\n    {\n      \"id\": \"<n:17>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Loose note\",\n      \"color\": \"yellow\",\n      \"by\": \"A\"\n    }\n  ],\n  \"arrows\": [\n    {\n      \"id\": \"<a:18>\",\n      \"from\": \"<b:6>\",\n      \"to\": \"<b:7>\",\n      \"label\": \"tap\"\n    },\n    {\n      \"id\": \"<a:19>\",\n      \"from\": \"<n:16>\",\n      \"to\": \"<b:7>\",\n      \"label\": \"\"\n    }\n  ],\n  \"labels\": [\n    {\n      \"id\": \"<t:20>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Flow A\"\n    }\n  ],\n  \"comments\": [\n    {\n      \"thread_id\": \"<uuid:8>\",\n      \"board_id\": null,\n      \"status\": \"open\",\n      \"number\": 1,\n      \"comments\": [\n        {\n          \"author\": \"agent\",\n          \"body\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\n          \"when\": \"<time>\"\n        }\n      ]\n    },\n    {\n      \"thread_id\": \"<uuid:10>\",\n      \"board_id\": null,\n      \"status\": \"open\",\n      \"number\": 2,\n      \"comments\": [\n        {\n          \"author\": \"agent\",\n          \"body\": \"Too much grey\",\n          \"when\": \"<time>\"\n        },\n        {\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"when\": \"<time>\"\n        }\n      ]\n    },\n    {\n      \"thread_id\": \"<uuid:12>\",\n      \"board_id\": \"<b:6>\",\n      \"status\": \"open\",\n      \"number\": 3,\n      \"comments\": [\n        {\n          \"author\": \"agent\",\n          \"body\": \"Align this\",\n          \"when\": \"<time>\"\n        }\n      ]\n    },\n    {\n      \"thread_id\": \"<uuid:14>\",\n      \"board_id\": \"<b:6>\",\n      \"status\": \"open\",\n      \"number\": 4,\n      \"at\": \"#go\",\n      \"comments\": [\n        {\n          \"author\": \"agent\",\n          \"body\": \"Bigger button, @Bao\",\n          \"when\": \"<time>\"\n        },\n        {\n          \"author\": \"agent\",\n          \"body\": \"Fixed\",\n          \"when\": \"<time>\"\n        }\n      ]\n    },\n    {\n      \"thread_id\": \"<uuid:16>\",\n      \"board_id\": \"<b:6>\",\n      \"status\": \"open\",\n      \"number\": 5,\n      \"at\": \"text=Welcome\",\n      \"comments\": [\n        {\n          \"author\": \"agent\",\n          \"body\": \"Typo\",\n          \"when\": \"<time>\"\n        }\n      ]\n    }\n  ],\n  \"locks\": []\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<cv:5>",
+        "title": "Mockups",
+        "rev": 8,
+        "version": 1,
+        "markdown": "![Mockups](canvas:<cv:5>)",
+        "owner_kind": "doc",
+        "owner_id": "<uuid:7>",
+        "pages": [
+          {
+            "id": "<p:15>",
+            "name": "Screens"
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:6>",
+            "page": "<p:15>",
+            "name": "Home screen",
+            "kind": "html",
+            "x": 0.0,
+            "y": 0.0,
+            "width": 390.0,
+            "height": 844.0,
+            "order": 0,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html",
+              "style.css"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:7>",
+            "page": "<p:15>",
+            "name": "detail",
+            "kind": "html",
+            "x": 470.0,
+            "y": 0.0,
+            "width": 820.0,
+            "height": 600.0,
+            "order": 1,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:8>",
+            "page": "<p:15>",
+            "name": "notes",
+            "kind": "html",
+            "x": 1370.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 2,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:11>",
+            "page": "<p:15>",
+            "name": "Frame",
+            "kind": "html",
+            "x": 2730.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 3,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "app.js",
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:12>",
+            "page": "<p:15>",
+            "name": "ignored",
+            "kind": "html",
+            "x": 4090.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 4,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "extra.css",
+              "index.html"
+            ],
+            "locked_by": null
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:16>",
+            "page": "<p:15>",
+            "text": "Check the empty state",
+            "color": "green",
+            "by": "A"
+          },
+          {
+            "id": "<n:17>",
+            "page": "<p:15>",
+            "text": "Loose note",
+            "color": "yellow",
+            "by": "A"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "<a:18>",
+            "from": "<b:6>",
+            "to": "<b:7>",
+            "label": "tap"
+          },
+          {
+            "id": "<a:19>",
+            "from": "<n:16>",
+            "to": "<b:7>",
+            "label": ""
+          }
+        ],
+        "labels": [
+          {
+            "id": "<t:20>",
+            "page": "<p:15>",
+            "text": "Flow A"
+          }
+        ],
+        "comments": [
+          {
+            "thread_id": "<uuid:8>",
+            "board_id": null,
+            "status": "open",
+            "number": 1,
+            "comments": [
+              {
+                "author": "agent",
+                "body": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                "when": "<time>"
+              }
+            ]
+          },
+          {
+            "thread_id": "<uuid:10>",
+            "board_id": null,
+            "status": "open",
+            "number": 2,
+            "comments": [
+              {
+                "author": "agent",
+                "body": "Too much grey",
+                "when": "<time>"
+              },
+              {
+                "author": "agent",
+                "body": "x",
+                "when": "<time>"
+              }
+            ]
+          },
+          {
+            "thread_id": "<uuid:12>",
+            "board_id": "<b:6>",
+            "status": "open",
+            "number": 3,
+            "comments": [
+              {
+                "author": "agent",
+                "body": "Align this",
+                "when": "<time>"
+              }
+            ]
+          },
+          {
+            "thread_id": "<uuid:14>",
+            "board_id": "<b:6>",
+            "status": "open",
+            "number": 4,
+            "at": "#go",
+            "comments": [
+              {
+                "author": "agent",
+                "body": "Bigger button, @Bao",
+                "when": "<time>"
+              },
+              {
+                "author": "agent",
+                "body": "Fixed",
+                "when": "<time>"
+              }
+            ]
+          },
+          {
+            "thread_id": "<uuid:16>",
+            "board_id": "<b:6>",
+            "status": "open",
+            "number": 5,
+            "at": "text=Welcome",
+            "comments": [
+              {
+                "author": "agent",
+                "body": "Typo",
+                "when": "<time>"
+              }
+            ]
+          }
+        ],
+        "locks": []
+      }
+    },
+    "isError": false
+  },
+  "rest: a person locks a frame": {
+    "status": 200
+  },
+  "canvas_update: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='canvas_update') requires canvas_id, board_id, path; optional: note. Missing: canvas_id, board_id, path."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_update: no path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='canvas_update') requires canvas_id, board_id, path; optional: note. Missing: path."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_update: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='canvas_update') does not use: body. It requires canvas_id, board_id, path; optional: note."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_update: a canvas that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Canvas not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_update: a frame that is not there": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: That frame is not on this canvas any more."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_update: a relative path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Give an absolute folder that exists (got 'edit')."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_update: a folder that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Give an absolute folder that exists (got '/no/such')."
+      }
+    ],
+    "isError": true
+  },
+  "canvas_update: an empty folder": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"board_id\": \"<b:6>\",\n  \"name\": \"Home screen\",\n  \"content_rev\": 9,\n  \"files\": [\n    \".keep\"\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_update: a folder with no page to show": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"board_id\": \"<b:6>\",\n  \"name\": \"Home screen\",\n  \"content_rev\": 10,\n  \"files\": [\n    \"readme.txt\"\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_update: a frame that is a picture": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"board_id\": \"<b:10>\",\n  \"name\": \"Frame\",\n  \"content_rev\": 4,\n  \"files\": [\n    \"extra.css\",\n    \"index.html\"\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_update: change a frame": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"board_id\": \"<b:6>\",\n  \"name\": \"Home screen\",\n  \"content_rev\": 11,\n  \"files\": [\n    \"extra.css\",\n    \"index.html\"\n  ],\n  \"note\": \"New title\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas_update: change it again": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"board_id\": \"<b:6>\",\n  \"name\": \"Home screen\",\n  \"content_rev\": 12,\n  \"files\": [\n    \"extra.css\",\n    \"index.html\"\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "canvas: the frame after the changes": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<cv:5>\",\n  \"title\": \"Mockups\",\n  \"rev\": 12,\n  \"version\": 1,\n  \"markdown\": \"![Mockups](canvas:<cv:5>)\",\n  \"owner_kind\": \"doc\",\n  \"owner_id\": \"<uuid:7>\",\n  \"pages\": [\n    {\n      \"id\": \"<p:15>\",\n      \"name\": \"Screens\"\n    }\n  ],\n  \"boards\": [\n    {\n      \"id\": \"<b:6>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"Home screen\",\n      \"kind\": \"html\",\n      \"x\": 0.0,\n      \"y\": 0.0,\n      \"width\": 390.0,\n      \"height\": 844.0,\n      \"order\": 0,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"extra.css\",\n        \"index.html\",\n        \"readme.txt\",\n        \"style.css\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:7>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"detail\",\n      \"kind\": \"html\",\n      \"x\": 470.0,\n      \"y\": 0.0,\n      \"width\": 820.0,\n      \"height\": 600.0,\n      \"order\": 1,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\"\n      ],\n      \"locked_by\": \"Dan\"\n    },\n    {\n      \"id\": \"<b:8>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"notes\",\n      \"kind\": \"html\",\n      \"x\": 1370.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 2,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:11>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"Frame\",\n      \"kind\": \"html\",\n      \"x\": 2730.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 3,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"app.js\",\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    },\n    {\n      \"id\": \"<b:12>\",\n      \"page\": \"<p:15>\",\n      \"name\": \"ignored\",\n      \"kind\": \"html\",\n      \"x\": 4090.0,\n      \"y\": 0.0,\n      \"width\": 1280.0,\n      \"height\": 800.0,\n      \"order\": 4,\n      \"ref\": null,\n      \"entry\": \"index.html\",\n      \"files\": [\n        \"extra.css\",\n        \"index.html\"\n      ],\n      \"locked_by\": null\n    }\n  ],\n  \"notes\": [\n    {\n      \"id\": \"<n:16>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Check the empty state\",\n      \"color\": \"green\",\n      \"by\": \"A\"\n    },\n    {\n      \"id\": \"<n:17>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Loose note\",\n      \"color\": \"yellow\",\n      \"by\": \"A\"\n    }\n  ],\n  \"arrows\": [\n    {\n      \"id\": \"<a:18>\",\n      \"from\": \"<b:6>\",\n      \"to\": \"<b:7>\",\n      \"label\": \"tap\"\n    },\n    {\n      \"id\": \"<a:19>\",\n      \"from\": \"<n:16>\",\n      \"to\": \"<b:7>\",\n      \"label\": \"\"\n    }\n  ],\n  \"labels\": [\n    {\n      \"id\": \"<t:20>\",\n      \"page\": \"<p:15>\",\n      \"text\": \"Flow A\"\n    }\n  ],\n  \"comments\": [\n    {\n      \"thread_id\": \"<uuid:8>\",\n      \"board_id\": null,\n      \"status\": \"open\",\n      \"number\": 1,\n      \"comments\": [\n        {\n          \"author\": \"agent\",\n          \"body\": \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\n          \"when\": \"<time>\"\n        }\n      ]\n    },\n    {\n      \"thread_id\": \"<uuid:10>\",\n      \"board_id\": null,\n      \"status\": \"open\",\n      \"number\": 2,\n      \"comments\": [\n        {\n          \"author\": \"agent\",\n          \"body\": \"Too much grey\",\n          \"when\": \"<time>\"\n        },\n        {\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"when\": \"<time>\"\n        }\n      ]\n    },\n    {\n      \"thread_id\": \"<uuid:12>\",\n      \"board_id\": \"<b:6>\",\n      \"status\": \"open\",\n      \"number\": 3,\n      \"comments\": [\n        {\n          \"author\": \"agent\",\n          \"body\": \"Align this\",\n          \"when\": \"<time>\"\n        }\n      ]\n    },\n    {\n      \"thread_id\": \"<uuid:14>\",\n      \"board_id\": \"<b:6>\",\n      \"status\": \"open\",\n      \"number\": 4,\n      \"at\": \"#go\",\n      \"comments\": [\n        {\n          \"author\": \"agent\",\n          \"body\": \"Bigger button, @Bao\",\n          \"when\": \"<time>\"\n        },\n        {\n          \"author\": \"agent\",\n          \"body\": \"Fixed\",\n          \"when\": \"<time>\"\n        }\n      ]\n    },\n    {\n      \"thread_id\": \"<uuid:16>\",\n      \"board_id\": \"<b:6>\",\n      \"status\": \"open\",\n      \"number\": 5,\n      \"at\": \"text=Welcome\",\n      \"comments\": [\n        {\n          \"author\": \"agent\",\n          \"body\": \"Typo\",\n          \"when\": \"<time>\"\n        }\n      ]\n    }\n  ],\n  \"locks\": [\n    {\n      \"board_id\": \"<b:7>\",\n      \"holder\": \"Dan\",\n      \"since\": \"<time>\",\n      \"started_seconds_ago\": 0,\n      \"idle_seconds\": 0,\n      \"expires_in\": 599,\n      \"warn\": false\n    }\n  ],\n  \"board\": {\n    \"id\": \"<b:6>\",\n    \"name\": \"Home screen\",\n    \"kind\": \"html\",\n    \"content_rev\": 12,\n    \"entry\": \"index.html\",\n    \"files\": [\n      {\n        \"path\": \"extra.css\",\n        \"text\": \"p{margin:0}\"\n      },\n      {\n        \"path\": \"index.html\",\n        \"text\": \"<!doctype html><title>Home v2</title><h1>Home v2</h1>\"\n      },\n      {\n        \"path\": \"readme.txt\",\n        \"text\": \"no html here\"\n      },\n      {\n        \"path\": \"style.css\",\n        \"text\": \"h1{color:#2e6f40}\"\n      }\n    ],\n    \"truncated\": false\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<cv:5>",
+        "title": "Mockups",
+        "rev": 12,
+        "version": 1,
+        "markdown": "![Mockups](canvas:<cv:5>)",
+        "owner_kind": "doc",
+        "owner_id": "<uuid:7>",
+        "pages": [
+          {
+            "id": "<p:15>",
+            "name": "Screens"
+          }
+        ],
+        "boards": [
+          {
+            "id": "<b:6>",
+            "page": "<p:15>",
+            "name": "Home screen",
+            "kind": "html",
+            "x": 0.0,
+            "y": 0.0,
+            "width": 390.0,
+            "height": 844.0,
+            "order": 0,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "extra.css",
+              "index.html",
+              "readme.txt",
+              "style.css"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:7>",
+            "page": "<p:15>",
+            "name": "detail",
+            "kind": "html",
+            "x": 470.0,
+            "y": 0.0,
+            "width": 820.0,
+            "height": 600.0,
+            "order": 1,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html"
+            ],
+            "locked_by": "Dan"
+          },
+          {
+            "id": "<b:8>",
+            "page": "<p:15>",
+            "name": "notes",
+            "kind": "html",
+            "x": 1370.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 2,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:11>",
+            "page": "<p:15>",
+            "name": "Frame",
+            "kind": "html",
+            "x": 2730.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 3,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "app.js",
+              "index.html"
+            ],
+            "locked_by": null
+          },
+          {
+            "id": "<b:12>",
+            "page": "<p:15>",
+            "name": "ignored",
+            "kind": "html",
+            "x": 4090.0,
+            "y": 0.0,
+            "width": 1280.0,
+            "height": 800.0,
+            "order": 4,
+            "ref": null,
+            "entry": "index.html",
+            "files": [
+              "extra.css",
+              "index.html"
+            ],
+            "locked_by": null
+          }
+        ],
+        "notes": [
+          {
+            "id": "<n:16>",
+            "page": "<p:15>",
+            "text": "Check the empty state",
+            "color": "green",
+            "by": "A"
+          },
+          {
+            "id": "<n:17>",
+            "page": "<p:15>",
+            "text": "Loose note",
+            "color": "yellow",
+            "by": "A"
+          }
+        ],
+        "arrows": [
+          {
+            "id": "<a:18>",
+            "from": "<b:6>",
+            "to": "<b:7>",
+            "label": "tap"
+          },
+          {
+            "id": "<a:19>",
+            "from": "<n:16>",
+            "to": "<b:7>",
+            "label": ""
+          }
+        ],
+        "labels": [
+          {
+            "id": "<t:20>",
+            "page": "<p:15>",
+            "text": "Flow A"
+          }
+        ],
+        "comments": [
+          {
+            "thread_id": "<uuid:8>",
+            "board_id": null,
+            "status": "open",
+            "number": 1,
+            "comments": [
+              {
+                "author": "agent",
+                "body": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                "when": "<time>"
+              }
+            ]
+          },
+          {
+            "thread_id": "<uuid:10>",
+            "board_id": null,
+            "status": "open",
+            "number": 2,
+            "comments": [
+              {
+                "author": "agent",
+                "body": "Too much grey",
+                "when": "<time>"
+              },
+              {
+                "author": "agent",
+                "body": "x",
+                "when": "<time>"
+              }
+            ]
+          },
+          {
+            "thread_id": "<uuid:12>",
+            "board_id": "<b:6>",
+            "status": "open",
+            "number": 3,
+            "comments": [
+              {
+                "author": "agent",
+                "body": "Align this",
+                "when": "<time>"
+              }
+            ]
+          },
+          {
+            "thread_id": "<uuid:14>",
+            "board_id": "<b:6>",
+            "status": "open",
+            "number": 4,
+            "at": "#go",
+            "comments": [
+              {
+                "author": "agent",
+                "body": "Bigger button, @Bao",
+                "when": "<time>"
+              },
+              {
+                "author": "agent",
+                "body": "Fixed",
+                "when": "<time>"
+              }
+            ]
+          },
+          {
+            "thread_id": "<uuid:16>",
+            "board_id": "<b:6>",
+            "status": "open",
+            "number": 5,
+            "at": "text=Welcome",
+            "comments": [
+              {
+                "author": "agent",
+                "body": "Typo",
+                "when": "<time>"
+              }
+            ]
+          }
+        ],
+        "locks": [
+          {
+            "board_id": "<b:7>",
+            "holder": "Dan",
+            "since": "<time>",
+            "started_seconds_ago": 0,
+            "idle_seconds": 0,
+            "expires_in": 599,
+            "warn": false
+          }
+        ],
+        "board": {
+          "id": "<b:6>",
+          "name": "Home screen",
+          "kind": "html",
+          "content_rev": 12,
+          "entry": "index.html",
+          "files": [
+            {
+              "path": "extra.css",
+              "text": "p{margin:0}"
+            },
+            {
+              "path": "index.html",
+              "text": "<!doctype html><title>Home v2</title><h1>Home v2</h1>"
+            },
+            {
+              "path": "readme.txt",
+              "text": "no html here"
+            },
+            {
+              "path": "style.css",
+              "text": "h1{color:#2e6f40}"
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    "isError": false
+  },
+  "canvas_update: a frame a person is editing": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Dan is editing detail. You can still look, comment and move it. A person is editing that frame; try again once they have saved."
+      }
+    ],
+    "isError": true
+  },
+  "picture: the plane's layout": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<pictures>/Mockups.png\",\n  \"width\": 1200,\n  \"height\": 271,\n  \"drawn_by\": \"wireframe\",\n  \"note\": \"The page's layout only: frames as boxes, notes as squares. Pass board_id for a real picture of a frame.\",\n  \"markdown\": \"![Mockups](/uploads/Mockups-<random>.png)\",\n  \"look\": \"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<pictures>/Mockups.png",
+        "width": 1200,
+        "height": 271,
+        "drawn_by": "wireframe",
+        "note": "The page's layout only: frames as boxes, notes as squares. Pass board_id for a real picture of a frame.",
+        "markdown": "![Mockups](/uploads/Mockups-<random>.png)",
+        "look": "Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page."
+      }
+    },
+    "isError": false
+  },
+  "picture: the plane's layout [file 1]": {
+    "sha256": "8a0643d5d56f09b1ae942d4b60c243ec892256c54929f963ad91994481499828",
+    "name": "Mockups.png"
+  },
+  "picture: a frame": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/pic-out/Mockups-Home-screen.png\",\n  \"width\": 390,\n  \"height\": 2011,\n  \"drawn_by\": \"browser\",\n  \"markdown\": \"![Mockups-Home screen](/uploads/Mockups-Home-screen-<random>.png)\",\n  \"look\": \"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/pic-out/Mockups-Home-screen.png",
+        "width": 390,
+        "height": 2011,
+        "drawn_by": "browser",
+        "markdown": "![Mockups-Home screen](/uploads/Mockups-Home-screen-<random>.png)",
+        "look": "Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page."
+      }
+    },
+    "isError": false
+  },
+  "picture: a frame [file 1]": {
+    "sha256": "<not compared>",
+    "name": "Mockups-Home-screen.png"
+  },
+  "picture: a frame at a width": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<pictures>/Mockups-Home-screen.png\",\n  \"width\": 390,\n  \"height\": 2011,\n  \"drawn_by\": \"browser\",\n  \"markdown\": \"![Mockups-Home screen](/uploads/Mockups-Home-screen-<random>.png)\",\n  \"look\": \"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<pictures>/Mockups-Home-screen.png",
+        "width": 390,
+        "height": 2011,
+        "drawn_by": "browser",
+        "markdown": "![Mockups-Home screen](/uploads/Mockups-Home-screen-<random>.png)",
+        "look": "Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page."
+      }
+    },
+    "isError": false
+  },
+  "picture: a frame at a width [file 1]": {
+    "sha256": "<not compared>",
+    "name": "Mockups-Home-screen.png"
+  },
+  "picture: a frame that is not there": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: That frame is not on this canvas any more."
+      }
+    ],
+    "isError": true
+  },
+  "picture: of another project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: That frame is not on this canvas any more."
+      }
+    ],
+    "isError": true
+  },
+  "page: a canvas in a page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"title\": \"Screens\",\n  \"version\": 2,\n  \"published\": true\n}"
+      }
+    ],
+    "isError": false
+  },
+  "page: the canvas is linked": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Screens\",\n  \"slug\": \"screens\",\n  \"status\": \"published\",\n  \"version\": 2,\n  \"markdown\": \"## Home\\n\\n![Mockups](canvas:$cv1)\\n\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Home\",\n      \"slug\": \"home\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:7>",
+        "project_id": "<uuid:1>",
+        "parent_id": null,
+        "title": "Screens",
+        "slug": "screens",
+        "status": "published",
+        "version": 2,
+        "markdown": "## Home\n\n![Mockups](canvas:$cv1)\n",
+        "headings": [
+          {
+            "level": 2,
+            "text": "Home",
+            "slug": "home"
+          }
+        ],
+        "updated_by": "agent",
+        "updated_at": "<time>",
+        "referenced_by": {
+          "pages": [],
+          "tickets": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "ticket: a canvas for a ticket": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"PLN-1\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Mock it\",\n  \"description\": \"\",\n  \"type\": \"task\",\n  \"status\": \"backlog\",\n  \"priority\": \"medium\",\n  \"estimate\": null,\n  \"due_date\": null,\n  \"start_date\": null,\n  \"tags\": [],\n  \"parent_id\": null,\n  \"comments\": [],\n  \"acceptance_criteria\": [],\n  \"sub_tasks\": [],\n  \"activity_log\": [\n    {\n      \"field\": \"created\",\n      \"from\": null,\n      \"to\": null,\n      \"at\": \"<time>\",\n      \"actor\": \"agent\",\n      \"ref\": \"Mock it\"\n    }\n  ],\n  \"work_log\": [],\n  \"test_cases\": [],\n  \"wont_do_reason\": null,\n  \"created_by\": \"<uuid:5>\",\n  \"assignee\": null,\n  \"blocks\": [],\n  \"blocked_by\": [],\n  \"block_done_if_acs_incomplete\": false,\n  \"block_done_if_tcs_incomplete\": false,\n  \"links\": [],\n  \"branches\": [],\n  \"workspace_retention_days\": null,\n  \"repo_path\": null,\n  \"reopen_count\": 0,\n  \"last_reopened_at\": null,\n  \"last_reopened_by\": null,\n  \"last_reopen_reason\": null,\n  \"reopen_history\": [],\n  \"pending\": false,\n  \"pending_reason_type\": null,\n  \"pending_ticket_id\": null,\n  \"pending_member_id\": null,\n  \"pending_party\": null,\n  \"pending_note\": null,\n  \"pending_since\": null,\n  \"pending_by\": null,\n  \"from_idea_id\": null,\n  \"tests_assumption_id\": null,\n  \"wave_pin\": null,\n  \"review_requested_from\": null,\n  \"completed_at\": null,\n  \"completed_by\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\",\n  \"how_to_work\": \"Before you work on this ticket, read docs_read(action='ticket_guide') (criteria, sub-tickets, work log, comments, evidence, where files go) and docs_read(action='guides') once: how to work a ticket here, show proof, ask, brainstorm, check your work as its user would, and make office files.\",\n  \"workspace\": {\n    \"path\": \"/tmp/kanban-testkit-oWtXWg/workspace/PLN-1\",\n    \"exists\": false,\n    \"note\": \"Not created yet: nothing is in it. manage_ticket(action='workspace') creates it.\"\n  },\n  \"activity_total\": 1\n}"
+      }
+    ],
+    "isError": false
+  }
+}

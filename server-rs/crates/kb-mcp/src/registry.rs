@@ -34,7 +34,7 @@ pub struct Tool {
 
 /// Tools of the Python server that are not ported yet: they are left out of `tools/list` and a call answers
 /// `Unknown tool`. A task that ports one removes its name here and adds it to the table in `tools/mod.rs`.
-pub const NOT_PORTED_YET: [&str; 6] = ["docs_read", "docs_write", "ai_schedules", "knowledge", "board_wait", "ai_run"];
+pub const NOT_PORTED_YET: [&str; 4] = ["ai_schedules", "knowledge", "board_wait", "ai_run"];
 
 const SNAPSHOT: &str = include_str!("../../../contract/mcp-tools.json");
 const SNAPSHOT_IDEAS: &str = include_str!("../../../contract/mcp-tools-ideas.json");
