@@ -58,6 +58,8 @@ fn overview() -> Value {
         "active_id": active,
         "switchable": workspaces::locked().is_none(),
         "reason": workspaces::locked(),
+        // names the board open now: a window sends it back with its changes (`x-kanban-board`)
+        "board": kb_db::database::board_token(),
     })
 }
 

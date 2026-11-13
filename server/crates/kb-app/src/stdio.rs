@@ -19,9 +19,11 @@ use kb_db::database;
 async fn serve() -> Result<(), database::DatabaseError> {
     database::setup().await?;
     database::init_db().await?;
-    // Follow the database setting: when the board switches to another database, this process does too, so the
-    // board and the editors always talk to one database (design/screens/ai-databases.md B3)
-    let follow = tokio::spawn(database::follow_settings(Duration::from_secs(2)));
+    // Follow the database setting: when the board moves to another database or folder, this process does too, so the
+    // board and the editors always talk to one database (design/screens/ai-databases.md B3). When the person opens
+    // another workspace, it stays on its board and refuses the agent's calls: the ticket keys the agent holds name
+    // other tickets on the other board.
+    let follow = tokio::spawn(database::follow_settings(Duration::from_secs(2), database::OnSwitch::Stay));
     kb_mcp::protocol::stdio::serve().await;
     follow.abort();
     Ok(())

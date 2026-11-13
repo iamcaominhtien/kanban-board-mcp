@@ -1,20 +1,22 @@
-import { reloadAfterSwitch, useWorkspaceSwitchedElsewhere } from '../api/workspaces';
+import { reloadAfterSwitch, useBoardSwitchedElsewhere } from '../api/workspaces';
 import styles from './WorkspaceSwitchedNotice.module.css';
 
 /**
- * Shown when the board was switched to another workspace from somewhere else (another window, the desktop menu, an
- * editor's MCP). This window would otherwise go on showing, and changing, the other board without the person noticing.
+ * Shown when another board was opened since this window loaded (another window, the desktop menu, `kanban-db`). This
+ * window still shows the board it loaded and the server refuses its changes, so the person is asked to reload.
  */
 export function WorkspaceSwitchedNotice() {
-  const { switchedTo } = useWorkspaceSwitchedElsewhere();
-  if (!switchedTo) return null;
+  const { switched, openNow } = useBoardSwitchedElsewhere();
+  if (!switched) return null;
+  const name = openNow ?? 'another board';
   return (
     <div className={styles.notice} role="alert" data-testid="workspace-switched-notice">
       <span>
-        The board was switched to <b>{switchedTo}</b> somewhere else. What this window shows may be the other board.
+        <b>{name}</b> is now the board in use (it was opened elsewhere). This window still shows the board it loaded,
+        and changes made here are not saved.
       </span>
       <button type="button" className={styles.reload} onClick={reloadAfterSwitch}>
-        Show {switchedTo}
+        {openNow ? `Show ${openNow}` : 'Reload'}
       </button>
     </div>
   );

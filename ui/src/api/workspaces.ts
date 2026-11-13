@@ -1,5 +1,6 @@
-import { useRef } from 'react';
+import { useSyncExternalStore } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { changeWasRefused, loadedBoard, noteBoard, onRefused } from './boardOfWindow';
 import { client } from './client';
 import type { ConnectionBody } from './database';
 
@@ -25,6 +26,8 @@ export interface WorkspacesData {
   switchable: boolean;
   /** Why a switch is not possible, when it is not. */
   reason: string | null;
+  /** Names the board open now; changes from a window that loaded another one are refused (`boardOfWindow`). */
+  board: string;
 }
 
 export const workspacesKey = ['workspaces'] as const;
@@ -33,8 +36,12 @@ export const workspacesKey = ['workspaces'] as const;
 export function useWorkspaces() {
   return useQuery<WorkspacesData>({
     queryKey: workspacesKey,
-    queryFn: async () => (await client.get('/workspaces')).data,
-    // the list only changes when this window changes it
+    queryFn: async () => {
+      const data: WorkspacesData = (await client.get('/workspaces')).data;
+      noteBoard(data.board);
+      return data;
+    },
+    // a switch elsewhere makes the server announce a change, which refetches it
     staleTime: 60_000,
   });
 }
@@ -105,19 +112,23 @@ export function activeWorkspace(data: WorkspacesData | undefined): WorkspaceItem
 }
 
 /**
- * The workspace this window was opened on, and the one the board was switched to since by another window, the
- * desktop app or an editor's MCP (`switchedTo`, null while nothing changed). A window that goes on would show and
- * change the other board without the person noticing, so the app asks them to reload.
- *
- * A switch changes both the id and the name of the workspace in use; adding the first workspace changes only the id
- * (the board in use gets its own entry) and a rename or a move of the folder only one of them, so those do not count.
+ * Whether another board was opened since this window loaded (another window, the desktop menu, `kanban-db`), and the
+ * name of the workspace open now. This window then shows a board that is not open any more, and the server refuses
+ * its changes, so the person is asked to reload.
  */
-export function useWorkspaceSwitchedElsewhere(): { switchedTo: string | null } {
+export function useBoardSwitchedElsewhere(): { switched: boolean; openNow: string | null } {
+  const queryClient = useQueryClient();
   const { data } = useWorkspaces();
-  const first = useRef<WorkspaceItem | null>(null);
-  const active = activeWorkspace(data);
-  if (active && !first.current) first.current = active;
-  const was = first.current;
-  const switched = !!active && !!was && active.id !== was.id && active.name !== was.name;
-  return { switchedTo: switched ? active.name : null };
+  const refused = useSyncExternalStore(
+    (listener) =>
+      onRefused(() => {
+        // the list names the workspace open now
+        void queryClient.invalidateQueries({ queryKey: workspacesKey });
+        listener();
+      }),
+    changeWasRefused,
+  );
+  const loaded = loadedBoard();
+  const switched = refused || (!!data && !!loaded && data.board !== loaded);
+  return { switched, openNow: switched ? (activeWorkspace(data)?.name ?? null) : null };
 }

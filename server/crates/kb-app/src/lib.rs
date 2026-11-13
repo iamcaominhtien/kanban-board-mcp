@@ -65,7 +65,7 @@ pub(crate) fn method_not_allowed_for(allow: &str) -> Response {
 
 /// The app: routes, fallbacks and the middlewares in the order the Python app ran them (outermost first: request
 /// logging, the actor, the app's secret, the unreachable-database answer, CORS, and the HTTP methods of FastAPI next to
-/// the routes).
+/// the routes), with one of this app's own after the secret: a window of another board changes nothing.
 pub fn app() -> Router {
     let (router, _table) = routes().into_parts();
     // (the router picks the route as Starlette does and answers 404 and 405 itself: `kb_base::routes`)
@@ -75,6 +75,7 @@ pub fn app() -> Router {
         .layer(axum::middleware::from_fn(middleware::log_requests))
         .layer(axum::middleware::from_fn(middleware::record_activity_actor))
         .layer(axum::middleware::from_fn(middleware::require_the_apps_secret))
+        .layer(axum::middleware::from_fn(middleware::refuse_changes_for_another_board))
         .layer(axum::middleware::from_fn(middleware::database_unreachable))
         .layer(axum::middleware::from_fn(cors::cors))
         .layer(axum::middleware::from_fn(middleware::starlette_methods))

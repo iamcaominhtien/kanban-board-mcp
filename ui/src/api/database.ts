@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { forgetBoardOfWindow } from './boardOfWindow';
 import { client } from './client';
 
 /**
@@ -391,6 +392,8 @@ export function useMoveSwitch() {
     onSuccess: (data) => {
       qc.setQueryData(moveKey, data.move);
       qc.setQueryData(databaseKey, data.database);
+      // this window moved the board: it goes on with the board at its new place
+      forgetBoardOfWindow();
       void qc.invalidateQueries({ predicate: (q) => q.queryKey[0] !== 'database' });
     },
   });
@@ -403,6 +406,8 @@ export function useSaveConnection() {
     mutationFn: async (body: ConnectionBody) => (await client.post<DatabaseInfo>('/database/connection', body)).data,
     onSuccess: (db) => {
       qc.setQueryData(databaseKey, db);
+      // this window moved the board: it goes on with the board at its new place
+      forgetBoardOfWindow();
       void qc.invalidateQueries({ predicate: (q) => q.queryKey[0] !== 'database' });
     },
   });
@@ -415,6 +420,8 @@ export function useUseSqlite() {
     mutationFn: async () => (await client.post<DatabaseInfo>('/database/use-sqlite')).data,
     onSuccess: (db) => {
       qc.setQueryData(databaseKey, db);
+      // this window moved the board: it goes on with the board at its new place
+      forgetBoardOfWindow();
       void qc.invalidateQueries({ predicate: (q) => q.queryKey[0] !== 'database' });
     },
   });

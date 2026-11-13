@@ -75,6 +75,35 @@ pub async fn require_the_apps_secret(request: Request, next: Next) -> Response {
     next.run(request).await
 }
 
+/// The header a window sends with the board it loaded (`board` of `GET /workspaces`, `database::board_token`).
+pub const BOARD_HEADER: &str = "x-kanban-board";
+
+/// Paths a window may still change after another board was opened: the settings of the app (not of a board), the
+/// switch back, and what needs no board.
+const ANY_BOARD_PATHS: [&str; 6] = ["/workspaces", "/settings", "/database", "/logs", "/mcp", "/version"];
+
+/// Refuse a change sent by a window that loaded another board than the one open now (another window, the desktop
+/// menu or `kanban-db` opened another workspace meanwhile): ticket keys such as `KAN-12` exist on both boards, so the
+/// change would land on another ticket. Requests without the header (scripts, the MCP endpoint) are not checked.
+pub async fn refuse_changes_for_another_board(request: Request, next: Next) -> Response {
+    let changes = !matches!(*request.method(), Method::GET | Method::HEAD | Method::OPTIONS);
+    let path = request.uri().path();
+    if changes && !ANY_BOARD_PATHS.iter().any(|p| path.starts_with(p)) {
+        let loaded = request.headers().get(BOARD_HEADER).and_then(|v| v.to_str().ok());
+        if let Some(loaded) = loaded.filter(|t| !t.is_empty()) {
+            if loaded != database::board_token() {
+                let detail = json!({
+                    "code": "board_switched",
+                    "message": "Another board was opened since this window loaded. Nothing was changed: reload the \
+                                window to see the board that is open now.",
+                });
+                return (StatusCode::CONFLICT, Json(json!({"detail": detail}))).into_response();
+            }
+        }
+    }
+    next.run(request).await
+}
+
 /// Attribute REST calls to the board user, or to `X-Actor` when the header is sent. Each request runs with a
 /// context of its own (`kb_base::ctx`).
 pub async fn record_activity_actor(request: Request, next: Next) -> Response {

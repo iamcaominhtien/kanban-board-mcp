@@ -22,7 +22,7 @@ pub async fn startup() -> Result<Running, DatabaseError> {
     kb_base::secrets::record_store();
     database::setup().await?;
     database::init_db_or_wait().await?;
-    let follow = tokio::spawn(database::follow_settings(Duration::from_secs(2)));
+    let follow = tokio::spawn(database::follow_settings(Duration::from_secs(2), database::OnSwitch::Follow));
     tracing::info!(target: "kanban.http", "Server started (version {})", kb_base::version::APP_VERSION);
     let sweeper = tokio::spawn(kb_board::workspace::sweep_loop());
     let db_watcher =

@@ -87,7 +87,12 @@ pub async fn handle_request(id: &Value, method: &str, params: Option<&Map<String
         ClientRequest::Ping => response(id, json!({})),
         ClientRequest::Initialize { protocol_version } => response(id, initialize_result(protocol_version.as_deref())),
         ClientRequest::ListTools => response(id, json!({"tools": crate::registry::list_tools()})),
-        ClientRequest::CallTool { name, arguments } => response(id, crate::registry::call_tool(&name, arguments).await),
+        ClientRequest::CallTool { name, arguments } => match kb_db::database::left_behind() {
+            // the person opened another workspace in the app: an editor's stdio process runs no tool on either board
+            // (`kb_db::database::OnSwitch::Stay`)
+            Some(reason) => response(id, crate::registry::error_result(&reason)),
+            None => response(id, crate::registry::call_tool(&name, arguments).await),
+        },
         ClientRequest::ListResources => response(id, json!({"resources": []})),
         ClientRequest::ListResourceTemplates => response(id, json!({"resourceTemplates": []})),
         ClientRequest::ListPrompts => response(id, json!({"prompts": []})),

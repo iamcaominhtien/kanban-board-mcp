@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { forgetBoardOfWindow } from './boardOfWindow';
 import { client } from './client';
 
 export interface SettingsData {
@@ -35,6 +36,9 @@ export function useSetDataPath() {
       return res.data;
     },
     onSuccess: () => {
+      // this window moved the board: it goes on with the board at its new place
+      forgetBoardOfWindow();
+      void queryClient.invalidateQueries({ queryKey: ['workspaces'] });
       queryClient.invalidateQueries({ queryKey: ['settings'] });
       queryClient.refetchQueries({ queryKey: ['settings'] });
     },

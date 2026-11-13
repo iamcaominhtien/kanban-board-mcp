@@ -82,7 +82,9 @@ fn workspace_clean() -> PathBuf {
     std::fs::canonicalize(&w).unwrap_or(w)
 }
 
-fn rust_binary() -> PathBuf {
+/// The server program the tests start (`KANBAN_SERVER_BIN`, else `target/debug/kanban-server`); `kanban-server
+/// mcp-stdio` is the stdio MCP process an editor starts.
+pub fn rust_binary() -> PathBuf {
     match std::env::var("KANBAN_SERVER_BIN") {
         Ok(p) if !p.trim().is_empty() => PathBuf::from(p),
         _ => workspace_clean().join("target/debug/kanban-server"),

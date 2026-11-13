@@ -431,18 +431,88 @@ pub fn pause_following() -> FollowPause {
     FollowPause(())
 }
 
+/// What `follow_settings` does when the person opens another workspace: the board in use and `workspace_active` of
+/// the config file change together.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OnSwitch {
+    /// Open the other board too (the app itself: it shows what the person chose, and its windows are told).
+    Follow,
+    /// Stay on the board this process works on and refuse to work (`left_behind`) until the person opens it again.
+    /// For the stdio MCP of an editor: its agent holds ticket keys of the board it started on, and `KAN-12` names
+    /// another ticket on another board.
+    Stay,
+}
+
+/// The key of the config file that names the workspace in use (`kb_dbkit::workspaces`).
+const WORKSPACE_ACTIVE_KEY: &str = "workspace_active";
+
+/// Why this process stopped working after the person opened another workspace, or `None`.
+static LEFT_BEHIND: RwLock<Option<String>> = RwLock::new(None);
+
+/// Why this process (an editor's stdio MCP) does nothing more: the person opened another workspace in the app, and
+/// this process stays on the board its agent was working on. `None` while it works on the board in use.
+pub fn left_behind() -> Option<String> {
+    LEFT_BEHIND.read().unwrap_or_else(|e| e.into_inner()).clone()
+}
+
+fn set_left_behind(value: Option<String>) {
+    *LEFT_BEHIND.write().unwrap_or_else(|e| e.into_inner()) = value;
+}
+
+/// The id of the workspace in use as the config file names it (`None` before any workspace was added).
+fn active_workspace() -> Option<String> {
+    app_config::get_value(WORKSPACE_ACTIVE_KEY).and_then(|v| v.as_str().map(str::to_string))
+}
+
+/// The name of a workspace of the config file's list, quoted, or a description when it has none.
+fn workspace_label(id: Option<&str>) -> String {
+    let list = app_config::get_value("workspaces");
+    let name = id.and_then(|id| {
+        list.as_ref()?
+            .as_array()?
+            .iter()
+            .find(|w| w.get("id").and_then(Value::as_str) == Some(id))?
+            .get("name")?
+            .as_str()
+    });
+    match name {
+        Some(name) => format!("\"{name}\""),
+        None => "the board it started on".to_string(),
+    }
+}
+
+/// What an agent is told when its MCP process stays on the board it worked on (`OnSwitch::Stay`).
+fn left_behind_message(stayed_on: Option<&str>, opened: Option<&str>) -> String {
+    let stayed = workspace_label(stayed_on);
+    let opened = workspace_label(opened);
+    format!(
+        "The Kanban app was switched from {stayed} to another board, {opened}. This MCP server stays on {stayed} and \
+         does nothing more, so that the ticket keys you read there are not used to change other tickets in {opened}. \
+         Tell the person: switch back to {stayed} in the app to go on here, or restart the Kanban MCP server (start a \
+         new session) to work on {opened}."
+    )
+}
+
 /// Re-point this process when the database setting or the data folder changes (the wizard's switch in the board,
 /// `kanban-db use` on the command line, a workspace switch): the board and the stdio MCP processes that editors
-/// launch then always use one database.
-pub async fn follow_settings(interval: Duration) {
+/// launch then always use one database. `on_switch` says what to do when the change is the person opening another
+/// workspace.
+pub async fn follow_settings(interval: Duration, on_switch: OnSwitch) {
     let mut seen = settings_key();
+    // the workspace this process works on
+    let mut workspace = active_workspace();
     loop {
         tokio::time::sleep(interval).await;
         if FOLLOW_PAUSED.load(std::sync::atomic::Ordering::SeqCst) > 0 {
             continue;
         }
         let now = settings_key();
+        let active_now = active_workspace();
         if now == seen {
+            // the same board under a new id (the first workspace added names the board in use)
+            if left_behind().is_none() {
+                workspace = active_now;
+            }
             continue;
         }
         seen = now;
@@ -456,15 +526,43 @@ pub async fn follow_settings(interval: Duration) {
                 continue;
             }
         };
-        if target.url(false) == current.url(false) && target.password == current.password {
+        let same = target.url(false) == current.url(false) && target.password == current.password;
+        if on_switch == OnSwitch::Stay && active_now != workspace && !same {
+            let message = left_behind_message(workspace.as_deref(), active_now.as_deref());
+            if left_behind().is_none() {
+                tracing::warn!("Another workspace was opened in the app: this process stays on its board and stops");
+            }
+            set_left_behind(Some(message));
+            continue;
+        }
+        if left_behind().is_some() {
+            tracing::info!("The workspace of this process is open again: it works again");
+        }
+        set_left_behind(None);
+        workspace = active_now;
+        if same {
             continue;
         }
         tracing::info!("The database setting changed; now using {}", target.label());
-        if let Err(err) = reinit_db(Some(db_path)).await {
+        match reinit_db(Some(db_path)).await {
+            // the windows of the app refetch, and see that another board is open (`board_token`)
+            Ok(()) => events::invalidate().await,
             // keep following
-            tracing::error!("Could not follow the database setting: {err}");
+            Err(err) => tracing::error!("Could not follow the database setting: {err}"),
         }
     }
+}
+
+/// A short token that names the board in use: its database and its data folder. It changes when the app opens
+/// another board (a workspace switch, a move to another folder or database), so a window that loaded one board can
+/// tell, and the server can refuse its changes, once another board is open.
+pub fn board_token() -> String {
+    use std::hash::{Hash, Hasher};
+    let (url, path) = read(|s| (s.target.url(true), s.db_path.clone()));
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    url.hash(&mut hasher);
+    path.hash(&mut hasher);
+    format!("{:016x}", hasher.finish())
 }
 
 /// Announce changes that another process made to the database.

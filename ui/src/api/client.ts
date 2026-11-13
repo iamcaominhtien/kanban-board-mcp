@@ -1,6 +1,7 @@
 import axios from 'axios';
 import camelcaseKeys from 'camelcase-keys';
 import snakecaseKeys from 'snakecase-keys';
+import { isBoardSwitched, loadedBoard, reportRefused } from './boardOfWindow';
 import { reportDatabaseUnreachable, unreachableOf } from './databaseDown';
 import { resolveOrigin } from './resolveOrigin';
 
@@ -32,7 +33,8 @@ function isFormDataPayload(value: unknown): value is FormData {
   return typeof FormData !== 'undefined' && value instanceof FormData;
 }
 
-// Transform response keys: snake_case → camelCase. A 503 "database_unreachable" opens the reconnect screen.
+// Transform response keys: snake_case → camelCase. A 503 "database_unreachable" opens the reconnect screen; a 409
+// "board_switched" (another board was opened since this window loaded) shows the notice that asks to reload.
 client.interceptors.response.use(
   (response) => {
     if (response.data && typeof response.data === 'object' && !response.config?.keepKeys) {
@@ -43,6 +45,7 @@ client.interceptors.response.use(
   (error) => {
     const down = unreachableOf(error);
     if (down) reportDatabaseUnreachable(down);
+    if (isBoardSwitched(error)) reportRefused();
     return Promise.reject(error);
   },
 );
@@ -52,6 +55,9 @@ client.interceptors.request.use((config) => {
   config.baseURL = resolveOrigin();
   const secret = apiSecretOf();
   if (secret) config.headers.set('X-Kanban-Secret', secret);
+  // the board this window shows: the server refuses a change once another board is open
+  const board = loadedBoard();
+  if (board) config.headers.set('X-Kanban-Board', board);
   // Act as a named project member (Docs comment roles); the board's own user is the default.
   try {
     const actor = localStorage.getItem('kanbanActor');

@@ -279,3 +279,170 @@ async fn test_moving_the_data_folder_moves_the_open_workspace_with_it() {
     assert_eq!(c.post_empty(&format!("/workspaces/{real}/switch")).await.status, 200);
     assert_eq!(project_names(&c).await, vec!["Kept"]);
 }
+
+/// An editor's stdio MCP process (`kanban-server mcp-stdio`) next to a test server: the same settings folder and data.
+struct Stdio {
+    _child: tokio::process::Child,
+    stdin: tokio::process::ChildStdin,
+    lines: tokio::io::Lines<tokio::io::BufReader<tokio::process::ChildStdout>>,
+    next: u64,
+}
+
+impl Stdio {
+    async fn start(s: &Server, home: &std::path::Path) -> Stdio {
+        use tokio::io::AsyncBufReadExt;
+        let mut cmd = tokio::process::Command::new(testkit::rust_binary());
+        for (k, _) in std::env::vars_os() {
+            if k.to_string_lossy().starts_with("KANBAN_") {
+                cmd.env_remove(k);
+            }
+        }
+        cmd.arg("mcp-stdio")
+            .env("KANBAN_CONFIG_DIR", s.config_dir())
+            .env("KANBAN_DB_PATH", s.db_path())
+            .env("KANBAN_LOG_DIR", s.log_dir())
+            .env("HOME", home)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .kill_on_drop(true);
+        let mut child = cmd.spawn().expect("start the stdio MCP");
+        let stdin = child.stdin.take().unwrap();
+        let lines = tokio::io::BufReader::new(child.stdout.take().unwrap()).lines();
+        let mut stdio = Stdio { _child: child, stdin, lines, next: 0 };
+        let init =
+            json!({"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "t", "version": "1"}});
+        stdio.request("initialize", init).await;
+        stdio.send(json!({"jsonrpc": "2.0", "method": "notifications/initialized"})).await;
+        stdio
+    }
+
+    async fn send(&mut self, message: Value) {
+        use tokio::io::AsyncWriteExt;
+        self.stdin.write_all(format!("{message}\n").as_bytes()).await.unwrap();
+        self.stdin.flush().await.unwrap();
+    }
+
+    async fn request(&mut self, method: &str, params: Value) -> Value {
+        self.next += 1;
+        let id = self.next;
+        self.send(json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params})).await;
+        loop {
+            let line = tokio::time::timeout(std::time::Duration::from_secs(30), self.lines.next_line())
+                .await
+                .expect("an answer in time")
+                .unwrap()
+                .expect("the stdio MCP closed");
+            let message: Value = serde_json::from_str(&line).unwrap();
+            if message["id"] == json!(id) {
+                return message["result"].clone();
+            }
+        }
+    }
+
+    /// The text of a tool's answer, and whether it is an error.
+    async fn call(&mut self, name: &str, arguments: Value) -> (String, bool) {
+        let result = self.request("tools/call", json!({"name": name, "arguments": arguments})).await;
+        (result["content"][0]["text"].as_str().unwrap_or_default().to_string(), result["isError"] == true)
+    }
+}
+
+async fn ticket_with_key(c: &Client, project: &str, prefix: &str, title: &str) {
+    let p = c.post("/projects", json!({"name": project, "prefix": prefix, "color": "#0a0"})).await;
+    assert_eq!(p.status, 201, "{}", p.text());
+    let t = c
+        .post(
+            &format!("/projects/{}/tickets", p.json()["id"].as_str().unwrap()),
+            json!({"title": title, "type": "task", "priority": "medium"}),
+        )
+        .await;
+    assert_eq!(t.status, 201, "{}", t.text());
+    assert_eq!(t.json()["id"], format!("{prefix}-1"));
+}
+
+/// An agent in an editor works through its stdio MCP on the board that was open when it started. When the person
+/// opens another workspace, the agent's ticket keys (`KAN-1`) name other tickets there: its calls must be refused, not
+/// carried out on the other board, and work again when the person comes back.
+#[tokio::test]
+async fn test_an_editor_agent_never_changes_the_other_board() {
+    if !skip_unless_available("test_an_editor_agent_never_changes_the_other_board") {
+        return;
+    }
+    let (s, home, _tmp) = start().await;
+    let c = s.client();
+    ticket_with_key(&c, "Home", "KAN", "On the default board").await;
+    let other = c.post("/workspaces", json!({"name": "Office"})).await.json()["id"].as_str().unwrap().to_string();
+    let default = id_of(&overview(&c).await, "Default");
+    assert_eq!(c.post_empty(&format!("/workspaces/{other}/switch")).await.status, 200);
+    ticket_with_key(&c, "Work", "KAN", "On the office board").await;
+    assert_eq!(c.post_empty(&format!("/workspaces/{default}/switch")).await.status, 200);
+
+    let mut agent = Stdio::start(&s, &home).await;
+    let (text, error) = agent.call("get_ticket", json!({"ticket_id": "KAN-1"})).await;
+    assert!(!error && text.contains("On the default board"), "{text}");
+
+    assert_eq!(c.post_empty(&format!("/workspaces/{other}/switch")).await.status, 200);
+    let mut refused = String::new();
+    for _ in 0..40 {
+        let (text, error) = agent.call("get_ticket", json!({"ticket_id": "KAN-1"})).await;
+        if error {
+            refused = text;
+            break;
+        }
+        assert!(text.contains("On the default board"), "the agent saw the other board: {text}");
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+    }
+    assert!(refused.contains("\"Default\"") && refused.contains("\"Office\""), "{refused}");
+    let (text, error) =
+        agent.call("manage_ticket", json!({"action": "update", "ticket_id": "KAN-1", "description": "agent"})).await;
+    assert!(error, "{text}");
+    let r = c.get("/tickets/KAN-1").await;
+    assert_eq!((r.json()["title"].as_str(), r.json()["description"].as_str()), (Some("On the office board"), Some("")));
+
+    // back on the board the agent works on: it works again
+    assert_eq!(c.post_empty(&format!("/workspaces/{default}/switch")).await.status, 200);
+    let mut back = false;
+    for _ in 0..40 {
+        let (text, error) = agent.call("get_ticket", json!({"ticket_id": "KAN-1"})).await;
+        if !error {
+            assert!(text.contains("On the default board"), "{text}");
+            back = true;
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+    }
+    assert!(back, "the agent stayed refused on its own board");
+}
+
+/// A window that loaded one board sends its `board` back with every change: once another board is open (a switch in
+/// another window), its changes are refused, so `KAN-1` of the other board is never changed by mistake.
+#[tokio::test]
+async fn test_a_window_of_the_board_left_behind_changes_nothing() {
+    if !skip_unless_available("test_a_window_of_the_board_left_behind_changes_nothing") {
+        return;
+    }
+    let (s, _home, _tmp) = start().await;
+    let c = s.client();
+    ticket_with_key(&c, "Home", "KAN", "On the default board").await;
+    let other = c.post("/workspaces", json!({"name": "Office"})).await.json()["id"].as_str().unwrap().to_string();
+    let first = overview(&c).await["board"].as_str().unwrap().to_string();
+    let window = s.client().header("x-kanban-board", &first);
+    assert_eq!(window.patch("/tickets/KAN-1", json!({"title": "Renamed here"})).await.status, 200);
+
+    // another window opens the office board, and makes its own KAN-1
+    assert_eq!(c.post_empty(&format!("/workspaces/{other}/switch")).await.status, 200);
+    ticket_with_key(&c, "Work", "KAN", "On the office board").await;
+    let now = overview(&c).await["board"].as_str().unwrap().to_string();
+    assert_ne!(now, first);
+
+    let r = window.patch("/tickets/KAN-1", json!({"title": "Meant for the default board"})).await;
+    assert_eq!(r.status, 409, "{}", r.text());
+    assert_eq!(r.json()["detail"]["code"], "board_switched");
+    assert_eq!(c.get("/tickets/KAN-1").await.json()["title"], "On the office board");
+    // reading, and the switch back, still work from that window
+    assert_eq!(window.get("/tickets/KAN-1").await.status, 200);
+    let default = id_of(&overview(&c).await, "Default");
+    assert_eq!(window.post_empty(&format!("/workspaces/{default}/switch")).await.status, 200);
+    // back on its board, its changes go through again
+    assert_eq!(window.patch("/tickets/KAN-1", json!({"title": "Back home"})).await.status, 200);
+}

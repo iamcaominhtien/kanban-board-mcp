@@ -98,7 +98,7 @@ pub fn convert_to_content(result: &Value) -> Vec<Value> {
 }
 
 /// A `CallToolResult` for a failure: the message is all the agent gets.
-fn error_result(message: &str) -> Value {
+pub(crate) fn error_result(message: &str) -> Value {
     json!({"content": [{"type": "text", "text": message}], "isError": true})
 }
 
