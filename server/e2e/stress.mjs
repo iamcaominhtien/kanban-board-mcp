@@ -102,7 +102,8 @@ function freshDatabase() {
   const admin = db === 'postgres' ? process.env.KANBAN_TEST_POSTGRES_URL : process.env.KANBAN_TEST_MYSQL_URL;
   if (!admin) throw new Error(`--db ${db} needs ${db === 'postgres' ? 'KANBAN_TEST_POSTGRES_URL' : 'KANBAN_TEST_MYSQL_URL'}`);
   const u = new URL(admin);
-  const name = `kanban_stress_${Date.now()}`;
+  // the test user of server/scripts/dev-databases.sh may create databases named kanban_dbkit_*
+  const name = `kanban_dbkit_stress_${Date.now()}`;
   const sql = (q) => {
     if (db === 'postgres') {
       execFileSync('psql', ['-h', u.hostname, '-p', u.port, '-U', decodeURIComponent(u.username), '-d', 'postgres', '-qc', q], { env: { ...process.env, PGPASSWORD: decodeURIComponent(u.password) } });
@@ -258,7 +259,9 @@ try {
         const t = performance.now();
         let r;
         try { r = await mcp(base, name, a); } catch (e) { r = { ok: false, error: String(e) }; }
-        calls.push({ label, ms: performance.now() - t, ok: r.ok, error: r.error });
+        // two agents editing one page at once: the later one is told to read it again (as in 4.0.x), not an error
+        const conflict = !r.ok && /since you started from v\d+/.test(r.error || '');
+        calls.push({ label, ms: performance.now() - t, ok: r.ok, conflict, error: r.error });
         if (r.ok && label === 'comment on the shared ticket') kept.add(a.text.split(' ')[0]);
       }
     });
@@ -274,8 +277,9 @@ try {
       calls: calls.length,
       served_per_s: Number((calls.length / wall).toFixed(1)),
       p50_ms: Math.round(q(lat, 0.5)), p95_ms: Math.round(q(lat, 0.95)), p99_ms: Math.round(q(lat, 0.99)), max_ms: Math.round(Math.max(...lat)),
-      errors: calls.filter((c) => !c.ok).length,
-      first_errors: [...new Set(calls.filter((c) => !c.ok).map((c) => `${c.label}: ${c.error}`))].slice(0, 5),
+      errors: calls.filter((c) => !c.ok && !c.conflict).length,
+      edit_conflicts: calls.filter((c) => c.conflict).length,
+      first_errors: [...new Set(calls.filter((c) => !c.ok && !c.conflict).map((c) => `${c.label}: ${c.error}`))].slice(0, 5),
       ops: Object.fromEntries(Object.entries(byOp).map(([k, v]) => [k, { n: v.length, p50_ms: Math.round(q(v, 0.5)), p95_ms: Math.round(q(v, 0.95)) }])),
       cpu_mean_pct: Math.round(samples.reduce((s, x) => s + x.cpu, 0) / Math.max(1, samples.length)),
       cpu_peak_pct: Math.round(Math.max(0, ...samples.map((x) => x.cpu))),
@@ -285,7 +289,7 @@ try {
       keys_over_16ms: BROWSER ? keys.length : null,
     };
     const ph = result.phases[phase];
-    console.log(`${phase}: ${ph.served_per_s} calls/s, p50 ${ms(ph.p50_ms)}, p95 ${ms(ph.p95_ms)}, max ${ms(ph.max_ms)}, ${ph.errors} errors, CPU ${ph.cpu_mean_pct}% (peak ${ph.cpu_peak_pct}%), RSS ${ph.rss_peak_mb} MB` +
+    console.log(`${phase}: ${ph.served_per_s} calls/s, p50 ${ms(ph.p50_ms)}, p95 ${ms(ph.p95_ms)}, max ${ms(ph.max_ms)}, ${ph.errors} errors, ${ph.edit_conflicts} edit conflicts, CPU ${ph.cpu_mean_pct}% (peak ${ph.cpu_peak_pct}%), RSS ${ph.rss_peak_mb} MB` +
       (BROWSER ? `; comment shown p50 ${ms(ph.comment_shown_ms.p50)} max ${ms(ph.comment_shown_ms.max)}, longest key ${ms(ph.longest_key_ms)}` : ''));
     await sleep(2000);
   }
