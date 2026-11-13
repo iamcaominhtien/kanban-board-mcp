@@ -131,17 +131,41 @@ make a test pass; change one only when the behavior was meant to change.
 ## `e2e/`
 
 A Playwright check of the real UI against the server: headless Chromium, one server per scenario on its own temporary
-folders, the scenarios of `scenarios/` (first start, members, tickets, attachments, Docs, drawings, Idea Space,
-notifications, settings, live sync, AI screens). It needs the built server, the built UI (`cd ui && npm ci && npm run
-build`) and Playwright installed globally (`NODE_PATH`).
+folders, 21 scenarios and 375 steps. Each server gets a stand-in AI (`fake-claude` behind a `claude` script on its
+`PATH`, a signed-in account, a sample git repository), so the AI screens run without tokens. It needs the built server
+and stand-in (`cargo build -p kanban-server -p kanban-mcp-stdio -p fake-claude`), the built UI (`cd ui && npm ci &&
+npm run build`) and Playwright installed globally (`NODE_PATH`).
+
+| Scenarios | What they cover |
+|---|---|
+| 01–04 | first start, members, tickets (create, edit, parts, relations, move, filter, delete), attachments |
+| 05–07 | Docs (pages, publish, versions, search, links, comments, bin, import), Markdown import, drawings (a sketch, a canvas; a diagram without its editor) |
+| 08–11 | Idea Space, notifications, settings, live sync between two browsers |
+| 13–16 | ticket lifecycle (won't do, reopen, pending, trash, sub-tickets), board views and filters, a ticket's items (criteria, sub-tasks, test cases, work log, links, activity), repository and branches (worktree, graph, merge) |
+| 17–18 | file previews (PDF, Word, Excel, PowerPoint, CSV, JSON, Markdown, HTML, audio, ZIP), the Docs editor (slash menu, formatting, table, callout, math, code, find and replace, export) |
+| 19–21 (`ai`) | Docs AI, the AI team (accounts, teams, runs, a question answered, the AI Team pages, Settings > AI, schedules, Board AI), the rest of Idea Space (matrix, evidence, Ask AI chat, settings) |
+| 22 | appearance, workspace, database wizard, MCP integrations, logs, keyboard, follow bell, notification settings |
+
+Not covered: the draw.io editor (not in the checkout), a real Claude sign-in, the desktop-only windows and OS
+notifications.
 
 ```bash
 cd server/e2e
 node run.mjs --target rust                 # all scenarios
 node run.mjs --target rust --only 03,05    # some of them (by number)
+node run.mjs --target rust --group core    # or ai
 ```
 
-Screenshots and the report go to `e2e/report/`.
+Screenshots and the report go to `e2e/report/` (`--report <folder>` elsewhere). `E2E_SOFT=1` keeps a scenario going
+after a failed step.
+
+The scenarios were written against the Python server of 4.0.3 first. To compare again, check out its last commit
+(`36352ea`) in a worktree, run `uv sync` in its `server/`, and run both: `report/diff.md` lists every step whose
+answers or screen differ.
+
+```bash
+E2E_PYTHON_SERVER=/path/to/worktree/server node run.mjs --target both
+```
 
 `stress.mjs` measures the server under load: one project with 81 tickets and 445 Docs pages, N agents calling a mix of
 MCP tools (paced at one call a second each, then as fast as they can) while a browser on the shared ticket sends

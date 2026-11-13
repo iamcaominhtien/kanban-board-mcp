@@ -259,11 +259,22 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
   failed in the evening on both servers.
 - The template database of `testkit` no longer carries the workspace settings of the server that made it (three
   recorded MCP files held a stale folder because of it and were recorded again).
-- The UI end-to-end check (`server-rs/e2e`, `node run.mjs --target both`) with every route served: 137 core steps and
-  the 10 AI screens pass on both servers with no console error. What still differs is expected (the version number,
-  the development command of the MCP entry) or changes from run to run (whether the toast of a mention is shown
-  before the page marks it read). The servers run in the morning zone here too. draw.io is not covered (the editor
-  is not in the checkout).
+- The UI end-to-end check (`server/e2e`, `node run.mjs --target both`): 21 scenarios, 375 steps (279 core, 96 on the AI
+  screens through the stand-in CLI, none `soft` any more). Scenarios 13 to 22 were added after the switch and written
+  against the Python server of 4.0.3 first (a worktree of `36352ea`): each passed there before it was run on Rust.
+  Every step passes on both servers with no console error. `report/diff.md` lists 88 steps whose answers or screen
+  differ, all explained: ids, commit hashes and times; the order of two requests the UI sends at once (editing a
+  criterion is a DELETE and a POST, removing a piece of evidence from two assumptions is two DELETEs, a PDF's whole
+  and ranged reads), which Rust answers in parallel; a run or a toast that is still there or already gone when the
+  screen is read (Rust is faster); the version number and the development command of the MCP entry. The scenarios
+  found one fault of the port, fixed: a run whose CLI ended within a second kept no memory figures (the monitor now
+  reads the CLI as soon as it is tracked). They also found faults that 4.0.3 has as well, kept as they are and
+  asserted as they behave: a pending ticket with a free-text party is refused (400, the UI sends no member); the
+  "What will be sent" answer of Docs AI's Write has no `send`, so the screen goes blank; the answer of "Create
+  tickets" from a page has no `not_replaced`, so the dialog fails; the "changed since you last viewed" card reads
+  `pages` where the server sends `lines`; the Write preview shows no tokens or cost; Find in page finds nothing right
+  after a publish; the Schedules tab's counter stays at 0 after a schedule is created. draw.io, a real Claude sign-in
+  and the desktop-only windows are not covered.
 - To do at the switch, found while writing the documentation: `docs/guideline/guide/facts.py` reads Python files of
   the server (version, MCP tools, models): read them from `Cargo.toml` and `contract/` instead; the `Databases` job
   of `ci.yml` is switched off (`if: false`); the README's feature list still names API-key models, which 4.0.0
