@@ -395,9 +395,14 @@ export default {
       await p.keyboard.press('Enter');
       await p.keyboard.type(' who owns paging?');
       await p.getByText(/who owns paging\?/).waitFor();
+      await p.keyboard.press('Control+Enter');
+      const ask = p.getByRole('dialog', { name: /You mentioned Docs helper/ }).or(p.getByText('You mentioned Docs helper'));
+      await ask.first().waitFor();
+      await p.getByText('Ask (answer in the thread)').waitFor();
+      await p.getByText('Just notify').waitFor();
       await Promise.all([
         p.waitForResponse((r) => r.request().method() === 'POST' && /comments/.test(r.url()), { timeout: 8000 }),
-        p.keyboard.press('Control+Enter'),
+        p.getByRole('button', { name: 'Post comment' }).click(),
       ]);
       await p.getByText('Nobody owns paging yet: assign it.').first().waitFor({ timeout: 30000 });
     });
@@ -406,6 +411,69 @@ export default {
       const last = cm.threads.at(-1).comments.at(-1);
       s.note('reply', { by: last.author, ai: last.ai, body: last.body });
       if (last.body !== 'Nobody owns paging yet: assign it.') throw new Error('unexpected last comment ' + last.body);
+    });
+    await s.step('Changes since you last viewed: "Summarise with AI" (the 4.0.3 answer is recorded)', async () => {
+      // 4.0.3 answers the job with `lines`, the card reads `pages`; what the card does is recorded for the diff.
+      fake({ 'docs-history': { lines: [{ page_id: ids.API, line: 'Added the REST v2 line.' }] } });
+      const card = p.getByTestId('since-viewed-digest');
+      if (!(await card.count())) { s.note('digest card', 'not shown'); return; }
+      await card.getByText('Changes since you last viewed').waitFor();
+      await card.getByRole('button', { name: /Summarise with AI/ }).click();
+      await p.waitForTimeout(3000);
+      await s.settle();
+      s.note('digest after the summary', (await card.count()) ? (await card.innerText()).slice(0, 300) : 'card gone');
+    });
+    await s.step('Follow a page: the bell menu, Everything, Only mentions, Muted, unfollow', async () => {
+      await p.getByTestId('comments-button').or(p.getByRole('button', { name: /^Comments/ })).first().click().catch(() => {});
+      const bell = p.getByRole('button', { name: /^(Follow this page|Following this page|Muted: notifications of this page)$/ });
+      await bell.first().waitFor();
+      s.note('bell at the start', await bell.first().getAttribute('aria-label'));
+      const menuOf = () => p.getByRole('menu').filter({ hasText: 'This page' });
+      const pick = async (name) => {
+        await bell.first().click();
+        await menuOf().getByRole('menuitem', { name: new RegExp(name) }).first().click();
+        await s.settle();
+      };
+      await pick('^Follow');
+      await p.getByRole('button', { name: 'Following this page' }).waitFor();
+      await pick('Everything');
+      await p.getByRole('button', { name: 'Following this page' }).waitFor();
+      await bell.first().click();
+      await menuOf().getByRole('menuitem', { name: /Everything/ }).waitFor();
+      s.note('follow menu', await menuOf().innerText());
+      await menuOf().getByRole('menuitem', { name: /Only mentions and questions/ }).click();
+      await s.settle();
+      await bell.first().click();
+      await menuOf().getByRole('menuitem', { name: /Muted/ }).first().click();
+      await p.getByRole('button', { name: 'Muted: notifications of this page' }).waitFor();
+      await bell.first().click();
+      await menuOf().getByRole('menuitem', { name: /Muted/ }).first().click(); // choosing the level again forgets it
+      await p.getByRole('button', { name: 'Follow this page' }).waitFor();
+    });
+    await s.step('Follow the space: the bell above the page tree', async () => {
+      const sw = p.getByRole('switch', { name: /^(Follow this space|Following this space)$/ });
+      await sw.waitFor();
+      if ((await sw.getAttribute('aria-checked')) === 'true') await sw.click();
+      await p.getByRole('switch', { name: 'Follow this space' }).waitFor();
+      await p.getByRole('switch', { name: 'Follow this space' }).click();
+      await p.getByRole('switch', { name: 'Following this space', checked: true }).waitFor();
+      await p.reload();
+      await p.getByRole('complementary', { name: 'Project navigation' }).waitFor({ timeout: 20000 });
+      await p.getByRole('button', { name: 'Docs', exact: true }).click();
+      await p.getByRole('switch', { name: 'Following this space', checked: true }).waitFor();
+    });
+    await s.step('turn Docs AI off: the AI entries disappear', async () => {
+      await p.getByRole('button', { name: 'Settings' }).click();
+      await p.getByRole('navigation', { name: 'Settings pages' }).getByRole('button', { name: 'Docs', exact: true }).click();
+      await p.getByRole('switch', { name: 'Use AI in Docs' }).click();
+      await p.getByRole('switch', { name: 'Use AI in Docs', checked: false }).waitFor();
+      await p.getByRole('button', { name: 'Back to board' }).click();
+      await openDocs(s);
+      await p.getByTestId('tree-ask-docs').waitFor({ state: 'detached' });
+      await item('API').click();
+      await p.getByTestId('page-title').getByText('API', { exact: true }).waitFor();
+      await p.getByTestId('page-ai-menu').waitFor({ state: 'detached' });
+      if (tmp) fs.rmSync(tmp, { recursive: true, force: true });
     });
   },
 };

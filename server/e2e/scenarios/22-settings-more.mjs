@@ -306,10 +306,10 @@ export default {
         await ask.getByRole('button', { name: 'Mark pending' }).click();
       }
       await ask.waitFor({ state: 'detached' });
-      await d.getByText(/Pending since/).waitFor();
+      await d.getByText(/Pending since/).first().waitFor();
       await d.getByText(/The design review/).first().waitFor();
       await p.keyboard.press('p');
-      await d.getByText(/Pending since/).waitFor({ state: 'detached' });
+      await d.getByText(/Pending since/).first().waitFor({ state: 'detached' });
       await closeTicket(s);
     }, { expectConsole: true });
 

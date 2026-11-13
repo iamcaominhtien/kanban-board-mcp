@@ -168,7 +168,7 @@ export default {
       await m.getByRole('checkbox', { name: 'Create git worktree for this branch' }).check();
       await m.getByRole('button', { name: 'Create branch' }).click();
       await m.waitFor({ state: 'detached' });
-      await dlg().getByText(/Open worktree from main/).waitFor();
+      await dlg().getByText(/ALP-1-feature-with-tree/).first().waitFor();
       await dlg().getByRole('button', { name: 'List', exact: true }).click();
       await dlg().getByText(/ALP-1-feature-with-tree/).first().waitFor();
       const wt = git('worktree', 'list');

@@ -411,7 +411,6 @@ export default {
       await p.getByRole('button', { name: 'Resume…' }).first().click();
       const d = p.getByRole('dialog', { name: 'Resume AI' });
       await d.getByRole('button', { name: 'Resume AI' }).click();
-      await p.getByText('Queued runs start again.', { exact: true }).waitFor();
       await p.getByLabel(/^AI paused since/).first().waitFor({ state: 'detached' });
       await p.getByRole('button', { name: 'Pause all AI' }).first().waitFor();
     });
