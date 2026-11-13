@@ -73,12 +73,12 @@ jobs:
     if: needs.check.outputs.run == 'true'
     runs-on: ubuntu-latest
     steps:
-      # server/ (the Python reference), ui/ and desktop/ come along: some Rust tests read them
+      # ui/ and desktop/ come along: some Rust tests read them
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: llvm-tools-preview
+          components: llvm-tools-preview, clippy
       - uses: taiki-e/install-action@cargo-llvm-cov
       - uses: actions/cache@v4
         with:
@@ -91,11 +91,21 @@ jobs:
       - name: Tests with coverage
         working-directory: ${{ env.SERVER_DIR }}
         run: cargo llvm-cov --workspace --lcov --output-path lcov.info
+      # Every clippy finding for SonarQube (ci.yml is the gate that fails on them): the compiler messages only, as
+      # `cargo clippy --message-format=json` writes them
+      - name: Clippy report
+        if: ${{ !cancelled() }}
+        working-directory: ${{ env.SERVER_DIR }}
+        run: |
+          cargo clippy --workspace --all-targets --message-format=json \
+            | jq -c 'select(.reason == "compiler-message")' > clippy.json
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }} # the report is written even when a test fails
         with:
           name: coverage-server
-          path: ${{ env.SERVER_DIR }}/lcov.info
+          path: |
+            ${{ env.SERVER_DIR }}/lcov.info
+            ${{ env.SERVER_DIR }}/clippy.json
           retention-days: 3
 
   frontend:
@@ -175,6 +185,9 @@ jobs:
           [ -f "$f" ] && sed -i "s#^SF:#SF:$GITHUB_WORKSPACE/ui/#" "$f"
           f=coverage-reports/coverage-desktop/lcov.info
           [ -f "$f" ] && sed -i "s#^SF:#SF:$GITHUB_WORKSPACE/desktop/#" "$f"
+          # clippy names files relative to the workspace (crates/..., bins/...); Sonar reads them from the repository root
+          f=coverage-reports/coverage-server/clippy.json
+          [ -f "$f" ] && sed -i -E "s#\"file_name\":\"(crates|bins)/#\"file_name\":\"$SERVER_DIR/\\1/#g" "$f"
           true
       - uses: SonarSource/sonarqube-scan-action@v8
       # Last night's issue keys, so the report can tell what is new (the newest cache whose key starts like this)

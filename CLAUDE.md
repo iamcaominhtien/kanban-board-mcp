@@ -31,6 +31,16 @@ Pick the model and effort for each subagent from the task, not by default:
 - Keep `max` for a hard problem worked through without the user (a security hunt); on ordinary work it overthinks.
 - An escalation agent is a consultant: give it the code and the facts, ask for a recommendation, and do the implementation yourself (or with a cheaper agent) once the way forward is clear.
 
+# Writing Rust code (`server/`)
+
+- **Format and lint as CI does:** `cargo fmt --all` and `cargo clippy --workspace --all-targets -- -D warnings`. The hooks in `.claude/settings.json` do it for you: rustfmt on each `.rs` file you edit, clippy on the crates you edited when your turn ends (fix what it reports). Do not silence a lint with `#[allow(...)]` without a comment saying why; workspace-wide choices live in `[workspace.lints]` of `server/Cargo.toml`.
+- **Doc comments.** `///` on every public item, `//!` at the top of a module saying what it is for, `//` only for why, not what. The first line is one sentence ("Renders…", "Returns…"). Then say what the signature cannot: the meaning of each argument whose type does not tell it (unit, index base, what a `bool` switches), what the result holds, when it is `None` or `Err` (`# Errors`) and when it panics (`# Panics`).
+- **Let types carry the meaning:** in new code an enum rather than a `bool` argument, and a named struct rather than a long tuple.
+- **Errors:** return `Result` and use `?`; no `unwrap()` on input, I/O or the database in server code. An `expect("why it cannot fail")` is fine for a true invariant; tests may unwrap. `unsafe` is denied.
+- **Async:** do not hold a `std::sync::Mutex` guard across an `.await`, and put blocking work (files, `git`, CPU-heavy parsing) in `spawn_blocking`.
+- **Dependencies:** declare the version once in `[workspace.dependencies]` of `server/Cargo.toml`; a crate uses `name = { workspace = true }`.
+- **Behaviour is a contract:** the JSON shapes, error `detail` strings, MCP tool texts and stored formats match 4.0.x (see `server/PORTING.md`), and `server/contract/golden/` holds the baselines. When you change one on purpose, update its golden entry by hand and say so in the commit.
+
 # Tests
 
 Run only the tests related to what you changed, never the whole suite (it is slow, and some tests fail in a cloud container for reasons that have nothing to do with the change). Related means:

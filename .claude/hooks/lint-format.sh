@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
-# PostToolUse hook: format and lint the file Claude just edited. Lint errors go to stderr (exit 2) so Claude sees and fixes them.
-f=$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("tool_input",{}).get("file_path",""))')
+# PostToolUse hook: format and lint the file Claude just edited. Errors go to stderr (exit 2) so Claude sees and fixes them.
+# Rust: rustfmt runs here on the one file; clippy checks a whole crate, so this only notes the crate and
+# rust-clippy.sh (the Stop hook) runs clippy once, at the end of the turn, on every crate noted.
+input=$(cat)
+{ read -r f; read -r session; } < <(printf '%s' "$input" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("tool_input",{}).get("file_path","")); print(d.get("session_id","none"))')
 root="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}"
 [ -f "$f" ] || exit 0
 case "$f" in
-  "$root"/server/*.py)
-    ruff="$root/server/.venv/bin/ruff"; [ -x "$ruff" ] || ruff=ruff
-    cd "$root/server" || exit 0
-    "$ruff" format "$f" >/dev/null 2>&1
-    out=$("$ruff" check --fix "$f" 2>&1) || { echo "$out" >&2; exit 2; }
+  # the files a skill hands out (scripts, templates): kept byte for byte, checked against contract/golden/skills.json
+  "$root"/server/crates/*/assets/*) ;;
+  "$root"/server/crates/*/*.rs|"$root"/server/bins/*/*.rs|"$root"/server/crates/*/Cargo.toml|"$root"/server/bins/*/Cargo.toml)
+    rel=${f#"$root"/server/}
+    crate=$(printf '%s' "$rel" | cut -d/ -f2)
+    mkdir -p "${TMPDIR:-/tmp}/kanban-clippy" && echo "$crate" >> "${TMPDIR:-/tmp}/kanban-clippy/$session"
+    case "$f" in
+      *.rs) out=$(rustfmt --edition 2024 "$f" 2>&1) || { echo "$out" >&2; exit 2; } ;;
+    esac
     ;;
   "$root"/ui/src/*.ts|"$root"/ui/src/*.tsx)
     cd "$root/ui" || exit 0
