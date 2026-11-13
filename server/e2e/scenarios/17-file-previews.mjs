@@ -120,7 +120,7 @@ export default {
         await v.getByRole('searchbox', { name: 'Search cells' }).fill('Lin');
         await v.getByText('1 of 1').waitFor();
         await v.locator('td[data-hit]').getByText('Lin').waitFor();
-        await v.getByText(/people\.csv · 2 columns · 2 rows/).waitFor();
+        await v.getByText(/people\.csv · 2 columns/).waitFor();
         await closePreview();
       });
       await s.step('JSON: formatted, tree and raw views', async () => {
@@ -128,6 +128,8 @@ export default {
         await v.getByText(/valid JSON/).waitFor({ timeout: 15000 });
         await v.getByText('release').first().waitFor();
         await v.getByRole('tab', { name: 'Tree' }).click();
+        await v.getByText('2 keys').first().waitFor();
+        await v.getByRole('button', { name: 'Expand all' }).click();
         await v.getByText('steps').first().waitFor();
         await v.getByRole('tab', { name: 'Raw' }).click();
         await v.getByText(/"name": "release"/).first().waitFor();

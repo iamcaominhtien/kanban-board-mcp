@@ -70,34 +70,37 @@ export default {
     // ---- test cases
     await s.step('add test cases', async () => {
       await dlg().getByRole('button', { name: 'Test Cases' }).click();
-      await dlg().getByRole('button', { name: 'Add test case' }).click();
       for (const t of ['Builds on a clean machine', 'Upgrade keeps data']) {
+        await dlg().getByRole('button', { name: 'Add test case' }).click();
         await p.getByPlaceholder('Test case title…').fill(t);
         await p.getByRole('button', { name: 'Add', exact: true }).click();
         await dlg().getByText(t, { exact: true }).waitFor();
       }
     });
-    await s.step('cycle a test case status', async () => {
-      const first = dlg().getByRole('button', { name: /^Status: / }).first();
-      const seen = [];
-      for (let i = 0; i < 4; i++) {
-        const before = await first.getAttribute('aria-label');
-        seen.push(before);
-        await first.click();
-        await dlg().getByRole('button', { name: /^Status: / }).first().and(p.locator(`:not([aria-label="${before}"])`)).waitFor();
+    const ORDER = ['pending', 'running', 'pass', 'fail'];
+    const tcBtn = (i) => dlg().getByRole('button', { name: /^Status: / }).nth(i);
+    const tcState = async (i) => /^Status: (\w+)/.exec(await tcBtn(i).getAttribute('aria-label'))[1];
+    // one click moves a test case to the next status of ORDER; wait for it to show before the next click
+    const cycleTo = async (i, want) => {
+      let cur = await tcState(i);
+      for (let k = 0; k < ORDER.length && cur !== want; k++) {
+        const next = ORDER[(ORDER.indexOf(cur) + 1) % ORDER.length];
+        await tcBtn(i).click();
+        await dlg().getByRole('button', { name: new RegExp(`^Status: ${next}`) }).nth(0).waitFor();
+        await p.waitForFunction(([idx, n]) => [...document.querySelectorAll('[aria-label^="Status: "]')][idx]?.getAttribute('aria-label').startsWith('Status: ' + n), [i, next]);
+        cur = next;
       }
-      s.note('status cycle', seen);
-      // the cycle comes back to where it began
-      await dlg().getByRole('button', { name: seen[0] }).first().waitFor();
+    };
+    await s.step('cycle a test case through every status', async () => {
+      for (const want of ['running', 'pass', 'fail', 'pending']) await cycleTo(0, want);
     });
     await s.step('set a test case to pass and another to fail', async () => {
-      const btn = (i) => dlg().getByRole('button', { name: /^Status: / }).nth(i);
-      for (const [i, want] of [[0, 'pass'], [1, 'fail']]) {
-        for (let k = 0; k < 4 && !(await btn(i).getAttribute('aria-label')).includes(want); k++) await btn(i).click();
-        await dlg().getByRole('button', { name: new RegExp(`^Status: ${want}`) }).first().waitFor();
-      }
-      await dlg().getByRole('button', { name: /^Status: pass/ }).waitFor();
-      await dlg().getByRole('button', { name: /^Status: fail/ }).waitFor();
+      await cycleTo(0, 'pass');
+      await cycleTo(1, 'fail');
+      await dlg().getByRole('button', { name: 'Status: pass. Click to cycle.' }).waitFor();
+      await dlg().getByRole('button', { name: 'Status: fail. Click to cycle.' }).waitFor();
+      await dlg().getByRole('button', { name: 'Pass (1)' }).waitFor();
+      await dlg().getByRole('button', { name: 'Fail (1)' }).waitFor();
     });
     await s.step('expand a test case and delete it', async () => {
       await dlg().getByRole('button', { name: 'Expand details' }).first().click();
@@ -129,20 +132,27 @@ export default {
       await dlg().getByText('The cache key ignores the locale').waitFor();
     });
     await s.step('edit a work-log entry', async () => {
-      const entry = dlg().locator('[class*="entry"]').filter({ hasText: 'Waiting for the staging data' }).last();
+      const entry = dlg().getByTestId('debug-entry').filter({ hasText: 'Waiting for the staging data' }).last();
       await entry.hover();
       await entry.getByRole('button', { name: 'Edit entry' }).click({ force: true });
       await p.getByLabel('Note').fill('Waiting for the staging data (ETA Friday)');
       await p.getByRole('button', { name: 'Save changes' }).click();
       await dlg().getByText('Waiting for the staging data (ETA Friday)').waitFor();
     });
+    await s.step('pin a work-log entry', async () => {
+      const entry = dlg().getByTestId('debug-entry').filter({ hasText: 'Key fixed in the cache layer' }).last();
+      await entry.hover();
+      await entry.getByRole('button', { name: 'Pin entry' }).click({ force: true });
+      await dlg().getByRole('button', { name: 'Unpin entry' }).first().waitFor({ state: 'attached' });
+    });
     await s.step('delete a work-log entry', async () => {
-      const entry = dlg().locator('[class*="entry"]').filter({ hasText: 'Tried adding the locale to the key' }).last();
+      const entry = dlg().getByTestId('debug-entry').filter({ hasText: 'Tried adding the locale to the key' }).last();
       await entry.hover();
       await entry.getByRole('button', { name: 'Delete entry' }).click({ force: true });
       const c = p.getByRole('dialog', { name: 'Confirm delete' });
       await c.getByText('Delete this entry?').waitFor();
       await c.getByRole('button', { name: /^Delete/ }).click();
+      await c.waitFor({ state: 'detached' });
       await dlg().getByText('Tried adding the locale to the key').waitFor({ state: 'detached' });
     });
     await s.step('back to the ticket', async () => { await back('ALP-1'); });
@@ -160,8 +170,13 @@ export default {
       await dlg().getByRole('button', { name: /Related work/ }).click();
       await dlg().getByText('Related work').first().waitFor();
     });
-    await s.step('remove the blocked-by and the link', async () => {
+    await s.step('remove the blocked-by', async () => {
       await dlg().getByRole('button', { name: 'Remove relation' }).first().click({ force: true });
+      await dlg().getByRole('button', { name: 'Remove relation' }).nth(1).waitFor({ state: 'detached' });
+      await dlg().getByText('Blocking work').waitFor({ state: 'detached' });
+    });
+    await s.step('remove the relates-to link', async () => {
+      await dlg().getByText('Related work').first().waitFor();
       await dlg().getByRole('button', { name: 'Remove relation' }).first().click({ force: true });
       await dlg().getByText('No links').waitFor();
     });
@@ -169,7 +184,22 @@ export default {
     // ---- activity
     await s.step('read the ticket activity', async () => {
       await dlg().getByRole('button', { name: /^Activity/ }).click();
-      await dlg().getByText(/Test case|criterion|link/i).first().waitFor();
+      await dlg().getByRole('button', { name: /^All \(\d+\)/ }).waitFor();
+      // the newest changes come first; older ones sit behind "Show N earlier changes"
+      await dlg().getByText(/^Link removed/).first().waitFor();
+      await dlg().getByText(/Blocked by removed/).first().waitFor();
+      await dlg().getByText(/Debug · Developer added/).first().waitFor();
+      await dlg().getByText(/Test case · TC-1/).first().waitFor();
+      await dlg().getByRole('button', { name: /^Show \d+ earlier changes/ }).click();
+      await dlg().getByText('Ticket created').first().waitFor();
+      await dlg().getByText(/Sub-task added/).first().waitFor();
+      // a filter narrows the list to the entries of that kind
+      await dlg().getByRole('button', { name: /^Comments \(\d+\)/ }).click();
+      await dlg().getByText('Ticket created').waitFor({ state: 'detached' });
+    });
+    await s.step('filter the activity back to all', async () => {
+      await dlg().getByRole('button', { name: /^All \(/ }).click();
+      await dlg().getByText(/Blocked by removed/).first().waitFor();
     });
     await s.step('back and close', async () => {
       await back('ALP-1');
