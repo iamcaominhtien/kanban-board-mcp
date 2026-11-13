@@ -3,10 +3,10 @@
 //! A workspace is a name, a data folder (attachments and AI logs, and `kanban.db` when the board is SQLite) and,
 //! when the board lives on a database server, that database (PostgreSQL or MySQL/MariaDB). The list is kept in
 //! `config.json` under `workspaces`; the one in use is the `data_folder` and the `database` section of the same
-//! file, which every process already follows (`kb_db::database::follow_settings`), so the stdio MCP processes of
-//! Claude Code and VS Code change board too. Switching points the running app at the other board without a restart
-//! (the way an import does) and never copies, moves or deletes data; removing an entry forgets it and leaves its
-//! folder and database alone.
+//! file, which every process follows (`kb_db::database::follow_settings`): a stdio MCP process started after a switch
+//! opens the new board, one already running stays on its own. Switching points the running app at the other board
+//! without a restart (the way an import does) and never copies, moves or deletes data; removing an entry forgets it
+//! and leaves its folder and database alone.
 //!
 //! Not the Workspace of a ticket (the scratch folder of `kb-ai-work`): that one belongs to a ticket, this one holds
 //! a whole board.
@@ -37,7 +37,7 @@ use crate::probe::{self, Report};
 const LIST_KEY: &str = "workspaces";
 /// The key of the workspace the app was last switched to (or registered as): how the stdio MCP processes tell a
 /// switch from a move (`kb_db::database::follow_settings`).
-const ACTIVE_KEY: &str = "workspace_active";
+const ACTIVE_KEY: &str = database::WORKSPACE_ACTIVE_KEY;
 /// The id of the board in use when no entry of the list names it yet.
 pub const CURRENT_ID: &str = "current";
 /// The longest name of a workspace, in characters.

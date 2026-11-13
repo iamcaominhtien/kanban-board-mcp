@@ -482,7 +482,7 @@ pub enum OnSwitch {
 }
 
 /// The key of the config file that names the workspace in use (`kb_dbkit::workspaces`).
-const WORKSPACE_ACTIVE_KEY: &str = "workspace_active";
+pub const WORKSPACE_ACTIVE_KEY: &str = "workspace_active";
 
 /// Why this process stopped working after the person opened another workspace, or `None`.
 static LEFT_BEHIND: RwLock<Option<String>> = RwLock::new(None);
