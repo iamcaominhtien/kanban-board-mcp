@@ -302,6 +302,7 @@ export function Board({
           )}
           {workspaceName && loadState !== 'projects' && (
             <span className={styles.workspaceTag} title={`Workspace: ${workspaceName}`} data-testid="workspace-tag">
+              <span className={styles.srOnly}>Workspace: </span>
               {workspaceName}
             </span>
           )}

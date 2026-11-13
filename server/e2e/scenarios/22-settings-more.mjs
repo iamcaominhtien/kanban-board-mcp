@@ -459,13 +459,29 @@ export default {
       await p.getByTestId('workspace-tag').filter({ hasText: 'Home' }).waitFor();
       // the sidebar now offers the switch back; Escape closes its menu without switching
       const sidebar = p.getByRole('complementary', { name: 'Project navigation' });
-      await sidebar.getByRole('button', { name: 'Home', exact: true }).click();
+      await sidebar.getByRole('button', { name: 'Workspace: Home', exact: true }).click();
       await p.getByRole('menu', { name: 'Workspaces' }).waitFor();
       await p.keyboard.press('Escape');
       await p.getByRole('menu', { name: 'Workspaces' }).waitFor({ state: 'detached' });
-      await sidebar.getByRole('button', { name: 'Home', exact: true }).click();
+      // a second window of the same board: once another board is opened elsewhere it says so and saves nothing
+      const other = await p.context().newPage();
+      await other.goto(p.url());
+      await other.getByTestId('workspace-tag').filter({ hasText: 'Home' }).waitFor();
+      const homeBoard = await other.evaluate(async () => (await (await fetch('/workspaces')).json()).board);
+      await sidebar.getByRole('button', { name: 'Workspace: Home', exact: true }).click();
       await Promise.all([p.waitForNavigation(), p.getByRole('menuitemradio', { name: 'Default' }).click()]);
       await sidebar.waitFor();
+      const notice = other.getByTestId('workspace-switched-notice');
+      await notice.filter({ hasText: 'Default is now the board in use' }).waitFor({ timeout: 15000 });
+      // what that window's client sends with a change: the board it loaded
+      const refused = await other.evaluate(async (board) => {
+        const r = await fetch('/projects', { method: 'POST', headers: { 'content-type': 'application/json', 'x-kanban-board': board }, body: JSON.stringify({ name: 'Stray', prefix: 'STR', color: '#000000' }) });
+        return r.status;
+      }, homeBoard);
+      if (refused !== 409) throw new Error(`a change for another board answered ${refused}`);
+      await Promise.all([other.waitForNavigation(), notice.getByRole('button', { name: 'Show Default' }).click()]);
+      await other.getByTestId('workspace-switched-notice').waitFor({ state: 'detached' });
+      await other.close();
       await p.getByRole('button', { name: /^Alpha ALP/ }).click();
       await p.getByRole('button', { name: /ALP-1 / }).first().waitFor();
       if (await p.getByRole('button', { name: /^Cottage COT/ }).count()) throw new Error('a project of the other board shows in this one');
@@ -492,7 +508,7 @@ export default {
         await Promise.all([p.waitForNavigation(), row.getByRole('button', { name: 'Switch' }).click()]);
         await ensureProject(s, { name: 'Cloud', prefix: 'CLD' });
         const sidebar = p.getByRole('complementary', { name: 'Project navigation' });
-        await sidebar.getByRole('button', { name: 'Server', exact: true }).click();
+        await sidebar.getByRole('button', { name: 'Workspace: Server', exact: true }).click();
         await Promise.all([p.waitForNavigation(), p.getByRole('menuitemradio', { name: 'Default' }).click()]);
         await sidebar.waitFor();
         await p.getByRole('button', { name: /^Alpha ALP/ }).click();

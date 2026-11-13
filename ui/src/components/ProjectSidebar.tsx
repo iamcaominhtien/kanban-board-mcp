@@ -93,11 +93,28 @@ export function ProjectSidebar({
   const [showWorkspaces, setShowWorkspaces] = useState(false);
   const activeWorkspace = workspaces?.items.find((w) => w.active);
   const switcherRef = useRef<HTMLDivElement>(null);
-  // Escape or a click elsewhere closes the menu (it keeps the rail open while it is shown)
+  const switcherButtonRef = useRef<HTMLButtonElement>(null);
+  // Escape or a click elsewhere closes the menu (it keeps the rail open while it is shown); the arrow keys move
+  // between the workspaces that can be opened, the first of which has the focus when the menu opens
   useEffect(() => {
     if (!showWorkspaces) return undefined;
+    const rows = () =>
+      Array.from(switcherRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]') ?? []).filter(
+        (row) => !row.disabled,
+      );
+    rows()[0]?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setShowWorkspaces(false);
+      if (e.key === 'Escape') {
+        setShowWorkspaces(false);
+        switcherButtonRef.current?.focus();
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        const all = rows();
+        if (all.length === 0) return;
+        e.preventDefault();
+        const at = all.indexOf(document.activeElement as HTMLButtonElement);
+        const step = e.key === 'ArrowDown' ? 1 : -1;
+        all[(at + step + all.length) % all.length].focus();
+      }
     };
     const onDown = (e: MouseEvent) => {
       if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) setShowWorkspaces(false);
@@ -166,9 +183,11 @@ export function ProjectSidebar({
       {workspaces && workspaces.items.length > 1 && (
         <div className={styles.workspaceSwitcher} ref={switcherRef}>
           <button
+            ref={switcherButtonRef}
             type="button"
             className={styles.sidebarIconBtn}
             title={`Workspace: ${activeWorkspace?.name ?? ''}`}
+            aria-label={workspaces.switching ? 'Switching workspace' : `Workspace: ${activeWorkspace?.name ?? ''}`}
             aria-haspopup="true"
             aria-expanded={showWorkspaces}
             disabled={workspaces.switching}
@@ -191,6 +210,7 @@ export function ProjectSidebar({
                   role="menuitemradio"
                   aria-checked={w.active}
                   className={`${styles.workspaceMenuItem} ${w.active ? styles.workspaceMenuItemActive : ''}`}
+                  title={w.name}
                   disabled={w.active || !workspaces.switchable || workspaces.switching}
                   onClick={() => {
                     setShowWorkspaces(false);
