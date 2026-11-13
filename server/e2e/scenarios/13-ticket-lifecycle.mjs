@@ -249,7 +249,6 @@ export default {
       await card(p, 'ALP-5').waitFor({ state: 'detached' });
       await p.getByRole('button', { name: /^Recycle Bin/ }).click();
       const bin = p.getByRole('dialog', { name: 'Recycle Bin' });
-      await bin.getByText(/No (deleted )?tickets|Nothing|empty/i).first().waitFor().catch(() => {});
       await bin.getByText('Delete me').waitFor({ state: 'detached' });
       await bin.getByRole('button', { name: 'Close' }).click();
       await bin.waitFor({ state: 'detached' });
