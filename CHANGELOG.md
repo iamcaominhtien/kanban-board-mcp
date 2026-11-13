@@ -16,6 +16,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
   on an empty board: the server answers 0.1 s after it is started (4.7 s for the Python server of 4.0.x) and uses 75 MB while idle,
   the AI runner included (350 MB). Installer sizes: (measured at release; 4.0.3 was 187 MB for the macOS x64 dmg,
   181 MB for arm64 and 166 MB for the Windows setup).
+- **About seven times the MCP calls under load, with a tenth of the wait.** Measured with the stress check of 4.0.2,
+  now `server/e2e/stress.mjs` (10 agents on the MCP server, 445 Docs pages, 81 tickets, a browser on the shared ticket,
+  60 s per phase), against the Python server of 4.0.3 on the same 4-core Linux machine:
+  - asking one call a second each: p95 84 ms on SQLite (1.48 s), 108 ms on PostgreSQL (1.06 s), 140 ms on MySQL
+    (0.77 s), with a quarter of the CPU or less;
+  - as fast as they can: 99 calls/s on SQLite (14), 109 on PostgreSQL (14), 93 on MySQL (16), p95 under 0.3 s
+    (1.1 to 1.8 s);
+  - no errors, and every comment the agents and the browser saved is on the ticket (1,055 to 1,162 per run).
 
 ### Before you upgrade
 - **Your data and settings are unchanged.** The database (SQLite, PostgreSQL or MySQL/MariaDB), its schema, the `alembic_version` table, `~/.kanban-board/config.json`, the uploads folder and the stored keys are the same. The 80 migrations are ported, so a database made by 4.0.x opens in 5.0.0 and a database made by 5.0.0 opens in 4.0.x: going back to 4.0.x works.

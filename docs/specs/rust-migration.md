@@ -99,6 +99,31 @@ routes are all served, `cargo fmt` and `clippy -D warnings` are clean, and the c
   `tests/fixtures/fake_claude.py`) and with differential runs.
 - PDF text extraction (`pypdf` to `pdf-extract`) can differ on complex PDFs; measured on the fixtures.
 
+## Under load
+
+`server/e2e/stress.mjs` (the measurement of 4.0.2, made repeatable): 10 MCP agents, 445 Docs pages, 81 tickets, a
+browser on the shared ticket, 60 s per phase, against the Python server of 4.0.3 (the commit before its removal) on the
+same machine (4 cores, Linux; the agents and Chromium run on it too). Release build, 2026-11-13.
+
+| Database | Phase | Python 4.0.3 | Rust 5.0.0 |
+|---|---|---|---|
+| SQLite | one call a second each: p50 / p95, CPU | 219 ms / 1.48 s, 77 % | 10 ms / 84 ms, 21 % |
+| SQLite | flat out: calls/s, p95 | 14.1, 1.83 s | 98.6, 254 ms |
+| PostgreSQL | one call a second each | 267 ms / 1.06 s, 72 % | 10 ms / 108 ms, 16 % |
+| PostgreSQL | flat out | 14.1, 1.45 s | 108.9, 246 ms |
+| MySQL (MariaDB) | one call a second each | 94 ms / 769 ms, 63 % | 12 ms / 140 ms, 17 % |
+| MySQL (MariaDB) | flat out | 16.4, 1.14 s | 93.1, 280 ms |
+
+No errors on either server (two agents editing one page at once is told to read it again, as in 4.0.x: one such
+answer per Rust run on PostgreSQL and MySQL), and every saved comment was on the ticket. A comment sent from the app shows
+in 25 to 45 ms on both (the UI is the same); the longest key press in the comment box, 0.2 to 0.4 s on both, is the
+browser's own work on a machine the load keeps busy. Memory at its peak under load: 180 to 310 MB (Python 200 to 320 MB).
+
+What the measurement found in the Rust server, fixed before these numbers: TCP_NODELAY was not set, so every MCP answer
+(a server-sent event written in pieces) waited about 40 ms for the client's delayed acknowledgement; a Docs search
+compiled its highlight pattern again for every matching section (1.2 s per search on this board, now 78 ms; Python 244
+ms); case folding and plain-text lines had no ASCII fast path.
+
 ## Progress
 
 Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.

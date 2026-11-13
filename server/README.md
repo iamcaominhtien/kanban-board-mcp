@@ -142,3 +142,15 @@ node run.mjs --target rust --only 03,05    # some of them (by number)
 ```
 
 Screenshots and the report go to `e2e/report/`.
+
+`stress.mjs` measures the server under load: one project with 81 tickets and 445 Docs pages, N agents calling a mix of
+MCP tools (paced at one call a second each, then as fast as they can) while a browser on the shared ticket sends
+comments and times them; calls per second, latency per tool, CPU and memory of the server's processes, and every saved
+comment looked for at the end. Build the release server first; a database server for `--db postgres|mysql` comes from
+`scripts/dev-databases.sh start` (the run makes and drops its own database there).
+
+```bash
+cd server/e2e
+KANBAN_SERVER_BIN=../target/release/kanban-server node stress.mjs --db sqlite --json sqlite.json
+KANBAN_TEST_POSTGRES_URL=postgresql://kanban@127.0.0.1:55432/kanban_test KANBAN_SERVER_BIN=../target/release/kanban-server node stress.mjs --db postgres
+```
