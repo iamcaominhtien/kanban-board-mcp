@@ -195,6 +195,8 @@ async fn test_a_writing_commit_is_told_and_a_reading_one_is_not() {
 
 #[tokio::test]
 async fn test_the_runners_rows_of_the_change_log_are_not_another_apps() {
+    // its commits reach the write listeners other tests count
+    let _turn = BUS.lock().await;
     let dir = tempfile::tempdir().expect("temp dir");
     let target = kb_db::targets::Target::sqlite(dir.path().join("log.db").to_string_lossy().into_owned());
     let engine = kb_db::targets::make_engine(&target, None).await.expect("an engine");
@@ -267,6 +269,8 @@ fn tables(names: &[&str]) -> BTreeSet<String> {
 
 #[tokio::test]
 async fn test_the_runner_tells_its_writes_in_few_posts() {
+    // its commits reach the write listeners other tests count
+    let _turn = BUS.lock().await;
     let posts = Posts::default();
     let fwd = posts.forwarder(true);
     for _ in 0..10 {
@@ -290,6 +294,8 @@ async fn test_the_runner_tells_its_writes_in_few_posts() {
 /// A run's closing comment, its question, Pending, the work log: the windows refetch the tickets.
 #[tokio::test]
 async fn test_a_ticket_the_runner_wrote_is_announced_once_for_a_burst() {
+    // its commits reach the write listeners other tests count
+    let _turn = BUS.lock().await;
     let posts = Posts::default();
     let fwd = posts.forwarder(false);
     fwd.note_write(Some(&tables(&["ai_run_step"])));
@@ -309,6 +315,8 @@ async fn test_a_ticket_the_runner_wrote_is_announced_once_for_a_burst() {
 /// set).
 #[tokio::test]
 async fn test_the_change_log_is_written_by_a_plain_add_then_commit() {
+    // its commits reach the write listeners other tests count
+    let _turn = BUS.lock().await;
     let Ok(url) = std::env::var("KANBAN_TEST_POSTGRES_URL") else {
         eprintln!(
             "SKIPPED test_the_change_log_is_written_by_a_plain_add_then_commit: KANBAN_TEST_POSTGRES_URL is not set"
