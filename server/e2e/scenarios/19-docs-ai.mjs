@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { home, ensureProject, openDocs, newDocPage, setMarkdown, publishDoc, openMembers } from '../lib/ui.mjs';
 
 // Docs AI with the stand-in CLI (FAKE_CLAUDE_MODE=assistant): what the model would answer is given per skill in
@@ -9,6 +12,7 @@ export default {
   async run(s) {
     const p = s.page;
     const ids = {};
+    let tmp = null;
     const answers = {};
     // answers for the next turns; ids of pages are put in where an answer names a page
     const fake = (more = {}) => {
@@ -47,6 +51,42 @@ export default {
       await p.getByRole('combobox', { name: 'AI that answers' }).selectOption({ label: 'Docs helper' });
       await s.settle();
       await p.getByRole('button', { name: 'Back to board' }).click();
+    });
+    await s.step('Docs (empty): import a Markdown file with "Tidy while importing"', async () => {
+      tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kanban-e2e-tidy-'));
+      const file = path.join(tmp, 'handbook.md');
+      fs.writeFileSync(file, '# Overview\n\nSee Auth for the sign-in rules. The work is tracked in ALP-1.\n\n### Details\n\nA heading that skips a level.\n\n# Auth\n\nSign in with a token.\n');
+      await home(s);
+      await openDocs(s);
+      await p.getByTestId('docs-import').click();
+      const d = p.getByRole('dialog', { name: 'Import Markdown' });
+      await d.locator('input[type="file"]').first().setInputFiles(file);
+      const tidy = d.getByTestId('tidy-options');
+      await tidy.waitFor({ timeout: 30000 });
+      await tidy.getByText('TIDY WHILE IMPORTING (OPTIONAL)').waitFor();
+      await tidy.getByText(/handbook\.md · .* 2 top-level sections/).waitFor({ timeout: 30000 });
+      for (const o of ['Split into one page per top-level section', 'Turn ticket keys into chips', 'Turn “see Auth” into [[links]]', 'Fix heading levels']) {
+        await tidy.getByText(o).waitFor();
+      }
+      s.note('tidy hints', await tidy.innerText());
+      await tidy.getByLabel(/Turn “see Auth” into/).check();
+      await tidy.getByTestId('see-links-review').waitFor();
+      await tidy.getByRole('button', { name: 'Add all' }).click();
+      await tidy.getByRole('button', { name: 'Add none' }).waitFor();
+      s.note('review links', await tidy.getByTestId('see-links-review').innerText());
+    });
+    await s.step('confirm the tidy import: one page per section, with the link', async () => {
+      const d = p.getByRole('dialog', { name: 'Import Markdown' });
+      await d.getByRole('button', { name: /^Import/ }).last().click();
+      await s.settle(3000);
+      const close = d.getByRole('button', { name: /Close|Done/ });
+      if (await close.count()) await close.first().click();
+      await p.getByRole('tree').getByText('Overview').first().waitFor();
+      await p.getByRole('tree').getByText('Auth', { exact: true }).first().waitFor();
+      await p.getByRole('tree').getByText('Overview').first().click();
+      await p.getByTestId('page-title').getByText('Overview', { exact: true }).waitFor();
+      await p.getByText(/sign-in rules/).waitFor();
+      s.note('overview page text', await p.locator('.dk-md').first().innerText());
     });
     await s.step('Docs: two pages, API (with a checklist) and Release notes', async () => {
       await home(s);
@@ -259,6 +299,9 @@ export default {
         j.send = { ticket: null, description: false, comments: 0, pages: [], code: false, idea: false, notes: false, prompt: true, style_guide: null };
         j.skipped = j.skipped ?? [];
         j.notes = j.notes ?? [];
+        // 4.0.3 also sends null for tokens and cost; the UI formats them
+        Object.assign(j, { tokens: 1200, cost: 0, metered: false, member: 'Docs helper', suggested_title: 'Paging', from: 'a prompt', injections: [] });
+        j.items = j.items.map((it, i) => ({ n: i + 1, ...it }));
         await route.fulfill({ response: res, json: j });
       });
       fake({ 'docs-write': { page_id: ids['Release notes'], title: 'Paging', gaps: ['Who owns it?'] } });
@@ -282,6 +325,67 @@ export default {
       if (await confirm.count()) await confirm.last().click();
       await s.settle();
       await p.getByRole('button', { name: 'Edit', exact: true }).waitFor();
+    });
+    await s.step('a page with a link to a page that does not exist', async () => {
+      await item('Release notes').click();
+      await p.getByTestId('page-title').getByText('Release notes', { exact: true }).waitFor();
+      await p.getByRole('button', { name: 'Edit', exact: true }).click();
+      await setMarkdown(s, '# Release notes\n\nThe release ships the API described in [[API]], see also [[Nowhere page]].\n');
+      await publishDoc(s, 'A link to nowhere');
+    });
+    await s.step('Docs health: run it now, the Broken links tab lists the link, dismiss it', async () => {
+      fake({ 'docs-freshness': { state: 'ok', reasons: [] } });
+      await p.getByRole('button', { name: /Docs health/ }).click();
+      const h = p.getByTestId('docs-health');
+      await h.getByRole('heading', { name: 'Docs health' }).waitFor();
+      await h.getByText('Nothing here changes a page.').waitFor();
+      await h.getByTestId('health-run').click();
+      await h.getByRole('button', { name: 'Run now' }).waitFor({ timeout: 30000 });
+      await h.getByRole('tab', { name: /^Broken links 1/ }).waitFor({ timeout: 15000 });
+      await h.getByRole('tab', { name: /^Out of date 0/ }).waitFor();
+      await h.getByRole('tab', { name: /^Broken links/ }).click();
+      const row = h.getByTestId('health-broken');
+      await row.getByText('Nowhere page').waitFor();
+      await row.getByText('Release notes').waitFor();
+      await row.getByRole('button', { name: 'Review' }).waitFor();
+      await row.getByRole('button').last().click();
+      await p.getByRole('menuitem').first().click();
+      await row.waitFor({ state: 'detached' });
+      await h.getByText('Every link and section resolves.').waitFor();
+    });
+    await s.step('Docs health: Missing docs lists a Done ticket no page mentions', async () => {
+      const h = p.getByTestId('docs-health');
+      await h.getByRole('tab', { name: /^Missing docs/ }).click();
+      s.note('missing docs tab', (await h.innerText()).slice(-200));
+    });
+    await s.step('a page comment on API', async () => {
+      await item('API').click();
+      await p.getByTestId('page-title').getByText('API', { exact: true }).waitFor();
+      await p.getByPlaceholder('Write a comment on this page…').click();
+      await p.keyboard.type('Please add an example request.');
+      await Promise.all([
+        p.waitForResponse((r) => r.request().method() === 'POST' && /comments/.test(r.url()), { timeout: 8000 }),
+        p.keyboard.press('Control+Enter'),
+      ]);
+      await p.getByText('Please add an example request.').first().waitFor();
+    });
+    await s.step('Comments panel: Send to AI, the page\'s assistant answers in the thread', async () => {
+      fake({ 'docs-thread': { reply: 'An example request would be GET /items?page=2.', posted: true } });
+      await p.getByTestId('comments-button').or(p.getByRole('button', { name: /^Comments/ })).first().click();
+      await p.getByTestId('send-to-ai-open').click();
+      const box = p.getByRole('region', { name: 'Send comments to an AI' });
+      await box.getByText('1 of 1 chosen').waitFor();
+      for (const t of ['The team of a ticket', 'Board AI decides', "The page's assistant"]) await box.getByText(t, { exact: true }).waitFor();
+      await box.getByTestId('send-to-ai-to-page_assistant').check();
+      await box.getByTestId('send-to-ai-go').getByText("Send to the page's assistant").waitFor();
+      await box.getByTestId('send-to-ai-go').click();
+      await p.getByText('Sent to AI', { exact: true }).waitFor();
+      await p.getByText('An example request would be GET /items?page=2.').first().waitFor({ timeout: 30000 });
+    });
+    await s.step('the reply is marked as written by the Docs AI', async () => {
+      const reply = p.getByText('An example request would be GET /items?page=2.').first();
+      await reply.waitFor();
+      s.note('thread text', (await p.getByRole('complementary').last().innerText().catch(() => '')).slice(0, 500));
     });
   },
 };

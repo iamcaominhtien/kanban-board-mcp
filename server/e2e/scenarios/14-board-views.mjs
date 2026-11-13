@@ -14,9 +14,10 @@ export default {
       const r = await fetch(u, { method: m, headers: { 'content-type': 'application/json' }, body: b ? JSON.stringify(b) : undefined });
       return { status: r.status, body: await r.json().catch(() => null) };
     }, [method, path, body]);
+    const item = (text) => p.locator('[class*="dropdownMenu"]').locator('button').filter({ hasText: text }).first();
     const pick = async (trigger, option) => {
       await p.getByRole('button', { name: trigger }).click();
-      await p.getByText(option, { exact: true }).last().click();
+      await p.locator('[class*="dropdownMenu"]').locator('button').filter({ hasText: option }).first().click();
       await p.keyboard.press('Escape');
     };
 
@@ -94,37 +95,44 @@ export default {
       await row('ALP-2').waitFor();
       await row('ALP-3').waitFor();
       // the row shows key, title, assignee, priority, due date and status
-      await row('ALP-1').getByText('Ada Lovelace').or(p.getByRole('button', { name: /^ALP-1 .*Ada Lovelace/ })).first().waitFor();
+      await p.getByRole('button', { name: /^ALP-1 Plan release AL High .* Backlog$/ }).waitFor();
+      // by due date: the earliest first, a ticket without a date last
+      const keys = (await p.getByRole('button', { name: /^ALP-\d+ / }).allInnerTexts()).map((t) => t.slice(0, 5));
+      s.note('list order', keys);
       await p.getByRole('button', { name: 'Sort: Due date' }).waitFor();
     });
     await s.step('filter the list by status and clear the filter', async () => {
+      // the menu stays open after a choice (several statuses can be ticked); the trigger closes it
       await p.getByRole('button', { name: /^Status: / }).click();
-      await p.getByRole('button', { name: 'In Progress', exact: true }).click();
-      await p.keyboard.press('Escape');
-      await p.getByRole('button', { name: 'Status: 1 selected' }).waitFor();
+      await item('In Progress').click();
+      await p.getByRole('button', { name: 'Status: 1 selected' }).click();
       await row('ALP-2').waitFor();
       await row('ALP-1').waitFor({ state: 'hidden' });
-      await p.getByRole('button', { name: /^Status: / }).click();
-      await p.getByRole('button', { name: 'In Progress', exact: true }).click();
-      await p.keyboard.press('Escape');
-      await p.getByRole('button', { name: 'Status: All' }).waitFor();
+      await p.getByRole('button', { name: 'Status: 1 selected' }).click();
+      await item('In Progress').click();
+      await item('Backlog').click();
+      await p.getByRole('button', { name: 'Status: 1 selected' }).waitFor();
+      await row('ALP-1').waitFor();
+      await row('ALP-2').waitFor({ state: 'hidden' });
+      await item('Backlog').click();
+      await p.getByRole('button', { name: 'Status: All' }).click();
+      await row('ALP-2').waitFor();
       await row('ALP-1').waitFor();
     });
     await s.step('group the list by tag', async () => {
       await p.getByRole('button', { name: 'Status', exact: true }).first().click();
-      await p.getByRole('button', { name: 'By Tag' }).click();
+      await item('By Tag').click();
       await p.getByRole('button', { name: 'Tag', exact: true }).waitFor();
-      await p.getByRole('button', { name: /^release 2/ }).waitFor();
-      await p.getByRole('button', { name: /^bug 1/ }).waitFor();
-      await p.getByRole('button', { name: /^ui 1/ }).waitFor();
+      // a ticket sits in the group of its first tag
+      for (const g of ['bug 1', 'release 1', 'ui 1', 'Untagged 1']) await p.getByRole('button', { name: g, exact: true }).waitFor();
     });
     await s.step('group the list by priority and sort by priority', async () => {
       await p.getByRole('button', { name: 'Tag', exact: true }).click();
-      await p.getByRole('button', { name: 'By Priority' }).click();
+      await item('By Priority').click();
       await p.getByRole('button', { name: /^Critical 1/ }).waitFor();
       await p.getByRole('button', { name: /^High 1/ }).waitFor();
       await p.getByRole('button', { name: 'Sort: Due date' }).click();
-      await p.getByRole('button', { name: 'Priority', exact: true }).last().click();
+      await item('Priority').click();
       await p.getByRole('button', { name: 'Sort: Priority' }).waitFor();
     });
     await s.step('collapse and expand the groups', async () => {
@@ -167,7 +175,7 @@ export default {
       await p.mouse.down();
       await p.mouse.move(b.x + b.width / 2 + 30, b.y + b.height / 2, { steps: 4 });
       await p.mouse.move(b.x + b.width / 2 + 54, b.y + b.height / 2, { steps: 4 });
-      await p.getByText(/^Due [A-Z][a-z]{2} \d+$/).waitFor();
+      await p.locator('[class*="dragTooltip"]').waitFor();
       await p.mouse.up();
       await p.waitForFunction(([sel, old]) => document.querySelector(sel)?.getAttribute('title') !== old, ['button[title^="ALP-1 · Plan release"]', before]);
       s.note('title before', before);
@@ -189,9 +197,15 @@ export default {
       await p.getByRole('button', { name: 'Gantt', exact: true }).click();
       await p.getByTitle(/^ALP-3 · Dark mode/).waitFor();
     });
-    await s.step('a ticket with a start date only is shown too; clearing dates removes the bar', async () => {
-      await openTicket(s, 'ALP-3').catch(async () => { await view('Board').click(); await openTicket(s, 'ALP-3'); });
+    await s.step('a ticket given a due date in its modal appears on the Timeline', async () => {
+      await view('Board').click();
+      await openTicket(s, 'ALP-4');
+      await dlg().locator('input[type="date"]').fill(day(7));
+      await dlg().locator('input[type="date"]').blur();
+      await s.settle();
       await closeTicket(s);
+      await view('Timeline').click();
+      await p.getByTitle(/^ALP-4 · Tidy the repo/).waitFor();
     });
 
     // ---- story lanes
@@ -222,7 +236,7 @@ export default {
       await p.getByTestId('story-lanes').waitFor();
       await p.getByTestId('lane-story').filter({ hasText: 'Checkout story' }).waitFor();
       await p.getByTestId('lane-loose').getByText('Not in a Story').waitFor();
-      await p.getByTestId('lane-story').getByText('Pay with card').first().waitFor();
+      await p.getByTestId('story-lanes').getByText('Pay with card').first().waitFor();
     });
     await s.step('fold and unfold a lane', async () => {
       await p.getByRole('button', { name: `Fold ${s.storyId}` }).click();

@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { home, ensureProject, createTicket, openTicket, closeTicket } from '../lib/ui.mjs';
 
 // The AI team end to end, through the stand-in CLI (server/crates/fake-claude): accounts and the sign-in terminal, a
@@ -69,6 +71,8 @@ export default {
     };
 
     await s.step('set up: a project with a ticket', async () => {
+      // the login of this computer (the Board AI and the other assistants use it; the team uses its own account)
+      s.server.signIn();
       await ensureProject(s);
       await createTicket(s, { title: 'Fix add' });
     });
@@ -373,6 +377,138 @@ export default {
       await p.getByRole('tab', { name: 'Instructions' }).click();
       await p.getByRole('tab', { name: 'Knowledge base' }).click();
       await p.getByRole('tab', { name: /^Memory \d/ }).click();
+    });
+
+    await s.step('Settings > AI: Pause all AI stops the project and Resume starts it again', async () => {
+      await settingsAi();
+      const reg = p.getByRole('region', { name: 'Running the teams' });
+      await reg.getByText('AI is working').waitFor();
+      await reg.getByRole('button', { name: 'Pause all AI' }).click();
+      const d = p.getByRole('dialog', { name: 'Pause all AI' });
+      await d.getByRole('button', { name: /^Let them finish/ }).click();
+      await d.getByRole('textbox', { name: 'Reason (optional)' }).fill('Maintenance window');
+      await d.getByRole('button', { name: 'Pause all AI' }).click();
+      await p.getByText('Nothing new starts until you resume.').waitFor();
+      await reg.getByText(/AI paused since/).waitFor();
+      await reg.getByRole('button', { name: 'Resume…' }).waitFor();
+      // the board says so too, and the team page shows the pause
+      await p.getByRole('button', { name: 'Back to board' }).click();
+      await home(s);
+      await p.getByText(/AI paused since/).first().waitFor();
+      await teamPage();
+      await p.getByText(/AI paused/).first().waitFor();
+    });
+
+    await s.step('Resume all AI from the banner', async () => {
+      await p.getByRole('button', { name: 'Resume…' }).first().click();
+      const d = p.getByRole('dialog', { name: 'Resume AI' });
+      await d.getByRole('button', { name: 'Resume AI' }).click();
+      await p.getByText('Queued runs start again.', { exact: true }).waitFor();
+      await p.getByText(/AI paused since/).first().waitFor({ state: 'detached' });
+      await p.getByRole('button', { name: 'Pause all AI' }).first().waitFor();
+    });
+
+    await s.step('team page: pause one team and resume it', async () => {
+      await p.getByRole('button', { name: 'Pause', exact: true }).click();
+      await p.getByRole('button', { name: 'Resume', exact: true }).waitFor();
+      await teamPage();
+      await p.getByRole('button', { name: 'Resume', exact: true }).click();
+      await p.getByRole('button', { name: 'Pause', exact: true }).waitFor();
+    });
+
+    await s.step('Settings > AI: the deny list and the limits of the project are kept', async () => {
+      await settingsAi();
+      const reg = p.getByRole('region', { name: 'Running the teams' });
+      await reg.getByRole('textbox', { name: 'Deny list' }).fill('Bash(git push --force:*)');
+      await reg.getByRole('textbox', { name: 'Deny list' }).blur();
+      await reg.getByText('Saved. Takes effect on the next run.').waitFor();
+      await reg.getByRole('spinbutton', { name: 'Runs a day' }).fill('20');
+      await reg.getByRole('spinbutton', { name: 'Runs a day' }).blur();
+      await reg.getByRole('spinbutton', { name: 'Runs at once on this project' }).fill('3');
+      await reg.getByRole('spinbutton', { name: 'Runs at once on this project' }).blur();
+      await s.settle();
+      await settingsAi();
+      await until(async () => (await p.getByRole('textbox', { name: 'Deny list' }).inputValue()) === 'Bash(git push --force:*)', 'the saved deny list');
+      await until(async () => (await p.getByRole('spinbutton', { name: 'Runs a day' }).inputValue()) === '20', 'Runs a day 20');
+      await until(async () => (await p.getByRole('spinbutton', { name: 'Runs at once on this project' }).inputValue()) === '3', 'Runs at once 3');
+    });
+
+    await s.step('Settings > AI: skills and plugins (a board skill off, a plugin from a folder, the other tabs)', async () => {
+      const folder = path.join(s.server.dirs.root, 'team-skills');
+      for (const [name, text] of [['one', 'Use one.'], ['two', 'Use two.']]) {
+        fs.mkdirSync(path.join(folder, 'skills', name), { recursive: true });
+        fs.writeFileSync(path.join(folder, 'skills', name, 'SKILL.md'), `---\nname: ${name}\ndescription: ${text}\n---\n\nBody ${name}.\n`);
+      }
+      await settingsAi();
+      const reg = p.getByRole('region', { name: 'Skills & plugins' });
+      const sw = reg.getByRole('switch', { name: 'drawio-diagrams' });
+      await sw.and(p.locator('[aria-checked="true"]')).waitFor();
+      await sw.click();
+      await sw.and(p.locator('[aria-checked="false"]')).waitFor();
+      await s.settle();
+      await settingsAi();
+      await reg.getByRole('switch', { name: 'drawio-diagrams' }).and(p.locator('[aria-checked="false"]')).waitFor();
+      await reg.getByRole('switch', { name: 'drawio-diagrams' }).click();
+      await reg.getByRole('switch', { name: 'drawio-diagrams' }).and(p.locator('[aria-checked="true"]')).waitFor();
+      await reg.getByRole('tab', { name: 'Suggested for a role' }).click();
+      await reg.getByText('Anthropic\'s design plugin', { exact: false }).first().waitFor();
+      await reg.getByRole('tab', { name: 'By team' }).click();
+      await reg.getByText(TEAM).first().waitFor();
+      await reg.getByRole('tab', { name: 'Add from a source' }).click();
+      await reg.getByRole('tab', { name: 'A folder on this computer' }).click();
+      await reg.getByRole('textbox', { name: 'Folder' }).fill(folder);
+      await reg.getByRole('button', { name: 'Preview' }).click();
+      await reg.getByText(/2 skills · 0 hooks · 0 MCP servers/).waitFor();
+      await reg.getByRole('checkbox', { name: 'Dev', exact: true }).check();
+      await reg.getByRole('button', { name: 'Install', exact: true }).click();
+      await reg.getByRole('tab', { name: /^Installed 1/ }).waitFor();
+      await reg.getByText('team-skills').first().waitFor();
+    });
+
+    await s.step('Settings > AI: instructions for every AI and the memory of the project', async () => {
+      await settingsAi();
+      const mem = p.getByRole('region', { name: 'Memory' });
+      await mem.getByRole('button', { name: 'Edit' }).click();
+      await mem.getByRole('textbox', { name: 'Instructions' }).fill('Use pytest. Never touch the CI files.');
+      await mem.getByText('37 / 40,000 characters').waitFor();
+      await mem.getByRole('button', { name: 'Save' }).click();
+      await mem.getByText('Use pytest. Never touch the CI files.').first().waitFor();
+      await mem.getByRole('button', { name: 'History' }).click();
+      await mem.getByRole('button', { name: 'Edit' }).waitFor();
+      await settingsAi();
+      await p.getByRole('region', { name: 'Memory' }).getByText('Use pytest. Never touch the CI files.').first().waitFor();
+      await p.getByRole('region', { name: 'Memory' }).getByRole('tab', { name: /^Memory \d/ }).click();
+      await p.getByRole('region', { name: 'Memory' }).getByText('Run pytest -q from the server folder.').waitFor();
+    });
+
+    await s.step('Settings > AI: role packs (open a ready-made role, edit it for this project)', async () => {
+      await settingsAi();
+      const reg = p.getByRole('region', { name: 'Role packs' });
+      await reg.getByRole('button', { name: 'Dev (TDD)', exact: true }).click();
+      await reg.getByRole('heading', { name: 'Dev (TDD)', level: 3 }).waitFor();
+      await reg.getByText('Ready-made', { exact: true }).first().waitFor();
+      await reg.getByRole('textbox', { name: 'Tagline' }).fill('A failing test first, always');
+      await reg.getByRole('button', { name: /^Save as version/ }).click();
+      await reg.getByRole('button', { name: 'Reset to ready-made' }).and(p.locator(':enabled')).waitFor();
+      await reg.getByRole('button', { name: 'Role packs ›' }).click();
+      await reg.getByText('A failing test first, always').waitFor();
+    });
+
+    await s.step('Settings > AI: repositories hold the repository path and the hand-over', async () => {
+      await settingsAi();
+      const reg = p.getByRole('region', { name: 'Repositories' });
+      await reg.getByRole('textbox', { name: 'Repository path' }).fill(s.server.dirs.repo);
+      await reg.getByRole('textbox', { name: 'Repository path' }).blur();
+      await reg.getByRole('textbox', { name: 'Base branch' }).fill('main');
+      await reg.getByRole('textbox', { name: 'Base branch' }).blur();
+      await reg.getByRole('combobox', { name: 'Hand over finished code by' }).selectOption({ label: 'Leave the branch' });
+      await s.settle();
+      await settingsAi();
+      const again = p.getByRole('region', { name: 'Repositories' });
+      await until(async () => (await again.getByRole('textbox', { name: 'Base branch' }).inputValue()) === 'main', 'the saved base branch');
+      await until(async () => (await again.getByRole('combobox', { name: 'Hand over finished code by' }).inputValue()) === 'leave', 'the saved hand-over').catch(async () => {
+        await again.getByRole('combobox', { name: 'Hand over finished code by' }).locator('option:checked').filter({ hasText: 'Leave the branch' }).waitFor();
+      });
     });
   },
 };
