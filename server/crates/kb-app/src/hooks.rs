@@ -42,6 +42,28 @@ impl kb_dbkit::hooks::DocsSearchHook for DocsSearch {
     }
 }
 
+/// The AI team's side of a workspace switch: no run may be working, and the runner is stopped afterwards (it started
+/// on the old board; the next run starts it again on the new one).
+struct Workspaces;
+
+#[async_trait]
+impl kb_dbkit::hooks::WorkspaceHook for Workspaces {
+    async fn busy(&self) -> Option<String> {
+        let session = kb_db::database::session();
+        let runs = kb_ai::store::active_runs(&session, None, None).await.ok()?;
+        (!runs.is_empty()).then(|| {
+            format!(
+                "{} AI run(s) are working on this board. Wait for them to finish or stop them, then switch.",
+                runs.len()
+            )
+        })
+    }
+
+    async fn switched(&self) {
+        kb_ai::runner_link::stop().await;
+    }
+}
+
 struct McpTools;
 
 #[async_trait]
@@ -164,6 +186,7 @@ pub fn install() {
     kb_docs::hooks::register();
     kb_ideas::register();
     kb_dbkit::hooks::set_docs_search_hook(Box::new(DocsSearch));
+    kb_dbkit::hooks::set_workspace_hook(Box::new(Workspaces));
     kb_board::hooks::set_db_move_hook(Box::new(DbMove));
     kb_doctext::docs_access::set_notifications_hook(Box::new(Notifications));
     // `kanban_mcp/common.py` registers its listener when it is imported: an MCP tool names what it wrote

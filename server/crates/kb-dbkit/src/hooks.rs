@@ -69,3 +69,26 @@ pub fn set_docs_search_hook(hook: Box<dyn DocsSearchHook>) {
 pub fn docs_search() -> Option<&'static dyn DocsSearchHook> {
     DOCS_SEARCH.get().map(|hook| hook.as_ref())
 }
+
+/// What a workspace switch must ask of the AI team (`kb-ai`, above this crate).
+#[async_trait]
+pub trait WorkspaceHook: Send + Sync {
+    /// Why the board cannot be switched now (AI runs are working on it), or `None`.
+    async fn busy(&self) -> Option<String>;
+
+    /// The board was switched: stop what still holds the old one (the AI runner starts again, on the new board, with
+    /// the next run).
+    async fn switched(&self);
+}
+
+static WORKSPACE: OnceLock<Box<dyn WorkspaceHook>> = OnceLock::new();
+
+/// Register the AI team's side of a workspace switch (once, at startup; a second call is ignored).
+pub fn set_workspace_hook(hook: Box<dyn WorkspaceHook>) {
+    let _ = WORKSPACE.set(hook);
+}
+
+/// The AI team's side of a switch, when its crate has registered itself.
+pub fn workspace() -> Option<&'static dyn WorkspaceHook> {
+    WORKSPACE.get().map(|hook| hook.as_ref())
+}

@@ -5,6 +5,7 @@ import { useDatabase } from '../../api/database';
 import { useSettings, useSetDataPath } from '../../api/settings';
 import { DatabaseCard } from './database/DatabaseCard';
 import { WorkspaceSettingsSection } from './WorkspaceSettingsSection';
+import { WorkspacesCard } from './WorkspacesCard';
 import { Field, ICONS, SIcon, SettingsCard } from './settingsUi';
 import styles from './SettingsPage.module.css';
 
@@ -126,6 +127,8 @@ export function StoragePage() {
   return (
     <>
       <DatabaseSection db={database} />
+
+      <WorkspacesCard />
 
       <SettingsCard
         title="Data folder"
@@ -254,7 +257,7 @@ export function StoragePage() {
         <div className={styles.hint}>
           {onServer
             ? 'Import replaces the data in the connected database, after the same confirmation as today.'
-            : 'Workspace files are not included; they live outside the data folder on purpose.'}
+            : 'Ticket Workspace files are not included; they live outside the data folder on purpose.'}
         </div>
       </SettingsCard>
     </>

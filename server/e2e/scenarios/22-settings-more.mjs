@@ -62,7 +62,7 @@ export default {
     // ---------------------------------------------------------------- Workspace
     await s.step('Workspace: the default retention changes what a ticket offers, and a folder is created on disk', async () => {
       await openSettings('Storage & backup');
-      await p.getByRole('heading', { name: 'Workspace', level: 2 }).waitFor();
+      await p.getByRole('heading', { name: 'Workspace', level: 2, exact: true }).waitFor();
       await p.getByRole('switch', { name: 'Enable workspace' }).and(p.locator('[aria-checked="true"]')).waitFor();
       const root = await p.getByRole('textbox', { name: 'Workspace root path' }).inputValue();
       if (path.resolve(root) !== path.resolve(s.server.dirs.workspace)) throw new Error(`workspace root is ${root}`);
@@ -433,6 +433,35 @@ export default {
       await toast.first().waitFor({ timeout: 45000 });
       await toast.first().getByRole('button', { name: 'Close notification' }).click();
       await toast.first().waitFor({ state: 'detached' });
+    });
+
+    await s.step('Workspaces: a second board starts empty, the switch shows it, and the sidebar switches back to the first', async () => {
+      await openSettings('Storage & backup');
+      const card = p.getByTestId('workspaces-card');
+      await card.getByRole('heading', { name: 'Workspaces', level: 2, exact: true }).waitFor();
+      await card.getByRole('listitem').filter({ hasText: 'In use' }).filter({ hasText: 'Default' }).waitFor();
+      // one entry, so the sidebar shows no switcher yet
+      if (await p.getByRole('menu', { name: 'Workspaces' }).count()) throw new Error('the switcher shows with one workspace');
+      await p.getByPlaceholder(/Name, for example/).fill('Default');
+      await card.getByRole('button', { name: 'Add workspace' }).click();
+      await card.getByText('A workspace named "Default" already exists').waitFor();
+      await p.getByPlaceholder(/Name, for example/).fill('Home');
+      await card.getByRole('button', { name: 'Add workspace' }).click();
+      const home2 = card.getByRole('listitem').filter({ hasText: 'Home' });
+      await home2.waitFor();
+      await home2.getByText('Empty: a new board starts here.').waitFor();
+      await Promise.all([p.waitForNavigation(), home2.getByRole('button', { name: 'Switch' }).click()]);
+      // the new board has no project: the first-run screen, then its own project and no ticket of the other board
+      await ensureProject(s, { name: 'Cottage', prefix: 'COT' });
+      if (await p.getByText('Watch me').count()) throw new Error('a ticket of the other board shows in this one');
+      // the sidebar now offers the switch back
+      const sidebar = p.getByRole('complementary', { name: 'Project navigation' });
+      await sidebar.getByRole('button', { name: 'Home', exact: true }).click();
+      await Promise.all([p.waitForNavigation(), p.getByRole('menuitemradio', { name: 'Default' }).click()]);
+      await sidebar.waitFor();
+      await p.getByRole('button', { name: /^Alpha ALP/ }).click();
+      await p.getByRole('button', { name: /ALP-1 / }).first().waitFor();
+      if (await p.getByRole('button', { name: /^Cottage COT/ }).count()) throw new Error('a project of the other board shows in this one');
     });
   },
 };

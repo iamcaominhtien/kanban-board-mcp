@@ -1,0 +1,88 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { client } from './client';
+
+/** One board kept on this computer: a name and a data folder (`kanban.db` and `uploads/`). */
+export interface WorkspaceItem {
+  id: string;
+  name: string;
+  folder: string;
+  /** The board the app shows now. */
+  active: boolean;
+  /** The folder holds a database already; a new workspace gets its board the first time it is opened. */
+  hasBoard: boolean;
+}
+
+export interface WorkspacesData {
+  items: WorkspaceItem[];
+  activeId: string | null;
+  /** False while the board runs on a database server: there is no folder to switch to. */
+  switchable: boolean;
+  /** Why a switch is not possible, when it is not. */
+  reason: string | null;
+}
+
+export const workspacesKey = ['workspaces'] as const;
+
+/** The workspaces of this computer, the one in use marked. */
+export function useWorkspaces() {
+  return useQuery<WorkspacesData>({
+    queryKey: workspacesKey,
+    queryFn: async () => (await client.get('/workspaces')).data,
+    // the list only changes when this window changes it
+    staleTime: 60_000,
+  });
+}
+
+/** Add a workspace; nothing is switched. `folder` empty: a new folder next to the settings file. */
+export function useAddWorkspace() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { name: string; folder?: string }) => (await client.post('/workspaces', body)).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: workspacesKey }),
+  });
+}
+
+/** Rename a workspace. */
+export function useRenameWorkspace() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) =>
+      (await client.patch(`/workspaces/${encodeURIComponent(id)}`, { name })).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: workspacesKey }),
+  });
+}
+
+/** Forget a workspace; its folder and data stay on disk. */
+export function useRemoveWorkspace() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => (await client.delete(`/workspaces/${encodeURIComponent(id)}`)).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: workspacesKey }),
+  });
+}
+
+/** Open another workspace on the server. The caller then calls `reloadAfterSwitch`. */
+export function useSwitchWorkspace() {
+  return useMutation({
+    mutationFn: async (id: string) => (await client.post(`/workspaces/${encodeURIComponent(id)}/switch`)).data,
+  });
+}
+
+/**
+ * Show the board that was just opened: forget the project of the old board (it is not in the new one) and load the
+ * page again, as an import does.
+ */
+export function reloadAfterSwitch(): void {
+  try {
+    localStorage.removeItem('activeProjectId');
+  } catch {
+    // storage can be blocked; the board then falls back to its first project
+  }
+  window.location.replace(window.location.pathname);
+}
+
+/** The server's reason for a refused call, or a fallback. */
+export function workspaceError(error: unknown, fallback: string): string {
+  const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+  return typeof detail === 'string' && detail ? detail : fallback;
+}

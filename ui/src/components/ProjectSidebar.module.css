@@ -674,3 +674,59 @@
     background-position: 200px 0;
   }
 }
+
+/* Workspace switcher under the logo (only with two or more workspaces) */
+.workspaceSwitcher {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: -6px;
+}
+
+.workspaceMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.workspaceMenuItem {
+  border: none;
+  background: none;
+  border-radius: 6px;
+  padding: 7px 10px;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: #d7e3da;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workspaceMenuItem:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.workspaceMenuItem:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.workspaceMenuItemActive {
+  opacity: 1 !important;
+  color: #aacc2e;
+  font-weight: 600;
+}
+
+.workspaceError {
+  padding: 6px 10px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #f3b9a8;
+  white-space: normal;
+}

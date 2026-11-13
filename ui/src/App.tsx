@@ -7,6 +7,7 @@ import { IdeaLinksProvider } from './components/ideas/ideaLinks';
 import { useIdeaCounts } from './api/ideas';
 import { MembersPanel } from './components/MembersPanel';
 import { ProjectSidebar } from './components/ProjectSidebar';
+import { reloadAfterSwitch, useSwitchWorkspace, useWorkspaces, workspaceError } from './api/workspaces';
 import { SettingsPage, type SettingsTarget } from './components/settings/SettingsPage';
 import { isSettingsPageId, type SettingsPageId } from './components/settings/settingsIndex';
 import { TicketModal } from './components/TicketModal';
@@ -98,12 +99,32 @@ function useAskAiNav(projectId: string | null) {
 }
 
 /** The sidebar, given the Ask AI entry from the dock's state. */
-function SidebarWithAssist(props: Omit<Parameters<typeof ProjectSidebar>[0], 'askAi'> & { projectId: string | null }) {
+function SidebarWithAssist(
+  props: Omit<Parameters<typeof ProjectSidebar>[0], 'askAi' | 'workspaces'> & { projectId: string | null },
+) {
   const { projectId, ...rest } = props;
   const askAi = useAskAiNav(projectId);
   const counts = useNotificationCounts();
   const notifications = { onClick: () => requestOpenNotifications('page'), needs: counts.data?.needs ?? 0 };
-  return <ProjectSidebar {...rest} askAi={askAi} notifications={notifications} />;
+  const workspaces = useWorkspaces();
+  const switchWorkspace = useSwitchWorkspace();
+  return (
+    <ProjectSidebar
+      {...rest}
+      askAi={askAi}
+      notifications={notifications}
+      workspaces={
+        workspaces.data
+          ? {
+              items: workspaces.data.items,
+              switchable: workspaces.data.switchable,
+              error: switchWorkspace.isError ? workspaceError(switchWorkspace.error, 'Could not switch') : null,
+              onSwitch: (id) => switchWorkspace.mutate(id, { onSuccess: reloadAfterSwitch }),
+            }
+          : null
+      }
+    />
+  );
 }
 
 /**

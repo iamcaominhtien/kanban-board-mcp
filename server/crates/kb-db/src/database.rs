@@ -291,10 +291,16 @@ fn set_unreachable(value: Option<Map<String, Value>>) {
     *UNREACHABLE.write().unwrap_or_else(|e| e.into_inner()) = value;
 }
 
-/// What decides the database: the environment variable and the saved choice (never shown).
+/// What decides the database: the environment variable, the saved choice (never shown) and the data folder (a
+/// workspace switch changes only that).
 fn settings_key() -> String {
     let saved = app_config::get_section(targets::CONFIG_KEY);
-    pyjson::Dumps::new().sort_keys(true).dump(&json!([std::env::var(targets::ENV_URL).unwrap_or_default(), saved]))
+    let folder = app_config::get_data_folder().map(|f| f.to_string_lossy().into_owned());
+    pyjson::Dumps::new().sort_keys(true).dump(&json!([
+        std::env::var(targets::ENV_URL).unwrap_or_default(),
+        saved,
+        folder
+    ]))
 }
 
 fn is_connection_error(err: &DatabaseError) -> bool {
@@ -402,8 +408,9 @@ pub async fn check_reachable(timeout: Duration) -> Value {
     }
 }
 
-/// Re-point this process when the database setting changes (the wizard's switch in the board, `kanban-db use` on
-/// the command line): the board and the stdio MCP processes that editors launch then always use one database.
+/// Re-point this process when the database setting or the data folder changes (the wizard's switch in the board,
+/// `kanban-db use` on the command line, a workspace switch): the board and the stdio MCP processes that editors
+/// launch then always use one database.
 pub async fn follow_settings(interval: Duration) {
     let mut seen = settings_key();
     loop {
@@ -414,7 +421,9 @@ pub async fn follow_settings(interval: Duration) {
         }
         seen = now;
         let current = current_target();
-        let (target, _source) = match resolve_target(&get_db_path()) {
+        // the data folder may have changed too (another process switched workspace), so the file is resolved again
+        let db_path = resolve_db_path();
+        let (target, _source) = match resolve_target(&db_path) {
             Ok(found) => found,
             Err(err) => {
                 tracing::error!("Could not follow the database setting: {err}");
@@ -425,7 +434,7 @@ pub async fn follow_settings(interval: Duration) {
             continue;
         }
         tracing::info!("The database setting changed; now using {}", target.label());
-        if let Err(err) = reinit_db(None).await {
+        if let Err(err) = reinit_db(Some(db_path)).await {
             // keep following
             tracing::error!("Could not follow the database setting: {err}");
         }

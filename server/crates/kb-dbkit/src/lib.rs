@@ -12,3 +12,4 @@ pub mod hooks;
 pub mod jobs;
 pub mod move_db;
 pub mod probe;
+pub mod workspaces;

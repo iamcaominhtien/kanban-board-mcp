@@ -25,6 +25,8 @@ const PATHS = {
       <path d="M8 11V8a4 4 0 0 1 8 0v3" />
     </>
   ),
+  /** Workspaces: stacked boards */
+  layers: <path d="M12 3l9 5-9 5-9-5 9-5zM3 12.5l9 5 9-5M3 16.5l9 5 9-5" />,
   /** ⚠ warning */
   warning: <path d="M12 4l9 16H3L12 4zM12 10v4M12 17v.5" />,
   /** ⛔ blocked, not allowed */

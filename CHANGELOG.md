@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ## [Unreleased]
 
+### Added
+- **Workspaces: several boards on one computer, one click between them.** Keep the board of place A and the board of place B side by side and switch in Settings › Storage & backup › Workspaces (or from the switcher under the logo once there are two), instead of exporting one board and importing the other. Each workspace is a data folder (`kanban.db` and `uploads/`); adding one makes a new empty board, or opens a folder that already holds a board. Switching needs no restart, never copies or deletes data, and is refused while an AI run is working. Claude Code and VS Code follow the switch within a few seconds (their MCP process re-reads the data folder). Removing a workspace forgets the entry and leaves its folder on disk. Workspaces are SQLite folders: while the board runs on PostgreSQL or MySQL the list shows but the switch is off. New routes `GET/POST /workspaces`, `PATCH/DELETE /workspaces/{id}`, `POST /workspaces/{id}/switch` (added to `server/contract/openapi.json` by hand).
+
 ## [5.0.0] - (release date)
 
 **The server is now a native program.** The backend, which was Python (FastAPI, the `mcp` SDK, SQLModel, Alembic) shipped in the desktop app as a PyInstaller bundle, is rewritten in Rust. The app carries no Python runtime any more. What you see and what an AI agent calls did not change: the same REST routes, the same event stream, the same MCP tools with the same names, descriptions and schemas. Plan and what was checked: `docs/specs/rust-migration.md`.

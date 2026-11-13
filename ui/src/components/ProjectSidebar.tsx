@@ -29,6 +29,15 @@ interface ProjectSidebarProps {
   /** 'loading': skeleton rows, static items dimmed; 'error': inline retry row; 'empty': only "New project". */
   loadState?: 'loading' | 'error' | 'empty';
   onRetryProjects?: () => void;
+  /** The boards kept on this computer (App settings › Storage & backup › Workspaces); the switcher shows with two or more. */
+  workspaces?: {
+    items: { id: string; name: string; active: boolean }[];
+    /** False while a switch is not possible (a database server): the list shows, the rows are disabled. */
+    switchable: boolean;
+    onSwitch: (id: string) => void;
+    /** The server's reason for the last refused switch. */
+    error?: string | null;
+  } | null;
 }
 
 const PRESET_COLORS = ['#AACC2E', '#F472B6', '#F5C518', '#E8441A', '#5BB8F5', '#A78BFA', '#34D399', '#FB923C'];
@@ -47,6 +56,7 @@ const PRESET_COLORS = ['#AACC2E', '#F472B6', '#F5C518', '#E8441A', '#5BB8F5', '#
  * @param props.onBoardChange - Called when the other space is selected.
  * @param props.loadState - `loading`: skeleton rows, static items dimmed; `error`: inline retry row; `empty`: only "New project".
  * @param props.onRetryProjects - Called when the retry row is clicked.
+ * @param props.workspaces - The boards on this computer; with two or more, a switcher sits under the logo.
  */
 export function ProjectSidebar({
   projects,
@@ -66,8 +76,11 @@ export function ProjectSidebar({
   onBoardChange,
   loadState,
   onRetryProjects,
+  workspaces,
 }: ProjectSidebarProps) {
   const [showForm, setShowForm] = useState(false);
+  const [showWorkspaces, setShowWorkspaces] = useState(false);
+  const activeWorkspace = workspaces?.items.find((w) => w.active);
   // Desktop menu: File › New Project…
   useAppCommand('new-project', () => setShowForm(true));
   const [formName, setFormName] = useState('');
@@ -112,7 +125,7 @@ export function ProjectSidebar({
 
   return (
     <aside
-      className={`${styles.sidebar} ${showForm ? styles.expanded : ''} ${loadState === 'loading' ? styles.sidebarLoading : ''}`}
+      className={`${styles.sidebar} ${showForm || showWorkspaces ? styles.expanded : ''} ${loadState === 'loading' ? styles.sidebarLoading : ''}`}
       aria-label="Project navigation"
     >
       {/* App Brand Header */}
@@ -120,6 +133,44 @@ export function ProjectSidebar({
         <AppLogo size={22} />
         <span className={styles.logoText}>KANBAN</span>
       </div>
+
+      {/* Workspace switcher: only when this computer keeps more than one board */}
+      {workspaces && workspaces.items.length > 1 && (
+        <div className={styles.workspaceSwitcher}>
+          <button
+            type="button"
+            className={styles.sidebarIconBtn}
+            title={`Workspace: ${activeWorkspace?.name ?? ''}`}
+            aria-haspopup="true"
+            aria-expanded={showWorkspaces}
+            onClick={() => setShowWorkspaces((open) => !open)}
+          >
+            <LineIcon name="layers" size={16} />
+            <span className={styles.navLabel}>{activeWorkspace?.name ?? 'Workspace'}</span>
+          </button>
+          {showWorkspaces && (
+            <div className={styles.workspaceMenu} role="menu" aria-label="Workspaces">
+              {workspaces.items.map((w) => (
+                <button
+                  key={w.id}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={w.active}
+                  className={`${styles.workspaceMenuItem} ${w.active ? styles.workspaceMenuItemActive : ''}`}
+                  disabled={w.active || !workspaces.switchable}
+                  onClick={() => {
+                    setShowWorkspaces(false);
+                    workspaces.onSwitch(w.id);
+                  }}
+                >
+                  {w.name}
+                </button>
+              ))}
+              {workspaces.error && <div className={styles.workspaceError}>{workspaces.error}</div>}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Projects List */}
       {loadState !== 'empty' && (
