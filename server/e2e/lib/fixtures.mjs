@@ -103,8 +103,13 @@ export function docx(text) {
   ]);
 }
 export function xlsx(rows) {
-  const cell = (v) => (typeof v === 'number' ? `<c><v>${v}</v></c>` : `<c t="inlineStr"><is><t>${v}</t></is></c>`);
-  const sheet = rows.map((r, i) => `<row r="${i + 1}">${r.map(cell).join('')}</row>`).join('');
+  // each cell names its place (A1, B1...): the spreadsheet reader puts a cell without one nowhere
+  const ref = (r, c) => `${String.fromCharCode(65 + c)}${r}`;
+  const cell = (v, r, c) =>
+    typeof v === 'number'
+      ? `<c r="${ref(r, c)}"><v>${v}</v></c>`
+      : `<c r="${ref(r, c)}" t="inlineStr"><is><t>${v}</t></is></c>`;
+  const sheet = rows.map((row, i) => `<row r="${i + 1}">${row.map((v, c) => cell(v, i + 1, c)).join('')}</row>`).join('');
   return zipStored([
     ['[Content_Types].xml', `${CT}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`],
     ['_rels/.rels', `${CT}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],

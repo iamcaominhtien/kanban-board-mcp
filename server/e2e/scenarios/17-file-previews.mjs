@@ -1,22 +1,5 @@
 import { ensureProject, createTicket, openTicket } from '../lib/ui.mjs';
-import fs from 'node:fs';
-import { makeFixtures, cleanFixtures, zipStored } from '../lib/fixtures.mjs';
-
-// Local helper: the shared xlsx() fixture writes cells without their A1 references, which the reader does not place
-// (it shows an empty grid). This workbook gives every cell its reference.
-function xlsxWithRefs(rows) {
-  const CT = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
-  const col = (i) => String.fromCharCode(65 + i);
-  const cell = (v, r, c) => (typeof v === 'number' ? `<c r="${col(c)}${r}"><v>${v}</v></c>` : `<c r="${col(c)}${r}" t="inlineStr"><is><t>${v}</t></is></c>`);
-  const sheet = rows.map((row, i) => `<row r="${i + 1}">${row.map((v, c) => cell(v, i + 1, c)).join('')}</row>`).join('');
-  return zipStored([
-    ['[Content_Types].xml', `${CT}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`],
-    ['_rels/.rels', `${CT}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
-    ['xl/workbook.xml', `${CT}<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>`],
-    ['xl/_rels/workbook.xml.rels', `${CT}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`],
-    ['xl/worksheets/sheet1.xml', `${CT}<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheet}</sheetData></worksheet>`],
-  ]);
-}
+import { makeFixtures, cleanFixtures } from '../lib/fixtures.mjs';
 
 // Every kind of attachment opens in the preview viewer with the reader of its type.
 export default {
@@ -25,7 +8,6 @@ export default {
     const p = s.page;
     const fx = makeFixtures();
     const pv = fx.previews;
-    fs.writeFileSync(pv.xlsx, xlsxWithRefs([['Item', 'Cost'], ['Hosting', 42]]));
     const dlg = () => p.getByRole('dialog', { name: /^Ticket / });
     const viewer = () => p.getByRole('dialog', { name: /^Preview of / });
     const chip = (name) => dlg().locator(`[title="Click to preview ${name}"]`);
