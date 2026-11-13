@@ -185,7 +185,7 @@ pub fn extract<'a>(markdown: &'a str, selection: Option<&'a str>) -> Found {
         let mut checked = false;
         if let Some(task) = TASK.captures(raw) {
             checked = task[1].eq_ignore_ascii_case("x");
-        } else if !ACTION_PREFIX.is_match(raw) && !(ACTION_HEAD.is_match(&heading) && BULLET.is_match(raw)) {
+        } else if !(ACTION_PREFIX.is_match(raw) || (ACTION_HEAD.is_match(&heading) && BULLET.is_match(raw))) {
             continue;
         }
         let text = line_text(raw);

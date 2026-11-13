@@ -120,7 +120,7 @@ pub fn actions(r: &notification::Model, gone: bool) -> Vec<Value> {
 
 /// What a closed row says about why: "Dismissed by you", "Hoa answered in the ticket".
 pub fn done_text(r: &notification::Model, me: &str) -> Option<String> {
-    if !r.done_at.as_deref().is_some_and(|d| !d.is_empty()) {
+    if r.done_at.as_deref().is_none_or(str::is_empty) {
         return None;
     }
     let mut reason = r.done_reason.clone().filter(|s| !s.is_empty()).unwrap_or_else(|| "Done".to_string());

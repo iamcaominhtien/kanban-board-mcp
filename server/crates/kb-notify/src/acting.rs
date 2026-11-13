@@ -193,7 +193,7 @@ pub async fn snooze(session: &Session, me: &str, row_id: &str, until: Option<&st
 /// open Needs you row is resolved or snoozed instead.
 pub async fn clear(session: &Session, me: &str, row_id: &str, on: bool) -> Result<Value> {
     let r = mine(session, me, row_id).await?;
-    if on && r.needs && !r.done_at.as_deref().is_some_and(|d| !d.is_empty()) {
+    if on && r.needs && r.done_at.as_deref().is_none_or(str::is_empty) {
         return Err(NotifyError::value(
             "A Needs you row closes when the work is done, or is snoozed; it is not cleared.",
         ));
