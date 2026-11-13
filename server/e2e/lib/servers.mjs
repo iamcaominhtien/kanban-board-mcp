@@ -1,5 +1,5 @@
 // Start a server the way server/crates/testkit/src/server.rs does: own temporary folders, no inherited KANBAN_*.
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -44,7 +44,22 @@ for (const sig of ['SIGINT', 'SIGTERM', 'exit']) {
 // `env`: more variables for the server (the stress check names its database with KANBAN_DATABASE_URL).
 export async function startServer(target, { uiDist = path.join(REPO, 'ui/dist'), env: extra = {} } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kanban-e2e-'));
-  for (const d of ['data', 'config', 'logs', 'workspace', 'uploads', 'claude']) fs.mkdirSync(path.join(root, d));
+  for (const d of ['data', 'config', 'logs', 'workspace', 'uploads', 'claude', 'bin', 'home', 'accounts']) fs.mkdirSync(path.join(root, d));
+  // The AI CLI is the stand-in of the Rust tests (crates/fake-claude), on PATH as `claude`, for both servers. Before it
+  // runs it reads the variables a step wrote with server.fake(...) (FAKE_CTL), as the Rust test fixtures do.
+  const ctl = path.join(root, 'fake.env');
+  fs.writeFileSync(ctl, '');
+  const fakeBin = (process.env.FAKE_CLAUDE_BIN || '').trim() || path.join(REPO, 'server/target/debug/fake-claude');
+  if (!fs.existsSync(fakeBin)) throw new Error(`fake-claude missing: ${fakeBin} (cargo build -p fake-claude)`);
+  fs.writeFileSync(path.join(root, 'bin/claude'), `#!/bin/sh\n[ -f "$FAKE_CTL" ] && . "$FAKE_CTL"\nexec "${fakeBin}" "$@"\n`, { mode: 0o755 });
+  // A small git repository a project can be linked to (branches, workspaces, the AI's working folder)
+  const repo = path.join(root, 'repo');
+  fs.mkdirSync(repo);
+  fs.writeFileSync(path.join(repo, 'calc.py'), 'def add(a, b):\n    return a - b\n');
+  const git = (...a) => execFileSync('git', a, { cwd: repo, stdio: 'ignore', env: { ...process.env, GIT_AUTHOR_NAME: 'E2E', GIT_AUTHOR_EMAIL: 'e2e@example.com', GIT_COMMITTER_NAME: 'E2E', GIT_COMMITTER_EMAIL: 'e2e@example.com' } });
+  git('init', '-q', '-b', 'main');
+  git('add', '.');
+  git('commit', '-q', '-m', 'first');
   const env = {};
   for (const [k, v] of Object.entries(process.env)) if (!k.startsWith('KANBAN_')) env[k] = v;
   Object.assign(env, {
@@ -58,6 +73,13 @@ export async function startServer(target, { uiDist = path.join(REPO, 'ui/dist'),
     KANBAN_RUNNER: 'inprocess',
     KANBAN_UI_DIST: uiDist,
     KANBAN_DRAWIO_DIR: path.join(root, 'none'),
+    PATH: [path.join(root, 'bin'), process.env.PATH || '/usr/bin:/bin'].join(path.delimiter),
+    HOME: path.join(root, 'home'),
+    KANBAN_AI_KEY_FILE: path.join(root, 'ai.key'),
+    KANBAN_AI_ACCOUNTS_HOME: path.join(root, 'accounts'),
+    FAKE_CTL: ctl,
+    FAKE_CLAUDE_MODE: 'v2',
+    FAKE_CLAUDE_ACCOUNTS: '1',
     KANBAN_AI_ROOTS: [root, os.tmpdir()].join(path.delimiter),
     PYTHONUNBUFFERED: '1',
     // From 18:00 on a working day the board writes each person's card of the day into the notifications, by the
@@ -93,7 +115,15 @@ export async function startServer(target, { uiDist = path.join(REPO, 'ui/dist'),
       live.delete(server);
     },
     async stop() { this.stopSync(); },
-    dirs: { uploads: path.join(root, 'uploads'), workspace: path.join(root, 'workspace'), root },
+    dirs: { uploads: path.join(root, 'uploads'), workspace: path.join(root, 'workspace'), repo, home: path.join(root, 'home'), root },
+    // Variables the stand-in AI CLI reads on its next start (FAKE_CLAUDE_MODE, FAKE_CLAUDE_ASSISTANT_JSON...): they
+    // replace those of the previous call.
+    fake(vars = {}) {
+      const q = (v) => `'${String(v).replace(/'/g, `'\\''`)}'`;
+      fs.writeFileSync(ctl, Object.entries(vars).map(([k, v]) => `export ${k}=${q(v)}`).join('\n') + '\n');
+    },
+    // An AI account signed in (the stand-in CLI reads <CLAUDE_CONFIG_DIR>/.fake-login).
+    signIn(email = 'an@work.example') { fs.writeFileSync(path.join(root, 'claude/.fake-login'), email); },
   };
   live.add(server);
   const ready = new Promise((resolve, reject) => {

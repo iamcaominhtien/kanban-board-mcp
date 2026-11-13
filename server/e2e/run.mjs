@@ -28,7 +28,8 @@ const groupSel = opt('group', 'all');
 if (!['python', 'rust', 'both'].includes(target)) { console.error('--target must be python, rust or both'); process.exit(2); }
 const targets = target === 'both' ? ['python', 'rust'] : [target];
 
-const reportDir = path.join(here, 'report');
+// --report <folder>: where the screenshots and JSON go (runs side by side each need their own); default e2e/report
+const reportDir = path.resolve(opt('report', path.join(here, 'report')));
 fs.mkdirSync(reportDir, { recursive: true });
 if (!fs.existsSync(path.join(REPO, 'ui/dist/index.html'))) { console.error('ui/dist is missing: cd ui && npm ci && npm run build'); process.exit(2); }
 
