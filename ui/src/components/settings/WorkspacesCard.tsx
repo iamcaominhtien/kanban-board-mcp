@@ -9,6 +9,8 @@ import {
   workspaceError,
   type WorkspaceItem,
 } from '../../api/workspaces';
+import { useDatabase } from '../../api/database';
+import { ConnectionForm, draftReady, draftToBody, emptyDraft, type ConnectionDraft } from './database/ConnectionForm';
 import { Field, ICONS, SIcon, SettingsCard } from './settingsUi';
 import styles from './SettingsPage.module.css';
 
@@ -24,6 +26,8 @@ export function WorkspacesCard() {
   const rename = useRenameWorkspace();
   const remove = useRemoveWorkspace();
   const open = useSwitchWorkspace();
+  const database = useDatabase();
+  const [draft, setDraft] = useState<ConnectionDraft>(() => emptyDraft('sqlite'));
   const [name, setName] = useState('');
   const [folder, setFolder] = useState('');
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
@@ -36,9 +40,14 @@ export function WorkspacesCard() {
   async function handleAdd() {
     setStatus(null);
     try {
-      await add.mutateAsync({ name, ...(folder.trim() ? { folder: folder.trim() } : {}) });
+      await add.mutateAsync({
+        name,
+        ...(folder.trim() ? { folder: folder.trim() } : {}),
+        ...(draft.engine !== 'sqlite' ? { connection: draftToBody(draft) } : {}),
+      });
       setName('');
       setFolder('');
+      setDraft(emptyDraft('sqlite'));
       setStatus({ ok: true, text: 'Workspace added. Switch to it when you are ready.' });
     } catch (e) {
       setStatus({ ok: false, text: workspaceError(e, 'Could not add the workspace') });
@@ -116,10 +125,15 @@ export function WorkspacesCard() {
               ) : (
                 <b>
                   {item.name}
+                  {item.engine !== 'sqlite' && (
+                    <span className={styles.workspaceEngine}>
+                      {item.engine === 'postgresql' ? 'PostgreSQL' : 'MySQL / MariaDB'}
+                    </span>
+                  )}
                   {item.active && <span className={styles.workspaceChip}>In use</span>}
                 </b>
               )}
-              <span className={`${styles.hint} ${styles.mono}`}>{item.folder}</span>
+              <span className={`${styles.hint} ${styles.mono}`}>{item.place}</span>
               {!item.hasBoard && !item.active && <span className={styles.hint}>Empty: a new board starts here.</span>}
             </div>
             <div className={styles.row}>
@@ -194,10 +208,41 @@ export function WorkspacesCard() {
           }}
         />
       </Field>
+      <Field label="Where the board is kept" htmlFor="workspace-engine-select">
+        <select
+          id="workspace-engine-select"
+          className={styles.input}
+          value={draft.engine}
+          onChange={(e) => {
+            setDraft(emptyDraft(e.target.value as ConnectionDraft['engine']));
+            setStatus(null);
+          }}
+        >
+          <option value="sqlite">A file on this computer (SQLite)</option>
+          <option value="postgresql">A PostgreSQL server</option>
+          <option value="mysql">A MySQL / MariaDB server</option>
+        </select>
+      </Field>
+      {draft.engine !== 'sqlite' && (
+        <ConnectionForm
+          draft={draft}
+          onChange={(d) => {
+            setDraft(d);
+            setStatus(null);
+          }}
+          passwordStore={database.data?.passwordStore ?? 'file'}
+          sqlitePath=""
+          disabled={add.isPending}
+        />
+      )}
       <Field
-        label="Folder (optional)"
+        label={draft.engine === 'sqlite' ? 'Folder (optional)' : 'Attachments folder (optional)'}
         htmlFor="workspace-folder-input"
-        hint="Leave empty for a new folder next to the settings file. A folder that already holds a board is added as it is."
+        hint={
+          draft.engine === 'sqlite'
+            ? 'Leave empty for a new folder next to the settings file. A folder that already holds a board is added as it is.'
+            : 'Attachments and AI logs of this board. Leave empty for a new folder next to the settings file. The server is tested before the workspace is saved; an empty database gets a new board.'
+        }
       >
         <input
           id="workspace-folder-input"
@@ -219,7 +264,7 @@ export function WorkspacesCard() {
         <button
           type="button"
           className={`${styles.btn} ${styles.btnPrimary}`}
-          disabled={!name.trim() || add.isPending}
+          disabled={!name.trim() || !draftReady(draft) || add.isPending}
           onClick={handleAdd}
         >
           {add.isPending ? 'Adding…' : 'Add workspace'}

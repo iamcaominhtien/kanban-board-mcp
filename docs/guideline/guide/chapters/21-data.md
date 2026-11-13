@@ -45,15 +45,15 @@ In the desktop app, {menu:Help › Open Data Folder} opens the data folder. You 
 If you keep a board in one place (the office, say) and another in a second place (home, a client), you do not need to export one and import the other. Give each board its own **workspace** and switch between them.
 
 1. Open {menu:Settings › Storage & backup} and find **Workspaces**. The board you have now is listed as **Default** (rename it if you like).
-2. Type a name and press **Add workspace**. You get a new, empty board in its own folder. To open a board you already have in a folder (a copy of your other computer's data, say), type that folder too; it must be inside your home folder.
+2. Type a name and press **Add workspace**. You get a new, empty board in its own folder. To open a board you already have in a folder (a copy of your other computer's data, say), type that folder too; it must be inside your home folder. To keep the board on a database server instead, choose **A PostgreSQL server** or **A MySQL / MariaDB server** under *Where the board is kept* and fill in the connection, as in the Database card; the server is tested before the workspace is saved, and an empty database gets a new board.
 3. Press **Switch** on the workspace you want. The page reloads with that board. From then on, a switcher under the logo lets you change in one click.
 
-Each workspace is a data folder with its own database and attachments, so nothing is shared and nothing is copied. **Remove** only forgets the entry; the folder and its data stay on disk.
+Each workspace has its own database and attachments, so nothing is shared and nothing is copied. **Remove** only forgets the entry; the folder and the database stay where they are.
 
 !!! note "Good to know"
     - A switch waits until no AI run is working. Claude Code and VS Code follow it by themselves within a few seconds.
     - Workspaces here are whole boards. They are not the **Workspace** of a ticket (its scratch folder).
-    - Workspaces are SQLite folders. When the board runs on PostgreSQL or MySQL, the list shows but **Switch** is off.
+    - **Switch** is off only when `KANBAN_DATABASE_URL` is set: the environment then decides the database.
 
 ## Before an upgrade
 

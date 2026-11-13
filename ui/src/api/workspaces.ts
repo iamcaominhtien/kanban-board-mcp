@@ -1,11 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
+import type { ConnectionBody } from './database';
 
 /** One board kept on this computer: a name and a data folder (`kanban.db` and `uploads/`). */
 export interface WorkspaceItem {
   id: string;
   name: string;
   folder: string;
+  /** Where the board is kept. */
+  engine: 'sqlite' | 'postgresql' | 'mysql';
+  /** `host:port/name` of a database server, or the folder of a SQLite board. */
+  place: string;
   /** The board the app shows now. */
   active: boolean;
   /** The folder holds a database already; a new workspace gets its board the first time it is opened. */
@@ -15,7 +20,7 @@ export interface WorkspaceItem {
 export interface WorkspacesData {
   items: WorkspaceItem[];
   activeId: string | null;
-  /** False while the board runs on a database server: there is no folder to switch to. */
+  /** False while `KANBAN_DATABASE_URL` decides the database. */
   switchable: boolean;
   /** Why a switch is not possible, when it is not. */
   reason: string | null;
@@ -33,11 +38,15 @@ export function useWorkspaces() {
   });
 }
 
-/** Add a workspace; nothing is switched. `folder` empty: a new folder next to the settings file. */
+/**
+ * Add a workspace; nothing is switched. `folder` empty: a new folder next to the settings file. `connection`: the
+ * board lives in that PostgreSQL or MySQL/MariaDB database (tested by the server before it is saved).
+ */
 export function useAddWorkspace() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { name: string; folder?: string }) => (await client.post('/workspaces', body)).data,
+    mutationFn: async (body: { name: string; folder?: string; connection?: ConnectionBody }) =>
+      (await client.post('/workspaces', body)).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: workspacesKey }),
   });
 }
@@ -84,5 +93,7 @@ export function reloadAfterSwitch(): void {
 /** The server's reason for a refused call, or a fallback. */
 export function workspaceError(error: unknown, fallback: string): string {
   const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
-  return typeof detail === 'string' && detail ? detail : fallback;
+  if (typeof detail === 'string' && detail) return detail;
+  const message = (detail as { message?: unknown } | null)?.message;
+  return typeof message === 'string' && message ? message : fallback;
 }

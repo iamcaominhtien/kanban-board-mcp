@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { home, ensureProject, createTicket, addMember, openDocs, newDocPage, setMarkdown, publishDoc, openTicket, closeTicket } from '../lib/ui.mjs';
 
@@ -463,5 +464,38 @@ export default {
       await p.getByRole('button', { name: /ALP-1 / }).first().waitFor();
       if (await p.getByRole('button', { name: /^Cottage COT/ }).count()) throw new Error('a project of the other board shows in this one');
     });
+
+    // A board on PostgreSQL next to the SQLite ones. Needs a PostgreSQL server: set KANBAN_TEST_POSTGRES_URL (the
+    // database is emptied first). Without it the step is left out.
+    if (process.env.KANBAN_TEST_POSTGRES_URL) {
+      await s.step('Workspaces: a board on PostgreSQL is added with its connection, opened, and the sidebar goes back to SQLite', async () => {
+        const pg = new URL(process.env.KANBAN_TEST_POSTGRES_URL);
+        execFileSync('psql', [process.env.KANBAN_TEST_POSTGRES_URL, '-c', 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'], { stdio: 'ignore' });
+        await openSettings('Storage & backup');
+        const card = p.getByTestId('workspaces-card');
+        await p.getByPlaceholder(/Name, for example/).fill('Server');
+        await p.getByLabel('Where the board is kept').selectOption('postgresql');
+        await p.getByLabel('Host', { exact: true }).fill(pg.hostname);
+        await p.getByLabel('Port', { exact: true }).fill(pg.port || '5432');
+        await p.getByLabel('Database', { exact: true }).fill(pg.pathname.slice(1));
+        await p.getByLabel('User', { exact: true }).fill(decodeURIComponent(pg.username));
+        if (pg.password) await p.getByLabel('Password').fill(decodeURIComponent(pg.password));
+        await card.getByRole('button', { name: 'Add workspace' }).click();
+        const row = card.getByRole('listitem').filter({ hasText: 'Server' });
+        await row.getByText('PostgreSQL', { exact: true }).waitFor();
+        await Promise.all([p.waitForNavigation(), row.getByRole('button', { name: 'Switch' }).click()]);
+        await ensureProject(s, { name: 'Cloud', prefix: 'CLD' });
+        const sidebar = p.getByRole('complementary', { name: 'Project navigation' });
+        await sidebar.getByRole('button', { name: 'Server', exact: true }).click();
+        await Promise.all([p.waitForNavigation(), p.getByRole('menuitemradio', { name: 'Default' }).click()]);
+        await sidebar.waitFor();
+        await p.getByRole('button', { name: /^Alpha ALP/ }).click();
+        if (await p.getByRole('button', { name: /^Cloud CLD/ }).count()) throw new Error('a project of the PostgreSQL board shows in the SQLite one');
+        // and the PostgreSQL board is still there when it is opened again
+        await p.getByRole('button', { name: 'Default', exact: true }).click();
+        await Promise.all([p.waitForNavigation(), p.getByRole('menuitemradio', { name: 'Server' }).click()]);
+        await p.getByRole('button', { name: /^Cloud CLD/ }).waitFor();
+      });
+    }
   },
 };

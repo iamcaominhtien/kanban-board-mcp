@@ -46,7 +46,7 @@ pub struct ConnectionBody {
     pub keep_password: bool,
 }
 
-fn target_of(body: &ConnectionBody) -> ApiResult<Target> {
+pub(crate) fn target_of(body: &ConnectionBody) -> ApiResult<Target> {
     // `body.model_dump(exclude_none=True)`
     let mut data = Map::new();
     let mut put = |key: &str, value: Option<Value>| {

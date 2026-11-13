@@ -146,7 +146,7 @@ impl Target {
         engine_label(&self.engine)
     }
 
-    fn port_or_default(&self) -> u16 {
+    pub fn port_or_default(&self) -> u16 {
         self.port.filter(|p| *p != 0).unwrap_or_else(|| default_port(&self.engine))
     }
 
@@ -473,14 +473,19 @@ pub fn env_target() -> Result<Option<Target>, TargetError> {
 
 /// The server database chosen in Settings, with its password; `None` when Settings say SQLite.
 pub fn saved_target() -> Option<Target> {
-    let data = app_config::get_section(CONFIG_KEY);
+    target_of_section(&app_config::get_section(CONFIG_KEY))
+}
+
+/// The server database a saved group of settings names (the `database` section, or one kept by a workspace), with its
+/// password; `None` for SQLite or a group that names nothing usable.
+pub fn target_of_section(data: &Map<String, Value>) -> Option<Target> {
     if data.is_empty()
         || matches!(data.get("engine"), None | Some(Value::Null))
         || data.get("engine") == Some(&json!("sqlite"))
     {
         return None;
     }
-    let target = from_fields(&data).ok()?;
+    let target = from_fields(data).ok()?;
     let mut password = secrets::decrypt(data.get("password_enc").and_then(Value::as_str));
     let env_password = env(ENV_PASSWORD);
     if password.is_none() && !env_password.is_empty() {
@@ -500,19 +505,28 @@ pub fn resolve(sqlite_path: &Path) -> Result<(Target, &'static str), TargetError
     Ok((Target::sqlite(sqlite_path.to_string_lossy().into_owned()), "default"))
 }
 
-/// Remember the database in Settings. The password is stored encrypted, never as text; SQLite clears it.
-pub fn save_choice(target: &Target) -> Result<(), kb_base::secrets::SecretStoreError> {
-    let io = |e: std::io::Error| kb_base::secrets::SecretStoreError(e.to_string());
+/// The group of settings that names `target` (what `save_choice` stores): the public fields, and the password
+/// encrypted, never as text. SQLite is just `{"engine": "sqlite"}`.
+///
+/// # Errors
+/// The password cannot be encrypted (the system keychain refused).
+pub fn section_of(target: &Target) -> Result<Map<String, Value>, kb_base::secrets::SecretStoreError> {
     if target.is_sqlite() {
         let mut data = Map::new();
         data.insert("engine".into(), json!("sqlite"));
-        return app_config::set_section(CONFIG_KEY, Some(data)).map_err(io);
+        return Ok(data);
     }
     let mut data = target.public();
     if let Some(password) = target.password.as_deref().filter(|p| !p.is_empty()) {
         data.insert("password_enc".into(), json!(secrets::encrypt(password)?));
     }
-    app_config::set_section(CONFIG_KEY, Some(data)).map_err(io)
+    Ok(data)
+}
+
+/// Remember the database in Settings. The password is stored encrypted, never as text; SQLite clears it.
+pub fn save_choice(target: &Target) -> Result<(), kb_base::secrets::SecretStoreError> {
+    let io = |e: std::io::Error| kb_base::secrets::SecretStoreError(e.to_string());
+    app_config::set_section(CONFIG_KEY, Some(section_of(target)?)).map_err(io)
 }
 
 /// Where a saved password is kept: "keychain" (desktop) or "file" (the app's key file, readable by you only).
