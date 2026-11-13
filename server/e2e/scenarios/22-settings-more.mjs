@@ -348,11 +348,11 @@ export default {
       const d = q.getByRole('dialog', { name: 'Keyboard Shortcuts' });
       await d.waitFor();
       for (const g of ['Go to', 'Create', 'Search', 'AI', 'Docs editor', 'On a ticket', 'Idea Inbox triage']) await d.getByRole('heading', { name: g, level: 3 }).waitFor();
-      await d.getByText('Ask AI (open or close the Board AI)').waitFor();
-      await d.getByText('Quick add an idea').waitFor();
+      await d.getByText(/Ask AI \(open or close the Board AI\)/).waitFor();
+      await d.getByText(/Quick add an idea/).waitFor();
       await d.getByRole('searchbox', { name: 'Search shortcuts and commands' }).fill('publish');
-      await d.getByText('Publish', { exact: true }).waitFor();
-      if (await d.getByText('Quick add an idea').count()) throw new Error('the search did not narrow the list');
+      await d.getByText(/^Publish/).first().waitFor();
+      await until(async () => (await d.getByText(/Quick add an idea/).count()) === 0, 'the search narrowing the list');
       await d.getByRole('searchbox', { name: 'Search shortcuts and commands' }).fill('zzzz');
       await d.getByText(/No shortcut matches/).waitFor();
       // a toast sent by the same menu channel

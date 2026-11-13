@@ -199,19 +199,20 @@ export default {
       await chat.getByText('Which assumption should I test first?').first().waitFor();
       await chat.getByText('Start with the offline assumption.').first().waitFor({ timeout: 40000 });
     });
-    await s.step('a second question in the same chat, then the chat menu', async () => {
+    await s.step('a second question in the same chat, rate the answer', async () => {
       s.server.fake({ FAKE_CLAUDE_MODE: 'assistant', FAKE_CLAUDE_ASSISTANT_TEXT: 'Ask five commuters.' });
       const chat = p.getByTestId('idea-chat');
       await chat.getByTestId('chat-input').fill('How do I test it cheaply?');
       await chat.getByTestId('chat-send').click();
       await chat.getByText('Ask five commuters.').first().waitFor({ timeout: 40000 });
       await chat.getByText('Start with the offline assumption.').first().waitFor();
-      await chat.getByTestId('chat-plus').click();
-      await chat.getByTestId('chat-plus-menu').getByRole('menuitem').first().waitFor();
-      s.note('chat menu', await chat.getByTestId('chat-plus-menu').innerText());
-      await p.keyboard.press('Escape');
+      const [fb] = await Promise.all([
+        p.waitForResponse((r) => r.request().method() === 'POST' && /feedback/.test(r.url()), { timeout: 8000 }),
+        chat.getByRole('button', { name: /Helpful/ }).last().click(),
+      ]);
+      s.note('feedback status', fb.status());
     });
-    await s.step('the chat is kept: close it, reopen it with Ctrl+J, the answers are still there', async () => {
+    await s.step('the chat is kept: close it, reopen it with Ctrl+J, the answers are still there; New chat starts empty', async () => {
       await p.getByTestId('ask-ai-button').click();
       await p.getByTestId('idea-chat').waitFor({ state: 'detached' });
       await p.getByRole('textbox', { name: 'Idea title' }).click();
@@ -220,6 +221,9 @@ export default {
       await chat.waitFor();
       await chat.getByText('Ask five commuters.').first().waitFor({ timeout: 15000 });
       await chat.getByText('Start with the offline assumption.').first().waitFor();
+      await chat.getByRole('button', { name: 'New chat' }).click();
+      await chat.getByTestId('chat-welcome').waitFor({ timeout: 15000 });
+      await chat.getByText('Ask five commuters.').waitFor({ state: 'detached' });
       await p.keyboard.press('Control+j');
       await chat.waitFor({ state: 'detached' });
     });
@@ -234,7 +238,7 @@ export default {
       }
       await set.getByRole('switch', { name: 'Read ideas, assumptions and evidence' }).isDisabled();
       if (!(await set.getByRole('switch', { name: 'Use the web' }).isDisabled())) throw new Error('web switch must be disabled');
-      await set.getByText('Idea helper').waitFor();
+      await set.getByText('Idea AI', { exact: false }).first().waitFor();
       const cap = set.getByRole('spinbutton', { name: 'Daily cap' });
       await cap.fill('2.5');
       await cap.blur();
@@ -252,9 +256,9 @@ export default {
     });
     await s.step('turn "Ask about ideas" off, then "Enable AI help" off: the sub-switches lock', async () => {
       const set = p.getByTestId('idea-settings');
-      await set.getByRole('switch', { name: 'Ask about ideas' }).uncheck();
+      await set.getByRole('switch', { name: 'Ask about ideas' }).click();
       await set.getByRole('switch', { name: 'Ask about ideas', checked: false }).waitFor();
-      await set.getByRole('switch', { name: 'Enable AI help' }).uncheck();
+      await set.getByRole('switch', { name: 'Enable AI help' }).click();
       await set.getByRole('switch', { name: 'Enable AI help', checked: false }).waitFor();
       for (const l of ['Triage advice', 'Weekly grooming', 'Ask about ideas', 'Read Docs and tickets']) {
         if (!(await set.getByRole('switch', { name: l, exact: true }).isDisabled())) throw new Error(l + ' should lock');
@@ -276,7 +280,7 @@ export default {
       await p.getByRole('button', { name: 'Settings' }).click();
       await p.getByRole('navigation', { name: 'Settings pages' }).getByRole('button', { name: 'Idea Space', exact: true }).click();
       const set = p.getByTestId('idea-settings');
-      await set.getByRole('switch', { name: 'Enable AI help' }).check();
+      await set.getByRole('switch', { name: 'Enable AI help' }).click();
       await set.getByRole('switch', { name: 'Enable AI help', checked: true }).waitFor();
       await p.getByRole('button', { name: 'Back to board' }).click();
       await p.getByRole('button', { name: 'Idea Space' }).click();

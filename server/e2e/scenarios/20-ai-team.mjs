@@ -515,7 +515,6 @@ export default {
       await until(async () => (await again.getByRole('textbox', { name: 'Base branch' }).inputValue()) === 'main', 'the saved base branch');
       await until(async () => (await again.getByRole('combobox', { name: 'Hand over finished code by' }).inputValue()) === 'branch', 'the saved hand-over');
     });
-    });
 
     await s.step('Schedules: a dry run shows the plan, then the schedule is created', async () => {
       await home(s);
