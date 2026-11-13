@@ -1,0 +1,126 @@
+{
+  "GET /ai/accounts": {
+    "status": 200,
+    "json": {
+      "accounts": [],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": false,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "GET one": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": null,
+      "email": null,
+      "folder": "<accounts>/work",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Work",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "Signed out",
+      "unavailable": null
+    }
+  },
+  "check: the CLI is missing": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": null,
+      "email": null,
+      "folder": "<accounts>/work",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Work",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "cli_missing",
+      "status_detail": "CLI not installed",
+      "unavailable": null
+    }
+  },
+  "create: the CLI is missing": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "cli_missing",
+        "message": "“claude” was not found on this computer."
+      }
+    }
+  },
+  "on this computer": {
+    "status": 200,
+    "json": []
+  },
+  "sign-out: the CLI is missing": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": null,
+      "email": null,
+      "folder": "<accounts>/work",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Work",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "Signed out",
+      "unavailable": null
+    }
+  },
+  "signin: the CLI is missing": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "cli_missing",
+        "message": "The CLI was not found on this computer."
+      }
+    }
+  }
+}

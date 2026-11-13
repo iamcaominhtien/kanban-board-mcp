@@ -1,0 +1,35 @@
+//! `ai_project_knowledge` (Python model `AiProjectKnowledge`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+/// A project's instructions for every AI on it (services/ai/knowledge.py) (table).
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ai_project_knowledge")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub project_id: String,
+    pub instructions: String,
+    /// JSON [{at, by, text}] of earlier versions
+    pub history: String,
+    pub updated_at: Option<String>,
+    pub updated_by: Option<String>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `AiProjectKnowledge`.
+/// Set before saving: `project_id`.
+pub fn new() -> ActiveModel {
+    ActiveModel {
+        project_id: NotSet,
+        instructions: Set("".to_string()),
+        history: Set("[]".to_string()),
+        updated_at: Set(None),
+        updated_by: Set(None),
+    }
+}

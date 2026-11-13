@@ -1,0 +1,946 @@
+{
+  "list: no projects": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "list: unknown project on an empty board": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: Project 'nope' not found. Pass a project UUID (not the prefix). Existing: none."
+      }
+    ],
+    "isError": true
+  },
+  "list: project_id null": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "list: project_id the text null": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "list: project_id a number": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 1 validation error for get_projectsArguments\nproject_id\n  Input should be a valid string [type=string_type, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type"
+      }
+    ],
+    "isError": true
+  },
+  "list: project_id a boolean": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 1 validation error for get_projectsArguments\nproject_id\n  Input should be a valid string [type=string_type, input_value=True, input_type=bool]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type"
+      }
+    ],
+    "isError": true
+  },
+  "list: project_id a float": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 1 validation error for get_projectsArguments\nproject_id\n  Input should be a valid string [type=string_type, input_value=1.5, input_type=float]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type"
+      }
+    ],
+    "isError": true
+  },
+  "list: project_id a list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 1 validation error for get_projectsArguments\nproject_id\n  Input should be a valid string [type=string_type, input_value=['a', 1, None, True, 2.5, {'k': 'v'}], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type"
+      }
+    ],
+    "isError": true
+  },
+  "list: project_id an object": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 1 validation error for get_projectsArguments\nproject_id\n  Input should be a valid string [type=string_type, input_value={'a': 1}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type"
+      }
+    ],
+    "isError": true
+  },
+  "list: project_id a list in text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 1 validation error for get_projectsArguments\nproject_id\n  Input should be a valid string [type=string_type, input_value=[1, 2], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type"
+      }
+    ],
+    "isError": true
+  },
+  "list: project_id an object in text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 1 validation error for get_projectsArguments\nproject_id\n  Input should be a valid string [type=string_type, input_value={'a': 1}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type"
+      }
+    ],
+    "isError": true
+  },
+  "list: project_id a number in text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: Project '12' not found. Pass a project UUID (not the prefix). Existing: none."
+      }
+    ],
+    "isError": true
+  },
+  "list: project_id true in text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: Project 'true' not found. Pass a project UUID (not the prefix). Existing: none."
+      }
+    ],
+    "isError": true
+  },
+  "list: unknown argument": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 1 validation error for get_projectsArguments\nfoo\n  Extra inputs are not permitted [type=extra_forbidden, input_value=1, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "list: two unknown arguments": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 2 validation errors for get_projectsArguments\nzeta\n  Extra inputs are not permitted [type=extra_forbidden, input_value='x', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden\nalpha\n  Extra inputs are not permitted [type=extra_forbidden, input_value=[1, 2], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "list: unknown argument and a bad one": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 2 validation errors for get_projectsArguments\nproject_id\n  Input should be a valid string [type=string_type, input_value=7, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type\ntitel\n  Extra inputs are not permitted [type=extra_forbidden, input_value=\"it's\", input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "list: unknown argument with a long value": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 1 validation error for get_projectsArguments\nnote\n  Extra inputs are not permitted [type=extra_forbidden, input_value='0123456789 0123456789 01...23456789 0123456789 end', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "list: unknown argument with a long object": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 1 validation error for get_projectsArguments\nmore\n  Extra inputs are not permitted [type=extra_forbidden, input_value={'name': 'A name that is ... False, 'nothing': None}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "list: unknown argument with quotes": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 1 validation error for get_projectsArguments\nq\n  Extra inputs are not permitted [type=extra_forbidden, input_value='say \"hi\" it\\'s\\nnew', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "list: unknown argument with accents": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 1 validation error for get_projectsArguments\nq\n  Extra inputs are not permitted [type=extra_forbidden, input_value='Hà Nội café ☕ 東...ééééééééééé', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "list: unknown argument with a float": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: 3 validation errors for get_projectsArguments\nq\n  Extra inputs are not permitted [type=extra_forbidden, input_value=1.0, input_type=float]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden\nr\n  Extra inputs are not permitted [type=extra_forbidden, input_value=1e+22, input_type=float]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden\ns\n  Extra inputs are not permitted [type=extra_forbidden, input_value=-0.5, input_type=float]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "manage: no arguments": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: 1 validation error for manage_projectArguments\naction\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"
+      }
+    ],
+    "isError": true
+  },
+  "manage: unknown action": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: 1 validation error for manage_projectArguments\naction\n  Input should be 'create', 'update', 'add_member' or 'remove_member' [type=literal_error, input_value='destroy', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "manage: action a number": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: 1 validation error for manage_projectArguments\naction\n  Input should be 'create', 'update', 'add_member' or 'remove_member' [type=literal_error, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "manage: action null": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: 1 validation error for manage_projectArguments\naction\n  Input should be 'create', 'update', 'add_member' or 'remove_member' [type=literal_error, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "manage: action a list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: 1 validation error for manage_projectArguments\naction\n  Input should be 'create', 'update', 'add_member' or 'remove_member' [type=literal_error, input_value=['create'], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "manage: action in other case": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: 1 validation error for manage_projectArguments\naction\n  Input should be 'create', 'update', 'add_member' or 'remove_member' [type=literal_error, input_value='Create', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "manage: name a number": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: 1 validation error for manage_projectArguments\nname\n  Input should be a valid string [type=string_type, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type"
+      }
+    ],
+    "isError": true
+  },
+  "manage: several errors at once": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: 5 validation errors for manage_projectArguments\naction\n  Input should be 'create', 'update', 'add_member' or 'remove_member' [type=literal_error, input_value='nope', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error\nname\n  Input should be a valid string [type=string_type, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type\nprefix\n  Input should be a valid string [type=string_type, input_value=['x'], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type\nworktree_by_default\n  Input should be a valid boolean, unable to interpret input [type=bool_parsing, input_value='maybe', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/bool_parsing\nextra\n  Extra inputs are not permitted [type=extra_forbidden, input_value=1, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "manage: worktree_by_default a number": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: 1 validation error for manage_projectArguments\nworktree_by_default\n  Input should be a valid boolean, unable to interpret input [type=bool_parsing, input_value=2, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/bool_parsing"
+      }
+    ],
+    "isError": true
+  },
+  "manage: worktree_by_default a float": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: 1 validation error for manage_projectArguments\nworktree_by_default\n  Input should be a valid boolean [type=bool_type, input_value=0.5, input_type=float]\n    For further information visit https://errors.pydantic.dev/2.12/v/bool_type"
+      }
+    ],
+    "isError": true
+  },
+  "manage: worktree_by_default a list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: 1 validation error for manage_projectArguments\nworktree_by_default\n  Input should be a valid boolean [type=bool_type, input_value=[], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.12/v/bool_type"
+      }
+    ],
+    "isError": true
+  },
+  "manage: worktree_by_default text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: 1 validation error for manage_projectArguments\nworktree_by_default\n  Input should be a valid boolean, unable to interpret input [type=bool_parsing, input_value='maybe', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/bool_parsing"
+      }
+    ],
+    "isError": true
+  },
+  "manage: only an unknown argument": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: 2 validation errors for manage_projectArguments\naction\n  Field required [type=missing, input_value={'colour': '#fff'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\ncolour\n  Extra inputs are not permitted [type=extra_forbidden, input_value='#fff', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "create: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: manage_project(action='create') requires name, prefix; optional: color. Missing: name, prefix."
+      }
+    ],
+    "isError": true
+  },
+  "create: no prefix": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: manage_project(action='create') requires name, prefix; optional: color. Missing: prefix."
+      }
+    ],
+    "isError": true
+  },
+  "create: no name": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: manage_project(action='create') requires name, prefix; optional: color. Missing: name."
+      }
+    ],
+    "isError": true
+  },
+  "create: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: manage_project(action='create') does not use: repo_path, member_id. It requires name, prefix; optional: color."
+      }
+    ],
+    "isError": true
+  },
+  "create: null counts as left out": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: manage_project(action='create') requires name, prefix; optional: color. Missing: prefix."
+      }
+    ],
+    "isError": true
+  },
+  "create: Alpha": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: the same prefix again": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: A project with this prefix already exists"
+      }
+    ],
+    "isError": true
+  },
+  "create: lower case prefix, a color": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:2>\",\n  \"name\": \"Bêta ☕\",\n  \"prefix\": \"BET\",\n  \"color\": \"#ff0000\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: prefix too long": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: prefix must be uppercase and at most 6 characters"
+      }
+    ],
+    "isError": true
+  },
+  "create: prefix without letters": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: prefix must be uppercase and at most 6 characters"
+      }
+    ],
+    "isError": true
+  },
+  "create: empty prefix": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: prefix must be uppercase and at most 6 characters"
+      }
+    ],
+    "isError": true
+  },
+  "create: prefix with spaces around": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:3>\",\n  \"name\": \"Spaced\",\n  \"prefix\": \"SP1\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: empty name": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"name\": \"\",\n  \"prefix\": \"EMP\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: text booleans are read": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: manage_project(action='create') does not use: worktree_by_default. It requires name, prefix; optional: color."
+      }
+    ],
+    "isError": true
+  },
+  "list: three projects": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:2>\",\n  \"name\": \"Bêta ☕\",\n  \"prefix\": \"BET\",\n  \"color\": \"#ff0000\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:3>\",\n  \"name\": \"Spaced\",\n  \"prefix\": \"SP1\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"name\": \"\",\n  \"prefix\": \"EMP\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<uuid:1>",
+          "name": "Alpha",
+          "prefix": "ALP",
+          "color": "#6366f1",
+          "ticket_counter": 0,
+          "repo_path": null,
+          "worktree_template": null,
+          "worktree_by_default": false,
+          "docs_enabled": true,
+          "docs_edit_policy": "members"
+        },
+        {
+          "id": "<uuid:2>",
+          "name": "Bêta ☕",
+          "prefix": "BET",
+          "color": "#ff0000",
+          "ticket_counter": 0,
+          "repo_path": null,
+          "worktree_template": null,
+          "worktree_by_default": false,
+          "docs_enabled": true,
+          "docs_edit_policy": "members"
+        },
+        {
+          "id": "<uuid:3>",
+          "name": "Spaced",
+          "prefix": "SP1",
+          "color": "#6366f1",
+          "ticket_counter": 0,
+          "repo_path": null,
+          "worktree_template": null,
+          "worktree_by_default": false,
+          "docs_enabled": true,
+          "docs_edit_policy": "members"
+        },
+        {
+          "id": "<uuid:4>",
+          "name": "",
+          "prefix": "EMP",
+          "color": "#6366f1",
+          "ticket_counter": 0,
+          "repo_path": null,
+          "worktree_template": null,
+          "worktree_by_default": false,
+          "docs_enabled": true,
+          "docs_edit_policy": "members"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: one project with its members": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\",\n  \"members\": [\n    {\n      \"id\": \"<uuid:5>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Admin\",\n      \"color\": \"#3B82F6\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:1>",
+        "name": "Alpha",
+        "prefix": "ALP",
+        "color": "#6366f1",
+        "ticket_counter": 0,
+        "repo_path": null,
+        "worktree_template": null,
+        "worktree_by_default": false,
+        "docs_enabled": true,
+        "docs_edit_policy": "members",
+        "members": [
+          {
+            "id": "<uuid:5>",
+            "project_id": "<uuid:1>",
+            "name": "Admin",
+            "color": "#3B82F6",
+            "role": "member",
+            "kind": "human",
+            "created_at": "<time>"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "list: unknown project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_projects: Project 'ALP' not found. Pass a project UUID (not the prefix). Existing: ALP=<uuid:1>, BET=<uuid:2>, SP1=<uuid:3>, EMP=<uuid:4>."
+      }
+    ],
+    "isError": true
+  },
+  "update: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: manage_project(action='update') requires project_id; optional: name, color, repo_path, worktree_template, worktree_by_default. Missing: project_id."
+      }
+    ],
+    "isError": true
+  },
+  "update: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: manage_project(action='update') does not use: prefix. It requires project_id; optional: name, color, repo_path, worktree_template, worktree_by_default."
+      }
+    ],
+    "isError": true
+  },
+  "update: unknown project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: Project 'nope' not found. Use get_projects to see project ids."
+      }
+    ],
+    "isError": true
+  },
+  "update: no fields": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "update: name and color": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "update: worktree settings": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": \"../wt/{project}/{ticket_id}-{branch}\",\n  \"worktree_by_default\": true,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "update: worktree_by_default from text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": \"../wt/{project}/{ticket_id}-{branch}\",\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "update: worktree_by_default from a number": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": \"../wt/{project}/{ticket_id}-{branch}\",\n  \"worktree_by_default\": true,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "update: worktree_by_default from a whole float": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": \"../wt/{project}/{ticket_id}-{branch}\",\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "update: empty template clears it": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "update: a repository that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: Not a git repository: /no/such/folder/anywhere"
+      }
+    ],
+    "isError": true
+  },
+  "update: empty repo_path unlinks": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "add_member: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: manage_project(action='add_member') requires project_id, name; optional: color. Missing: project_id, name."
+      }
+    ],
+    "isError": true
+  },
+  "add_member: no name": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: manage_project(action='add_member') requires project_id, name; optional: color. Missing: name."
+      }
+    ],
+    "isError": true
+  },
+  "add_member: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: manage_project(action='add_member') does not use: prefix. It requires project_id, name; optional: color."
+      }
+    ],
+    "isError": true
+  },
+  "add_member: Bao": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"project_id\": \"<uuid:1>\",\n  \"name\": \"Bao\",\n  \"color\": \"#10B981\",\n  \"role\": \"member\",\n  \"kind\": \"human\",\n  \"created_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "add_member: with a color": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"project_id\": \"<uuid:1>\",\n  \"name\": \"Hà My\",\n  \"color\": \"#123456\",\n  \"role\": \"member\",\n  \"kind\": \"human\",\n  \"created_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "add_member: third": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:8>\",\n  \"project_id\": \"<uuid:1>\",\n  \"name\": \"Chi\",\n  \"color\": \"#EF4444\",\n  \"role\": \"member\",\n  \"kind\": \"human\",\n  \"created_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "add_member: a project that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:9>\",\n  \"project_id\": \"ghost\",\n  \"name\": \"Nobody\",\n  \"color\": \"#3B82F6\",\n  \"role\": \"member\",\n  \"kind\": \"human\",\n  \"created_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "list: members of Alpha": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\",\n  \"members\": [\n    {\n      \"id\": \"<uuid:5>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Admin\",\n      \"color\": \"#3B82F6\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:6>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Bao\",\n      \"color\": \"#10B981\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:7>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Hà My\",\n      \"color\": \"#123456\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:8>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Chi\",\n      \"color\": \"#EF4444\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:1>",
+        "name": "Alpha 2",
+        "prefix": "ALP",
+        "color": "#00ff00",
+        "ticket_counter": 0,
+        "repo_path": null,
+        "worktree_template": null,
+        "worktree_by_default": false,
+        "docs_enabled": true,
+        "docs_edit_policy": "members",
+        "members": [
+          {
+            "id": "<uuid:5>",
+            "project_id": "<uuid:1>",
+            "name": "Admin",
+            "color": "#3B82F6",
+            "role": "member",
+            "kind": "human",
+            "created_at": "<time>"
+          },
+          {
+            "id": "<uuid:6>",
+            "project_id": "<uuid:1>",
+            "name": "Bao",
+            "color": "#10B981",
+            "role": "member",
+            "kind": "human",
+            "created_at": "<time>"
+          },
+          {
+            "id": "<uuid:7>",
+            "project_id": "<uuid:1>",
+            "name": "Hà My",
+            "color": "#123456",
+            "role": "member",
+            "kind": "human",
+            "created_at": "<time>"
+          },
+          {
+            "id": "<uuid:8>",
+            "project_id": "<uuid:1>",
+            "name": "Chi",
+            "color": "#EF4444",
+            "role": "member",
+            "kind": "human",
+            "created_at": "<time>"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "remove_member: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: manage_project(action='remove_member') requires project_id, member_id. Missing: project_id, member_id."
+      }
+    ],
+    "isError": true
+  },
+  "remove_member: no member_id": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: manage_project(action='remove_member') requires project_id, member_id. Missing: member_id."
+      }
+    ],
+    "isError": true
+  },
+  "remove_member: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: manage_project(action='remove_member') does not use: name. It requires project_id, member_id."
+      }
+    ],
+    "isError": true
+  },
+  "remove_member: unknown member": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: Member 'nope' not found in this project. Use get_projects(project_id) to see member ids."
+      }
+    ],
+    "isError": true
+  },
+  "remove_member: a member of another project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: Member '<uuid:6>' not found in this project. Use get_projects(project_id) to see member ids."
+      }
+    ],
+    "isError": true
+  },
+  "remove_member: Chi": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"ok\": true\n}"
+      }
+    ],
+    "isError": false
+  },
+  "remove_member: Chi again": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: Member '<uuid:8>' not found in this project. Use get_projects(project_id) to see member ids."
+      }
+    ],
+    "isError": true
+  },
+  "unknown tool": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Unknown tool: no_such_tool"
+      }
+    ],
+    "isError": true
+  },
+  "tool name in other case": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Unknown tool: Get_Projects"
+      }
+    ],
+    "isError": true
+  },
+  "remove_member: created tickets": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: Cannot remove member who created tickets"
+      }
+    ],
+    "isError": true
+  },
+  "remove_member: two open tickets": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: Cannot remove: assigned to 2 open tickets. Reassign first."
+      }
+    ],
+    "isError": true
+  },
+  "remove_member: one open ticket": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool manage_project: Cannot remove: assigned to 1 open ticket. Reassign first."
+      }
+    ],
+    "isError": true
+  },
+  "remove_member: only a closed ticket": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"ok\": true\n}"
+      }
+    ],
+    "isError": false
+  },
+  "the closed ticket's assignee afterwards": null,
+  "list: members at the end": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 4,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\",\n  \"members\": [\n    {\n      \"id\": \"<uuid:5>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Admin\",\n      \"color\": \"#3B82F6\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:6>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Bao\",\n      \"color\": \"#10B981\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:7>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Hà My\",\n      \"color\": \"#123456\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:1>",
+        "name": "Alpha 2",
+        "prefix": "ALP",
+        "color": "#00ff00",
+        "ticket_counter": 4,
+        "repo_path": null,
+        "worktree_template": null,
+        "worktree_by_default": false,
+        "docs_enabled": true,
+        "docs_edit_policy": "members",
+        "members": [
+          {
+            "id": "<uuid:5>",
+            "project_id": "<uuid:1>",
+            "name": "Admin",
+            "color": "#3B82F6",
+            "role": "member",
+            "kind": "human",
+            "created_at": "<time>"
+          },
+          {
+            "id": "<uuid:6>",
+            "project_id": "<uuid:1>",
+            "name": "Bao",
+            "color": "#10B981",
+            "role": "member",
+            "kind": "human",
+            "created_at": "<time>"
+          },
+          {
+            "id": "<uuid:7>",
+            "project_id": "<uuid:1>",
+            "name": "Hà My",
+            "color": "#123456",
+            "role": "member",
+            "kind": "human",
+            "created_at": "<time>"
+          }
+        ]
+      }
+    },
+    "isError": false
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "no team: ask": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "x",
+      "kind": "ask",
+      "member_id": null,
+      "metered": false,
+      "page_id": null,
+      "project_id": "<uuid:1>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "page_id": null,
+        "question": "x",
+        "scope": "space"
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "no team: summary": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Summarise this page",
+      "kind": "summary",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "markdown": null
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "no team: write": {
+    "status": 200,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Write a notes from prompt",
+      "kind": "write",
+      "member_id": null,
+      "metered": false,
+      "page_id": null,
+      "project_id": "<uuid:1>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "params": {
+          "include": {
+            "code_changes": false,
+            "comments": true,
+            "linked_pages": true
+          },
+          "page_kind": "notes",
+          "parent_id": null,
+          "source": {
+            "idea_id": null,
+            "kind": "prompt",
+            "text": "x",
+            "ticket_id": null
+          },
+          "title": null
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "off: ask": {
+    "status": 409,
+    "json": {
+      "code": "docs_ai_off",
+      "detail": "Docs AI is off for this project. An admin can turn it on in Settings › Docs."
+    }
+  },
+  "off: freshness": {
+    "status": 409,
+    "json": {
+      "code": "docs_ai_off",
+      "detail": "Docs AI is off for this project. An admin can turn it on in Settings › Docs."
+    }
+  },
+  "off: health": {
+    "status": 409,
+    "json": {
+      "code": "docs_ai_off",
+      "detail": "Docs AI is off for this project. An admin can turn it on in Settings › Docs."
+    }
+  },
+  "off: summary": {
+    "status": 409,
+    "json": {
+      "code": "docs_ai_off",
+      "detail": "Docs AI is off for this project. An admin can turn it on in Settings › Docs."
+    }
+  },
+  "off: tidy": {
+    "status": 409,
+    "json": {
+      "code": "docs_ai_off",
+      "detail": "Docs AI is off for this project. An admin can turn it on in Settings › Docs."
+    }
+  }
+}

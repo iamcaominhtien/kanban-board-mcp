@@ -1,0 +1,2114 @@
+{
+  "DELETE schedule": {
+    "status": 204,
+    "text": ""
+  },
+  "DELETE schedule: again": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Schedule not found."
+    }
+  },
+  "DELETE schedule: not found": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Schedule not found."
+    }
+  },
+  "DELETE schedule: with runs": {
+    "status": 204,
+    "text": ""
+  },
+  "GET cards": {
+    "status": 200,
+    "json": [
+      {
+        "at": "<time>",
+        "member_id": "<uuid:1>",
+        "schedule_id": "<sch:1>",
+        "state": "planned",
+        "ticket_id": "KAN-1"
+      },
+      {
+        "at": "<time>",
+        "member_id": "<uuid:1>",
+        "schedule_id": "<sch:2>",
+        "state": "planned",
+        "ticket_id": "KAN-2"
+      }
+    ]
+  },
+  "GET cards: no such project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "GET cards: none": {
+    "status": 200,
+    "json": []
+  },
+  "GET cards: paused": {
+    "status": 200,
+    "json": [
+      {
+        "at": "<time>",
+        "member_id": "<uuid:1>",
+        "schedule_id": "<sch:1>",
+        "state": "planned",
+        "ticket_id": "KAN-1"
+      },
+      {
+        "at": "<time>",
+        "member_id": "<uuid:1>",
+        "schedule_id": "<sch:2>",
+        "state": "planned",
+        "ticket_id": "KAN-2"
+      }
+    ]
+  },
+  "GET events: after 5": {
+    "status": 200,
+    "json": []
+  },
+  "GET events: after is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "after"
+        ]
+      ]
+    }
+  },
+  "GET events: after the skip": {
+    "status": 200,
+    "json": [
+      {
+        "action": "reschedule",
+        "at": "<time>",
+        "event": "failed",
+        "project_id": "<uuid:1>",
+        "schedule_id": "<sch:1>",
+        "skipped": true,
+        "srun_id": "<srun:2>",
+        "text": "KAN-2 skipped: Skipped by user",
+        "ticket_id": "KAN-2",
+        "to": [
+          "user"
+        ]
+      }
+    ]
+  },
+  "GET events: no such project": {
+    "status": 200,
+    "json": []
+  },
+  "GET events: none": {
+    "status": 200,
+    "json": []
+  },
+  "GET history": {
+    "status": 200,
+    "json": [
+      {
+        "attempts": 0,
+        "catch_up": true,
+        "cost_usd": 0.0,
+        "duration_s": 0,
+        "ended_at": "<time>",
+        "id": "<srun:1>",
+        "member_id": "<uuid:1>",
+        "member_name": "Dev An",
+        "note": "Skipped by user.",
+        "report": null,
+        "run_ids": [],
+        "schedule_id": "<sch:2>",
+        "slot_at": "<time>",
+        "started_at": null,
+        "state": "skipped",
+        "ticket_id": "KAN-2"
+      }
+    ]
+  },
+  "GET history: limit 0": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "limit"
+        ]
+      ]
+    }
+  },
+  "GET history: limit 201": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "limit"
+        ]
+      ]
+    }
+  },
+  "GET history: limit is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "limit"
+        ]
+      ]
+    }
+  },
+  "GET history: no such project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "GET history: none": {
+    "status": 200,
+    "json": []
+  },
+  "GET schedule": {
+    "status": 200,
+    "json": {
+      "backup_member_id": null,
+      "backup_member_name": null,
+      "catch_up": "run",
+      "catch_up_hours": 2.0,
+      "connection": "local",
+      "created_at": "<time>",
+      "created_by": "user",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "ends": "never",
+      "ends_after": null,
+      "ends_on": null,
+      "failures_in_row": 0,
+      "id": "<sch:1>",
+      "instruction": "Fix the operator in calc.py.",
+      "kind": "once",
+      "last_run": null,
+      "limits": {
+        "max_cost": null,
+        "retries": 1,
+        "stop_after_min": 45
+      },
+      "member_id": "<uuid:1>",
+      "member_name": "Dev An",
+      "next_run_at": "<time>",
+      "notify": [
+        "started",
+        "needs_input",
+        "failed",
+        "finished"
+      ],
+      "notify_people": [],
+      "offline_risk": null,
+      "paused_reason": null,
+      "problems": [
+        {
+          "key": "local",
+          "level": "warn",
+          "text": "Teams run only while the desktop app is open. Catch-up is on (2 h)."
+        },
+        {
+          "key": "overlap",
+          "level": "warn",
+          "text": "KAN-1 is scheduled for the same team at 09:30 on Mon. It will wait for a free run."
+        }
+      ],
+      "project_id": "<uuid:2>",
+      "run_at": "<time>",
+      "runs": [],
+      "runs_count": 0,
+      "state": "active",
+      "stats": {
+        "avg_s": null,
+        "cost": 0,
+        "metered": false,
+        "of": 0,
+        "passed": 0
+      },
+      "summary": "On Mon Jun 15 at 09:30 (UTC), Dev An works on KAN-1. The lead decides what to do and reports. It never moves past Review.",
+      "ticket_changed": false,
+      "ticket_id": "KAN-1",
+      "ticket_status": "todo",
+      "ticket_title": "Fix add()",
+      "time": "02:00",
+      "tz": "UTC",
+      "tz_label": "UTC",
+      "updated_at": "<time>",
+      "when": "Once · Mon Jun 15, 09:30",
+      "window_end": null
+    }
+  },
+  "GET schedule: after": {
+    "status": 200,
+    "json": {
+      "backup_member_id": "<uuid:1>",
+      "backup_member_name": "Dev An",
+      "catch_up": "ask",
+      "catch_up_hours": 2.5,
+      "connection": "local",
+      "created_at": "<time>",
+      "created_by": "user",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "ends": "never",
+      "ends_after": null,
+      "ends_on": null,
+      "failures_in_row": 0,
+      "id": "<sch:1>",
+      "instruction": "Fix it, then run the tests.",
+      "kind": "once",
+      "last_run": null,
+      "limits": {
+        "max_cost": null,
+        "retries": 2,
+        "stop_after_min": 30
+      },
+      "member_id": "<uuid:2>",
+      "member_name": "Dev Binh",
+      "next_run_at": "<time>",
+      "notify": [
+        "failed"
+      ],
+      "notify_people": [
+        "An Nguyen"
+      ],
+      "offline_risk": null,
+      "paused_reason": null,
+      "problems": [
+        {
+          "key": "local",
+          "level": "warn",
+          "text": "Teams run only while the desktop app is open. If it is closed at the time, the run is skipped."
+        }
+      ],
+      "project_id": "<uuid:3>",
+      "run_at": "<time>",
+      "runs": [],
+      "runs_count": 0,
+      "state": "active",
+      "stats": {
+        "avg_s": null,
+        "cost": 0,
+        "metered": false,
+        "of": 0,
+        "passed": 0
+      },
+      "summary": "On Mon Jun 15 at 09:30 (UTC), Dev Binh works on KAN-1. The lead decides what to do and reports. If Dev Binh is unavailable, Dev An runs it. It never moves past Review.",
+      "ticket_changed": false,
+      "ticket_id": "KAN-1",
+      "ticket_status": "todo",
+      "ticket_title": "Fix add()",
+      "time": "02:00",
+      "tz": "UTC",
+      "tz_label": "UTC",
+      "updated_at": "<time>",
+      "when": "Once · Mon Jun 15, 09:30",
+      "window_end": null
+    }
+  },
+  "GET schedule: deleted": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Schedule not found."
+    }
+  },
+  "GET schedule: not found": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Schedule not found."
+    }
+  },
+  "GET schedule: with a run": {
+    "status": 200,
+    "json": {
+      "backup_member_id": null,
+      "backup_member_name": null,
+      "catch_up": "run",
+      "catch_up_hours": 2.0,
+      "connection": "local",
+      "created_at": "<time>",
+      "created_by": "user",
+      "days": [
+        0,
+        2,
+        4
+      ],
+      "ends": "after",
+      "ends_after": 5,
+      "ends_on": null,
+      "failures_in_row": 0,
+      "id": "<sch:1>",
+      "instruction": "",
+      "kind": "repeat",
+      "last_run": {
+        "attempts": 0,
+        "catch_up": true,
+        "cost_usd": 0.0,
+        "duration_s": 0,
+        "ended_at": "<time>",
+        "id": "<srun:2>",
+        "member_id": "<uuid:1>",
+        "member_name": "Dev An",
+        "note": "Skipped by user.",
+        "run_ids": [],
+        "schedule_id": "<sch:1>",
+        "slot_at": "<time>",
+        "started_at": null,
+        "state": "skipped",
+        "ticket_id": "KAN-2"
+      },
+      "limits": {
+        "max_cost": null,
+        "retries": 1,
+        "stop_after_min": 45
+      },
+      "member_id": "<uuid:1>",
+      "member_name": "Dev An",
+      "next_run_at": "<time>",
+      "notify": [
+        "started",
+        "needs_input",
+        "failed",
+        "finished"
+      ],
+      "notify_people": [],
+      "offline_risk": null,
+      "paused_reason": null,
+      "problems": [
+        {
+          "key": "local",
+          "level": "warn",
+          "text": "Teams run only while the desktop app is open. Catch-up is on (2 h)."
+        }
+      ],
+      "project_id": "<uuid:2>",
+      "run_at": null,
+      "runs": [
+        {
+          "attempts": 0,
+          "catch_up": true,
+          "cost_usd": 0.0,
+          "duration_s": 0,
+          "ended_at": "<time>",
+          "id": "<srun:2>",
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "note": "Skipped by user.",
+          "report": null,
+          "run_ids": [],
+          "schedule_id": "<sch:1>",
+          "slot_at": "<time>",
+          "started_at": null,
+          "state": "skipped",
+          "ticket_id": "KAN-2"
+        }
+      ],
+      "runs_count": 0,
+      "state": "active",
+      "stats": {
+        "avg_s": null,
+        "cost": 0.0,
+        "metered": false,
+        "of": 0,
+        "passed": 0
+      },
+      "summary": "Every Mon, Wed, Fri at 09:00 (UTC), Dev An works on KAN-2. The lead decides what to do and reports. It ends after 5 runs. It never moves past Review.",
+      "ticket_changed": false,
+      "ticket_id": "KAN-2",
+      "ticket_status": "todo",
+      "ticket_title": "Write the docs",
+      "time": "09:00",
+      "tz": "UTC",
+      "tz_label": "UTC",
+      "updated_at": "<time>",
+      "when": "Every Mon, Wed, Fri at 09:00",
+      "window_end": null
+    }
+  },
+  "GET schedules": {
+    "status": 200,
+    "json": {
+      "counts": {
+        "ended": 0,
+        "history": 0,
+        "paused": 0,
+        "upcoming": 3
+      },
+      "items": [
+        {
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "connection": "local",
+          "created_at": "<time>",
+          "created_by": "user",
+          "days": [
+            0,
+            2,
+            4
+          ],
+          "ends": "after",
+          "ends_after": 5,
+          "ends_on": null,
+          "failures_in_row": 0,
+          "id": "<sch:1>",
+          "instruction": "",
+          "kind": "repeat",
+          "last_run": null,
+          "limits": {
+            "max_cost": null,
+            "retries": 1,
+            "stop_after_min": 45
+          },
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "next_run_at": "<time>",
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "offline_risk": null,
+          "paused_reason": null,
+          "project_id": "<uuid:2>",
+          "run_at": null,
+          "runs_count": 0,
+          "state": "active",
+          "ticket_changed": false,
+          "ticket_id": "KAN-2",
+          "ticket_status": "todo",
+          "ticket_title": "Write the docs",
+          "time": "09:00",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "updated_at": "<time>",
+          "when": "Every Mon, Wed, Fri at 09:00",
+          "window_end": null
+        },
+        {
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "connection": "local",
+          "created_at": "<time>",
+          "created_by": "user",
+          "days": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "ends": "never",
+          "ends_after": null,
+          "ends_on": null,
+          "failures_in_row": 0,
+          "id": "<sch:2>",
+          "instruction": "Fix the operator in calc.py.",
+          "kind": "once",
+          "last_run": null,
+          "limits": {
+            "max_cost": null,
+            "retries": 1,
+            "stop_after_min": 45
+          },
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "next_run_at": "<time>",
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "offline_risk": null,
+          "paused_reason": null,
+          "project_id": "<uuid:2>",
+          "run_at": "<time>",
+          "runs_count": 0,
+          "state": "active",
+          "ticket_changed": false,
+          "ticket_id": "KAN-1",
+          "ticket_status": "todo",
+          "ticket_title": "Fix add()",
+          "time": "02:00",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "updated_at": "<time>",
+          "when": "Once · Mon Jun 15, 09:30",
+          "window_end": null
+        },
+        {
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "connection": "local",
+          "created_at": "<time>",
+          "created_by": "user",
+          "days": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "ends": "never",
+          "ends_after": null,
+          "ends_on": null,
+          "failures_in_row": 0,
+          "id": "<sch:3>",
+          "instruction": "Fix the operator in calc.py.",
+          "kind": "once",
+          "last_run": null,
+          "limits": {
+            "max_cost": null,
+            "retries": 1,
+            "stop_after_min": 45
+          },
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "next_run_at": "<time>",
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "offline_risk": null,
+          "paused_reason": null,
+          "project_id": "<uuid:2>",
+          "run_at": "<time>",
+          "runs_count": 0,
+          "state": "active",
+          "ticket_changed": false,
+          "ticket_id": "KAN-1",
+          "ticket_status": "todo",
+          "ticket_title": "Fix add()",
+          "time": "02:00",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "updated_at": "<time>",
+          "when": "Once · Mon Jun 15, 09:30",
+          "window_end": null
+        }
+      ]
+    }
+  },
+  "GET schedules: another ticket": {
+    "status": 200,
+    "json": {
+      "counts": {
+        "ended": 0,
+        "history": 0,
+        "paused": 0,
+        "upcoming": 0
+      },
+      "items": []
+    }
+  },
+  "GET schedules: no such project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "GET schedules: none": {
+    "status": 200,
+    "json": {
+      "counts": {
+        "ended": 0,
+        "history": 0,
+        "paused": 0,
+        "upcoming": 0
+      },
+      "items": []
+    }
+  },
+  "GET schedules: none left": {
+    "status": 200,
+    "json": {
+      "counts": {
+        "ended": 0,
+        "history": 0,
+        "paused": 0,
+        "upcoming": 1
+      },
+      "items": [
+        {
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "connection": "local",
+          "created_at": "<time>",
+          "created_by": "user",
+          "days": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "ends": "never",
+          "ends_after": null,
+          "ends_on": null,
+          "failures_in_row": 0,
+          "id": "<sch:1>",
+          "instruction": "Fix the operator in calc.py.",
+          "kind": "once",
+          "last_run": null,
+          "limits": {
+            "max_cost": null,
+            "retries": 1,
+            "stop_after_min": 45
+          },
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "next_run_at": "<time>",
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "offline_risk": null,
+          "paused_reason": null,
+          "project_id": "<uuid:2>",
+          "run_at": "<time>",
+          "runs_count": 0,
+          "state": "active",
+          "ticket_changed": false,
+          "ticket_id": "KAN-1",
+          "ticket_status": "todo",
+          "ticket_title": "Fix add()",
+          "time": "02:00",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "updated_at": "<time>",
+          "when": "Once · Mon Jun 15, 09:30",
+          "window_end": null
+        }
+      ]
+    }
+  },
+  "GET schedules: one ticket": {
+    "status": 200,
+    "json": {
+      "counts": {
+        "ended": 0,
+        "history": 0,
+        "paused": 0,
+        "upcoming": 2
+      },
+      "items": [
+        {
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "connection": "local",
+          "created_at": "<time>",
+          "created_by": "user",
+          "days": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "ends": "never",
+          "ends_after": null,
+          "ends_on": null,
+          "failures_in_row": 0,
+          "id": "<sch:1>",
+          "instruction": "Fix the operator in calc.py.",
+          "kind": "once",
+          "last_run": null,
+          "limits": {
+            "max_cost": null,
+            "retries": 1,
+            "stop_after_min": 45
+          },
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "next_run_at": "<time>",
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "offline_risk": null,
+          "paused_reason": null,
+          "project_id": "<uuid:2>",
+          "run_at": "<time>",
+          "runs_count": 0,
+          "state": "active",
+          "ticket_changed": false,
+          "ticket_id": "KAN-1",
+          "ticket_status": "todo",
+          "ticket_title": "Fix add()",
+          "time": "02:00",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "updated_at": "<time>",
+          "when": "Once · Mon Jun 15, 09:30",
+          "window_end": null
+        },
+        {
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "connection": "local",
+          "created_at": "<time>",
+          "created_by": "user",
+          "days": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "ends": "never",
+          "ends_after": null,
+          "ends_on": null,
+          "failures_in_row": 0,
+          "id": "<sch:2>",
+          "instruction": "Fix the operator in calc.py.",
+          "kind": "once",
+          "last_run": null,
+          "limits": {
+            "max_cost": null,
+            "retries": 1,
+            "stop_after_min": 45
+          },
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "next_run_at": "<time>",
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "offline_risk": null,
+          "paused_reason": null,
+          "project_id": "<uuid:2>",
+          "run_at": "<time>",
+          "runs_count": 0,
+          "state": "active",
+          "ticket_changed": false,
+          "ticket_id": "KAN-1",
+          "ticket_status": "todo",
+          "ticket_title": "Fix add()",
+          "time": "02:00",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "updated_at": "<time>",
+          "when": "Once · Mon Jun 15, 09:30",
+          "window_end": null
+        }
+      ]
+    }
+  },
+  "GET week": {
+    "status": 200,
+    "json": {
+      "days": 3,
+      "items": [
+        {
+          "at": "<time>",
+          "kind": "run",
+          "member_id": "<uuid:1>",
+          "paused": false,
+          "schedule_id": "<sch:1>",
+          "ticket_id": "KAN-2"
+        },
+        {
+          "at": "<time>",
+          "kind": "run",
+          "member_id": "<uuid:1>",
+          "overlap": true,
+          "paused": false,
+          "schedule_id": "<sch:2>",
+          "ticket_id": "KAN-1"
+        },
+        {
+          "at": "<time>",
+          "kind": "run",
+          "member_id": "<uuid:1>",
+          "overlap": true,
+          "paused": false,
+          "schedule_id": "<sch:3>",
+          "ticket_id": "KAN-1"
+        }
+      ],
+      "members": [
+        {
+          "available": true,
+          "connection": "local",
+          "id": "<uuid:1>",
+          "max_parallel": 2,
+          "name": "Dev An",
+          "reason": null
+        }
+      ],
+      "start": "<time>"
+    }
+  },
+  "GET week: bad start": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "start must be an ISO date."
+    }
+  },
+  "GET week: days 0": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "days"
+        ]
+      ]
+    }
+  },
+  "GET week: days 32": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "days"
+        ]
+      ]
+    }
+  },
+  "GET week: no such project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "GET week: none": {
+    "status": 200,
+    "json": {
+      "days": 7,
+      "items": [],
+      "members": [],
+      "start": "<time>"
+    }
+  },
+  "GET week: with a zone": {
+    "status": 200,
+    "json": {
+      "days": 2,
+      "items": [
+        {
+          "at": "<time>",
+          "kind": "run",
+          "member_id": "<uuid:1>",
+          "paused": false,
+          "schedule_id": "<sch:1>",
+          "ticket_id": "KAN-2"
+        },
+        {
+          "at": "<time>",
+          "kind": "run",
+          "member_id": "<uuid:1>",
+          "overlap": true,
+          "paused": false,
+          "schedule_id": "<sch:2>",
+          "ticket_id": "KAN-1"
+        },
+        {
+          "at": "<time>",
+          "kind": "run",
+          "member_id": "<uuid:1>",
+          "overlap": true,
+          "paused": false,
+          "schedule_id": "<sch:3>",
+          "ticket_id": "KAN-1"
+        }
+      ],
+      "members": [
+        {
+          "available": true,
+          "connection": "local",
+          "id": "<uuid:1>",
+          "max_parallel": 2,
+          "name": "Dev An",
+          "reason": null
+        }
+      ],
+      "start": "<time>"
+    }
+  },
+  "PATCH schedule: a catch-up that is not one": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Pick what happens when it cannot run on time.",
+      "problems": [
+        {
+          "key": "catch_up",
+          "level": "error",
+          "text": "Pick what happens when it cannot run on time."
+        }
+      ]
+    }
+  },
+  "PATCH schedule: another ticket": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "A schedule stays on its ticket. Make a new one for another ticket."
+    }
+  },
+  "PATCH schedule: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "PATCH schedule: not found": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Schedule not found."
+    }
+  },
+  "PATCH schedule: nothing": {
+    "status": 200,
+    "json": {
+      "backup_member_id": null,
+      "backup_member_name": null,
+      "catch_up": "run",
+      "catch_up_hours": 2.0,
+      "connection": "local",
+      "created_at": "<time>",
+      "created_by": "user",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "ends": "never",
+      "ends_after": null,
+      "ends_on": null,
+      "failures_in_row": 0,
+      "id": "<sch:1>",
+      "instruction": "Fix the operator in calc.py.",
+      "kind": "once",
+      "last_run": null,
+      "limits": {
+        "max_cost": null,
+        "retries": 1,
+        "stop_after_min": 45
+      },
+      "member_id": "<uuid:1>",
+      "member_name": "Dev An",
+      "next_run_at": "<time>",
+      "notify": [
+        "started",
+        "needs_input",
+        "failed",
+        "finished"
+      ],
+      "notify_people": [],
+      "offline_risk": null,
+      "paused_reason": null,
+      "project_id": "<uuid:2>",
+      "run_at": "<time>",
+      "runs_count": 0,
+      "state": "active",
+      "ticket_changed": false,
+      "ticket_id": "KAN-1",
+      "ticket_status": "todo",
+      "ticket_title": "Fix add()",
+      "time": "02:00",
+      "tz": "UTC",
+      "tz_label": "UTC",
+      "updated_at": "<time>",
+      "when": "Once · Mon Jun 15, 09:30",
+      "window_end": null
+    }
+  },
+  "PATCH schedule: the same ticket": {
+    "status": 200,
+    "json": {
+      "backup_member_id": null,
+      "backup_member_name": null,
+      "catch_up": "run",
+      "catch_up_hours": 2.0,
+      "connection": "local",
+      "created_at": "<time>",
+      "created_by": "user",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "ends": "never",
+      "ends_after": null,
+      "ends_on": null,
+      "failures_in_row": 0,
+      "id": "<sch:1>",
+      "instruction": "Fix it, then run the tests.",
+      "kind": "once",
+      "last_run": null,
+      "limits": {
+        "max_cost": null,
+        "retries": 1,
+        "stop_after_min": 45
+      },
+      "member_id": "<uuid:1>",
+      "member_name": "Dev An",
+      "next_run_at": "<time>",
+      "notify": [
+        "started",
+        "needs_input",
+        "failed",
+        "finished"
+      ],
+      "notify_people": [],
+      "offline_risk": null,
+      "paused_reason": null,
+      "project_id": "<uuid:2>",
+      "run_at": "<time>",
+      "runs_count": 0,
+      "state": "active",
+      "ticket_changed": false,
+      "ticket_id": "KAN-1",
+      "ticket_status": "todo",
+      "ticket_title": "Fix add()",
+      "time": "02:00",
+      "tz": "UTC",
+      "tz_label": "UTC",
+      "updated_at": "<time>",
+      "when": "Once · Mon Jun 15, 09:30",
+      "window_end": null
+    }
+  },
+  "PATCH schedule: the team": {
+    "status": 200,
+    "json": {
+      "backup_member_id": "<uuid:1>",
+      "backup_member_name": "Dev An",
+      "catch_up": "ask",
+      "catch_up_hours": 2.5,
+      "connection": "local",
+      "created_at": "<time>",
+      "created_by": "user",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "ends": "never",
+      "ends_after": null,
+      "ends_on": null,
+      "failures_in_row": 0,
+      "id": "<sch:1>",
+      "instruction": "Fix it, then run the tests.",
+      "kind": "once",
+      "last_run": null,
+      "limits": {
+        "max_cost": null,
+        "retries": 2,
+        "stop_after_min": 30
+      },
+      "member_id": "<uuid:2>",
+      "member_name": "Dev Binh",
+      "next_run_at": "<time>",
+      "notify": [
+        "failed"
+      ],
+      "notify_people": [
+        "An Nguyen"
+      ],
+      "offline_risk": null,
+      "paused_reason": null,
+      "project_id": "<uuid:3>",
+      "run_at": "<time>",
+      "runs_count": 0,
+      "state": "active",
+      "ticket_changed": false,
+      "ticket_id": "KAN-1",
+      "ticket_status": "todo",
+      "ticket_title": "Fix add()",
+      "time": "02:00",
+      "tz": "UTC",
+      "tz_label": "UTC",
+      "updated_at": "<time>",
+      "when": "Once · Mon Jun 15, 09:30",
+      "window_end": null
+    }
+  },
+  "POST action: another team, not a team": {
+    "status": 409,
+    "json": {
+      "code": "unavailable",
+      "detail": "The team was removed."
+    }
+  },
+  "POST action: no action": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "action"
+        ]
+      ]
+    }
+  },
+  "POST action: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "POST action: not a slot action": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "action must be start, skip or use_member."
+    }
+  },
+  "POST action: not found": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Scheduled run not found."
+    }
+  },
+  "POST action: skip": {
+    "status": 200,
+    "json": {
+      "attempts": 0,
+      "catch_up": true,
+      "cost_usd": 0.0,
+      "duration_s": 0,
+      "ended_at": "<time>",
+      "id": "<srun:1>",
+      "member_id": "<uuid:1>",
+      "member_name": null,
+      "note": "Skipped by user.",
+      "run_ids": [],
+      "schedule_id": "<sch:2>",
+      "slot_at": "<time>",
+      "started_at": null,
+      "state": "skipped",
+      "ticket_id": "KAN-2"
+    }
+  },
+  "POST action: skip again": {
+    "status": 409,
+    "json": {
+      "code": "conflict",
+      "detail": "This run is not waiting any more."
+    }
+  },
+  "POST create: a second one on the same ticket": {
+    "status": 201,
+    "json": {
+      "backup_member_id": null,
+      "backup_member_name": null,
+      "catch_up": "run",
+      "catch_up_hours": 2.0,
+      "connection": "local",
+      "created_at": "<time>",
+      "created_by": "user",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "ends": "never",
+      "ends_after": null,
+      "ends_on": null,
+      "failures_in_row": 0,
+      "id": "<sch:1>",
+      "instruction": "Fix the operator in calc.py.",
+      "kind": "once",
+      "last_run": null,
+      "limits": {
+        "max_cost": null,
+        "retries": 1,
+        "stop_after_min": 45
+      },
+      "member_id": "<uuid:1>",
+      "member_name": "Dev An",
+      "next_run_at": "<time>",
+      "notify": [
+        "started",
+        "needs_input",
+        "failed",
+        "finished"
+      ],
+      "notify_people": [],
+      "offline_risk": null,
+      "paused_reason": null,
+      "project_id": "<uuid:2>",
+      "run_at": "<time>",
+      "runs_count": 0,
+      "state": "active",
+      "ticket_changed": false,
+      "ticket_id": "KAN-1",
+      "ticket_status": "todo",
+      "ticket_title": "Fix add()",
+      "time": "02:00",
+      "tz": "UTC",
+      "tz_label": "UTC",
+      "updated_at": "<time>",
+      "when": "Once · Mon Jun 15, 09:30",
+      "window_end": null
+    }
+  },
+  "POST create: ends_after is a fraction": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "ends_after"
+        ]
+      ]
+    }
+  },
+  "POST create: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "POST create: no such project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "POST create: no such team": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Pick a team of this project.",
+      "problems": [
+        {
+          "key": "member",
+          "level": "error",
+          "text": "Pick a team of this project."
+        }
+      ]
+    }
+  },
+  "POST create: no such ticket": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Pick a ticket of this project.",
+      "problems": [
+        {
+          "key": "ticket",
+          "level": "error",
+          "text": "Pick a ticket of this project."
+        }
+      ]
+    }
+  },
+  "POST create: no ticket": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Pick a ticket of this project.",
+      "problems": [
+        {
+          "key": "ticket",
+          "level": "error",
+          "text": "Pick a ticket of this project."
+        }
+      ]
+    }
+  },
+  "POST create: nothing": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Pick a ticket of this project.",
+      "problems": [
+        {
+          "key": "ticket",
+          "level": "error",
+          "text": "Pick a ticket of this project."
+        },
+        {
+          "key": "member",
+          "level": "error",
+          "text": "Pick a team of this project."
+        }
+      ]
+    }
+  },
+  "POST create: once": {
+    "status": 201,
+    "json": {
+      "backup_member_id": null,
+      "backup_member_name": null,
+      "catch_up": "run",
+      "catch_up_hours": 2.0,
+      "connection": "local",
+      "created_at": "<time>",
+      "created_by": "user",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "ends": "never",
+      "ends_after": null,
+      "ends_on": null,
+      "failures_in_row": 0,
+      "id": "<sch:1>",
+      "instruction": "Fix the operator in calc.py.",
+      "kind": "once",
+      "last_run": null,
+      "limits": {
+        "max_cost": null,
+        "retries": 1,
+        "stop_after_min": 45
+      },
+      "member_id": "<uuid:1>",
+      "member_name": "Dev An",
+      "next_run_at": "<time>",
+      "notify": [
+        "started",
+        "needs_input",
+        "failed",
+        "finished"
+      ],
+      "notify_people": [],
+      "offline_risk": null,
+      "paused_reason": null,
+      "project_id": "<uuid:2>",
+      "run_at": "<time>",
+      "runs_count": 0,
+      "state": "active",
+      "ticket_changed": false,
+      "ticket_id": "KAN-1",
+      "ticket_status": "todo",
+      "ticket_title": "Fix add()",
+      "time": "02:00",
+      "tz": "UTC",
+      "tz_label": "UTC",
+      "updated_at": "<time>",
+      "when": "Once · Mon Jun 15, 09:30",
+      "window_end": null
+    }
+  },
+  "POST create: repeat": {
+    "status": 201,
+    "json": {
+      "backup_member_id": null,
+      "backup_member_name": null,
+      "catch_up": "run",
+      "catch_up_hours": 2.0,
+      "connection": "local",
+      "created_at": "<time>",
+      "created_by": "user",
+      "days": [
+        0,
+        2,
+        4
+      ],
+      "ends": "after",
+      "ends_after": 5,
+      "ends_on": null,
+      "failures_in_row": 0,
+      "id": "<sch:1>",
+      "instruction": "",
+      "kind": "repeat",
+      "last_run": null,
+      "limits": {
+        "max_cost": null,
+        "retries": 1,
+        "stop_after_min": 45
+      },
+      "member_id": "<uuid:1>",
+      "member_name": "Dev An",
+      "next_run_at": "<time>",
+      "notify": [
+        "started",
+        "needs_input",
+        "failed",
+        "finished"
+      ],
+      "notify_people": [],
+      "offline_risk": null,
+      "paused_reason": null,
+      "project_id": "<uuid:2>",
+      "run_at": null,
+      "runs_count": 0,
+      "state": "active",
+      "ticket_changed": false,
+      "ticket_id": "KAN-2",
+      "ticket_status": "todo",
+      "ticket_title": "Write the docs",
+      "time": "09:00",
+      "tz": "UTC",
+      "tz_label": "UTC",
+      "updated_at": "<time>",
+      "when": "Every Mon, Wed, Fri at 09:00",
+      "window_end": null
+    }
+  },
+  "POST dry-run: a schedule that is not there": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Schedule not found."
+    }
+  },
+  "POST dry-run: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "POST dry-run: no such project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "POST dry-run: no such team": {
+    "status": 200,
+    "json": {
+      "cost": 0.01,
+      "member_name": "Board AI",
+      "metered": false,
+      "text": "Fixed add(); tests pass."
+    }
+  },
+  "POST dry-run: no such ticket": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Pick a ticket first."
+    }
+  },
+  "POST pause": {
+    "status": 200,
+    "json": {
+      "backup_member_id": "<uuid:1>",
+      "backup_member_name": "Dev An",
+      "catch_up": "ask",
+      "catch_up_hours": 2.5,
+      "connection": "local",
+      "created_at": "<time>",
+      "created_by": "user",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "ends": "never",
+      "ends_after": null,
+      "ends_on": null,
+      "failures_in_row": 0,
+      "id": "<sch:1>",
+      "instruction": "Fix it, then run the tests.",
+      "kind": "once",
+      "last_run": null,
+      "limits": {
+        "max_cost": null,
+        "retries": 2,
+        "stop_after_min": 30
+      },
+      "member_id": "<uuid:2>",
+      "member_name": "Dev Binh",
+      "next_run_at": "<time>",
+      "notify": [
+        "failed"
+      ],
+      "notify_people": [
+        "An Nguyen"
+      ],
+      "offline_risk": null,
+      "paused_reason": "Paused by user",
+      "project_id": "<uuid:3>",
+      "run_at": "<time>",
+      "runs_count": 0,
+      "state": "paused",
+      "ticket_changed": false,
+      "ticket_id": "KAN-1",
+      "ticket_status": "todo",
+      "ticket_title": "Fix add()",
+      "time": "02:00",
+      "tz": "UTC",
+      "tz_label": "UTC",
+      "updated_at": "<time>",
+      "when": "Once · Mon Jun 15, 09:30",
+      "window_end": null
+    }
+  },
+  "POST pause: not found": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Schedule not found."
+    }
+  },
+  "POST preview: a kind that is not one": {
+    "status": 200,
+    "json": {
+      "checks": [
+        {
+          "key": "permission",
+          "level": "ok",
+          "text": "You may assign this team to KAN-1"
+        },
+        {
+          "key": "runner",
+          "level": "ok",
+          "text": "Dev An can start now, 2 of 2 runs free"
+        },
+        {
+          "key": "local",
+          "level": "warn",
+          "text": "Teams run only while the desktop app is open. Catch-up is on (2 h)."
+        },
+        {
+          "key": "when",
+          "level": "error",
+          "text": "kind must be once or repeat."
+        }
+      ],
+      "next_runs": [],
+      "summary": ""
+    }
+  },
+  "POST preview: a schedule that is not there": {
+    "status": 200,
+    "json": {
+      "checks": [
+        {
+          "key": "ticket",
+          "level": "error",
+          "text": "Pick a ticket of this project."
+        },
+        {
+          "key": "member",
+          "level": "error",
+          "text": "Pick a team of this project."
+        }
+      ],
+      "next_runs": [
+        {
+          "at": "<time>",
+          "time": "02:00"
+        },
+        {
+          "at": "<time>",
+          "time": "02:00"
+        },
+        {
+          "at": "<time>",
+          "time": "02:00"
+        },
+        {
+          "at": "<time>",
+          "time": "02:00"
+        },
+        {
+          "at": "<time>",
+          "time": "02:00"
+        }
+      ],
+      "summary": ""
+    }
+  },
+  "POST preview: a zone that is not one": {
+    "status": 200,
+    "json": {
+      "checks": [
+        {
+          "key": "permission",
+          "level": "ok",
+          "text": "You may assign this team to KAN-1"
+        },
+        {
+          "key": "runner",
+          "level": "ok",
+          "text": "Dev An can start now, 2 of 2 runs free"
+        },
+        {
+          "key": "local",
+          "level": "warn",
+          "text": "Teams run only while the desktop app is open. Catch-up is on (2 h)."
+        },
+        {
+          "key": "when",
+          "level": "error",
+          "text": "Unknown time zone: Mars/Base."
+        }
+      ],
+      "next_runs": [],
+      "summary": ""
+    }
+  },
+  "POST preview: an existing schedule, edited": {
+    "status": 200,
+    "json": {
+      "checks": [
+        {
+          "key": "permission",
+          "level": "ok",
+          "text": "You may assign this team to KAN-1"
+        },
+        {
+          "key": "runner",
+          "level": "ok",
+          "text": "Dev An can start now, 2 of 2 runs free"
+        },
+        {
+          "key": "local",
+          "level": "warn",
+          "text": "Teams run only while the desktop app is open. Catch-up is on (2 h)."
+        },
+        {
+          "key": "overlap",
+          "level": "warn",
+          "text": "KAN-1 is scheduled for the same team at 09:30 on Mon. It will wait for a free run."
+        }
+      ],
+      "next_runs": [
+        {
+          "at": "<time>",
+          "time": "09:30"
+        }
+      ],
+      "summary": "On Mon Jun 15 at 09:30 (UTC), Dev An works on KAN-1. The lead decides what to do and reports. It never moves past Review."
+    }
+  },
+  "POST preview: days holds text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "days",
+          0
+        ]
+      ]
+    }
+  },
+  "POST preview: days is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "days"
+        ]
+      ]
+    }
+  },
+  "POST preview: limits is a list": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "limits"
+        ]
+      ]
+    }
+  },
+  "POST preview: limits out of range": {
+    "status": 200,
+    "json": {
+      "checks": [
+        {
+          "key": "permission",
+          "level": "ok",
+          "text": "You may assign this team to KAN-1"
+        },
+        {
+          "key": "runner",
+          "level": "ok",
+          "text": "Dev An can start now, 2 of 2 runs free"
+        },
+        {
+          "key": "local",
+          "level": "warn",
+          "text": "Teams run only while the desktop app is open. Catch-up is on (2 h)."
+        },
+        {
+          "key": "limits",
+          "level": "error",
+          "text": "Stop after must be 5 to 600 minutes."
+        },
+        {
+          "key": "limits",
+          "level": "error",
+          "text": "Retries must be 0 to 3."
+        }
+      ],
+      "next_runs": [
+        {
+          "at": "<time>",
+          "time": "09:30"
+        }
+      ],
+      "summary": "On Mon Jun 15 at 09:30 (UTC), Dev An works on KAN-1. The lead decides what to do and reports. It never moves past Review."
+    }
+  },
+  "POST preview: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "POST preview: no day": {
+    "status": 200,
+    "json": {
+      "checks": [
+        {
+          "key": "permission",
+          "level": "ok",
+          "text": "You may assign this team to KAN-1"
+        },
+        {
+          "key": "runner",
+          "level": "ok",
+          "text": "Dev An can start now, 2 of 2 runs free"
+        },
+        {
+          "key": "local",
+          "level": "warn",
+          "text": "Teams run only while the desktop app is open. Catch-up is on (2 h)."
+        },
+        {
+          "key": "when",
+          "level": "error",
+          "text": "Pick at least one day."
+        }
+      ],
+      "next_runs": [],
+      "summary": ""
+    }
+  },
+  "POST preview: no such project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "POST preview: nothing": {
+    "status": 200,
+    "json": {
+      "checks": [
+        {
+          "key": "ticket",
+          "level": "error",
+          "text": "Pick a ticket of this project."
+        },
+        {
+          "key": "member",
+          "level": "error",
+          "text": "Pick a team of this project."
+        }
+      ],
+      "next_runs": [
+        {
+          "at": "<time>",
+          "time": "02:00"
+        },
+        {
+          "at": "<time>",
+          "time": "02:00"
+        },
+        {
+          "at": "<time>",
+          "time": "02:00"
+        },
+        {
+          "at": "<time>",
+          "time": "02:00"
+        },
+        {
+          "at": "<time>",
+          "time": "02:00"
+        }
+      ],
+      "summary": ""
+    }
+  },
+  "POST preview: once": {
+    "status": 200,
+    "json": {
+      "checks": [
+        {
+          "key": "permission",
+          "level": "ok",
+          "text": "You may assign this team to KAN-1"
+        },
+        {
+          "key": "runner",
+          "level": "ok",
+          "text": "Dev An can start now, 2 of 2 runs free"
+        },
+        {
+          "key": "local",
+          "level": "warn",
+          "text": "Teams run only while the desktop app is open. Catch-up is on (2 h)."
+        }
+      ],
+      "next_runs": [
+        {
+          "at": "<time>",
+          "time": "09:30"
+        }
+      ],
+      "summary": "On Mon Jun 15 at 09:30 (UTC), Dev An works on KAN-1. The lead decides what to do and reports. It never moves past Review."
+    }
+  },
+  "POST preview: repeat": {
+    "status": 200,
+    "json": {
+      "checks": [
+        {
+          "key": "permission",
+          "level": "ok",
+          "text": "You may assign this team to KAN-2"
+        },
+        {
+          "key": "runner",
+          "level": "ok",
+          "text": "Dev An can start now, 2 of 2 runs free"
+        },
+        {
+          "key": "local",
+          "level": "warn",
+          "text": "Teams run only while the desktop app is open. Catch-up is on (2 h)."
+        }
+      ],
+      "next_runs": [
+        {
+          "at": "<time>",
+          "time": "09:00"
+        },
+        {
+          "at": "<time>",
+          "time": "09:00"
+        },
+        {
+          "at": "<time>",
+          "time": "09:00"
+        },
+        {
+          "at": "<time>",
+          "time": "09:00"
+        },
+        {
+          "at": "<time>",
+          "time": "09:00"
+        }
+      ],
+      "summary": "Every Mon, Wed, Fri at 09:00 (UTC), Dev An works on KAN-2. The lead decides what to do and reports. It ends after 5 runs. It never moves past Review."
+    }
+  },
+  "POST preview: schedule_id is a number": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "schedule_id"
+        ]
+      ]
+    }
+  },
+  "POST preview: the backup is the team": {
+    "status": 200,
+    "json": {
+      "checks": [
+        {
+          "key": "permission",
+          "level": "ok",
+          "text": "You may assign this team to KAN-1"
+        },
+        {
+          "key": "runner",
+          "level": "ok",
+          "text": "Dev An can start now, 2 of 2 runs free"
+        },
+        {
+          "key": "local",
+          "level": "warn",
+          "text": "Teams run only while the desktop app is open. Catch-up is on (2 h)."
+        },
+        {
+          "key": "backup",
+          "level": "error",
+          "text": "The backup team must be a different team."
+        }
+      ],
+      "next_runs": [
+        {
+          "at": "<time>",
+          "time": "09:30"
+        }
+      ],
+      "summary": "On Mon Jun 15 at 09:30 (UTC), Dev An works on KAN-1. The lead decides what to do and reports. If Dev An is unavailable, Dev An runs it. It never moves past Review."
+    }
+  },
+  "POST resume": {
+    "status": 200,
+    "json": {
+      "backup_member_id": "<uuid:1>",
+      "backup_member_name": "Dev An",
+      "catch_up": "ask",
+      "catch_up_hours": 2.5,
+      "connection": "local",
+      "created_at": "<time>",
+      "created_by": "user",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "ends": "never",
+      "ends_after": null,
+      "ends_on": null,
+      "failures_in_row": 0,
+      "id": "<sch:1>",
+      "instruction": "Fix it, then run the tests.",
+      "kind": "once",
+      "last_run": null,
+      "limits": {
+        "max_cost": null,
+        "retries": 2,
+        "stop_after_min": 30
+      },
+      "member_id": "<uuid:2>",
+      "member_name": "Dev Binh",
+      "next_run_at": "<time>",
+      "notify": [
+        "failed"
+      ],
+      "notify_people": [
+        "An Nguyen"
+      ],
+      "offline_risk": null,
+      "paused_reason": null,
+      "project_id": "<uuid:3>",
+      "run_at": "<time>",
+      "runs_count": 0,
+      "state": "active",
+      "ticket_changed": false,
+      "ticket_id": "KAN-1",
+      "ticket_status": "todo",
+      "ticket_title": "Fix add()",
+      "time": "02:00",
+      "tz": "UTC",
+      "tz_label": "UTC",
+      "updated_at": "<time>",
+      "when": "Once · Mon Jun 15, 09:30",
+      "window_end": null
+    }
+  },
+  "POST resume: not found": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Schedule not found."
+    }
+  },
+  "POST run-now: not found": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Schedule not found."
+    }
+  }
+}

@@ -1,0 +1,45 @@
+[package]
+name = "kb-assist"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+kb-base = { workspace = true }
+kb-db = { workspace = true }
+kb-board = { workspace = true }
+kb-ai = { workspace = true }
+kb-ai-know = { workspace = true }
+kb-ai-run = { workspace = true }
+kb-dbkit = { workspace = true }
+kb-docs = { workspace = true }
+kb-doctext = { workspace = true }
+kb-draw = { workspace = true }
+kb-files = { workspace = true }
+kb-fuzzy = { workspace = true }
+kb-ideas = { workspace = true }
+kb-notify = { workspace = true }
+regex = { workspace = true }
+fancy-regex = "0.14"
+async-trait = { workspace = true }
+axum = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha1 = "0.10"
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+fake-claude = { path = "../fake-claude" }
+testkit = { workspace = true }
+# the same sqlx as testkit: tests add rows to the server's SQLite file where no ported route can
+sqlx = { version = "0.9", default-features = false, features = ["sqlite", "runtime-tokio"] }
+sha2 = "0.10"
+tempfile = "3"

@@ -6,7 +6,7 @@
     python3 build.py --facts          # print the facts read from the code and stop
 
 Chapters are chapters/*.md (see ../README.md for the front matter). Screenshots are images/<name>.jpg (or the AI guide's
-../ai/images). The version comes from server/version.py. Design: design/screens/guideline-design.md.
+../ai/images). The version comes from server/Cargo.toml (through facts.py). Design: design/screens/guideline-design.md.
 """
 from __future__ import annotations
 

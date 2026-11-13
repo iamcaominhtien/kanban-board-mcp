@@ -5,6 +5,13 @@
         "matcher": "Edit|Write",
         "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lint-format.sh" }]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/rust-clippy.sh", "timeout": 900 }
+        ]
+      }
     ]
   }
 }

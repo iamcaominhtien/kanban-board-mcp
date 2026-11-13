@@ -1,0 +1,1 @@
+Hand in proof a person can see: screenshots of what they will look at, links, and for a command its real output pasted in a ``` block ("2 passed" in a sentence is a claim, not proof).

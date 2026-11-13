@@ -1,0 +1,2740 @@
+{
+ "paths": {
+  "home": "{T}/home",
+  "roots_env": "{T}/work:{T}/other: :",
+  "pathsep": ":",
+  "work_roots": [
+   "{T}/home",
+   "{T}/work",
+   "{T}/other",
+   "/Volumes",
+   "/mnt",
+   "/media",
+   "/srv"
+  ],
+  "program_roots": [
+   "{T}/home",
+   "{T}/work",
+   "{T}/other",
+   "/Volumes",
+   "/mnt",
+   "/media",
+   "/srv",
+   "/usr",
+   "/opt",
+   "/snap",
+   "/nix",
+   "/Applications",
+   "/bin"
+  ],
+  "refused_text": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}/x",
+  "cases": [
+   {
+    "raw": "{T}/work/repo",
+    "folder": {
+     "ok": "{T}/work/repo"
+    },
+    "program": {
+     "ok": "{T}/work/repo"
+    }
+   },
+   {
+    "raw": "  {T}/work/repo  ",
+    "folder": {
+     "ok": "{T}/work/repo"
+    },
+    "program": {
+     "ok": "{T}/work/repo"
+    }
+   },
+   {
+    "raw": "{T}/work/repo/",
+    "folder": {
+     "ok": "{T}/work/repo"
+    },
+    "program": {
+     "ok": "{T}/work/repo"
+    }
+   },
+   {
+    "raw": "{T}/work/repo/.",
+    "folder": {
+     "ok": "{T}/work/repo"
+    },
+    "program": {
+     "ok": "{T}/work/repo"
+    }
+   },
+   {
+    "raw": "{T}/work/repo/../repo",
+    "folder": {
+     "ok": "{T}/work/repo"
+    },
+    "program": {
+     "ok": "{T}/work/repo"
+    }
+   },
+   {
+    "raw": "{T}/work/sub/deeper/../../repo",
+    "folder": {
+     "ok": "{T}/work/repo"
+    },
+    "program": {
+     "ok": "{T}/work/repo"
+    }
+   },
+   {
+    "raw": "{T}/work/sub/../../outside",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}/work/sub/../../outside"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: {T}/work/sub/../../outside"
+    }
+   },
+   {
+    "raw": "{T}/work",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}/work"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: {T}/work"
+    }
+   },
+   {
+    "raw": "{T}/work/",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}/work/"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: {T}/work/"
+    }
+   },
+   {
+    "raw": "{T}/other/x",
+    "folder": {
+     "ok": "{T}/other/x"
+    },
+    "program": {
+     "ok": "{T}/other/x"
+    }
+   },
+   {
+    "raw": "{T}/other",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}/other"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: {T}/other"
+    }
+   },
+   {
+    "raw": "{T}/outside",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}/outside"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: {T}/outside"
+    }
+   },
+   {
+    "raw": "{T}/home",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}/home"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: {T}/home"
+    }
+   },
+   {
+    "raw": "{T}/home/",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}/home/"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: {T}/home/"
+    }
+   },
+   {
+    "raw": "{T}/home/proj",
+    "folder": {
+     "ok": "{T}/home/proj"
+    },
+    "program": {
+     "ok": "{T}/home/proj"
+    }
+   },
+   {
+    "raw": "{T}/home/proj/new/missing",
+    "folder": {
+     "ok": "{T}/home/proj/new/missing"
+    },
+    "program": {
+     "ok": "{T}/home/proj/new/missing"
+    }
+   },
+   {
+    "raw": "{T}/work/nothing/here",
+    "folder": {
+     "ok": "{T}/work/nothing/here"
+    },
+    "program": {
+     "ok": "{T}/work/nothing/here"
+    }
+   },
+   {
+    "raw": "{T}/work/etc_link",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}/work/etc_link"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: {T}/work/etc_link"
+    }
+   },
+   {
+    "raw": "{T}/work/etc_link/passwd",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}/work/etc_link/passwd"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: {T}/work/etc_link/passwd"
+    }
+   },
+   {
+    "raw": "{T}/work/out_link",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}/work/out_link"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: {T}/work/out_link"
+    }
+   },
+   {
+    "raw": "{T}/home/repo_link",
+    "folder": {
+     "ok": "{T}/work/repo"
+    },
+    "program": {
+     "ok": "{T}/work/repo"
+    }
+   },
+   {
+    "raw": "{T}/work/sub/rel_link",
+    "folder": {
+     "ok": "{T}/work/repo"
+    },
+    "program": {
+     "ok": "{T}/work/repo"
+    }
+   },
+   {
+    "raw": "{T}/work/broken_link",
+    "folder": {
+     "ok": "{T}/work/missing"
+    },
+    "program": {
+     "ok": "{T}/work/missing"
+    }
+   },
+   {
+    "raw": "{T}/work/loop_a",
+    "folder": {
+     "ok": "{T}/work/loop_a"
+    },
+    "program": {
+     "ok": "{T}/work/loop_a"
+    }
+   },
+   {
+    "raw": "{T}/work/space dir",
+    "folder": {
+     "ok": "{T}/work/space dir"
+    },
+    "program": {
+     "ok": "{T}/work/space dir"
+    }
+   },
+   {
+    "raw": "{T}/work/file.txt",
+    "folder": {
+     "ok": "{T}/work/file.txt"
+    },
+    "program": {
+     "ok": "{T}/work/file.txt"
+    }
+   },
+   {
+    "raw": "~",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): ~"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: ~"
+    }
+   },
+   {
+    "raw": "~/",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): ~/"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: ~/"
+    }
+   },
+   {
+    "raw": "~/proj",
+    "folder": {
+     "ok": "{T}/home/proj"
+    },
+    "program": {
+     "ok": "{T}/home/proj"
+    }
+   },
+   {
+    "raw": "~/proj/..",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): ~/proj/.."
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: ~/proj/.."
+    }
+   },
+   {
+    "raw": "~/../outside",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): ~/../outside"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: ~/../outside"
+    }
+   },
+   {
+    "raw": "/etc",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): /etc"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: /etc"
+    }
+   },
+   {
+    "raw": "/",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): /"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: /"
+    }
+   },
+   {
+    "raw": "/etc/passwd",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): /etc/passwd"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: /etc/passwd"
+    }
+   },
+   {
+    "raw": "/usr/bin/env",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): /usr/bin/env"
+    },
+    "program": {
+     "ok": "/usr/bin/env"
+    }
+   },
+   {
+    "raw": "/usr",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): /usr"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: /usr"
+    }
+   },
+   {
+    "raw": "/bin/sh",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): /bin/sh"
+    },
+    "program": {
+     "ok": "/usr/bin/dash"
+    }
+   },
+   {
+    "raw": "/opt",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): /opt"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: /opt"
+    }
+   },
+   {
+    "raw": "/mnt",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): /mnt"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: /mnt"
+    }
+   },
+   {
+    "raw": "/mnt/x",
+    "folder": {
+     "ok": "/mnt/x"
+    },
+    "program": {
+     "ok": "/mnt/x"
+    }
+   },
+   {
+    "raw": "/media/disk",
+    "folder": {
+     "ok": "/media/disk"
+    },
+    "program": {
+     "ok": "/media/disk"
+    }
+   },
+   {
+    "raw": "/srv/app",
+    "folder": {
+     "ok": "/srv/app"
+    },
+    "program": {
+     "ok": "/srv/app"
+    }
+   },
+   {
+    "raw": "/Volumes/Data",
+    "folder": {
+     "ok": "/Volumes/Data"
+    },
+    "program": {
+     "ok": "/Volumes/Data"
+    }
+   },
+   {
+    "raw": "/tmp",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): /tmp"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: /tmp"
+    }
+   },
+   {
+    "raw": "",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): "
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: "
+    }
+   },
+   {
+    "raw": " ",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): "
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: "
+    }
+   },
+   {
+    "raw": "\t",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): "
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: "
+    }
+   },
+   {
+    "raw": "relative/path",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): relative/path"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: relative/path"
+    }
+   },
+   {
+    "raw": "./relative",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): ./relative"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: ./relative"
+    }
+   },
+   {
+    "raw": "..",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): .."
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: .."
+    }
+   },
+   {
+    "raw": "proj",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): proj"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: proj"
+    }
+   },
+   {
+    "raw": "{T}/home/bin/claude",
+    "folder": {
+     "ok": "{T}/home/bin/claude"
+    },
+    "program": {
+     "ok": "{T}/home/bin/claude"
+    }
+   },
+   {
+    "raw": "{T}/home/bin",
+    "folder": {
+     "ok": "{T}/home/bin"
+    },
+    "program": {
+     "ok": "{T}/home/bin"
+    }
+   },
+   {
+    "raw": "C:\\Users\\x\\proj",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): C:\\Users\\x\\proj"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: C:\\Users\\x\\proj"
+    }
+   },
+   {
+    "raw": "C:\\Windows",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): C:\\Windows"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: C:\\Windows"
+    }
+   },
+   {
+    "raw": "\\\\server\\share",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): \\\\server\\share"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: \\\\server\\share"
+    }
+   },
+   {
+    "raw": "{T}\\work\\repo",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}\\work\\repo"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: {T}\\work\\repo"
+    }
+   },
+   {
+    "raw": "{T}/work/repo\\sub",
+    "folder": {
+     "ok": "{T}/work/repo\\sub"
+    },
+    "program": {
+     "ok": "{T}/work/repo\\sub"
+    }
+   },
+   {
+    "raw": "D:/data",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): D:/data"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: D:/data"
+    }
+   },
+   {
+    "raw": "/home",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): /home"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: /home"
+    }
+   },
+   {
+    "raw": "~root",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): ~root"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: ~root"
+    }
+   },
+   {
+    "raw": "~nobody/x",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): ~nobody/x"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: ~nobody/x"
+    }
+   },
+   {
+    "raw": "{T}/work/repo\n",
+    "folder": {
+     "ok": "{T}/work/repo"
+    },
+    "program": {
+     "ok": "{T}/work/repo"
+    }
+   },
+   {
+    "raw": "{T}/work/reṕo",
+    "folder": {
+     "ok": "{T}/work/reṕo"
+    },
+    "program": {
+     "ok": "{T}/work/reṕo"
+    }
+   },
+   {
+    "raw": "{T}/work/ré",
+    "folder": {
+     "ok": "{T}/work/ré"
+    },
+    "program": {
+     "ok": "{T}/work/ré"
+    }
+   },
+   {
+    "raw": "{T}/work/repo/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/",
+    "folder": {
+     "ok": "{T}/work/repo/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a"
+    },
+    "program": {
+     "ok": "{T}/work/repo/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a"
+    }
+   },
+   {
+    "raw": "//etc",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): //etc"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: //etc"
+    }
+   },
+   {
+    "raw": "///etc/passwd",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): ///etc/passwd"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: ///etc/passwd"
+    }
+   },
+   {
+    "raw": "{T}//work//repo",
+    "folder": {
+     "ok": "{T}/work/repo"
+    },
+    "program": {
+     "ok": "{T}/work/repo"
+    }
+   },
+   {
+    "raw": "{T}/work/./repo/./",
+    "folder": {
+     "ok": "{T}/work/repo"
+    },
+    "program": {
+     "ok": "{T}/work/repo"
+    }
+   },
+   {
+    "raw": "{T}/workfoo",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}/workfoo"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: {T}/workfoo"
+    }
+   },
+   {
+    "raw": "{T}/work2/repo",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}/work2/repo"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: {T}/work2/repo"
+    }
+   },
+   {
+    "raw": "{T}/otherwise",
+    "folder": {
+     "refused": "Choose a project folder inside your home folder (or add its parent to KANBAN_AI_ROOTS): {T}/otherwise"
+    },
+    "program": {
+     "refused": "The CLI must be installed in your home folder or a usual install folder: {T}/otherwise"
+    }
+   }
+  ]
+ },
+ "mcp_sources": {
+  "files": {
+   "claude/.claude.json": "{\n \"mcpServers\": {\n  \"userone\": {\n   \"command\": \"u1\"\n  },\n  \"kanban\": {\n   \"command\": \"evil\"\n  },\n  \"off\": {\n   \"command\": \"x\",\n   \"disabled\": true\n  },\n  \"alsooff\": {\n   \"command\": \"x\",\n   \"enabled\": false\n  },\n  \"bad\": \"text\",\n  \"zero\": {\n   \"command\": \"z\",\n   \"disabled\": 0\n  }\n },\n \"projects\": {\n  \"{T}/proj/\": {\n   \"mcpServers\": {\n    \"localone\": {\n     \"command\": \"l1\"\n    },\n    \"userone\": {\n     \"command\": \"override\"\n    }\n   }\n  },\n  \"{T}/proj\": {\n   \"mcpServers\": {\n    \"localtwo\": {\n     \"command\": \"l2\"\n    }\n   }\n  },\n  \"{T}/other-proj\": {\n   \"mcpServers\": {\n    \"nope\": {\n     \"command\": \"n\"\n    }\n   }\n  },\n  \"{T}/proj2/../proj3\": {\n   \"mcpServers\": {\n    \"normalised\": {\n     \"command\": \"n3\"\n    }\n   }\n  },\n  \"{T}\\\\proj4\": {\n   \"mcpServers\": {\n    \"winpath\": {\n     \"command\": \"w\"\n    }\n   }\n  }\n }\n}",
+   "claude/plugins/installed_plugins.json": "{\n \"plugins\": {\n  \"foo@market\": [\n   {\n    \"scope\": \"user\",\n    \"installPath\": \"{T}/plugins/foo\"\n   }\n  ],\n  \"bar@market\": [\n   {\n    \"scope\": \"user\",\n    \"installPath\": \"{T}/plugins/bar-user\"\n   },\n   {\n    \"scope\": \"local\",\n    \"projectPath\": \"{T}/proj\",\n    \"installPath\": \"{T}/plugins/bar-local\"\n   },\n   {\n    \"scope\": \"project\",\n    \"projectPath\": \"{T}/elsewhere\",\n    \"installPath\": \"{T}/plugins/bar-else\"\n   }\n  ],\n  \"baz@market\": [\n   {\n    \"scope\": \"user\",\n    \"installPath\": \"{T}/plugins/baz\"\n   }\n  ],\n  \"qux@market\": [\n   {\n    \"scope\": \"user\",\n    \"installPath\": \"{T}/plugins/missing-dir\"\n   }\n  ],\n  \"weird name!@market\": [\n   {\n    \"scope\": \"user\",\n    \"installPath\": \"{T}/plugins/weird\"\n   }\n  ],\n  \"ins@market\": [\n   {\n    \"scope\": \"user\",\n    \"installPath\": \"{T}/plugins/inside\"\n   }\n  ],\n  \"out@market\": [\n   {\n    \"scope\": \"user\",\n    \"installPath\": \"{T}/plugins/outside-decl\"\n   }\n  ],\n  \"bad@market\": \"notalist\",\n  \"alsobad@market\": [\n   3,\n   {\n    \"installPath\": 5\n   },\n   {\n    \"scope\": \"user\"\n   }\n  ]\n }\n}",
+   "plugins/foo/.mcp.json": "{\n \"mcpServers\": {\n  \"fs\": {\n   \"command\": \"${CLAUDE_PLUGIN_ROOT}/bin/fs\",\n   \"args\": [\n    \"--root\",\n    \"${CLAUDE_PLUGIN_ROOT}/data\",\n    3\n   ]\n  },\n  \"kanban\": {\n   \"command\": \"evil\"\n  }\n }\n}",
+   "plugins/bar-user/.mcp.json": "{\n \"mcpServers\": {\n  \"user\": {\n   \"command\": \"bu\"\n  }\n }\n}",
+   "plugins/bar-local/.mcp.json": "{\n \"flat\": {\n  \"command\": \"bl\"\n },\n \"mcpServers\": {\n  \"loc\": {\n   \"command\": \"bl\"\n  }\n }\n}",
+   "plugins/bar-else/.mcp.json": "{\n \"els\": {\n  \"command\": \"be\"\n }\n}",
+   "plugins/baz/.claude-plugin/plugin.json": "{\n \"mcpServers\": {\n  \"a.b\": {\n   \"command\": \"x\"\n  },\n  \"c d\": {\n   \"command\": \"y\",\n   \"enabled\": false\n  }\n }\n}",
+   "plugins/baz/.mcp.json": "{\n \"flatserver\": {\n  \"command\": \"flat\",\n  \"disabled\": false\n },\n \"flaginfo\": 3\n}",
+   "plugins/weird/plugin.json": "{\n \"mcpServers\": {\n  \"x/y\": {\n   \"url\": \"http://z\"\n  }\n }\n}",
+   "plugins/inside/.claude-plugin/plugin.json": "{\n \"mcpServers\": \"servers/list.json\"\n}",
+   "plugins/inside/servers/list.json": "{\n \"mcpServers\": {\n  \"fromfile\": {\n   \"command\": \"ff\"\n  }\n }\n}",
+   "plugins/outside-decl/plugin.json": "{\n \"mcpServers\": \"../../claude/.claude.json\"\n}",
+   "proj/.mcp.json": "{\n \"mcpServers\": {\n  \"projone\": {\n   \"command\": \"p1\"\n  },\n  \"userone\": {\n   \"command\": \"projoverride\"\n  },\n  \"kanban\": {\n   \"command\": \"no\"\n  }\n }\n}",
+   "proj/.claude/settings.json": "{\n \"enabledPlugins\": {\n  \"foo@market\": true,\n  \"bar@market\": true,\n  \"baz@market\": false,\n  \"qux@market\": true,\n  \"weird name!@market\": true,\n  \"ins@market\": true,\n  \"out@market\": true,\n  \"bad@market\": true,\n  \"alsobad@market\": true,\n  \"notinstalled@x\": true,\n  \"truthy@market\": 1\n }\n}",
+   "proj/.claude/settings.local.json": "{\n \"enabledPlugins\": {\n  \"baz@market\": true,\n  \"foo@market\": false,\n  \"6\": true\n }\n}",
+   "proj2/.claude/settings.json": "{\n \"enabledPlugins\": [\n  \"not\",\n  \"a\",\n  \"dict\"\n ]\n}",
+   "proj2/.mcp.json": "not json at all",
+   "proj3/.mcp.json": "{\n \"mcpServers\": [\n  \"list\"\n ]\n}",
+   "proj4/.mcp.json": "[1, 2]"
+  },
+  "big_server_len": 1100000,
+  "cases": [
+   {
+    "account_dir": null,
+    "folder": "{T}/proj",
+    "servers": {
+     "plugin_bar_loc": {
+      "command": "bl"
+     },
+     "plugin_baz_a_b": {
+      "command": "x"
+     },
+     "plugin_baz_flatserver": {
+      "command": "flat",
+      "disabled": false
+     },
+     "plugin_weird_name__x_y": {
+      "url": "http://z"
+     },
+     "plugin_ins_fromfile": {
+      "command": "ff"
+     },
+     "userone": {
+      "command": "override"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     },
+     "projone": {
+      "command": "p1"
+     },
+     "localone": {
+      "command": "l1"
+     }
+    },
+    "plugins": {
+     "plugin_bar_loc": {
+      "command": "bl"
+     },
+     "plugin_baz_a_b": {
+      "command": "x"
+     },
+     "plugin_baz_flatserver": {
+      "command": "flat",
+      "disabled": false
+     },
+     "plugin_weird_name__x_y": {
+      "url": "http://z"
+     },
+     "plugin_ins_fromfile": {
+      "command": "ff"
+     }
+    },
+    "enabled": [
+     "bar@market",
+     "baz@market",
+     "qux@market",
+     "weird name!@market",
+     "ins@market",
+     "out@market",
+     "bad@market",
+     "alsobad@market",
+     "notinstalled@x",
+     "6"
+    ]
+   },
+   {
+    "account_dir": null,
+    "folder": "{T}/proj/",
+    "servers": {
+     "plugin_bar_loc": {
+      "command": "bl"
+     },
+     "plugin_baz_a_b": {
+      "command": "x"
+     },
+     "plugin_baz_flatserver": {
+      "command": "flat",
+      "disabled": false
+     },
+     "plugin_weird_name__x_y": {
+      "url": "http://z"
+     },
+     "plugin_ins_fromfile": {
+      "command": "ff"
+     },
+     "userone": {
+      "command": "override"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     },
+     "projone": {
+      "command": "p1"
+     },
+     "localone": {
+      "command": "l1"
+     }
+    },
+    "plugins": {
+     "plugin_bar_loc": {
+      "command": "bl"
+     },
+     "plugin_baz_a_b": {
+      "command": "x"
+     },
+     "plugin_baz_flatserver": {
+      "command": "flat",
+      "disabled": false
+     },
+     "plugin_weird_name__x_y": {
+      "url": "http://z"
+     },
+     "plugin_ins_fromfile": {
+      "command": "ff"
+     }
+    },
+    "enabled": [
+     "bar@market",
+     "baz@market",
+     "qux@market",
+     "weird name!@market",
+     "ins@market",
+     "out@market",
+     "bad@market",
+     "alsobad@market",
+     "notinstalled@x",
+     "6"
+    ]
+   },
+   {
+    "account_dir": null,
+    "folder": "{T}/proj2",
+    "servers": {
+     "userone": {
+      "command": "u1"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     }
+    },
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": null,
+    "folder": "{T}/proj3",
+    "servers": {
+     "userone": {
+      "command": "u1"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     },
+     "normalised": {
+      "command": "n3"
+     }
+    },
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": null,
+    "folder": "{T}/proj4",
+    "servers": {
+     "userone": {
+      "command": "u1"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     },
+     "winpath": {
+      "command": "w"
+     }
+    },
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": null,
+    "folder": "{T}/empty",
+    "servers": {
+     "userone": {
+      "command": "u1"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     }
+    },
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": null,
+    "folder": "{T}/nowhere",
+    "servers": {
+     "userone": {
+      "command": "u1"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     }
+    },
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": null,
+    "folder": "{T}/big",
+    "servers": {
+     "userone": {
+      "command": "u1"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     }
+    },
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": null,
+    "folder": "",
+    "servers": {},
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": null,
+    "folder": null,
+    "servers": {},
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": null,
+    "folder": "{T}/proj/../proj",
+    "servers": {
+     "plugin_bar_loc": {
+      "command": "bl"
+     },
+     "plugin_baz_a_b": {
+      "command": "x"
+     },
+     "plugin_baz_flatserver": {
+      "command": "flat",
+      "disabled": false
+     },
+     "plugin_weird_name__x_y": {
+      "url": "http://z"
+     },
+     "plugin_ins_fromfile": {
+      "command": "ff"
+     },
+     "userone": {
+      "command": "override"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     },
+     "projone": {
+      "command": "p1"
+     },
+     "localone": {
+      "command": "l1"
+     }
+    },
+    "plugins": {
+     "plugin_bar_loc": {
+      "command": "bl"
+     },
+     "plugin_baz_a_b": {
+      "command": "x"
+     },
+     "plugin_baz_flatserver": {
+      "command": "flat",
+      "disabled": false
+     },
+     "plugin_weird_name__x_y": {
+      "url": "http://z"
+     },
+     "plugin_ins_fromfile": {
+      "command": "ff"
+     }
+    },
+    "enabled": [
+     "bar@market",
+     "baz@market",
+     "qux@market",
+     "weird name!@market",
+     "ins@market",
+     "out@market",
+     "bad@market",
+     "alsobad@market",
+     "notinstalled@x",
+     "6"
+    ]
+   },
+   {
+    "account_dir": null,
+    "folder": "{T}/proj2/../proj3",
+    "servers": {
+     "userone": {
+      "command": "u1"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     },
+     "normalised": {
+      "command": "n3"
+     }
+    },
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/claude",
+    "folder": "{T}/proj",
+    "servers": {
+     "plugin_bar_loc": {
+      "command": "bl"
+     },
+     "plugin_baz_a_b": {
+      "command": "x"
+     },
+     "plugin_baz_flatserver": {
+      "command": "flat",
+      "disabled": false
+     },
+     "plugin_weird_name__x_y": {
+      "url": "http://z"
+     },
+     "plugin_ins_fromfile": {
+      "command": "ff"
+     },
+     "userone": {
+      "command": "override"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     },
+     "projone": {
+      "command": "p1"
+     },
+     "localone": {
+      "command": "l1"
+     }
+    },
+    "plugins": {
+     "plugin_bar_loc": {
+      "command": "bl"
+     },
+     "plugin_baz_a_b": {
+      "command": "x"
+     },
+     "plugin_baz_flatserver": {
+      "command": "flat",
+      "disabled": false
+     },
+     "plugin_weird_name__x_y": {
+      "url": "http://z"
+     },
+     "plugin_ins_fromfile": {
+      "command": "ff"
+     }
+    },
+    "enabled": [
+     "bar@market",
+     "baz@market",
+     "qux@market",
+     "weird name!@market",
+     "ins@market",
+     "out@market",
+     "bad@market",
+     "alsobad@market",
+     "notinstalled@x",
+     "6"
+    ]
+   },
+   {
+    "account_dir": "{T}/claude",
+    "folder": "{T}/proj/",
+    "servers": {
+     "plugin_bar_loc": {
+      "command": "bl"
+     },
+     "plugin_baz_a_b": {
+      "command": "x"
+     },
+     "plugin_baz_flatserver": {
+      "command": "flat",
+      "disabled": false
+     },
+     "plugin_weird_name__x_y": {
+      "url": "http://z"
+     },
+     "plugin_ins_fromfile": {
+      "command": "ff"
+     },
+     "userone": {
+      "command": "override"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     },
+     "projone": {
+      "command": "p1"
+     },
+     "localone": {
+      "command": "l1"
+     }
+    },
+    "plugins": {
+     "plugin_bar_loc": {
+      "command": "bl"
+     },
+     "plugin_baz_a_b": {
+      "command": "x"
+     },
+     "plugin_baz_flatserver": {
+      "command": "flat",
+      "disabled": false
+     },
+     "plugin_weird_name__x_y": {
+      "url": "http://z"
+     },
+     "plugin_ins_fromfile": {
+      "command": "ff"
+     }
+    },
+    "enabled": [
+     "bar@market",
+     "baz@market",
+     "qux@market",
+     "weird name!@market",
+     "ins@market",
+     "out@market",
+     "bad@market",
+     "alsobad@market",
+     "notinstalled@x",
+     "6"
+    ]
+   },
+   {
+    "account_dir": "{T}/claude",
+    "folder": "{T}/proj2",
+    "servers": {
+     "userone": {
+      "command": "u1"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     }
+    },
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/claude",
+    "folder": "{T}/proj3",
+    "servers": {
+     "userone": {
+      "command": "u1"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     },
+     "normalised": {
+      "command": "n3"
+     }
+    },
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/claude",
+    "folder": "{T}/proj4",
+    "servers": {
+     "userone": {
+      "command": "u1"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     },
+     "winpath": {
+      "command": "w"
+     }
+    },
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/claude",
+    "folder": "{T}/empty",
+    "servers": {
+     "userone": {
+      "command": "u1"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     }
+    },
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/claude",
+    "folder": "{T}/nowhere",
+    "servers": {
+     "userone": {
+      "command": "u1"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     }
+    },
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/claude",
+    "folder": "{T}/big",
+    "servers": {
+     "userone": {
+      "command": "u1"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     }
+    },
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/claude",
+    "folder": "",
+    "servers": {},
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/claude",
+    "folder": null,
+    "servers": {},
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/claude",
+    "folder": "{T}/proj/../proj",
+    "servers": {
+     "plugin_bar_loc": {
+      "command": "bl"
+     },
+     "plugin_baz_a_b": {
+      "command": "x"
+     },
+     "plugin_baz_flatserver": {
+      "command": "flat",
+      "disabled": false
+     },
+     "plugin_weird_name__x_y": {
+      "url": "http://z"
+     },
+     "plugin_ins_fromfile": {
+      "command": "ff"
+     },
+     "userone": {
+      "command": "override"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     },
+     "projone": {
+      "command": "p1"
+     },
+     "localone": {
+      "command": "l1"
+     }
+    },
+    "plugins": {
+     "plugin_bar_loc": {
+      "command": "bl"
+     },
+     "plugin_baz_a_b": {
+      "command": "x"
+     },
+     "plugin_baz_flatserver": {
+      "command": "flat",
+      "disabled": false
+     },
+     "plugin_weird_name__x_y": {
+      "url": "http://z"
+     },
+     "plugin_ins_fromfile": {
+      "command": "ff"
+     }
+    },
+    "enabled": [
+     "bar@market",
+     "baz@market",
+     "qux@market",
+     "weird name!@market",
+     "ins@market",
+     "out@market",
+     "bad@market",
+     "alsobad@market",
+     "notinstalled@x",
+     "6"
+    ]
+   },
+   {
+    "account_dir": "{T}/claude",
+    "folder": "{T}/proj2/../proj3",
+    "servers": {
+     "userone": {
+      "command": "u1"
+     },
+     "zero": {
+      "command": "z",
+      "disabled": 0
+     },
+     "normalised": {
+      "command": "n3"
+     }
+    },
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/nope-account",
+    "folder": "{T}/proj",
+    "servers": {
+     "projone": {
+      "command": "p1"
+     },
+     "userone": {
+      "command": "projoverride"
+     }
+    },
+    "plugins": {},
+    "enabled": [
+     "bar@market",
+     "baz@market",
+     "qux@market",
+     "weird name!@market",
+     "ins@market",
+     "out@market",
+     "bad@market",
+     "alsobad@market",
+     "notinstalled@x",
+     "6"
+    ]
+   },
+   {
+    "account_dir": "{T}/nope-account",
+    "folder": "{T}/proj/",
+    "servers": {
+     "projone": {
+      "command": "p1"
+     },
+     "userone": {
+      "command": "projoverride"
+     }
+    },
+    "plugins": {},
+    "enabled": [
+     "bar@market",
+     "baz@market",
+     "qux@market",
+     "weird name!@market",
+     "ins@market",
+     "out@market",
+     "bad@market",
+     "alsobad@market",
+     "notinstalled@x",
+     "6"
+    ]
+   },
+   {
+    "account_dir": "{T}/nope-account",
+    "folder": "{T}/proj2",
+    "servers": {},
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/nope-account",
+    "folder": "{T}/proj3",
+    "servers": {},
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/nope-account",
+    "folder": "{T}/proj4",
+    "servers": {},
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/nope-account",
+    "folder": "{T}/empty",
+    "servers": {},
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/nope-account",
+    "folder": "{T}/nowhere",
+    "servers": {},
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/nope-account",
+    "folder": "{T}/big",
+    "servers": {},
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/nope-account",
+    "folder": "",
+    "servers": {},
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/nope-account",
+    "folder": null,
+    "servers": {},
+    "plugins": {},
+    "enabled": []
+   },
+   {
+    "account_dir": "{T}/nope-account",
+    "folder": "{T}/proj/../proj",
+    "servers": {
+     "projone": {
+      "command": "p1"
+     },
+     "userone": {
+      "command": "projoverride"
+     }
+    },
+    "plugins": {},
+    "enabled": [
+     "bar@market",
+     "baz@market",
+     "qux@market",
+     "weird name!@market",
+     "ins@market",
+     "out@market",
+     "bad@market",
+     "alsobad@market",
+     "notinstalled@x",
+     "6"
+    ]
+   },
+   {
+    "account_dir": "{T}/nope-account",
+    "folder": "{T}/proj2/../proj3",
+    "servers": {},
+    "plugins": {},
+    "enabled": []
+   }
+  ],
+  "same_path": [
+   {
+    "a": "/a/b",
+    "b": "/a/b/",
+    "out": true
+   },
+   {
+    "a": "/a/b",
+    "b": "/a//b",
+    "out": true
+   },
+   {
+    "a": "/a/./b",
+    "b": "/a/b",
+    "out": true
+   },
+   {
+    "a": "/a/b",
+    "b": "/A/B",
+    "out": false
+   },
+   {
+    "a": "a\\b",
+    "b": "a/b",
+    "out": true
+   },
+   {
+    "a": "C:\\x",
+    "b": "C:/x",
+    "out": true
+   },
+   {
+    "a": "/a/../b",
+    "b": "/b",
+    "out": true
+   },
+   {
+    "a": "",
+    "b": ".",
+    "out": true
+   },
+   {
+    "a": "//a",
+    "b": "/a",
+    "out": false
+   }
+  ],
+  "clean": [
+   {
+    "in": "a b",
+    "out": "a_b"
+   },
+   {
+    "in": "a-b_c",
+    "out": "a-b_c"
+   },
+   {
+    "in": "é",
+    "out": "_"
+   },
+   {
+    "in": "x/y",
+    "out": "x_y"
+   },
+   {
+    "in": "",
+    "out": ""
+   },
+   {
+    "in": "a.b",
+    "out": "a_b"
+   },
+   {
+    "in": "日本",
+    "out": "__"
+   }
+  ]
+ },
+ "profile_names": [
+  {
+   "cli": "agy",
+   "name": "work",
+   "dir": "{T}/agy-profiles/work"
+  },
+  {
+   "cli": "agy",
+   "name": "a.b-c_d",
+   "dir": "{T}/agy-profiles/a.b-c_d"
+  },
+  {
+   "cli": "agy",
+   "name": "_x",
+   "dir": "{T}/agy-profiles/_x"
+  },
+  {
+   "cli": "agy",
+   "name": "9",
+   "dir": "{T}/agy-profiles/9"
+  },
+  {
+   "cli": "agy",
+   "name": ".hidden",
+   "fail": "bad profile name: '.hidden'"
+  },
+  {
+   "cli": "agy",
+   "name": "-dash",
+   "fail": "bad profile name: '-dash'"
+  },
+  {
+   "cli": "agy",
+   "name": "has space",
+   "fail": "bad profile name: 'has space'"
+  },
+  {
+   "cli": "agy",
+   "name": "a/b",
+   "fail": "bad profile name: 'a/b'"
+  },
+  {
+   "cli": "agy",
+   "name": "",
+   "fail": "missing profile name"
+  },
+  {
+   "cli": "agy",
+   "name": "x\n",
+   "dir": "{T}/agy-profiles/x\n"
+  },
+  {
+   "cli": "agy",
+   "name": "é",
+   "fail": "bad profile name: 'é'"
+  },
+  {
+   "cli": "agy",
+   "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "dir": "{T}/agy-profiles/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  {
+   "cli": "agy",
+   "name": "..",
+   "fail": "bad profile name: '..'"
+  },
+  {
+   "cli": "agy",
+   "name": "ok.",
+   "dir": "{T}/agy-profiles/ok."
+  },
+  {
+   "cli": "agy",
+   "name": "x\ny",
+   "fail": "bad profile name: 'x\\ny'"
+  },
+  {
+   "cli": "claude",
+   "name": "work",
+   "dir": "{T}/home/.claude-profiles/work"
+  },
+  {
+   "cli": "claude",
+   "name": "a.b-c_d",
+   "dir": "{T}/home/.claude-profiles/a.b-c_d"
+  },
+  {
+   "cli": "claude",
+   "name": "_x",
+   "dir": "{T}/home/.claude-profiles/_x"
+  },
+  {
+   "cli": "claude",
+   "name": "9",
+   "dir": "{T}/home/.claude-profiles/9"
+  },
+  {
+   "cli": "claude",
+   "name": ".hidden",
+   "fail": "bad profile name: '.hidden'"
+  },
+  {
+   "cli": "claude",
+   "name": "-dash",
+   "fail": "bad profile name: '-dash'"
+  },
+  {
+   "cli": "claude",
+   "name": "has space",
+   "fail": "bad profile name: 'has space'"
+  },
+  {
+   "cli": "claude",
+   "name": "a/b",
+   "fail": "bad profile name: 'a/b'"
+  },
+  {
+   "cli": "claude",
+   "name": "",
+   "fail": "missing profile name"
+  },
+  {
+   "cli": "claude",
+   "name": "x\n",
+   "dir": "{T}/home/.claude-profiles/x\n"
+  },
+  {
+   "cli": "claude",
+   "name": "é",
+   "fail": "bad profile name: 'é'"
+  },
+  {
+   "cli": "claude",
+   "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "dir": "{T}/home/.claude-profiles/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  {
+   "cli": "claude",
+   "name": "..",
+   "fail": "bad profile name: '..'"
+  },
+  {
+   "cli": "claude",
+   "name": "ok.",
+   "dir": "{T}/home/.claude-profiles/ok."
+  },
+  {
+   "cli": "claude",
+   "name": "x\ny",
+   "fail": "bad profile name: 'x\\ny'"
+  },
+  {
+   "cli": "codex",
+   "name": "work",
+   "dir": "{T}/home/.codex-profiles/work"
+  },
+  {
+   "cli": "codex",
+   "name": "a.b-c_d",
+   "dir": "{T}/home/.codex-profiles/a.b-c_d"
+  },
+  {
+   "cli": "codex",
+   "name": "_x",
+   "dir": "{T}/home/.codex-profiles/_x"
+  },
+  {
+   "cli": "codex",
+   "name": "9",
+   "dir": "{T}/home/.codex-profiles/9"
+  },
+  {
+   "cli": "codex",
+   "name": ".hidden",
+   "fail": "bad profile name: '.hidden'"
+  },
+  {
+   "cli": "codex",
+   "name": "-dash",
+   "fail": "bad profile name: '-dash'"
+  },
+  {
+   "cli": "codex",
+   "name": "has space",
+   "fail": "bad profile name: 'has space'"
+  },
+  {
+   "cli": "codex",
+   "name": "a/b",
+   "fail": "bad profile name: 'a/b'"
+  },
+  {
+   "cli": "codex",
+   "name": "",
+   "fail": "missing profile name"
+  },
+  {
+   "cli": "codex",
+   "name": "x\n",
+   "dir": "{T}/home/.codex-profiles/x\n"
+  },
+  {
+   "cli": "codex",
+   "name": "é",
+   "fail": "bad profile name: 'é'"
+  },
+  {
+   "cli": "codex",
+   "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "dir": "{T}/home/.codex-profiles/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  {
+   "cli": "codex",
+   "name": "..",
+   "fail": "bad profile name: '..'"
+  },
+  {
+   "cli": "codex",
+   "name": "ok.",
+   "dir": "{T}/home/.codex-profiles/ok."
+  },
+  {
+   "cli": "codex",
+   "name": "x\ny",
+   "fail": "bad profile name: 'x\\ny'"
+  },
+  {
+   "cli": "opencode",
+   "name": "work",
+   "dir": "{T}/home/.opencode-profiles/work"
+  },
+  {
+   "cli": "opencode",
+   "name": "a.b-c_d",
+   "dir": "{T}/home/.opencode-profiles/a.b-c_d"
+  },
+  {
+   "cli": "opencode",
+   "name": "_x",
+   "dir": "{T}/home/.opencode-profiles/_x"
+  },
+  {
+   "cli": "opencode",
+   "name": "9",
+   "dir": "{T}/home/.opencode-profiles/9"
+  },
+  {
+   "cli": "opencode",
+   "name": ".hidden",
+   "fail": "bad profile name: '.hidden'"
+  },
+  {
+   "cli": "opencode",
+   "name": "-dash",
+   "fail": "bad profile name: '-dash'"
+  },
+  {
+   "cli": "opencode",
+   "name": "has space",
+   "fail": "bad profile name: 'has space'"
+  },
+  {
+   "cli": "opencode",
+   "name": "a/b",
+   "fail": "bad profile name: 'a/b'"
+  },
+  {
+   "cli": "opencode",
+   "name": "",
+   "fail": "missing profile name"
+  },
+  {
+   "cli": "opencode",
+   "name": "x\n",
+   "dir": "{T}/home/.opencode-profiles/x\n"
+  },
+  {
+   "cli": "opencode",
+   "name": "é",
+   "fail": "bad profile name: 'é'"
+  },
+  {
+   "cli": "opencode",
+   "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "dir": "{T}/home/.opencode-profiles/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  {
+   "cli": "opencode",
+   "name": "..",
+   "fail": "bad profile name: '..'"
+  },
+  {
+   "cli": "opencode",
+   "name": "ok.",
+   "dir": "{T}/home/.opencode-profiles/ok."
+  },
+  {
+   "cli": "opencode",
+   "name": "x\ny",
+   "fail": "bad profile name: 'x\\ny'"
+  }
+ ],
+ "unknown_cli": "unknown CLI 'nope' (use one of: agy, claude, codex, opencode)",
+ "profiles": [
+  {
+   "cli": "agy",
+   "name": "acct_one",
+   "folder": "{T}/profiles/agy/acct one",
+   "env": {
+    "HOME": "{T}/profiles/agy/acct one/home",
+    "GIT_CONFIG_GLOBAL": "{T}/home/.gitconfig",
+    "AGY_CLI_DISABLE_AUTO_UPDATE": "1"
+   },
+   "dropped": [
+    "DBUS_SESSION_BUS_ADDRESS"
+   ],
+   "overlay": {
+    "PATH": "/usr/bin",
+    "HOME": "{T}/profiles/agy/acct one/home",
+    "CLAUDE_CODE_OAUTH_TOKEN": "t",
+    "ANTHROPIC_AUTH_TOKEN": "a",
+    "ANTHROPIC_API_KEY": "k",
+    "XDG_DATA_HOME": "/x",
+    "CODEX_HOME": "/old",
+    "CLAUDE_CONFIG_DIR": "/old-claude",
+    "OTHER": "1",
+    "GIT_CONFIG_GLOBAL": "{T}/home/.gitconfig",
+    "AGY_CLI_DISABLE_AUTO_UPDATE": "1"
+   },
+   "overlay_keys": [
+    "PATH",
+    "HOME",
+    "CLAUDE_CODE_OAUTH_TOKEN",
+    "ANTHROPIC_AUTH_TOKEN",
+    "ANTHROPIC_API_KEY",
+    "XDG_DATA_HOME",
+    "CODEX_HOME",
+    "CLAUDE_CONFIG_DIR",
+    "OTHER",
+    "GIT_CONFIG_GLOBAL",
+    "AGY_CLI_DISABLE_AUTO_UPDATE"
+   ],
+   "login_argv": [
+    "{T}/bin/agy"
+   ],
+   "login_argv_extra": [
+    "{T}/bin/agy"
+   ],
+   "login_cwd": "{T}/profiles/agy/acct one/home",
+   "login_hint": "Sign in as the Google account for 'acct_one' (choose it in the browser; a private window helps).",
+   "next_step": "next: ai_profile.py agy login acct_one",
+   "next_step_custom": "next: script.py agy login acct_one",
+   "credential_files": [
+    "{T}/profiles/agy/acct one/home/.gemini/antigravity-cli/antigravity-oauth-token",
+    "{T}/profiles/agy/acct one/home/Library/Keychains/login.keychain-db"
+   ],
+   "exists_before": false
+  },
+  {
+   "cli": "claude",
+   "name": "acct_one",
+   "folder": "{T}/profiles/claude/acct one",
+   "env": {
+    "CLAUDE_CONFIG_DIR": "{T}/profiles/claude/acct one"
+   },
+   "dropped": [
+    "CLAUDE_CODE_OAUTH_TOKEN",
+    "ANTHROPIC_AUTH_TOKEN",
+    "ANTHROPIC_API_KEY"
+   ],
+   "overlay": {
+    "PATH": "/usr/bin",
+    "HOME": "/home/x",
+    "DBUS_SESSION_BUS_ADDRESS": "unix:x",
+    "XDG_DATA_HOME": "/x",
+    "CODEX_HOME": "/old",
+    "CLAUDE_CONFIG_DIR": "{T}/profiles/claude/acct one",
+    "OTHER": "1"
+   },
+   "overlay_keys": [
+    "PATH",
+    "HOME",
+    "DBUS_SESSION_BUS_ADDRESS",
+    "XDG_DATA_HOME",
+    "CODEX_HOME",
+    "CLAUDE_CONFIG_DIR",
+    "OTHER"
+   ],
+   "login_argv": [
+    "{T}/bin/claude",
+    "auth",
+    "login",
+    "--claudeai"
+   ],
+   "login_argv_extra": [
+    "{T}/bin/claude",
+    "auth",
+    "login",
+    "--claudeai",
+    "--x",
+    "y"
+   ],
+   "login_cwd": null,
+   "login_hint": null,
+   "next_step": "next: ai_profile.py claude login acct_one",
+   "next_step_custom": "next: script.py claude login acct_one",
+   "credential_files": [],
+   "exists_before": false
+  },
+  {
+   "cli": "codex",
+   "name": "acct_one",
+   "folder": "{T}/profiles/codex/acct one",
+   "env": {
+    "CODEX_HOME": "{T}/profiles/codex/acct one"
+   },
+   "dropped": [],
+   "overlay": {
+    "PATH": "/usr/bin",
+    "HOME": "/home/x",
+    "CLAUDE_CODE_OAUTH_TOKEN": "t",
+    "ANTHROPIC_AUTH_TOKEN": "a",
+    "ANTHROPIC_API_KEY": "k",
+    "DBUS_SESSION_BUS_ADDRESS": "unix:x",
+    "XDG_DATA_HOME": "/x",
+    "CODEX_HOME": "{T}/profiles/codex/acct one",
+    "CLAUDE_CONFIG_DIR": "/old-claude",
+    "OTHER": "1"
+   },
+   "overlay_keys": [
+    "PATH",
+    "HOME",
+    "CLAUDE_CODE_OAUTH_TOKEN",
+    "ANTHROPIC_AUTH_TOKEN",
+    "ANTHROPIC_API_KEY",
+    "DBUS_SESSION_BUS_ADDRESS",
+    "XDG_DATA_HOME",
+    "CODEX_HOME",
+    "CLAUDE_CONFIG_DIR",
+    "OTHER"
+   ],
+   "login_argv": [
+    "{T}/bin/codex",
+    "login"
+   ],
+   "login_argv_extra": [
+    "{T}/bin/codex",
+    "login",
+    "--x",
+    "y"
+   ],
+   "login_cwd": null,
+   "login_hint": null,
+   "next_step": "next: ai_profile.py codex login acct_one",
+   "next_step_custom": "next: script.py codex login acct_one",
+   "credential_files": [
+    "{T}/profiles/codex/acct one/auth.json"
+   ],
+   "exists_before": false
+  },
+  {
+   "cli": "opencode",
+   "name": "acct_one",
+   "folder": "{T}/profiles/opencode/acct one",
+   "env": {
+    "XDG_DATA_HOME": "{T}/profiles/opencode/acct one/data",
+    "XDG_CONFIG_HOME": "{T}/profiles/opencode/acct one/config",
+    "XDG_CACHE_HOME": "{T}/profiles/opencode/acct one/cache",
+    "XDG_STATE_HOME": "{T}/profiles/opencode/acct one/state"
+   },
+   "dropped": [],
+   "overlay": {
+    "PATH": "/usr/bin",
+    "HOME": "/home/x",
+    "CLAUDE_CODE_OAUTH_TOKEN": "t",
+    "ANTHROPIC_AUTH_TOKEN": "a",
+    "ANTHROPIC_API_KEY": "k",
+    "DBUS_SESSION_BUS_ADDRESS": "unix:x",
+    "XDG_DATA_HOME": "{T}/profiles/opencode/acct one/data",
+    "CODEX_HOME": "/old",
+    "CLAUDE_CONFIG_DIR": "/old-claude",
+    "OTHER": "1",
+    "XDG_CONFIG_HOME": "{T}/profiles/opencode/acct one/config",
+    "XDG_CACHE_HOME": "{T}/profiles/opencode/acct one/cache",
+    "XDG_STATE_HOME": "{T}/profiles/opencode/acct one/state"
+   },
+   "overlay_keys": [
+    "PATH",
+    "HOME",
+    "CLAUDE_CODE_OAUTH_TOKEN",
+    "ANTHROPIC_AUTH_TOKEN",
+    "ANTHROPIC_API_KEY",
+    "DBUS_SESSION_BUS_ADDRESS",
+    "XDG_DATA_HOME",
+    "CODEX_HOME",
+    "CLAUDE_CONFIG_DIR",
+    "OTHER",
+    "XDG_CONFIG_HOME",
+    "XDG_CACHE_HOME",
+    "XDG_STATE_HOME"
+   ],
+   "login_argv": [
+    "{T}/bin/opencode",
+    "auth",
+    "login"
+   ],
+   "login_argv_extra": [
+    "{T}/bin/opencode",
+    "auth",
+    "login",
+    "--x",
+    "y"
+   ],
+   "login_cwd": null,
+   "login_hint": null,
+   "next_step": "free models need no login: ai_profile.py opencode run acct_one run -m opencode/<model>-free \"...\"",
+   "next_step_custom": "free models need no login: script.py opencode run acct_one run -m opencode/<model>-free \"...\"",
+   "credential_files": [
+    "{T}/profiles/opencode/acct one/data/opencode/auth.json"
+   ],
+   "exists_before": false
+  }
+ ],
+ "agy_with_keychain_dropped": [],
+ "agy_keychain_path": "{T}/profiles/agy-kc/home/Library/Keychains/login.keychain-db",
+ "agy_mcp_config_path": "{T}/profiles/agy-kc/home/.gemini/config/mcp_config.json",
+ "default_dirs": {
+  "agy": "{T}/agy-profiles/n",
+  "claude": "{T}/home/.claude-profiles/n",
+  "codex": "{T}/home/.codex-profiles/n",
+  "opencode": "{T}/home/.opencode-profiles/n"
+ },
+ "status": [
+  {
+   "cli": "claude",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n{\"loggedIn\": true, \"authMethod\": \"claude.ai\", \"subscriptionType\": \"max\", \"email\": \"a@b.c\"}\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "signed in (claude.ai, max)",
+    "email": "a@b.c",
+    "plan": "max",
+    "method": "subscription"
+   },
+   "line": [
+    true,
+    "st: signed in (claude.ai, max)"
+   ]
+  },
+  {
+   "cli": "claude",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\nwarning: something\n{\"loggedIn\": true, \"authMethod\": \"oauth_token\", \"subscriptionType\": null}\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "signed in (oauth_token)",
+    "email": null,
+    "plan": null,
+    "method": "subscription"
+   },
+   "line": [
+    true,
+    "st: signed in (oauth_token)"
+   ]
+  },
+  {
+   "cli": "claude",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n{\"loggedIn\": false}\nEOF_FAKE\nexit 1\n",
+   "status": {
+    "signed_in": false,
+    "detail": "not signed in ()",
+    "email": null,
+    "plan": null,
+    "method": null
+   },
+   "line": [
+    false,
+    "st: not signed in ()"
+   ]
+  },
+  {
+   "cli": "claude",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n{\"loggedIn\": true, \"authMethod\": \"api_key\", \"email\": \"\"}\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "signed in (api_key)",
+    "email": null,
+    "plan": null,
+    "method": "api_key"
+   },
+   "line": [
+    true,
+    "st: signed in (api_key)"
+   ]
+  },
+  {
+   "cli": "claude",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n{\"loggedIn\": true, \"authMethod\": \"console\", \"subscriptionType\": \"pro\", \"email\": \"x@y.z\"} trailing\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": false,
+    "detail": "not signed in ()",
+    "email": null,
+    "plan": null,
+    "method": null
+   },
+   "line": [
+    false,
+    "st: not signed in ()"
+   ]
+  },
+  {
+   "cli": "claude",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\nnot json {\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": false,
+    "detail": "not signed in ()",
+    "email": null,
+    "plan": null,
+    "method": null
+   },
+   "line": [
+    false,
+    "st: not signed in ()"
+   ]
+  },
+  {
+   "cli": "claude",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": false,
+    "detail": "not signed in ()",
+    "email": null,
+    "plan": null,
+    "method": null
+   },
+   "line": [
+    false,
+    "st: not signed in ()"
+   ]
+  },
+  {
+   "cli": "claude",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n{\"loggedIn\": 1, \"authMethod\": 5, \"subscriptionType\": [\"x\"]}\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "signed in (5, ['x'])",
+    "email": null,
+    "plan": "['x']",
+    "method": "5"
+   },
+   "line": [
+    true,
+    "st: signed in (5, ['x'])"
+   ]
+  },
+  {
+   "cli": "claude",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n{}\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": false,
+    "detail": "not signed in ()",
+    "email": null,
+    "plan": null,
+    "method": null
+   },
+   "line": [
+    false,
+    "st: not signed in ()"
+   ]
+  },
+  {
+   "cli": "claude",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n{\"loggedIn\": \"false\", \"authMethod\": \"claude.ai\", \"subscriptionType\": \"\"}\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "signed in (claude.ai)",
+    "email": null,
+    "plan": null,
+    "method": "subscription"
+   },
+   "line": [
+    true,
+    "st: signed in (claude.ai)"
+   ]
+  },
+  {
+   "cli": "claude",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n[1, {\"loggedIn\": true}]\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": false,
+    "detail": "not signed in ()",
+    "email": null,
+    "plan": null,
+    "method": null
+   },
+   "line": [
+    false,
+    "st: not signed in ()"
+   ]
+  },
+  {
+   "cli": "codex",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\nLogged in using ChatGPT\n\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "Logged in using ChatGPT",
+    "email": null,
+    "plan": null,
+    "method": "ChatGPT"
+   },
+   "line": [
+    true,
+    "st: Logged in using ChatGPT"
+   ]
+  },
+  {
+   "cli": "codex",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\nWARNING: PATH alias\nNot logged in\n\nEOF_FAKE\nexit 1\n",
+   "status": {
+    "signed_in": false,
+    "detail": "Not logged in",
+    "email": null,
+    "plan": null,
+    "method": null
+   },
+   "line": [
+    false,
+    "st: Not logged in"
+   ]
+  },
+  {
+   "cli": "codex",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\nsome warning\nLogged in using an API key\n\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "Logged in using an API key",
+    "email": null,
+    "plan": null,
+    "method": "an API key"
+   },
+   "line": [
+    true,
+    "st: Logged in using an API key"
+   ]
+  },
+  {
+   "cli": "codex",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": false,
+    "detail": "no answer",
+    "email": null,
+    "plan": null,
+    "method": null
+   },
+   "line": [
+    false,
+    "st: no answer"
+   ]
+  },
+  {
+   "cli": "codex",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n\n\n  \nweird output only\nsecond\n\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": false,
+    "detail": "weird output only",
+    "email": null,
+    "plan": null,
+    "method": null
+   },
+   "line": [
+    false,
+    "st: weird output only"
+   ]
+  },
+  {
+   "cli": "codex",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\nLogged in\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "Logged in",
+    "email": null,
+    "plan": null,
+    "method": ""
+   },
+   "line": [
+    true,
+    "st: Logged in"
+   ]
+  },
+  {
+   "cli": "codex",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n  Logged in using X  \nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "Logged in using X",
+    "email": null,
+    "plan": null,
+    "method": "X"
+   },
+   "line": [
+    true,
+    "st: Logged in using X"
+   ]
+  },
+  {
+   "cli": "opencode",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n3 credentials\n\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "3 stored credential(s); free models need none",
+    "email": null,
+    "plan": null,
+    "method": "API key or OAuth"
+   },
+   "line": [
+    true,
+    "st: 3 stored credential(s); free models need none"
+   ]
+  },
+  {
+   "cli": "opencode",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n1 credential\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "1 stored credential(s); free models need none",
+    "email": null,
+    "plan": null,
+    "method": "API key or OAuth"
+   },
+   "line": [
+    true,
+    "st: 1 stored credential(s); free models need none"
+   ]
+  },
+  {
+   "cli": "opencode",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n\u001b[32m2\u001b[0m credentials\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "2 stored credential(s); free models need none",
+    "email": null,
+    "plan": null,
+    "method": "API key or OAuth"
+   },
+   "line": [
+    true,
+    "st: 2 stored credential(s); free models need none"
+   ]
+  },
+  {
+   "cli": "opencode",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n\u001b[1m5 credentials\u001b[0m\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "5 stored credential(s); free models need none",
+    "email": null,
+    "plan": null,
+    "method": "API key or OAuth"
+   },
+   "line": [
+    true,
+    "st: 5 stored credential(s); free models need none"
+   ]
+  },
+  {
+   "cli": "opencode",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\nnone\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "0 stored credential(s); free models need none",
+    "email": null,
+    "plan": null,
+    "method": "free models"
+   },
+   "line": [
+    true,
+    "st: 0 stored credential(s); free models need none"
+   ]
+  },
+  {
+   "cli": "opencode",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "0 stored credential(s); free models need none",
+    "email": null,
+    "plan": null,
+    "method": "free models"
+   },
+   "line": [
+    true,
+    "st: 0 stored credential(s); free models need none"
+   ]
+  },
+  {
+   "cli": "opencode",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n12 credentials and 3 credential\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "12 stored credential(s); free models need none",
+    "email": null,
+    "plan": null,
+    "method": "API key or OAuth"
+   },
+   "line": [
+    true,
+    "st: 12 stored credential(s); free models need none"
+   ]
+  },
+  {
+   "cli": "agy",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\nmodel list\n\nEOF_FAKE\nexit 0\n",
+   "status": {
+    "signed_in": true,
+    "detail": "signed in",
+    "email": null,
+    "plan": null,
+    "method": "Google sign-in"
+   },
+   "line": [
+    true,
+    "st: signed in"
+   ]
+  },
+  {
+   "cli": "agy",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\n\nEOF_FAKE\nexit 1\n",
+   "status": {
+    "signed_in": false,
+    "detail": "not signed in",
+    "email": null,
+    "plan": null,
+    "method": "Google sign-in"
+   },
+   "line": [
+    false,
+    "st: not signed in"
+   ]
+  },
+  {
+   "cli": "agy",
+   "script": "#!/bin/sh\ncat <<'EOF_FAKE'\nerror\nEOF_FAKE\nexit 2\n",
+   "status": {
+    "signed_in": false,
+    "detail": "not signed in",
+    "email": null,
+    "plan": null,
+    "method": "Google sign-in"
+   },
+   "line": [
+    false,
+    "st: not signed in"
+   ]
+  }
+ ],
+ "life": [
+  {
+   "cli": "claude",
+   "created": true,
+   "tree": {},
+   "again": "FileExistsError",
+   "after_sign_out": {},
+   "after_remove": false
+  },
+  {
+   "cli": "codex",
+   "created": true,
+   "tree": {
+    "config.toml": {
+     "file": "cli_auth_credentials_store = \"file\"\n"
+    }
+   },
+   "again": "FileExistsError",
+   "after_sign_out": {
+    "config.toml": {
+     "file": "cli_auth_credentials_store = \"file\"\n"
+    }
+   },
+   "after_remove": false
+  },
+  {
+   "cli": "opencode",
+   "created": true,
+   "tree": {
+    "cache": {
+     "dir": true
+    },
+    "config": {
+     "dir": true
+    },
+    "data": {
+     "dir": true
+    },
+    "state": {
+     "dir": true
+    }
+   },
+   "again": "FileExistsError",
+   "after_sign_out": {
+    "cache": {
+     "dir": true
+    },
+    "config": {
+     "dir": true
+    },
+    "data": {
+     "dir": true
+    },
+    "data/opencode": {
+     "dir": true
+    },
+    "state": {
+     "dir": true
+    }
+   },
+   "after_remove": false
+  },
+  {
+   "cli": "agy",
+   "created": true,
+   "tree": {
+    "home": {
+     "dir": true
+    },
+    "home/.config": {
+     "dir": true
+    }
+   },
+   "again": "FileExistsError",
+   "after_sign_out": {
+    "home": {
+     "dir": true
+    },
+    "home/.config": {
+     "dir": true
+    },
+    "home/.gemini": {
+     "dir": true
+    },
+    "home/.gemini/antigravity-cli": {
+     "dir": true
+    }
+   },
+   "after_remove": false
+  }
+ ],
+ "life_note": "agy create links the real ~/.ssh and ~/.config/gh when they exist; HOME has neither here",
+ "codex_prepare": [
+  {
+   "before": null,
+   "after": "cli_auth_credentials_store = \"file\"\n"
+  },
+  {
+   "before": "",
+   "after": "cli_auth_credentials_store = \"file\"\n"
+  },
+  {
+   "before": "model = 'x'\n",
+   "after": "cli_auth_credentials_store = \"file\"\nmodel = 'x'\n"
+  },
+  {
+   "before": "[table]\nx = 1\n",
+   "after": "cli_auth_credentials_store = \"file\"\n[table]\nx = 1\n"
+  },
+  {
+   "before": "cli_auth_credentials_store = \"keyring\"\n",
+   "after": "cli_auth_credentials_store = \"keyring\"\n"
+  },
+  {
+   "before": "  cli_auth_credentials_store=\"auto\"\nx=1\n",
+   "after": "  cli_auth_credentials_store=\"auto\"\nx=1\n"
+  },
+  {
+   "before": "x = 1\n# cli_auth_credentials_store = \"file\"\n",
+   "after": "cli_auth_credentials_store = \"file\"\nx = 1\n# cli_auth_credentials_store = \"file\"\n"
+  },
+  {
+   "before": "cli_auth_credentials_storex = 1\n",
+   "after": "cli_auth_credentials_store = \"file\"\ncli_auth_credentials_storex = 1\n"
+  },
+  {
+   "before": "a = 1\n\ncli_auth_credentials_store =1\n",
+   "after": "a = 1\n\ncli_auth_credentials_store =1\n"
+  },
+  {
+   "before": "\tcli_auth_credentials_store\t=\t\"file\"",
+   "after": "\tcli_auth_credentials_store\t=\t\"file\""
+  }
+ ],
+ "agy_ensure_mcp": [
+  {
+   "existing": null,
+   "name": "kanban",
+   "entry": {
+    "command": "x",
+    "args": [
+     "a"
+    ]
+   },
+   "changed": true,
+   "again": false,
+   "file": "{\n  \"mcpServers\": {\n    \"kanban\": {\n      \"command\": \"x\",\n      \"args\": [\n        \"a\"\n      ]\n    }\n  }\n}"
+  },
+  {
+   "existing": "{\"mcpServers\": {\"kanban\": {\"command\": \"x\", \"args\": [\"a\"]}}}",
+   "name": "kanban",
+   "entry": {
+    "command": "x",
+    "args": [
+     "a"
+    ]
+   },
+   "changed": false,
+   "again": false,
+   "file": "{\"mcpServers\": {\"kanban\": {\"command\": \"x\", \"args\": [\"a\"]}}}"
+  },
+  {
+   "existing": "{\"mcpServers\": {\"kanban\": {\"command\": \"old\"}, \"other\": {\"command\": \"o\"}}}",
+   "name": "kanban",
+   "entry": {
+    "command": "new"
+   },
+   "changed": true,
+   "again": false,
+   "file": "{\n  \"mcpServers\": {\n    \"kanban\": {\n      \"command\": \"new\"\n    },\n    \"other\": {\n      \"command\": \"o\"\n    }\n  }\n}"
+  },
+  {
+   "existing": "not json",
+   "name": "kanban",
+   "entry": {
+    "command": "é"
+   },
+   "changed": true,
+   "again": false,
+   "file": "{\n  \"mcpServers\": {\n    \"kanban\": {\n      \"command\": \"\\u00e9\"\n    }\n  }\n}"
+  },
+  {
+   "existing": "{}",
+   "name": "kanban",
+   "entry": {
+    "command": "x"
+   },
+   "changed": true,
+   "again": false,
+   "file": "{\n  \"mcpServers\": {\n    \"kanban\": {\n      \"command\": \"x\"\n    }\n  }\n}"
+  },
+  {
+   "existing": "{\"other\": 1}",
+   "name": "k",
+   "entry": {
+    "url": "http://x",
+    "headers": {
+     "A": "é"
+    }
+   },
+   "changed": true,
+   "again": false,
+   "file": "{\n  \"other\": 1,\n  \"mcpServers\": {\n    \"k\": {\n      \"url\": \"http://x\",\n      \"headers\": {\n        \"A\": \"\\u00e9\"\n      }\n    }\n  }\n}"
+  }
+ ],
+ "bin_lookup": {
+  "find_bin_env_name": "AGY_BIN"
+ }
+}

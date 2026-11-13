@@ -1,0 +1,42 @@
+//! `ai_skill_use` (Python model `AiSkillUse`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+/// One time a run used a skill (the CLI's `Skill` tool) or a subagent (`Task`/`Agent`), read from its stream (table).
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ai_skill_use")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub run_id: String,
+    pub project_id: String,
+    pub member_id: Option<String>,
+    /// skill | subagent
+    pub kind: String,
+    /// "plugin:skill" or "skill"
+    pub name: String,
+    pub plugin: Option<String>,
+    pub at: String,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `AiSkillUse`.
+/// Set before saving: `run_id`, `project_id`, `name`.
+pub fn new() -> ActiveModel {
+    ActiveModel {
+        id: NotSet,
+        run_id: NotSet,
+        project_id: NotSet,
+        member_id: Set(None),
+        kind: Set("skill".to_string()),
+        name: NotSet,
+        plugin: Set(None),
+        at: Set(kb_base::time::now_iso()),
+    }
+}

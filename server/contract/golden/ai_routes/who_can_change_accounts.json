@@ -1,0 +1,1006 @@
+{
+  "[   ] check": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Work Claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "not signed in (none)",
+      "unavailable": null
+    }
+  },
+  "[   ] list": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": "<time>",
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": "not signed in (none)",
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "[,] check": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Work Claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "not signed in (none)",
+      "unavailable": null
+    }
+  },
+  "[,] list": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": "<time>",
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": "not signed in (none)",
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "[10.0.0.5,] check": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Work Claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "not signed in (none)",
+      "unavailable": null
+    }
+  },
+  "[10.0.0.5,] list": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": "<time>",
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": "not signed in (none)",
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "[127.0.0.1, 127.0.0.1] check": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Work Claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "not signed in (none)",
+      "unavailable": null
+    }
+  },
+  "[127.0.0.1, 127.0.0.1] list": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": "<time>",
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": "not signed in (none)",
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "[127.0.0.1, 203.0.113.9] check": {
+    "status": 403,
+    "json": {
+      "detail": "AI accounts need the desktop app: signing in runs a terminal on your computer."
+    }
+  },
+  "[127.0.0.1, 203.0.113.9] list": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "[127.0.0.1] check": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Work Claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "not signed in (none)",
+      "unavailable": null
+    }
+  },
+  "[127.0.0.1] list": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "[203.0.113.9, 127.0.0.1] check": {
+    "status": 403,
+    "json": {
+      "detail": "AI accounts need the desktop app: signing in runs a terminal on your computer."
+    }
+  },
+  "[203.0.113.9, 127.0.0.1] list": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "[203.0.113.9] check": {
+    "status": 403,
+    "json": {
+      "detail": "AI accounts need the desktop app: signing in runs a terminal on your computer."
+    }
+  },
+  "[203.0.113.9] list": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": null,
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": null,
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "[::1] check": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Work Claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "not signed in (none)",
+      "unavailable": null
+    }
+  },
+  "[::1] list": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": "<time>",
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": "not signed in (none)",
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "[::ffff:10.0.0.1] check": {
+    "status": 403,
+    "json": {
+      "detail": "AI accounts need the desktop app: signing in runs a terminal on your computer."
+    }
+  },
+  "[::ffff:10.0.0.1] list": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": "<time>",
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": "not signed in (none)",
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "[::ffff:127.0.0.1] check": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Work Claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "not signed in (none)",
+      "unavailable": null
+    }
+  },
+  "[::ffff:127.0.0.1] list": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": "<time>",
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": "not signed in (none)",
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "[localhost] check": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Work Claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "not signed in (none)",
+      "unavailable": null
+    }
+  },
+  "[localhost] list": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": "<time>",
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": "not signed in (none)",
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "[unknown] check": {
+    "status": 403,
+    "json": {
+      "detail": "AI accounts need the desktop app: signing in runs a terminal on your computer."
+    }
+  },
+  "[unknown] list": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": "<time>",
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": "not signed in (none)",
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  },
+  "[web] check: unknown": {
+    "status": 403,
+    "json": {
+      "detail": "AI accounts need the desktop app: signing in runs a terminal on your computer."
+    }
+  },
+  "[web] create": {
+    "status": 403,
+    "json": {
+      "detail": "AI accounts need the desktop app: signing in runs a terminal on your computer."
+    }
+  },
+  "[web] create: bad body is a 422 first": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "name"
+        ]
+      ]
+    }
+  },
+  "[web] name-check": {
+    "status": 200,
+    "json": {
+      "message": null,
+      "ok": true
+    }
+  },
+  "[web] on this computer": {
+    "status": 200,
+    "json": []
+  },
+  "[web] one": {
+    "status": 200,
+    "json": {
+      "checked_at": "<time>",
+      "cli": "claude",
+      "cli_label": "Claude Code",
+      "created_at": "<time>",
+      "created_by": "user",
+      "email": null,
+      "folder": "<accounts>/work-claude",
+      "id": "<acct:1>",
+      "member_count": 0,
+      "members_elsewhere": [],
+      "members_here": [],
+      "method": null,
+      "name": "Work Claude",
+      "plan": null,
+      "provider": "claude-code",
+      "runnable": true,
+      "signed_out_at": null,
+      "signed_out_how": null,
+      "signing_in_by": null,
+      "status": "needs_sign_in",
+      "status_detail": "not signed in (none)",
+      "unavailable": null
+    }
+  },
+  "[web] remove": {
+    "status": 403,
+    "json": {
+      "detail": "AI accounts need the desktop app: signing in runs a terminal on your computer."
+    }
+  },
+  "[web] remove: bad members is a 422 first": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "members"
+        ]
+      ]
+    }
+  },
+  "[web] rename": {
+    "status": 403,
+    "json": {
+      "detail": "AI accounts need the desktop app: signing in runs a terminal on your computer."
+    }
+  },
+  "[web] rename: unknown": {
+    "status": 403,
+    "json": {
+      "detail": "AI accounts need the desktop app: signing in runs a terminal on your computer."
+    }
+  },
+  "[web] sign-out": {
+    "status": 403,
+    "json": {
+      "detail": "AI accounts need the desktop app: signing in runs a terminal on your computer."
+    }
+  },
+  "[web] signin": {
+    "status": 403,
+    "json": {
+      "detail": "AI accounts need the desktop app: signing in runs a terminal on your computer."
+    }
+  },
+  "[web] signin done": {
+    "status": 403,
+    "json": {
+      "detail": "AI accounts need the desktop app: signing in runs a terminal on your computer."
+    }
+  },
+  "[web] stop signin": {
+    "status": 403,
+    "json": {
+      "detail": "AI accounts need the desktop app: signing in runs a terminal on your computer."
+    }
+  },
+  "still there": {
+    "status": 200,
+    "json": {
+      "accounts": [
+        {
+          "checked_at": "<time>",
+          "cli": "claude",
+          "cli_label": "Claude Code",
+          "created_at": "<time>",
+          "created_by": "user",
+          "email": null,
+          "folder": "<accounts>/work-claude",
+          "id": "<acct:1>",
+          "member_count": 0,
+          "members_elsewhere": [],
+          "members_here": [],
+          "method": null,
+          "name": "Work Claude",
+          "plan": null,
+          "provider": "claude-code",
+          "runnable": true,
+          "signed_out_at": null,
+          "signed_out_how": null,
+          "signing_in_by": null,
+          "status": "needs_sign_in",
+          "status_detail": "not signed in (none)",
+          "unavailable": null
+        }
+      ],
+      "clis": [
+        {
+          "blurb": "Anthropic · subscription (Pro, Max, Team)",
+          "cli": "claude",
+          "found": true,
+          "label": "Claude Code",
+          "provider": "claude-code",
+          "runnable": true,
+          "unavailable": null,
+          "version": null
+        }
+      ],
+      "console": false,
+      "platform": "linux",
+      "terminal": true
+    }
+  }
+}

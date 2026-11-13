@@ -1,0 +1,1880 @@
+{
+  "arguments: no arguments": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: 1 validation error for ai_schedulesArguments\naction\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"
+      }
+    ],
+    "isError": true
+  },
+  "arguments: unknown action": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: 1 validation error for ai_schedulesArguments\naction\n  Input should be 'list', 'get', 'create', 'update', 'preview', 'pause', 'resume', 'delete' or 'run_now' [type=literal_error, input_value='stop', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "arguments: fields a list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: 1 validation error for ai_schedulesArguments\nfields\n  Input should be a valid dictionary [type=dict_type, input_value=[1], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.12/v/dict_type"
+      }
+    ],
+    "isError": true
+  },
+  "arguments: unknown argument": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: 1 validation error for ai_schedulesArguments\nlimit\n  Extra inputs are not permitted [type=extra_forbidden, input_value=3, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "list: no project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: list needs project_id."
+      }
+    ],
+    "isError": true
+  },
+  "list: nothing yet": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "list: a project that does not exist": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "list: one unknown field": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: Unknown field in fields: colour. Use: ticket_id, member_id, backup_member_id, kind, run_at, days, time, tz, ends, ends_after, ends_on, window_end, limits, catch_up, catch_up_hours, notify, notify_people, instruction."
+      }
+    ],
+    "isError": true
+  },
+  "list: two unknown fields": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: Unknown fields in fields: alpha, zeta. Use: ticket_id, member_id, backup_member_id, kind, run_at, days, time, tz, ends, ends_after, ends_on, window_end, limits, catch_up, catch_up_hours, notify, notify_people, instruction."
+      }
+    ],
+    "isError": true
+  },
+  "preview: no project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: preview needs project_id."
+      }
+    ],
+    "isError": true
+  },
+  "create: no project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: create needs project_id."
+      }
+    ],
+    "isError": true
+  },
+  "get: no schedule": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: get needs schedule_id."
+      }
+    ],
+    "isError": true
+  },
+  "update: no schedule": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: update needs schedule_id."
+      }
+    ],
+    "isError": true
+  },
+  "pause: no schedule": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: pause needs schedule_id."
+      }
+    ],
+    "isError": true
+  },
+  "resume: no schedule": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: resume needs schedule_id."
+      }
+    ],
+    "isError": true
+  },
+  "delete: no schedule": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: delete needs schedule_id."
+      }
+    ],
+    "isError": true
+  },
+  "run_now: no schedule": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: run_now needs schedule_id."
+      }
+    ],
+    "isError": true
+  },
+  "get: a schedule that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: Schedule not found."
+      }
+    ],
+    "isError": true
+  },
+  "update: a schedule that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: Schedule not found."
+      }
+    ],
+    "isError": true
+  },
+  "pause: a schedule that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: Schedule not found."
+      }
+    ],
+    "isError": true
+  },
+  "delete: a schedule that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: Schedule not found."
+      }
+    ],
+    "isError": true
+  },
+  "run_now: a schedule that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: Schedule not found."
+      }
+    ],
+    "isError": true
+  },
+  "create: nothing to go on": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: Pick a ticket of this project."
+      }
+    ],
+    "isError": true
+  },
+  "create: no team": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: Pick a team of this project."
+      }
+    ],
+    "isError": true
+  },
+  "create: a ticket that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: Pick a ticket of this project."
+      }
+    ],
+    "isError": true
+  },
+  "create: a time in the past": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: That time has passed. Next free time: Fri Nov 13, 09:00."
+      }
+    ],
+    "isError": true
+  },
+  "create: a zone that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: Unknown time zone: Mars/Base."
+      }
+    ],
+    "isError": true
+  },
+  "create: a repeat without days": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:1>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"repeat\",\n  \"run_at\": null,\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"08:30\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Weekdays at 08:30\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<sch:1>",
+        "project_id": "<uuid:1>",
+        "ticket_id": "RUN-1",
+        "ticket_title": "First",
+        "ticket_status": "backlog",
+        "member_id": "mem_dev",
+        "member_name": "Dev An",
+        "connection": "local",
+        "backup_member_id": null,
+        "backup_member_name": null,
+        "created_by": "user",
+        "kind": "repeat",
+        "run_at": null,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "time": "08:30",
+        "tz": "UTC",
+        "tz_label": "UTC",
+        "ends": "never",
+        "ends_after": null,
+        "ends_on": null,
+        "window_end": null,
+        "limits": {
+          "stop_after_min": 45,
+          "retries": 1,
+          "max_cost": null
+        },
+        "catch_up": "run",
+        "catch_up_hours": 2.0,
+        "notify": [
+          "started",
+          "needs_input",
+          "failed",
+          "finished"
+        ],
+        "notify_people": [],
+        "instruction": "",
+        "state": "active",
+        "paused_reason": null,
+        "failures_in_row": 0,
+        "runs_count": 0,
+        "next_run_at": "<time>",
+        "next_in": "in <n>",
+        "when": "Weekdays at 08:30",
+        "offline_risk": null,
+        "ticket_changed": false,
+        "last_run": null,
+        "created_at": "<time>",
+        "updated_at": "<time>"
+      }
+    },
+    "isError": false
+  },
+  "preview: a once": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"summary\": \"On Wed Jan 1 at 09:00 (UTC), Dev An works on RUN-1. The lead decides what to do and reports. It never moves past Review.\",\n  \"next_runs\": [\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"09:00\",\n      \"in\": \"in <n>\"\n    }\n  ],\n  \"checks\": [\n    {\n      \"level\": \"ok\",\n      \"text\": \"You may assign this team to RUN-1\",\n      \"key\": \"permission\"\n    },\n    {\n      \"level\": \"warn\",\n      \"text\": \"Dev An has no free run. RUN-1, RUN-1 is running. This run queues at position #1 and starts when a run frees. Max wait 30 min, then it is skipped.\",\n      \"key\": \"runner\"\n    },\n    {\n      \"level\": \"warn\",\n      \"text\": \"Teams run only while the desktop app is open. Catch-up is on (2 h).\",\n      \"key\": \"local\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "summary": "On Wed Jan 1 at 09:00 (UTC), Dev An works on RUN-1. The lead decides what to do and reports. It never moves past Review.",
+        "next_runs": [
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "09:00",
+            "in": "in <n>"
+          }
+        ],
+        "checks": [
+          {
+            "level": "ok",
+            "text": "You may assign this team to RUN-1",
+            "key": "permission"
+          },
+          {
+            "level": "warn",
+            "text": "Dev An has no free run. RUN-1, RUN-1 is running. This run queues at position #1 and starts when a run frees. Max wait 30 min, then it is skipped.",
+            "key": "runner"
+          },
+          {
+            "level": "warn",
+            "text": "Teams run only while the desktop app is open. Catch-up is on (2 h).",
+            "key": "local"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "preview: a repeat": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"summary\": \"Every Mon, Wed, Fri at 08:30 (UTC+7), Dev An works on RUN-1. The lead decides what to do and reports. It ends after 3 runs. It never moves past Review.\",\n  \"next_runs\": [\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"08:30\",\n      \"in\": \"in <n>\"\n    },\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"08:30\",\n      \"in\": \"in <n>\"\n    },\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"08:30\",\n      \"in\": \"in <n>\"\n    }\n  ],\n  \"checks\": [\n    {\n      \"level\": \"ok\",\n      \"text\": \"You may assign this team to RUN-1\",\n      \"key\": \"permission\"\n    },\n    {\n      \"level\": \"warn\",\n      \"text\": \"Dev An has no free run. RUN-1, RUN-1 is running. This run queues at position #1 and starts when a run frees. Max wait 30 min, then it is skipped.\",\n      \"key\": \"runner\"\n    },\n    {\n      \"level\": \"warn\",\n      \"text\": \"Teams run only while the desktop app is open. Catch-up is on (2 h).\",\n      \"key\": \"local\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "summary": "Every Mon, Wed, Fri at 08:30 (UTC+7), Dev An works on RUN-1. The lead decides what to do and reports. It ends after 3 runs. It never moves past Review.",
+        "next_runs": [
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "08:30",
+            "in": "in <n>"
+          },
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "08:30",
+            "in": "in <n>"
+          },
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "08:30",
+            "in": "in <n>"
+          }
+        ],
+        "checks": [
+          {
+            "level": "ok",
+            "text": "You may assign this team to RUN-1",
+            "key": "permission"
+          },
+          {
+            "level": "warn",
+            "text": "Dev An has no free run. RUN-1, RUN-1 is running. This run queues at position #1 and starts when a run frees. Max wait 30 min, then it is skipped.",
+            "key": "runner"
+          },
+          {
+            "level": "warn",
+            "text": "Teams run only while the desktop app is open. Catch-up is on (2 h).",
+            "key": "local"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "preview: nothing": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"summary\": \"\",\n  \"next_runs\": [\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"02:00\",\n      \"in\": \"in <n>\"\n    },\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"02:00\",\n      \"in\": \"in <n>\"\n    },\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"02:00\",\n      \"in\": \"in <n>\"\n    },\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"02:00\",\n      \"in\": \"in <n>\"\n    },\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"02:00\",\n      \"in\": \"in <n>\"\n    }\n  ],\n  \"checks\": [\n    {\n      \"level\": \"error\",\n      \"text\": \"Pick a ticket of this project.\",\n      \"key\": \"ticket\"\n    },\n    {\n      \"level\": \"error\",\n      \"text\": \"Pick a team of this project.\",\n      \"key\": \"member\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "summary": "",
+        "next_runs": [
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "02:00",
+            "in": "in <n>"
+          },
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "02:00",
+            "in": "in <n>"
+          },
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "02:00",
+            "in": "in <n>"
+          },
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "02:00",
+            "in": "in <n>"
+          },
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "02:00",
+            "in": "in <n>"
+          }
+        ],
+        "checks": [
+          {
+            "level": "error",
+            "text": "Pick a ticket of this project.",
+            "key": "ticket"
+          },
+          {
+            "level": "error",
+            "text": "Pick a team of this project.",
+            "key": "member"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "create: a once": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"once\",\n  \"run_at\": \"2031-01-01T09:00\",\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"02:00\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"Check the build\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Once · Wed Jan 1, 09:00\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<sch:2>",
+        "project_id": "<uuid:1>",
+        "ticket_id": "RUN-1",
+        "ticket_title": "First",
+        "ticket_status": "backlog",
+        "member_id": "mem_dev",
+        "member_name": "Dev An",
+        "connection": "local",
+        "backup_member_id": null,
+        "backup_member_name": null,
+        "created_by": "user",
+        "kind": "once",
+        "run_at": "2031-01-01T09:00",
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "time": "02:00",
+        "tz": "UTC",
+        "tz_label": "UTC",
+        "ends": "never",
+        "ends_after": null,
+        "ends_on": null,
+        "window_end": null,
+        "limits": {
+          "stop_after_min": 45,
+          "retries": 1,
+          "max_cost": null
+        },
+        "catch_up": "run",
+        "catch_up_hours": 2.0,
+        "notify": [
+          "started",
+          "needs_input",
+          "failed",
+          "finished"
+        ],
+        "notify_people": [],
+        "instruction": "Check the build",
+        "state": "active",
+        "paused_reason": null,
+        "failures_in_row": 0,
+        "runs_count": 0,
+        "next_run_at": "<time>",
+        "next_in": "in <n>",
+        "when": "Once · Wed Jan 1, 09:00",
+        "offline_risk": null,
+        "ticket_changed": false,
+        "last_run": null,
+        "created_at": "<time>",
+        "updated_at": "<time>"
+      }
+    },
+    "isError": false
+  },
+  "create: a repeat, the ticket in the fields": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:3>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-2\",\n  \"ticket_title\": \"Second\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_helper\",\n  \"member_name\": \"Helper\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"repeat\",\n  \"run_at\": null,\n  \"days\": [\n    1\n  ],\n  \"time\": \"07:00\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Every Tue at 07:00\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<sch:3>",
+        "project_id": "<uuid:1>",
+        "ticket_id": "RUN-2",
+        "ticket_title": "Second",
+        "ticket_status": "backlog",
+        "member_id": "mem_helper",
+        "member_name": "Helper",
+        "connection": "local",
+        "backup_member_id": null,
+        "backup_member_name": null,
+        "created_by": "user",
+        "kind": "repeat",
+        "run_at": null,
+        "days": [
+          1
+        ],
+        "time": "07:00",
+        "tz": "UTC",
+        "tz_label": "UTC",
+        "ends": "never",
+        "ends_after": null,
+        "ends_on": null,
+        "window_end": null,
+        "limits": {
+          "stop_after_min": 45,
+          "retries": 1,
+          "max_cost": null
+        },
+        "catch_up": "run",
+        "catch_up_hours": 2.0,
+        "notify": [
+          "started",
+          "needs_input",
+          "failed",
+          "finished"
+        ],
+        "notify_people": [],
+        "instruction": "",
+        "state": "active",
+        "paused_reason": null,
+        "failures_in_row": 0,
+        "runs_count": 0,
+        "next_run_at": "<time>",
+        "next_in": "in <n>",
+        "when": "Every Tue at 07:00",
+        "offline_risk": null,
+        "ticket_changed": false,
+        "last_run": null,
+        "created_at": "<time>",
+        "updated_at": "<time>"
+      }
+    },
+    "isError": false
+  },
+  "list: both": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:1>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"repeat\",\n  \"run_at\": null,\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"08:30\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Weekdays at 08:30\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:3>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-2\",\n  \"ticket_title\": \"Second\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_helper\",\n  \"member_name\": \"Helper\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"repeat\",\n  \"run_at\": null,\n  \"days\": [\n    1\n  ],\n  \"time\": \"07:00\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Every Tue at 07:00\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"once\",\n  \"run_at\": \"2031-01-01T09:00\",\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"02:00\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"Check the build\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Once · Wed Jan 1, 09:00\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<sch:1>",
+          "project_id": "<uuid:1>",
+          "ticket_id": "RUN-1",
+          "ticket_title": "First",
+          "ticket_status": "backlog",
+          "member_id": "mem_dev",
+          "member_name": "Dev An",
+          "connection": "local",
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "created_by": "user",
+          "kind": "repeat",
+          "run_at": null,
+          "days": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "time": "08:30",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "ends": "never",
+          "ends_after": null,
+          "ends_on": null,
+          "window_end": null,
+          "limits": {
+            "stop_after_min": 45,
+            "retries": 1,
+            "max_cost": null
+          },
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "instruction": "",
+          "state": "active",
+          "paused_reason": null,
+          "failures_in_row": 0,
+          "runs_count": 0,
+          "next_run_at": "<time>",
+          "next_in": "in <n>",
+          "when": "Weekdays at 08:30",
+          "offline_risk": null,
+          "ticket_changed": false,
+          "last_run": null,
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "<sch:3>",
+          "project_id": "<uuid:1>",
+          "ticket_id": "RUN-2",
+          "ticket_title": "Second",
+          "ticket_status": "backlog",
+          "member_id": "mem_helper",
+          "member_name": "Helper",
+          "connection": "local",
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "created_by": "user",
+          "kind": "repeat",
+          "run_at": null,
+          "days": [
+            1
+          ],
+          "time": "07:00",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "ends": "never",
+          "ends_after": null,
+          "ends_on": null,
+          "window_end": null,
+          "limits": {
+            "stop_after_min": 45,
+            "retries": 1,
+            "max_cost": null
+          },
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "instruction": "",
+          "state": "active",
+          "paused_reason": null,
+          "failures_in_row": 0,
+          "runs_count": 0,
+          "next_run_at": "<time>",
+          "next_in": "in <n>",
+          "when": "Every Tue at 07:00",
+          "offline_risk": null,
+          "ticket_changed": false,
+          "last_run": null,
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "<sch:2>",
+          "project_id": "<uuid:1>",
+          "ticket_id": "RUN-1",
+          "ticket_title": "First",
+          "ticket_status": "backlog",
+          "member_id": "mem_dev",
+          "member_name": "Dev An",
+          "connection": "local",
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "created_by": "user",
+          "kind": "once",
+          "run_at": "2031-01-01T09:00",
+          "days": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "time": "02:00",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "ends": "never",
+          "ends_after": null,
+          "ends_on": null,
+          "window_end": null,
+          "limits": {
+            "stop_after_min": 45,
+            "retries": 1,
+            "max_cost": null
+          },
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "instruction": "Check the build",
+          "state": "active",
+          "paused_reason": null,
+          "failures_in_row": 0,
+          "runs_count": 0,
+          "next_run_at": "<time>",
+          "next_in": "in <n>",
+          "when": "Once · Wed Jan 1, 09:00",
+          "offline_risk": null,
+          "ticket_changed": false,
+          "last_run": null,
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: one ticket's": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:1>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"repeat\",\n  \"run_at\": null,\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"08:30\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Weekdays at 08:30\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"once\",\n  \"run_at\": \"2031-01-01T09:00\",\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"02:00\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"Check the build\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Once · Wed Jan 1, 09:00\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<sch:1>",
+          "project_id": "<uuid:1>",
+          "ticket_id": "RUN-1",
+          "ticket_title": "First",
+          "ticket_status": "backlog",
+          "member_id": "mem_dev",
+          "member_name": "Dev An",
+          "connection": "local",
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "created_by": "user",
+          "kind": "repeat",
+          "run_at": null,
+          "days": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "time": "08:30",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "ends": "never",
+          "ends_after": null,
+          "ends_on": null,
+          "window_end": null,
+          "limits": {
+            "stop_after_min": 45,
+            "retries": 1,
+            "max_cost": null
+          },
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "instruction": "",
+          "state": "active",
+          "paused_reason": null,
+          "failures_in_row": 0,
+          "runs_count": 0,
+          "next_run_at": "<time>",
+          "next_in": "in <n>",
+          "when": "Weekdays at 08:30",
+          "offline_risk": null,
+          "ticket_changed": false,
+          "last_run": null,
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "<sch:2>",
+          "project_id": "<uuid:1>",
+          "ticket_id": "RUN-1",
+          "ticket_title": "First",
+          "ticket_status": "backlog",
+          "member_id": "mem_dev",
+          "member_name": "Dev An",
+          "connection": "local",
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "created_by": "user",
+          "kind": "once",
+          "run_at": "2031-01-01T09:00",
+          "days": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "time": "02:00",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "ends": "never",
+          "ends_after": null,
+          "ends_on": null,
+          "window_end": null,
+          "limits": {
+            "stop_after_min": 45,
+            "retries": 1,
+            "max_cost": null
+          },
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "instruction": "Check the build",
+          "state": "active",
+          "paused_reason": null,
+          "failures_in_row": 0,
+          "runs_count": 0,
+          "next_run_at": "<time>",
+          "next_in": "in <n>",
+          "when": "Once · Wed Jan 1, 09:00",
+          "offline_risk": null,
+          "ticket_changed": false,
+          "last_run": null,
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "get: the once": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"once\",\n  \"run_at\": \"2031-01-01T09:00\",\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"02:00\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"Check the build\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Once · Wed Jan 1, 09:00\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\",\n  \"stats\": {\n    \"passed\": 0,\n    \"of\": 0,\n    \"avg_s\": null,\n    \"cost\": 0,\n    \"metered\": false\n  },\n  \"runs\": [],\n  \"summary\": \"On Wed Jan 1 at 09:00 (UTC), Dev An works on RUN-1. The lead decides what to do and reports. It never moves past Review.\",\n  \"problems\": [\n    {\n      \"level\": \"warn\",\n      \"text\": \"Dev An has no free run. RUN-1, RUN-1 is running. This run queues at position #1 and starts when a run frees. Max wait 30 min, then it is skipped.\",\n      \"key\": \"runner\"\n    },\n    {\n      \"level\": \"warn\",\n      \"text\": \"Teams run only while the desktop app is open. Catch-up is on (2 h).\",\n      \"key\": \"local\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<sch:2>",
+        "project_id": "<uuid:1>",
+        "ticket_id": "RUN-1",
+        "ticket_title": "First",
+        "ticket_status": "backlog",
+        "member_id": "mem_dev",
+        "member_name": "Dev An",
+        "connection": "local",
+        "backup_member_id": null,
+        "backup_member_name": null,
+        "created_by": "user",
+        "kind": "once",
+        "run_at": "2031-01-01T09:00",
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "time": "02:00",
+        "tz": "UTC",
+        "tz_label": "UTC",
+        "ends": "never",
+        "ends_after": null,
+        "ends_on": null,
+        "window_end": null,
+        "limits": {
+          "stop_after_min": 45,
+          "retries": 1,
+          "max_cost": null
+        },
+        "catch_up": "run",
+        "catch_up_hours": 2.0,
+        "notify": [
+          "started",
+          "needs_input",
+          "failed",
+          "finished"
+        ],
+        "notify_people": [],
+        "instruction": "Check the build",
+        "state": "active",
+        "paused_reason": null,
+        "failures_in_row": 0,
+        "runs_count": 0,
+        "next_run_at": "<time>",
+        "next_in": "in <n>",
+        "when": "Once · Wed Jan 1, 09:00",
+        "offline_risk": null,
+        "ticket_changed": false,
+        "last_run": null,
+        "created_at": "<time>",
+        "updated_at": "<time>",
+        "stats": {
+          "passed": 0,
+          "of": 0,
+          "avg_s": null,
+          "cost": 0,
+          "metered": false
+        },
+        "runs": [],
+        "summary": "On Wed Jan 1 at 09:00 (UTC), Dev An works on RUN-1. The lead decides what to do and reports. It never moves past Review.",
+        "problems": [
+          {
+            "level": "warn",
+            "text": "Dev An has no free run. RUN-1, RUN-1 is running. This run queues at position #1 and starts when a run frees. Max wait 30 min, then it is skipped.",
+            "key": "runner"
+          },
+          {
+            "level": "warn",
+            "text": "Teams run only while the desktop app is open. Catch-up is on (2 h).",
+            "key": "local"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "preview: a change to the once": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"summary\": \"\",\n  \"next_runs\": [\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"10:00\",\n      \"in\": \"in <n>\"\n    },\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"10:00\",\n      \"in\": \"in <n>\"\n    },\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"10:00\",\n      \"in\": \"in <n>\"\n    },\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"10:00\",\n      \"in\": \"in <n>\"\n    },\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"10:00\",\n      \"in\": \"in <n>\"\n    }\n  ],\n  \"checks\": [\n    {\n      \"level\": \"error\",\n      \"text\": \"Pick a ticket of this project.\",\n      \"key\": \"ticket\"\n    },\n    {\n      \"level\": \"warn\",\n      \"text\": \"Dev An has no free run. RUN-1, RUN-1 is running. This run queues at position #1 and starts when a run frees. Max wait 30 min, then it is skipped.\",\n      \"key\": \"runner\"\n    },\n    {\n      \"level\": \"warn\",\n      \"text\": \"Teams run only while the desktop app is open. Catch-up is on (2 h).\",\n      \"key\": \"local\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "summary": "",
+        "next_runs": [
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "10:00",
+            "in": "in <n>"
+          },
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "10:00",
+            "in": "in <n>"
+          },
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "10:00",
+            "in": "in <n>"
+          },
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "10:00",
+            "in": "in <n>"
+          },
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "10:00",
+            "in": "in <n>"
+          }
+        ],
+        "checks": [
+          {
+            "level": "error",
+            "text": "Pick a ticket of this project.",
+            "key": "ticket"
+          },
+          {
+            "level": "warn",
+            "text": "Dev An has no free run. RUN-1, RUN-1 is running. This run queues at position #1 and starts when a run frees. Max wait 30 min, then it is skipped.",
+            "key": "runner"
+          },
+          {
+            "level": "warn",
+            "text": "Teams run only while the desktop app is open. Catch-up is on (2 h).",
+            "key": "local"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "update: no fields": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"once\",\n  \"run_at\": \"2031-01-01T09:00\",\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"02:00\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"Check the build\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Once · Wed Jan 1, 09:00\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<sch:2>",
+        "project_id": "<uuid:1>",
+        "ticket_id": "RUN-1",
+        "ticket_title": "First",
+        "ticket_status": "backlog",
+        "member_id": "mem_dev",
+        "member_name": "Dev An",
+        "connection": "local",
+        "backup_member_id": null,
+        "backup_member_name": null,
+        "created_by": "user",
+        "kind": "once",
+        "run_at": "2031-01-01T09:00",
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "time": "02:00",
+        "tz": "UTC",
+        "tz_label": "UTC",
+        "ends": "never",
+        "ends_after": null,
+        "ends_on": null,
+        "window_end": null,
+        "limits": {
+          "stop_after_min": 45,
+          "retries": 1,
+          "max_cost": null
+        },
+        "catch_up": "run",
+        "catch_up_hours": 2.0,
+        "notify": [
+          "started",
+          "needs_input",
+          "failed",
+          "finished"
+        ],
+        "notify_people": [],
+        "instruction": "Check the build",
+        "state": "active",
+        "paused_reason": null,
+        "failures_in_row": 0,
+        "runs_count": 0,
+        "next_run_at": "<time>",
+        "next_in": "in <n>",
+        "when": "Once · Wed Jan 1, 09:00",
+        "offline_risk": null,
+        "ticket_changed": false,
+        "last_run": null,
+        "created_at": "<time>",
+        "updated_at": "<time>"
+      }
+    },
+    "isError": false
+  },
+  "update: the instruction": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"once\",\n  \"run_at\": \"2031-01-01T09:00\",\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"02:00\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"Check the build and the tests\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Once · Wed Jan 1, 09:00\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<sch:2>",
+        "project_id": "<uuid:1>",
+        "ticket_id": "RUN-1",
+        "ticket_title": "First",
+        "ticket_status": "backlog",
+        "member_id": "mem_dev",
+        "member_name": "Dev An",
+        "connection": "local",
+        "backup_member_id": null,
+        "backup_member_name": null,
+        "created_by": "user",
+        "kind": "once",
+        "run_at": "2031-01-01T09:00",
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "time": "02:00",
+        "tz": "UTC",
+        "tz_label": "UTC",
+        "ends": "never",
+        "ends_after": null,
+        "ends_on": null,
+        "window_end": null,
+        "limits": {
+          "stop_after_min": 45,
+          "retries": 1,
+          "max_cost": null
+        },
+        "catch_up": "run",
+        "catch_up_hours": 2.0,
+        "notify": [
+          "started",
+          "needs_input",
+          "failed",
+          "finished"
+        ],
+        "notify_people": [],
+        "instruction": "Check the build and the tests",
+        "state": "active",
+        "paused_reason": null,
+        "failures_in_row": 0,
+        "runs_count": 0,
+        "next_run_at": "<time>",
+        "next_in": "in <n>",
+        "when": "Once · Wed Jan 1, 09:00",
+        "offline_risk": null,
+        "ticket_changed": false,
+        "last_run": null,
+        "created_at": "<time>",
+        "updated_at": "<time>"
+      }
+    },
+    "isError": false
+  },
+  "update: a bad kind": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: kind must be once or repeat."
+      }
+    ],
+    "isError": true
+  },
+  "update: an unknown field": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: Unknown field in fields: colour. Use: ticket_id, member_id, backup_member_id, kind, run_at, days, time, tz, ends, ends_after, ends_on, window_end, limits, catch_up, catch_up_hours, notify, notify_people, instruction."
+      }
+    ],
+    "isError": true
+  },
+  "pause: the once": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"once\",\n  \"run_at\": \"2031-01-01T09:00\",\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"02:00\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"Check the build and the tests\",\n  \"state\": \"paused\",\n  \"paused_reason\": \"Paused by user\",\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Once · Wed Jan 1, 09:00\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<sch:2>",
+        "project_id": "<uuid:1>",
+        "ticket_id": "RUN-1",
+        "ticket_title": "First",
+        "ticket_status": "backlog",
+        "member_id": "mem_dev",
+        "member_name": "Dev An",
+        "connection": "local",
+        "backup_member_id": null,
+        "backup_member_name": null,
+        "created_by": "user",
+        "kind": "once",
+        "run_at": "2031-01-01T09:00",
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "time": "02:00",
+        "tz": "UTC",
+        "tz_label": "UTC",
+        "ends": "never",
+        "ends_after": null,
+        "ends_on": null,
+        "window_end": null,
+        "limits": {
+          "stop_after_min": 45,
+          "retries": 1,
+          "max_cost": null
+        },
+        "catch_up": "run",
+        "catch_up_hours": 2.0,
+        "notify": [
+          "started",
+          "needs_input",
+          "failed",
+          "finished"
+        ],
+        "notify_people": [],
+        "instruction": "Check the build and the tests",
+        "state": "paused",
+        "paused_reason": "Paused by user",
+        "failures_in_row": 0,
+        "runs_count": 0,
+        "next_run_at": "<time>",
+        "next_in": "in <n>",
+        "when": "Once · Wed Jan 1, 09:00",
+        "offline_risk": null,
+        "ticket_changed": false,
+        "last_run": null,
+        "created_at": "<time>",
+        "updated_at": "<time>"
+      }
+    },
+    "isError": false
+  },
+  "pause: again": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"once\",\n  \"run_at\": \"2031-01-01T09:00\",\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"02:00\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"Check the build and the tests\",\n  \"state\": \"paused\",\n  \"paused_reason\": \"Paused by user\",\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Once · Wed Jan 1, 09:00\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<sch:2>",
+        "project_id": "<uuid:1>",
+        "ticket_id": "RUN-1",
+        "ticket_title": "First",
+        "ticket_status": "backlog",
+        "member_id": "mem_dev",
+        "member_name": "Dev An",
+        "connection": "local",
+        "backup_member_id": null,
+        "backup_member_name": null,
+        "created_by": "user",
+        "kind": "once",
+        "run_at": "2031-01-01T09:00",
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "time": "02:00",
+        "tz": "UTC",
+        "tz_label": "UTC",
+        "ends": "never",
+        "ends_after": null,
+        "ends_on": null,
+        "window_end": null,
+        "limits": {
+          "stop_after_min": 45,
+          "retries": 1,
+          "max_cost": null
+        },
+        "catch_up": "run",
+        "catch_up_hours": 2.0,
+        "notify": [
+          "started",
+          "needs_input",
+          "failed",
+          "finished"
+        ],
+        "notify_people": [],
+        "instruction": "Check the build and the tests",
+        "state": "paused",
+        "paused_reason": "Paused by user",
+        "failures_in_row": 0,
+        "runs_count": 0,
+        "next_run_at": "<time>",
+        "next_in": "in <n>",
+        "when": "Once · Wed Jan 1, 09:00",
+        "offline_risk": null,
+        "ticket_changed": false,
+        "last_run": null,
+        "created_at": "<time>",
+        "updated_at": "<time>"
+      }
+    },
+    "isError": false
+  },
+  "resume: the once": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"once\",\n  \"run_at\": \"2031-01-01T09:00\",\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"02:00\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"Check the build and the tests\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Once · Wed Jan 1, 09:00\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<sch:2>",
+        "project_id": "<uuid:1>",
+        "ticket_id": "RUN-1",
+        "ticket_title": "First",
+        "ticket_status": "backlog",
+        "member_id": "mem_dev",
+        "member_name": "Dev An",
+        "connection": "local",
+        "backup_member_id": null,
+        "backup_member_name": null,
+        "created_by": "user",
+        "kind": "once",
+        "run_at": "2031-01-01T09:00",
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "time": "02:00",
+        "tz": "UTC",
+        "tz_label": "UTC",
+        "ends": "never",
+        "ends_after": null,
+        "ends_on": null,
+        "window_end": null,
+        "limits": {
+          "stop_after_min": 45,
+          "retries": 1,
+          "max_cost": null
+        },
+        "catch_up": "run",
+        "catch_up_hours": 2.0,
+        "notify": [
+          "started",
+          "needs_input",
+          "failed",
+          "finished"
+        ],
+        "notify_people": [],
+        "instruction": "Check the build and the tests",
+        "state": "active",
+        "paused_reason": null,
+        "failures_in_row": 0,
+        "runs_count": 0,
+        "next_run_at": "<time>",
+        "next_in": "in <n>",
+        "when": "Once · Wed Jan 1, 09:00",
+        "offline_risk": null,
+        "ticket_changed": false,
+        "last_run": null,
+        "created_at": "<time>",
+        "updated_at": "<time>"
+      }
+    },
+    "isError": false
+  },
+  "delete: the repeat": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"deleted\": \"<sch:3>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "deleted": "<sch:3>"
+      }
+    },
+    "isError": false
+  },
+  "delete: the repeat again": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: Schedule not found."
+      }
+    ],
+    "isError": true
+  },
+  "list: after the delete": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:1>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"repeat\",\n  \"run_at\": null,\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"08:30\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Weekdays at 08:30\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"once\",\n  \"run_at\": \"2031-01-01T09:00\",\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"02:00\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"Check the build and the tests\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Once · Wed Jan 1, 09:00\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<sch:1>",
+          "project_id": "<uuid:1>",
+          "ticket_id": "RUN-1",
+          "ticket_title": "First",
+          "ticket_status": "backlog",
+          "member_id": "mem_dev",
+          "member_name": "Dev An",
+          "connection": "local",
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "created_by": "user",
+          "kind": "repeat",
+          "run_at": null,
+          "days": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "time": "08:30",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "ends": "never",
+          "ends_after": null,
+          "ends_on": null,
+          "window_end": null,
+          "limits": {
+            "stop_after_min": 45,
+            "retries": 1,
+            "max_cost": null
+          },
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "instruction": "",
+          "state": "active",
+          "paused_reason": null,
+          "failures_in_row": 0,
+          "runs_count": 0,
+          "next_run_at": "<time>",
+          "next_in": "in <n>",
+          "when": "Weekdays at 08:30",
+          "offline_risk": null,
+          "ticket_changed": false,
+          "last_run": null,
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "<sch:2>",
+          "project_id": "<uuid:1>",
+          "ticket_id": "RUN-1",
+          "ticket_title": "First",
+          "ticket_status": "backlog",
+          "member_id": "mem_dev",
+          "member_name": "Dev An",
+          "connection": "local",
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "created_by": "user",
+          "kind": "once",
+          "run_at": "2031-01-01T09:00",
+          "days": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "time": "02:00",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "ends": "never",
+          "ends_after": null,
+          "ends_on": null,
+          "window_end": null,
+          "limits": {
+            "stop_after_min": 45,
+            "retries": 1,
+            "max_cost": null
+          },
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "instruction": "Check the build and the tests",
+          "state": "active",
+          "paused_reason": null,
+          "failures_in_row": 0,
+          "runs_count": 0,
+          "next_run_at": "<time>",
+          "next_in": "in <n>",
+          "when": "Once · Wed Jan 1, 09:00",
+          "offline_risk": null,
+          "ticket_changed": false,
+          "last_run": null,
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "run: list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: An AI run cannot make or change schedules; a person does."
+      }
+    ],
+    "isError": true
+  },
+  "run: create": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: An AI run cannot make or change schedules; a person does."
+      }
+    ],
+    "isError": true
+  },
+  "run: delete": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: An AI run cannot make or change schedules; a person does."
+      }
+    ],
+    "isError": true
+  },
+  "ended run: list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: This AI run has ended (finished, cancelled or stopped by a person); the board no longer accepts its calls. Stop now."
+      }
+    ],
+    "isError": true
+  },
+  "board ai: list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:1>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"repeat\",\n  \"run_at\": null,\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"08:30\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Weekdays at 08:30\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"once\",\n  \"run_at\": \"2031-01-01T09:00\",\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"02:00\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"Check the build and the tests\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Once · Wed Jan 1, 09:00\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<sch:1>",
+          "project_id": "<uuid:1>",
+          "ticket_id": "RUN-1",
+          "ticket_title": "First",
+          "ticket_status": "backlog",
+          "member_id": "mem_dev",
+          "member_name": "Dev An",
+          "connection": "local",
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "created_by": "user",
+          "kind": "repeat",
+          "run_at": null,
+          "days": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "time": "08:30",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "ends": "never",
+          "ends_after": null,
+          "ends_on": null,
+          "window_end": null,
+          "limits": {
+            "stop_after_min": 45,
+            "retries": 1,
+            "max_cost": null
+          },
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "instruction": "",
+          "state": "active",
+          "paused_reason": null,
+          "failures_in_row": 0,
+          "runs_count": 0,
+          "next_run_at": "<time>",
+          "next_in": "in <n>",
+          "when": "Weekdays at 08:30",
+          "offline_risk": null,
+          "ticket_changed": false,
+          "last_run": null,
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "<sch:2>",
+          "project_id": "<uuid:1>",
+          "ticket_id": "RUN-1",
+          "ticket_title": "First",
+          "ticket_status": "backlog",
+          "member_id": "mem_dev",
+          "member_name": "Dev An",
+          "connection": "local",
+          "backup_member_id": null,
+          "backup_member_name": null,
+          "created_by": "user",
+          "kind": "once",
+          "run_at": "2031-01-01T09:00",
+          "days": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "time": "02:00",
+          "tz": "UTC",
+          "tz_label": "UTC",
+          "ends": "never",
+          "ends_after": null,
+          "ends_on": null,
+          "window_end": null,
+          "limits": {
+            "stop_after_min": 45,
+            "retries": 1,
+            "max_cost": null
+          },
+          "catch_up": "run",
+          "catch_up_hours": 2.0,
+          "notify": [
+            "started",
+            "needs_input",
+            "failed",
+            "finished"
+          ],
+          "notify_people": [],
+          "instruction": "Check the build and the tests",
+          "state": "active",
+          "paused_reason": null,
+          "failures_in_row": 0,
+          "runs_count": 0,
+          "next_run_at": "<time>",
+          "next_in": "in <n>",
+          "when": "Once · Wed Jan 1, 09:00",
+          "offline_risk": null,
+          "ticket_changed": false,
+          "last_run": null,
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "board ai: get": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sch:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"ticket_id\": \"RUN-1\",\n  \"ticket_title\": \"First\",\n  \"ticket_status\": \"backlog\",\n  \"member_id\": \"mem_dev\",\n  \"member_name\": \"Dev An\",\n  \"connection\": \"local\",\n  \"backup_member_id\": null,\n  \"backup_member_name\": null,\n  \"created_by\": \"user\",\n  \"kind\": \"once\",\n  \"run_at\": \"2031-01-01T09:00\",\n  \"days\": [\n    0,\n    1,\n    2,\n    3,\n    4\n  ],\n  \"time\": \"02:00\",\n  \"tz\": \"UTC\",\n  \"tz_label\": \"UTC\",\n  \"ends\": \"never\",\n  \"ends_after\": null,\n  \"ends_on\": null,\n  \"window_end\": null,\n  \"limits\": {\n    \"stop_after_min\": 45,\n    \"retries\": 1,\n    \"max_cost\": null\n  },\n  \"catch_up\": \"run\",\n  \"catch_up_hours\": 2.0,\n  \"notify\": [\n    \"started\",\n    \"needs_input\",\n    \"failed\",\n    \"finished\"\n  ],\n  \"notify_people\": [],\n  \"instruction\": \"Check the build and the tests\",\n  \"state\": \"active\",\n  \"paused_reason\": null,\n  \"failures_in_row\": 0,\n  \"runs_count\": 0,\n  \"next_run_at\": \"<time>\",\n  \"next_in\": \"in <n>\",\n  \"when\": \"Once · Wed Jan 1, 09:00\",\n  \"offline_risk\": null,\n  \"ticket_changed\": false,\n  \"last_run\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\",\n  \"stats\": {\n    \"passed\": 0,\n    \"of\": 0,\n    \"avg_s\": null,\n    \"cost\": 0,\n    \"metered\": false\n  },\n  \"runs\": [],\n  \"summary\": \"On Wed Jan 1 at 09:00 (UTC), Dev An works on RUN-1. The lead decides what to do and reports. It never moves past Review.\",\n  \"problems\": [\n    {\n      \"level\": \"warn\",\n      \"text\": \"Dev An has no free run. RUN-1, RUN-1 is running. This run queues at position #1 and starts when a run frees. Max wait 30 min, then it is skipped.\",\n      \"key\": \"runner\"\n    },\n    {\n      \"level\": \"warn\",\n      \"text\": \"Teams run only while the desktop app is open. Catch-up is on (2 h).\",\n      \"key\": \"local\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<sch:2>",
+        "project_id": "<uuid:1>",
+        "ticket_id": "RUN-1",
+        "ticket_title": "First",
+        "ticket_status": "backlog",
+        "member_id": "mem_dev",
+        "member_name": "Dev An",
+        "connection": "local",
+        "backup_member_id": null,
+        "backup_member_name": null,
+        "created_by": "user",
+        "kind": "once",
+        "run_at": "2031-01-01T09:00",
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "time": "02:00",
+        "tz": "UTC",
+        "tz_label": "UTC",
+        "ends": "never",
+        "ends_after": null,
+        "ends_on": null,
+        "window_end": null,
+        "limits": {
+          "stop_after_min": 45,
+          "retries": 1,
+          "max_cost": null
+        },
+        "catch_up": "run",
+        "catch_up_hours": 2.0,
+        "notify": [
+          "started",
+          "needs_input",
+          "failed",
+          "finished"
+        ],
+        "notify_people": [],
+        "instruction": "Check the build and the tests",
+        "state": "active",
+        "paused_reason": null,
+        "failures_in_row": 0,
+        "runs_count": 0,
+        "next_run_at": "<time>",
+        "next_in": "in <n>",
+        "when": "Once · Wed Jan 1, 09:00",
+        "offline_risk": null,
+        "ticket_changed": false,
+        "last_run": null,
+        "created_at": "<time>",
+        "updated_at": "<time>",
+        "stats": {
+          "passed": 0,
+          "of": 0,
+          "avg_s": null,
+          "cost": 0,
+          "metered": false
+        },
+        "runs": [],
+        "summary": "On Wed Jan 1 at 09:00 (UTC), Dev An works on RUN-1. The lead decides what to do and reports. It never moves past Review.",
+        "problems": [
+          {
+            "level": "warn",
+            "text": "Dev An has no free run. RUN-1, RUN-1 is running. This run queues at position #1 and starts when a run frees. Max wait 30 min, then it is skipped.",
+            "key": "runner"
+          },
+          {
+            "level": "warn",
+            "text": "Teams run only while the desktop app is open. Catch-up is on (2 h).",
+            "key": "local"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "board ai: preview": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"summary\": \"On Wed Jan 1 at 09:00 (UTC), Dev An works on RUN-1. The lead decides what to do and reports. It never moves past Review.\",\n  \"next_runs\": [\n    {\n      \"at\": \"<time>\",\n      \"day\": \"<day>\",\n      \"time\": \"09:00\",\n      \"in\": \"in <n>\"\n    }\n  ],\n  \"checks\": [\n    {\n      \"level\": \"ok\",\n      \"text\": \"You may assign this team to RUN-1\",\n      \"key\": \"permission\"\n    },\n    {\n      \"level\": \"warn\",\n      \"text\": \"Dev An has no free run. RUN-1, RUN-1 is running. This run queues at position #1 and starts when a run frees. Max wait 30 min, then it is skipped.\",\n      \"key\": \"runner\"\n    },\n    {\n      \"level\": \"warn\",\n      \"text\": \"Teams run only while the desktop app is open. Catch-up is on (2 h).\",\n      \"key\": \"local\"\n    },\n    {\n      \"level\": \"warn\",\n      \"text\": \"RUN-1 is scheduled for the same team at 09:00 on Wed. It will wait for a free run.\",\n      \"key\": \"overlap\"\n    }\n  ]\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "summary": "On Wed Jan 1 at 09:00 (UTC), Dev An works on RUN-1. The lead decides what to do and reports. It never moves past Review.",
+        "next_runs": [
+          {
+            "at": "<time>",
+            "day": "<day>",
+            "time": "09:00",
+            "in": "in <n>"
+          }
+        ],
+        "checks": [
+          {
+            "level": "ok",
+            "text": "You may assign this team to RUN-1",
+            "key": "permission"
+          },
+          {
+            "level": "warn",
+            "text": "Dev An has no free run. RUN-1, RUN-1 is running. This run queues at position #1 and starts when a run frees. Max wait 30 min, then it is skipped.",
+            "key": "runner"
+          },
+          {
+            "level": "warn",
+            "text": "Teams run only while the desktop app is open. Catch-up is on (2 h).",
+            "key": "local"
+          },
+          {
+            "level": "warn",
+            "text": "RUN-1 is scheduled for the same team at 09:00 on Wed. It will wait for a free run.",
+            "key": "overlap"
+          }
+        ]
+      }
+    },
+    "isError": false
+  },
+  "board ai: create": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: As the Board AI, list the change in your answer's actions block (schedule_create, schedule_edit, schedule_pause, schedule_resume, schedule_run); the board makes it by risk tier, with an Undo, or asks the person first."
+      }
+    ],
+    "isError": true
+  },
+  "board ai: pause": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: As the Board AI, list the change in your answer's actions block (schedule_create, schedule_edit, schedule_pause, schedule_resume, schedule_run); the board makes it by risk tier, with an Undo, or asks the person first."
+      }
+    ],
+    "isError": true
+  },
+  "board ai: run_now": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool ai_schedules: As the Board AI, list the change in your answer's actions block (schedule_create, schedule_edit, schedule_pause, schedule_resume, schedule_run); the board makes it by risk tier, with an Undo, or asks the person first."
+      }
+    ],
+    "isError": true
+  }
+}

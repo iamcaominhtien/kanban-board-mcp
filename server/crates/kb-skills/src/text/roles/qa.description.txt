@@ -1,0 +1,1 @@
+How QA and QC work on this board: test cases written from the criteria (QA), every case run with its proof (QC), a failure reported so anyone can repeat it, and a criterion met only when its case passed. Use at the start of every QA run.

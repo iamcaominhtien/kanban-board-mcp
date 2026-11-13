@@ -1,0 +1,476 @@
+{
+  "GET worktree": {
+    "status": 200,
+    "json": {
+      "base": "main",
+      "branch": "ai/KAN-1-work",
+      "conflict_files": [],
+      "created_at": "<time>",
+      "handover": null,
+      "last_used_at": null,
+      "live": {
+        "ahead": 0,
+        "exists": true,
+        "outputs": [
+          "screenshots/shot.png"
+        ],
+        "size_mb": 1.5,
+        "uncommitted": [
+          "calc.py",
+          "big.bin",
+          "screenshots/shot.png"
+        ]
+      },
+      "merged_at": null,
+      "path": "<tmp>/repo.worktrees/KAN-1",
+      "port": 3101,
+      "pr_number": null,
+      "pr_url": null,
+      "prepare_s": null,
+      "prepared_at": null,
+      "project_id": "<uuid:1>",
+      "repo": "<tmp>/repo",
+      "state": "active",
+      "ticket_id": "KAN-1"
+    }
+  },
+  "GET worktree: after the outputs": {
+    "status": 200,
+    "json": {
+      "base": "main",
+      "branch": "ai/KAN-1-work",
+      "conflict_files": [],
+      "created_at": "<time>",
+      "handover": null,
+      "last_used_at": null,
+      "live": {
+        "ahead": 0,
+        "exists": true,
+        "outputs": [],
+        "size_mb": 1.5,
+        "uncommitted": [
+          "calc.py",
+          "big.bin"
+        ]
+      },
+      "merged_at": null,
+      "path": "<tmp>/repo.worktrees/KAN-1",
+      "port": 3101,
+      "pr_number": null,
+      "pr_url": null,
+      "prepare_s": null,
+      "prepared_at": null,
+      "project_id": "<uuid:1>",
+      "repo": "<tmp>/repo",
+      "state": "active",
+      "ticket_id": "KAN-1"
+    }
+  },
+  "GET worktree: merged": {
+    "status": 200,
+    "json": null
+  },
+  "GET worktree: no such ticket": {
+    "status": 200,
+    "json": null
+  },
+  "GET worktree: none": {
+    "status": 200,
+    "json": null
+  },
+  "GET worktree: removed": {
+    "status": 200,
+    "json": null
+  },
+  "GET worktrees": {
+    "status": 200,
+    "json": {
+      "total_mb": 1.5,
+      "worktrees": [
+        {
+          "base": "main",
+          "branch": "ai/KAN-1-work",
+          "conflict_files": [],
+          "created_at": "<time>",
+          "handover": null,
+          "last_used_at": null,
+          "live": {
+            "ahead": 0,
+            "exists": true,
+            "outputs": [
+              "screenshots/shot.png"
+            ],
+            "size_mb": 1.5,
+            "uncommitted": [
+              "calc.py",
+              "big.bin",
+              "screenshots/shot.png"
+            ]
+          },
+          "merged_at": null,
+          "path": "<tmp>/repo.worktrees/KAN-1",
+          "port": 3101,
+          "pr_number": null,
+          "pr_url": null,
+          "prepare_s": null,
+          "prepared_at": null,
+          "project_id": "<uuid:1>",
+          "repo": "<tmp>/repo",
+          "state": "active",
+          "ticket_id": "KAN-1"
+        }
+      ]
+    }
+  },
+  "GET worktrees: after the cleanup": {
+    "status": 200,
+    "json": {
+      "total_mb": 1.5,
+      "worktrees": [
+        {
+          "base": "main",
+          "branch": "ai/KAN-3-work",
+          "conflict_files": [],
+          "created_at": "<time>",
+          "handover": null,
+          "last_used_at": null,
+          "live": {
+            "ahead": 0,
+            "exists": true,
+            "outputs": [],
+            "size_mb": 1.5,
+            "uncommitted": [
+              "notes.txt"
+            ]
+          },
+          "merged_at": null,
+          "path": "<tmp>/repo.worktrees/KAN-3",
+          "port": 3103,
+          "pr_number": null,
+          "pr_url": null,
+          "prepare_s": null,
+          "prepared_at": null,
+          "project_id": "<uuid:1>",
+          "repo": "<tmp>/repo",
+          "state": "merged",
+          "ticket_id": "KAN-3"
+        }
+      ]
+    }
+  },
+  "GET worktrees: after the commit": {
+    "status": 200,
+    "json": {
+      "total_mb": 1.5,
+      "worktrees": [
+        {
+          "base": "main",
+          "branch": "ai/KAN-1-work",
+          "conflict_files": [],
+          "created_at": "<time>",
+          "handover": "local",
+          "last_used_at": null,
+          "live": {
+            "ahead": 1,
+            "exists": true,
+            "outputs": [],
+            "size_mb": 1.5,
+            "uncommitted": []
+          },
+          "merged_at": null,
+          "path": "<tmp>/repo.worktrees/KAN-1",
+          "port": 3101,
+          "pr_number": null,
+          "pr_url": null,
+          "prepare_s": null,
+          "prepared_at": null,
+          "project_id": "<uuid:1>",
+          "repo": "<tmp>/repo",
+          "state": "active",
+          "ticket_id": "KAN-1"
+        }
+      ]
+    }
+  },
+  "GET worktrees: no such project": {
+    "status": 200,
+    "json": {
+      "total_mb": 0,
+      "worktrees": []
+    }
+  },
+  "GET worktrees: none": {
+    "status": 200,
+    "json": {
+      "total_mb": 0,
+      "worktrees": []
+    }
+  },
+  "PATCH handover: a route that is not one": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "route"
+        ]
+      ]
+    }
+  },
+  "PATCH handover: auto": {
+    "status": 200,
+    "json": {
+      "base": "main",
+      "branch": "ai/KAN-1-work",
+      "conflict_files": [],
+      "created_at": "<time>",
+      "handover": null,
+      "last_used_at": null,
+      "merged_at": null,
+      "path": "<tmp>/repo.worktrees/KAN-1",
+      "port": 3101,
+      "pr_number": null,
+      "pr_url": null,
+      "prepare_s": null,
+      "prepared_at": null,
+      "project_id": "<uuid:1>",
+      "repo": "<tmp>/repo",
+      "route": "local",
+      "state": "active",
+      "ticket_id": "KAN-1"
+    }
+  },
+  "PATCH handover: local": {
+    "status": 200,
+    "json": {
+      "base": "main",
+      "branch": "ai/KAN-1-work",
+      "conflict_files": [],
+      "created_at": "<time>",
+      "handover": "local",
+      "last_used_at": null,
+      "merged_at": null,
+      "path": "<tmp>/repo.worktrees/KAN-1",
+      "port": 3101,
+      "pr_number": null,
+      "pr_url": null,
+      "prepare_s": null,
+      "prepared_at": null,
+      "project_id": "<uuid:1>",
+      "repo": "<tmp>/repo",
+      "route": "local",
+      "state": "active",
+      "ticket_id": "KAN-1"
+    }
+  },
+  "PATCH handover: no route": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "route"
+        ]
+      ]
+    }
+  },
+  "PATCH handover: no worktree": {
+    "status": 404,
+    "json": {
+      "detail": "This ticket has no worktree."
+    }
+  },
+  "PATCH handover: pr": {
+    "status": 200,
+    "json": {
+      "base": "main",
+      "branch": "ai/KAN-1-work",
+      "conflict_files": [],
+      "created_at": "<time>",
+      "handover": "pr",
+      "last_used_at": null,
+      "merged_at": null,
+      "path": "<tmp>/repo.worktrees/KAN-1",
+      "port": 3101,
+      "pr_number": null,
+      "pr_url": null,
+      "prepare_s": null,
+      "prepared_at": null,
+      "project_id": "<uuid:1>",
+      "repo": "<tmp>/repo",
+      "route": "pr",
+      "state": "active",
+      "ticket_id": "KAN-1"
+    }
+  },
+  "POST cleanup": {
+    "status": 200,
+    "json": {
+      "kept": [
+        {
+          "ticket_id": "KAN-3",
+          "why": "Some files are not committed: keep it, or commit them first."
+        }
+      ],
+      "removed": [
+        "KAN-4"
+      ]
+    }
+  },
+  "POST cleanup: a kept one stays": {
+    "status": 200,
+    "json": {
+      "kept": [],
+      "removed": []
+    }
+  },
+  "POST cleanup: nothing is finished": {
+    "status": 200,
+    "json": {
+      "kept": [],
+      "removed": []
+    }
+  },
+  "POST commit": {
+    "status": 200,
+    "json": {
+      "committed": true,
+      "left": []
+    }
+  },
+  "POST commit: no worktree": {
+    "status": 409,
+    "json": {
+      "detail": "This ticket has no worktree."
+    }
+  },
+  "POST commit: nothing left": {
+    "status": 200,
+    "json": {
+      "committed": false,
+      "left": [],
+      "moved": []
+    }
+  },
+  "POST keep": {
+    "status": 200,
+    "json": {
+      "base": "main",
+      "branch": "ai/KAN-1-work",
+      "conflict_files": [],
+      "created_at": "<time>",
+      "handover": "local",
+      "last_used_at": null,
+      "merged_at": null,
+      "path": "<tmp>/repo.worktrees/KAN-1",
+      "port": 3101,
+      "pr_number": null,
+      "pr_url": null,
+      "prepare_s": null,
+      "prepared_at": null,
+      "project_id": "<uuid:1>",
+      "repo": "<tmp>/repo",
+      "state": "kept",
+      "ticket_id": "KAN-1"
+    }
+  },
+  "POST keep: no worktree": {
+    "status": 404,
+    "json": {
+      "detail": "This ticket has no worktree."
+    }
+  },
+  "POST merge": {
+    "status": 200,
+    "json": {
+      "merged": true
+    }
+  },
+  "POST merge: again": {
+    "status": 200,
+    "json": {
+      "merged": false,
+      "refused": "This ticket has no worktree to merge."
+    }
+  },
+  "POST merge: no worktree": {
+    "status": 200,
+    "json": {
+      "merged": false,
+      "refused": "This ticket has no worktree to merge."
+    }
+  },
+  "POST open": {
+    "status": 200,
+    "json": {
+      "opened": "<tmp>/repo.worktrees/KAN-1"
+    }
+  },
+  "POST open: a removed worktree": {
+    "status": 404,
+    "json": {
+      "detail": "This ticket has no worktree."
+    }
+  },
+  "POST open: no file manager": {
+    "status": 409,
+    "json": {
+      "detail": "Could not open the folder: [Errno 2] No such file or directory"
+    }
+  },
+  "POST open: no worktree": {
+    "status": 404,
+    "json": {
+      "detail": "This ticket has no worktree."
+    }
+  },
+  "POST outputs": {
+    "status": 200,
+    "json": {
+      "moved": [
+        "screenshots/shot.png"
+      ]
+    }
+  },
+  "POST outputs: no worktree": {
+    "status": 200,
+    "json": {
+      "left": [],
+      "moved": [],
+      "reason": "This ticket has no worktree."
+    }
+  },
+  "POST remove: force is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "force"
+        ]
+      ]
+    }
+  },
+  "POST remove: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "POST remove: no worktree": {
+    "status": 409,
+    "json": {
+      "detail": "This ticket has no worktree."
+    }
+  },
+  "POST remove: something is not committed": {
+    "status": 409,
+    "json": {
+      "detail": "3 files are not committed: keep it, or commit them first."
+    }
+  }
+}

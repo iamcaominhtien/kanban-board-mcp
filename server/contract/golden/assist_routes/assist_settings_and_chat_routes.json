@@ -1,0 +1,1019 @@
+{
+  "assist": {
+    "status": 200,
+    "json": {
+      "board_ai": {
+        "connection": "local",
+        "id": "<mem:1>",
+        "metered": false,
+        "name": "Claude Code · Backend",
+        "provider": "claude-code",
+        "provider_label": "Claude Code",
+        "state": "ready",
+        "status": null
+      },
+      "features": [
+        {
+          "description": "Ask AI dock, ⌘J, answers with sources",
+          "key": "chat",
+          "label": "Ask AI (chat)",
+          "on": true
+        },
+        {
+          "description": "Ask AI, rewrite and continue in every editor",
+          "key": "drafting",
+          "label": "Drafting in editors",
+          "on": true
+        },
+        {
+          "description": "Daily insights",
+          "key": "health",
+          "label": "Board health",
+          "on": true
+        },
+        {
+          "description": "Summaries, sections, link suggestions",
+          "key": "docs",
+          "label": "Docs AI",
+          "on": true
+        },
+        {
+          "description": "Draw and edit sketches with AI",
+          "key": "sketch",
+          "label": "Sketch AI",
+          "on": true
+        }
+      ],
+      "health": {
+        "badge_toast": true,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "max_insights": 8,
+        "on": true,
+        "return_if_worse": true,
+        "stuck_days": 3,
+        "time": "08:00",
+        "weekend": false,
+        "wip_limit": 3
+      },
+      "language": "English (US)",
+      "last_check": null,
+      "sent": {},
+      "style_guide": "",
+      "style_guide_max": 1000,
+      "ticket_count": 0,
+      "tone": "neutral",
+      "unseen_insights": 0
+    }
+  },
+  "assist: no project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "assist: no team": {
+    "status": 200,
+    "json": {
+      "board_ai": {
+        "connection": "local",
+        "id": null,
+        "metered": false,
+        "name": "Board AI",
+        "provider": "claude-code",
+        "provider_label": "Claude Code",
+        "state": "ready",
+        "status": null
+      },
+      "features": [
+        {
+          "description": "Ask AI dock, ⌘J, answers with sources",
+          "key": "chat",
+          "label": "Ask AI (chat)",
+          "on": true
+        },
+        {
+          "description": "Ask AI, rewrite and continue in every editor",
+          "key": "drafting",
+          "label": "Drafting in editors",
+          "on": true
+        },
+        {
+          "description": "Daily insights",
+          "key": "health",
+          "label": "Board health",
+          "on": true
+        },
+        {
+          "description": "Summaries, sections, link suggestions",
+          "key": "docs",
+          "label": "Docs AI",
+          "on": true
+        },
+        {
+          "description": "Draw and edit sketches with AI",
+          "key": "sketch",
+          "label": "Sketch AI",
+          "on": true
+        }
+      ],
+      "health": {
+        "badge_toast": true,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "max_insights": 8,
+        "on": true,
+        "return_if_worse": true,
+        "stuck_days": 3,
+        "time": "08:00",
+        "weekend": false,
+        "wip_limit": 3
+      },
+      "language": "English (US)",
+      "last_check": null,
+      "sent": {},
+      "style_guide": "",
+      "style_guide_max": 1000,
+      "ticket_count": 0,
+      "tone": "neutral",
+      "unseen_insights": 0
+    }
+  },
+  "assist: patch": {
+    "status": 200,
+    "json": {
+      "board_ai": {
+        "connection": "local",
+        "id": "<mem:1>",
+        "metered": false,
+        "name": "Claude Code · Backend",
+        "provider": "claude-code",
+        "provider_label": "Claude Code",
+        "state": "ready",
+        "status": null
+      },
+      "features": [
+        {
+          "description": "Ask AI dock, ⌘J, answers with sources",
+          "key": "chat",
+          "label": "Ask AI (chat)",
+          "on": true
+        },
+        {
+          "description": "Ask AI, rewrite and continue in every editor",
+          "key": "drafting",
+          "label": "Drafting in editors",
+          "on": true
+        },
+        {
+          "description": "Daily insights",
+          "key": "health",
+          "label": "Board health",
+          "on": true
+        },
+        {
+          "description": "Summaries, sections, link suggestions",
+          "key": "docs",
+          "label": "Docs AI",
+          "on": true
+        },
+        {
+          "description": "Draw and edit sketches with AI",
+          "key": "sketch",
+          "label": "Sketch AI",
+          "on": false
+        }
+      ],
+      "health": {
+        "badge_toast": true,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "max_insights": 8,
+        "on": true,
+        "return_if_worse": true,
+        "stuck_days": 3,
+        "time": "08:00",
+        "weekend": false,
+        "wip_limit": 3
+      },
+      "language": "Vietnamese",
+      "last_check": null,
+      "sent": {},
+      "style_guide": "Short.",
+      "style_guide_max": 1000,
+      "ticket_count": 0,
+      "tone": "concise",
+      "unseen_insights": 0
+    }
+  },
+  "assist: patch, bad feature": {
+    "status": 200,
+    "json": {
+      "board_ai": {
+        "connection": "local",
+        "id": "<mem:1>",
+        "metered": false,
+        "name": "Claude Code · Backend",
+        "provider": "claude-code",
+        "provider_label": "Claude Code",
+        "state": "ready",
+        "status": null
+      },
+      "features": [
+        {
+          "description": "Ask AI dock, ⌘J, answers with sources",
+          "key": "chat",
+          "label": "Ask AI (chat)",
+          "on": true
+        },
+        {
+          "description": "Ask AI, rewrite and continue in every editor",
+          "key": "drafting",
+          "label": "Drafting in editors",
+          "on": true
+        },
+        {
+          "description": "Daily insights",
+          "key": "health",
+          "label": "Board health",
+          "on": true
+        },
+        {
+          "description": "Summaries, sections, link suggestions",
+          "key": "docs",
+          "label": "Docs AI",
+          "on": true
+        },
+        {
+          "description": "Draw and edit sketches with AI",
+          "key": "sketch",
+          "label": "Sketch AI",
+          "on": false
+        }
+      ],
+      "health": {
+        "badge_toast": true,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "max_insights": 8,
+        "on": true,
+        "return_if_worse": true,
+        "stuck_days": 3,
+        "time": "08:00",
+        "weekend": false,
+        "wip_limit": 3
+      },
+      "language": "Vietnamese",
+      "last_check": null,
+      "sent": {},
+      "style_guide": "Short.",
+      "style_guide_max": 1000,
+      "ticket_count": 0,
+      "tone": "concise",
+      "unseen_insights": 0
+    }
+  },
+  "assist: patch, no project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "assist: patch, null": {
+    "status": 200,
+    "json": {
+      "board_ai": {
+        "connection": "local",
+        "id": "<mem:1>",
+        "metered": false,
+        "name": "Claude Code · Backend",
+        "provider": "claude-code",
+        "provider_label": "Claude Code",
+        "state": "ready",
+        "status": null
+      },
+      "features": [
+        {
+          "description": "Ask AI dock, ⌘J, answers with sources",
+          "key": "chat",
+          "label": "Ask AI (chat)",
+          "on": true
+        },
+        {
+          "description": "Ask AI, rewrite and continue in every editor",
+          "key": "drafting",
+          "label": "Drafting in editors",
+          "on": true
+        },
+        {
+          "description": "Daily insights",
+          "key": "health",
+          "label": "Board health",
+          "on": true
+        },
+        {
+          "description": "Summaries, sections, link suggestions",
+          "key": "docs",
+          "label": "Docs AI",
+          "on": true
+        },
+        {
+          "description": "Draw and edit sketches with AI",
+          "key": "sketch",
+          "label": "Sketch AI",
+          "on": false
+        }
+      ],
+      "health": {
+        "badge_toast": true,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "max_insights": 8,
+        "on": true,
+        "return_if_worse": true,
+        "stuck_days": 3,
+        "time": "08:00",
+        "weekend": false,
+        "wip_limit": 3
+      },
+      "language": "Vietnamese",
+      "last_check": null,
+      "sent": {},
+      "style_guide": "Short.",
+      "style_guide_max": 1000,
+      "ticket_count": 0,
+      "tone": "concise",
+      "unseen_insights": 0
+    }
+  },
+  "assist: patch, wrong type": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "features",
+          "chat"
+        ]
+      ]
+    }
+  },
+  "chat": {
+    "status": 200,
+    "json": {
+      "applied": false,
+      "compactions": 0,
+      "cost": 0.0,
+      "created_at": "<time>",
+      "doc_id": null,
+      "drafts": [],
+      "id": "<uuid:1>",
+      "include_docs": [],
+      "member_id": null,
+      "messages": [],
+      "owner": "user",
+      "project_id": "<uuid:2>",
+      "scope": "project",
+      "scope_id": null,
+      "summary": "",
+      "summary_upto": null,
+      "ticket_id": null,
+      "title": "New chat",
+      "tokens": 0,
+      "updated_at": "<time>"
+    }
+  },
+  "chat: another person": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Chat not found."
+    }
+  },
+  "chat: delete": {
+    "status": 204,
+    "text": ""
+  },
+  "chat: delete, none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Chat not found."
+    }
+  },
+  "chat: none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Chat not found."
+    }
+  },
+  "chat: patch": {
+    "status": 200,
+    "json": {
+      "applied": false,
+      "compactions": 0,
+      "cost": 0.0,
+      "created_at": "<time>",
+      "doc_id": null,
+      "drafts": [],
+      "id": "<uuid:1>",
+      "include_docs": [],
+      "member_id": null,
+      "messages": [
+        {
+          "actions": [],
+          "chat_id": "<uuid:1>",
+          "context": {},
+          "cost": 0.0,
+          "created_at": "<time>",
+          "draft": null,
+          "draft_id": null,
+          "error": {},
+          "feedback": null,
+          "finished_at": "<time>",
+          "id": "<uuid:2>",
+          "member_id": null,
+          "metered": false,
+          "model": null,
+          "retry_at": null,
+          "role": "note",
+          "state": "done",
+          "steps": [],
+          "text": "Now about KAN-1 Fix add()",
+          "tokens_in": 0,
+          "tokens_out": 0
+        }
+      ],
+      "owner": "user",
+      "project_id": "<uuid:3>",
+      "scope": "ticket",
+      "scope_id": "KAN-1",
+      "summary": "",
+      "summary_upto": null,
+      "ticket_id": "KAN-1",
+      "title": "New chat",
+      "tokens": 0,
+      "updated_at": "<time>"
+    }
+  },
+  "chat: patch, bad scope": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Unknown scope."
+    }
+  },
+  "chat: patch, none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Chat not found."
+    }
+  },
+  "chat: seen": {
+    "status": 204,
+    "text": ""
+  },
+  "chat: seen, none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Chat not found."
+    }
+  },
+  "chats: bad scope": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Unknown scope."
+    }
+  },
+  "chats: fresh": {
+    "status": 201,
+    "json": {
+      "applied": false,
+      "compactions": 0,
+      "cost": 0.0,
+      "created_at": "<time>",
+      "doc_id": null,
+      "drafts": [],
+      "id": "<uuid:1>",
+      "include_docs": [],
+      "member_id": null,
+      "messages": [],
+      "owner": "user",
+      "project_id": "<uuid:2>",
+      "scope": "project",
+      "scope_id": null,
+      "summary": "",
+      "summary_upto": null,
+      "ticket_id": null,
+      "title": "New chat",
+      "tokens": 0,
+      "updated_at": "<time>"
+    }
+  },
+  "chats: listed": {
+    "status": 200,
+    "json": {
+      "chats": [
+        {
+          "applied": false,
+          "compactions": 0,
+          "cost": 0.0,
+          "created_at": "<time>",
+          "doc_id": null,
+          "id": "<uuid:1>",
+          "include_docs": [],
+          "member_id": null,
+          "owner": "user",
+          "project_id": "<uuid:2>",
+          "scope": "ticket",
+          "scope_id": "KAN-1",
+          "summary": "",
+          "summary_upto": null,
+          "ticket_id": "KAN-1",
+          "title": "KAN-1 Fix add()",
+          "tokens": 0,
+          "updated_at": "<time>"
+        },
+        {
+          "applied": false,
+          "compactions": 0,
+          "cost": 0.0,
+          "created_at": "<time>",
+          "doc_id": null,
+          "id": "<uuid:3>",
+          "include_docs": [],
+          "member_id": null,
+          "owner": "user",
+          "project_id": "<uuid:2>",
+          "scope": "project",
+          "scope_id": null,
+          "summary": "",
+          "summary_upto": null,
+          "ticket_id": null,
+          "title": "New chat",
+          "tokens": 0,
+          "updated_at": "<time>"
+        },
+        {
+          "applied": false,
+          "compactions": 0,
+          "cost": 0.0,
+          "created_at": "<time>",
+          "doc_id": null,
+          "id": "<uuid:4>",
+          "include_docs": [],
+          "member_id": null,
+          "owner": "user",
+          "project_id": "<uuid:2>",
+          "scope": "project",
+          "scope_id": null,
+          "summary": "",
+          "summary_upto": null,
+          "ticket_id": null,
+          "title": "New chat",
+          "tokens": 0,
+          "updated_at": "<time>"
+        },
+        {
+          "applied": false,
+          "compactions": 0,
+          "cost": 0.0,
+          "created_at": "<time>",
+          "doc_id": null,
+          "id": "<uuid:5>",
+          "include_docs": [],
+          "member_id": null,
+          "owner": "user",
+          "project_id": "<uuid:2>",
+          "scope": "project",
+          "scope_id": null,
+          "summary": "",
+          "summary_upto": null,
+          "ticket_id": null,
+          "title": "New chat",
+          "tokens": 0,
+          "updated_at": "<time>"
+        }
+      ],
+      "count": 4,
+      "keep_days": 30,
+      "month_cost": 0.0
+    }
+  },
+  "chats: new": {
+    "status": 201,
+    "json": {
+      "applied": false,
+      "compactions": 0,
+      "cost": 0.0,
+      "created_at": "<time>",
+      "doc_id": null,
+      "drafts": [],
+      "id": "<uuid:1>",
+      "include_docs": [],
+      "member_id": null,
+      "messages": [],
+      "owner": "user",
+      "project_id": "<uuid:2>",
+      "scope": "project",
+      "scope_id": null,
+      "summary": "",
+      "summary_upto": null,
+      "ticket_id": null,
+      "title": "New chat",
+      "tokens": 0,
+      "updated_at": "<time>"
+    }
+  },
+  "chats: new, no project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "chats: no project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "chats: none": {
+    "status": 200,
+    "json": {
+      "chats": [],
+      "count": 0,
+      "keep_days": 30,
+      "month_cost": 0.0
+    }
+  },
+  "chats: same again": {
+    "status": 201,
+    "json": {
+      "applied": false,
+      "compactions": 0,
+      "cost": 0.0,
+      "created_at": "<time>",
+      "doc_id": null,
+      "drafts": [],
+      "id": "<uuid:1>",
+      "include_docs": [],
+      "member_id": null,
+      "messages": [],
+      "owner": "user",
+      "project_id": "<uuid:2>",
+      "scope": "project",
+      "scope_id": null,
+      "summary": "",
+      "summary_upto": null,
+      "ticket_id": null,
+      "title": "New chat",
+      "tokens": 0,
+      "updated_at": "<time>"
+    }
+  },
+  "chats: search": {
+    "status": 200,
+    "json": {
+      "chats": [],
+      "count": 0,
+      "keep_days": 30,
+      "month_cost": 0.0
+    }
+  },
+  "chats: ticket": {
+    "status": 201,
+    "json": {
+      "applied": false,
+      "compactions": 0,
+      "cost": 0.0,
+      "created_at": "<time>",
+      "doc_id": null,
+      "drafts": [],
+      "id": "<uuid:1>",
+      "include_docs": [],
+      "member_id": null,
+      "messages": [],
+      "owner": "user",
+      "project_id": "<uuid:2>",
+      "scope": "ticket",
+      "scope_id": "KAN-1",
+      "summary": "",
+      "summary_upto": null,
+      "ticket_id": "KAN-1",
+      "title": "KAN-1 Fix add()",
+      "tokens": 0,
+      "updated_at": "<time>"
+    }
+  },
+  "estimate": {
+    "status": 200,
+    "json": {
+      "available": true,
+      "can_edit_code": false,
+      "estimate": {
+        "metered": false,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "usd": null
+      },
+      "member_id": "<mem:1>",
+      "member_name": "Claude Code · Backend",
+      "metered": false,
+      "mode": "ask",
+      "reads": [
+        "The ticket and its comments",
+        "Linked pages",
+        "The project's folder"
+      ],
+      "reason": null,
+      "status": null,
+      "stops_at": "review"
+    }
+  },
+  "estimate: no member": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "member_id"
+        ]
+      ]
+    }
+  },
+  "estimate: no ticket": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Ticket or AI team not found."
+    }
+  },
+  "estimate: person": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Ticket or AI team not found."
+    }
+  },
+  "estimate: work": {
+    "status": 200,
+    "json": {
+      "available": true,
+      "can_edit_code": true,
+      "estimate": {
+        "metered": false,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "usd": null
+      },
+      "member_id": "<mem:1>",
+      "member_name": "Claude Code · Backend",
+      "metered": false,
+      "mode": "work",
+      "reads": [
+        "The ticket and its comments",
+        "Linked pages",
+        "The project's folder"
+      ],
+      "reason": null,
+      "status": null,
+      "stops_at": "review"
+    }
+  },
+  "scope chat": {
+    "status": 200,
+    "json": {
+      "applied": false,
+      "compactions": 0,
+      "cost": 0.0,
+      "created_at": "<time>",
+      "doc_id": null,
+      "drafts": [],
+      "id": "<uuid:1>",
+      "include_docs": [],
+      "member_id": null,
+      "messages": [
+        {
+          "actions": [],
+          "chat_id": "<uuid:1>",
+          "context": {},
+          "cost": 0.0,
+          "created_at": "<time>",
+          "draft": null,
+          "draft_id": null,
+          "error": {},
+          "feedback": null,
+          "finished_at": "<time>",
+          "id": "<uuid:2>",
+          "member_id": null,
+          "metered": false,
+          "model": null,
+          "retry_at": null,
+          "role": "note",
+          "state": "done",
+          "steps": [],
+          "text": "Now about KAN-1 Fix add()",
+          "tokens_in": 0,
+          "tokens_out": 0
+        }
+      ],
+      "owner": "user",
+      "project_id": "<uuid:3>",
+      "scope": "ticket",
+      "scope_id": "KAN-1",
+      "summary": "",
+      "summary_upto": null,
+      "ticket_id": "KAN-1",
+      "title": "New chat",
+      "tokens": 0,
+      "updated_at": "<time>"
+    }
+  },
+  "scope chat: fresh": {
+    "status": 200,
+    "json": {
+      "applied": false,
+      "compactions": 0,
+      "cost": 0.0,
+      "created_at": "<time>",
+      "doc_id": null,
+      "drafts": [],
+      "id": "<uuid:1>",
+      "include_docs": [],
+      "member_id": null,
+      "messages": [],
+      "owner": "user",
+      "project_id": "<uuid:2>",
+      "scope": "ticket",
+      "scope_id": "KAN-1",
+      "summary": "",
+      "summary_upto": null,
+      "ticket_id": "KAN-1",
+      "title": "KAN-1 Fix add()",
+      "tokens": 0,
+      "updated_at": "<time>"
+    }
+  },
+  "scope chat: no body": {
+    "status": 200,
+    "json": {
+      "applied": false,
+      "compactions": 0,
+      "cost": 0.0,
+      "created_at": "<time>",
+      "doc_id": null,
+      "drafts": [],
+      "id": "<uuid:1>",
+      "include_docs": [],
+      "member_id": null,
+      "messages": [
+        {
+          "actions": [],
+          "chat_id": "<uuid:1>",
+          "context": {},
+          "cost": 0.0,
+          "created_at": "<time>",
+          "draft": null,
+          "draft_id": null,
+          "error": {},
+          "feedback": null,
+          "finished_at": "<time>",
+          "id": "<uuid:2>",
+          "member_id": null,
+          "metered": false,
+          "model": null,
+          "retry_at": null,
+          "role": "note",
+          "state": "done",
+          "steps": [],
+          "text": "Now about KAN-1 Fix add()",
+          "tokens_in": 0,
+          "tokens_out": 0
+        }
+      ],
+      "owner": "user",
+      "project_id": "<uuid:3>",
+      "scope": "ticket",
+      "scope_id": "KAN-1",
+      "summary": "",
+      "summary_upto": null,
+      "ticket_id": "KAN-1",
+      "title": "New chat",
+      "tokens": 0,
+      "updated_at": "<time>"
+    }
+  },
+  "scope chat: none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Ticket not found."
+    }
+  },
+  "scope: bad kind": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Nothing to chat about here."
+    }
+  },
+  "scope: none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Ticket not found."
+    }
+  },
+  "scope: ticket": {
+    "status": 200,
+    "json": {
+      "availability": {
+        "code": "ok"
+      },
+      "board_ai": {
+        "label": "Claude Code was not found",
+        "name": "Claude Code · Backend",
+        "provider_label": "Claude Code",
+        "ready": true
+      },
+      "chat_id": "<uuid:1>",
+      "estimate": null,
+      "member_id": null,
+      "members": [],
+      "scope": {
+        "draft_kinds": [],
+        "id": "KAN-1",
+        "kind": "ticket",
+        "placeholder": "Ask about this ticket…",
+        "project_id": "<uuid:2>",
+        "reading": [
+          {
+            "kind": "ticket",
+            "label": "This ticket"
+          },
+          {
+            "kind": "comments",
+            "label": "Its comments"
+          },
+          {
+            "kind": "docs",
+            "label": "Linked pages"
+          }
+        ],
+        "starting_points": [
+          {
+            "label": "Summarise this ticket",
+            "request": "Summarise this ticket: what is asked, what is done, what is open."
+          },
+          {
+            "label": "What is left to do here?",
+            "request": "What is left to do on this ticket? List what is open and what is unclear."
+          },
+          {
+            "label": "Who should review this?",
+            "request": "Who should review this ticket, and why? Look at who worked on related tickets."
+          }
+        ],
+        "title": "KAN-1 Fix add()",
+        "work": false
+      },
+      "work": {
+        "allowed": false,
+        "estimate": null
+      }
+    }
+  }
+}

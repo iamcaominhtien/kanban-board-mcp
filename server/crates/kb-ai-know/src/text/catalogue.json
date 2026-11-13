@@ -1,0 +1,351 @@
+[
+ {
+  "key": "design",
+  "name": "design",
+  "kind": "plugin",
+  "source": "https://github.com/anthropics/knowledge-work-plugins",
+  "plugin": "design",
+  "skills": [
+   "design-critique",
+   "accessibility-review",
+   "design-handoff"
+  ],
+  "roles": [
+   "designer"
+  ],
+  "what": "Anthropic's design plugin: design-handoff, design-critique, accessibility-review, ux-copy, design-system, user-research, research-synthesis.",
+  "use": "once your boards are drawn: design-critique on them, accessibility-review before you hand in, design-handoff for the spec of each screen"
+ },
+ {
+  "key": "ui-ux-pro-max",
+  "name": "ui-ux-pro-max",
+  "kind": "plugin",
+  "source": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+  "plugin": "ui-ux-pro-max",
+  "skills": [
+   "ui-ux-pro-max"
+  ],
+  "roles": [
+   "designer"
+  ],
+  "what": "UI/UX design intelligence: styles, palettes, font pairings, charts and stack guidelines.",
+  "use": "palettes and font pairings to look through while choosing the direction (ideas, not rules)"
+ },
+ {
+  "key": "taste-skill",
+  "name": "taste-skill",
+  "kind": "plugin",
+  "source": "https://github.com/Leonxlnx/taste-skill",
+  "plugin": "taste-skill",
+  "roles": [
+   "designer"
+  ],
+  "what": "Art direction against the generic AI look (tasteskill): researched directions, a no-ornament house style, rules for app screens, and a look-and-fix loop on screenshots. MIT.",
+  "use": "while choosing the direction and again in the critique pass (its rules for app screens and pages)"
+ },
+ {
+  "key": "impeccable",
+  "name": "impeccable",
+  "kind": "plugin",
+  "source": "https://github.com/pbakaus/impeccable",
+  "plugin": "impeccable",
+  "roles": [],
+  "what": "Design fluency: modes per surface, a craft floor of banned patterns, critique, audit and polish commands. Apache-2.0. Its hooks run a downloaded helper on every edit.",
+  "use": "a critique, audit or polish pass"
+ },
+ {
+  "key": "make-interfaces-feel-better",
+  "name": "make-interfaces-feel-better",
+  "kind": "plugin",
+  "source": "https://github.com/jakubkrehel/make-interfaces-feel-better",
+  "ui": true,
+  "roles": [
+   "designer",
+   "dev"
+  ],
+  "what": "The finishing details: text wrapping, tabular numbers, optical alignment, nested radii, shadows, hit areas, icon states, restrained motion. MIT.",
+  "use": "in the critique pass, on every main screen"
+ },
+ {
+  "key": "emil-design-eng",
+  "name": "Emil Kowalski's design engineering",
+  "kind": "plugin",
+  "source": "https://github.com/emilkowalski/skills",
+  "skills": [
+   "emil-design-eng",
+   "animate",
+   "review-animations",
+   "improve-animations",
+   "find-animation-opportunities",
+   "animation-performance",
+   "animation-vocabulary",
+   "mobile-native",
+   "break-ui"
+  ],
+  "ui": true,
+  "roles": [
+   "designer",
+   "dev"
+  ],
+  "what": "Animation craft (whether to animate, easing, duration, interruption), animation reviews and performance, a web app that feels native on a phone. MIT.",
+  "use": "before you design any motion (animate, emil-design-eng) and to check it (review-animations, animation-performance)"
+ },
+ {
+  "key": "gsap",
+  "name": "GSAP",
+  "kind": "plugin",
+  "source": "https://github.com/greensock/gsap-skills",
+  "plugin": "gsap-skills",
+  "ui": true,
+  "roles": [
+   "dev"
+  ],
+  "what": "GSAP's own skills: tweens, timelines, ScrollTrigger, Flip and Draggable, React cleanup with useGSAP, performance, reduced motion. MIT.",
+  "use": "when an animation is built with GSAP"
+ },
+ {
+  "key": "motion-design",
+  "name": "motion-design",
+  "kind": "plugin",
+  "source": "https://github.com/LottieFiles/motion-design-skill",
+  "ui": true,
+  "roles": [
+   "designer"
+  ],
+  "what": "Motion principles for any stack: timing, easing, choreography, purpose (LottieFiles). MIT.",
+  "use": "before you design motion: timing, easing, choreography"
+ },
+ {
+  "key": "ui-foundations",
+  "name": "UI foundations (dembrandt)",
+  "kind": "plugin",
+  "source": "https://github.com/dembrandt/dembrandt-skills",
+  "skills": [
+   "surface-separation",
+   "visual-emphasis-and-hierarchy",
+   "modular-scale-typography",
+   "algorithmic-color-palette",
+   "color-mode-and-theme",
+   "component-family-consistency",
+   "status-colors-and-errors",
+   "responsive-paradigms"
+  ],
+  "ui": true,
+  "roles": [
+   "designer"
+  ],
+  "what": "Interface rules one by one: type scales, derived palettes, themes, button states, density, surfaces, hierarchy, forms, loading states, dense expert tools, WCAG. MIT.",
+  "use": "type scale (modular-scale-typography), palette and dark theme (algorithmic-color-palette, color-mode-and-theme), surfaces and hierarchy (surface-separation, visual-emphasis-and-hierarchy), the components board (component-family-consistency), states and errors (status-colors-and-errors), phone vs desktop (responsive-paradigms)"
+ },
+ {
+  "key": "web-quality",
+  "name": "Web quality",
+  "kind": "plugin",
+  "source": "https://github.com/addyosmani/web-quality-skills",
+  "skills": [
+   "accessibility",
+   "performance",
+   "core-web-vitals",
+   "best-practices"
+  ],
+  "ui": true,
+  "roles": [
+   "dev",
+   "qa"
+  ],
+  "what": "WCAG 2.2 audits from evidence, performance and Core Web Vitals, web best practices (Addy Osmani). MIT.",
+  "use": "accessibility and performance checks of a built page"
+ },
+ {
+  "key": "tufte-data-viz",
+  "name": "tufte-data-viz",
+  "kind": "plugin",
+  "source": "https://github.com/caylent/tufte-data-viz",
+  "roles": [
+   "designer",
+   "dev",
+   "data_analyst"
+  ],
+  "what": "Charts after Tufte: data-ink, direct labels, range frames, accessible and dark-mode ready; for Recharts, ECharts, Chart.js, D3 or SVG. MIT.",
+  "use": "before you draw any chart"
+ },
+ {
+  "key": "threejs",
+  "name": "three.js",
+  "kind": "plugin",
+  "source": "https://github.com/CloudAI-X/threejs-skills",
+  "skills": [
+   "threejs-fundamentals",
+   "threejs-shaders",
+   "threejs-react-three-fiber",
+   "threejs-materials",
+   "threejs-postprocessing",
+   "threejs-performance",
+   "threejs-lighting",
+   "threejs-animation",
+   "threejs-geometry",
+   "threejs-interaction",
+   "threejs-loaders",
+   "threejs-textures"
+  ],
+  "ui": true,
+  "roles": [
+   "designer",
+   "dev"
+  ],
+  "what": "Current three.js, React Three Fiber and drei APIs (with WebGPU), each skill with the mistakes models still make. MIT.",
+  "use": "before you write three.js: fundamentals for the scene, materials and lighting for the look, shaders before a shader, performance before you hand in"
+ },
+ {
+  "key": "webgl-animation",
+  "name": "WebGL animation",
+  "kind": "plugin",
+  "source": "https://github.com/iart-ai/webgl-animation-skills",
+  "ui": true,
+  "skills": [
+   "particle-system",
+   "shader-glsl"
+  ],
+  "roles": [
+   "designer",
+   "dev"
+  ],
+  "what": "Particle systems, GLSL backgrounds and image transitions, three.js hero scenes with a scroll-linked camera. MIT.",
+  "use": "particles and GLSL backgrounds"
+ },
+ {
+  "key": "shader-art",
+  "name": "Shader art",
+  "kind": "plugin",
+  "source": "https://github.com/gokayfem/shader-skills",
+  "roles": [
+   "designer"
+  ],
+  "what": "GLSL shaders in the Shadertoy style (raymarching, noise, terrain, water, clouds) from a tested function library, with a local checker. MIT.",
+  "use": "before you write a GLSL shader"
+ },
+ {
+  "key": "genart",
+  "name": "Generative art",
+  "kind": "plugin",
+  "source": "https://github.com/camilleroux/genart-skill",
+  "roles": [],
+  "what": "Seeded, reproducible generative art and creative coding, resolution-independent, with traits. MIT.",
+  "use": "generative or seeded art"
+ },
+ {
+  "key": "frontend-design",
+  "name": "frontend-design",
+  "kind": "plugin",
+  "source": "https://github.com/anthropics/skills",
+  "plugin": "example-skills",
+  "skills": [
+   "frontend-design"
+  ],
+  "roles": [
+   "designer"
+  ],
+  "what": "Distinctive, production-grade frontend interfaces (Anthropic skills).",
+  "use": "ideas for a distinctive frontend look (ideas, not rules)"
+ },
+ {
+  "key": "canvas-design",
+  "name": "canvas-design",
+  "kind": "plugin",
+  "source": "https://github.com/anthropics/skills",
+  "plugin": "example-skills",
+  "skills": [
+   "canvas-design"
+  ],
+  "roles": [],
+  "what": "Posters and visual art as a PNG or PDF (Anthropic skills); not for the board's canvas frames."
+ },
+ {
+  "key": "webapp-testing",
+  "name": "webapp-testing",
+  "kind": "plugin",
+  "source": "https://github.com/anthropics/skills",
+  "plugin": "example-skills",
+  "skills": [
+   "webapp-testing"
+  ],
+  "ui": true,
+  "roles": [
+   "designer",
+   "user_tester",
+   "qa"
+  ],
+  "what": "Testing a local web app with Playwright (Anthropic skills).",
+  "use": "testing a running web app in the browser"
+ },
+ {
+  "key": "flow",
+  "name": "Flow",
+  "kind": "plugin",
+  "source": "https://github.com/iamcaominhtien/flow",
+  "plugin": "flow",
+  "roles": [
+   "pm",
+   "ba",
+   "designer",
+   "dev"
+  ],
+  "what": "Diagrams laid out from a short JSON spec: flowchart, swimlanes, sequence, ER, architecture, C4, state, BPMN, DFD, screen flow, mind map, Gantt and more, one design, checked, as a .drawio file and a moving HTML page. MIT.",
+  "use": "before you draw a diagram of a kind it knows: write its spec, build, read the check, then diagram_create with the .drawio (the board's drawio-diagrams guide, section 6)"
+ },
+ {
+  "key": "figma",
+  "name": "Figma MCP",
+  "kind": "mcp",
+  "server": {
+   "name": "figma",
+   "type": "http",
+   "url": "https://mcp.figma.com/mcp"
+  },
+  "roles": [
+   "designer"
+  ],
+  "what": "Read Figma files and frames (Figma's remote MCP server; signs in through the browser)."
+ },
+ {
+  "key": "chrome-devtools",
+  "name": "Chrome DevTools MCP",
+  "kind": "mcp",
+  "server": {
+   "name": "chrome-devtools",
+   "type": "stdio",
+   "command": "npx",
+   "args": [
+    "-y",
+    "chrome-devtools-mcp@latest"
+   ]
+  },
+  "ui": true,
+  "roles": [
+   "dev"
+  ],
+  "what": "Performance and network debugging in a real Chrome."
+ },
+ {
+  "key": "playwright",
+  "name": "Playwright MCP",
+  "kind": "mcp",
+  "server": {
+   "name": "playwright",
+   "type": "stdio",
+   "command": "npx",
+   "args": [
+    "-y",
+    "@playwright/mcp@latest",
+    "--isolated"
+   ]
+  },
+  "ui": true,
+  "roles": [
+   "designer",
+   "user_tester",
+   "qa"
+  ],
+  "what": "A fresh browser per run, driven through the page's structure; can emulate a phone."
+ }
+]

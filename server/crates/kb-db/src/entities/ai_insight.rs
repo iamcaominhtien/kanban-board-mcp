@@ -1,0 +1,58 @@
+//! `ai_insight` (Python model `AiInsight`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+use crate::float::Float;
+
+/// A board-health finding: stuck, WIP overload, blocked chain, unassigned, at risk, priority.
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ai_insight")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: String,
+    pub project_id: String,
+    pub kind: String,
+    pub key: String,
+    pub ticket_id: Option<String>,
+    pub title: String,
+    pub detail: String,
+    pub data: String,
+    #[sea_orm(column_type = "Double")]
+    pub score: Float,
+    /// open | snoozed | dismissed | acted | resolved
+    pub state: String,
+    pub snoozed_until: Option<String>,
+    pub seen: bool,
+    pub draft_id: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `AiInsight`.
+/// Set before saving: `project_id`, `kind`, `key`, `title`.
+pub fn new() -> ActiveModel {
+    ActiveModel {
+        id: Set(kb_base::time::uuid4()),
+        project_id: NotSet,
+        kind: NotSet,
+        key: NotSet,
+        ticket_id: Set(None),
+        title: NotSet,
+        detail: Set("".to_string()),
+        data: Set("{}".to_string()),
+        score: Set(Float(0.0)),
+        state: Set("open".to_string()),
+        snoozed_until: Set(None),
+        seen: Set(false),
+        draft_id: Set(None),
+        created_at: Set(kb_base::time::now_iso()),
+        updated_at: Set(kb_base::time::now_iso()),
+    }
+}

@@ -1,0 +1,76 @@
+//! `ai_chat` (Python model `AiChat`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+use crate::float::Float;
+
+/// One Board AI conversation; private to the person who started it, kept 30 days.
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ai_chat")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: String,
+    pub project_id: String,
+    /// person name (X-Actor)
+    pub owner: String,
+    pub title: String,
+    /// ticket | doc | idea | project | all
+    pub scope: String,
+    pub ticket_id: Option<String>,
+    pub doc_id: Option<String>,
+    /// The thing the chat is about, for any scope kind (ticket id, page id, idea id…); `scope` is its kind
+    pub scope_id: Option<String>,
+    /// The AI member that answers; None means the project's Board AI
+    pub member_id: Option<String>,
+    pub include_docs: String,
+    #[sea_orm(column_type = "Double")]
+    pub cost: Float,
+    pub tokens: i32,
+    pub applied: bool,
+    /// Claude Code conversation of a local Board AI: the whole chat is one session, so it is not resent each time
+    pub session_id: Option<String>,
+    /// Rolling summary of the older messages (API-key Board AI has no CLI session): messages created up to
+    /// `summary_upto` are covered by `summary` and are not sent again
+    pub summary: String,
+    pub summary_upto: Option<String>,
+    pub compactions: i32,
+    /// The last time its owner had this chat open and in front of them (the page tells every ~15 s): a run that ends
+    /// while it is fresh does not send an "AI finished" notice, the answer is on the screen
+    pub seen_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `AiChat`.
+/// Set before saving: `project_id`, `owner`.
+pub fn new() -> ActiveModel {
+    ActiveModel {
+        id: Set(kb_base::time::uuid4()),
+        project_id: NotSet,
+        owner: NotSet,
+        title: Set("New chat".to_string()),
+        scope: Set("project".to_string()),
+        ticket_id: Set(None),
+        doc_id: Set(None),
+        scope_id: Set(None),
+        member_id: Set(None),
+        include_docs: Set("[]".to_string()),
+        cost: Set(Float(0.0)),
+        tokens: Set(0),
+        applied: Set(false),
+        session_id: Set(None),
+        summary: Set("".to_string()),
+        summary_upto: Set(None),
+        compactions: Set(0),
+        seen_at: Set(None),
+        created_at: Set(kb_base::time::now_iso()),
+        updated_at: Set(kb_base::time::now_iso()),
+    }
+}

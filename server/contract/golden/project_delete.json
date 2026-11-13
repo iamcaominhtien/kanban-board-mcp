@@ -1,0 +1,312 @@
+{
+ "tables": [
+  {
+   "table": "story",
+   "where": "story.project_id = 'P'"
+  },
+  {
+   "table": "idea_evidence",
+   "where": "idea_evidence.assumption_id IN (SELECT idea_assumption.id FROM idea_assumption WHERE idea_assumption.idea_id IN (SELECT idea_ticket.id FROM idea_ticket WHERE idea_ticket.project_id = 'P'))"
+  },
+  {
+   "table": "docs_comment_read",
+   "where": "docs_comment_read.thread_id IN (SELECT docs_comment_thread.id FROM docs_comment_thread WHERE docs_comment_thread.page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P'))"
+  },
+  {
+   "table": "docs_comment",
+   "where": "docs_comment.thread_id IN (SELECT docs_comment_thread.id FROM docs_comment_thread WHERE docs_comment_thread.page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P'))"
+  },
+  {
+   "table": "canvas_comment",
+   "where": "canvas_comment.thread_id IN (SELECT canvas_thread.id FROM canvas_thread WHERE canvas_thread.canvas_id IN (SELECT canvas.id FROM canvas WHERE canvas.project_id = 'P'))"
+  },
+  {
+   "table": "ai_config_state",
+   "where": "ai_config_state.member_id IN (SELECT ai_team.id FROM ai_team WHERE ai_team.project_id = 'P')"
+  },
+  {
+   "table": "ticket",
+   "where": "ticket.project_id = 'P'"
+  },
+  {
+   "table": "idea_vote",
+   "where": "idea_vote.idea_id IN (SELECT idea_ticket.id FROM idea_ticket WHERE idea_ticket.project_id = 'P')"
+  },
+  {
+   "table": "idea_log_entry",
+   "where": "idea_log_entry.idea_id IN (SELECT idea_ticket.id FROM idea_ticket WHERE idea_ticket.project_id = 'P')"
+  },
+  {
+   "table": "idea_comment",
+   "where": "idea_comment.idea_id IN (SELECT idea_ticket.id FROM idea_ticket WHERE idea_ticket.project_id = 'P')"
+  },
+  {
+   "table": "idea_assumption",
+   "where": "idea_assumption.idea_id IN (SELECT idea_ticket.id FROM idea_ticket WHERE idea_ticket.project_id = 'P')"
+  },
+  {
+   "table": "idea_advice",
+   "where": "idea_advice.idea_id IN (SELECT idea_ticket.id FROM idea_ticket WHERE idea_ticket.project_id = 'P')"
+  },
+  {
+   "table": "docs_version",
+   "where": "docs_version.page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P')"
+  },
+  {
+   "table": "docs_title_aliases",
+   "where": "docs_title_aliases.page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P')"
+  },
+  {
+   "table": "docs_page_seen",
+   "where": "docs_page_seen.page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P')"
+  },
+  {
+   "table": "docs_link",
+   "where": "docs_link.source_page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P')"
+  },
+  {
+   "table": "docs_draft",
+   "where": "docs_draft.page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P')"
+  },
+  {
+   "table": "docs_comment_thread",
+   "where": "docs_comment_thread.page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P')"
+  },
+  {
+   "table": "docs_comment_event",
+   "where": "docs_comment_event.project_id = 'P'"
+  },
+  {
+   "table": "docs_anchor_aliases",
+   "where": "docs_anchor_aliases.page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P')"
+  },
+  {
+   "table": "diagram_version",
+   "where": "diagram_version.diagram_id IN (SELECT diagram.id FROM diagram WHERE diagram.project_id = 'P')"
+  },
+  {
+   "table": "canvas_version",
+   "where": "canvas_version.canvas_id IN (SELECT canvas.id FROM canvas WHERE canvas.project_id = 'P')"
+  },
+  {
+   "table": "canvas_thread",
+   "where": "canvas_thread.canvas_id IN (SELECT canvas.id FROM canvas WHERE canvas.project_id = 'P')"
+  },
+  {
+   "table": "canvas_proposal",
+   "where": "canvas_proposal.canvas_id IN (SELECT canvas.id FROM canvas WHERE canvas.project_id = 'P')"
+  },
+  {
+   "table": "ai_team",
+   "where": "ai_team.project_id = 'P'"
+  },
+  {
+   "table": "ai_schedule_run",
+   "where": "ai_schedule_run.project_id = 'P'"
+  },
+  {
+   "table": "ai_run",
+   "where": "ai_run.project_id = 'P'"
+  },
+  {
+   "table": "ai_chat_message",
+   "where": "ai_chat_message.chat_id IN (SELECT ai_chat.id FROM ai_chat WHERE ai_chat.project_id = 'P')"
+  },
+  {
+   "table": "sketch",
+   "where": "sketch.project_id = 'P'"
+  },
+  {
+   "table": "member",
+   "where": "member.project_id = 'P'"
+  },
+  {
+   "table": "idea_ticket",
+   "where": "idea_ticket.project_id = 'P'"
+  },
+  {
+   "table": "docs_page",
+   "where": "docs_page.project_id = 'P'"
+  },
+  {
+   "table": "docs_ai_settings",
+   "where": "docs_ai_settings.project_id = 'P'"
+  },
+  {
+   "table": "docs_ai_session",
+   "where": "docs_ai_session.project_id = 'P'"
+  },
+  {
+   "table": "docs_ai_job",
+   "where": "docs_ai_job.project_id = 'P'"
+  },
+  {
+   "table": "docs_ai_health",
+   "where": "docs_ai_health.project_id = 'P'"
+  },
+  {
+   "table": "diagram",
+   "where": "diagram.project_id = 'P'"
+  },
+  {
+   "table": "canvas",
+   "where": "canvas.project_id = 'P'"
+  },
+  {
+   "table": "ai_usage",
+   "where": "ai_usage.project_id = 'P'"
+  },
+  {
+   "table": "ai_schedule",
+   "where": "ai_schedule.project_id = 'P'"
+  },
+  {
+   "table": "ai_project_settings",
+   "where": "ai_project_settings.project_id = 'P'"
+  },
+  {
+   "table": "ai_library_item",
+   "where": "ai_library_item.project_id = 'P'"
+  },
+  {
+   "table": "ai_insight",
+   "where": "ai_insight.project_id = 'P'"
+  },
+  {
+   "table": "ai_digest",
+   "where": "ai_digest.project_id = 'P'"
+  },
+  {
+   "table": "ai_chat",
+   "where": "ai_chat.project_id = 'P'"
+  },
+  {
+   "table": "workspace_settings",
+   "where": null
+  },
+  {
+   "table": "project",
+   "where": null
+  },
+  {
+   "table": "notify_prefs",
+   "where": null
+  },
+  {
+   "table": "notify_follow",
+   "where": "notify_follow.project_id = 'P'"
+  },
+  {
+   "table": "notify_event",
+   "where": "notify_event.project_id = 'P'"
+  },
+  {
+   "table": "notification",
+   "where": "notification.project_id = 'P'"
+  },
+  {
+   "table": "idea_digest",
+   "where": "idea_digest.project_id = 'P'"
+  },
+  {
+   "table": "idea_counter",
+   "where": null
+  },
+  {
+   "table": "idea_ai_settings",
+   "where": "idea_ai_settings.project_id = 'P'"
+  },
+  {
+   "table": "docs_ai_ignore",
+   "where": null
+  },
+  {
+   "table": "diagram_settings",
+   "where": null
+  },
+  {
+   "table": "ai_worktree",
+   "where": "ai_worktree.project_id = 'P'"
+  },
+  {
+   "table": "ai_watched_pr",
+   "where": "ai_watched_pr.project_id = 'P'"
+  },
+  {
+   "table": "ai_touch_mark",
+   "where": "ai_touch_mark.project_id = 'P'"
+  },
+  {
+   "table": "ai_skill_use",
+   "where": "ai_skill_use.project_id = 'P'"
+  },
+  {
+   "table": "ai_session_history",
+   "where": "ai_session_history.project_id = 'P'"
+  },
+  {
+   "table": "ai_run_transcript",
+   "where": "ai_run_transcript.project_id = 'P'"
+  },
+  {
+   "table": "ai_run_step",
+   "where": null
+  },
+  {
+   "table": "ai_run_message",
+   "where": null
+  },
+  {
+   "table": "ai_run_command",
+   "where": null
+  },
+  {
+   "table": "ai_run_agent",
+   "where": null
+  },
+  {
+   "table": "ai_role_pack",
+   "where": "ai_role_pack.project_id = 'P'"
+  },
+  {
+   "table": "ai_repo_scan",
+   "where": "ai_repo_scan.project_id = 'P'"
+  },
+  {
+   "table": "ai_project_knowledge",
+   "where": "ai_project_knowledge.project_id = 'P'"
+  },
+  {
+   "table": "ai_plugin",
+   "where": "ai_plugin.project_id = 'P'"
+  },
+  {
+   "table": "ai_memory_note",
+   "where": "ai_memory_note.project_id = 'P'"
+  },
+  {
+   "table": "ai_lesson",
+   "where": "ai_lesson.project_id = 'P'"
+  },
+  {
+   "table": "ai_knowledge_doc",
+   "where": "ai_knowledge_doc.project_id = 'P'"
+  },
+  {
+   "table": "ai_audit",
+   "where": "ai_audit.project_id = 'P'"
+  },
+  {
+   "table": "ai_assist_settings",
+   "where": null
+  },
+  {
+   "table": "ai_account_state",
+   "where": null
+  },
+  {
+   "table": "ai_account",
+   "where": null
+  }
+ ]
+}

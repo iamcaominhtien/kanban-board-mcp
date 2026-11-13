@@ -64,7 +64,6 @@ test('the server is told how to reach the app: packaged exe, or electron plus th
     desktopDir: '/d',
     baseEnv: {},
     exportCommand: ['/opt/Kanban Board'],
-    devPythonExists: false,
     configPath: '/none',
   });
   assert.equal(spec.options.env.KANBAN_EXPORT_CMD, '["/opt/Kanban Board"]');

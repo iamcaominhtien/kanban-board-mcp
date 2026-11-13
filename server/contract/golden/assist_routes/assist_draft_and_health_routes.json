@@ -1,0 +1,397 @@
+{
+  "assignees": {
+    "status": 200,
+    "json": []
+  },
+  "chips": {
+    "status": 200,
+    "json": [
+      {
+        "insight_id": "<uuid:1>",
+        "kind": "stuck",
+        "label": "Stuck",
+        "ticket_id": "KAN-1",
+        "why": "KAN-1 has not moved for 6 days"
+      }
+    ]
+  },
+  "chips: empty": {
+    "status": 200,
+    "json": []
+  },
+  "coverage: criteria": {
+    "status": 200,
+    "json": {
+      "coverage": [],
+      "covered": 0,
+      "total": 0
+    }
+  },
+  "coverage: no ticket": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Ticket not found."
+    }
+  },
+  "coverage: none": {
+    "status": 200,
+    "json": {
+      "coverage": [],
+      "covered": 0,
+      "total": 0
+    }
+  },
+  "drafts: apply": {
+    "status": 410,
+    "json": {
+      "detail": "Drafts are gone in AI v2: ask the Board AI in the chat; it does the change itself and says what it did."
+    }
+  },
+  "drafts: cancel none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "That draft is gone. Ask again."
+    }
+  },
+  "drafts: create": {
+    "status": 410,
+    "json": {
+      "detail": "Drafts are gone in AI v2: ask the Board AI in the chat; it does the change itself and says what it did."
+    }
+  },
+  "drafts: create, no body": {
+    "status": 410,
+    "json": {
+      "detail": "Drafts are gone in AI v2: ask the Board AI in the chat; it does the change itself and says what it did."
+    }
+  },
+  "drafts: discard none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "That draft is gone. Ask again."
+    }
+  },
+  "drafts: get none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "That draft is gone. Ask again."
+    }
+  },
+  "drafts: moon": {
+    "status": 410,
+    "json": {
+      "detail": "Drafts are gone in AI v2: ask the Board AI in the chat; it does the change itself and says what it did."
+    }
+  },
+  "drafts: patch": {
+    "status": 410,
+    "json": {
+      "detail": "Drafts are gone in AI v2: ask the Board AI in the chat; it does the change itself and says what it did."
+    }
+  },
+  "drafts: project list": {
+    "status": 200,
+    "json": []
+  },
+  "drafts: regenerate none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "That draft is gone. Ask again."
+    }
+  },
+  "drafts: request-apply": {
+    "status": 410,
+    "json": {
+      "detail": "Drafts are gone in AI v2: ask the Board AI in the chat; it does the change itself and says what it did."
+    }
+  },
+  "drafts: ticket list": {
+    "status": 200,
+    "json": []
+  },
+  "drafts: ticket list, no ticket": {
+    "status": 200,
+    "json": []
+  },
+  "drafts: undo": {
+    "status": 410,
+    "json": {
+      "detail": "Drafts are gone in AI v2: ask the Board AI in the chat; it does the change itself and says what it did."
+    }
+  },
+  "health": {
+    "status": 200,
+    "json": {
+      "board_ai": "Claude Code · Backend",
+      "digest": {
+        "blocked": [],
+        "cost": 0.02,
+        "created_at": "<time>",
+        "day": "<day>",
+        "done": [],
+        "id": "<uuid:1>",
+        "in_progress": [],
+        "text": "One ticket is stuck.",
+        "tickets": 1,
+        "tokens": 240
+      },
+      "dismissed": [],
+      "drafts": [],
+      "enabled": true,
+      "needs_action": [
+        {
+          "created_at": "<time>",
+          "data": {},
+          "detail": "In todo since Monday.",
+          "draft_id": null,
+          "id": "<uuid:2>",
+          "kind": "stuck",
+          "project_id": "<uuid:3>",
+          "score": 80.0,
+          "seen": false,
+          "snoozed_until": null,
+          "state": "open",
+          "ticket_id": "KAN-1",
+          "title": "KAN-1 has not moved for 6 days",
+          "updated_at": "<time>"
+        }
+      ],
+      "schedule": {
+        "badge_toast": true,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "max_insights": 8,
+        "on": true,
+        "return_if_worse": true,
+        "stuck_days": 3,
+        "time": "08:00",
+        "weekend": false,
+        "wip_limit": 3
+      },
+      "snoozed": [],
+      "unseen": 1
+    }
+  },
+  "health/run": {
+    "status": 200,
+    "json": {
+      "board_ai": "Claude Code · Backend",
+      "digest": {
+        "blocked": [],
+        "cost": 0.02,
+        "created_at": "<time>",
+        "day": "<day>",
+        "done": [],
+        "id": "<uuid:1>",
+        "in_progress": [],
+        "text": "One ticket is stuck.",
+        "tickets": 1,
+        "tokens": 240
+      },
+      "dismissed": [],
+      "drafts": [],
+      "enabled": true,
+      "needs_action": [
+        {
+          "created_at": "<time>",
+          "data": {},
+          "detail": "In todo since Monday.",
+          "draft_id": null,
+          "id": "<uuid:2>",
+          "kind": "stuck",
+          "project_id": "<uuid:3>",
+          "score": 80.0,
+          "seen": false,
+          "snoozed_until": null,
+          "state": "open",
+          "ticket_id": "KAN-1",
+          "title": "KAN-1 has not moved for 6 days",
+          "updated_at": "<time>"
+        }
+      ],
+      "schedule": {
+        "badge_toast": true,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "max_insights": 8,
+        "on": true,
+        "return_if_worse": true,
+        "stuck_days": 3,
+        "time": "08:00",
+        "weekend": false,
+        "wip_limit": 3
+      },
+      "snoozed": [],
+      "unseen": 1
+    }
+  },
+  "health/run: no project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "health/seen": {
+    "status": 200,
+    "json": {
+      "ok": true
+    }
+  },
+  "health/seen: after": {
+    "status": 200,
+    "json": {
+      "ok": true
+    }
+  },
+  "health/snooze-all": {
+    "status": 200,
+    "json": {
+      "snoozed": 0
+    }
+  },
+  "health/snooze-all: none": {
+    "status": 200,
+    "json": {
+      "snoozed": 0
+    }
+  },
+  "health: empty": {
+    "status": 200,
+    "json": {
+      "board_ai": "Claude Code · Backend",
+      "digest": null,
+      "dismissed": [],
+      "drafts": [],
+      "enabled": true,
+      "needs_action": [],
+      "schedule": {
+        "badge_toast": true,
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "max_insights": 8,
+        "on": true,
+        "return_if_worse": true,
+        "stuck_days": 3,
+        "time": "08:00",
+        "weekend": false,
+        "wip_limit": 3
+      },
+      "snoozed": [],
+      "unseen": 0
+    }
+  },
+  "health: no project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "insights: act": {
+    "status": 410,
+    "json": {
+      "code": "gone",
+      "detail": "Drafts are gone in AI v2: ask the Board AI in the chat to do this."
+    }
+  },
+  "insights: bad action": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Unknown action."
+    }
+  },
+  "insights: dismiss, no body": {
+    "status": 200,
+    "json": {
+      "created_at": "<time>",
+      "data": {},
+      "detail": "In todo since Monday.",
+      "draft_id": null,
+      "id": "<uuid:1>",
+      "kind": "stuck",
+      "project_id": "<uuid:2>",
+      "score": 80.0,
+      "seen": true,
+      "snoozed_until": null,
+      "state": "dismissed",
+      "ticket_id": "KAN-1",
+      "title": "KAN-1 has not moved for 6 days",
+      "updated_at": "<time>"
+    }
+  },
+  "insights: none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Insight not found."
+    }
+  },
+  "insights: restore": {
+    "status": 200,
+    "json": {
+      "created_at": "<time>",
+      "data": {},
+      "detail": "In todo since Monday.",
+      "draft_id": null,
+      "id": "<uuid:1>",
+      "kind": "stuck",
+      "project_id": "<uuid:2>",
+      "score": 80.0,
+      "seen": true,
+      "snoozed_until": null,
+      "state": "open",
+      "ticket_id": "KAN-1",
+      "title": "KAN-1 has not moved for 6 days",
+      "updated_at": "<time>"
+    }
+  },
+  "insights: snooze": {
+    "status": 200,
+    "json": {
+      "created_at": "<time>",
+      "data": {},
+      "detail": "In todo since Monday.",
+      "draft_id": null,
+      "id": "<uuid:1>",
+      "kind": "stuck",
+      "project_id": "<uuid:2>",
+      "score": 80.0,
+      "seen": true,
+      "snoozed_until": "<time>",
+      "state": "snoozed",
+      "ticket_id": "KAN-1",
+      "title": "KAN-1 has not moved for 6 days",
+      "updated_at": "<time>"
+    }
+  },
+  "similar": {
+    "status": 200,
+    "json": []
+  },
+  "similar: no text": {
+    "status": 200,
+    "json": []
+  }
+}

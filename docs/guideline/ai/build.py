@@ -3,7 +3,7 @@
     python3 build.py        # writes huong-dan-dung-ai.pdf next to this file
 
 Text, prompt samples and tables are in this file; screenshots are in images/ (JPEG or PNG, named as in fig()).
-The version on the cover and in the footer comes from server/version.py. See ../README.md before editing.
+The version on the cover and in the footer comes from server/Cargo.toml. See ../README.md before editing.
 """
 import base64
 import html
@@ -16,7 +16,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 PDF = HERE / "huong-dan-dung-ai.pdf"
-VERSION = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', (ROOT / "server" / "version.py").read_text(encoding="utf-8")).group(1)
+VERSION = re.search(
+    r'\[workspace\.package\][^\[]*?\nversion\s*=\s*"([^"]+)"', (ROOT / "server" / "Cargo.toml").read_text(encoding="utf-8")
+).group(1)
 
 _img_cache: dict[str, str] = {}
 

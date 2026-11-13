@@ -1,0 +1,465 @@
+{
+  "assign: a person is not a team": {
+    "status": 422,
+    "json": {
+      "detail": "Pick an AI team of this project."
+    }
+  },
+  "assign: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "member_id"
+        ]
+      ]
+    }
+  },
+  "assign: no such member": {
+    "status": 422,
+    "json": {
+      "detail": "Pick an AI team of this project."
+    }
+  },
+  "assign: unknown page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "backlinks: ok": {
+    "status": 200,
+    "json": {
+      "pages": [
+        {
+          "page_id": "<uuid:1>",
+          "title": "Linker",
+          "in": "Notes",
+          "snippet": "We follow Spec here. Tracked in KAN-1.",
+          "origin": "page",
+          "context": "We follow Spec here.",
+          "excerpt": "We follow [[Spec#Design]] here. Tracked in KAN-1.",
+          "target_anchor": "Design"
+        }
+      ],
+      "tickets": [
+        {
+          "ticket_id": "KAN-1",
+          "title": "First",
+          "status": "backlog",
+          "origin": "description",
+          "detail": "",
+          "context": "read Spec",
+          "excerpt": "read [[Spec]]",
+          "target_anchor": null
+        }
+      ]
+    }
+  },
+  "backlinks: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "backlinks: with the manual link": {
+    "status": 200,
+    "json": {
+      "pages": [
+        {
+          "page_id": "<uuid:1>",
+          "title": "Linker",
+          "in": "Notes",
+          "snippet": "We follow Spec here. Tracked in KAN-1.",
+          "origin": "page",
+          "context": "We follow Spec here.",
+          "excerpt": "We follow [[Spec#Design]] here. Tracked in KAN-1.",
+          "target_anchor": "Design"
+        }
+      ],
+      "tickets": [
+        {
+          "ticket_id": "KAN-1",
+          "title": "First",
+          "status": "backlog",
+          "origin": "description",
+          "detail": "",
+          "context": "read Spec",
+          "excerpt": "read [[Spec]]",
+          "target_anchor": null
+        },
+        {
+          "ticket_id": "KAN-2",
+          "title": "Second",
+          "status": "backlog",
+          "origin": "manual",
+          "detail": "",
+          "context": "",
+          "excerpt": "",
+          "target_anchor": null
+        }
+      ]
+    }
+  },
+  "link: again": {
+    "status": 201,
+    "json": {
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "title": "Spec",
+      "path": [],
+      "section": null,
+      "snippet": "",
+      "origin": "manual",
+      "detail": "",
+      "version": 1
+    }
+  },
+  "link: already by a mention": {
+    "status": 201,
+    "json": {
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "title": "Spec",
+      "path": [],
+      "section": null,
+      "snippet": "read Spec",
+      "origin": "description",
+      "detail": "",
+      "version": 1,
+      "already_linked": "mention",
+      "message": "Already linked by a mention (the ticket's description names the page): nothing was added. A manual link is for a page the text does not name; if the mention is removed later, link it then."
+    }
+  },
+  "link: already by the page": {
+    "status": 201,
+    "json": {
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "title": "Linker",
+      "path": [],
+      "section": null,
+      "snippet": "",
+      "origin": "manual",
+      "detail": "",
+      "version": 1
+    }
+  },
+  "link: another project": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_project",
+        "message": "The page and the ticket belong to different projects",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "link: manual": {
+    "status": 201,
+    "json": {
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "title": "Spec",
+      "path": [],
+      "section": null,
+      "snippet": "",
+      "origin": "manual",
+      "detail": "",
+      "version": 1
+    }
+  },
+  "link: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "page_id"
+        ]
+      ]
+    }
+  },
+  "link: page in the bin": {
+    "status": 410,
+    "json": {
+      "detail": {
+        "code": "page_deleted",
+        "message": "Page is in the Recycle Bin",
+        "request_id": "<request id>",
+        "deleted_by": "user",
+        "deleted_at": "<time>"
+      }
+    },
+    "has_request_id": true
+  },
+  "link: unknown page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "link: unknown ticket": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "ticket_not_found",
+        "message": "Ticket not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "page: stats count the tickets": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Spec",
+      "slug": "spec",
+      "slug_path": "spec",
+      "status": "published",
+      "version": 1,
+      "markdown": "## Design\nthe plan",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Design",
+          "slug": "design"
+        }
+      ],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 4,
+        "linked_tickets": 2,
+        "inbound_links": 1
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null
+    }
+  },
+  "ticket docs: after the link": {
+    "status": 200,
+    "json": [
+      {
+        "page_id": "<uuid:1>",
+        "project_id": "<uuid:2>",
+        "title": "Spec",
+        "path": [],
+        "section": null,
+        "snippet": "",
+        "origin": "manual",
+        "detail": "",
+        "version": 1
+      }
+    ]
+  },
+  "ticket docs: from the text": {
+    "status": 200,
+    "json": [
+      {
+        "page_id": "<uuid:1>",
+        "project_id": "<uuid:2>",
+        "title": "Spec",
+        "path": [],
+        "section": null,
+        "snippet": "read Spec",
+        "origin": "description",
+        "detail": "",
+        "version": 1
+      }
+    ]
+  },
+  "ticket docs: none": {
+    "status": 200,
+    "json": []
+  },
+  "ticket docs: page in the bin": {
+    "status": 200,
+    "json": [
+      {
+        "page_id": "<uuid:1>",
+        "project_id": "<uuid:2>",
+        "title": "Linker",
+        "path": [],
+        "section": null,
+        "snippet": "",
+        "origin": "manual",
+        "detail": "",
+        "version": 1
+      }
+    ]
+  },
+  "ticket docs: the page names it": {
+    "status": 200,
+    "json": [
+      {
+        "page_id": "<uuid:1>",
+        "project_id": "<uuid:2>",
+        "title": "Spec",
+        "path": [],
+        "section": null,
+        "snippet": "read Spec",
+        "origin": "description",
+        "detail": "",
+        "version": 1
+      }
+    ]
+  },
+  "ticket docs: unknown ticket": {
+    "status": 200,
+    "json": []
+  },
+  "ticket: activity of the links": {
+    "status": 200,
+    "json": {
+      "id": "KAN-2",
+      "project_id": "<uuid:1>",
+      "title": "Second",
+      "description": "",
+      "type": "task",
+      "status": "backlog",
+      "priority": "medium",
+      "estimate": null,
+      "due_date": null,
+      "start_date": null,
+      "tags": [],
+      "parent_id": null,
+      "comments": [],
+      "acceptance_criteria": [],
+      "sub_tasks": [],
+      "activity_log": [
+        {
+          "field": "created",
+          "from": null,
+          "to": null,
+          "at": "<time>",
+          "actor": "user",
+          "ref": "Second"
+        },
+        {
+          "field": "doc_ref_added",
+          "from": null,
+          "to": "Spec",
+          "at": "<time>",
+          "actor": "user",
+          "ref": "Linked docs"
+        },
+        {
+          "field": "doc_ref_removed",
+          "from": "Spec",
+          "to": null,
+          "at": "<time>",
+          "actor": "user",
+          "ref": "Linked docs"
+        }
+      ],
+      "work_log": [],
+      "test_cases": [],
+      "wont_do_reason": null,
+      "created_by": "<uuid:2>",
+      "assignee": null,
+      "blocks": [],
+      "blocked_by": [],
+      "block_done_if_acs_incomplete": false,
+      "block_done_if_tcs_incomplete": false,
+      "links": [],
+      "branches": [],
+      "workspace_retention_days": null,
+      "repo_path": null,
+      "reopen_count": 0,
+      "last_reopened_at": null,
+      "last_reopened_by": null,
+      "last_reopen_reason": null,
+      "reopen_history": [],
+      "pending": false,
+      "pending_reason_type": null,
+      "pending_ticket_id": null,
+      "pending_member_id": null,
+      "pending_party": null,
+      "pending_note": null,
+      "pending_since": null,
+      "pending_by": null,
+      "from_idea_id": null,
+      "tests_assumption_id": null,
+      "wave_pin": null,
+      "review_requested_from": null,
+      "completed_at": null,
+      "completed_by": null,
+      "created_at": "<time>",
+      "updated_at": "<time>"
+    }
+  },
+  "unlink: nothing to remove": {
+    "status": 200,
+    "json": {
+      "removed": 0
+    }
+  },
+  "unlink: ok": {
+    "status": 200,
+    "json": {
+      "removed": 1
+    }
+  },
+  "unlink: unknown ticket": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "ticket_not_found",
+        "message": "Ticket not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "work: none": {
+    "status": 200,
+    "json": {
+      "tickets": [
+        {
+          "id": "KAN-1",
+          "title": "First",
+          "status": "backlog",
+          "assignee": null,
+          "run": null
+        }
+      ],
+      "active": 0
+    }
+  },
+  "work: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  }
+}

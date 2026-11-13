@@ -1,0 +1,1359 @@
+{
+  "DELETE plugin": {
+    "status": 204,
+    "text": ""
+  },
+  "DELETE plugin: git": {
+    "status": 204,
+    "text": ""
+  },
+  "DELETE plugin: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Plugin not found"
+    }
+  },
+  "GET board-skills": {
+    "status": 200,
+    "json": [
+      {
+        "always_on": false,
+        "craft_roles": [
+          "ba",
+          "designer",
+          "pm"
+        ],
+        "description": "Design the HTML frames of a Canvas (mockups and prototypes of screens, pages and flows) so they look like one considered product, presented as a design document (foundations, components, then screens, each board with its states side by side), then create them with docs_write(canvas_create) or change a frame with canvas_update. Use when asked to design, mock up or redesign a screen, an app or a flow on a canvas, or to explore design directions.",
+        "name": "canvas-design",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": [
+          "ba",
+          "data_analyst",
+          "designer",
+          "dev",
+          "devops",
+          "pm",
+          "tech_writer"
+        ],
+        "description": "Draw and edit draw.io diagrams on the board (flowcharts, user flows, swimlanes, sequences, state machines, architecture, data models, plans) so they are clear, laid out on a grid, in one palette and safe to edit later, then look at the PNG and hand them in. Use when a structure or a process needs a picture, when asked for a diagram, or before changing an existing one; it also says when a Canvas or a Sketch is the better tool.",
+        "name": "drawio-diagrams",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": [
+          "ba",
+          "designer",
+          "dev",
+          "pm"
+        ],
+        "description": "What an AI does with a Sketch (a person's freehand drawing on the board): read it, turn it into a diagram or a canvas frame, never draw one yourself, and put a screenshot on a Sketch only for a person to mark on. Use when a ticket or page shows a sketch, or when you think of drawing one.",
+        "name": "sketches",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "Work in the board's Docs like a person does - write and edit pages (a spec, a decision, a how-to), link them with tickets both ways, format text the editor keeps (headings, tables, highlights, callouts, task lists, code, pictures and files), edit one part of a page safely without rewriting it, comment on a passage and answer a thread, turn a checklist into tickets, give a page to an AI member. Use before you create or change a Docs page, comment on one, or decide whether something belongs on a page, in a ticket comment or in a file of the repository.",
+        "name": "docs-pages",
+        "role": null
+      },
+      {
+        "always_on": true,
+        "craft_roles": null,
+        "description": "REQUIRED for every AI member (the lead and each role) before any work on a ticket: how to work it from the first read to the report, and how to leave the ticket (status, criteria, closing comment) so a person sees what happened. Read the project first, plan, stay in your role, review your own work, report only what you did and saw.",
+        "name": "working-a-ticket",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How to use every part of a ticket on this board: a title, description and acceptance criteria a person can check, when to use a sub-task, a sub-ticket, a Story, a block or a link, how to keep the work log, a comment read in ten seconds, test cases and attachments as evidence, where files go (the worktree for code, the Workspace for outputs), and what each role writes. Use when you create, split, update, hand over or close a ticket, and when you make anything a person should see: a report, screenshots, logs, test cases and their proof.",
+        "name": "working-with-tickets",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How to show your work and hand it over on this board: screenshots, test output and links as proof, a final answer or report the lead can act on, and a closing comment with what is left and the open questions. Use before you report, hand a ticket on, or tick a criterion.",
+        "name": "evidence-and-handover",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How to work in the repository and on the machine without leaving a mess: branches, worktrees, commits and PRs, stopping the servers and watchers you started, ports, writing only inside your working folder, and where outputs for people go (the ticket's Workspace). Use before you change code, start a server or a watcher, write a file, or commit.",
+        "name": "repo-and-machine",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "When to ask a person and how, when to decide yourself and say so, and how to write copy, comments and reports in the project's language (Vietnamese or English) so they read naturally. Use before you ask a question, choose between options for someone, or write text people will read.",
+        "name": "asking-and-writing",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How an AI team works on this board: the lead decides who does what, the roles are its subagents, and the ticket is the team's shared memory. Stay in your role, never redo another role's work, say plainly when you are blocked or disagree. Use at the start of every run on a ticket and whenever you need something from a teammate.",
+        "name": "working-together",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How to keep the project's memory yourself, without being asked: what is worth remembering (a command that must be run a certain way, where something is, a trap, a person's correction or preference), where it goes (your role's notes, the ticket's notes, a lesson for everyone), and how to keep it short and true. Use whenever you learn something the next run would pay for again, and whenever a person corrects you.",
+        "name": "keeping-memory",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How to work the comment threads a person sent you from a Docs page: change the page, reply in each thread, and decide for each one whether to close it or leave it open. Use whenever a note says comment threads came from a Docs page (Send to AI), and whenever you answer a thread on a page.",
+        "name": "docs-comment-threads",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": [
+          "ba",
+          "designer",
+          "pm"
+        ],
+        "description": "How to work out with a person what to build before building it, and how to lay out options for yourself when nobody needs to be asked: questions in rounds, approaches with their trade-offs, an agreed list written down. Use when a ticket is vague or has several ways to go: a new feature, a Story to split, a scope to settle, a design direction, a solution to pick.",
+        "name": "brainstorming",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": [
+          "ba",
+          "designer",
+          "pm",
+          "qa",
+          "user_tester"
+        ],
+        "description": "How to look at your work the way its real user will before you hand it in: the first-time test, the five-second test, jargon and translated-sounding words, walking one real task, and the machine-made look. Use before handing in anything a person will read or use: screen copy, an error message, a Docs page, a report, a slide, a screen.",
+        "name": "end-user-eyes",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": [
+          "ba",
+          "data_analyst",
+          "pm",
+          "tech_writer"
+        ],
+        "description": "How to make Excel, Word and PDF files that work and look considered, and how to look at any office file before handing it in: real formulas and styles, then rendering each sheet, page or slide to an image to check it, on whatever the machine has. Use whenever you create or change a .xlsx, .docx or .pdf file (decks: `slides`).",
+        "name": "office-files",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": [
+          "ba",
+          "data_analyst",
+          "pm",
+          "tech_writer"
+        ],
+        "description": "How to make a presentation deck (.pptx) that looks designed and makes its point: the story first, a theme or the person's own template, pictures found or drawn, then every slide rendered and looked at. Scripts turn slides designed in HTML into an editable .pptx, fill a person's template, and render any office file. Use whenever you make or change slides, a deck or a presentation.",
+        "name": "slides",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": [
+          "ba",
+          "data_analyst",
+          "designer",
+          "dev",
+          "devops",
+          "pm",
+          "qa",
+          "tech_writer",
+          "user_tester"
+        ],
+        "description": "Make a polished demo video (MP4, 1080p, as long as the story needs) of the Kanban board or any web app, with an intro banner, Vietnamese narration, captions that never cover the UI, camera zoom and spotlight, a hand cursor, click and typing sounds, lo-fi music and an outro card. Use when asked to record, make or update a demo, walkthrough, tour or showcase video of the app or of a feature.",
+        "name": "demo-video",
+        "role": null
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How Triage sorts a new ticket on this board: its kind, labels from the project's own set and the review depth, when to split, and what to do when the ticket is unclear. Use at the start of every Triage run.",
+        "name": "role-triage",
+        "role": "triage"
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How the PM works on this board: planning a Story, splitting it into tickets each role can take, deciding when two roles disagree or a piece of work failed, and when to ask a person instead. Use at the start of every PM run: a Story to plan, a ticket to split, a question from a teammate, a ruling.",
+        "name": "role-pm",
+        "role": "pm"
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How the BA works on this board: acceptance criteria a tester can check, the edge and error cases, and which document a piece of work needs (a feature spec, a bugfix spec, a decision table, a use case, an example map, a one-pager), with a template for each and a checklist before handing in. Use at the start of every BA run, and whenever you write criteria or a spec.",
+        "name": "role-ba",
+        "role": "ba"
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How the Dev works on this board: reproduce first, a test that fails on an assertion before the fix, the smallest change, small commits on the ticket's branch, what to log, and the note for the reviewer. Use at the start of every Dev run and before you commit.",
+        "name": "role-dev",
+        "role": "dev"
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How the Reviewer works on this board: what to look for in a change and in what order, what blocks and what is only a suggestion, and how to write a finding the author can act on. Use at the start of every review.",
+        "name": "role-reviewer",
+        "role": "reviewer"
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How QA and QC work on this board: test cases written from the criteria (QA), every case run with its proof (QC), a failure reported so anyone can repeat it, and a criterion met only when its case passed. Use at the start of every QA run.",
+        "name": "role-qa",
+        "role": "qa"
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How the User tester works on this board: become one real person, use only the running app in a fresh browser, walk the ticket's task the way they would, and report where they got stuck in their words, with a screenshot of every step. Use at the start of every User tester run.",
+        "name": "role-user-tester",
+        "role": "user_tester"
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How the Technical writer works on this board: documentation written for one reader and one task, every command and step tried before it is written down, the right kind of document, and where it belongs. Use at the start of every Technical writer run: a README, a guide, API or reference docs, release notes, help text.",
+        "name": "role-tech-writer",
+        "role": "tech_writer"
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How DevOps works on this board: CI pipelines, builds, containers and environment config that are reproducible, pinned, least-privileged and proven to run, with secrets kept out of files and anything that deploys or spends money left to a person. Use at the start of every DevOps run.",
+        "name": "role-devops",
+        "role": "devops"
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How the Security reviewer works on this board: follow untrusted input to where it is used, check a change for the common weaknesses, prove each finding with a safe local test, rate it by what an attacker gains, and report fixes without changing the code. Use at the start of every security review.",
+        "name": "role-security-reviewer",
+        "role": "security"
+      },
+      {
+        "always_on": false,
+        "craft_roles": null,
+        "description": "How the Data analyst works on this board: turn a question into exact definitions, look at the data before trusting it, compute in a script anyone can rerun, and answer first with the numbers, one honest chart and the caveats. Use at the start of every Data analyst run.",
+        "name": "role-data-analyst",
+        "role": "data_analyst"
+      }
+    ]
+  },
+  "GET catalogue": {
+    "status": 200,
+    "json": [
+      {
+        "key": "design",
+        "kind": "plugin",
+        "name": "design",
+        "plugin": "design",
+        "roles": [
+          "designer"
+        ],
+        "skills": [
+          "design-critique",
+          "accessibility-review",
+          "design-handoff"
+        ],
+        "source": "https://github.com/anthropics/knowledge-work-plugins",
+        "use": "once your boards are drawn: design-critique on them, accessibility-review before you hand in, design-handoff for the spec of each screen",
+        "what": "Anthropic's design plugin: design-handoff, design-critique, accessibility-review, ux-copy, design-system, user-research, research-synthesis."
+      },
+      {
+        "key": "ui-ux-pro-max",
+        "kind": "plugin",
+        "name": "ui-ux-pro-max",
+        "plugin": "ui-ux-pro-max",
+        "roles": [
+          "designer"
+        ],
+        "skills": [
+          "ui-ux-pro-max"
+        ],
+        "source": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+        "use": "palettes and font pairings to look through while choosing the direction (ideas, not rules)",
+        "what": "UI/UX design intelligence: styles, palettes, font pairings, charts and stack guidelines."
+      },
+      {
+        "key": "taste-skill",
+        "kind": "plugin",
+        "name": "taste-skill",
+        "plugin": "taste-skill",
+        "roles": [
+          "designer"
+        ],
+        "source": "https://github.com/Leonxlnx/taste-skill",
+        "use": "while choosing the direction and again in the critique pass (its rules for app screens and pages)",
+        "what": "Art direction against the generic AI look (tasteskill): researched directions, a no-ornament house style, rules for app screens, and a look-and-fix loop on screenshots. MIT."
+      },
+      {
+        "key": "impeccable",
+        "kind": "plugin",
+        "name": "impeccable",
+        "plugin": "impeccable",
+        "roles": [],
+        "source": "https://github.com/pbakaus/impeccable",
+        "use": "a critique, audit or polish pass",
+        "what": "Design fluency: modes per surface, a craft floor of banned patterns, critique, audit and polish commands. Apache-2.0. Its hooks run a downloaded helper on every edit."
+      },
+      {
+        "key": "make-interfaces-feel-better",
+        "kind": "plugin",
+        "name": "make-interfaces-feel-better",
+        "roles": [
+          "designer",
+          "dev"
+        ],
+        "source": "https://github.com/jakubkrehel/make-interfaces-feel-better",
+        "ui": true,
+        "use": "in the critique pass, on every main screen",
+        "what": "The finishing details: text wrapping, tabular numbers, optical alignment, nested radii, shadows, hit areas, icon states, restrained motion. MIT."
+      },
+      {
+        "key": "emil-design-eng",
+        "kind": "plugin",
+        "name": "Emil Kowalski's design engineering",
+        "roles": [
+          "designer",
+          "dev"
+        ],
+        "skills": [
+          "emil-design-eng",
+          "animate",
+          "review-animations",
+          "improve-animations",
+          "find-animation-opportunities",
+          "animation-performance",
+          "animation-vocabulary",
+          "mobile-native",
+          "break-ui"
+        ],
+        "source": "https://github.com/emilkowalski/skills",
+        "ui": true,
+        "use": "before you design any motion (animate, emil-design-eng) and to check it (review-animations, animation-performance)",
+        "what": "Animation craft (whether to animate, easing, duration, interruption), animation reviews and performance, a web app that feels native on a phone. MIT."
+      },
+      {
+        "key": "gsap",
+        "kind": "plugin",
+        "name": "GSAP",
+        "plugin": "gsap-skills",
+        "roles": [
+          "dev"
+        ],
+        "source": "https://github.com/greensock/gsap-skills",
+        "ui": true,
+        "use": "when an animation is built with GSAP",
+        "what": "GSAP's own skills: tweens, timelines, ScrollTrigger, Flip and Draggable, React cleanup with useGSAP, performance, reduced motion. MIT."
+      },
+      {
+        "key": "motion-design",
+        "kind": "plugin",
+        "name": "motion-design",
+        "roles": [
+          "designer"
+        ],
+        "source": "https://github.com/LottieFiles/motion-design-skill",
+        "ui": true,
+        "use": "before you design motion: timing, easing, choreography",
+        "what": "Motion principles for any stack: timing, easing, choreography, purpose (LottieFiles). MIT."
+      },
+      {
+        "key": "ui-foundations",
+        "kind": "plugin",
+        "name": "UI foundations (dembrandt)",
+        "roles": [
+          "designer"
+        ],
+        "skills": [
+          "surface-separation",
+          "visual-emphasis-and-hierarchy",
+          "modular-scale-typography",
+          "algorithmic-color-palette",
+          "color-mode-and-theme",
+          "component-family-consistency",
+          "status-colors-and-errors",
+          "responsive-paradigms"
+        ],
+        "source": "https://github.com/dembrandt/dembrandt-skills",
+        "ui": true,
+        "use": "type scale (modular-scale-typography), palette and dark theme (algorithmic-color-palette, color-mode-and-theme), surfaces and hierarchy (surface-separation, visual-emphasis-and-hierarchy), the components board (component-family-consistency), states and errors (status-colors-and-errors), phone vs desktop (responsive-paradigms)",
+        "what": "Interface rules one by one: type scales, derived palettes, themes, button states, density, surfaces, hierarchy, forms, loading states, dense expert tools, WCAG. MIT."
+      },
+      {
+        "key": "web-quality",
+        "kind": "plugin",
+        "name": "Web quality",
+        "roles": [
+          "dev",
+          "qa"
+        ],
+        "skills": [
+          "accessibility",
+          "performance",
+          "core-web-vitals",
+          "best-practices"
+        ],
+        "source": "https://github.com/addyosmani/web-quality-skills",
+        "ui": true,
+        "use": "accessibility and performance checks of a built page",
+        "what": "WCAG 2.2 audits from evidence, performance and Core Web Vitals, web best practices (Addy Osmani). MIT."
+      },
+      {
+        "key": "tufte-data-viz",
+        "kind": "plugin",
+        "name": "tufte-data-viz",
+        "roles": [
+          "designer",
+          "dev",
+          "data_analyst"
+        ],
+        "source": "https://github.com/caylent/tufte-data-viz",
+        "use": "before you draw any chart",
+        "what": "Charts after Tufte: data-ink, direct labels, range frames, accessible and dark-mode ready; for Recharts, ECharts, Chart.js, D3 or SVG. MIT."
+      },
+      {
+        "key": "threejs",
+        "kind": "plugin",
+        "name": "three.js",
+        "roles": [
+          "designer",
+          "dev"
+        ],
+        "skills": [
+          "threejs-fundamentals",
+          "threejs-shaders",
+          "threejs-react-three-fiber",
+          "threejs-materials",
+          "threejs-postprocessing",
+          "threejs-performance",
+          "threejs-lighting",
+          "threejs-animation",
+          "threejs-geometry",
+          "threejs-interaction",
+          "threejs-loaders",
+          "threejs-textures"
+        ],
+        "source": "https://github.com/CloudAI-X/threejs-skills",
+        "ui": true,
+        "use": "before you write three.js: fundamentals for the scene, materials and lighting for the look, shaders before a shader, performance before you hand in",
+        "what": "Current three.js, React Three Fiber and drei APIs (with WebGPU), each skill with the mistakes models still make. MIT."
+      },
+      {
+        "key": "webgl-animation",
+        "kind": "plugin",
+        "name": "WebGL animation",
+        "roles": [
+          "designer",
+          "dev"
+        ],
+        "skills": [
+          "particle-system",
+          "shader-glsl"
+        ],
+        "source": "https://github.com/iart-ai/webgl-animation-skills",
+        "ui": true,
+        "use": "particles and GLSL backgrounds",
+        "what": "Particle systems, GLSL backgrounds and image transitions, three.js hero scenes with a scroll-linked camera. MIT."
+      },
+      {
+        "key": "shader-art",
+        "kind": "plugin",
+        "name": "Shader art",
+        "roles": [
+          "designer"
+        ],
+        "source": "https://github.com/gokayfem/shader-skills",
+        "use": "before you write a GLSL shader",
+        "what": "GLSL shaders in the Shadertoy style (raymarching, noise, terrain, water, clouds) from a tested function library, with a local checker. MIT."
+      },
+      {
+        "key": "genart",
+        "kind": "plugin",
+        "name": "Generative art",
+        "roles": [],
+        "source": "https://github.com/camilleroux/genart-skill",
+        "use": "generative or seeded art",
+        "what": "Seeded, reproducible generative art and creative coding, resolution-independent, with traits. MIT."
+      },
+      {
+        "key": "frontend-design",
+        "kind": "plugin",
+        "name": "frontend-design",
+        "plugin": "example-skills",
+        "roles": [
+          "designer"
+        ],
+        "skills": [
+          "frontend-design"
+        ],
+        "source": "https://github.com/anthropics/skills",
+        "use": "ideas for a distinctive frontend look (ideas, not rules)",
+        "what": "Distinctive, production-grade frontend interfaces (Anthropic skills)."
+      },
+      {
+        "key": "canvas-design",
+        "kind": "plugin",
+        "name": "canvas-design",
+        "plugin": "example-skills",
+        "roles": [],
+        "skills": [
+          "canvas-design"
+        ],
+        "source": "https://github.com/anthropics/skills",
+        "what": "Posters and visual art as a PNG or PDF (Anthropic skills); not for the board's canvas frames."
+      },
+      {
+        "key": "webapp-testing",
+        "kind": "plugin",
+        "name": "webapp-testing",
+        "plugin": "example-skills",
+        "roles": [
+          "designer",
+          "user_tester",
+          "qa"
+        ],
+        "skills": [
+          "webapp-testing"
+        ],
+        "source": "https://github.com/anthropics/skills",
+        "ui": true,
+        "use": "testing a running web app in the browser",
+        "what": "Testing a local web app with Playwright (Anthropic skills)."
+      },
+      {
+        "key": "flow",
+        "kind": "plugin",
+        "name": "Flow",
+        "plugin": "flow",
+        "roles": [
+          "pm",
+          "ba",
+          "designer",
+          "dev"
+        ],
+        "source": "https://github.com/iamcaominhtien/flow",
+        "use": "before you draw a diagram of a kind it knows: write its spec, build, read the check, then diagram_create with the .drawio (the board's drawio-diagrams guide, section 6)",
+        "what": "Diagrams laid out from a short JSON spec: flowchart, swimlanes, sequence, ER, architecture, C4, state, BPMN, DFD, screen flow, mind map, Gantt and more, one design, checked, as a .drawio file and a moving HTML page. MIT."
+      },
+      {
+        "key": "figma",
+        "kind": "mcp",
+        "name": "Figma MCP",
+        "roles": [
+          "designer"
+        ],
+        "server": {
+          "name": "figma",
+          "type": "http",
+          "url": "https://mcp.figma.com/mcp"
+        },
+        "what": "Read Figma files and frames (Figma's remote MCP server; signs in through the browser)."
+      },
+      {
+        "key": "chrome-devtools",
+        "kind": "mcp",
+        "name": "Chrome DevTools MCP",
+        "roles": [
+          "dev"
+        ],
+        "server": {
+          "args": [
+            "-y",
+            "chrome-devtools-mcp@latest"
+          ],
+          "command": "npx",
+          "name": "chrome-devtools",
+          "type": "stdio"
+        },
+        "ui": true,
+        "what": "Performance and network debugging in a real Chrome."
+      },
+      {
+        "key": "playwright",
+        "kind": "mcp",
+        "name": "Playwright MCP",
+        "roles": [
+          "designer",
+          "user_tester",
+          "qa"
+        ],
+        "server": {
+          "args": [
+            "-y",
+            "@playwright/mcp@latest",
+            "--isolated"
+          ],
+          "command": "npx",
+          "name": "playwright",
+          "type": "stdio"
+        },
+        "ui": true,
+        "what": "A fresh browser per run, driven through the page's structure; can emulate a phone."
+      }
+    ]
+  },
+  "GET changes: a skill was added": {
+    "status": 200,
+    "json": {
+      "added": [
+        "skills/later/SKILL.md"
+      ],
+      "changed": [
+        ".claude-plugin/plugin.json"
+      ],
+      "removed": []
+    }
+  },
+  "GET changes: git": {
+    "status": 200,
+    "json": {
+      "added": [
+        "skills/git-more/SKILL.md"
+      ],
+      "changed": [
+        ".claude-plugin/plugin.json"
+      ],
+      "removed": []
+    }
+  },
+  "GET changes: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Plugin not found"
+    }
+  },
+  "GET changes: nothing changed": {
+    "status": 200,
+    "json": {
+      "added": [],
+      "changed": [
+        ".claude-plugin/plugin.json"
+      ],
+      "removed": []
+    }
+  },
+  "GET changes: the source is gone": {
+    "status": 422,
+    "json": {
+      "detail": "No such folder: <tmp>/hello-plugin"
+    }
+  },
+  "GET plugins": {
+    "status": 200,
+    "json": [
+      {
+        "default_on": true,
+        "description": null,
+        "has_previous": false,
+        "hooks": 0,
+        "id": "<plg:1>",
+        "installed_by": "user",
+        "mcp": 0,
+        "members": [],
+        "name": "hello-plugin",
+        "pinned": false,
+        "plugin": null,
+        "project_id": "<uuid:1>",
+        "ref": null,
+        "roles": [
+          "dev",
+          "qa"
+        ],
+        "size_bytes": 171,
+        "skills": [
+          "bye",
+          "hello"
+        ],
+        "source": "<tmp>/hello-plugin",
+        "source_kind": "folder",
+        "used": {
+          "by_member": [],
+          "last": null,
+          "uses": 0
+        },
+        "version": "0.0.0"
+      }
+    ]
+  },
+  "GET plugins: both": {
+    "status": 200,
+    "json": [
+      {
+        "default_on": false,
+        "description": null,
+        "has_previous": true,
+        "hooks": 0,
+        "id": "<plg:1>",
+        "installed_by": "user",
+        "mcp": 0,
+        "members": [],
+        "name": "hello-plugin",
+        "pinned": false,
+        "plugin": null,
+        "project_id": "<uuid:1>",
+        "ref": null,
+        "roles": [
+          "dev"
+        ],
+        "size_bytes": 229,
+        "skills": [
+          "bye",
+          "hello",
+          "later"
+        ],
+        "source": "<tmp>/hello-plugin",
+        "source_kind": "folder",
+        "used": {
+          "by_member": [],
+          "last": null,
+          "uses": 0
+        },
+        "version": "0.0.0"
+      },
+      {
+        "default_on": false,
+        "description": null,
+        "has_previous": true,
+        "hooks": 0,
+        "id": "<plg:2>",
+        "installed_by": "user",
+        "mcp": 0,
+        "members": [],
+        "name": "hello-repo",
+        "pinned": false,
+        "plugin": null,
+        "project_id": "<uuid:1>",
+        "ref": null,
+        "roles": [],
+        "size_bytes": 188,
+        "skills": [
+          "git-hello",
+          "git-more"
+        ],
+        "source": "<tmp>/hello-repo",
+        "source_kind": "git",
+        "used": {
+          "by_member": [],
+          "last": null,
+          "uses": 0
+        },
+        "version": "0.0.0"
+      }
+    ]
+  },
+  "GET plugins: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET plugins: none": {
+    "status": 200,
+    "json": []
+  },
+  "GET plugins: none left": {
+    "status": 200,
+    "json": []
+  },
+  "GET update": {
+    "status": 200,
+    "json": {
+      "update": false
+    }
+  },
+  "GET update: git, a newer commit": {
+    "status": 200,
+    "json": {
+      "update": true
+    }
+  },
+  "GET update: git, up to date": {
+    "status": 200,
+    "json": {
+      "update": false
+    }
+  },
+  "GET update: it is pinned": {
+    "status": 200,
+    "json": {
+      "pinned": true,
+      "update": false
+    }
+  },
+  "GET update: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Plugin not found"
+    }
+  },
+  "PATCH plugin": {
+    "status": 200,
+    "json": {
+      "default_on": false,
+      "description": null,
+      "has_previous": false,
+      "hooks": 0,
+      "id": "<plg:1>",
+      "installed_by": "user",
+      "mcp": 0,
+      "members": [],
+      "name": "hello-plugin",
+      "pinned": false,
+      "plugin": null,
+      "project_id": "<uuid:1>",
+      "ref": null,
+      "roles": [
+        "dev"
+      ],
+      "size_bytes": 171,
+      "skills": [
+        "bye",
+        "hello"
+      ],
+      "source": "<tmp>/hello-plugin",
+      "source_kind": "folder",
+      "used": {
+        "by_member": [],
+        "last": null,
+        "uses": 0
+      },
+      "version": "0.0.0"
+    }
+  },
+  "PATCH plugin: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Plugin not found"
+    }
+  },
+  "PATCH plugin: nothing": {
+    "status": 200,
+    "json": {
+      "default_on": false,
+      "description": null,
+      "has_previous": false,
+      "hooks": 0,
+      "id": "<plg:1>",
+      "installed_by": "user",
+      "mcp": 0,
+      "members": [],
+      "name": "hello-plugin",
+      "pinned": false,
+      "plugin": null,
+      "project_id": "<uuid:1>",
+      "ref": null,
+      "roles": [
+        "dev"
+      ],
+      "size_bytes": 171,
+      "skills": [
+        "bye",
+        "hello"
+      ],
+      "source": "<tmp>/hello-plugin",
+      "source_kind": "folder",
+      "used": {
+        "by_member": [],
+        "last": null,
+        "uses": 0
+      },
+      "version": "0.0.0"
+    }
+  },
+  "PATCH plugin: roles is a number": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "roles"
+        ]
+      ]
+    }
+  },
+  "POST action: not an action": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "path",
+          "action"
+        ]
+      ]
+    }
+  },
+  "POST action: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Plugin not found"
+    }
+  },
+  "POST install": {
+    "status": 201,
+    "json": {
+      "default_on": true,
+      "description": null,
+      "has_previous": false,
+      "hooks": 0,
+      "id": "<plg:1>",
+      "installed_by": "user",
+      "mcp": 0,
+      "members": [],
+      "name": "hello-plugin",
+      "pinned": false,
+      "plugin": null,
+      "project_id": "<uuid:1>",
+      "ref": null,
+      "roles": [
+        "dev",
+        "qa"
+      ],
+      "size_bytes": 171,
+      "skills": [
+        "bye",
+        "hello"
+      ],
+      "source": "<tmp>/hello-plugin",
+      "source_kind": "folder",
+      "used": {
+        "by_member": [],
+        "last": null,
+        "uses": 0
+      },
+      "version": "0.0.0"
+    }
+  },
+  "POST install: git": {
+    "status": 201,
+    "json": {
+      "default_on": false,
+      "description": null,
+      "has_previous": false,
+      "hooks": 0,
+      "id": "<plg:1>",
+      "installed_by": "user",
+      "mcp": 0,
+      "members": [],
+      "name": "hello-repo",
+      "pinned": false,
+      "plugin": null,
+      "project_id": "<uuid:1>",
+      "ref": null,
+      "roles": [],
+      "size_bytes": 134,
+      "skills": [
+        "git-hello"
+      ],
+      "source": "<tmp>/hello-repo",
+      "source_kind": "git",
+      "used": {
+        "by_member": [],
+        "last": null,
+        "uses": 0
+      },
+      "version": "0.0.0"
+    }
+  },
+  "POST install: git, no such repository": {
+    "status": 422,
+    "json": {
+      "detail": "Could not get <tmp>/no-repo: fatal: repository '<tmp>/no-repo' does not exist"
+    }
+  },
+  "POST install: no source": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "source"
+        ]
+      ]
+    }
+  },
+  "POST install: no such folder": {
+    "status": 422,
+    "json": {
+      "detail": "No such folder: <tmp>/nowhere"
+    }
+  },
+  "POST install: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "POST install: roles is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "roles"
+        ]
+      ]
+    }
+  },
+  "POST pin": {
+    "status": 200,
+    "json": {
+      "default_on": false,
+      "description": null,
+      "has_previous": true,
+      "hooks": 0,
+      "id": "<plg:1>",
+      "installed_by": "user",
+      "mcp": 0,
+      "members": [],
+      "name": "hello-plugin",
+      "pinned": true,
+      "plugin": null,
+      "project_id": "<uuid:1>",
+      "ref": null,
+      "roles": [
+        "dev"
+      ],
+      "size_bytes": 229,
+      "skills": [
+        "bye",
+        "hello",
+        "later"
+      ],
+      "source": "<tmp>/hello-plugin",
+      "source_kind": "folder",
+      "used": {
+        "by_member": [],
+        "last": null,
+        "uses": 0
+      },
+      "version": "0.0.0"
+    }
+  },
+  "POST preview": {
+    "status": 200,
+    "json": {
+      "description": null,
+      "hooks": 0,
+      "mcp": 0,
+      "name": "built",
+      "size_bytes": 164,
+      "skills": [
+        "bye",
+        "hello"
+      ],
+      "version": "0.0.0"
+    }
+  },
+  "POST preview: a kind that is not one": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "source_kind"
+        ]
+      ]
+    }
+  },
+  "POST preview: a skill that is not there": {
+    "status": 422,
+    "json": {
+      "detail": "None of nope was found there."
+    }
+  },
+  "POST preview: no source": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "source"
+        ]
+      ]
+    }
+  },
+  "POST preview: no such folder": {
+    "status": 422,
+    "json": {
+      "detail": "No such folder: <tmp>/nowhere"
+    }
+  },
+  "POST preview: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "POST preview: one skill": {
+    "status": 200,
+    "json": {
+      "description": null,
+      "hooks": 0,
+      "mcp": 0,
+      "name": "hello",
+      "size_bytes": 116,
+      "skills": [
+        "hello"
+      ],
+      "version": "0.0.0"
+    }
+  },
+  "POST preview: skills is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "skills"
+        ]
+      ]
+    }
+  },
+  "POST reload": {
+    "status": 200,
+    "json": {
+      "default_on": false,
+      "description": null,
+      "has_previous": true,
+      "hooks": 0,
+      "id": "<plg:1>",
+      "installed_by": "user",
+      "mcp": 0,
+      "members": [],
+      "name": "hello-plugin",
+      "pinned": false,
+      "plugin": null,
+      "project_id": "<uuid:1>",
+      "ref": null,
+      "roles": [
+        "dev"
+      ],
+      "size_bytes": 229,
+      "skills": [
+        "bye",
+        "hello",
+        "later"
+      ],
+      "source": "<tmp>/hello-plugin",
+      "source_kind": "folder",
+      "used": {
+        "by_member": [],
+        "last": null,
+        "uses": 0
+      },
+      "version": "0.0.0"
+    }
+  },
+  "POST reload: the source is gone": {
+    "status": 422,
+    "json": {
+      "detail": "No such folder: <tmp>/hello-plugin"
+    }
+  },
+  "POST reset": {
+    "status": 200,
+    "json": {
+      "default_on": false,
+      "description": null,
+      "has_previous": true,
+      "hooks": 0,
+      "id": "<plg:1>",
+      "installed_by": "user",
+      "mcp": 0,
+      "members": [],
+      "name": "hello-plugin",
+      "pinned": false,
+      "plugin": null,
+      "project_id": "<uuid:1>",
+      "ref": null,
+      "roles": [
+        "dev"
+      ],
+      "size_bytes": 229,
+      "skills": [
+        "bye",
+        "hello",
+        "later"
+      ],
+      "source": "<tmp>/hello-plugin",
+      "source_kind": "folder",
+      "used": {
+        "by_member": [],
+        "last": null,
+        "uses": 0
+      },
+      "version": "0.0.0"
+    }
+  },
+  "POST rollback": {
+    "status": 200,
+    "json": {
+      "default_on": false,
+      "description": null,
+      "has_previous": true,
+      "hooks": 0,
+      "id": "<plg:1>",
+      "installed_by": "user",
+      "mcp": 0,
+      "members": [],
+      "name": "hello-plugin",
+      "pinned": false,
+      "plugin": null,
+      "project_id": "<uuid:1>",
+      "ref": null,
+      "roles": [
+        "dev"
+      ],
+      "size_bytes": 229,
+      "skills": [
+        "bye",
+        "hello"
+      ],
+      "source": "<tmp>/hello-plugin",
+      "source_kind": "folder",
+      "used": {
+        "by_member": [],
+        "last": null,
+        "uses": 0
+      },
+      "version": "0.0.0"
+    }
+  },
+  "POST rollback: nothing before": {
+    "status": 422,
+    "json": {
+      "detail": "There is no previous version to put back."
+    }
+  },
+  "POST unpin": {
+    "status": 200,
+    "json": {
+      "default_on": false,
+      "description": null,
+      "has_previous": true,
+      "hooks": 0,
+      "id": "<plg:1>",
+      "installed_by": "user",
+      "mcp": 0,
+      "members": [],
+      "name": "hello-plugin",
+      "pinned": false,
+      "plugin": null,
+      "project_id": "<uuid:1>",
+      "ref": null,
+      "roles": [
+        "dev"
+      ],
+      "size_bytes": 229,
+      "skills": [
+        "bye",
+        "hello",
+        "later"
+      ],
+      "source": "<tmp>/hello-plugin",
+      "source_kind": "folder",
+      "used": {
+        "by_member": [],
+        "last": null,
+        "uses": 0
+      },
+      "version": "0.0.0"
+    }
+  },
+  "POST update": {
+    "status": 200,
+    "json": {
+      "default_on": false,
+      "description": null,
+      "has_previous": true,
+      "hooks": 0,
+      "id": "<plg:1>",
+      "installed_by": "user",
+      "mcp": 0,
+      "members": [],
+      "name": "hello-plugin",
+      "pinned": false,
+      "plugin": null,
+      "project_id": "<uuid:1>",
+      "ref": null,
+      "roles": [
+        "dev"
+      ],
+      "size_bytes": 229,
+      "skills": [
+        "bye",
+        "hello",
+        "later"
+      ],
+      "source": "<tmp>/hello-plugin",
+      "source_kind": "folder",
+      "used": {
+        "by_member": [],
+        "last": null,
+        "uses": 0
+      },
+      "version": "0.0.0"
+    }
+  },
+  "POST update: git": {
+    "status": 200,
+    "json": {
+      "default_on": false,
+      "description": null,
+      "has_previous": true,
+      "hooks": 0,
+      "id": "<plg:1>",
+      "installed_by": "user",
+      "mcp": 0,
+      "members": [],
+      "name": "hello-repo",
+      "pinned": false,
+      "plugin": null,
+      "project_id": "<uuid:1>",
+      "ref": null,
+      "roles": [],
+      "size_bytes": 188,
+      "skills": [
+        "git-hello",
+        "git-more"
+      ],
+      "source": "<tmp>/hello-repo",
+      "source_kind": "git",
+      "used": {
+        "by_member": [],
+        "last": null,
+        "uses": 0
+      },
+      "version": "0.0.0"
+    }
+  },
+  "POST update: it is pinned": {
+    "status": 422,
+    "json": {
+      "detail": "hello-plugin is pinned: unpin it to update."
+    }
+  }
+}

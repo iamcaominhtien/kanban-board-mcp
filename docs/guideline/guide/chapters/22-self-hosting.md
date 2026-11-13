@@ -8,15 +8,14 @@ standalone: self-hosting
 ---
 ## Run the server
 
-You need Python 3.12 or newer and [uv](https://docs.astral.sh/uv/).
+You need the [Rust toolchain](https://rustup.rs) (the version is `rust-version` in `server/Cargo.toml`).
 
 ```bash
 cd server
-uv sync
-uv run uvicorn main:app --port 8000
+cargo run -p kanban-server
 ```
 
-The database is created and migrated on first start. Open the interface (built with `npm run build` in `ui/`, or `npm run dev` for development) and connect an agent to `http://localhost:8000/mcp/`. The trailing slash is required.
+The server picks a free port on `127.0.0.1` and prints it as `READY port=<N>`. The database is created and migrated on first start. Open the interface (built with `npm run build` in `ui/`, or `npm run dev` for development) and connect an agent to `http://localhost:<N>/mcp/`. The trailing slash is required.
 
 ## Environment variables
 
@@ -43,4 +42,4 @@ An AI working folder must be inside your home folder (not the home folder itself
 
 ## Upgrading
 
-Stop the server, take an export ({ch:data}), update the code, run `uv sync`, and start again. The database migrates on start.
+Stop the server, take an export ({ch:data}), update the code, build it again (`cargo build --release -p kanban-server -p kanban-mcp-stdio`), and start again. The database migrates on start.

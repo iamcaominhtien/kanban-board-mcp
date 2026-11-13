@@ -2,6 +2,10 @@ const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
 
+// The Rust workspace that holds the server (kanban-server and kanban-mcp-stdio), relative to the repository root.
+// The one place that names it: change this line when the folder is renamed.
+const SERVER_DIR = 'server';
+
 function resolveConfiguredUploadsDir(userDataPath, configPath = null) {
   if (configPath) {
     try {
@@ -19,7 +23,7 @@ function resolveConfiguredUploadsDir(userDataPath, configPath = null) {
 }
 
 /**
- * The config file the server reads (server/config.py): KANBAN_CONFIG_DIR/config.json when that folder is set, else
+ * The config file the server reads (the server's config module): KANBAN_CONFIG_DIR/config.json when that folder is set, else
  * ~/.kanban-board/config.json. A test instance with its own config folder never touches the person's file.
  */
 function resolveConfigPath(env, homeDir) {
@@ -30,7 +34,7 @@ function resolveConfigPath(env, homeDir) {
 /**
  * Writes the uploads folder this app serves into the config file (key `uploads_dir`), so a server started without
  * KANBAN_UPLOADS_DIR (the stdio MCP of an outside Claude Code session) stores attachments in the same folder
- * (server/uploads.py). Other keys stay; the file is replaced atomically and only when the value changed. A config
+ * (the server's uploads module). Other keys stay; the file is replaced atomically and only when the value changed. A config
  * file that cannot be parsed is left alone. Returns 'written', 'unchanged' or 'skipped' (never throws).
  */
 function recordUploadsDir(configPath, uploadsDir) {
@@ -88,25 +92,26 @@ function buildBackendLaunchSpec({
   desktopDir,
   baseEnv,
   exportCommand,
-  devPythonExists,
+  existsSync = fs.existsSync,
   configPath,
   apiSecret,
 }) {
   const dbPath = path.join(userDataPath, 'kanban.db');
   const uploadsDir = resolveConfiguredUploadsDir(userDataPath, configPath);
-  // API keys are encrypted with a key the server keeps in the OS keychain (server/services/ai/secrets.py)
+  // API keys are encrypted with a key the server keeps in the OS keychain (the server's secret store)
   const env = { ...baseEnv, KANBAN_DB_PATH: dbPath, KANBAN_UPLOADS_DIR: uploadsDir, KANBAN_SECRET_STORE: 'keychain' };
   // lets the server ask this app (headless) to draw a diagram's SVG with the draw.io editor
   if (exportCommand) env.KANBAN_EXPORT_CMD = JSON.stringify(exportCommand);
-  // The secret only this app's window knows (server/api_secret.py) goes to the server on its standard input, not in
+  // The secret only this app's window knows (the server's API secret module) goes to the server on its standard input, not in
   // its environment, which `ps` shows to every program of the same user (an AI's shell, say). The flag tells the
   // server to read it.
   if (apiSecret) env.KANBAN_API_SECRET_STDIN = '1';
   const stdio = [apiSecret ? 'pipe' : 'ignore', 'pipe', 'pipe'];
 
   if (isPackaged) {
-    // onedir layout (no per-launch temp extraction): the server sits next to kanban-mcp-stdio in one folder whose
-    // _internal/ both share, Resources/kanban-mcp-stdio/kanban-server[.exe] (desktop/kanban-backend.spec)
+    // The server sits next to kanban-mcp-stdio in one folder (built by desktop/scripts/build-server.sh):
+    // Resources/kanban-mcp-stdio/kanban-server[.exe]. The folder keeps the stdio program's old name because MCP
+    // clients outside the app store the path of Resources/kanban-mcp-stdio/kanban-mcp-stdio.
     const binaryPath = path.join(resourcesPath, 'kanban-mcp-stdio', `kanban-server${getBinaryExtension(platform)}`);
     return {
       command: binaryPath,
@@ -114,32 +119,53 @@ function buildBackendLaunchSpec({
       options: {
         env: {
           ...env,
-          PYTHONUNBUFFERED: '1',       // force unbuffered stdout so READY signal is not held in Python's internal buffer
-          PYTHONDONTWRITEBYTECODE: '1', // minor: skip .pyc writes in packaged binary
           KANBAN_UI_DIST: path.join(resourcesPath, 'ui', 'dist'),
           // the draw.io editor shipped with the app (desktop/scripts/fetch-drawio.sh), served at /drawio
           KANBAN_DRAWIO_DIR: path.join(resourcesPath, 'drawio'),
         },
         stdio,
+        windowsHide: true,             // a console program: no console window next to the app on Windows
         cwd: resourcesPath,            // explicit CWD so binary doesn't inherit Electron's CWD
       },
       dbPath,
     };
   }
 
-  const serverDir = path.join(desktopDir, '..', 'server');
-  const pythonPath = path.join(serverDir, '.venv', 'bin', 'python');
+  // Development: the debug build in the Rust workspace, or the program KANBAN_SERVER_BIN names
+  const workspaceDir = path.join(desktopDir, '..', SERVER_DIR);
+  const binaryPath = getDevBinaryPath('kanban-server', { platform, desktopDir, env: baseEnv });
+  if (!existsSync(binaryPath)) {
+    throw new Error(
+      `The server is not built: ${binaryPath} does not exist. ` +
+        `Run "cargo build -p kanban-server -p kanban-mcp-stdio" in ${workspaceDir}, ` +
+        'or set KANBAN_SERVER_BIN to the kanban-server program to start.'
+    );
+  }
 
   return {
-    command: devPythonExists ? pythonPath : 'python3',
-    args: [path.join(serverDir, 'main.py')],
+    command: binaryPath,
+    args: [],
     options: {
       env,
-      cwd: serverDir,
+      cwd: workspaceDir,
       stdio,
+      windowsHide: true,
     },
     dbPath,
   };
+}
+
+/**
+ * Where a program of the Rust workspace is in development: target/debug/<name> in the workspace, or, when
+ * KANBAN_SERVER_BIN names the kanban-server program, that path (and the other program beside it).
+ */
+function getDevBinaryPath(name, { platform, desktopDir, env = {} }) {
+  const file = `${name}${getBinaryExtension(platform)}`;
+  const override = env && env.KANBAN_SERVER_BIN;
+  if (override) {
+    return name === 'kanban-server' ? override : path.join(path.dirname(override), file);
+  }
+  return path.join(desktopDir, '..', SERVER_DIR, 'target', 'debug', file);
 }
 
 /**
@@ -159,8 +185,9 @@ function parseReadyPort(output) {
   return null;
 }
 
-// Pre-onedir installs shipped a single `kanban-mcp-stdio` file in Resources; that
-// path is now a directory, so configs written by older versions must be migrated.
+// Installs before the folder layout shipped a single `kanban-mcp-stdio` file in Resources; that path is now a folder, so MCP
+// client entries written by those versions must be migrated (see registerMcpServer's migrateFromCommand). Existing
+// installs may still have such an entry, so this stays.
 function getLegacyMcpStdioBinaryPath({ platform, resourcesPath }) {
   return path.join(resourcesPath, `kanban-mcp-stdio${getBinaryExtension(platform)}`);
 }
@@ -170,18 +197,19 @@ function getMcpStdioBinaryPath({
   platform,
   resourcesPath,
   desktopDir,
+  env = process.env,
   existsSync = fs.existsSync,
 }) {
   const ext = getBinaryExtension(platform);
   if (isPackaged) {
-    const onedirBinary = path.join(resourcesPath, 'kanban-mcp-stdio', `kanban-mcp-stdio${ext}`);
-    if (existsSync(onedirBinary)) {
-      return onedirBinary;
+    const folderBinary = path.join(resourcesPath, 'kanban-mcp-stdio', `kanban-mcp-stdio${ext}`);
+    if (existsSync(folderBinary)) {
+      return folderBinary;
     }
     return getLegacyMcpStdioBinaryPath({ platform, resourcesPath });
   }
 
-  return path.join(desktopDir, '..', 'server', 'mcp_stdio.py');
+  return getDevBinaryPath('kanban-mcp-stdio', { platform, desktopDir, env });
 }
 
 function shouldRunVscodeSetup({ isPackaged, setupFlagExists }) {
@@ -446,6 +474,8 @@ module.exports = {
   buildBackendLaunchSpec,
   buildExportCommand,
   getBinaryExtension,
+  SERVER_DIR,
+  getDevBinaryPath,
   getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
   isNetworkPath,

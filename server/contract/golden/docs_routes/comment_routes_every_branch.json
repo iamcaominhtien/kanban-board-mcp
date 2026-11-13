@@ -1,0 +1,4269 @@
+{
+  "delete: a member, not the author": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "not_author",
+        "message": "Only the author or an admin can delete a comment",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "delete: a reply": {
+    "status": 200,
+    "json": {
+      "deleted": "comment",
+      "thread_id": "<uuid:1>"
+    }
+  },
+  "delete: the first comment removes the thread": {
+    "status": 200,
+    "json": {
+      "deleted": "thread",
+      "thread_id": "<uuid:1>"
+    }
+  },
+  "delete: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "comment_not_found",
+        "message": "Comment not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "delete: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can read comments but cannot add them. Ask a project member for access.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "edit: empty": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "empty_comment",
+        "message": "Write something before posting",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "edit: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "body"
+        ]
+      ]
+    }
+  },
+  "edit: not the author": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "open",
+      "number": 3,
+      "anchor": {
+        "quote": "Not there",
+        "prefix": "",
+        "suffix": "",
+        "section": null,
+        "state": "attached",
+        "pos": null
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Hack",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": "<time>",
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "Mia",
+          "body": "Yes, @Ada",
+          "mentions": [
+            {
+              "id": "<uuid:5>",
+              "name": "Ada"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Thanks",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null
+    }
+  },
+  "edit: ok": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "open",
+      "number": 3,
+      "anchor": {
+        "quote": "Not there",
+        "prefix": "",
+        "suffix": "",
+        "section": null,
+        "state": "attached",
+        "pos": null
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Hack",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": "<time>",
+          "ai": null,
+          "can_edit": false,
+          "can_delete": false
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "Mia",
+          "body": "Edited @Ada",
+          "mentions": [
+            {
+              "id": "<uuid:5>",
+              "name": "Ada"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": "<time>",
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Thanks",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": false
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null
+    }
+  },
+  "edit: same text": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "open",
+      "number": 3,
+      "anchor": {
+        "quote": "Not there",
+        "prefix": "",
+        "suffix": "",
+        "section": null,
+        "state": "attached",
+        "pos": null
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Hack",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": "<time>",
+          "ai": null,
+          "can_edit": false,
+          "can_delete": false
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "Mia",
+          "body": "Edited @Ada",
+          "mentions": [
+            {
+              "id": "<uuid:5>",
+              "name": "Ada"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": "<time>",
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Thanks",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": false
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null
+    }
+  },
+  "edit: too long": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "comment_too_long",
+        "message": "A comment is limited to 4000 characters",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "edit: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "comment_not_found",
+        "message": "Comment not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "edit: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can read comments but cannot add them. Ask a project member for access.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "list: after": {
+    "status": 200,
+    "json": {
+      "threads": [
+        {
+          "id": "<uuid:1>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 1,
+          "anchor": {
+            "quote": "Rate limits are not enforced",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": 77
+          },
+          "created_by": "Mia",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:3>",
+              "thread_id": "<uuid:1>",
+              "author": "Mia",
+              "body": "Padded",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:4>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 2,
+          "anchor": {
+            "quote": "Tracked in KAN-12",
+            "prefix": "",
+            "suffix": "",
+            "section": null,
+            "state": "attached",
+            "pos": 111
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:5>",
+              "thread_id": "<uuid:4>",
+              "author": "user",
+              "body": "x",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:6>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 3,
+          "anchor": {
+            "quote": "Not in the text",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": null
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:7>",
+              "thread_id": "<uuid:6>",
+              "author": "user",
+              "body": "x",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:8>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:9>",
+              "thread_id": "<uuid:8>",
+              "author": "user",
+              "body": "Looks good",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:10>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:11>",
+              "thread_id": "<uuid:10>",
+              "author": "user",
+              "body": "@Mia and @[Ada](member:nope) please look, cc @Nobody",
+              "mentions": [
+                {
+                  "id": "<uuid:12>",
+                  "name": "Mia"
+                },
+                {
+                  "id": "<uuid:13>",
+                  "name": "Ada"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:14>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:15>",
+              "thread_id": "<uuid:14>",
+              "author": "user",
+              "body": "@Robo summarize",
+              "mentions": [
+                {
+                  "id": "ai-robo",
+                  "name": "Robo"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:16>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:17>",
+              "thread_id": "<uuid:16>",
+              "author": "user",
+              "body": "@Robo FYI",
+              "mentions": [
+                {
+                  "id": "ai-robo",
+                  "name": "Robo"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:18>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:19>",
+              "thread_id": "<uuid:18>",
+              "author": "user",
+              "body": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        }
+      ],
+      "counts": {
+        "all": 3,
+        "open": 3,
+        "resolved": 0,
+        "orphaned": 0,
+        "page": 5
+      },
+      "role": "admin",
+      "me": "user",
+      "members": [
+        {
+          "id": "<uuid:20>",
+          "name": "Admin",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:21>",
+          "name": "Vera",
+          "color": "#10B981",
+          "role": "viewer",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:12>",
+          "name": "Mia",
+          "color": "#F59E0B",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:13>",
+          "name": "Ada",
+          "color": "#EF4444",
+          "role": "admin",
+          "kind": "human"
+        },
+        {
+          "id": "ai-robo",
+          "name": "Robo",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "ai"
+        }
+      ],
+      "docs_ai": false
+    }
+  },
+  "list: all": {
+    "status": 200,
+    "json": {
+      "threads": [
+        {
+          "id": "<uuid:1>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 1,
+          "anchor": {
+            "quote": "bearer token",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": 27
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:3>",
+              "thread_id": "<uuid:1>",
+              "author": "user",
+              "body": "Is this enough?",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:4>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 2,
+          "anchor": {
+            "quote": "Rate limits are not enforced",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": 77
+          },
+          "created_by": "Mia",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:5>",
+              "thread_id": "<uuid:4>",
+              "author": "Mia",
+              "body": "Padded",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:6>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 3,
+          "anchor": {
+            "quote": "Tracked in KAN-12",
+            "prefix": "",
+            "suffix": "",
+            "section": null,
+            "state": "attached",
+            "pos": 111
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:7>",
+              "thread_id": "<uuid:6>",
+              "author": "user",
+              "body": "x",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:8>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 4,
+          "anchor": {
+            "quote": "Not in the text",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": null
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:9>",
+              "thread_id": "<uuid:8>",
+              "author": "user",
+              "body": "x",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:10>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:11>",
+              "thread_id": "<uuid:10>",
+              "author": "user",
+              "body": "Looks good",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:12>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:13>",
+              "thread_id": "<uuid:12>",
+              "author": "user",
+              "body": "@Mia and @[Ada](member:nope) please look, cc @Nobody",
+              "mentions": [
+                {
+                  "id": "<uuid:14>",
+                  "name": "Mia"
+                },
+                {
+                  "id": "<uuid:15>",
+                  "name": "Ada"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:16>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:17>",
+              "thread_id": "<uuid:16>",
+              "author": "user",
+              "body": "@Robo summarize",
+              "mentions": [
+                {
+                  "id": "ai-robo",
+                  "name": "Robo"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:18>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:19>",
+              "thread_id": "<uuid:18>",
+              "author": "user",
+              "body": "@Robo FYI",
+              "mentions": [
+                {
+                  "id": "ai-robo",
+                  "name": "Robo"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:20>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:21>",
+              "thread_id": "<uuid:20>",
+              "author": "user",
+              "body": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        }
+      ],
+      "counts": {
+        "all": 4,
+        "open": 4,
+        "resolved": 0,
+        "orphaned": 0,
+        "page": 5
+      },
+      "role": "admin",
+      "me": "user",
+      "members": [
+        {
+          "id": "<uuid:22>",
+          "name": "Admin",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:23>",
+          "name": "Vera",
+          "color": "#10B981",
+          "role": "viewer",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:14>",
+          "name": "Mia",
+          "color": "#F59E0B",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:15>",
+          "name": "Ada",
+          "color": "#EF4444",
+          "role": "admin",
+          "kind": "human"
+        },
+        {
+          "id": "ai-robo",
+          "name": "Robo",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "ai"
+        }
+      ],
+      "docs_ai": false
+    }
+  },
+  "list: as Mia": {
+    "status": 200,
+    "json": {
+      "threads": [
+        {
+          "id": "<uuid:1>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 1,
+          "anchor": {
+            "quote": "bearer token",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": 27
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:3>",
+              "thread_id": "<uuid:1>",
+              "author": "user",
+              "body": "Is this enough?",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:4>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 2,
+          "anchor": {
+            "quote": "Rate limits are not enforced",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": 77
+          },
+          "created_by": "Mia",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:5>",
+              "thread_id": "<uuid:4>",
+              "author": "Mia",
+              "body": "Padded",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:6>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 3,
+          "anchor": {
+            "quote": "Tracked in KAN-12",
+            "prefix": "",
+            "suffix": "",
+            "section": null,
+            "state": "attached",
+            "pos": 111
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:7>",
+              "thread_id": "<uuid:6>",
+              "author": "user",
+              "body": "x",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:8>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 4,
+          "anchor": {
+            "quote": "Not in the text",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": null
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:9>",
+              "thread_id": "<uuid:8>",
+              "author": "user",
+              "body": "x",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:10>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:11>",
+              "thread_id": "<uuid:10>",
+              "author": "user",
+              "body": "Looks good",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:12>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:13>",
+              "thread_id": "<uuid:12>",
+              "author": "user",
+              "body": "@Mia and @[Ada](member:nope) please look, cc @Nobody",
+              "mentions": [
+                {
+                  "id": "<uuid:14>",
+                  "name": "Mia"
+                },
+                {
+                  "id": "<uuid:15>",
+                  "name": "Ada"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:16>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:17>",
+              "thread_id": "<uuid:16>",
+              "author": "user",
+              "body": "@Robo summarize",
+              "mentions": [
+                {
+                  "id": "ai-robo",
+                  "name": "Robo"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:18>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:19>",
+              "thread_id": "<uuid:18>",
+              "author": "user",
+              "body": "@Robo FYI",
+              "mentions": [
+                {
+                  "id": "ai-robo",
+                  "name": "Robo"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:20>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:21>",
+              "thread_id": "<uuid:20>",
+              "author": "user",
+              "body": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        }
+      ],
+      "counts": {
+        "all": 4,
+        "open": 4,
+        "resolved": 0,
+        "orphaned": 0,
+        "page": 5
+      },
+      "role": "member",
+      "me": "Mia",
+      "members": [
+        {
+          "id": "<uuid:22>",
+          "name": "Admin",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:23>",
+          "name": "Vera",
+          "color": "#10B981",
+          "role": "viewer",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:14>",
+          "name": "Mia",
+          "color": "#F59E0B",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:15>",
+          "name": "Ada",
+          "color": "#EF4444",
+          "role": "admin",
+          "kind": "human"
+        },
+        {
+          "id": "ai-robo",
+          "name": "Robo",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "ai"
+        }
+      ],
+      "docs_ai": false
+    }
+  },
+  "list: as the viewer": {
+    "status": 200,
+    "json": {
+      "threads": [
+        {
+          "id": "<uuid:1>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 1,
+          "anchor": {
+            "quote": "bearer token",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": 27
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:3>",
+              "thread_id": "<uuid:1>",
+              "author": "user",
+              "body": "Is this enough?",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": false,
+          "can_resolve": false,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:4>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 2,
+          "anchor": {
+            "quote": "Rate limits are not enforced",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": 77
+          },
+          "created_by": "Mia",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:5>",
+              "thread_id": "<uuid:4>",
+              "author": "Mia",
+              "body": "Padded",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": false,
+          "can_resolve": false,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:6>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 3,
+          "anchor": {
+            "quote": "Tracked in KAN-12",
+            "prefix": "",
+            "suffix": "",
+            "section": null,
+            "state": "attached",
+            "pos": 111
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:7>",
+              "thread_id": "<uuid:6>",
+              "author": "user",
+              "body": "x",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": false,
+          "can_resolve": false,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:8>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 4,
+          "anchor": {
+            "quote": "Not in the text",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": null
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:9>",
+              "thread_id": "<uuid:8>",
+              "author": "user",
+              "body": "x",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": false,
+          "can_resolve": false,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:10>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:11>",
+              "thread_id": "<uuid:10>",
+              "author": "user",
+              "body": "Looks good",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": false,
+          "can_resolve": false,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:12>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:13>",
+              "thread_id": "<uuid:12>",
+              "author": "user",
+              "body": "@Mia and @[Ada](member:nope) please look, cc @Nobody",
+              "mentions": [
+                {
+                  "id": "<uuid:14>",
+                  "name": "Mia"
+                },
+                {
+                  "id": "<uuid:15>",
+                  "name": "Ada"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": false,
+          "can_resolve": false,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:16>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:17>",
+              "thread_id": "<uuid:16>",
+              "author": "user",
+              "body": "@Robo summarize",
+              "mentions": [
+                {
+                  "id": "ai-robo",
+                  "name": "Robo"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": false,
+          "can_resolve": false,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:18>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:19>",
+              "thread_id": "<uuid:18>",
+              "author": "user",
+              "body": "@Robo FYI",
+              "mentions": [
+                {
+                  "id": "ai-robo",
+                  "name": "Robo"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": false,
+          "can_resolve": false,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:20>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:21>",
+              "thread_id": "<uuid:20>",
+              "author": "user",
+              "body": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": false
+            }
+          ],
+          "can_reply": false,
+          "can_resolve": false,
+          "ai_jobs": [],
+          "ai_summary": null
+        }
+      ],
+      "counts": {
+        "all": 4,
+        "open": 4,
+        "resolved": 0,
+        "orphaned": 0,
+        "page": 5
+      },
+      "role": "viewer",
+      "me": "Vera",
+      "members": [
+        {
+          "id": "<uuid:22>",
+          "name": "Admin",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:23>",
+          "name": "Vera",
+          "color": "#10B981",
+          "role": "viewer",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:14>",
+          "name": "Mia",
+          "color": "#F59E0B",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:15>",
+          "name": "Ada",
+          "color": "#EF4444",
+          "role": "admin",
+          "kind": "human"
+        },
+        {
+          "id": "ai-robo",
+          "name": "Robo",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "ai"
+        }
+      ],
+      "docs_ai": false
+    }
+  },
+  "list: bad kind": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_kind",
+        "message": "kind must be inline or page",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "list: bad state": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_state",
+        "message": "state must be one of ['all', 'open', 'resolved']",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "list: docs AI on": {
+    "status": 200,
+    "json": {
+      "threads": [
+        {
+          "id": "<uuid:1>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 1,
+          "anchor": {
+            "quote": "Rate limits are not enforced",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": 77
+          },
+          "created_by": "Mia",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:3>",
+              "thread_id": "<uuid:1>",
+              "author": "Mia",
+              "body": "Padded",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:4>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 2,
+          "anchor": {
+            "quote": "Tracked in KAN-12",
+            "prefix": "",
+            "suffix": "",
+            "section": null,
+            "state": "attached",
+            "pos": 111
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:5>",
+              "thread_id": "<uuid:4>",
+              "author": "user",
+              "body": "x",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:6>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 3,
+          "anchor": {
+            "quote": "Not in the text",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": null
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:7>",
+              "thread_id": "<uuid:6>",
+              "author": "user",
+              "body": "x",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:8>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:9>",
+              "thread_id": "<uuid:8>",
+              "author": "user",
+              "body": "Looks good",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:10>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:11>",
+              "thread_id": "<uuid:10>",
+              "author": "user",
+              "body": "@Mia and @[Ada](member:nope) please look, cc @Nobody",
+              "mentions": [
+                {
+                  "id": "<uuid:12>",
+                  "name": "Mia"
+                },
+                {
+                  "id": "<uuid:13>",
+                  "name": "Ada"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:14>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:15>",
+              "thread_id": "<uuid:14>",
+              "author": "user",
+              "body": "@Robo summarize",
+              "mentions": [
+                {
+                  "id": "ai-robo",
+                  "name": "Robo"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:16>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:17>",
+              "thread_id": "<uuid:16>",
+              "author": "user",
+              "body": "@Robo FYI",
+              "mentions": [
+                {
+                  "id": "ai-robo",
+                  "name": "Robo"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:18>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:19>",
+              "thread_id": "<uuid:18>",
+              "author": "user",
+              "body": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        }
+      ],
+      "counts": {
+        "all": 3,
+        "open": 3,
+        "resolved": 0,
+        "orphaned": 0,
+        "page": 5
+      },
+      "role": "admin",
+      "me": "user",
+      "members": [
+        {
+          "id": "<uuid:20>",
+          "name": "Admin",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:21>",
+          "name": "Vera",
+          "color": "#10B981",
+          "role": "viewer",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:12>",
+          "name": "Mia",
+          "color": "#F59E0B",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:13>",
+          "name": "Ada",
+          "color": "#EF4444",
+          "role": "admin",
+          "kind": "human"
+        },
+        {
+          "id": "ai-robo",
+          "name": "Robo",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "ai",
+          "ai": {
+            "status": "unavailable",
+            "usable": false,
+            "note": "Not set up",
+            "provider": "claude-code"
+          }
+        }
+      ],
+      "docs_ai": true
+    }
+  },
+  "list: docs disabled": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "docs_disabled",
+        "message": "Docs are turned off for this project",
+        "request_id": "<request id>",
+        "role": "admin"
+      }
+    },
+    "has_request_id": true
+  },
+  "list: empty": {
+    "status": 200,
+    "json": {
+      "threads": [],
+      "counts": {
+        "all": 0,
+        "open": 0,
+        "resolved": 0,
+        "orphaned": 0,
+        "page": 0
+      },
+      "role": "admin",
+      "me": "user",
+      "members": [
+        {
+          "id": "<uuid:1>",
+          "name": "Admin",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:2>",
+          "name": "Vera",
+          "color": "#10B981",
+          "role": "viewer",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:3>",
+          "name": "Mia",
+          "color": "#F59E0B",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:4>",
+          "name": "Ada",
+          "color": "#EF4444",
+          "role": "admin",
+          "kind": "human"
+        },
+        {
+          "id": "ai-robo",
+          "name": "Robo",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "ai"
+        }
+      ],
+      "docs_ai": false
+    }
+  },
+  "list: empty kind": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_kind",
+        "message": "kind must be inline or page",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "list: empty state": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_state",
+        "message": "state must be one of ['all', 'open', 'resolved']",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "list: kind inline, open": {
+    "status": 200,
+    "json": {
+      "threads": [
+        {
+          "id": "<uuid:1>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 1,
+          "anchor": {
+            "quote": "bearer token",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": 27
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:3>",
+              "thread_id": "<uuid:1>",
+              "author": "user",
+              "body": "Is this enough?",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:4>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 2,
+          "anchor": {
+            "quote": "Rate limits are not enforced",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": 77
+          },
+          "created_by": "Mia",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:5>",
+              "thread_id": "<uuid:4>",
+              "author": "Mia",
+              "body": "Padded",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:6>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 3,
+          "anchor": {
+            "quote": "Tracked in KAN-12",
+            "prefix": "",
+            "suffix": "",
+            "section": null,
+            "state": "attached",
+            "pos": 111
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:7>",
+              "thread_id": "<uuid:6>",
+              "author": "user",
+              "body": "x",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:8>",
+          "page_id": "<uuid:2>",
+          "kind": "inline",
+          "status": "open",
+          "number": 4,
+          "anchor": {
+            "quote": "Not in the text",
+            "prefix": "Every route requires a ",
+            "suffix": "; rotation",
+            "section": "api",
+            "state": "attached",
+            "pos": null
+          },
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:9>",
+              "thread_id": "<uuid:8>",
+              "author": "user",
+              "body": "x",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        }
+      ],
+      "counts": {
+        "all": 4,
+        "open": 4,
+        "resolved": 0,
+        "orphaned": 0,
+        "page": 5
+      },
+      "role": "admin",
+      "me": "user",
+      "members": [
+        {
+          "id": "<uuid:10>",
+          "name": "Admin",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:11>",
+          "name": "Vera",
+          "color": "#10B981",
+          "role": "viewer",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:12>",
+          "name": "Mia",
+          "color": "#F59E0B",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:13>",
+          "name": "Ada",
+          "color": "#EF4444",
+          "role": "admin",
+          "kind": "human"
+        },
+        {
+          "id": "ai-robo",
+          "name": "Robo",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "ai"
+        }
+      ],
+      "docs_ai": false
+    }
+  },
+  "list: kind page": {
+    "status": 200,
+    "json": {
+      "threads": [
+        {
+          "id": "<uuid:1>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:3>",
+              "thread_id": "<uuid:1>",
+              "author": "user",
+              "body": "Looks good",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:4>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:5>",
+              "thread_id": "<uuid:4>",
+              "author": "user",
+              "body": "@Mia and @[Ada](member:nope) please look, cc @Nobody",
+              "mentions": [
+                {
+                  "id": "<uuid:6>",
+                  "name": "Mia"
+                },
+                {
+                  "id": "<uuid:7>",
+                  "name": "Ada"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:8>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:9>",
+              "thread_id": "<uuid:8>",
+              "author": "user",
+              "body": "@Robo summarize",
+              "mentions": [
+                {
+                  "id": "ai-robo",
+                  "name": "Robo"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:10>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:11>",
+              "thread_id": "<uuid:10>",
+              "author": "user",
+              "body": "@Robo FYI",
+              "mentions": [
+                {
+                  "id": "ai-robo",
+                  "name": "Robo"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:12>",
+          "page_id": "<uuid:2>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "user",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": false,
+          "comments": [
+            {
+              "id": "<uuid:13>",
+              "thread_id": "<uuid:12>",
+              "author": "user",
+              "body": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        }
+      ],
+      "counts": {
+        "all": 4,
+        "open": 4,
+        "resolved": 0,
+        "orphaned": 0,
+        "page": 5
+      },
+      "role": "admin",
+      "me": "user",
+      "members": [
+        {
+          "id": "<uuid:14>",
+          "name": "Admin",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:15>",
+          "name": "Vera",
+          "color": "#10B981",
+          "role": "viewer",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:6>",
+          "name": "Mia",
+          "color": "#F59E0B",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:7>",
+          "name": "Ada",
+          "color": "#EF4444",
+          "role": "admin",
+          "kind": "human"
+        },
+        {
+          "id": "ai-robo",
+          "name": "Robo",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "ai"
+        }
+      ],
+      "docs_ai": false
+    }
+  },
+  "list: page in the bin": {
+    "status": 410,
+    "json": {
+      "detail": {
+        "code": "page_deleted",
+        "message": "Page is in the Recycle Bin",
+        "request_id": "<request id>",
+        "deleted_by": "user",
+        "deleted_at": "<time>"
+      }
+    },
+    "has_request_id": true
+  },
+  "list: stranger": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "docs_no_access",
+        "message": "Docs in Kanban is limited to project members.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "list: unknown page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "preview: no markdown": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "markdown"
+        ]
+      ]
+    }
+  },
+  "preview: none orphaned": {
+    "status": 200,
+    "json": {
+      "orphaned": [
+        {
+          "id": "<uuid:1>",
+          "quote": "Not in the text"
+        }
+      ],
+      "count": 1
+    }
+  },
+  "preview: page in the bin": {
+    "status": 410,
+    "json": {
+      "detail": {
+        "code": "page_deleted",
+        "message": "Page is in the Recycle Bin",
+        "request_id": "<request id>",
+        "deleted_by": "user",
+        "deleted_at": "<time>"
+      }
+    },
+    "has_request_id": true
+  },
+  "preview: some orphaned": {
+    "status": 200,
+    "json": {
+      "orphaned": [
+        {
+          "id": "<uuid:1>",
+          "quote": "Rate limits are not enforced"
+        },
+        {
+          "id": "<uuid:2>",
+          "quote": "Not in the text"
+        },
+        {
+          "id": "<uuid:3>",
+          "quote": "Tracked in KAN-12"
+        }
+      ],
+      "count": 3
+    }
+  },
+  "preview: unknown page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "preview: viewer may ask": {
+    "status": 200,
+    "json": {
+      "orphaned": [
+        {
+          "id": "<uuid:1>",
+          "quote": "bearer token"
+        },
+        {
+          "id": "<uuid:2>",
+          "quote": "Rate limits are not enforced"
+        },
+        {
+          "id": "<uuid:3>",
+          "quote": "Not in the text"
+        },
+        {
+          "id": "<uuid:4>",
+          "quote": "Tracked in KAN-12"
+        }
+      ],
+      "count": 4
+    }
+  },
+  "read: ok": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "open",
+      "number": 1,
+      "anchor": {
+        "quote": "bearer token",
+        "prefix": "Every route requires a ",
+        "suffix": "; rotation",
+        "section": "api",
+        "state": "attached",
+        "pos": 27
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Is this enough?",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": false
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "Mia",
+          "body": "Yes, @Ada",
+          "mentions": [
+            {
+              "id": "<uuid:5>",
+              "name": "Ada"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Thanks",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": false
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null
+    }
+  },
+  "read: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "thread_not_found",
+        "message": "Comment thread not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "reattach: a page comment": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "not_inline",
+        "message": "Only inline threads have an anchor",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "reattach: no quote": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "quote"
+        ]
+      ]
+    }
+  },
+  "reattach: no selection": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "no_selection",
+        "message": "Select some text to attach the thread to",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "reattach: ok": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "open",
+      "number": 1,
+      "anchor": {
+        "quote": "Rate limits",
+        "prefix": "",
+        "suffix": " are",
+        "section": "limits",
+        "state": "attached",
+        "pos": 77
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Is this enough?",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "Mia",
+          "body": "Yes, @Ada",
+          "mentions": [
+            {
+              "id": "<uuid:5>",
+              "name": "Ada"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Thanks",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null
+    }
+  },
+  "reattach: text not in the page": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "open",
+      "number": 3,
+      "anchor": {
+        "quote": "Not there",
+        "prefix": "",
+        "suffix": "",
+        "section": null,
+        "state": "attached",
+        "pos": null
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Is this enough?",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "Mia",
+          "body": "Yes, @Ada",
+          "mentions": [
+            {
+              "id": "<uuid:5>",
+              "name": "Ada"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Thanks",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null
+    }
+  },
+  "reattach: too long": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "no_selection",
+        "message": "Select some text to attach the thread to",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "reattach: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "thread_not_found",
+        "message": "Comment thread not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "reattach: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can read comments but cannot add them. Ask a project member for access.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "reopen: a page comment": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "not_resolvable",
+        "message": "Only inline threads can be resolved",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "reopen: already open": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "open",
+      "number": 1,
+      "anchor": {
+        "quote": "bearer token",
+        "prefix": "Every route requires a ",
+        "suffix": "; rotation",
+        "section": "api",
+        "state": "attached",
+        "pos": 27
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Is this enough?",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "Mia",
+          "body": "Yes, @Ada",
+          "mentions": [
+            {
+              "id": "<uuid:5>",
+              "name": "Ada"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Thanks",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null
+    }
+  },
+  "reopen: ok": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "open",
+      "number": 1,
+      "anchor": {
+        "quote": "bearer token",
+        "prefix": "Every route requires a ",
+        "suffix": "; rotation",
+        "section": "api",
+        "state": "attached",
+        "pos": 27
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Is this enough?",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "Mia",
+          "body": "Yes, @Ada",
+          "mentions": [
+            {
+              "id": "<uuid:5>",
+              "name": "Ada"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Thanks",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null
+    }
+  },
+  "reopen: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "thread_not_found",
+        "message": "Comment thread not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "reopen: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can read comments but cannot add them. Ask a project member for access.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "reply: empty": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "empty_comment",
+        "message": "Write something before posting",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "reply: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "body"
+        ]
+      ]
+    }
+  },
+  "reply: ok": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "open",
+      "number": 1,
+      "anchor": {
+        "quote": "bearer token",
+        "prefix": "Every route requires a ",
+        "suffix": "; rotation",
+        "section": "api",
+        "state": "attached",
+        "pos": 27
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Is this enough?",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": false
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "Mia",
+          "body": "Yes, @Ada",
+          "mentions": [
+            {
+              "id": "<uuid:5>",
+              "name": "Ada"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null,
+      "ai_delivery": []
+    }
+  },
+  "reply: page in the bin": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "thread_not_found",
+        "message": "Comment thread not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "reply: stranger": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "docs_no_access",
+        "message": "Docs in Kanban is limited to project members.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "reply: unknown thread": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "thread_not_found",
+        "message": "Comment thread not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "reply: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can read comments but cannot add them. Ask a project member for access.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "reply: with an AI intent": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "open",
+      "number": 1,
+      "anchor": {
+        "quote": "bearer token",
+        "prefix": "Every route requires a ",
+        "suffix": "; rotation",
+        "section": "api",
+        "state": "attached",
+        "pos": 27
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Is this enough?",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "Mia",
+          "body": "Yes, @Ada",
+          "mentions": [
+            {
+              "id": "<uuid:5>",
+              "name": "Ada"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Thanks",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null,
+      "ai_delivery": []
+    }
+  },
+  "resolve: a page comment": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "not_resolvable",
+        "message": "Only inline threads can be resolved",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "resolve: again": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "resolved",
+      "number": null,
+      "anchor": {
+        "quote": "bearer token",
+        "prefix": "Every route requires a ",
+        "suffix": "; rotation",
+        "section": "api",
+        "state": "attached",
+        "pos": 27
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": "Mia",
+      "resolved_at": "<time>",
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Is this enough?",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": false
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "Mia",
+          "body": "Yes, @Ada",
+          "mentions": [
+            {
+              "id": "<uuid:5>",
+              "name": "Ada"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Thanks",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": false
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null
+    }
+  },
+  "resolve: ok": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "resolved",
+      "number": null,
+      "anchor": {
+        "quote": "bearer token",
+        "prefix": "Every route requires a ",
+        "suffix": "; rotation",
+        "section": "api",
+        "state": "attached",
+        "pos": 27
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": "Mia",
+      "resolved_at": "<time>",
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Is this enough?",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": false
+        },
+        {
+          "id": "<uuid:4>",
+          "thread_id": "<uuid:1>",
+          "author": "Mia",
+          "body": "Yes, @Ada",
+          "mentions": [
+            {
+              "id": "<uuid:5>",
+              "name": "Ada"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        },
+        {
+          "id": "<uuid:6>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Thanks",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": false,
+          "can_delete": false
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null
+    }
+  },
+  "resolve: page in the bin": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "thread_not_found",
+        "message": "Comment thread not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "resolve: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "thread_not_found",
+        "message": "Comment thread not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "resolve: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can read comments but cannot add them. Ask a project member for access.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "thread: AI mention with intent notify": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "page",
+      "status": "open",
+      "number": null,
+      "anchor": null,
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "@Robo FYI",
+          "mentions": [
+            {
+              "id": "ai-robo",
+              "name": "Robo"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null,
+      "ai_delivery": [
+        {
+          "member_id": "ai-robo",
+          "result": "not_delivered",
+          "reason": "Docs AI is off: the mention only notifies."
+        }
+      ]
+    }
+  },
+  "thread: anchor not an object": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "anchor"
+        ]
+      ]
+    }
+  },
+  "thread: anchor with a section of nothing": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "open",
+      "number": 3,
+      "anchor": {
+        "quote": "Tracked in KAN-12",
+        "prefix": "",
+        "suffix": "",
+        "section": null,
+        "state": "attached",
+        "pos": 111
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "x",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null,
+      "ai_delivery": []
+    }
+  },
+  "thread: anchor without quote": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "anchor",
+          "quote"
+        ]
+      ]
+    }
+  },
+  "thread: bad kind": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_kind",
+        "message": "kind must be inline or page",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "thread: blank quote": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "no_selection",
+        "message": "Select some text before adding a comment",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "thread: body at the limit": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "page",
+      "status": "open",
+      "number": null,
+      "anchor": null,
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null,
+      "ai_delivery": []
+    }
+  },
+  "thread: body not text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "body"
+        ]
+      ]
+    }
+  },
+  "thread: body too long": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "comment_too_long",
+        "message": "A comment is limited to 4000 characters",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "thread: default kind is inline": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "open",
+      "number": 2,
+      "anchor": {
+        "quote": "Rate limits are not enforced",
+        "prefix": "Every route requires a ",
+        "suffix": "; rotation",
+        "section": "api",
+        "state": "attached",
+        "pos": 77
+      },
+      "created_by": "Mia",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "Mia",
+          "body": "Padded",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null,
+      "ai_delivery": []
+    }
+  },
+  "thread: docs AI on, AI mention to notify": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "page",
+      "status": "open",
+      "number": null,
+      "anchor": null,
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "@Robo FYI",
+          "mentions": [
+            {
+              "id": "ai-robo",
+              "name": "Robo"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null,
+      "ai_delivery": [
+        {
+          "member_id": "ai-robo",
+          "result": "notified"
+        }
+      ]
+    }
+  },
+  "thread: docs disabled": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "docs_disabled",
+        "message": "Docs are turned off for this project",
+        "request_id": "<request id>",
+        "role": "admin"
+      }
+    },
+    "has_request_id": true
+  },
+  "thread: empty body": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "empty_comment",
+        "message": "Write something before posting",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "thread: inline": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "open",
+      "number": 1,
+      "anchor": {
+        "quote": "bearer token",
+        "prefix": "Every route requires a ",
+        "suffix": "; rotation",
+        "section": "api",
+        "state": "attached",
+        "pos": 27
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Is this enough?",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null,
+      "ai_delivery": []
+    }
+  },
+  "thread: inline without anchor": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "no_selection",
+        "message": "Select some text before adding a comment",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "thread: mention a member": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "page",
+      "status": "open",
+      "number": null,
+      "anchor": null,
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "@Mia and @[Ada](member:nope) please look, cc @Nobody",
+          "mentions": [
+            {
+              "id": "<uuid:4>",
+              "name": "Mia"
+            },
+            {
+              "id": "<uuid:5>",
+              "name": "Ada"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null,
+      "ai_delivery": []
+    }
+  },
+  "thread: mention an AI member": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "page",
+      "status": "open",
+      "number": null,
+      "anchor": null,
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "@Robo summarize",
+          "mentions": [
+            {
+              "id": "ai-robo",
+              "name": "Robo"
+            }
+          ],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null,
+      "ai_delivery": [
+        {
+          "member_id": "ai-robo",
+          "result": "not_delivered",
+          "reason": "Docs AI is off: the mention only notifies."
+        }
+      ]
+    }
+  },
+  "thread: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "body"
+        ]
+      ]
+    }
+  },
+  "thread: no body at all": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "body"
+        ]
+      ]
+    }
+  },
+  "thread: page comment": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "page",
+      "status": "open",
+      "number": null,
+      "anchor": null,
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "Looks good",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null,
+      "ai_delivery": []
+    }
+  },
+  "thread: page in the bin": {
+    "status": 410,
+    "json": {
+      "detail": {
+        "code": "page_deleted",
+        "message": "Page is in the Recycle Bin",
+        "request_id": "<request id>",
+        "deleted_by": "user",
+        "deleted_at": "<time>"
+      }
+    },
+    "has_request_id": true
+  },
+  "thread: quote too long": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "selection_too_long",
+        "message": "Select at most 2000 characters",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "thread: stranger": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "docs_no_access",
+        "message": "Docs in Kanban is limited to project members.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "thread: text not in the page yet": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "page_id": "<uuid:2>",
+      "kind": "inline",
+      "status": "open",
+      "number": 3,
+      "anchor": {
+        "quote": "Not in the text",
+        "prefix": "Every route requires a ",
+        "suffix": "; rotation",
+        "section": "api",
+        "state": "attached",
+        "pos": null
+      },
+      "created_by": "user",
+      "created_at": "<time>",
+      "resolved_by": null,
+      "resolved_at": null,
+      "unread": false,
+      "comments": [
+        {
+          "id": "<uuid:3>",
+          "thread_id": "<uuid:1>",
+          "author": "user",
+          "body": "x",
+          "mentions": [],
+          "created_at": "<time>",
+          "edited_at": null,
+          "ai": null,
+          "can_edit": true,
+          "can_delete": true
+        }
+      ],
+      "can_reply": true,
+      "can_resolve": true,
+      "ai_jobs": [],
+      "ai_summary": null,
+      "ai_delivery": []
+    }
+  },
+  "thread: unknown page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "thread: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Viewers can read comments but cannot add them. Ask a project member for access.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "ticket docs: DELETE .../docs/comments is the page route": {
+    "status": 200,
+    "json": {
+      "removed": 0
+    }
+  },
+  "ticket docs: DELETE with an unknown ticket": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "ticket_not_found",
+        "message": "Ticket not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  }
+}

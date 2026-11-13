@@ -1,0 +1,47 @@
+//! `ai_config_state` (Python model `AiConfigState`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+/// What the board knows about an AI member's configuration besides the config itself: its version, the files
+/// last written into the working folder, "I've done this" ticks and the snapshot taken by Reset (table).
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ai_config_state")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub member_id: String,
+    pub version: i32,
+    pub synced_at: Option<String>,
+    pub synced_files: i32,
+    /// JSON [{item, by, at, hash}]: a tick is valid while the hash still matches the item's content
+    pub ticks: String,
+    /// JSON {path: {units: {key: text}, written_at}}: what the board last wrote, the base of the 3-way merge
+    pub files: String,
+    /// JSON {hash, by, at}: the typed "allow hooks" confirmation and the hooks it covers
+    pub hooks_ok: String,
+    /// JSON {config, at, by}: the configuration before the last Reset (undo for 30 days)
+    pub reset_snapshot: Option<String>,
+    pub updated_at: String,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `AiConfigState`.
+/// Set before saving: `member_id`.
+pub fn new() -> ActiveModel {
+    ActiveModel {
+        member_id: NotSet,
+        version: Set(1),
+        synced_at: Set(None),
+        synced_files: Set(0),
+        ticks: Set("[]".to_string()),
+        files: Set("{}".to_string()),
+        hooks_ok: Set("{}".to_string()),
+        reset_snapshot: Set(None),
+        updated_at: Set(kb_base::time::now_iso()),
+    }
+}

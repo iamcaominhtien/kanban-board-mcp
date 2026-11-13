@@ -1,0 +1,47 @@
+//! `idea_ai_settings` (Python model `IdeaAiSettings`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::Set;
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+use crate::float::Float;
+
+/// Per-project switches of the optional AI helpers of the Idea Space; all on by default (table).
+///
+/// `project_id` "" holds the defaults for ideas that belong to no project.
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "idea_ai_settings")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub project_id: String,
+    pub enabled: bool,
+    pub triage_advice: bool,
+    pub weekly_grooming: bool,
+    pub ask: bool,
+    pub read_docs: bool,
+    pub read_repo: bool,
+    /// dollars a day for the Idea Space helpers
+    #[sea_orm(column_type = "Double")]
+    pub daily_cap: Float,
+    pub updated_at: String,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `IdeaAiSettings`.
+pub fn new() -> ActiveModel {
+    ActiveModel {
+        project_id: Set("".to_string()),
+        enabled: Set(true),
+        triage_advice: Set(true),
+        weekly_grooming: Set(true),
+        ask: Set(true),
+        read_docs: Set(true),
+        read_repo: Set(true),
+        daily_cap: Set(Float(1.0)),
+        updated_at: Set(kb_base::time::now_iso()),
+    }
+}

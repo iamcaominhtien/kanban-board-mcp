@@ -21,10 +21,10 @@ echo ""
 echo "Step 2/4: Fetching the draw.io editor..."
 "$REPO_ROOT/desktop/scripts/fetch-drawio.sh"
 
-# Step 3: Build Python binaries
+# Step 3: Build the Rust server and the stdio MCP server
 echo ""
-echo "Step 3/4: Building Python binaries..."
-"$REPO_ROOT/desktop/scripts/build-python.sh"
+echo "Step 3/4: Building the Rust server..."
+"$REPO_ROOT/desktop/scripts/build-server.sh"
 
 # Step 4: Package with electron-builder
 echo ""

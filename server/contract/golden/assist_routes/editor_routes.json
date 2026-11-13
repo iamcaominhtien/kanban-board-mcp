@@ -1,0 +1,691 @@
+{
+  "accept": {
+    "status": 200,
+    "json": {
+      "draft": {
+        "applied_at": "<time>",
+        "applied_by": "user",
+        "chat_message_id": null,
+        "cost": 0.02,
+        "created_at": "<time>",
+        "doc_id": null,
+        "expires_at": null,
+        "id": "<uuid:1>",
+        "insight_id": null,
+        "kind": "editor",
+        "member_id": null,
+        "member_name": "Board AI",
+        "owner": "user",
+        "payload": {
+          "action": "improve",
+          "input": {
+            "action": "improve",
+            "after": "",
+            "before": "",
+            "doc_id": null,
+            "idea_id": null,
+            "include": {},
+            "language": "",
+            "prompt": "",
+            "selection": "add is brokn",
+            "surface": "ticket_description",
+            "ticket_id": "KAN-1"
+          },
+          "result": {
+            "cut_short": false,
+            "kind": "replace",
+            "text": "add() is broken."
+          }
+        },
+        "project_id": "<uuid:2>",
+        "raw": "add() is broken.",
+        "result": {},
+        "status": "applied",
+        "ticket_id": "KAN-1",
+        "tokens": 240
+      }
+    }
+  },
+  "accept: again": {
+    "status": 409,
+    "json": {
+      "code": "conflict",
+      "detail": "This draft is not ready or was already closed."
+    }
+  },
+  "accept: criteria": {
+    "status": 200,
+    "json": {
+      "created": [
+        "add(2, 3) returns 5"
+      ],
+      "draft": {
+        "applied_at": "<time>",
+        "applied_by": "user",
+        "chat_message_id": null,
+        "cost": 0.02,
+        "created_at": "<time>",
+        "doc_id": null,
+        "expires_at": null,
+        "id": "<uuid:1>",
+        "insight_id": null,
+        "kind": "editor",
+        "member_id": null,
+        "member_name": "Board AI",
+        "owner": "user",
+        "payload": {
+          "action": "criteria",
+          "input": {
+            "action": "criteria",
+            "after": "",
+            "before": "",
+            "doc_id": null,
+            "idea_id": null,
+            "include": {},
+            "language": "",
+            "prompt": "",
+            "selection": "",
+            "surface": "ticket_description",
+            "ticket_id": "KAN-1"
+          },
+          "result": {
+            "cut_short": false,
+            "items": [
+              "add(2, 3) returns 5",
+              "add(-1, 1) returns 0"
+            ],
+            "kind": "list"
+          }
+        },
+        "project_id": "<uuid:2>",
+        "raw": "- add(2, 3) returns 5\n- add(-1, 1) returns 0",
+        "result": {},
+        "status": "applied",
+        "ticket_id": "KAN-1",
+        "tokens": 240
+      }
+    }
+  },
+  "accept: none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "That draft is gone. Ask again."
+    }
+  },
+  "cancel": {
+    "status": 200,
+    "json": {
+      "applied_at": null,
+      "applied_by": null,
+      "chat_message_id": null,
+      "cost": 0.06,
+      "created_at": "<time>",
+      "doc_id": null,
+      "expires_at": null,
+      "id": "<uuid:1>",
+      "insight_id": null,
+      "kind": "editor",
+      "member_id": null,
+      "member_name": "Board AI",
+      "owner": "user",
+      "payload": {
+        "action": "improve",
+        "input": {
+          "action": "improve",
+          "after": "",
+          "before": "",
+          "doc_id": null,
+          "idea_id": null,
+          "include": {},
+          "language": "",
+          "prompt": "",
+          "selection": "add is brokn",
+          "surface": "ticket_description",
+          "ticket_id": "KAN-1"
+        },
+        "result": {
+          "cut_short": false,
+          "kind": "replace",
+          "text": "- add(2, 3) returns 5\n- add(-1, 1) returns 0"
+        }
+      },
+      "project_id": "<uuid:2>",
+      "raw": "- add(2, 3) returns 5\n- add(-1, 1) returns 0",
+      "result": {},
+      "status": "discarded",
+      "ticket_id": "KAN-1",
+      "tokens": 720
+    }
+  },
+  "continue": {
+    "status": 200,
+    "json": {
+      "applied_at": null,
+      "applied_by": null,
+      "chat_message_id": null,
+      "cost": 0.02,
+      "created_at": "<time>",
+      "doc_id": null,
+      "expires_at": null,
+      "id": "<uuid:1>",
+      "insight_id": null,
+      "kind": "editor",
+      "member_id": null,
+      "member_name": "Board AI",
+      "owner": "user",
+      "payload": {
+        "action": "improve",
+        "input": {
+          "action": "improve",
+          "after": "",
+          "before": "",
+          "doc_id": null,
+          "idea_id": null,
+          "include": {},
+          "language": "",
+          "prompt": "",
+          "selection": "add is brokn",
+          "surface": "ticket_description",
+          "ticket_id": "KAN-1"
+        },
+        "result": {
+          "cut_short": false,
+          "kind": "replace",
+          "text": "- add(2, 3) returns 5\n- add(-1, 1) returns 0"
+        }
+      },
+      "project_id": "<uuid:2>",
+      "raw": "- add(2, 3) returns 5\n- add(-1, 1) returns 0",
+      "result": {},
+      "status": "pending",
+      "ticket_id": "KAN-1",
+      "tokens": 240
+    }
+  },
+  "continue: none": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "That draft is gone. Ask again."
+    }
+  },
+  "discard": {
+    "status": 200,
+    "json": {
+      "applied_at": null,
+      "applied_by": null,
+      "chat_message_id": null,
+      "cost": 0.06,
+      "created_at": "<time>",
+      "doc_id": null,
+      "expires_at": null,
+      "id": "<uuid:1>",
+      "insight_id": null,
+      "kind": "editor",
+      "member_id": null,
+      "member_name": "Board AI",
+      "owner": "user",
+      "payload": {
+        "action": "improve",
+        "input": {
+          "action": "improve",
+          "after": "",
+          "before": "",
+          "doc_id": null,
+          "idea_id": null,
+          "include": {},
+          "language": "",
+          "prompt": "",
+          "selection": "add is brokn",
+          "surface": "ticket_description",
+          "ticket_id": "KAN-1"
+        },
+        "result": {
+          "cut_short": false,
+          "kind": "replace",
+          "text": "- add(2, 3) returns 5\n- add(-1, 1) returns 0"
+        }
+      },
+      "project_id": "<uuid:2>",
+      "raw": "- add(2, 3) returns 5\n- add(-1, 1) returns 0",
+      "result": {},
+      "status": "discarded",
+      "ticket_id": "KAN-1",
+      "tokens": 720
+    }
+  },
+  "draft: get": {
+    "status": 200,
+    "json": {
+      "applied_at": null,
+      "applied_by": null,
+      "chat_message_id": null,
+      "cost": 0.06,
+      "created_at": "<time>",
+      "doc_id": null,
+      "expires_at": null,
+      "id": "<uuid:1>",
+      "insight_id": null,
+      "kind": "editor",
+      "member_id": null,
+      "member_name": "Board AI",
+      "owner": "user",
+      "payload": {
+        "action": "improve",
+        "input": {
+          "action": "improve",
+          "after": "",
+          "before": "",
+          "doc_id": null,
+          "idea_id": null,
+          "include": {},
+          "language": "",
+          "prompt": "",
+          "selection": "add is brokn",
+          "surface": "ticket_description",
+          "ticket_id": "KAN-1"
+        },
+        "result": {
+          "cut_short": false,
+          "kind": "replace",
+          "text": "- add(2, 3) returns 5\n- add(-1, 1) returns 0"
+        }
+      },
+      "project_id": "<uuid:2>",
+      "raw": "- add(2, 3) returns 5\n- add(-1, 1) returns 0",
+      "result": {},
+      "status": "discarded",
+      "ticket_id": "KAN-1",
+      "tokens": 720
+    }
+  },
+  "drafts": {
+    "status": 201,
+    "json": {
+      "applied_at": null,
+      "applied_by": null,
+      "chat_message_id": null,
+      "cost": 0.0,
+      "created_at": "<time>",
+      "doc_id": null,
+      "expires_at": null,
+      "id": "<uuid:1>",
+      "insight_id": null,
+      "kind": "editor",
+      "member_id": null,
+      "member_name": "Board AI",
+      "owner": "user",
+      "payload": {
+        "action": "improve",
+        "input": {
+          "action": "improve",
+          "after": "",
+          "before": "",
+          "doc_id": null,
+          "idea_id": null,
+          "include": {},
+          "language": "",
+          "prompt": "",
+          "selection": "add is brokn",
+          "surface": "ticket_description",
+          "ticket_id": "KAN-1"
+        },
+        "result": null
+      },
+      "project_id": "<uuid:2>",
+      "raw": "",
+      "result": {},
+      "status": "pending",
+      "ticket_id": "KAN-1",
+      "tokens": 0
+    }
+  },
+  "drafts: no project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "drafts: nothing selected": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Select some text first."
+    }
+  },
+  "drafts: written": {
+    "status": 200,
+    "json": {
+      "applied_at": null,
+      "applied_by": null,
+      "chat_message_id": null,
+      "cost": 0.02,
+      "created_at": "<time>",
+      "doc_id": null,
+      "expires_at": null,
+      "id": "<uuid:1>",
+      "insight_id": null,
+      "kind": "editor",
+      "member_id": null,
+      "member_name": "Board AI",
+      "owner": "user",
+      "payload": {
+        "action": "improve",
+        "input": {
+          "action": "improve",
+          "after": "",
+          "before": "",
+          "doc_id": null,
+          "idea_id": null,
+          "include": {},
+          "language": "",
+          "prompt": "",
+          "selection": "add is brokn",
+          "surface": "ticket_description",
+          "ticket_id": "KAN-1"
+        },
+        "result": {
+          "cut_short": false,
+          "kind": "replace",
+          "text": "add() is broken."
+        }
+      },
+      "project_id": "<uuid:2>",
+      "raw": "add() is broken.",
+      "result": {},
+      "status": "open",
+      "ticket_id": "KAN-1",
+      "tokens": 240
+    }
+  },
+  "preview": {
+    "status": 200,
+    "json": {
+      "estimate": null,
+      "never_sent": [
+        "Passwords, API keys and files outside the board"
+      ],
+      "pieces": [
+        {
+          "chars": 7,
+          "kind": "instruction",
+          "label": "Your instruction",
+          "preview": "Improve",
+          "tokens": 2
+        },
+        {
+          "chars": 12,
+          "kind": "selection",
+          "label": "Selected text",
+          "preview": "add is brokn",
+          "tokens": 4
+        },
+        {
+          "chars": 0,
+          "kind": "ticket",
+          "label": "Ticket KAN-1 (read by the assistant)",
+          "preview": "",
+          "tokens": 0
+        }
+      ],
+      "private_skipped": [],
+      "tokens": 6
+    }
+  },
+  "preview: bad action": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "This editor does not offer that."
+    }
+  },
+  "preview: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "preview: no project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "regenerate": {
+    "status": 200,
+    "json": {
+      "applied_at": null,
+      "applied_by": null,
+      "chat_message_id": null,
+      "cost": 0.04,
+      "created_at": "<time>",
+      "doc_id": null,
+      "expires_at": null,
+      "id": "<uuid:1>",
+      "insight_id": null,
+      "kind": "editor",
+      "member_id": null,
+      "member_name": "Board AI",
+      "owner": "user",
+      "payload": {
+        "action": "improve",
+        "input": {
+          "action": "improve",
+          "after": "",
+          "before": "",
+          "doc_id": null,
+          "idea_id": null,
+          "include": {},
+          "language": "",
+          "prompt": "",
+          "selection": "add is brokn",
+          "surface": "ticket_description",
+          "ticket_id": "KAN-1"
+        },
+        "result": {
+          "cut_short": false,
+          "kind": "replace",
+          "text": "- add(2, 3) returns 5\n- add(-1, 1) returns 0- add(2, 3) returns 5\n- add(-1, 1) returns 0"
+        }
+      },
+      "project_id": "<uuid:2>",
+      "raw": "- add(2, 3) returns 5\n- add(-1, 1) returns 0",
+      "result": {},
+      "status": "pending",
+      "ticket_id": "KAN-1",
+      "tokens": 480
+    }
+  },
+  "state": {
+    "status": 200,
+    "json": {
+      "availability": {
+        "code": "ok"
+      },
+      "bar": [
+        {
+          "action": "improve",
+          "hint": "Clearer and tighter, same meaning",
+          "label": "Improve",
+          "result": "replace"
+        },
+        {
+          "action": "shorten",
+          "hint": "The same, in fewer words",
+          "label": "Shorten",
+          "result": "replace"
+        },
+        {
+          "action": "fix_spelling",
+          "hint": "Spelling and grammar only",
+          "label": "Fix spelling",
+          "result": "replace"
+        },
+        {
+          "action": "explain",
+          "hint": "In plain words, as an answer",
+          "label": "Explain",
+          "result": "answer"
+        },
+        {
+          "action": "ask",
+          "hint": "Write from a prompt, with this page as context",
+          "label": "Ask AI…",
+          "result": "replace"
+        }
+      ],
+      "estimate": null,
+      "label": "Ticket description",
+      "member_id": null,
+      "menu": [
+        {
+          "action": "ask",
+          "hint": "Write from a prompt, with this page as context",
+          "label": "Ask AI…",
+          "result": "replace"
+        },
+        {
+          "action": "continue",
+          "hint": "Carry on from the cursor",
+          "label": "Continue writing",
+          "result": "insert"
+        },
+        {
+          "action": "summarise",
+          "hint": "The text above, as a short list",
+          "label": "Summarise",
+          "result": "insert"
+        },
+        {
+          "action": "criteria",
+          "hint": "From this description (tickets only)",
+          "label": "Draft acceptance criteria",
+          "result": "list"
+        },
+        {
+          "action": "translate",
+          "hint": "The paragraph above",
+          "label": "Translate…",
+          "result": "replace"
+        }
+      ],
+      "surface": "ticket_description"
+    }
+  },
+  "state: bad surface": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Unknown editor."
+    }
+  },
+  "state: comment": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Unknown editor."
+    }
+  },
+  "state: no project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "state: no surface": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "surface"
+        ]
+      ]
+    }
+  },
+  "ticket: criteria": {
+    "status": 200,
+    "json": {
+      "acceptance_criteria": [
+        {
+          "done": false,
+          "id": "<uuid:1>",
+          "text": "add(2, 3) returns 5"
+        }
+      ],
+      "activity_log": [
+        {
+          "actor": "user",
+          "at": "<time>",
+          "field": "created",
+          "from": null,
+          "ref": "Fix add()",
+          "to": null
+        },
+        {
+          "actor": "user",
+          "at": "<time>",
+          "field": "acceptance_criterion",
+          "from": null,
+          "to": "add(2, 3) returns 5"
+        }
+      ],
+      "assignee": null,
+      "block_done_if_acs_incomplete": false,
+      "block_done_if_tcs_incomplete": false,
+      "blocked_by": [],
+      "blocks": [],
+      "branches": [],
+      "comments": [],
+      "completed_at": null,
+      "completed_by": null,
+      "created_at": "<time>",
+      "created_by": "<mem:1>",
+      "description": "",
+      "due_date": null,
+      "estimate": null,
+      "from_idea_id": null,
+      "id": "KAN-1",
+      "last_reopen_reason": null,
+      "last_reopened_at": null,
+      "last_reopened_by": null,
+      "links": [],
+      "parent_id": null,
+      "pending": false,
+      "pending_by": null,
+      "pending_member_id": null,
+      "pending_note": null,
+      "pending_party": null,
+      "pending_reason_type": null,
+      "pending_since": null,
+      "pending_ticket_id": null,
+      "priority": "medium",
+      "project_id": "<uuid:2>",
+      "reopen_count": 0,
+      "reopen_history": [],
+      "repo_path": null,
+      "review_requested_from": null,
+      "start_date": null,
+      "status": "todo",
+      "sub_tasks": [],
+      "tags": [],
+      "test_cases": [],
+      "tests_assumption_id": null,
+      "title": "Fix add()",
+      "type": "task",
+      "updated_at": "<time>",
+      "wave_pin": null,
+      "wont_do_reason": null,
+      "work_log": [],
+      "workspace_retention_days": null
+    }
+  }
+}

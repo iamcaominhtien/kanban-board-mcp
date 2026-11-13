@@ -7,6 +7,7 @@ the guide describes must still appear in the code.
 """
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -25,25 +26,29 @@ def _grab(rel: str, pattern: str, group: int = 1) -> str:
 
 
 def _version() -> str:
-    return _grab("server/version.py", r'APP_VERSION\s*=\s*"([^"]+)"')
+    """The workspace version of the server (every crate and program takes it)."""
+    return _grab("server/Cargo.toml", r'\[workspace\.package\][^\[]*?\nversion\s*=\s*"([^"]+)"')
+
+
+def _tools(rel: str) -> list[str]:
+    return [t["name"] for t in json.loads(_read(rel))["tools"]]
 
 
 def _tool_names() -> list[str]:
-    block = _grab("server/kanban_mcp/tools/__init__.py", r"CORE_TOOL_TABLE[^=]*=\s*\[(.*?)\n\]")
-    return re.findall(r"^\s*\((\w+),", block, re.M)
+    """The MCP tools every client sees, in the order `tools/list` gives them."""
+    return _tools("server/contract/mcp-tools.json")
 
 
 def _idea_tool_names() -> list[str]:
-    block = _grab("server/kanban_mcp/registry.py", r"IDEA_TOOL_TABLE[^=]*=\s*\[(.*?)\n\]")
-    return re.findall(r"ops\.(\w+),", block)
+    """The Idea Space tools, listed only with KANBAN_MCP_IDEA_TOOLS=1."""
+    core = set(_tool_names())
+    return [t for t in _tools("server/contract/mcp-tools-ideas.json") if t not in core]
 
 
-def _enum(field: str) -> list[str]:
-    """The values of a Literal[...] field of the ticket model (the first one declared)."""
-    m = re.search(field + r": Literal\[(.*?)\]", _read("server/models.py"), re.S)
-    if not m:
-        raise LookupError(f"server/models.py: {field} not found")
-    return re.findall(r'"([^"]+)"', m.group(1))
+def _enum(name: str) -> list[str]:
+    """The values of one of the ticket enums the MCP tools accept (`STATUSES`, `TICKET_TYPES`, `PRIORITIES`)."""
+    block = _grab("server/crates/kb-mcp/src/common.rs", rf"pub const {name}: \[&str; \d+\] = \[(.*?)\];")
+    return re.findall(r'"([^"]+)"', block)
 
 
 def _settings_pages() -> list[str]:
@@ -52,16 +57,16 @@ def _settings_pages() -> list[str]:
 
 # name -> (value, source file). Values are read when the module loads, so a moved or renamed thing fails the build.
 FACTS: dict[str, tuple[object, str]] = {
-    "version": (_version(), "server/version.py"),
-    "tool_count": (len(_tool_names()), "server/kanban_mcp/tools/__init__.py (CORE_TOOL_TABLE)"),
-    "tool_names": (_tool_names(), "server/kanban_mcp/tools/__init__.py (CORE_TOOL_TABLE)"),
-    "idea_tool_count": (len(_idea_tool_names()), "server/kanban_mcp/registry.py (IDEA_TOOL_TABLE)"),
+    "version": (_version(), "server/Cargo.toml"),
+    "tool_count": (len(_tool_names()), "server/contract/mcp-tools.json"),
+    "tool_names": (_tool_names(), "server/contract/mcp-tools.json"),
+    "idea_tool_count": (len(_idea_tool_names()), "server/contract/mcp-tools-ideas.json"),
     "ai_parallel": (_grab("server/services/ai/members.py", r'max_parallel=data\.get\("max_parallel"\) or (\d+)'), "server/services/ai/members.py"),
     "ai_runs_per_day": (_grab("server/services/ai/members.py", r'data\.get\("max_runs_per_day", (\d+)\)'), "server/services/ai/members.py"),
     "ai_daily_budget": (f"${float(_grab('server/services/ai/members.py', r'daily_budget=data\.get\(\"daily_budget\", ([\d.]+)')):.0f}", "server/services/ai/members.py"),
-    "ticket_statuses": (_enum("status"), "server/models.py (TicketCreate.status)"),
-    "ticket_types": (_enum("type"), "server/models.py (TicketCreate.type)"),
-    "ticket_priorities": (_enum("priority"), "server/models.py (TicketCreate.priority)"),
+    "ticket_statuses": (_enum("STATUSES"), "server/crates/kb-mcp/src/common.rs (STATUSES)"),
+    "ticket_types": (_enum("TICKET_TYPES"), "server/crates/kb-mcp/src/common.rs (TICKET_TYPES)"),
+    "ticket_priorities": (_enum("PRIORITIES"), "server/crates/kb-mcp/src/common.rs (PRIORITIES)"),
     "settings_pages": (_settings_pages(), "ui/src/components/settings/settingsIndex.ts"),
 }
 
@@ -93,7 +98,7 @@ def check_env_vars() -> list[str]:
     code = ""
     for folder in ("server", "desktop"):
         for path in (ROOT / folder).rglob("*"):
-            if path.suffix in {".py", ".js"} and not {".venv", "node_modules", "tests"} & set(path.parts):
+            if path.suffix in {".rs", ".js"} and not {"target", "node_modules", "tests"} & set(path.parts):
                 code += path.read_text(encoding="utf-8", errors="ignore")
     return [v for v in ENV_VARS if v not in code]
 

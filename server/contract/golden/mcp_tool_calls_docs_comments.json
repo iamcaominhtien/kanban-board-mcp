@@ -1,0 +1,1976 @@
+{
+  "setup: project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Notes\",\n  \"prefix\": \"NOT\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: Bao": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"name\": \"Bao\",\n  \"color\": \"#10B981\",\n  \"role\": \"member\",\n  \"kind\": \"human\",\n  \"created_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: a page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:3>\",\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: another page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Other\",\n  \"slug\": \"other\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "comment: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='comment') requires page_id, body; optional: quote. Missing: page_id, body."
+      }
+    ],
+    "isError": true
+  },
+  "comment: no body": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='comment') requires page_id, body; optional: quote. Missing: body."
+      }
+    ],
+    "isError": true
+  },
+  "comment: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='comment') does not use: title. It requires page_id, body; optional: quote."
+      }
+    ],
+    "isError": true
+  },
+  "comment: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "comment: an empty body": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Write something before posting."
+      }
+    ],
+    "isError": true
+  },
+  "comment: a body that is too long": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: A comment is limited to 4000 characters."
+      }
+    ],
+    "isError": true
+  },
+  "comment: a quote that is not there": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: That text is not in the published page. Copy it exactly from docs_read(action='get') (plain text, within one paragraph, list item or table cell), or omit quote to comment on the page."
+      }
+    ],
+    "isError": true
+  },
+  "comment: a quote across two blocks": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:5>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:6>\",\n      \"author\": \"agent\",\n      \"body\": \"x\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": 1,\n  \"quote\": \"before deploying. Check the queue\",\n  \"anchor_state\": \"attached\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "comment: inline": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": 1,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "comment: inline in a list item": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:9>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:10>\",\n      \"author\": \"agent\",\n      \"body\": \"How long?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": 3,\n  \"quote\": \"Drain it\",\n  \"anchor_state\": \"attached\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "comment: inline in a table cell": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:11>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:12>\",\n      \"author\": \"agent\",\n      \"body\": \"Who is Ana?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": 4,\n  \"quote\": \"Owner\",\n  \"anchor_state\": \"attached\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "comment: on the page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:13>\",\n  \"kind\": \"page\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:14>\",\n      \"author\": \"agent\",\n      \"body\": \"Needs an owner, @Bao please look\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "comment: a mention of someone not a member": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:15>\",\n  \"kind\": \"page\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:16>\",\n      \"author\": \"agent\",\n      \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "comments: all": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:7>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:8>\",\n          \"author\": \"agent\",\n          \"body\": \"Which worker?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 1,\n      \"quote\": \"Restart the worker\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:6>\",\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 2,\n      \"quote\": \"before deploying. Check the queue\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:9>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:10>\",\n          \"author\": \"agent\",\n          \"body\": \"How long?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 3,\n      \"quote\": \"Drain it\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:11>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:12>\",\n          \"author\": \"agent\",\n          \"body\": \"Who is Ana?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 4,\n      \"quote\": \"Owner\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 4,\n    \"resolved\": 0,\n    \"orphaned\": 0,\n    \"page\": 2\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "threads": [
+          {
+            "id": "<uuid:7>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:8>",
+                "author": "agent",
+                "body": "Which worker?",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 1,
+            "quote": "Restart the worker",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:5>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:6>",
+                "author": "agent",
+                "body": "x",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 2,
+            "quote": "before deploying. Check the queue",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:9>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:10>",
+                "author": "agent",
+                "body": "How long?",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 3,
+            "quote": "Drain it",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:11>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:12>",
+                "author": "agent",
+                "body": "Who is Ana?",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 4,
+            "quote": "Owner",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:13>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:14>",
+                "author": "agent",
+                "body": "Needs an owner, @Bao please look",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          },
+          {
+            "id": "<uuid:15>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:16>",
+                "author": "agent",
+                "body": "Ask @Nobody and [[Other]] and NOT-1",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          }
+        ],
+        "counts": {
+          "all": 4,
+          "open": 4,
+          "resolved": 0,
+          "orphaned": 0,
+          "page": 2
+        }
+      }
+    },
+    "isError": false
+  },
+  "comments: open": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:7>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:8>\",\n          \"author\": \"agent\",\n          \"body\": \"Which worker?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 1,\n      \"quote\": \"Restart the worker\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:6>\",\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 2,\n      \"quote\": \"before deploying. Check the queue\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:9>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:10>\",\n          \"author\": \"agent\",\n          \"body\": \"How long?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 3,\n      \"quote\": \"Drain it\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:11>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:12>\",\n          \"author\": \"agent\",\n          \"body\": \"Who is Ana?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 4,\n      \"quote\": \"Owner\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 4,\n    \"resolved\": 0,\n    \"orphaned\": 0,\n    \"page\": 2\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "threads": [
+          {
+            "id": "<uuid:7>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:8>",
+                "author": "agent",
+                "body": "Which worker?",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 1,
+            "quote": "Restart the worker",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:5>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:6>",
+                "author": "agent",
+                "body": "x",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 2,
+            "quote": "before deploying. Check the queue",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:9>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:10>",
+                "author": "agent",
+                "body": "How long?",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 3,
+            "quote": "Drain it",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:11>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:12>",
+                "author": "agent",
+                "body": "Who is Ana?",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 4,
+            "quote": "Owner",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:13>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:14>",
+                "author": "agent",
+                "body": "Needs an owner, @Bao please look",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          },
+          {
+            "id": "<uuid:15>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:16>",
+                "author": "agent",
+                "body": "Ask @Nobody and [[Other]] and NOT-1",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          }
+        ],
+        "counts": {
+          "all": 4,
+          "open": 4,
+          "resolved": 0,
+          "orphaned": 0,
+          "page": 2
+        }
+      }
+    },
+    "isError": false
+  },
+  "comments: resolved": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 4,\n    \"resolved\": 0,\n    \"orphaned\": 0,\n    \"page\": 2\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "threads": [
+          {
+            "id": "<uuid:13>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:14>",
+                "author": "agent",
+                "body": "Needs an owner, @Bao please look",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          },
+          {
+            "id": "<uuid:15>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:16>",
+                "author": "agent",
+                "body": "Ask @Nobody and [[Other]] and NOT-1",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          }
+        ],
+        "counts": {
+          "all": 4,
+          "open": 4,
+          "resolved": 0,
+          "orphaned": 0,
+          "page": 2
+        }
+      }
+    },
+    "isError": false
+  },
+  "comments: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Page not found."
+      }
+    ],
+    "isError": true
+  },
+  "comments: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='comments') requires page_id; optional: state. Missing: page_id."
+      }
+    ],
+    "isError": true
+  },
+  "comments: a page with none": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"threads\": [],\n  \"counts\": {\n    \"all\": 0,\n    \"open\": 0,\n    \"resolved\": 0,\n    \"orphaned\": 0,\n    \"page\": 0\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "threads": [],
+        "counts": {
+          "all": 0,
+          "open": 0,
+          "resolved": 0,
+          "orphaned": 0,
+          "page": 0
+        }
+      }
+    },
+    "isError": false
+  },
+  "reply: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='reply') requires thread_id, body. Missing: thread_id, body."
+      }
+    ],
+    "isError": true
+  },
+  "reply: no body": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='reply') requires thread_id, body. Missing: body."
+      }
+    ],
+    "isError": true
+  },
+  "reply: a thread that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Comment thread not found."
+      }
+    ],
+    "isError": true
+  },
+  "reply: an empty body": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Write something before posting."
+      }
+    ],
+    "isError": true
+  },
+  "reply: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='reply') does not use: quote. It requires thread_id, body."
+      }
+    ],
+    "isError": true
+  },
+  "comments: after a person's reply": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:7>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:8>\",\n          \"author\": \"agent\",\n          \"body\": \"Which worker?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:17>\",\n          \"author\": \"user\",\n          \"body\": \"The queue worker.\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 1,\n      \"quote\": \"Restart the worker\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:6>\",\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 2,\n      \"quote\": \"before deploying. Check the queue\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:9>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:10>\",\n          \"author\": \"agent\",\n          \"body\": \"How long?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 3,\n      \"quote\": \"Drain it\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:11>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:12>\",\n          \"author\": \"agent\",\n          \"body\": \"Who is Ana?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 4,\n      \"quote\": \"Owner\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 4,\n    \"resolved\": 0,\n    \"orphaned\": 0,\n    \"page\": 2\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "threads": [
+          {
+            "id": "<uuid:7>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:8>",
+                "author": "agent",
+                "body": "Which worker?",
+                "created_at": "<time>",
+                "edited_at": null
+              },
+              {
+                "id": "<uuid:17>",
+                "author": "user",
+                "body": "The queue worker.",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 1,
+            "quote": "Restart the worker",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:5>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:6>",
+                "author": "agent",
+                "body": "x",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 2,
+            "quote": "before deploying. Check the queue",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:9>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:10>",
+                "author": "agent",
+                "body": "How long?",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 3,
+            "quote": "Drain it",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:11>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:12>",
+                "author": "agent",
+                "body": "Who is Ana?",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 4,
+            "quote": "Owner",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:13>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:14>",
+                "author": "agent",
+                "body": "Needs an owner, @Bao please look",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          },
+          {
+            "id": "<uuid:15>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:16>",
+                "author": "agent",
+                "body": "Ask @Nobody and [[Other]] and NOT-1",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          }
+        ],
+        "counts": {
+          "all": 4,
+          "open": 4,
+          "resolved": 0,
+          "orphaned": 0,
+          "page": 2
+        }
+      }
+    },
+    "isError": false
+  },
+  "reply: the agent answers": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"user\",\n      \"body\": \"The queue worker.\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"agent\",\n      \"body\": \"Thanks\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": 1,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "edit_comment: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='edit_comment') requires comment_id, body. Missing: comment_id, body."
+      }
+    ],
+    "isError": true
+  },
+  "edit_comment: no body": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='edit_comment') requires comment_id, body. Missing: body."
+      }
+    ],
+    "isError": true
+  },
+  "edit_comment: a comment that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Comment not found."
+      }
+    ],
+    "isError": true
+  },
+  "edit_comment: its own": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"user\",\n      \"body\": \"The queue worker.\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"agent\",\n      \"body\": \"Thanks!\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": \"<time>\"\n    }\n  ],\n  \"number\": 1,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "edit_comment: an empty body": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Write something before posting."
+      }
+    ],
+    "isError": true
+  },
+  "edit_comment: a person's comment": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: You can only edit your own comments."
+      }
+    ],
+    "isError": true
+  },
+  "delete_comment: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='delete_comment') requires comment_id. Missing: comment_id."
+      }
+    ],
+    "isError": true
+  },
+  "delete_comment: a comment that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Comment not found."
+      }
+    ],
+    "isError": true
+  },
+  "delete_comment: a person's reply": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Only the author or an admin can delete a comment."
+      }
+    ],
+    "isError": true
+  },
+  "resolve: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='resolve') requires thread_id. Missing: thread_id."
+      }
+    ],
+    "isError": true
+  },
+  "resolve: a thread that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Comment thread not found."
+      }
+    ],
+    "isError": true
+  },
+  "resolve: a page thread": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Only inline threads can be resolved."
+      }
+    ],
+    "isError": true
+  },
+  "resolve: inline": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"resolved\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"user\",\n      \"body\": \"The queue worker.\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"agent\",\n      \"body\": \"Thanks!\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": \"<time>\"\n    }\n  ],\n  \"number\": null,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\",\n  \"resolved_by\": \"agent\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "resolve: again": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"resolved\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"user\",\n      \"body\": \"The queue worker.\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"agent\",\n      \"body\": \"Thanks!\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": \"<time>\"\n    }\n  ],\n  \"number\": null,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\",\n  \"resolved_by\": \"agent\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "comments: open after resolving": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:5>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:6>\",\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 1,\n      \"quote\": \"before deploying. Check the queue\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:9>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:10>\",\n          \"author\": \"agent\",\n          \"body\": \"How long?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 2,\n      \"quote\": \"Drain it\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:11>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:12>\",\n          \"author\": \"agent\",\n          \"body\": \"Who is Ana?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 3,\n      \"quote\": \"Owner\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 3,\n    \"resolved\": 1,\n    \"orphaned\": 0,\n    \"page\": 2\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "threads": [
+          {
+            "id": "<uuid:5>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:6>",
+                "author": "agent",
+                "body": "x",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 1,
+            "quote": "before deploying. Check the queue",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:9>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:10>",
+                "author": "agent",
+                "body": "How long?",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 2,
+            "quote": "Drain it",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:11>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:12>",
+                "author": "agent",
+                "body": "Who is Ana?",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 3,
+            "quote": "Owner",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:13>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:14>",
+                "author": "agent",
+                "body": "Needs an owner, @Bao please look",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          },
+          {
+            "id": "<uuid:15>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:16>",
+                "author": "agent",
+                "body": "Ask @Nobody and [[Other]] and NOT-1",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          }
+        ],
+        "counts": {
+          "all": 4,
+          "open": 3,
+          "resolved": 1,
+          "orphaned": 0,
+          "page": 2
+        }
+      }
+    },
+    "isError": false
+  },
+  "comments: resolved after resolving": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:7>\",\n      \"kind\": \"inline\",\n      \"status\": \"resolved\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:8>\",\n          \"author\": \"agent\",\n          \"body\": \"Which worker?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:17>\",\n          \"author\": \"user\",\n          \"body\": \"The queue worker.\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:18>\",\n          \"author\": \"agent\",\n          \"body\": \"Thanks!\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": \"<time>\"\n        }\n      ],\n      \"number\": null,\n      \"quote\": \"Restart the worker\",\n      \"anchor_state\": \"attached\",\n      \"resolved_by\": \"agent\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 3,\n    \"resolved\": 1,\n    \"orphaned\": 0,\n    \"page\": 2\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "threads": [
+          {
+            "id": "<uuid:7>",
+            "kind": "inline",
+            "status": "resolved",
+            "comments": [
+              {
+                "id": "<uuid:8>",
+                "author": "agent",
+                "body": "Which worker?",
+                "created_at": "<time>",
+                "edited_at": null
+              },
+              {
+                "id": "<uuid:17>",
+                "author": "user",
+                "body": "The queue worker.",
+                "created_at": "<time>",
+                "edited_at": null
+              },
+              {
+                "id": "<uuid:18>",
+                "author": "agent",
+                "body": "Thanks!",
+                "created_at": "<time>",
+                "edited_at": "<time>"
+              }
+            ],
+            "number": null,
+            "quote": "Restart the worker",
+            "anchor_state": "attached",
+            "resolved_by": "agent"
+          },
+          {
+            "id": "<uuid:13>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:14>",
+                "author": "agent",
+                "body": "Needs an owner, @Bao please look",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          },
+          {
+            "id": "<uuid:15>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:16>",
+                "author": "agent",
+                "body": "Ask @Nobody and [[Other]] and NOT-1",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          }
+        ],
+        "counts": {
+          "all": 4,
+          "open": 3,
+          "resolved": 1,
+          "orphaned": 0,
+          "page": 2
+        }
+      }
+    },
+    "isError": false
+  },
+  "reply: to a resolved thread": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"resolved\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"user\",\n      \"body\": \"The queue worker.\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"agent\",\n      \"body\": \"Thanks!\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:19>\",\n      \"author\": \"agent\",\n      \"body\": \"Late reply\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": null,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\",\n  \"resolved_by\": \"agent\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "reopen: a thread": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"user\",\n      \"body\": \"The queue worker.\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"agent\",\n      \"body\": \"Thanks!\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:19>\",\n      \"author\": \"agent\",\n      \"body\": \"Late reply\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": 1,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "reopen: a thread that is open": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"kind\": \"inline\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:8>\",\n      \"author\": \"agent\",\n      \"body\": \"Which worker?\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"user\",\n      \"body\": \"The queue worker.\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"agent\",\n      \"body\": \"Thanks!\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:19>\",\n      \"author\": \"agent\",\n      \"body\": \"Late reply\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ],\n  \"number\": 1,\n  \"quote\": \"Restart the worker\",\n  \"anchor_state\": \"attached\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "reopen: a thread that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Comment thread not found."
+      }
+    ],
+    "isError": true
+  },
+  "delete_comment: its own reply": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"deleted\": \"comment\",\n  \"thread_id\": \"<uuid:7>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "delete_comment: a first comment removes the thread": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"deleted\": \"thread\",\n  \"thread_id\": \"<uuid:9>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "comments: the threads left": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:7>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:8>\",\n          \"author\": \"agent\",\n          \"body\": \"Which worker?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:17>\",\n          \"author\": \"user\",\n          \"body\": \"The queue worker.\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:19>\",\n          \"author\": \"agent\",\n          \"body\": \"Late reply\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 1,\n      \"quote\": \"Restart the worker\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:6>\",\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 2,\n      \"quote\": \"before deploying. Check the queue\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:11>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:12>\",\n          \"author\": \"agent\",\n          \"body\": \"Who is Ana?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 3,\n      \"quote\": \"Owner\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 3,\n    \"open\": 3,\n    \"resolved\": 0,\n    \"orphaned\": 0,\n    \"page\": 2\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "threads": [
+          {
+            "id": "<uuid:7>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:8>",
+                "author": "agent",
+                "body": "Which worker?",
+                "created_at": "<time>",
+                "edited_at": null
+              },
+              {
+                "id": "<uuid:17>",
+                "author": "user",
+                "body": "The queue worker.",
+                "created_at": "<time>",
+                "edited_at": null
+              },
+              {
+                "id": "<uuid:19>",
+                "author": "agent",
+                "body": "Late reply",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 1,
+            "quote": "Restart the worker",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:5>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:6>",
+                "author": "agent",
+                "body": "x",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 2,
+            "quote": "before deploying. Check the queue",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:11>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:12>",
+                "author": "agent",
+                "body": "Who is Ana?",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 3,
+            "quote": "Owner",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:13>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:14>",
+                "author": "agent",
+                "body": "Needs an owner, @Bao please look",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          },
+          {
+            "id": "<uuid:15>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:16>",
+                "author": "agent",
+                "body": "Ask @Nobody and [[Other]] and NOT-1",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          }
+        ],
+        "counts": {
+          "all": 3,
+          "open": 3,
+          "resolved": 0,
+          "orphaned": 0,
+          "page": 2
+        }
+      }
+    },
+    "isError": false
+  },
+  "items: comments on several quotes": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"done\": 2,\n  \"failed\": 2,\n  \"results\": [\n    {\n      \"index\": 0,\n      \"ok\": true,\n      \"result\": {\n        \"id\": \"<uuid:20>\",\n        \"kind\": \"inline\",\n        \"status\": \"open\",\n        \"comments\": [\n          {\n            \"id\": \"<uuid:21>\",\n            \"author\": \"agent\",\n            \"body\": \"a\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          }\n        ],\n        \"number\": 4,\n        \"quote\": \"Rollback\",\n        \"anchor_state\": \"attached\"\n      }\n    },\n    {\n      \"index\": 1,\n      \"ok\": true,\n      \"result\": {\n        \"id\": \"<uuid:22>\",\n        \"kind\": \"page\",\n        \"status\": \"open\",\n        \"comments\": [\n          {\n            \"id\": \"<uuid:23>\",\n            \"author\": \"agent\",\n            \"body\": \"b\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          }\n        ]\n      }\n    },\n    {\n      \"index\": 2,\n      \"ok\": false,\n      \"error\": \"That text is not in the published page. Copy it exactly from docs_read(action='get') (plain text, within one paragraph, list item or table cell), or omit quote to comment on the page.\"\n    },\n    {\n      \"index\": 3,\n      \"ok\": false,\n      \"error\": \"docs_write(action='comment') requires page_id, body; optional: quote. Missing: body.\"\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "items: replies": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"done\": 2,\n  \"failed\": 1,\n  \"results\": [\n    {\n      \"index\": 0,\n      \"ok\": true,\n      \"result\": {\n        \"id\": \"<uuid:11>\",\n        \"kind\": \"inline\",\n        \"status\": \"open\",\n        \"comments\": [\n          {\n            \"id\": \"<uuid:12>\",\n            \"author\": \"agent\",\n            \"body\": \"Who is Ana?\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          },\n          {\n            \"id\": \"<uuid:24>\",\n            \"author\": \"agent\",\n            \"body\": \"ok\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          }\n        ],\n        \"number\": 3,\n        \"quote\": \"Owner\",\n        \"anchor_state\": \"attached\"\n      }\n    },\n    {\n      \"index\": 1,\n      \"ok\": false,\n      \"error\": \"Comment thread not found.\"\n    },\n    {\n      \"index\": 2,\n      \"ok\": true,\n      \"result\": {\n        \"id\": \"<uuid:15>\",\n        \"kind\": \"page\",\n        \"status\": \"open\",\n        \"comments\": [\n          {\n            \"id\": \"<uuid:16>\",\n            \"author\": \"agent\",\n            \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          },\n          {\n            \"id\": \"<uuid:25>\",\n            \"author\": \"agent\",\n            \"body\": \"own text\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          }\n        ]\n      }\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "items: resolve": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"done\": 1,\n  \"failed\": 2,\n  \"results\": [\n    {\n      \"index\": 0,\n      \"ok\": false,\n      \"error\": \"Comment thread not found.\"\n    },\n    {\n      \"index\": 1,\n      \"ok\": true,\n      \"result\": {\n        \"id\": \"<uuid:11>\",\n        \"kind\": \"inline\",\n        \"status\": \"resolved\",\n        \"comments\": [\n          {\n            \"id\": \"<uuid:12>\",\n            \"author\": \"agent\",\n            \"body\": \"Who is Ana?\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          },\n          {\n            \"id\": \"<uuid:24>\",\n            \"author\": \"agent\",\n            \"body\": \"ok\",\n            \"created_at\": \"<time>\",\n            \"edited_at\": null\n          }\n        ],\n        \"number\": null,\n        \"quote\": \"Owner\",\n        \"anchor_state\": \"attached\",\n        \"resolved_by\": \"agent\"\n      }\n    },\n    {\n      \"index\": 2,\n      \"ok\": false,\n      \"error\": \"Only inline threads can be resolved.\"\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "items: reopen": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"done\": 0,\n  \"failed\": 2,\n  \"results\": [\n    {\n      \"index\": 0,\n      \"ok\": false,\n      \"error\": \"Comment thread not found.\"\n    },\n    {\n      \"index\": 1,\n      \"ok\": false,\n      \"error\": \"Comment thread not found.\"\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "items: edit does not take them": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write: items only works with comment, reopen, reply, resolve."
+      }
+    ],
+    "isError": true
+  },
+  "items: an item that is not an object": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 2 validation errors for docs_writeArguments\nitems.0\n  Input should be a valid dictionary [type=dict_type, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/dict_type\nitems.1\n  Input should be a valid dictionary [type=dict_type, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.12/v/dict_type"
+      }
+    ],
+    "isError": true
+  },
+  "comments: the end": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:7>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:8>\",\n          \"author\": \"agent\",\n          \"body\": \"Which worker?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:17>\",\n          \"author\": \"user\",\n          \"body\": \"The queue worker.\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:19>\",\n          \"author\": \"agent\",\n          \"body\": \"Late reply\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 1,\n      \"quote\": \"Restart the worker\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:6>\",\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 2,\n      \"quote\": \"before deploying. Check the queue\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:11>\",\n      \"kind\": \"inline\",\n      \"status\": \"resolved\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:12>\",\n          \"author\": \"agent\",\n          \"body\": \"Who is Ana?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:24>\",\n          \"author\": \"agent\",\n          \"body\": \"ok\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": null,\n      \"quote\": \"Owner\",\n      \"anchor_state\": \"attached\",\n      \"resolved_by\": \"agent\"\n    },\n    {\n      \"id\": \"<uuid:20>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:21>\",\n          \"author\": \"agent\",\n          \"body\": \"a\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 3,\n      \"quote\": \"Rollback\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:25>\",\n          \"author\": \"agent\",\n          \"body\": \"own text\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:22>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:23>\",\n          \"author\": \"agent\",\n          \"body\": \"b\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 3,\n    \"resolved\": 1,\n    \"orphaned\": 0,\n    \"page\": 3\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "threads": [
+          {
+            "id": "<uuid:7>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:8>",
+                "author": "agent",
+                "body": "Which worker?",
+                "created_at": "<time>",
+                "edited_at": null
+              },
+              {
+                "id": "<uuid:17>",
+                "author": "user",
+                "body": "The queue worker.",
+                "created_at": "<time>",
+                "edited_at": null
+              },
+              {
+                "id": "<uuid:19>",
+                "author": "agent",
+                "body": "Late reply",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 1,
+            "quote": "Restart the worker",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:5>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:6>",
+                "author": "agent",
+                "body": "x",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 2,
+            "quote": "before deploying. Check the queue",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:11>",
+            "kind": "inline",
+            "status": "resolved",
+            "comments": [
+              {
+                "id": "<uuid:12>",
+                "author": "agent",
+                "body": "Who is Ana?",
+                "created_at": "<time>",
+                "edited_at": null
+              },
+              {
+                "id": "<uuid:24>",
+                "author": "agent",
+                "body": "ok",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": null,
+            "quote": "Owner",
+            "anchor_state": "attached",
+            "resolved_by": "agent"
+          },
+          {
+            "id": "<uuid:20>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:21>",
+                "author": "agent",
+                "body": "a",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 3,
+            "quote": "Rollback",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:13>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:14>",
+                "author": "agent",
+                "body": "Needs an owner, @Bao please look",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          },
+          {
+            "id": "<uuid:15>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:16>",
+                "author": "agent",
+                "body": "Ask @Nobody and [[Other]] and NOT-1",
+                "created_at": "<time>",
+                "edited_at": null
+              },
+              {
+                "id": "<uuid:25>",
+                "author": "agent",
+                "body": "own text",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          },
+          {
+            "id": "<uuid:22>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:23>",
+                "author": "agent",
+                "body": "b",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          }
+        ],
+        "counts": {
+          "all": 4,
+          "open": 3,
+          "resolved": 1,
+          "orphaned": 0,
+          "page": 3
+        }
+      }
+    },
+    "isError": false
+  },
+  "edit: a comment is on the published text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:3>\",\n  \"title\": \"Runbook\",\n  \"version\": 2,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Steps'\"\n  ],\n  \"now\": \"## Steps\\n\\nRestart nothing.\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "comments: after the edit orphaned a quote": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"threads\": [\n    {\n      \"id\": \"<uuid:20>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:21>\",\n          \"author\": \"agent\",\n          \"body\": \"a\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": 1,\n      \"quote\": \"Rollback\",\n      \"anchor_state\": \"attached\"\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:6>\",\n          \"author\": \"agent\",\n          \"body\": \"x\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": null,\n      \"quote\": \"before deploying. Check the queue\",\n      \"anchor_state\": \"orphaned\"\n    },\n    {\n      \"id\": \"<uuid:7>\",\n      \"kind\": \"inline\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:8>\",\n          \"author\": \"agent\",\n          \"body\": \"Which worker?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:17>\",\n          \"author\": \"user\",\n          \"body\": \"The queue worker.\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:19>\",\n          \"author\": \"agent\",\n          \"body\": \"Late reply\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": null,\n      \"quote\": \"Restart the worker\",\n      \"anchor_state\": \"orphaned\"\n    },\n    {\n      \"id\": \"<uuid:11>\",\n      \"kind\": \"inline\",\n      \"status\": \"resolved\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:12>\",\n          \"author\": \"agent\",\n          \"body\": \"Who is Ana?\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:24>\",\n          \"author\": \"agent\",\n          \"body\": \"ok\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ],\n      \"number\": null,\n      \"quote\": \"Owner\",\n      \"anchor_state\": \"orphaned\",\n      \"resolved_by\": \"agent\"\n    },\n    {\n      \"id\": \"<uuid:13>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:14>\",\n          \"author\": \"agent\",\n          \"body\": \"Needs an owner, @Bao please look\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:15>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:16>\",\n          \"author\": \"agent\",\n          \"body\": \"Ask @Nobody and [[Other]] and NOT-1\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        },\n        {\n          \"id\": \"<uuid:25>\",\n          \"author\": \"agent\",\n          \"body\": \"own text\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    },\n    {\n      \"id\": \"<uuid:22>\",\n      \"kind\": \"page\",\n      \"status\": \"open\",\n      \"comments\": [\n        {\n          \"id\": \"<uuid:23>\",\n          \"author\": \"agent\",\n          \"body\": \"b\",\n          \"created_at\": \"<time>\",\n          \"edited_at\": null\n        }\n      ]\n    }\n  ],\n  \"counts\": {\n    \"all\": 4,\n    \"open\": 3,\n    \"resolved\": 1,\n    \"orphaned\": 2,\n    \"page\": 3\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "threads": [
+          {
+            "id": "<uuid:20>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:21>",
+                "author": "agent",
+                "body": "a",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": 1,
+            "quote": "Rollback",
+            "anchor_state": "attached"
+          },
+          {
+            "id": "<uuid:5>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:6>",
+                "author": "agent",
+                "body": "x",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": null,
+            "quote": "before deploying. Check the queue",
+            "anchor_state": "orphaned"
+          },
+          {
+            "id": "<uuid:7>",
+            "kind": "inline",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:8>",
+                "author": "agent",
+                "body": "Which worker?",
+                "created_at": "<time>",
+                "edited_at": null
+              },
+              {
+                "id": "<uuid:17>",
+                "author": "user",
+                "body": "The queue worker.",
+                "created_at": "<time>",
+                "edited_at": null
+              },
+              {
+                "id": "<uuid:19>",
+                "author": "agent",
+                "body": "Late reply",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": null,
+            "quote": "Restart the worker",
+            "anchor_state": "orphaned"
+          },
+          {
+            "id": "<uuid:11>",
+            "kind": "inline",
+            "status": "resolved",
+            "comments": [
+              {
+                "id": "<uuid:12>",
+                "author": "agent",
+                "body": "Who is Ana?",
+                "created_at": "<time>",
+                "edited_at": null
+              },
+              {
+                "id": "<uuid:24>",
+                "author": "agent",
+                "body": "ok",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ],
+            "number": null,
+            "quote": "Owner",
+            "anchor_state": "orphaned",
+            "resolved_by": "agent"
+          },
+          {
+            "id": "<uuid:13>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:14>",
+                "author": "agent",
+                "body": "Needs an owner, @Bao please look",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          },
+          {
+            "id": "<uuid:15>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:16>",
+                "author": "agent",
+                "body": "Ask @Nobody and [[Other]] and NOT-1",
+                "created_at": "<time>",
+                "edited_at": null
+              },
+              {
+                "id": "<uuid:25>",
+                "author": "agent",
+                "body": "own text",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          },
+          {
+            "id": "<uuid:22>",
+            "kind": "page",
+            "status": "open",
+            "comments": [
+              {
+                "id": "<uuid:23>",
+                "author": "agent",
+                "body": "b",
+                "created_at": "<time>",
+                "edited_at": null
+              }
+            ]
+          }
+        ],
+        "counts": {
+          "all": 4,
+          "open": 3,
+          "resolved": 1,
+          "orphaned": 2,
+          "page": 3
+        }
+      }
+    },
+    "isError": false
+  },
+  "comment: on a page in the bin": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:26>\",\n  \"kind\": \"page\",\n  \"status\": \"open\",\n  \"comments\": [\n    {\n      \"id\": \"<uuid:27>\",\n      \"author\": \"agent\",\n      \"body\": \"before\",\n      \"created_at\": \"<time>\",\n      \"edited_at\": null\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "delete: the page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"deleted_pages\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "comment: on a deleted page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Page is in the Recycle Bin."
+      }
+    ],
+    "isError": true
+  },
+  "comments: a deleted page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Page is in the Recycle Bin."
+      }
+    ],
+    "isError": true
+  },
+  "rest: the comment events": {
+    "status": 200,
+    "body": [
+      {
+        "id": "<uuid:28>",
+        "page_id": "<uuid:3>",
+        "page_title": "Runbook",
+        "thread_id": "<uuid:7>",
+        "comment_id": null,
+        "kind": "reopened",
+        "actor": "agent",
+        "mentioned": [],
+        "recipients": [
+          "user"
+        ],
+        "snippet": "Restart the worker",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:29>",
+        "page_id": "<uuid:3>",
+        "page_title": "Runbook",
+        "thread_id": "<uuid:7>",
+        "comment_id": "<uuid:19>",
+        "kind": "reply",
+        "actor": "agent",
+        "mentioned": [],
+        "recipients": [
+          "user"
+        ],
+        "snippet": "Late reply",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:30>",
+        "page_id": "<uuid:3>",
+        "page_title": "Runbook",
+        "thread_id": "<uuid:7>",
+        "comment_id": null,
+        "kind": "resolved",
+        "actor": "agent",
+        "mentioned": [],
+        "recipients": [
+          "user"
+        ],
+        "snippet": "Restart the worker",
+        "created_at": "<time>"
+      },
+      {
+        "id": "<uuid:31>",
+        "page_id": "<uuid:3>",
+        "page_title": "Runbook",
+        "thread_id": "<uuid:7>",
+        "comment_id": "<uuid:18>",
+        "kind": "reply",
+        "actor": "agent",
+        "mentioned": [],
+        "recipients": [
+          "user"
+        ],
+        "snippet": "Thanks",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "rest: the events of the agent": {
+    "status": 200,
+    "body": [
+      {
+        "id": "<uuid:32>",
+        "page_id": "<uuid:3>",
+        "page_title": "Runbook",
+        "thread_id": "<uuid:13>",
+        "comment_id": "<uuid:14>",
+        "kind": "comment",
+        "actor": "agent",
+        "mentioned": [
+          "Bao"
+        ],
+        "recipients": [
+          "Bao"
+        ],
+        "snippet": "Needs an owner, @Bao please look",
+        "created_at": "<time>"
+      }
+    ]
+  },
+  "rest: the threads": {
+    "status": 200,
+    "body": {
+      "threads": [
+        {
+          "id": "<uuid:20>",
+          "page_id": "<uuid:3>",
+          "kind": "inline",
+          "status": "open",
+          "number": 1,
+          "anchor": {
+            "quote": "Rollback",
+            "prefix": "",
+            "suffix": "",
+            "section": "rollback",
+            "state": "attached",
+            "pos": 23
+          },
+          "created_by": "agent",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:21>",
+              "thread_id": "<uuid:20>",
+              "author": "agent",
+              "body": "a",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:5>",
+          "page_id": "<uuid:3>",
+          "kind": "inline",
+          "status": "open",
+          "number": null,
+          "anchor": {
+            "quote": "before deploying. Check the queue",
+            "prefix": "Steps Restart the worker ",
+            "suffix": " Drain it Name Role Ana Owner Ro",
+            "section": "steps",
+            "state": "orphaned",
+            "pos": null
+          },
+          "created_by": "agent",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:6>",
+              "thread_id": "<uuid:5>",
+              "author": "agent",
+              "body": "x",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:7>",
+          "page_id": "<uuid:3>",
+          "kind": "inline",
+          "status": "open",
+          "number": null,
+          "anchor": {
+            "quote": "Restart the worker",
+            "prefix": "",
+            "suffix": " before deploying.",
+            "section": "steps",
+            "state": "orphaned",
+            "pos": null
+          },
+          "created_by": "agent",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:8>",
+              "thread_id": "<uuid:7>",
+              "author": "agent",
+              "body": "Which worker?",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            },
+            {
+              "id": "<uuid:17>",
+              "thread_id": "<uuid:7>",
+              "author": "user",
+              "body": "The queue worker.",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": true,
+              "can_delete": true
+            },
+            {
+              "id": "<uuid:19>",
+              "thread_id": "<uuid:7>",
+              "author": "agent",
+              "body": "Late reply",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:11>",
+          "page_id": "<uuid:3>",
+          "kind": "inline",
+          "status": "resolved",
+          "number": null,
+          "anchor": {
+            "quote": "Owner",
+            "prefix": "",
+            "suffix": "",
+            "section": "steps",
+            "state": "orphaned",
+            "pos": null
+          },
+          "created_by": "agent",
+          "created_at": "<time>",
+          "resolved_by": "agent",
+          "resolved_at": "<time>",
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:12>",
+              "thread_id": "<uuid:11>",
+              "author": "agent",
+              "body": "Who is Ana?",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            },
+            {
+              "id": "<uuid:24>",
+              "thread_id": "<uuid:11>",
+              "author": "agent",
+              "body": "ok",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:13>",
+          "page_id": "<uuid:3>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "agent",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:14>",
+              "thread_id": "<uuid:13>",
+              "author": "agent",
+              "body": "Needs an owner, @Bao please look",
+              "mentions": [
+                {
+                  "id": "<uuid:2>",
+                  "name": "Bao"
+                }
+              ],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:15>",
+          "page_id": "<uuid:3>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "agent",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:16>",
+              "thread_id": "<uuid:15>",
+              "author": "agent",
+              "body": "Ask @Nobody and [[Other]] and NOT-1",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            },
+            {
+              "id": "<uuid:25>",
+              "thread_id": "<uuid:15>",
+              "author": "agent",
+              "body": "own text",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        },
+        {
+          "id": "<uuid:22>",
+          "page_id": "<uuid:3>",
+          "kind": "page",
+          "status": "open",
+          "number": null,
+          "anchor": null,
+          "created_by": "agent",
+          "created_at": "<time>",
+          "resolved_by": null,
+          "resolved_at": null,
+          "unread": true,
+          "comments": [
+            {
+              "id": "<uuid:23>",
+              "thread_id": "<uuid:22>",
+              "author": "agent",
+              "body": "b",
+              "mentions": [],
+              "created_at": "<time>",
+              "edited_at": null,
+              "ai": null,
+              "can_edit": false,
+              "can_delete": true
+            }
+          ],
+          "can_reply": true,
+          "can_resolve": true,
+          "ai_jobs": [],
+          "ai_summary": null
+        }
+      ],
+      "counts": {
+        "all": 4,
+        "open": 3,
+        "resolved": 1,
+        "orphaned": 2,
+        "page": 3
+      },
+      "role": "admin",
+      "me": "user",
+      "members": [
+        {
+          "id": "<uuid:33>",
+          "name": "Admin",
+          "color": "#3B82F6",
+          "role": "member",
+          "kind": "human"
+        },
+        {
+          "id": "<uuid:2>",
+          "name": "Bao",
+          "color": "#10B981",
+          "role": "member",
+          "kind": "human"
+        }
+      ],
+      "docs_ai": false
+    }
+  }
+}

@@ -1,0 +1,556 @@
+{
+  "GET board: a question": {
+    "status": 200,
+    "json": {
+      "tickets": {
+        "KAN-1": {
+          "ended_at": null,
+          "last_output_at": "<time>",
+          "member_id": "<uuid:1>",
+          "number": 1,
+          "question": {
+            "asked_at": "<time>",
+            "more": [],
+            "options": [],
+            "previous": [],
+            "text": "Which database: SQLite or PostgreSQL?",
+            "to": "user"
+          },
+          "run_id": "<run:1>",
+          "started_at": "<time>",
+          "state": "needs_input",
+          "summary": "I need to know the database."
+        }
+      }
+    }
+  },
+  "GET live: asking": {
+    "status": 200,
+    "json": {
+      "runs": [
+        {
+          "account_id": null,
+          "answer": null,
+          "diagnosis": null,
+          "effort": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "exit_code": 0,
+          "instruction": "",
+          "kind": "team",
+          "last_output_at": "<time>",
+          "live": false,
+          "member_id": "<uuid:1>",
+          "mode": "work",
+          "number": 1,
+          "paused": false,
+          "project_id": "<uuid:2>",
+          "question": {
+            "asked_at": "<time>",
+            "more": [],
+            "options": [],
+            "previous": [],
+            "text": "Which database: SQLite or PostgreSQL?",
+            "to": "user"
+          },
+          "queued_at": "<time>",
+          "report": {
+            "asks": [
+              "Which database: SQLite or PostgreSQL?"
+            ],
+            "status": "question",
+            "summary": "I need to know the database."
+          },
+          "restarts": [],
+          "retries": [],
+          "session_id": "<uuid:3>",
+          "session_name": "KAN-1",
+          "started_at": "<time>",
+          "started_by": "user",
+          "state": "needs_input",
+          "stop_code": null,
+          "summary": "I need to know the database.",
+          "target": null,
+          "ticket_id": "KAN-1",
+          "tokens_cached": 0,
+          "trigger": "run_button",
+          "waiting_reason": null
+        }
+      ]
+    }
+  },
+  "GET messages: the answer": {
+    "status": 200,
+    "json": [
+      {
+        "at": "<time>",
+        "delivered_at": null,
+        "direction": "in",
+        "peer": "user",
+        "text": "Use SQLite"
+      }
+    ]
+  },
+  "GET overview: a run waits": {
+    "status": 200,
+    "json": {
+      "active": [
+        {
+          "member_id": "<uuid:1>",
+          "run_id": "<run:1>",
+          "state": "needs_input",
+          "ticket_id": "KAN-1"
+        }
+      ],
+      "paused_all": false,
+      "paused_reason": null,
+      "project_id": "<uuid:2>",
+      "runs": {
+        "needs_input": 1
+      },
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "health": "ok",
+          "name": "Dev An",
+          "queued": 0,
+          "slots_in_use": 0,
+          "status": {
+            "code": "running",
+            "detail": "KAN-1",
+            "label": "Running",
+            "ticket_id": "KAN-1"
+          }
+        }
+      ]
+    }
+  },
+  "GET overview: nothing waits": {
+    "status": 200,
+    "json": {
+      "active": [],
+      "paused_all": false,
+      "paused_reason": null,
+      "project_id": "<uuid:1>",
+      "runs": {
+        "cancelled": 1
+      },
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "health": "ok",
+          "name": "Dev An",
+          "queued": 0,
+          "slots_in_use": 0,
+          "status": {
+            "code": "idle",
+            "detail": null,
+            "label": "Idle"
+          }
+        }
+      ]
+    }
+  },
+  "GET run: asking": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "answer": null,
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": null,
+      "ended_by": null,
+      "ended_reason": null,
+      "exit_code": 0,
+      "instruction": "",
+      "kind": "team",
+      "last_output_at": "<time>",
+      "live": false,
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 1,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": {
+        "asked_at": "<time>",
+        "more": [],
+        "options": [],
+        "previous": [],
+        "text": "Which database: SQLite or PostgreSQL?",
+        "to": "user"
+      },
+      "queued_at": "<time>",
+      "report": {
+        "asks": [
+          "Which database: SQLite or PostgreSQL?"
+        ],
+        "status": "question",
+        "summary": "I need to know the database."
+      },
+      "restarts": [],
+      "retries": [],
+      "session_id": "<uuid:3>",
+      "session_name": "KAN-1",
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "needs_input",
+      "stop_code": null,
+      "summary": "I need to know the database.",
+      "target": null,
+      "ticket_id": "KAN-1",
+      "tokens_cached": 0,
+      "trigger": "run_button",
+      "waiting_reason": null
+    }
+  },
+  "GET run: cancelled": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "answer": "Use SQLite",
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": "<time>",
+      "ended_by": "user",
+      "ended_reason": "Cancelled by user",
+      "exit_code": 0,
+      "instruction": "",
+      "kind": "team",
+      "last_output_at": "<time>",
+      "live": false,
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 1,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": {
+        "asked_at": "<time>",
+        "more": [],
+        "options": [],
+        "previous": [
+          {
+            "answer": "Use SQLite",
+            "answered_at": "<time>",
+            "answered_by": "user",
+            "text": "Which database: SQLite or PostgreSQL?"
+          }
+        ],
+        "text": "Which database: SQLite or PostgreSQL?",
+        "to": "user"
+      },
+      "queued_at": "<time>",
+      "report": {
+        "asks": [
+          "Which database: SQLite or PostgreSQL?"
+        ],
+        "status": "question",
+        "summary": "I need to know the database."
+      },
+      "restarts": [],
+      "retries": [],
+      "session_id": "<uuid:3>",
+      "session_name": "KAN-1",
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "cancelled",
+      "stop_code": null,
+      "summary": "I need to know the database.",
+      "target": null,
+      "ticket_id": "KAN-1",
+      "tokens_cached": 0,
+      "trigger": "run_button",
+      "waiting_reason": null
+    }
+  },
+  "GET team: with a run waiting": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "account_ref": null,
+      "assigned": [
+        {
+          "status": "todo",
+          "title": "Fix add()"
+        }
+      ],
+      "cap_per_run": null,
+      "checked_at": "<time>",
+      "cli_path": "<tmp>/bin/claude",
+      "color": "#2E6F40",
+      "config": {
+        "disallowed_tools": [],
+        "hooks": [],
+        "mcp_servers": [],
+        "plugins": [],
+        "skills": []
+      },
+      "created_at": "<time>",
+      "created_by": "user",
+      "daily_budget": null,
+      "description": "",
+      "effort": null,
+      "health": "ok",
+      "health_detail": null,
+      "kind": "ai",
+      "last_run": null,
+      "max_parallel": 2,
+      "max_runs_per_day": null,
+      "mcp_last_used_at": null,
+      "monthly_cap": null,
+      "name": "Dev An",
+      "pack_key": "standard",
+      "pack_name": "Standard feature",
+      "paused": false,
+      "paused_at": null,
+      "paused_reason": null,
+      "permission_mode": "bypass",
+      "persona": "",
+      "project_id": "<uuid:1>",
+      "provider": "claude-code",
+      "queued": 0,
+      "roles": [
+        {
+          "description": "A failing test before the fix",
+          "effort": "medium",
+          "key": "dev",
+          "name": "Dev (TDD)",
+          "prompt": "You are Dev on this project. Write the failing test first and run it, then make the smallest change that makes it pass, then run the suite. Keep the change as small as the criteria allow; never reformat a file you did not touch; commit on your ticket's branch. You are not the reviewer of your own work and you may not change an acceptance criterion, only propose one. A Docs page you write or change on how the parts fit together or what happens in which order (the architecture, a data flow, a sequence between devices or services) carries a draw.io Diagram of it beside the words; add or update it (skill `kanban-board:drawio-diagrams`: change only the shapes you mean, look at docs_read(picture) before you save). Your craft: the skill `kanban-board:role-dev`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
+          "tools": null,
+          "writes": "worktree"
+        },
+        {
+          "description": "Reads the diff, never the transcript",
+          "effort": "medium",
+          "key": "reviewer",
+          "name": "Reviewer",
+          "prompt": "You are the Reviewer. You get the diff, the acceptance criteria and the hand-over note, never the other AI's transcript, so you judge the change fresh. Check every criterion against the code, run the tests the depth asks for, and answer: pass, or exactly what to change and why. Do not repeat an objection you already made once it was answered; you never change code. Your craft: the skill `kanban-board:role-reviewer`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
+          "tools": null,
+          "writes": "nothing"
+        },
+        {
+          "description": "Runs it, does not read it",
+          "effort": "low",
+          "key": "qa",
+          "name": "QA",
+          "prompt": "You are QA on this project. You check that the product works; you do not fix it. Turn the criteria into test cases, run the suite and the app, attach proof (output, screenshots) to each test case, and report exactly what passed and what did not. A failure gets a clear repro, not a guess at the cause. Your craft: the skill `kanban-board:role-qa`. How to work a ticket, prove it, ask and work with the other roles: the board's shared skills (`kanban-board:*`).",
+          "tools": null,
+          "writes": "tests"
+        }
+      ],
+      "running": [
+        {
+          "number": 1,
+          "run_id": "<run:1>",
+          "started_at": "<time>",
+          "state": "needs_input",
+          "ticket_id": "KAN-1",
+          "ticket_status": "todo",
+          "ticket_title": "Fix add()"
+        }
+      ],
+      "scope": "assigned",
+      "slots_in_use": 0,
+      "status": {
+        "code": "running",
+        "detail": "KAN-1",
+        "label": "Running",
+        "ticket_id": "KAN-1"
+      },
+      "tokens_per_day": null,
+      "updated_at": "<time>",
+      "usage": {
+        "cost_today": 0.01,
+        "runs_today": 1,
+        "tokens_today": 120
+      },
+      "working_dir": "<tmp>/repo"
+    }
+  },
+  "POST answer": {
+    "status": 409,
+    "json": {
+      "detail": "This run is not waiting for an answer."
+    }
+  },
+  "POST cancel": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "answer": "Use SQLite",
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": "<time>",
+      "ended_by": "user",
+      "ended_reason": "Cancelled by user",
+      "exit_code": 0,
+      "instruction": "",
+      "kind": "team",
+      "last_output_at": "<time>",
+      "live": false,
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 1,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": {
+        "asked_at": "<time>",
+        "more": [],
+        "options": [],
+        "previous": [
+          {
+            "answer": "Use SQLite",
+            "answered_at": "<time>",
+            "answered_by": "user",
+            "text": "Which database: SQLite or PostgreSQL?"
+          }
+        ],
+        "text": "Which database: SQLite or PostgreSQL?",
+        "to": "user"
+      },
+      "queued_at": "<time>",
+      "report": {
+        "asks": [
+          "Which database: SQLite or PostgreSQL?"
+        ],
+        "status": "question",
+        "summary": "I need to know the database."
+      },
+      "restarts": [],
+      "retries": [],
+      "session_id": "<uuid:3>",
+      "session_name": "KAN-1",
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "cancelled",
+      "stop_code": null,
+      "summary": "I need to know the database.",
+      "target": null,
+      "ticket_id": "KAN-1",
+      "tokens_cached": 0,
+      "trigger": "run_button",
+      "waiting_reason": null
+    }
+  },
+  "POST cancel: again": {
+    "status": 409,
+    "json": {
+      "detail": "Run #1 already ended (cancelled)."
+    }
+  },
+  "POST restart: it waits for an answer": {
+    "status": 409,
+    "json": {
+      "detail": "Only a running run can be restarted."
+    }
+  },
+  "POST retry: a cancelled run": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "answer": null,
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": null,
+      "ended_by": null,
+      "ended_reason": null,
+      "exit_code": null,
+      "instruction": "Continue the work: the earlier run ended before it was done.",
+      "kind": "team",
+      "last_output_at": null,
+      "live": false,
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 2,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": null,
+      "queued_at": "<time>",
+      "report": {},
+      "restarts": [],
+      "retries": [],
+      "session_id": "<uuid:3>",
+      "session_name": "KAN-1",
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "stop_code": null,
+      "summary": null,
+      "target": null,
+      "ticket_id": "KAN-1",
+      "tokens_cached": null,
+      "trigger": "retry",
+      "waiting_reason": null
+    }
+  },
+  "POST retry: it has not ended": {
+    "status": 409,
+    "json": {
+      "detail": "The run is still going."
+    }
+  },
+  "POST run: a lead is already on the ticket": {
+    "status": 200,
+    "json": {
+      "account_id": null,
+      "answer": "Use SQLite",
+      "diagnosis": null,
+      "effort": null,
+      "ended_at": null,
+      "ended_by": null,
+      "ended_reason": null,
+      "exit_code": 0,
+      "instruction": "",
+      "kind": "team",
+      "last_output_at": "<time>",
+      "live": false,
+      "member_id": "<uuid:1>",
+      "mode": "work",
+      "number": 1,
+      "paused": false,
+      "project_id": "<uuid:2>",
+      "question": {
+        "answered_at": "<time>",
+        "answered_by": "user",
+        "asked_at": "<time>",
+        "more": [],
+        "options": [],
+        "previous": [],
+        "text": "Which database: SQLite or PostgreSQL?",
+        "to": "user"
+      },
+      "queued_at": "<time>",
+      "report": {
+        "asks": [
+          "Which database: SQLite or PostgreSQL?"
+        ],
+        "status": "question",
+        "summary": "I need to know the database."
+      },
+      "restarts": [],
+      "retries": [],
+      "session_id": "<uuid:3>",
+      "session_name": "KAN-1",
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "starting",
+      "stop_code": null,
+      "summary": "I need to know the database.",
+      "target": null,
+      "ticket_id": "KAN-1",
+      "tokens_cached": 0,
+      "trigger": "run_button",
+      "waiting_reason": null
+    }
+  },
+  "the run then waits as": {
+    "note": {
+      "state": "needs_input"
+    }
+  },
+  "the run waits as": {
+    "note": {
+      "state": "needs_input"
+    }
+  }
+}

@@ -1,0 +1,1055 @@
+{
+  "bin: after the delete": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "title": "Omega",
+        "project_id": "<uuid:2>",
+        "parent_title": null,
+        "parent_deleted": false,
+        "deleted_at": "<time>",
+        "deleted_by": "user",
+        "page_count": 2,
+        "child_titles": [
+          "Gamma"
+        ],
+        "days_left": 30
+      }
+    ]
+  },
+  "delete-preview: ok": {
+    "status": 200,
+    "json": {
+      "pages": [
+        {
+          "id": "<uuid:1>",
+          "title": "Alpha",
+          "role": "this"
+        },
+        {
+          "id": "<uuid:2>",
+          "title": "Kid",
+          "role": "child"
+        }
+      ],
+      "linking_pages": 1,
+      "linking": [
+        {
+          "page_id": "<uuid:3>",
+          "title": "Beta",
+          "parent": null,
+          "count": 2
+        }
+      ],
+      "linking_tickets": 0
+    }
+  },
+  "delete-preview: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "delete: again": {
+    "status": 410,
+    "json": {
+      "detail": {
+        "code": "page_deleted",
+        "message": "Page is in the Recycle Bin",
+        "request_id": "<request id>",
+        "deleted_by": "user",
+        "deleted_at": "<time>"
+      }
+    },
+    "has_request_id": true
+  },
+  "delete: subtree": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "deleted_pages": 2
+    }
+  },
+  "delete: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "delete: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Only project members can edit pages in this space. You can still read published pages.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "duplicate: blank title is the default": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Kid (copy)",
+      "slug": "kid-copy",
+      "slug_path": "kid-copy",
+      "status": "draft",
+      "version": 0,
+      "markdown": "",
+      "headings": [],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 0,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": {
+        "title": "Kid (copy)",
+        "markdown": "",
+        "base_version": 0,
+        "saves": 1,
+        "updated_at": "<time>",
+        "author": "user",
+        "ai_source": null
+      }
+    }
+  },
+  "duplicate: default": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Omega (copy)",
+      "slug": "omega-copy",
+      "slug_path": "omega-copy",
+      "status": "draft",
+      "version": 0,
+      "markdown": "",
+      "headings": [],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 0,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": {
+        "title": "Omega (copy)",
+        "markdown": "## One\nfirst",
+        "base_version": 0,
+        "saves": 1,
+        "updated_at": "<time>",
+        "author": "user",
+        "ai_source": null
+      }
+    }
+  },
+  "duplicate: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "duplicate: parent null is the top": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Gamma (copy)",
+      "slug": "gamma-copy",
+      "slug_path": "gamma-copy",
+      "status": "draft",
+      "version": 0,
+      "markdown": "",
+      "headings": [],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 0,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": {
+        "title": "Gamma (copy)",
+        "markdown": "links to [[Omega]] and [[Omega#One]]",
+        "base_version": 0,
+        "saves": 1,
+        "updated_at": "<time>",
+        "author": "user",
+        "ai_source": null
+      }
+    }
+  },
+  "duplicate: title too long": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "title_too_long",
+        "message": "Title is limited to 200 characters",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "duplicate: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "duplicate: with children and a title": {
+    "status": 201,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Twin",
+      "slug": "twin",
+      "slug_path": "twin",
+      "status": "draft",
+      "version": 0,
+      "markdown": "",
+      "headings": [],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 0,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": {
+        "title": "Twin",
+        "markdown": "## One\nfirst",
+        "base_version": 0,
+        "saves": 1,
+        "updated_at": "<time>",
+        "author": "user",
+        "ai_source": null
+      }
+    }
+  },
+  "move: after a sibling": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Draft",
+      "slug": "draft",
+      "slug_path": "draft",
+      "status": "draft",
+      "version": 0,
+      "markdown": "",
+      "headings": [],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 0,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": {
+        "title": "Draft",
+        "markdown": "wants [[Omega]]",
+        "base_version": 0,
+        "saves": 1,
+        "updated_at": "<time>",
+        "author": "user",
+        "ai_source": null
+      }
+    }
+  },
+  "move: anchor is not a sibling": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "bad_anchor",
+        "message": "Anchor page is not a sibling at the target",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "move: into its own child": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "code": "cycle",
+        "message": "A page cannot be moved into itself or its own sub-pages",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "move: into itself": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "code": "cycle",
+        "message": "A page cannot be moved into itself or its own sub-pages",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "move: parent missing": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "move: to the top before another": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Kid",
+      "slug": "kid",
+      "slug_path": "kid",
+      "status": "draft",
+      "version": 0,
+      "markdown": "",
+      "headings": [],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 0,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": {
+        "title": "Kid",
+        "markdown": "",
+        "base_version": 0,
+        "saves": 1,
+        "updated_at": "<time>",
+        "author": "user",
+        "ai_source": null
+      }
+    }
+  },
+  "move: under a parent": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": "<uuid:3>",
+      "title": "Gamma",
+      "slug": "beta",
+      "slug_path": "omega/gamma",
+      "status": "published",
+      "version": 2,
+      "markdown": "links to [[Omega]] and [[Omega#One]]",
+      "headings": [],
+      "path": [
+        {
+          "id": "<uuid:3>",
+          "title": "Omega",
+          "slug": "alpha"
+        }
+      ],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 5,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null
+    }
+  },
+  "move: unknown page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "move: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Only project members can edit pages in this space. You can still read published pages.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "page: deleted": {
+    "status": 410,
+    "json": {
+      "detail": {
+        "code": "page_deleted",
+        "message": "Page is in the Recycle Bin",
+        "request_id": "<request id>",
+        "deleted_by": "user",
+        "deleted_at": "<time>"
+      }
+    },
+    "has_request_id": true
+  },
+  "page: draft": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": "<uuid:3>",
+      "title": "Kid",
+      "slug": "kid",
+      "slug_path": "alpha/kid",
+      "status": "draft",
+      "version": 0,
+      "markdown": "",
+      "headings": [],
+      "path": [
+        {
+          "id": "<uuid:3>",
+          "title": "Alpha",
+          "slug": "alpha"
+        }
+      ],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 0,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": {
+        "title": "Kid",
+        "markdown": "",
+        "base_version": 0,
+        "saves": 1,
+        "updated_at": "<time>",
+        "author": "user",
+        "ai_source": null
+      }
+    }
+  },
+  "page: draft rewritten": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Draft",
+      "slug": "draft",
+      "slug_path": "draft",
+      "status": "draft",
+      "version": 0,
+      "markdown": "",
+      "headings": [],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 0,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": {
+        "title": "Draft",
+        "markdown": "wants [[Omega]]",
+        "base_version": 0,
+        "saves": 1,
+        "updated_at": "<time>",
+        "author": "user",
+        "ai_source": null
+      }
+    }
+  },
+  "page: linker rewritten": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Beta",
+      "slug": "beta",
+      "slug_path": "beta",
+      "status": "published",
+      "version": 2,
+      "markdown": "links to [[Omega]] and [[Omega#One]]",
+      "headings": [],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 5,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null
+    }
+  },
+  "page: published": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Alpha",
+      "slug": "alpha",
+      "slug_path": "alpha",
+      "status": "published",
+      "version": 1,
+      "markdown": "## One\nfirst",
+      "headings": [
+        {
+          "level": 2,
+          "text": "One",
+          "slug": "one"
+        }
+      ],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 3,
+        "linked_tickets": 0,
+        "inbound_links": 1
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null
+    }
+  },
+  "page: purged": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "page: stranger": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "docs_no_access",
+        "message": "Docs in Kanban is limited to project members.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "page: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "purge: not in the bin": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "code": "not_deleted",
+        "message": "Only pages in the Recycle Bin can be deleted forever",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "purge: ok": {
+    "status": 204,
+    "text": ""
+  },
+  "purge: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "purge: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Only project members can edit pages in this space. You can still read published pages.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "rename-preview: no title": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "title_required",
+        "message": "Give the page a title",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "rename-preview: ok": {
+    "status": 200,
+    "json": {
+      "affected_pages": [
+        {
+          "page_id": "<uuid:1>",
+          "title": "Beta",
+          "count": 2
+        },
+        {
+          "page_id": "<uuid:2>",
+          "title": "Draft",
+          "count": 1
+        }
+      ],
+      "total": 3
+    }
+  },
+  "rename-preview: same title": {
+    "status": 200,
+    "json": {
+      "affected_pages": [],
+      "total": 0
+    }
+  },
+  "rename-preview: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "rename: blank": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "title_required",
+        "message": "Give the page a title",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "rename: no title": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "title"
+        ]
+      ]
+    }
+  },
+  "rename: not linkable with rewrite": {
+    "status": 422,
+    "json": {
+      "detail": {
+        "code": "title_not_linkable",
+        "message": "A title with [, ], | or # cannot be written as a [[link]]; rename without updating links",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "rename: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "rename: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Only project members can edit pages in this space. You can still read published pages.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "rename: with rewrite": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Omega",
+      "slug": "alpha",
+      "slug_path": "omega",
+      "status": "published",
+      "version": 1,
+      "markdown": "## One\nfirst",
+      "headings": [
+        {
+          "level": 2,
+          "text": "One",
+          "slug": "one"
+        }
+      ],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 3,
+        "linked_tickets": 0,
+        "inbound_links": 1
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null,
+      "rewritten": 3,
+      "rewritten_pages": 2
+    }
+  },
+  "rename: without rewrite": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "parent_id": null,
+      "title": "Gamma",
+      "slug": "beta",
+      "slug_path": "gamma",
+      "status": "published",
+      "version": 2,
+      "markdown": "links to [[Omega]] and [[Omega#One]]",
+      "headings": [],
+      "path": [],
+      "created_by": "user",
+      "updated_by": "user",
+      "updated_at": "<time>",
+      "created_at": "<time>",
+      "stats": {
+        "words": 5,
+        "linked_tickets": 0,
+        "inbound_links": 0
+      },
+      "has_unpublished_changes": false,
+      "kind": "page",
+      "draft": null,
+      "rewritten": 0,
+      "rewritten_pages": 0
+    }
+  },
+  "restore: not deleted": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "restored_pages": 1,
+      "moved_to_top_level": true
+    }
+  },
+  "restore: only the child": {
+    "status": 409,
+    "json": {
+      "detail": {
+        "code": "not_deleted",
+        "message": "Page is not in the Recycle Bin",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "restore: the root": {
+    "status": 200,
+    "json": {
+      "id": "<uuid:1>",
+      "restored_pages": 1,
+      "moved_to_top_level": false
+    }
+  },
+  "restore: unknown": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "restore: viewer": {
+    "status": 403,
+    "json": {
+      "detail": {
+        "code": "read_only",
+        "message": "Only project members can edit pages in this space. You can still read published pages.",
+        "request_id": "<request id>"
+      }
+    },
+    "has_request_id": true
+  },
+  "tree: after the copies": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "parent_id": null,
+        "position": 0,
+        "title": "Omega",
+        "slug": "alpha",
+        "status": "published",
+        "version": 1,
+        "has_draft": false,
+        "updated_at": "<time>",
+        "kind": "page"
+      },
+      {
+        "id": "<uuid:2>",
+        "parent_id": "<uuid:1>",
+        "position": 0,
+        "title": "Gamma",
+        "slug": "beta",
+        "status": "published",
+        "version": 2,
+        "has_draft": false,
+        "updated_at": "<time>",
+        "kind": "page"
+      },
+      {
+        "id": "<uuid:3>",
+        "parent_id": "<uuid:4>",
+        "position": 0,
+        "title": "Gamma",
+        "slug": "gamma",
+        "status": "draft",
+        "version": 0,
+        "has_draft": true,
+        "updated_at": "<time>",
+        "kind": "page"
+      },
+      {
+        "id": "<uuid:5>",
+        "parent_id": null,
+        "position": 1,
+        "title": "Draft",
+        "slug": "draft",
+        "status": "draft",
+        "version": 0,
+        "has_draft": true,
+        "updated_at": "<time>",
+        "kind": "page"
+      },
+      {
+        "id": "<uuid:6>",
+        "parent_id": null,
+        "position": 2,
+        "title": "Kid",
+        "slug": "kid",
+        "status": "draft",
+        "version": 0,
+        "has_draft": true,
+        "updated_at": "<time>",
+        "kind": "page"
+      },
+      {
+        "id": "<uuid:7>",
+        "parent_id": null,
+        "position": 3,
+        "title": "Omega (copy)",
+        "slug": "omega-copy",
+        "status": "draft",
+        "version": 0,
+        "has_draft": true,
+        "updated_at": "<time>",
+        "kind": "page"
+      },
+      {
+        "id": "<uuid:4>",
+        "parent_id": null,
+        "position": 4,
+        "title": "Twin",
+        "slug": "twin",
+        "status": "draft",
+        "version": 0,
+        "has_draft": true,
+        "updated_at": "<time>",
+        "kind": "page"
+      },
+      {
+        "id": "<uuid:8>",
+        "parent_id": null,
+        "position": 5,
+        "title": "Gamma (copy)",
+        "slug": "gamma-copy",
+        "status": "draft",
+        "version": 0,
+        "has_draft": true,
+        "updated_at": "<time>",
+        "kind": "page"
+      },
+      {
+        "id": "<uuid:9>",
+        "parent_id": null,
+        "position": 6,
+        "title": "Kid (copy)",
+        "slug": "kid-copy",
+        "status": "draft",
+        "version": 0,
+        "has_draft": true,
+        "updated_at": "<time>",
+        "kind": "page"
+      }
+    ]
+  },
+  "tree: after the moves": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<uuid:1>",
+        "parent_id": null,
+        "position": 0,
+        "title": "Omega",
+        "slug": "alpha",
+        "status": "published",
+        "version": 1,
+        "has_draft": false,
+        "updated_at": "<time>",
+        "kind": "page"
+      },
+      {
+        "id": "<uuid:2>",
+        "parent_id": "<uuid:1>",
+        "position": 0,
+        "title": "Gamma",
+        "slug": "beta",
+        "status": "published",
+        "version": 2,
+        "has_draft": false,
+        "updated_at": "<time>",
+        "kind": "page"
+      },
+      {
+        "id": "<uuid:3>",
+        "parent_id": null,
+        "position": 1,
+        "title": "Draft",
+        "slug": "draft",
+        "status": "draft",
+        "version": 0,
+        "has_draft": true,
+        "updated_at": "<time>",
+        "kind": "page"
+      },
+      {
+        "id": "<uuid:4>",
+        "parent_id": null,
+        "position": 2,
+        "title": "Kid",
+        "slug": "kid",
+        "status": "draft",
+        "version": 0,
+        "has_draft": true,
+        "updated_at": "<time>",
+        "kind": "page"
+      }
+    ]
+  }
+}

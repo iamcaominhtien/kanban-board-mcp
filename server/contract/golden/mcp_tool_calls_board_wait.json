@@ -1,0 +1,201 @@
+{
+  "arguments: since text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool board_wait: 1 validation error for board_waitArguments\nsince\n  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='x', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/int_parsing"
+      }
+    ],
+    "isError": true
+  },
+  "arguments: since a float": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool board_wait: 1 validation error for board_waitArguments\nsince\n  Input should be a valid integer, got a number with a fractional part [type=int_from_float, input_value=1.5, input_type=float]\n    For further information visit https://errors.pydantic.dev/2.12/v/int_from_float"
+      }
+    ],
+    "isError": true
+  },
+  "arguments: timeout text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool board_wait: 1 validation error for board_waitArguments\ntimeout_s\n  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='x', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/int_parsing"
+      }
+    ],
+    "isError": true
+  },
+  "arguments: unknown argument": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool board_wait: 1 validation error for board_waitArguments\nafter\n  Extra inputs are not permitted [type=extra_forbidden, input_value=1, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "head: the head of an empty log": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+      }
+    ],
+    "isError": false
+  },
+  "head: with a project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+      }
+    ],
+    "isError": false
+  },
+  "head: since null": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+      }
+    ],
+    "isError": false
+  },
+  "head: a timeout that is not used": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+      }
+    ],
+    "isError": false
+  },
+  "head: as a run": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+      }
+    ],
+    "isError": false
+  },
+  "head: as a run that has ended": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool board_wait: This AI run has ended (finished, cancelled or stopped by a person); the board no longer accepts its calls. Stop now."
+      }
+    ],
+    "isError": true
+  },
+  "wait: nothing happens": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+      }
+    ],
+    "isError": false
+  },
+  "wait: a negative timeout counts as one second": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+      }
+    ],
+    "isError": false
+  },
+  "wait: a cursor from the future": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": true,\n  \"events\": []\n}"
+      }
+    ],
+    "isError": false
+  },
+  "lesson: proposed": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"lesson\": {\n    \"id\": \"<lsn:1>\",\n    \"text\": \"Wait for the board.\",\n    \"state\": \"proposed\",\n    \"tokens\": 5,\n    \"source_ticket_id\": null,\n    \"source_run_id\": null,\n    \"proposed_by\": \"user\",\n    \"kept_by\": null,\n    \"uses\": 0,\n    \"last_used_at\": null,\n    \"created_at\": \"<time>\",\n    \"updated_at\": \"<time>\"\n  },\n  \"note\": \"Proposed. It reaches every AI's prompt once a person keeps it.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "lesson": {
+          "id": "<lsn:1>",
+          "text": "Wait for the board.",
+          "state": "proposed",
+          "tokens": 5,
+          "source_ticket_id": null,
+          "source_run_id": null,
+          "proposed_by": "user",
+          "kept_by": null,
+          "uses": 0,
+          "last_used_at": null,
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        "note": "Proposed. It reaches every AI's prompt once a person keeps it."
+      }
+    },
+    "isError": false
+  },
+  "wait: the event": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": [\n    {\n      \"id\": 1,\n      \"project_id\": \"<uuid:1>\",\n      \"kind\": \"lesson\",\n      \"op\": \"new\",\n      \"needs\": false,\n      \"target_kind\": \"lesson\",\n      \"target_id\": \"<lsn:1>\",\n      \"ticket_id\": null,\n      \"page_id\": null,\n      \"member_id\": null,\n      \"actor\": null,\n      \"title\": \"A lesson proposed by user\",\n      \"body\": \"Wait for the board.\",\n      \"data\": {},\n      \"recipients\": [\n        \"user\"\n      ],\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "wait: only this project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": [\n    {\n      \"id\": 1,\n      \"project_id\": \"<uuid:1>\",\n      \"kind\": \"lesson\",\n      \"op\": \"new\",\n      \"needs\": false,\n      \"target_kind\": \"lesson\",\n      \"target_id\": \"<lsn:1>\",\n      \"ticket_id\": null,\n      \"page_id\": null,\n      \"member_id\": null,\n      \"actor\": null,\n      \"title\": \"A lesson proposed by user\",\n      \"body\": \"Wait for the board.\",\n      \"data\": {},\n      \"recipients\": [\n        \"user\"\n      ],\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "wait: another project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+      }
+    ],
+    "isError": false
+  },
+  "wait: after the head": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+      }
+    ],
+    "isError": false
+  },
+  "wait: a run reads what is told to it": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+      }
+    ],
+    "isError": false
+  },
+  "wait: another run": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+      }
+    ],
+    "isError": false
+  }
+}

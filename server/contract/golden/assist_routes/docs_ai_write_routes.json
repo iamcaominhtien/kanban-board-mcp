@@ -1,0 +1,521 @@
+{
+  "accepted": {
+    "status": 200,
+    "json": {
+      "ok": true
+    }
+  },
+  "accepted: no page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "history-summary": {
+    "status": 200,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "What changed v1 → v3",
+      "kind": "history_summary",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "from_version": 1,
+          "to_version": 3
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "history-summary: no page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "history-summary: no versions": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "from_version"
+        ]
+      ]
+    }
+  },
+  "history-summary: not later": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Pick a later version to compare with."
+    }
+  },
+  "markers": {
+    "status": 200,
+    "json": {
+      "count": 0,
+      "markers": []
+    }
+  },
+  "markers: no page": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "page_not_found",
+        "message": "Page not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "publish-note": {
+    "status": 200,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Suggest a change note",
+      "kind": "publish_note",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "input": {
+          "markdown": "# API\n\nNew.\n"
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "publish-note: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "since-viewed": {
+    "status": 200,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Changes since you last viewed",
+      "kind": "since_viewed",
+      "member_id": null,
+      "metered": false,
+      "page_id": null,
+      "project_id": "<uuid:1>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {},
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "since-viewed: no project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "thread summary": {
+    "status": 202,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Summarise this thread",
+      "kind": "thread_summary",
+      "member_id": null,
+      "metered": false,
+      "page_id": "<uuid:1>",
+      "project_id": "<uuid:2>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {},
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": "<uuid:3>",
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "thread summary: no thread": {
+    "status": 404,
+    "json": {
+      "detail": {
+        "code": "thread_not_found",
+        "message": "Comment thread not found",
+        "request_id": "<request-id>"
+      }
+    }
+  },
+  "tidy": {
+    "status": 200,
+    "json": {
+      "cost": 0,
+      "counts": {
+        "pages": 2,
+        "see_links": 0,
+        "ticket_key_total": 1,
+        "ticket_keys": [
+          {
+            "count": 1,
+            "key": "KAN-1",
+            "known": false
+          }
+        ]
+      },
+      "options": {
+        "heading_levels": false,
+        "see_links": false,
+        "split_by_heading": true,
+        "ticket_chips": true
+      },
+      "pages": [
+        {
+          "changes": [
+            "Split from import.md"
+          ],
+          "file": {
+            "content": "---\ntitle: \"A\"\n---\n\ntext\n",
+            "path": "a.md"
+          },
+          "index": 0,
+          "markdown": "text",
+          "title": "A"
+        },
+        {
+          "changes": [
+            "Split from import.md",
+            "Ticket keys kept as text and shown as chips: KAN-1 ×1"
+          ],
+          "file": {
+            "content": "---\ntitle: \"B\"\n---\n\nmore KAN-1\n",
+            "path": "b.md"
+          },
+          "index": 1,
+          "markdown": "more KAN-1",
+          "title": "B"
+        }
+      ],
+      "see_links": [],
+      "source": {
+        "bytes": 27,
+        "filename": "import.md",
+        "sections": 2,
+        "split_level": 1
+      }
+    }
+  },
+  "tidy: all options": {
+    "status": 200,
+    "json": {
+      "cost": 0,
+      "counts": {
+        "pages": 1,
+        "see_links": 1,
+        "ticket_key_total": 0,
+        "ticket_keys": []
+      },
+      "options": {
+        "heading_levels": true,
+        "see_links": true,
+        "split_by_heading": false,
+        "ticket_chips": false
+      },
+      "pages": [
+        {
+          "changes": [
+            "Headings moved down 1 level, starting at ##"
+          ],
+          "file": {
+            "content": "---\ntitle: \"Notes\"\n---\n\n## A\n\n#### B\n\nsee API\n",
+            "path": "notes.md"
+          },
+          "index": 0,
+          "markdown": "## A\n\n#### B\n\nsee API\n",
+          "title": "Notes"
+        }
+      ],
+      "see_links": [
+        {
+          "accepted": false,
+          "id": "p0l5c4",
+          "line": 5,
+          "page_index": 0,
+          "page_title": "Notes",
+          "phrase": "see API",
+          "title": "API"
+        }
+      ],
+      "source": {
+        "bytes": 20,
+        "filename": "notes.md",
+        "sections": 1,
+        "split_level": 0
+      }
+    }
+  },
+  "tidy: no markdown": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "markdown"
+        ]
+      ]
+    }
+  },
+  "tidy: no project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "write": {
+    "status": 200,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": null,
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Write a spec from prompt",
+      "kind": "write",
+      "member_id": null,
+      "metered": false,
+      "page_id": null,
+      "project_id": "<uuid:1>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "params": {
+          "include": {
+            "code_changes": false,
+            "comments": true,
+            "linked_pages": true
+          },
+          "page_kind": "spec",
+          "parent_id": null,
+          "source": {
+            "idea_id": null,
+            "kind": "prompt",
+            "text": "Paging design",
+            "ticket_id": null
+          },
+          "title": "Paging"
+        }
+      },
+      "started_at": null,
+      "started_by": "user",
+      "state": "queued",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
+  "write/preview": {
+    "status": 200,
+    "json": {
+      "cost": null,
+      "items": [
+        {
+          "kind": "prompt",
+          "label": "Your text"
+        },
+        {
+          "kind": "pages",
+          "label": "Pages it links and two or three pages of this space, for the voice"
+        }
+      ],
+      "left_out": [],
+      "tokens": null
+    }
+  },
+  "write/preview: no notes": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Paste the notes or write what the page is about."
+    }
+  },
+  "write/preview: no source": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "source"
+        ]
+      ]
+    }
+  },
+  "write/preview: ticket": {
+    "status": 200,
+    "json": {
+      "cost": null,
+      "items": [
+        {
+          "kind": "ticket",
+          "label": "KAN-1"
+        },
+        {
+          "kind": "pages",
+          "label": "Pages it links and two or three pages of this space, for the voice"
+        },
+        {
+          "kind": "comments",
+          "label": "The ticket's comments"
+        }
+      ],
+      "left_out": [],
+      "tokens": null
+    }
+  },
+  "write: bad kind": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Write from a ticket, an idea, notes or a prompt."
+    }
+  },
+  "write: job": {
+    "status": 200,
+    "json": {
+      "comment_id": null,
+      "cost": 0.02,
+      "ended_at": "<time>",
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Write a spec from prompt",
+      "kind": "write",
+      "member_id": null,
+      "metered": false,
+      "page_id": "PAGE",
+      "project_id": "<uuid:1>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "cost": 0.02,
+        "gaps": [
+          "Who owns it?"
+        ],
+        "metered": false,
+        "page_id": "PAGE",
+        "params": {
+          "include": {
+            "code_changes": false,
+            "comments": true,
+            "linked_pages": true
+          },
+          "page_kind": "spec",
+          "parent_id": null,
+          "source": {
+            "idea_id": null,
+            "kind": "prompt",
+            "text": "Paging design",
+            "ticket_id": null
+          },
+          "title": "Paging"
+        },
+        "sources": [
+          {
+            "idea_id": null,
+            "kind": "prompt",
+            "text": "Paging design",
+            "ticket_id": null
+          }
+        ],
+        "title": "Paging"
+      },
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "finished",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 200,
+      "tokens_out": 40
+    }
+  },
+  "write: no idea": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Pick an idea."
+    }
+  },
+  "write: no project": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "Project not found."
+    }
+  },
+  "write: no ticket": {
+    "status": 422,
+    "json": {
+      "code": "invalid",
+      "detail": "Pick a ticket."
+    }
+  }
+}

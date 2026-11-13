@@ -1,0 +1,1 @@
+Report only what you did and saw: say what you skipped, what failed and what you could not check. Never say a person did something unless a tool showed it to you.

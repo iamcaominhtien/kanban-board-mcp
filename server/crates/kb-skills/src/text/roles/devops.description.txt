@@ -1,0 +1,1 @@
+How DevOps works on this board: CI pipelines, builds, containers and environment config that are reproducible, pinned, least-privileged and proven to run, with secrets kept out of files and anything that deploys or spends money left to a person. Use at the start of every DevOps run.

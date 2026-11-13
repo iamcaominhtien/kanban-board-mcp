@@ -10,6 +10,7 @@ const {
   isOpenableUrl,
   openExternalSafely,
   openPathSafely,
+  SERVER_DIR,
   parseReadyPort,
   shouldRunVscodeSetup,
   shouldWriteSetupFlag,
@@ -24,7 +25,6 @@ test('buildBackendLaunchSpec uses packaged binary and user data db path', () => 
     userDataPath: 'C:/Users/test/AppData/Roaming/Kanban Board',
     desktopDir: '/repo/desktop',
     baseEnv: { EXISTING: '1' },
-    devPythonExists: false,
   });
 
   assert.equal(spec.command, 'C:/Kanban/resources/kanban-mcp-stdio/kanban-server.exe');
@@ -76,7 +76,6 @@ test('buildBackendLaunchSpec uses configured data_folder uploads if config exist
     userDataPath: '/Users/test/Library/Application Support/Kanban Board',
     desktopDir: '/repo/desktop',
     baseEnv: {},
-    devPythonExists: false,
     configPath,
   });
 
@@ -84,7 +83,7 @@ test('buildBackendLaunchSpec uses configured data_folder uploads if config exist
   assert.equal(spec.options.env.KANBAN_SECRET_STORE, 'keychain');
 });
 
-test('buildBackendLaunchSpec prefers project virtualenv in dev mode', () => {
+test('buildBackendLaunchSpec starts the debug build of the Rust workspace in dev mode', () => {
   const spec = buildBackendLaunchSpec({
     isPackaged: false,
     platform: 'darwin',
@@ -92,31 +91,61 @@ test('buildBackendLaunchSpec prefers project virtualenv in dev mode', () => {
     userDataPath: '/Users/test/Library/Application Support/Kanban Board',
     desktopDir: '/repo/desktop',
     baseEnv: {},
-    devPythonExists: true,
+    existsSync: () => true,
   });
 
-  assert.equal(spec.command, '/repo/server/.venv/bin/python');
-  assert.deepEqual(spec.args, ['/repo/server/main.py']);
-  assert.equal(spec.options.cwd, '/repo/server');
+  assert.equal(spec.command, `/repo/${SERVER_DIR}/target/debug/kanban-server`);
+  assert.deepEqual(spec.args, []);
+  assert.equal(spec.options.cwd, `/repo/${SERVER_DIR}`);
   assert.equal(
     spec.options.env.KANBAN_DB_PATH,
     '/Users/test/Library/Application Support/Kanban Board/kanban.db'
   );
+  // a console program: no window on Windows
+  assert.equal(spec.options.windowsHide, true);
 });
 
-test('buildBackendLaunchSpec falls back to python3 when no virtualenv exists', () => {
-  const spec = buildBackendLaunchSpec({
+test('buildBackendLaunchSpec adds .exe on Windows and honours KANBAN_SERVER_BIN in dev mode', () => {
+  const base = {
     isPackaged: false,
-    platform: 'linux',
-    resourcesPath: '/opt/kanban/resources',
-    userDataPath: '/tmp/appdata',
+    resourcesPath: '/R',
+    userDataPath: '/U',
     desktopDir: '/repo/desktop',
-    baseEnv: {},
-    devPythonExists: false,
-  });
+    existsSync: () => true,
+  };
+  const win = buildBackendLaunchSpec({ ...base, platform: 'win32', baseEnv: {} });
+  assert.ok(win.command.endsWith('kanban-server.exe'), win.command);
+  const custom = buildBackendLaunchSpec({ ...base, platform: 'linux', baseEnv: { KANBAN_SERVER_BIN: '/opt/ks/kanban-server' } });
+  assert.equal(custom.command, '/opt/ks/kanban-server');
+});
 
-  assert.equal(spec.command, 'python3');
-  assert.deepEqual(spec.args, ['/repo/server/main.py']);
+test('buildBackendLaunchSpec says how to build the server when the dev binary is missing', () => {
+  assert.throws(
+    () =>
+      buildBackendLaunchSpec({
+        isPackaged: false,
+        platform: 'linux',
+        resourcesPath: '/R',
+        userDataPath: '/U',
+        desktopDir: '/repo/desktop',
+        baseEnv: {},
+        existsSync: () => false,
+      }),
+    /cargo build -p kanban-server -p kanban-mcp-stdio/
+  );
+});
+
+test('the packaged server is a console program started without a window and without Python settings', () => {
+  const spec = buildBackendLaunchSpec({
+    isPackaged: true,
+    platform: 'win32',
+    resourcesPath: 'C:/R',
+    userDataPath: 'C:/U',
+    desktopDir: '/d',
+    baseEnv: {},
+  });
+  assert.equal(spec.options.windowsHide, true);
+  assert.equal(spec.options.env.PYTHONUNBUFFERED, undefined);
 });
 
 test('parseReadyPort extracts a ready signal from aggregated stdout', () => {
@@ -124,7 +153,7 @@ test('parseReadyPort extracts a ready signal from aggregated stdout', () => {
   assert.equal(parseReadyPort('booting only\n'), null);
 });
 
-test('getLegacyMcpStdioBinaryPath points at the pre-onedir single file', () => {
+test('getLegacyMcpStdioBinaryPath points at the single file older installs registered', () => {
   assert.equal(
     getLegacyMcpStdioBinaryPath({ platform: 'darwin', resourcesPath: '/R' }),
     '/R/kanban-mcp-stdio'
@@ -174,11 +203,22 @@ test('getMcpStdioBinaryPath resolves packaged and dev locations', () => {
   assert.equal(
     getMcpStdioBinaryPath({
       isPackaged: false,
-      platform: 'win32',
-      resourcesPath: 'C:/ignored',
+      platform: 'linux',
+      resourcesPath: '/ignored',
       desktopDir: '/repo/desktop',
     }),
-    '/repo/server/mcp_stdio.py'
+    `/repo/${SERVER_DIR}/target/debug/kanban-mcp-stdio`
+  );
+
+  assert.equal(
+    getMcpStdioBinaryPath({
+      isPackaged: false,
+      platform: 'linux',
+      resourcesPath: '/ignored',
+      desktopDir: '/repo/desktop',
+      env: { KANBAN_SERVER_BIN: '/opt/ks/kanban-server' },
+    }),
+    '/opt/ks/kanban-mcp-stdio'
   );
 });
 
@@ -214,7 +254,6 @@ test('the API secret goes to the server on its standard input, never in its envi
     userDataPath: '/U',
     desktopDir: '/D',
     baseEnv: {},
-    devPythonExists: false,
     apiSecret,
   });
   assert.deepEqual(spec.options.stdio, ['pipe', 'pipe', 'pipe']);
@@ -227,7 +266,7 @@ test('the API secret goes to the server on its standard input, never in its envi
     userDataPath: '/U',
     desktopDir: '/D/desktop',
     baseEnv: {},
-    devPythonExists: true,
+    existsSync: () => true,
     apiSecret,
   });
   assert.deepEqual(dev.options.stdio, ['pipe', 'pipe', 'pipe']);

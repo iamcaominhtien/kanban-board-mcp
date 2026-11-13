@@ -1,0 +1,1 @@
+How to work out with a person what to build before building it, and how to lay out options for yourself when nobody needs to be asked: questions in rounds, approaches with their trade-offs, an agreed list written down. Use when a ticket is vague or has several ways to go: a new feature, a Story to split, a scope to settle, a design direction, a solution to pick.

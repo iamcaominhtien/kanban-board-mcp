@@ -1,0 +1,1 @@
+How an AI team works on this board: the lead decides who does what, the roles are its subagents, and the ticket is the team's shared memory. Stay in your role, never redo another role's work, say plainly when you are blocked or disagree. Use at the start of every run on a ticket and whenever you need something from a teammate.

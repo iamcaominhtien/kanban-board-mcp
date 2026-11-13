@@ -1,0 +1,234 @@
+[
+ {
+  "name": "diagram.png",
+  "stem_ext": [
+   "diagram",
+   ".png"
+  ],
+  "alt": "diagram"
+ },
+ {
+  "name": "Ti\u1ebfn Vi\u1ec7t.PNG",
+  "stem_ext": [
+   "Tien-Viet",
+   ".png"
+  ],
+  "alt": "Tien-Viet"
+ },
+ {
+  "name": "../../etc/pass wd.txt",
+  "stem_ext": [
+   "pass-wd",
+   ".txt"
+  ],
+  "alt": "pass-wd"
+ },
+ {
+  "name": "",
+  "stem_ext": [
+   "image",
+   ""
+  ],
+  "alt": "image"
+ },
+ {
+  "name": "...",
+  "stem_ext": [
+   "image",
+   ""
+  ],
+  "alt": "image"
+ },
+ {
+  "name": "\u65e5\u672c\u8a9e.png",
+  "stem_ext": [
+   "image",
+   ".png"
+  ],
+  "alt": "image"
+ },
+ {
+  "name": ".env",
+  "stem_ext": [
+   "env",
+   ""
+  ],
+  "alt": "env"
+ },
+ {
+  "name": "a  b__c.tar.gz",
+  "stem_ext": [
+   "a-b__c.tar",
+   ".gz"
+  ],
+  "alt": "a-b__c.tar"
+ },
+ {
+  "name": "\ufb01le.txt",
+  "stem_ext": [
+   "file",
+   ".txt"
+  ],
+  "alt": "file"
+ },
+ {
+  "name": "report [final].pdf",
+  "stem_ext": [
+   "report-final",
+   ".pdf"
+  ],
+  "alt": "report-final"
+ },
+ {
+  "name": "a/b/c.JPG",
+  "stem_ext": [
+   "c",
+   ".jpg"
+  ],
+  "alt": "c"
+ },
+ {
+  "name": "dir/",
+  "stem_ext": [
+   "dir",
+   ""
+  ],
+  "alt": "dir"
+ },
+ {
+  "name": "/",
+  "stem_ext": [
+   "image",
+   ""
+  ],
+  "alt": "image"
+ },
+ {
+  "name": ".",
+  "stem_ext": [
+   "image",
+   ""
+  ],
+  "alt": "image"
+ },
+ {
+  "name": "..",
+  "stem_ext": [
+   "image",
+   ""
+  ],
+  "alt": "image"
+ },
+ {
+  "name": "file.",
+  "stem_ext": [
+   "file",
+   ""
+  ],
+  "alt": "file"
+ },
+ {
+  "name": ".hidden.txt",
+  "stem_ext": [
+   "hidden",
+   ".txt"
+  ],
+  "alt": "hidden"
+ },
+ {
+  "name": "  spaced name .md",
+  "stem_ext": [
+   "spaced-name",
+   ".md"
+  ],
+  "alt": "spaced-name"
+ },
+ {
+  "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.png",
+  "stem_ext": [
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   ".png"
+  ],
+  "alt": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+ },
+ {
+  "name": "\u00dcn\u00efc\u00f6d\u00e9-\u00d1ame.GIF",
+  "stem_ext": [
+   "Unicode-Name",
+   ".gif"
+  ],
+  "alt": "Unicode-Name"
+ },
+ {
+  "name": "a\\b.txt",
+  "stem_ext": [
+   "a-b",
+   ".txt"
+  ],
+  "alt": "a-b"
+ },
+ {
+  "name": "a\tb.txt",
+  "stem_ext": [
+   "a-b",
+   ".txt"
+  ],
+  "alt": "a-b"
+ },
+ {
+  "name": "-_-.png",
+  "stem_ext": [
+   "image",
+   ".png"
+  ],
+  "alt": "image"
+ },
+ {
+  "name": "\u216b roman.txt",
+  "stem_ext": [
+   "XII-roman",
+   ".txt"
+  ],
+  "alt": "XII-roman"
+ },
+ {
+  "name": "\uff46\uff55\uff4c\uff4c.txt",
+  "stem_ext": [
+   "full",
+   ".txt"
+  ],
+  "alt": "full"
+ },
+ {
+  "name": "name.with.many.dots.TXT",
+  "stem_ext": [
+   "name.with.many.dots",
+   ".txt"
+  ],
+  "alt": "name.with.many.dots"
+ },
+ {
+  "name": "[a].png",
+  "stem_ext": [
+   "a",
+   ".png"
+  ],
+  "alt": "a"
+ },
+ {
+  "name": "image",
+  "stem_ext": [
+   "image",
+   ""
+  ],
+  "alt": "image"
+ },
+ {
+  "name": "nul\u0000name.png",
+  "stem_ext": [
+   "nul-name",
+   ".png"
+  ],
+  "alt": "nul-name"
+ }
+]

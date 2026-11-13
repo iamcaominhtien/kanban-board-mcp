@@ -26,6 +26,13 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # The Rust workspace that holds the server. The one place this file names it: change this line when the folder is
+  # renamed (the paths below read it).
+  SERVER_DIR: server
+  # Keep equal to rust-version in <SERVER_DIR>/Cargo.toml
+  RUST_TOOLCHAIN: "1.94"
+
 jobs:
   # Skipped when the SONAR_TOKEN secret is not set, or (on the schedule) when nothing reached main since the last
   # analysis
@@ -58,33 +65,47 @@ jobs:
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
 
-  # Coverage with greenlet tracing doubles the time, so the backend still runs as two shards (tests/shard.py)
+  # Line coverage of the Rust workspace (cargo-llvm-cov), written as lcov. The tests that need PostgreSQL or MariaDB
+  # skip themselves here (no URL variable); `ci.yml`'s databases job covers them.
   backend:
-    name: Backend tests with coverage (${{ matrix.shard }}/2)
+    name: Backend tests with coverage
     needs: check
     if: needs.check.outputs.run == 'true'
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2]
-    defaults:
-      run:
-        working-directory: server
     steps:
+      # ui/ and desktop/ come along: some Rust tests read them
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          python-version: "3.12"
-      - run: pip install uv
-      - run: uv sync
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: llvm-tools-preview, clippy
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ${{ env.SERVER_DIR }}/target
+          key: cargo-cov-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-${{ hashFiles(format('{0}/Cargo.lock', env.SERVER_DIR)) }}
+          restore-keys: cargo-cov-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-
       - name: Tests with coverage
-        run: uv run pytest -q -n auto --cov --cov-report=xml $(python3 tests/shard.py ${{ matrix.shard }}/2)
+        working-directory: ${{ env.SERVER_DIR }}
+        run: cargo llvm-cov --workspace --lcov --output-path lcov.info
+      # Every clippy finding for SonarQube (ci.yml is the gate that fails on them): the compiler messages only, as
+      # `cargo clippy --message-format=json` writes them
+      - name: Clippy report
+        if: ${{ !cancelled() }}
+        working-directory: ${{ env.SERVER_DIR }}
+        run: |
+          cargo clippy --workspace --all-targets --message-format=json \
+            | jq -c 'select(.reason == "compiler-message")' > clippy.json
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }} # the report is written even when a test fails
         with:
-          name: coverage-server-${{ matrix.shard }}
-          path: server/coverage.xml
+          name: coverage-server
+          path: |
+            ${{ env.SERVER_DIR }}/lcov.info
+            ${{ env.SERVER_DIR }}/clippy.json
           retention-days: 3
 
   frontend:
@@ -155,17 +176,18 @@ jobs:
         with:
           pattern: coverage-*
           path: coverage-reports
-      # The reports name files relative to server/, ui/ and desktop/; Sonar needs paths it can find from here
+      # The reports name files relative to ui/ and desktop/ (the Rust one is absolute); Sonar needs paths it can find from here
       - name: Point the coverage reports at the checkout
         run: |
           # A report is missing when its job stopped before the tests ran; Sonar then goes without it
-          for f in coverage-reports/coverage-server-*/coverage.xml; do
-            [ -f "$f" ] && sed -i "s#<source>.*</source>#<source>$GITHUB_WORKSPACE/server</source>#" "$f"
-          done
+          # (the Rust report from cargo-llvm-cov already holds absolute paths, under the same workspace folder)
           f=coverage-reports/coverage-ui/lcov.info
           [ -f "$f" ] && sed -i "s#^SF:#SF:$GITHUB_WORKSPACE/ui/#" "$f"
           f=coverage-reports/coverage-desktop/lcov.info
           [ -f "$f" ] && sed -i "s#^SF:#SF:$GITHUB_WORKSPACE/desktop/#" "$f"
+          # clippy names files relative to the workspace (crates/..., bins/...); Sonar reads them from the repository root
+          f=coverage-reports/coverage-server/clippy.json
+          [ -f "$f" ] && sed -i -E "s#\"file_name\":\"(crates|bins)/#\"file_name\":\"$SERVER_DIR/\\1/#g" "$f"
           true
       - uses: SonarSource/sonarqube-scan-action@v8
       # Last night's issue keys, so the report can tell what is new (the newest cache whose key starts like this)

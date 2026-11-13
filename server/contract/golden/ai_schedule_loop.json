@@ -1,0 +1,363 @@
+{
+ "schedules": [
+  {
+   "id": "sch_loop_due",
+   "state": "active",
+   "paused_reason": null,
+   "failures_in_row": 0,
+   "runs_count": 1,
+   "has_next": true,
+   "saw_the_ticket": true
+  },
+  {
+   "id": "sch_loop_late",
+   "state": "active",
+   "paused_reason": null,
+   "failures_in_row": 0,
+   "runs_count": 1,
+   "has_next": true,
+   "saw_the_ticket": true
+  },
+  {
+   "id": "sch_loop_missed",
+   "state": "active",
+   "paused_reason": null,
+   "failures_in_row": 0,
+   "runs_count": 1,
+   "has_next": true,
+   "saw_the_ticket": true
+  },
+  {
+   "id": "sch_loop_once",
+   "state": "ended",
+   "paused_reason": null,
+   "failures_in_row": 0,
+   "runs_count": 1,
+   "has_next": false,
+   "saw_the_ticket": true
+  }
+ ],
+ "slots": [
+  {
+   "schedule_id": "sch_loop_due",
+   "state": "passed",
+   "catch_up": false,
+   "member": "Loop A",
+   "runs": [
+    "LOOP-1#1"
+   ],
+   "attempts": 1,
+   "note": "Finished. Fixed add(); tests pass.",
+   "started": true,
+   "ended": true,
+   "cost_usd": 0.01
+  },
+  {
+   "schedule_id": "sch_loop_late",
+   "state": "passed",
+   "catch_up": true,
+   "member": "Loop C",
+   "runs": [
+    "LOOP-2#1"
+   ],
+   "attempts": 1,
+   "note": "Started HH:MM when it was back. Finished. Fixed add(); tests pass.",
+   "started": true,
+   "ended": true,
+   "cost_usd": 0.01
+  },
+  {
+   "schedule_id": "sch_loop_missed",
+   "state": "skipped",
+   "catch_up": false,
+   "member": null,
+   "runs": [],
+   "attempts": 0,
+   "note": "Skipped: the allowed time ended before it could start. An Nguyen was told.",
+   "started": false,
+   "ended": true,
+   "cost_usd": 0.0
+  },
+  {
+   "schedule_id": "sch_loop_once",
+   "state": "passed",
+   "catch_up": false,
+   "member": "Loop B",
+   "runs": [
+    "LOOP-4#1"
+   ],
+   "attempts": 1,
+   "note": "Finished. Fixed add(); tests pass.",
+   "started": true,
+   "ended": true,
+   "cost_usd": 0.01
+  }
+ ],
+ "runs": [
+  {
+   "run": "LOOP-1#1",
+   "member": "Loop A",
+   "state": "finished",
+   "kind": "team",
+   "trigger": "schedule",
+   "started_by": "An Nguyen",
+   "instruction": "This is a scheduled run (schedule by An Nguyen).\n\nFix add().\n\nYou decide when the work is done; say in your final report what was done and what was not. Do not move the ticket past Review.",
+   "ended_by": null,
+   "report_status": "done",
+   "summary": "Fixed add(); tests pass."
+  },
+  {
+   "run": "LOOP-2#1",
+   "member": "Loop C",
+   "state": "finished",
+   "kind": "team",
+   "trigger": "schedule",
+   "started_by": "An Nguyen",
+   "instruction": "This is a scheduled run (schedule by An Nguyen).\n\nYou decide when the work is done; say in your final report what was done and what was not. Do not move the ticket past Review.",
+   "ended_by": null,
+   "report_status": "done",
+   "summary": "Fixed add(); tests pass."
+  },
+  {
+   "run": "LOOP-4#1",
+   "member": "Loop B",
+   "state": "finished",
+   "kind": "team",
+   "trigger": "schedule",
+   "started_by": "An Nguyen",
+   "instruction": "This is a scheduled run (schedule by An Nguyen).\n\nYou decide when the work is done; say in your final report what was done and what was not. Do not move the ticket past Review.",
+   "ended_by": null,
+   "report_status": "done",
+   "summary": "Fixed add(); tests pass."
+  }
+ ],
+ "activity": {
+  "LOOP-1": [
+   {
+    "actor": "Loop A",
+    "to": "started a scheduled run on LOOP-1 (schedule by An Nguyen)"
+   }
+  ],
+  "LOOP-2": [
+   {
+    "actor": "Loop C",
+    "to": "started a scheduled run on LOOP-2 (schedule by An Nguyen)"
+   }
+  ],
+  "LOOP-3": [
+   {
+    "actor": "Schedule",
+    "to": "skipped a scheduled run on LOOP-3: the allowed time ended before it could start. An Nguyen was told."
+   }
+  ],
+  "LOOP-4": [
+   {
+    "actor": "Loop B",
+    "to": "started a scheduled run on LOOP-4 (schedule by An Nguyen)"
+   }
+  ]
+ },
+ "feed": [
+  {
+   "schedule_id": "sch_loop_due",
+   "ticket_id": "LOOP-1",
+   "event": "finished",
+   "text": "LOOP-1 scheduled run finished",
+   "to": [
+    "An Nguyen"
+   ],
+   "run_id": "LOOP-1#1",
+   "action": "open"
+  },
+  {
+   "schedule_id": "sch_loop_due",
+   "ticket_id": "LOOP-1",
+   "event": "started",
+   "text": "LOOP-1 run started by schedule",
+   "to": [
+    "An Nguyen"
+   ],
+   "run_id": "LOOP-1#1",
+   "action": "open_run"
+  },
+  {
+   "schedule_id": "sch_loop_late",
+   "ticket_id": "LOOP-2",
+   "event": "finished",
+   "text": "LOOP-2 scheduled run finished",
+   "to": [
+    "An Nguyen"
+   ],
+   "run_id": "LOOP-2#1",
+   "action": "open"
+  },
+  {
+   "schedule_id": "sch_loop_late",
+   "ticket_id": "LOOP-2",
+   "event": "started",
+   "text": "LOOP-2 run started by schedule",
+   "to": [
+    "An Nguyen"
+   ],
+   "run_id": "LOOP-2#1",
+   "action": "open_run"
+  },
+  {
+   "schedule_id": "sch_loop_missed",
+   "ticket_id": "LOOP-3",
+   "event": "failed",
+   "text": "LOOP-3 skipped: the allowed time ended before it could start. An Nguyen was told",
+   "to": [
+    "An Nguyen",
+    "Binh"
+   ],
+   "srun_id": "slot of sch_loop_missed",
+   "action": "reschedule",
+   "skipped": true
+  },
+  {
+   "schedule_id": "sch_loop_once",
+   "ticket_id": "LOOP-4",
+   "event": "finished",
+   "text": "LOOP-4 scheduled run finished",
+   "to": [
+    "An Nguyen"
+   ],
+   "run_id": "LOOP-4#1",
+   "action": "open"
+  },
+  {
+   "schedule_id": "sch_loop_once",
+   "ticket_id": "LOOP-4",
+   "event": "started",
+   "text": "LOOP-4 run started by schedule",
+   "to": [
+    "An Nguyen"
+   ],
+   "run_id": "LOOP-4#1",
+   "action": "open_run"
+  }
+ ],
+ "notifications": [
+  {
+   "kind": "schedule",
+   "needs": false,
+   "title": "LOOP-1 scheduled run finished",
+   "target_kind": "run",
+   "target_id": "LOOP-1#1",
+   "ticket_id": "LOOP-1",
+   "member": "Loop A",
+   "data": {
+    "schedule_id": "sch_loop_due",
+    "event": "finished",
+    "action": "open"
+   },
+   "recipients": [
+    "an nguyen"
+   ]
+  },
+  {
+   "kind": "schedule",
+   "needs": false,
+   "title": "LOOP-2 scheduled run finished",
+   "target_kind": "run",
+   "target_id": "LOOP-2#1",
+   "ticket_id": "LOOP-2",
+   "member": "Loop C",
+   "data": {
+    "schedule_id": "sch_loop_late",
+    "event": "finished",
+    "action": "open"
+   },
+   "recipients": [
+    "an nguyen"
+   ]
+  },
+  {
+   "kind": "schedule",
+   "needs": false,
+   "title": "LOOP-3 skipped: the allowed time ended before it could start. An Nguyen was told",
+   "target_kind": "schedule_run",
+   "target_id": "slot of sch_loop_missed",
+   "ticket_id": "LOOP-3",
+   "member": "Loop B",
+   "data": {
+    "schedule_id": "sch_loop_missed",
+    "event": "skipped",
+    "action": "reschedule"
+   },
+   "recipients": [
+    "an nguyen",
+    "binh"
+   ]
+  },
+  {
+   "kind": "schedule",
+   "needs": false,
+   "title": "LOOP-4 scheduled run finished",
+   "target_kind": "run",
+   "target_id": "LOOP-4#1",
+   "ticket_id": "LOOP-4",
+   "member": "Loop B",
+   "data": {
+    "schedule_id": "sch_loop_once",
+    "event": "finished",
+    "action": "open"
+   },
+   "recipients": [
+    "an nguyen"
+   ]
+  },
+  {
+   "kind": "schedule_started",
+   "needs": false,
+   "title": "LOOP-1 run started by schedule",
+   "target_kind": "run",
+   "target_id": "LOOP-1#1",
+   "ticket_id": "LOOP-1",
+   "member": "Loop A",
+   "data": {
+    "schedule_id": "sch_loop_due",
+    "event": "started",
+    "action": "open_run"
+   },
+   "recipients": [
+    "an nguyen"
+   ]
+  },
+  {
+   "kind": "schedule_started",
+   "needs": false,
+   "title": "LOOP-2 run started by schedule",
+   "target_kind": "run",
+   "target_id": "LOOP-2#1",
+   "ticket_id": "LOOP-2",
+   "member": "Loop C",
+   "data": {
+    "schedule_id": "sch_loop_late",
+    "event": "started",
+    "action": "open_run"
+   },
+   "recipients": [
+    "an nguyen"
+   ]
+  },
+  {
+   "kind": "schedule_started",
+   "needs": false,
+   "title": "LOOP-4 run started by schedule",
+   "target_kind": "run",
+   "target_id": "LOOP-4#1",
+   "ticket_id": "LOOP-4",
+   "member": "Loop B",
+   "data": {
+    "schedule_id": "sch_loop_once",
+    "event": "started",
+    "action": "open_run"
+   },
+   "recipients": [
+    "an nguyen"
+   ]
+  }
+ ]
+}

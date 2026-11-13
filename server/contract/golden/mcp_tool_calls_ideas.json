@@ -1,0 +1,3371 @@
+{
+  "setup: project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Ideas\",\n  \"prefix\": \"IDQ\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: other project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:2>\",\n  \"name\": \"Other\",\n  \"prefix\": \"OTH\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "list: no ideas": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "list: no ideas in a project": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "list: a project that does not exist": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "list: a stage unknown": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool list_idea_tickets: 1 validation error for list_idea_ticketsArguments\nstage\n  Input should be 'inbox', 'exploring', 'ready', 'building', 'parked', 'shipped' or 'archived' [type=literal_error, input_value='someday', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "list: a stage in other case": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool list_idea_tickets: 1 validation error for list_idea_ticketsArguments\nstage\n  Input should be 'inbox', 'exploring', 'ready', 'building', 'parked', 'shipped' or 'archived' [type=literal_error, input_value='Inbox', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "list: project_id a number": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool list_idea_tickets: 1 validation error for list_idea_ticketsArguments\nproject_id\n  Input should be a valid string [type=string_type, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type"
+      }
+    ],
+    "isError": true
+  },
+  "list: unknown argument": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool list_idea_tickets: 1 validation error for list_idea_ticketsArguments\nlimit\n  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "list: q a number": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool list_idea_tickets: 1 validation error for list_idea_ticketsArguments\nq\n  Input should be a valid string [type=string_type, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type"
+      }
+    ],
+    "isError": true
+  },
+  "get: no arguments": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_idea_ticket: 1 validation error for get_idea_ticketArguments\nticket_id\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"
+      }
+    ],
+    "isError": true
+  },
+  "get: an idea that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_idea_ticket: Idea ticket 'IDEA-999' not found. Idea IDs look like 'IDEA-3'; use list_idea_tickets to see them."
+      }
+    ],
+    "isError": true
+  },
+  "get: ticket_id a number": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_idea_ticket: 1 validation error for get_idea_ticketArguments\nticket_id\n  Input should be a valid string [type=string_type, input_value=1, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type"
+      }
+    ],
+    "isError": true
+  },
+  "get: unknown argument": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_idea_ticket: 1 validation error for get_idea_ticketArguments\nproject_id\n  Extra inputs are not permitted [type=extra_forbidden, input_value='x', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "assumptions: no arguments": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool list_idea_assumptions: 1 validation error for list_idea_assumptionsArguments\nticket_id\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"
+      }
+    ],
+    "isError": true
+  },
+  "assumptions: an idea that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool list_idea_assumptions: Idea ticket 'IDEA-999' not found. Idea IDs look like 'IDEA-3'; use list_idea_tickets to see them."
+      }
+    ],
+    "isError": true
+  },
+  "trail: no arguments": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_idea_activity_trail: 1 validation error for get_idea_activity_trailArguments\nticket_id\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"
+      }
+    ],
+    "isError": true
+  },
+  "trail: an idea that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_idea_activity_trail: Idea ticket 'IDEA-999' not found. Idea IDs look like 'IDEA-3'; use list_idea_tickets to see them."
+      }
+    ],
+    "isError": true
+  },
+  "create: no arguments": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool create_idea_ticket: 1 validation error for create_idea_ticketArguments\ntitle\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"
+      }
+    ],
+    "isError": true
+  },
+  "create: an unknown argument": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool create_idea_ticket: 1 validation error for create_idea_ticketArguments\nstage\n  Extra inputs are not permitted [type=extra_forbidden, input_value='ready', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+      }
+    ],
+    "isError": true
+  },
+  "create: title a number": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool create_idea_ticket: 1 validation error for create_idea_ticketArguments\ntitle\n  Input should be a valid string [type=string_type, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type"
+      }
+    ],
+    "isError": true
+  },
+  "create: tags that are not text": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool create_idea_ticket: 2 validation errors for create_idea_ticketArguments\ntags.0\n  Input should be a valid string [type=string_type, input_value=1, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type\ntags.1\n  Input should be a valid string [type=string_type, input_value=2, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type"
+      }
+    ],
+    "isError": true
+  },
+  "create: a project that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool create_idea_ticket: Project 'nope' not found"
+      }
+    ],
+    "isError": true
+  },
+  "create: an empty project id": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool create_idea_ticket: Project '' not found"
+      }
+    ],
+    "isError": true
+  },
+  "create: a title alone": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-1\",\n  \"project_id\": null,\n  \"title\": \"Dark mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: every field": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-2\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Split the card renderer\",\n  \"description\": \"It is 480 lines.\\n\\n> quoted\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"It is 480 lines.\\n\\n> quoted\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ticket\",\n    \"by\": \"agent\",\n    \"why\": \"Out of scope for KAN-231\",\n    \"id\": \"KAN-231\",\n    \"label\": \"KAN-231\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"perf\",\n    \"refactor\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: with a reason only": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-3\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Offline mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"Asked twice\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"sync\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: an empty reason and ticket": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-4\",\n  \"project_id\": \"<uuid:2>\",\n  \"title\": \"Another\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: an empty title": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-5\",\n  \"project_id\": null,\n  \"title\": \"\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: a blank title": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-6\",\n  \"project_id\": null,\n  \"title\": \"   \",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: a long title": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-7\",\n  \"project_id\": null,\n  \"title\": \"tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "create: null counts as left out": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool create_idea_ticket: 1 validation error for create_idea_ticketArguments\ndescription\n  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type"
+      }
+    ],
+    "isError": true
+  },
+  "get: the first": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-1\",\n  \"project_id\": null,\n  \"title\": \"Dark mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "get: the second": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-2\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Split the card renderer\",\n  \"description\": \"It is 480 lines.\\n\\n> quoted\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"It is 480 lines.\\n\\n> quoted\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ticket\",\n    \"by\": \"agent\",\n    \"why\": \"Out of scope for KAN-231\",\n    \"id\": \"KAN-231\",\n    \"label\": \"KAN-231\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"perf\",\n    \"refactor\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "get: by a number in other case": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool get_idea_ticket: Idea ticket 'idea-1' not found. Idea IDs look like 'IDEA-3'; use list_idea_tickets to see them."
+      }
+    ],
+    "isError": true
+  },
+  "assumptions: none yet": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"idea\": \"IDEA-2\",\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"assumptions\": []\n}"
+      }
+    ],
+    "isError": false
+  },
+  "trail: the first": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:3>\",\n  \"label\": \"Idea suggested by AI\",\n  \"at\": \"<time>\",\n  \"author\": \"agent\",\n  \"kind\": \"created\",\n  \"ai\": true\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<uuid:3>",
+          "label": "Idea suggested by AI",
+          "at": "<time>",
+          "author": "agent",
+          "kind": "created",
+          "ai": true
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: every idea": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-7\",\n  \"project_id\": null,\n  \"title\": \"tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-6\",\n  \"project_id\": null,\n  \"title\": \"   \",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-5\",\n  \"project_id\": null,\n  \"title\": \"\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-4\",\n  \"project_id\": \"<uuid:2>\",\n  \"title\": \"Another\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-3\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Offline mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"Asked twice\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"sync\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-2\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Split the card renderer\",\n  \"description\": \"It is 480 lines.\\n\\n> quoted\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"It is 480 lines.\\n\\n> quoted\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ticket\",\n    \"by\": \"agent\",\n    \"why\": \"Out of scope for KAN-231\",\n    \"id\": \"KAN-231\",\n    \"label\": \"KAN-231\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"perf\",\n    \"refactor\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-1\",\n  \"project_id\": null,\n  \"title\": \"Dark mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "IDEA-7",
+          "project_id": null,
+          "title": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-6",
+          "project_id": null,
+          "title": "   ",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-5",
+          "project_id": null,
+          "title": "",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-4",
+          "project_id": "<uuid:2>",
+          "title": "Another",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-3",
+          "project_id": "<uuid:1>",
+          "title": "Offline mode",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": "Asked twice"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "sync"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-2",
+          "project_id": "<uuid:1>",
+          "title": "Split the card renderer",
+          "description": "It is 480 lines.\n\n> quoted",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "It is 480 lines.\n\n> quoted",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ticket",
+            "by": "agent",
+            "why": "Out of scope for KAN-231",
+            "id": "KAN-231",
+            "label": "KAN-231"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "perf",
+            "refactor"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-1",
+          "project_id": null,
+          "title": "Dark mode",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: one project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-3\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Offline mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"Asked twice\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"sync\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-2\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Split the card renderer\",\n  \"description\": \"It is 480 lines.\\n\\n> quoted\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"It is 480 lines.\\n\\n> quoted\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ticket\",\n    \"by\": \"agent\",\n    \"why\": \"Out of scope for KAN-231\",\n    \"id\": \"KAN-231\",\n    \"label\": \"KAN-231\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"perf\",\n    \"refactor\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "IDEA-3",
+          "project_id": "<uuid:1>",
+          "title": "Offline mode",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": "Asked twice"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "sync"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-2",
+          "project_id": "<uuid:1>",
+          "title": "Split the card renderer",
+          "description": "It is 480 lines.\n\n> quoted",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "It is 480 lines.\n\n> quoted",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ticket",
+            "by": "agent",
+            "why": "Out of scope for KAN-231",
+            "id": "KAN-231",
+            "label": "KAN-231"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "perf",
+            "refactor"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: the other project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-4\",\n  \"project_id\": \"<uuid:2>\",\n  \"title\": \"Another\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "IDEA-4",
+          "project_id": "<uuid:2>",
+          "title": "Another",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: by stage": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-7\",\n  \"project_id\": null,\n  \"title\": \"tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-6\",\n  \"project_id\": null,\n  \"title\": \"   \",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-5\",\n  \"project_id\": null,\n  \"title\": \"\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-4\",\n  \"project_id\": \"<uuid:2>\",\n  \"title\": \"Another\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-3\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Offline mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"Asked twice\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"sync\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-2\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Split the card renderer\",\n  \"description\": \"It is 480 lines.\\n\\n> quoted\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"It is 480 lines.\\n\\n> quoted\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ticket\",\n    \"by\": \"agent\",\n    \"why\": \"Out of scope for KAN-231\",\n    \"id\": \"KAN-231\",\n    \"label\": \"KAN-231\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"perf\",\n    \"refactor\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-1\",\n  \"project_id\": null,\n  \"title\": \"Dark mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "IDEA-7",
+          "project_id": null,
+          "title": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-6",
+          "project_id": null,
+          "title": "   ",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-5",
+          "project_id": null,
+          "title": "",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-4",
+          "project_id": "<uuid:2>",
+          "title": "Another",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-3",
+          "project_id": "<uuid:1>",
+          "title": "Offline mode",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": "Asked twice"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "sync"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-2",
+          "project_id": "<uuid:1>",
+          "title": "Split the card renderer",
+          "description": "It is 480 lines.\n\n> quoted",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "It is 480 lines.\n\n> quoted",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ticket",
+            "by": "agent",
+            "why": "Out of scope for KAN-231",
+            "id": "KAN-231",
+            "label": "KAN-231"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "perf",
+            "refactor"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-1",
+          "project_id": null,
+          "title": "Dark mode",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: by a stage with no ideas": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "list: by a project and a stage": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-3\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Offline mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"Asked twice\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"sync\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-2\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Split the card renderer\",\n  \"description\": \"It is 480 lines.\\n\\n> quoted\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"It is 480 lines.\\n\\n> quoted\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ticket\",\n    \"by\": \"agent\",\n    \"why\": \"Out of scope for KAN-231\",\n    \"id\": \"KAN-231\",\n    \"label\": \"KAN-231\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"perf\",\n    \"refactor\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "IDEA-3",
+          "project_id": "<uuid:1>",
+          "title": "Offline mode",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": "Asked twice"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "sync"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-2",
+          "project_id": "<uuid:1>",
+          "title": "Split the card renderer",
+          "description": "It is 480 lines.\n\n> quoted",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "It is 480 lines.\n\n> quoted",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ticket",
+            "by": "agent",
+            "why": "Out of scope for KAN-231",
+            "id": "KAN-231",
+            "label": "KAN-231"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "perf",
+            "refactor"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: by words": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-2\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Split the card renderer\",\n  \"description\": \"It is 480 lines.\\n\\n> quoted\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"It is 480 lines.\\n\\n> quoted\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ticket\",\n    \"by\": \"agent\",\n    \"why\": \"Out of scope for KAN-231\",\n    \"id\": \"KAN-231\",\n    \"label\": \"KAN-231\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"perf\",\n    \"refactor\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "IDEA-2",
+          "project_id": "<uuid:1>",
+          "title": "Split the card renderer",
+          "description": "It is 480 lines.\n\n> quoted",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "It is 480 lines.\n\n> quoted",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ticket",
+            "by": "agent",
+            "why": "Out of scope for KAN-231",
+            "id": "KAN-231",
+            "label": "KAN-231"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "perf",
+            "refactor"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: by words that are not all there": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "list: by words in other case": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-1\",\n  \"project_id\": null,\n  \"title\": \"Dark mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "IDEA-1",
+          "project_id": null,
+          "title": "Dark mode",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: by blank words": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-7\",\n  \"project_id\": null,\n  \"title\": \"tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-6\",\n  \"project_id\": null,\n  \"title\": \"   \",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-5\",\n  \"project_id\": null,\n  \"title\": \"\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-4\",\n  \"project_id\": \"<uuid:2>\",\n  \"title\": \"Another\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-3\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Offline mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"Asked twice\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"sync\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-2\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Split the card renderer\",\n  \"description\": \"It is 480 lines.\\n\\n> quoted\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"It is 480 lines.\\n\\n> quoted\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ticket\",\n    \"by\": \"agent\",\n    \"why\": \"Out of scope for KAN-231\",\n    \"id\": \"KAN-231\",\n    \"label\": \"KAN-231\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"perf\",\n    \"refactor\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-1\",\n  \"project_id\": null,\n  \"title\": \"Dark mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "IDEA-7",
+          "project_id": null,
+          "title": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-6",
+          "project_id": null,
+          "title": "   ",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-5",
+          "project_id": null,
+          "title": "",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-4",
+          "project_id": "<uuid:2>",
+          "title": "Another",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-3",
+          "project_id": "<uuid:1>",
+          "title": "Offline mode",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": "Asked twice"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "sync"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-2",
+          "project_id": "<uuid:1>",
+          "title": "Split the card renderer",
+          "description": "It is 480 lines.\n\n> quoted",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "It is 480 lines.\n\n> quoted",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ticket",
+            "by": "agent",
+            "why": "Out of scope for KAN-231",
+            "id": "KAN-231",
+            "label": "KAN-231"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "perf",
+            "refactor"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-1",
+          "project_id": null,
+          "title": "Dark mode",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: an empty project id lists every idea": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-7\",\n  \"project_id\": null,\n  \"title\": \"tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-6\",\n  \"project_id\": null,\n  \"title\": \"   \",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-5\",\n  \"project_id\": null,\n  \"title\": \"\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-4\",\n  \"project_id\": \"<uuid:2>\",\n  \"title\": \"Another\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-3\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Offline mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"Asked twice\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"sync\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-2\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Split the card renderer\",\n  \"description\": \"It is 480 lines.\\n\\n> quoted\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"It is 480 lines.\\n\\n> quoted\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ticket\",\n    \"by\": \"agent\",\n    \"why\": \"Out of scope for KAN-231\",\n    \"id\": \"KAN-231\",\n    \"label\": \"KAN-231\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"perf\",\n    \"refactor\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-1\",\n  \"project_id\": null,\n  \"title\": \"Dark mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "IDEA-7",
+          "project_id": null,
+          "title": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-6",
+          "project_id": null,
+          "title": "   ",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-5",
+          "project_id": null,
+          "title": "",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-4",
+          "project_id": "<uuid:2>",
+          "title": "Another",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-3",
+          "project_id": "<uuid:1>",
+          "title": "Offline mode",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": "Asked twice"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "sync"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-2",
+          "project_id": "<uuid:1>",
+          "title": "Split the card renderer",
+          "description": "It is 480 lines.\n\n> quoted",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "It is 480 lines.\n\n> quoted",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ticket",
+            "by": "agent",
+            "why": "Out of scope for KAN-231",
+            "id": "KAN-231",
+            "label": "KAN-231"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "perf",
+            "refactor"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-1",
+          "project_id": null,
+          "title": "Dark mode",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": ""
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "assumptions: with two": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"idea\": \"IDEA-2\",\n  \"readiness\": {\n    \"state\": \"growing\",\n    \"total\": 2,\n    \"untested\": 2,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 1,\n    \"high_disproved\": 0,\n    \"next_id\": \"<uuid:4>\"\n  },\n  \"assumptions\": [\n    {\n      \"id\": \"<uuid:4>\",\n      \"text\": \"They pay\",\n      \"status\": \"untested\",\n      \"at\": \"<time>\",\n      \"state\": \"untested\",\n      \"impact\": \"high\",\n      \"test_ticket_id\": null,\n      \"ai\": false,\n      \"evidence\": []\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"text\": \"They come back\",\n      \"status\": \"untested\",\n      \"at\": \"<time>\",\n      \"state\": \"untested\",\n      \"impact\": \"low\",\n      \"test_ticket_id\": null,\n      \"ai\": false,\n      \"evidence\": []\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "get: with assumptions": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-2\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Split the card renderer\",\n  \"description\": \"It is 480 lines.\\n\\n> quoted\",\n  \"idea_status\": \"in_review\",\n  \"stage\": \"exploring\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"It is 480 lines.\\n\\n> quoted\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ticket\",\n    \"by\": \"agent\",\n    \"why\": \"Out of scope for KAN-231\",\n    \"id\": \"KAN-231\",\n    \"label\": \"KAN-231\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"growing\",\n    \"total\": 2,\n    \"untested\": 2,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 1,\n    \"high_disproved\": 0,\n    \"next_id\": \"<uuid:4>\"\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"perf\",\n    \"refactor\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [\n    {\n      \"id\": \"<uuid:4>\",\n      \"text\": \"They pay\",\n      \"status\": \"untested\",\n      \"at\": \"<time>\",\n      \"state\": \"untested\",\n      \"impact\": \"high\",\n      \"test_ticket_id\": null,\n      \"ai\": false,\n      \"evidence\": []\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"text\": \"They come back\",\n      \"status\": \"untested\",\n      \"at\": \"<time>\",\n      \"state\": \"untested\",\n      \"impact\": \"low\",\n      \"test_ticket_id\": null,\n      \"ai\": false,\n      \"evidence\": []\n    }\n  ],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "trail: with moves": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"label\": \"Stage: inbox → exploring\",\n  \"at\": \"<time>\",\n  \"author\": \"user\",\n  \"kind\": \"stage\",\n  \"meta\": {\n    \"from\": \"inbox\",\n    \"to\": \"exploring\"\n  }\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"label\": \"Assumption added\",\n  \"at\": \"<time>\",\n  \"author\": \"user\",\n  \"kind\": \"assumption\",\n  \"meta\": {\n    \"assumption\": \"<uuid:5>\",\n    \"assumption_text\": \"They come back\"\n  }\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:8>\",\n  \"label\": \"Assumption added\",\n  \"at\": \"<time>\",\n  \"author\": \"user\",\n  \"kind\": \"assumption\",\n  \"meta\": {\n    \"assumption\": \"<uuid:4>\",\n    \"assumption_text\": \"They pay\"\n  }\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:3>\",\n  \"label\": \"Idea suggested by AI\",\n  \"at\": \"<time>\",\n  \"author\": \"agent\",\n  \"kind\": \"created\",\n  \"ai\": true\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<uuid:6>",
+          "label": "Stage: inbox → exploring",
+          "at": "<time>",
+          "author": "user",
+          "kind": "stage",
+          "meta": {
+            "from": "inbox",
+            "to": "exploring"
+          }
+        },
+        {
+          "id": "<uuid:7>",
+          "label": "Assumption added",
+          "at": "<time>",
+          "author": "user",
+          "kind": "assumption",
+          "meta": {
+            "assumption": "<uuid:5>",
+            "assumption_text": "They come back"
+          }
+        },
+        {
+          "id": "<uuid:8>",
+          "label": "Assumption added",
+          "at": "<time>",
+          "author": "user",
+          "kind": "assumption",
+          "meta": {
+            "assumption": "<uuid:4>",
+            "assumption_text": "They pay"
+          }
+        },
+        {
+          "id": "<uuid:3>",
+          "label": "Idea suggested by AI",
+          "at": "<time>",
+          "author": "agent",
+          "kind": "created",
+          "ai": true
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: closest to ready first": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-2\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Split the card renderer\",\n  \"description\": \"It is 480 lines.\\n\\n> quoted\",\n  \"idea_status\": \"in_review\",\n  \"stage\": \"exploring\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"It is 480 lines.\\n\\n> quoted\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ticket\",\n    \"by\": \"agent\",\n    \"why\": \"Out of scope for KAN-231\",\n    \"id\": \"KAN-231\",\n    \"label\": \"KAN-231\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"growing\",\n    \"total\": 2,\n    \"untested\": 2,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 1,\n    \"high_disproved\": 0,\n    \"next_id\": \"<uuid:4>\"\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"perf\",\n    \"refactor\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [\n    {\n      \"id\": \"<uuid:4>\",\n      \"text\": \"They pay\",\n      \"status\": \"untested\",\n      \"at\": \"<time>\",\n      \"state\": \"untested\",\n      \"impact\": \"high\",\n      \"test_ticket_id\": null,\n      \"ai\": false,\n      \"evidence\": []\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"text\": \"They come back\",\n      \"status\": \"untested\",\n      \"at\": \"<time>\",\n      \"state\": \"untested\",\n      \"impact\": \"low\",\n      \"test_ticket_id\": null,\n      \"ai\": false,\n      \"evidence\": []\n    }\n  ],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-3\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Offline mode\",\n  \"description\": \"\",\n  \"idea_status\": \"draft\",\n  \"stage\": \"inbox\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ai\",\n    \"by\": \"agent\",\n    \"why\": \"Asked twice\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"not_started\",\n    \"total\": 0,\n    \"untested\": 0,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 0,\n    \"high_disproved\": 0,\n    \"next_id\": null\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"sync\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "IDEA-2",
+          "project_id": "<uuid:1>",
+          "title": "Split the card renderer",
+          "description": "It is 480 lines.\n\n> quoted",
+          "idea_status": "in_review",
+          "stage": "exploring",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "It is 480 lines.\n\n> quoted",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ticket",
+            "by": "agent",
+            "why": "Out of scope for KAN-231",
+            "id": "KAN-231",
+            "label": "KAN-231"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "growing",
+            "total": 2,
+            "untested": 2,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 1,
+            "high_disproved": 0,
+            "next_id": "<uuid:4>"
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "perf",
+            "refactor"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [
+            {
+              "id": "<uuid:4>",
+              "text": "They pay",
+              "status": "untested",
+              "at": "<time>",
+              "state": "untested",
+              "impact": "high",
+              "test_ticket_id": null,
+              "ai": false,
+              "evidence": []
+            },
+            {
+              "id": "<uuid:5>",
+              "text": "They come back",
+              "status": "untested",
+              "at": "<time>",
+              "state": "untested",
+              "impact": "low",
+              "test_ticket_id": null,
+              "ai": false,
+              "evidence": []
+            }
+          ],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        },
+        {
+          "id": "IDEA-3",
+          "project_id": "<uuid:1>",
+          "title": "Offline mode",
+          "description": "",
+          "idea_status": "draft",
+          "stage": "inbox",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ai",
+            "by": "agent",
+            "why": "Asked twice"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "not_started",
+            "total": 0,
+            "untested": 0,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 0,
+            "high_disproved": 0,
+            "next_id": null
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "sync"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: exploring": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-2\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Split the card renderer\",\n  \"description\": \"It is 480 lines.\\n\\n> quoted\",\n  \"idea_status\": \"in_review\",\n  \"stage\": \"exploring\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"It is 480 lines.\\n\\n> quoted\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ticket\",\n    \"by\": \"agent\",\n    \"why\": \"Out of scope for KAN-231\",\n    \"id\": \"KAN-231\",\n    \"label\": \"KAN-231\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"growing\",\n    \"total\": 2,\n    \"untested\": 2,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 1,\n    \"high_disproved\": 0,\n    \"next_id\": \"<uuid:4>\"\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"perf\",\n    \"refactor\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [\n    {\n      \"id\": \"<uuid:4>\",\n      \"text\": \"They pay\",\n      \"status\": \"untested\",\n      \"at\": \"<time>\",\n      \"state\": \"untested\",\n      \"impact\": \"high\",\n      \"test_ticket_id\": null,\n      \"ai\": false,\n      \"evidence\": []\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"text\": \"They come back\",\n      \"status\": \"untested\",\n      \"at\": \"<time>\",\n      \"state\": \"untested\",\n      \"impact\": \"low\",\n      \"test_ticket_id\": null,\n      \"ai\": false,\n      \"evidence\": []\n    }\n  ],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "IDEA-2",
+          "project_id": "<uuid:1>",
+          "title": "Split the card renderer",
+          "description": "It is 480 lines.\n\n> quoted",
+          "idea_status": "in_review",
+          "stage": "exploring",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "It is 480 lines.\n\n> quoted",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ticket",
+            "by": "agent",
+            "why": "Out of scope for KAN-231",
+            "id": "KAN-231",
+            "label": "KAN-231"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "growing",
+            "total": 2,
+            "untested": 2,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 1,
+            "high_disproved": 0,
+            "next_id": "<uuid:4>"
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "perf",
+            "refactor"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [
+            {
+              "id": "<uuid:4>",
+              "text": "They pay",
+              "status": "untested",
+              "at": "<time>",
+              "state": "untested",
+              "impact": "high",
+              "test_ticket_id": null,
+              "ai": false,
+              "evidence": []
+            },
+            {
+              "id": "<uuid:5>",
+              "text": "They come back",
+              "status": "untested",
+              "at": "<time>",
+              "state": "untested",
+              "impact": "low",
+              "test_ticket_id": null,
+              "ai": false,
+              "evidence": []
+            }
+          ],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "list: words in an assumption": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"IDEA-2\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Split the card renderer\",\n  \"description\": \"It is 480 lines.\\n\\n> quoted\",\n  \"idea_status\": \"in_review\",\n  \"stage\": \"exploring\",\n  \"park_until\": null,\n  \"archive_reason\": null,\n  \"source\": \"ai\",\n  \"body\": \"It is 480 lines.\\n\\n> quoted\",\n  \"details\": \"\",\n  \"votes\": 0,\n  \"voters\": [],\n  \"source_ref\": {\n    \"kind\": \"ticket\",\n    \"by\": \"agent\",\n    \"why\": \"Out of scope for KAN-231\",\n    \"id\": \"KAN-231\",\n    \"label\": \"KAN-231\"\n  },\n  \"created_by\": \"agent\",\n  \"owner\": null,\n  \"park_note\": null,\n  \"archive_note\": null,\n  \"stage_changed_at\": \"<time>\",\n  \"merged_into_id\": null,\n  \"merged_at\": null,\n  \"shipped_at\": null,\n  \"outcome\": null,\n  \"outcome_note\": null,\n  \"effort_guess\": null,\n  \"workspace_retention\": \"open_then_30\",\n  \"former_ticket_id\": null,\n  \"comment_count\": 0,\n  \"log_count\": 0,\n  \"evidence_count\": 0,\n  \"readiness\": {\n    \"state\": \"growing\",\n    \"total\": 2,\n    \"untested\": 2,\n    \"testing\": 0,\n    \"validated\": 0,\n    \"disproved\": 0,\n    \"high_open\": 1,\n    \"high_disproved\": 0,\n    \"next_id\": \"<uuid:4>\"\n  },\n  \"ticket\": null,\n  \"can_edit\": true,\n  \"idea_color\": \"yellow\",\n  \"idea_emoji\": \"💡\",\n  \"idea_energy\": null,\n  \"tags\": [\n    \"perf\",\n    \"refactor\"\n  ],\n  \"problem_statement\": null,\n  \"ice_impact\": 3,\n  \"ice_effort\": 3,\n  \"ice_confidence\": 3,\n  \"revisit_date\": null,\n  \"last_touched_at\": \"<time>\",\n  \"promoted_to_ticket_id\": null,\n  \"promoted_at\": null,\n  \"microthoughts\": [],\n  \"assumptions\": [\n    {\n      \"id\": \"<uuid:4>\",\n      \"text\": \"They pay\",\n      \"status\": \"untested\",\n      \"at\": \"<time>\",\n      \"state\": \"untested\",\n      \"impact\": \"high\",\n      \"test_ticket_id\": null,\n      \"ai\": false,\n      \"evidence\": []\n    },\n    {\n      \"id\": \"<uuid:5>\",\n      \"text\": \"They come back\",\n      \"status\": \"untested\",\n      \"at\": \"<time>\",\n      \"state\": \"untested\",\n      \"impact\": \"low\",\n      \"test_ticket_id\": null,\n      \"ai\": false,\n      \"evidence\": []\n    }\n  ],\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "IDEA-2",
+          "project_id": "<uuid:1>",
+          "title": "Split the card renderer",
+          "description": "It is 480 lines.\n\n> quoted",
+          "idea_status": "in_review",
+          "stage": "exploring",
+          "park_until": null,
+          "archive_reason": null,
+          "source": "ai",
+          "body": "It is 480 lines.\n\n> quoted",
+          "details": "",
+          "votes": 0,
+          "voters": [],
+          "source_ref": {
+            "kind": "ticket",
+            "by": "agent",
+            "why": "Out of scope for KAN-231",
+            "id": "KAN-231",
+            "label": "KAN-231"
+          },
+          "created_by": "agent",
+          "owner": null,
+          "park_note": null,
+          "archive_note": null,
+          "stage_changed_at": "<time>",
+          "merged_into_id": null,
+          "merged_at": null,
+          "shipped_at": null,
+          "outcome": null,
+          "outcome_note": null,
+          "effort_guess": null,
+          "workspace_retention": "open_then_30",
+          "former_ticket_id": null,
+          "comment_count": 0,
+          "log_count": 0,
+          "evidence_count": 0,
+          "readiness": {
+            "state": "growing",
+            "total": 2,
+            "untested": 2,
+            "testing": 0,
+            "validated": 0,
+            "disproved": 0,
+            "high_open": 1,
+            "high_disproved": 0,
+            "next_id": "<uuid:4>"
+          },
+          "ticket": null,
+          "can_edit": true,
+          "idea_color": "yellow",
+          "idea_emoji": "💡",
+          "idea_energy": null,
+          "tags": [
+            "perf",
+            "refactor"
+          ],
+          "problem_statement": null,
+          "ice_impact": 3,
+          "ice_effort": 3,
+          "ice_confidence": 3,
+          "revisit_date": null,
+          "last_touched_at": "<time>",
+          "promoted_to_ticket_id": null,
+          "promoted_at": null,
+          "microthoughts": [],
+          "assumptions": [
+            {
+              "id": "<uuid:4>",
+              "text": "They pay",
+              "status": "untested",
+              "at": "<time>",
+              "state": "untested",
+              "impact": "high",
+              "test_ticket_id": null,
+              "ai": false,
+              "evidence": []
+            },
+            {
+              "id": "<uuid:5>",
+              "text": "They come back",
+              "status": "untested",
+              "at": "<time>",
+              "state": "untested",
+              "impact": "low",
+              "test_ticket_id": null,
+              "ai": false,
+              "evidence": []
+            }
+          ],
+          "created_at": "<time>",
+          "updated_at": "<time>"
+        }
+      ]
+    },
+    "isError": false
+  }
+}

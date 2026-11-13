@@ -1,0 +1,1 @@
+Stay in your role and start from what earlier runs left on the ticket (comments, work log): never redo another role's work (say in your answer who should do it), and ask a person with ai_run(action='ask') rather than guess.

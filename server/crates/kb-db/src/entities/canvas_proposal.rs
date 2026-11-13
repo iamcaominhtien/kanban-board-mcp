@@ -1,0 +1,53 @@
+//! `canvas_proposal` (Python model `CanvasProposal`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+/// What an AI member proposes for one or more boards. Nothing changes until a person accepts.
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "canvas_proposal")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: String,
+    pub canvas_id: String,
+    pub author: String,
+    pub member_id: Option<String>,
+    pub job_id: Option<String>,
+    pub request: String,
+    pub note: String,
+    /// open | accepted | rejected | partly
+    pub status: String,
+    /// JSON [{board_id, name, base_rev, status: open|accepted|rejected|stale, files: [{path, bytes}], lines}]
+    pub changes: String,
+    /// version saved when accepted
+    pub version: Option<i32>,
+    pub created_at: String,
+    pub decided_by: Option<String>,
+    pub decided_at: Option<String>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `CanvasProposal`.
+/// Set before saving: `canvas_id`.
+pub fn new() -> ActiveModel {
+    ActiveModel {
+        id: Set(kb_base::time::prefixed_id("cp_", 10)),
+        canvas_id: NotSet,
+        author: Set("AI".to_string()),
+        member_id: Set(None),
+        job_id: Set(None),
+        request: Set("".to_string()),
+        note: Set("".to_string()),
+        status: Set("open".to_string()),
+        changes: Set("[]".to_string()),
+        version: Set(None),
+        created_at: Set(kb_base::time::now_iso()),
+        decided_by: Set(None),
+        decided_at: Set(None),
+    }
+}

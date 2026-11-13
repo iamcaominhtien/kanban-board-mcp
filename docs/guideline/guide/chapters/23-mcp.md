@@ -40,15 +40,14 @@ Open {menu:Settings › Integrations} and use **MCP integrations**. Press **Inst
 
 ### Stdio, for VS Code and Claude Desktop
 
-The client starts the server as a subprocess; the database is created on first run. In VS Code’s `mcp.json` or the Claude Desktop config:
+The client starts the server as a subprocess; the database is created on first run. `kanban-mcp-stdio` hands over to `kanban-server` in the same folder, so build both (`cargo build -p kanban-server -p kanban-mcp-stdio` in `server/`). In VS Code’s `mcp.json` or the Claude Desktop config:
 
 ```json
 {
   "servers": {
     "kanban": {
       "type": "stdio",
-      "command": "uv",
-      "args": ["--directory", "/path/to/kanban-board-mcp/server", "run", "mcp_stdio.py"]
+      "command": "/path/to/kanban-board-mcp/server/target/debug/kanban-mcp-stdio"
     }
   }
 }
@@ -56,7 +55,7 @@ The client starts the server as a subprocess; the database is created on first r
 
 ### HTTP, with the full server running
 
-Start the server ({ch:self-hosting}), then point any MCP client at `http://localhost:8000/mcp/`. The trailing slash is required.
+Start the server ({ch:self-hosting}), then point any MCP client at `http://localhost:<N>/mcp/`, where `<N>` is the port in its `READY port=<N>` line. The trailing slash is required.
 
 ## Idea Space tools
 

@@ -1,0 +1,1133 @@
+{
+  "DELETE doc": {
+    "status": 204,
+    "text": ""
+  },
+  "DELETE doc: again": {
+    "status": 404,
+    "json": {
+      "detail": "Document not found"
+    }
+  },
+  "DELETE doc: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Document not found"
+    }
+  },
+  "GET doc": {
+    "status": 200,
+    "json": {
+      "answers": [],
+      "created_at": "<time>",
+      "created_by": "user",
+      "described_by": "code",
+      "id": "<kb:1>",
+      "keywords": [
+        "deploy",
+        "script",
+        "called",
+        "ship",
+        "builds",
+        "image",
+        "pushes"
+      ],
+      "kind": "text",
+      "last_read_at": null,
+      "private": false,
+      "project_id": "<uuid:1>",
+      "source_name": "How we deploy",
+      "store": "project",
+      "summary": "We deploy with a script called ship. It builds the image and pushes it.",
+      "text_preview": "We deploy with a script called ship. It builds the image and pushes it.",
+      "title": "How we deploy",
+      "tokens": 18,
+      "upload_url": null
+    }
+  },
+  "GET doc: another person's private one": {
+    "status": 404,
+    "json": {
+      "detail": "Document not found"
+    }
+  },
+  "GET doc: deleted": {
+    "status": 404,
+    "json": {
+      "detail": "Document not found"
+    }
+  },
+  "GET doc: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Document not found"
+    }
+  },
+  "GET kb": {
+    "status": 200,
+    "json": {
+      "documents": [
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:1>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "blob.bin",
+          "store": "project",
+          "summary": "\u0000���",
+          "title": "blob.bin",
+          "tokens": 1
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:2>",
+          "kind": "code",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "calc.py",
+          "store": "project",
+          "summary": "def add(a, b):",
+          "title": "calc.py",
+          "tokens": 8
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:3>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "How we deploy",
+          "store": "project",
+          "summary": "We deploy with a script called ship. It builds the image and pushes it.",
+          "title": "How we deploy",
+          "tokens": 18
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:4>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "plain.txt",
+          "store": "project",
+          "summary": "Plain text about caching.",
+          "title": "plain.txt",
+          "tokens": 7
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:5>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "notes.md",
+          "store": "project",
+          "summary": "Release notes",
+          "title": "Release notes",
+          "tokens": 13
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:6>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": true,
+          "source_name": "secret.txt",
+          "store": "project",
+          "summary": "The secret recipe.",
+          "title": "secret.txt",
+          "tokens": 5
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:7>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "Untitled",
+          "store": "project",
+          "summary": "A document with no title at all, about databases.",
+          "title": "Untitled",
+          "tokens": 13
+        }
+      ],
+      "shared_documents": [],
+      "stores": [
+        "project"
+      ]
+    }
+  },
+  "GET kb: after the delete": {
+    "status": 200,
+    "json": {
+      "documents": [
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:1>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "blob.bin",
+          "store": "project",
+          "summary": "\u0000���",
+          "title": "blob.bin",
+          "tokens": 1
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:2>",
+          "kind": "code",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "calc.py",
+          "store": "project",
+          "summary": "def add(a, b):",
+          "title": "calc.py",
+          "tokens": 8
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:3>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "plain.txt",
+          "store": "project",
+          "summary": "Plain text about caching.",
+          "title": "plain.txt",
+          "tokens": 7
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:4>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "notes.md",
+          "store": "project",
+          "summary": "Release notes",
+          "title": "Release notes",
+          "tokens": 13
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:5>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": true,
+          "source_name": "secret.txt",
+          "store": "project",
+          "summary": "The secret recipe.",
+          "title": "secret.txt",
+          "tokens": 5
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:6>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "Untitled",
+          "store": "project",
+          "summary": "A document with no title at all, about databases.",
+          "title": "Untitled",
+          "tokens": 13
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": null,
+          "id": "<kb:7>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": null,
+          "store": "shared",
+          "summary": null,
+          "title": "Orphan",
+          "tokens": 5
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:8>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "Shared note",
+          "store": "shared",
+          "summary": "A note that every project reads about linting",
+          "title": "Shared note",
+          "tokens": 12
+        }
+      ],
+      "shared_documents": [
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": null,
+          "id": "<kb:7>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": null,
+          "store": "shared",
+          "summary": null,
+          "title": "Orphan",
+          "tokens": 5
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:8>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "Shared note",
+          "store": "shared",
+          "summary": "A note that every project reads about linting",
+          "title": "Shared note",
+          "tokens": 12
+        }
+      ],
+      "stores": [
+        "project",
+        "shared"
+      ]
+    }
+  },
+  "GET kb: another person": {
+    "status": 200,
+    "json": {
+      "documents": [
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:1>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "blob.bin",
+          "store": "project",
+          "summary": "\u0000���",
+          "title": "blob.bin",
+          "tokens": 1
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:2>",
+          "kind": "code",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "calc.py",
+          "store": "project",
+          "summary": "def add(a, b):",
+          "title": "calc.py",
+          "tokens": 8
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:3>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "How we deploy",
+          "store": "project",
+          "summary": "We deploy with a script called ship. It builds the image and pushes it.",
+          "title": "How we deploy",
+          "tokens": 18
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:4>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "plain.txt",
+          "store": "project",
+          "summary": "Plain text about caching.",
+          "title": "plain.txt",
+          "tokens": 7
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:5>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "notes.md",
+          "store": "project",
+          "summary": "Release notes",
+          "title": "Release notes",
+          "tokens": 13
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:6>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "Untitled",
+          "store": "project",
+          "summary": "A document with no title at all, about databases.",
+          "title": "Untitled",
+          "tokens": 13
+        }
+      ],
+      "shared_documents": [],
+      "stores": [
+        "project"
+      ]
+    }
+  },
+  "GET kb: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET kb: none": {
+    "status": 200,
+    "json": {
+      "documents": [],
+      "shared_documents": [],
+      "stores": [
+        "project"
+      ]
+    }
+  },
+  "GET kb: with a shared store": {
+    "status": 200,
+    "json": {
+      "documents": [
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:1>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "blob.bin",
+          "store": "project",
+          "summary": "\u0000���",
+          "title": "blob.bin",
+          "tokens": 1
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:2>",
+          "kind": "code",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "calc.py",
+          "store": "project",
+          "summary": "def add(a, b):",
+          "title": "calc.py",
+          "tokens": 8
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:3>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "How we deploy",
+          "store": "project",
+          "summary": "We deploy with a script called ship. It builds the image and pushes it.",
+          "title": "How we deploy",
+          "tokens": 18
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:4>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "plain.txt",
+          "store": "project",
+          "summary": "Plain text about caching.",
+          "title": "plain.txt",
+          "tokens": 7
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:5>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "notes.md",
+          "store": "project",
+          "summary": "Release notes",
+          "title": "Release notes",
+          "tokens": 13
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:6>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": true,
+          "source_name": "secret.txt",
+          "store": "project",
+          "summary": "The secret recipe.",
+          "title": "secret.txt",
+          "tokens": 5
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:7>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "Untitled",
+          "store": "project",
+          "summary": "A document with no title at all, about databases.",
+          "title": "Untitled",
+          "tokens": 13
+        },
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:8>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "Shared note",
+          "store": "shared",
+          "summary": "A note that every project reads about linting",
+          "title": "Shared note",
+          "tokens": 12
+        }
+      ],
+      "shared_documents": [
+        {
+          "answers": [],
+          "created_at": "<time>",
+          "created_by": "user",
+          "id": "<kb:8>",
+          "kind": "text",
+          "last_read_at": null,
+          "private": false,
+          "source_name": "Shared note",
+          "store": "shared",
+          "summary": "A note that every project reads about linting",
+          "title": "Shared note",
+          "tokens": 12
+        }
+      ],
+      "stores": [
+        "project",
+        "shared"
+      ]
+    }
+  },
+  "GET search": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<kb:1>",
+        "kind": "text",
+        "score": 2.751,
+        "snippet": "We [deploy] with a script called ship. It builds the image and pushes it.",
+        "store": "project",
+        "summary": "We deploy with a script called ship. It builds the image and pushes it.",
+        "title": "How we deploy"
+      }
+    ]
+  },
+  "GET search: across the stores": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<kb:1>",
+        "kind": "text",
+        "score": 2.989,
+        "snippet": "A note that every project reads about [linting]",
+        "store": "shared",
+        "summary": "A note that every project reads about linting",
+        "title": "Shared note"
+      }
+    ]
+  },
+  "GET search: after the delete": {
+    "status": 200,
+    "json": []
+  },
+  "GET search: another person, the private one": {
+    "status": 200,
+    "json": []
+  },
+  "GET search: no hit": {
+    "status": 200,
+    "json": []
+  },
+  "GET search: no q": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "q"
+        ]
+      ]
+    }
+  },
+  "GET search: nothing yet": {
+    "status": 200,
+    "json": []
+  },
+  "GET search: only punctuation": {
+    "status": 200,
+    "json": []
+  },
+  "GET search: the person, the private one": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<kb:1>",
+        "kind": "text",
+        "score": 2.929,
+        "snippet": "The secret [recipe].",
+        "store": "project",
+        "summary": "The secret recipe.",
+        "title": "secret.txt"
+      }
+    ]
+  },
+  "GET search: two words": {
+    "status": 200,
+    "json": [
+      {
+        "id": "<kb:1>",
+        "kind": "text",
+        "score": 5.876,
+        "snippet": "# [Release] [notes]\n\nVersion two adds a kanban board.\n",
+        "store": "project",
+        "summary": "Release notes",
+        "title": "Release notes"
+      }
+    ]
+  },
+  "PATCH doc: an orphan to the project": {
+    "status": 409,
+    "json": {
+      "detail": "This document came from no project."
+    }
+  },
+  "PATCH doc: another person's": {
+    "status": 404,
+    "json": {
+      "detail": "Document not found"
+    }
+  },
+  "PATCH doc: back to the project": {
+    "status": 200,
+    "json": {
+      "answers": [],
+      "created_at": "<time>",
+      "created_by": "user",
+      "described_by": "code",
+      "id": "<kb:1>",
+      "keywords": [
+        "deploy",
+        "script",
+        "called",
+        "ship",
+        "builds",
+        "image",
+        "pushes"
+      ],
+      "kind": "text",
+      "last_read_at": null,
+      "private": false,
+      "project_id": "<uuid:1>",
+      "source_name": "How we deploy",
+      "store": "project",
+      "summary": "We deploy with a script called ship. It builds the image and pushes it.",
+      "title": "How we deploy",
+      "tokens": 18,
+      "upload_url": null
+    }
+  },
+  "PATCH doc: no body": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body"
+        ]
+      ]
+    }
+  },
+  "PATCH doc: not found": {
+    "status": 404,
+    "json": {
+      "detail": "Document not found"
+    }
+  },
+  "PATCH doc: not the person who added it": {
+    "status": 403,
+    "json": {
+      "detail": "Only user, who added it, can change who sees it."
+    }
+  },
+  "PATCH doc: nothing": {
+    "status": 200,
+    "json": {
+      "answers": [],
+      "created_at": "<time>",
+      "created_by": "user",
+      "described_by": "code",
+      "id": "<kb:1>",
+      "keywords": [
+        "deploy",
+        "script",
+        "called",
+        "ship",
+        "builds",
+        "image",
+        "pushes"
+      ],
+      "kind": "text",
+      "last_read_at": null,
+      "private": false,
+      "project_id": "<uuid:1>",
+      "source_name": "How we deploy",
+      "store": "project",
+      "summary": "We deploy with a script called ship. It builds the image and pushes it.",
+      "title": "How we deploy",
+      "tokens": 18,
+      "upload_url": null
+    }
+  },
+  "PATCH doc: private": {
+    "status": 200,
+    "json": {
+      "answers": [],
+      "created_at": "<time>",
+      "created_by": "user",
+      "described_by": "code",
+      "id": "<kb:1>",
+      "keywords": [
+        "deploy",
+        "script",
+        "called",
+        "ship",
+        "builds",
+        "image",
+        "pushes"
+      ],
+      "kind": "text",
+      "last_read_at": null,
+      "private": true,
+      "project_id": "<uuid:1>",
+      "source_name": "How we deploy",
+      "store": "project",
+      "summary": "We deploy with a script called ship. It builds the image and pushes it.",
+      "title": "How we deploy",
+      "tokens": 18,
+      "upload_url": null
+    }
+  },
+  "PATCH doc: private is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "private"
+        ]
+      ]
+    }
+  },
+  "PATCH doc: shared, not opted in": {
+    "status": 409,
+    "json": {
+      "detail": "This project does not use the shared store; turn it on in the project's AI settings first."
+    }
+  },
+  "PATCH doc: store is not one": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "store"
+        ]
+      ]
+    }
+  },
+  "PATCH doc: the same store": {
+    "status": 200,
+    "json": {
+      "answers": [],
+      "created_at": "<time>",
+      "created_by": "user",
+      "described_by": "code",
+      "id": "<kb:1>",
+      "keywords": [
+        "deploy",
+        "script",
+        "called",
+        "ship",
+        "builds",
+        "image",
+        "pushes"
+      ],
+      "kind": "text",
+      "last_read_at": null,
+      "private": false,
+      "project_id": "<uuid:1>",
+      "source_name": "How we deploy",
+      "store": "project",
+      "summary": "We deploy with a script called ship. It builds the image and pushes it.",
+      "title": "How we deploy",
+      "tokens": 18,
+      "upload_url": null
+    }
+  },
+  "PATCH doc: to the shared store": {
+    "status": 200,
+    "json": {
+      "answers": [],
+      "created_at": "<time>",
+      "created_by": "user",
+      "described_by": "code",
+      "id": "<kb:1>",
+      "keywords": [
+        "deploy",
+        "script",
+        "called",
+        "ship",
+        "builds",
+        "image",
+        "pushes"
+      ],
+      "kind": "text",
+      "last_read_at": null,
+      "private": false,
+      "project_id": "<uuid:1>",
+      "source_name": "How we deploy",
+      "store": "shared",
+      "summary": "We deploy with a script called ship. It builds the image and pushes it.",
+      "title": "How we deploy",
+      "tokens": 18,
+      "upload_url": null
+    }
+  },
+  "POST kb: a file": {
+    "status": 201,
+    "json": {
+      "answers": [],
+      "created_at": "<time>",
+      "created_by": "user",
+      "described_by": "code",
+      "id": "<kb:1>",
+      "keywords": [
+        "release",
+        "notes",
+        "version",
+        "two",
+        "adds",
+        "kanban",
+        "board"
+      ],
+      "kind": "text",
+      "last_read_at": null,
+      "private": false,
+      "project_id": "<uuid:1>",
+      "source_name": "notes.md",
+      "store": "project",
+      "summary": "Release notes",
+      "title": "Release notes",
+      "tokens": 13,
+      "upload_url": null
+    }
+  },
+  "POST kb: a file with no title": {
+    "status": 201,
+    "json": {
+      "answers": [],
+      "created_at": "<time>",
+      "created_by": "user",
+      "described_by": "code",
+      "id": "<kb:1>",
+      "keywords": [
+        "plain",
+        "text",
+        "about",
+        "caching"
+      ],
+      "kind": "text",
+      "last_read_at": null,
+      "private": false,
+      "project_id": "<uuid:1>",
+      "source_name": "plain.txt",
+      "store": "project",
+      "summary": "Plain text about caching.",
+      "title": "plain.txt",
+      "tokens": 7,
+      "upload_url": null
+    }
+  },
+  "POST kb: a private file": {
+    "status": 201,
+    "json": {
+      "answers": [],
+      "created_at": "<time>",
+      "created_by": "user",
+      "described_by": "code",
+      "id": "<kb:1>",
+      "keywords": [
+        "secret",
+        "recipe"
+      ],
+      "kind": "text",
+      "last_read_at": null,
+      "private": true,
+      "project_id": "<uuid:1>",
+      "source_name": "secret.txt",
+      "store": "project",
+      "summary": "The secret recipe.",
+      "title": "secret.txt",
+      "tokens": 5,
+      "upload_url": null
+    }
+  },
+  "POST kb: an empty file": {
+    "status": 422,
+    "json": {
+      "detail": "Nothing readable was found in it."
+    }
+  },
+  "POST kb: an unknown kind of file": {
+    "status": 201,
+    "json": {
+      "answers": [],
+      "created_at": "<time>",
+      "created_by": "user",
+      "described_by": "code",
+      "id": "<kb:1>",
+      "keywords": [],
+      "kind": "text",
+      "last_read_at": null,
+      "private": false,
+      "project_id": "<uuid:1>",
+      "source_name": "blob.bin",
+      "store": "project",
+      "summary": "\u0000���",
+      "title": "blob.bin",
+      "tokens": 1,
+      "upload_url": null
+    }
+  },
+  "POST kb: code": {
+    "status": 201,
+    "json": {
+      "answers": [],
+      "created_at": "<time>",
+      "created_by": "user",
+      "described_by": "code",
+      "id": "<kb:1>",
+      "keywords": [
+        "def",
+        "add",
+        "return"
+      ],
+      "kind": "code",
+      "last_read_at": null,
+      "private": false,
+      "project_id": "<uuid:1>",
+      "source_name": "calc.py",
+      "store": "project",
+      "summary": "def add(a, b):",
+      "title": "calc.py",
+      "tokens": 8,
+      "upload_url": null
+    }
+  },
+  "POST kb: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "POST kb: no title": {
+    "status": 201,
+    "json": {
+      "answers": [],
+      "created_at": "<time>",
+      "created_by": "user",
+      "described_by": "code",
+      "id": "<kb:1>",
+      "keywords": [
+        "document",
+        "title",
+        "all",
+        "about",
+        "databases"
+      ],
+      "kind": "text",
+      "last_read_at": null,
+      "private": false,
+      "project_id": "<uuid:1>",
+      "source_name": "Untitled",
+      "store": "project",
+      "summary": "A document with no title at all, about databases.",
+      "title": "Untitled",
+      "tokens": 13,
+      "upload_url": null
+    }
+  },
+  "POST kb: nothing readable": {
+    "status": 422,
+    "json": {
+      "detail": "Nothing readable was found in it."
+    }
+  },
+  "POST kb: only spaces": {
+    "status": 422,
+    "json": {
+      "detail": "Nothing readable was found in it."
+    }
+  },
+  "POST kb: pasted text": {
+    "status": 201,
+    "json": {
+      "answers": [],
+      "created_at": "<time>",
+      "created_by": "user",
+      "described_by": "code",
+      "id": "<kb:1>",
+      "keywords": [
+        "deploy",
+        "script",
+        "called",
+        "ship",
+        "builds",
+        "image",
+        "pushes"
+      ],
+      "kind": "text",
+      "last_read_at": null,
+      "private": false,
+      "project_id": "<uuid:1>",
+      "source_name": "How we deploy",
+      "store": "project",
+      "summary": "We deploy with a script called ship. It builds the image and pushes it.",
+      "title": "How we deploy",
+      "tokens": 18,
+      "upload_url": null
+    }
+  },
+  "POST kb: private is not a bool": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "private"
+        ]
+      ]
+    }
+  },
+  "POST kb: shared is not on": {
+    "status": 409,
+    "json": {
+      "detail": "This project does not use the shared store; turn it on in the project's AI settings first."
+    }
+  },
+  "POST kb: store is not one": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "store"
+        ]
+      ]
+    }
+  },
+  "POST kb: to the shared store": {
+    "status": 201,
+    "json": {
+      "answers": [],
+      "created_at": "<time>",
+      "created_by": "user",
+      "described_by": "code",
+      "id": "<kb:1>",
+      "keywords": [
+        "note",
+        "every",
+        "project",
+        "reads",
+        "about",
+        "linting"
+      ],
+      "kind": "text",
+      "last_read_at": null,
+      "private": false,
+      "project_id": null,
+      "source_name": "Shared note",
+      "store": "shared",
+      "summary": "A note that every project reads about linting",
+      "title": "Shared note",
+      "tokens": 12,
+      "upload_url": null
+    }
+  }
+}

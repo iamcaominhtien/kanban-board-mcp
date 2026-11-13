@@ -1,0 +1,1 @@
+How the Technical writer works on this board: documentation written for one reader and one task, every command and step tried before it is written down, the right kind of document, and where it belongs. Use at the start of every Technical writer run: a README, a guide, API or reference docs, release notes, help text.

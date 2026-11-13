@@ -1,0 +1,1278 @@
+{
+  "initialize 2025-06-18": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"experimental\":{},\"prompts\":{\"listChanged\":false},\"resources\":{\"subscribe\":false,\"listChanged\":false},\"tools\":{\"listChanged\":false}},\"serverInfo\":{\"name\":\"kanban-mcp\",\"version\":\"1.27.0\"},\"instructions\":\"Kanban board for software projects. Typical flow: get_projects -> list_tickets -> get_ticket -> manage_ticket(update, status='in-progress') -> keep ticket_items (work_log = debug journal, comment) updated while you work -> ticket_items (test_case, criterion) -> manage_ticket(update, status='done'). To have the board's AI team do the work instead, see \\\"AI team\\\" below.\\n\\nTools: each write tool covers one area and takes an `action` (ticket_items also an `item`); its description lists the parameters every action takes, and a wrong call is answered with what that action accepts.\\n- get_projects, list_tickets, get_ticket, docs_read: read only.\\n- manage_project (projects, members), manage_ticket (tickets, blocks, links, workspace), ticket_items (comments, work log, acceptance criteria, sub-tasks, test cases), ticket_branches (git branches), docs_write, ai_schedules; ai_run only inside a run the board started.\\n\\nConcepts\\n- Project: has a UUID `id` and a `prefix`. Ticket: id 'PREFIX-N' (e.g. 'IAM-12'); statuses backlog, todo, in-progress, review, testing, done, wont_do. A ticket owns acceptance criteria, sub-tasks (checklist steps), test cases, comments, a work log, branches and relations (blocks / links); sub-items are addressed by the UUIDs (or test-case code / branch name) shown in get_ticket.\\n- Docs: each project has a page tree of Markdown pages: read with docs_read (list, get, search, versions, ...), write with docs_write (create, edit, update, upload, ...). Change one part with docs_write(edit, section | find), not the whole page; send the `version` you read as base_version. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: docs_read(comments) lists the threads, docs_write(comment with quote, reply) answers them. Before you write a page, load the `docs-pages` skill in Claude Code, else docs_read(docs_guide): the Markdown the editor keeps, linking, files.\\n- Which drawing: how a screen or page looks (its states, a click-through) goes on a Canvas; boxes and arrows a team will edit (a user flow's steps and decisions, who does what, a sequence, states, architecture, a data model, a plan) is a draw.io Diagram in the Docs page or ticket it explains; a Sketch is a person's hand drawing: read it, never draw one. \\\"The sign-up flow and its screens\\\" is both: the flow as a Diagram, the screens on a Canvas. Draw when words alone are hard to follow; a picture sits beside the words, never instead.\\n- Diagrams show in any text as one line `[Name](diagram:dg_xxxxxxxx)`. docs_read(diagram) reads one as a model (shapes, links, labels, boxes, problems); with `path` it also writes the .drawio XML to edit with your own file tools; docs_write(diagram_save) stores it (the `version` you read as base_version), docs_write(diagram_create) makes one from a file: put the returned `markdown` line on its own line in the text. Before you draw or change one, load the `drawio-diagrams` skill in Claude Code, else docs_read(diagram_guide).\\n- Sketches show as `![Name](sketch:sk_xxxxxxxx)`; keep that line as it is. docs_read(sketch) writes its PNG and layers (.sketch.json); what to do with one: the `sketches` skill, else docs_read(diagram_guide).\\n- Look before you hand in: docs_read(picture) writes a PNG of a diagram, a frame (canvas_id + board_id) or a local .drawio, .html or frame folder, and returns `markdown` (a copy on the board) for a comment. A saved diagram already shows by its `[Name](diagram:dg_…)` line: post that, not its PNG as well.\\n- Canvases: boards (HTML pages, pictures, Sketches, Diagrams) with notes and comments on one plane show in a text as one line `![Name](canvas:cv_xxxxxxxx)`; keep that line as it is. docs_read(canvases) lists them, docs_read(canvas, canvas_id) reads frames, notes, arrows and comments (add board_id for a frame's source). docs_write(canvas_create) makes a canvas from a folder of web pages (a sub-folder with an index.html per frame, optional frame.json for name and size) or adds frames to one, and returns the `markdown` line to put in the text; frames are open web pages (scripts, CDN links and fonts run). Write frames responsive: a canvas switches a frame between Desktop (1280), Tablet (820) and Phone (390) by redrawing the same page at that width, so use `<meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\">`, fluid widths (%, flex, grid, max-width) and media queries (`@media (max-width: 820px)`), not fixed pixel layouts; set frame.json size to the width the frame is mainly for. Before you design or change a frame, load the whole design guide: the `canvas-design` skill in Claude Code, else docs_read(design_guide); follow it. docs_write(canvas_comment) comments under your own name. You never take the lock on a frame a person is editing.\\n- AI team (v2). Each project has AI teams: a team is a member of the project that can be the assignee; its lead works a ticket as one Claude Code session and the roles of its pack (dev, reviewer, qa, pm, designer...) work as its subagents. From outside a run you act for the person: give a ticket to a team with manage_ticket(update, assignee=<team member id>) and the lead starts; to tell a running lead something, comment on the ticket (a person's comment reaches the lead live). Inside a run the board started you have ai_run: ask (a question for the person you work for, then stop), message (a note to another ticket's team or a Docs page), reply (your answer to a person who wrote to you in the ticket chat; then carry on), history (a ticket team's closed conversations: title, summary), team, runs, report. An @mention in a comment does not wake an AI. You finish a run with the final JSON report the run asks for.\\n- Each ticket has a Workspace, a scratch folder for outputs a person should see (reports, screenshots, logs): manage_ticket(action='workspace') makes it and gives its path. It is not the AI team's git worktree. ticket_items(item='attachment', path=<absolute path>) attaches a file to the ticket. How to use every part of a ticket: docs_read(ticket_guide).\\n- Before you work on a ticket, read docs_read(guides) once: how to work a ticket here (report only what is true, show proof, ask, work with the other roles, brainstorm, check as the user would, office files); working as one role (dev, qa, reviewer...), also docs_read(role_guide, query=<role>).\\n\\nWorking a ticket (the same rules every AI on the board follows)\\n- Report only what you did and saw: say what you skipped, what failed and what you could not check. Never say a person did something unless a tool showed it to you.\\n- Stop every server or watcher you started (kill its process) before your final message: a process left running keeps the run open.\\n- Hand in proof a person can see: screenshots of what they will look at, links, and for a command its real output pasted in a ``` block (\\\"2 passed\\\" in a sentence is a claim, not proof).\\n- Before you hand in anything a person will read or use, look at it as that person would (`end-user-eyes`: the first-time and five-second tests, their words) and say in your report what you changed.\\n- Write in the project's language everywhere: copy, titles, labels, comments and the report.\\n- Stay in your role and start from what earlier runs left on the ticket (comments, work log): never redo another role's work (say in your answer who should do it), and ask a person with ai_run(action='ask') rather than guess.\\n- Never claim without checking: before you say a file, branch or page exists or where it is, look (list the folder, read the ticket) and name the exact place. The same for a cause or a result: name a file, function or line as the cause only once you have read it, a result only once you have run it; otherwise write \\\"not checked\\\". If something you wrote on a ticket turns out wrong, correct it where you wrote it (the description, a criterion), not only in a later note. Code goes in the worktree, committed; outputs a person should see in the ticket's Workspace or attached to the ticket.\\n- Keep memory without being asked: when you learn something the next run would pay for again, or a person corrects you, save it with knowledge(action='remember', scope='role' | 'ticket' | 'project'); fix a wrong note (`keeping-memory`).\\n\\nConventions\\n- Failures come back as tool errors whose message says how to fix the call; read it and retry. A refusal starts with BLOCKED and ends with `Instead:`: do that, never retry it.\\n- Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).\\n- Omitted optional arguments mean \\\"unchanged\\\". To empty a field use manage_ticket's clear_fields.\\n- Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.\\n- File attachments and images use standard root-relative path '/uploads/{filename}' (e.g. '[report.pdf](/uploads/report.pdf)' or '![screenshot](/uploads/screenshot.png)'). Optional image width: '![screenshot|640px](/uploads/screenshot.png)'.\\n- Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.\\n- Every `delete` is permanent; prefer status 'wont_do' to retire tickets.\\n\"}}\r\n\r\n"
+  },
+  "initialize 2024-11-05": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":\"a\",\"result\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{\"experimental\":{},\"prompts\":{\"listChanged\":false},\"resources\":{\"subscribe\":false,\"listChanged\":false},\"tools\":{\"listChanged\":false}},\"serverInfo\":{\"name\":\"kanban-mcp\",\"version\":\"1.27.0\"},\"instructions\":\"Kanban board for software projects. Typical flow: get_projects -> list_tickets -> get_ticket -> manage_ticket(update, status='in-progress') -> keep ticket_items (work_log = debug journal, comment) updated while you work -> ticket_items (test_case, criterion) -> manage_ticket(update, status='done'). To have the board's AI team do the work instead, see \\\"AI team\\\" below.\\n\\nTools: each write tool covers one area and takes an `action` (ticket_items also an `item`); its description lists the parameters every action takes, and a wrong call is answered with what that action accepts.\\n- get_projects, list_tickets, get_ticket, docs_read: read only.\\n- manage_project (projects, members), manage_ticket (tickets, blocks, links, workspace), ticket_items (comments, work log, acceptance criteria, sub-tasks, test cases), ticket_branches (git branches), docs_write, ai_schedules; ai_run only inside a run the board started.\\n\\nConcepts\\n- Project: has a UUID `id` and a `prefix`. Ticket: id 'PREFIX-N' (e.g. 'IAM-12'); statuses backlog, todo, in-progress, review, testing, done, wont_do. A ticket owns acceptance criteria, sub-tasks (checklist steps), test cases, comments, a work log, branches and relations (blocks / links); sub-items are addressed by the UUIDs (or test-case code / branch name) shown in get_ticket.\\n- Docs: each project has a page tree of Markdown pages: read with docs_read (list, get, search, versions, ...), write with docs_write (create, edit, update, upload, ...). Change one part with docs_write(edit, section | find), not the whole page; send the `version` you read as base_version. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: docs_read(comments) lists the threads, docs_write(comment with quote, reply) answers them. Before you write a page, load the `docs-pages` skill in Claude Code, else docs_read(docs_guide): the Markdown the editor keeps, linking, files.\\n- Which drawing: how a screen or page looks (its states, a click-through) goes on a Canvas; boxes and arrows a team will edit (a user flow's steps and decisions, who does what, a sequence, states, architecture, a data model, a plan) is a draw.io Diagram in the Docs page or ticket it explains; a Sketch is a person's hand drawing: read it, never draw one. \\\"The sign-up flow and its screens\\\" is both: the flow as a Diagram, the screens on a Canvas. Draw when words alone are hard to follow; a picture sits beside the words, never instead.\\n- Diagrams show in any text as one line `[Name](diagram:dg_xxxxxxxx)`. docs_read(diagram) reads one as a model (shapes, links, labels, boxes, problems); with `path` it also writes the .drawio XML to edit with your own file tools; docs_write(diagram_save) stores it (the `version` you read as base_version), docs_write(diagram_create) makes one from a file: put the returned `markdown` line on its own line in the text. Before you draw or change one, load the `drawio-diagrams` skill in Claude Code, else docs_read(diagram_guide).\\n- Sketches show as `![Name](sketch:sk_xxxxxxxx)`; keep that line as it is. docs_read(sketch) writes its PNG and layers (.sketch.json); what to do with one: the `sketches` skill, else docs_read(diagram_guide).\\n- Look before you hand in: docs_read(picture) writes a PNG of a diagram, a frame (canvas_id + board_id) or a local .drawio, .html or frame folder, and returns `markdown` (a copy on the board) for a comment. A saved diagram already shows by its `[Name](diagram:dg_…)` line: post that, not its PNG as well.\\n- Canvases: boards (HTML pages, pictures, Sketches, Diagrams) with notes and comments on one plane show in a text as one line `![Name](canvas:cv_xxxxxxxx)`; keep that line as it is. docs_read(canvases) lists them, docs_read(canvas, canvas_id) reads frames, notes, arrows and comments (add board_id for a frame's source). docs_write(canvas_create) makes a canvas from a folder of web pages (a sub-folder with an index.html per frame, optional frame.json for name and size) or adds frames to one, and returns the `markdown` line to put in the text; frames are open web pages (scripts, CDN links and fonts run). Write frames responsive: a canvas switches a frame between Desktop (1280), Tablet (820) and Phone (390) by redrawing the same page at that width, so use `<meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\">`, fluid widths (%, flex, grid, max-width) and media queries (`@media (max-width: 820px)`), not fixed pixel layouts; set frame.json size to the width the frame is mainly for. Before you design or change a frame, load the whole design guide: the `canvas-design` skill in Claude Code, else docs_read(design_guide); follow it. docs_write(canvas_comment) comments under your own name. You never take the lock on a frame a person is editing.\\n- AI team (v2). Each project has AI teams: a team is a member of the project that can be the assignee; its lead works a ticket as one Claude Code session and the roles of its pack (dev, reviewer, qa, pm, designer...) work as its subagents. From outside a run you act for the person: give a ticket to a team with manage_ticket(update, assignee=<team member id>) and the lead starts; to tell a running lead something, comment on the ticket (a person's comment reaches the lead live). Inside a run the board started you have ai_run: ask (a question for the person you work for, then stop), message (a note to another ticket's team or a Docs page), reply (your answer to a person who wrote to you in the ticket chat; then carry on), history (a ticket team's closed conversations: title, summary), team, runs, report. An @mention in a comment does not wake an AI. You finish a run with the final JSON report the run asks for.\\n- Each ticket has a Workspace, a scratch folder for outputs a person should see (reports, screenshots, logs): manage_ticket(action='workspace') makes it and gives its path. It is not the AI team's git worktree. ticket_items(item='attachment', path=<absolute path>) attaches a file to the ticket. How to use every part of a ticket: docs_read(ticket_guide).\\n- Before you work on a ticket, read docs_read(guides) once: how to work a ticket here (report only what is true, show proof, ask, work with the other roles, brainstorm, check as the user would, office files); working as one role (dev, qa, reviewer...), also docs_read(role_guide, query=<role>).\\n\\nWorking a ticket (the same rules every AI on the board follows)\\n- Report only what you did and saw: say what you skipped, what failed and what you could not check. Never say a person did something unless a tool showed it to you.\\n- Stop every server or watcher you started (kill its process) before your final message: a process left running keeps the run open.\\n- Hand in proof a person can see: screenshots of what they will look at, links, and for a command its real output pasted in a ``` block (\\\"2 passed\\\" in a sentence is a claim, not proof).\\n- Before you hand in anything a person will read or use, look at it as that person would (`end-user-eyes`: the first-time and five-second tests, their words) and say in your report what you changed.\\n- Write in the project's language everywhere: copy, titles, labels, comments and the report.\\n- Stay in your role and start from what earlier runs left on the ticket (comments, work log): never redo another role's work (say in your answer who should do it), and ask a person with ai_run(action='ask') rather than guess.\\n- Never claim without checking: before you say a file, branch or page exists or where it is, look (list the folder, read the ticket) and name the exact place. The same for a cause or a result: name a file, function or line as the cause only once you have read it, a result only once you have run it; otherwise write \\\"not checked\\\". If something you wrote on a ticket turns out wrong, correct it where you wrote it (the description, a criterion), not only in a later note. Code goes in the worktree, committed; outputs a person should see in the ticket's Workspace or attached to the ticket.\\n- Keep memory without being asked: when you learn something the next run would pay for again, or a person corrects you, save it with knowledge(action='remember', scope='role' | 'ticket' | 'project'); fix a wrong note (`keeping-memory`).\\n\\nConventions\\n- Failures come back as tool errors whose message says how to fix the call; read it and retry. A refusal starts with BLOCKED and ends with `Instead:`: do that, never retry it.\\n- Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).\\n- Omitted optional arguments mean \\\"unchanged\\\". To empty a field use manage_ticket's clear_fields.\\n- Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.\\n- File attachments and images use standard root-relative path '/uploads/{filename}' (e.g. '[report.pdf](/uploads/report.pdf)' or '![screenshot](/uploads/screenshot.png)'). Optional image width: '![screenshot|640px](/uploads/screenshot.png)'.\\n- Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.\\n- Every `delete` is permanent; prefer status 'wont_do' to retire tickets.\\n\"}}\r\n\r\n"
+  },
+  "initialize 2025-03-26": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{\"experimental\":{},\"prompts\":{\"listChanged\":false},\"resources\":{\"subscribe\":false,\"listChanged\":false},\"tools\":{\"listChanged\":false}},\"serverInfo\":{\"name\":\"kanban-mcp\",\"version\":\"1.27.0\"},\"instructions\":\"Kanban board for software projects. Typical flow: get_projects -> list_tickets -> get_ticket -> manage_ticket(update, status='in-progress') -> keep ticket_items (work_log = debug journal, comment) updated while you work -> ticket_items (test_case, criterion) -> manage_ticket(update, status='done'). To have the board's AI team do the work instead, see \\\"AI team\\\" below.\\n\\nTools: each write tool covers one area and takes an `action` (ticket_items also an `item`); its description lists the parameters every action takes, and a wrong call is answered with what that action accepts.\\n- get_projects, list_tickets, get_ticket, docs_read: read only.\\n- manage_project (projects, members), manage_ticket (tickets, blocks, links, workspace), ticket_items (comments, work log, acceptance criteria, sub-tasks, test cases), ticket_branches (git branches), docs_write, ai_schedules; ai_run only inside a run the board started.\\n\\nConcepts\\n- Project: has a UUID `id` and a `prefix`. Ticket: id 'PREFIX-N' (e.g. 'IAM-12'); statuses backlog, todo, in-progress, review, testing, done, wont_do. A ticket owns acceptance criteria, sub-tasks (checklist steps), test cases, comments, a work log, branches and relations (blocks / links); sub-items are addressed by the UUIDs (or test-case code / branch name) shown in get_ticket.\\n- Docs: each project has a page tree of Markdown pages: read with docs_read (list, get, search, versions, ...), write with docs_write (create, edit, update, upload, ...). Change one part with docs_write(edit, section | find), not the whole page; send the `version` you read as base_version. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: docs_read(comments) lists the threads, docs_write(comment with quote, reply) answers them. Before you write a page, load the `docs-pages` skill in Claude Code, else docs_read(docs_guide): the Markdown the editor keeps, linking, files.\\n- Which drawing: how a screen or page looks (its states, a click-through) goes on a Canvas; boxes and arrows a team will edit (a user flow's steps and decisions, who does what, a sequence, states, architecture, a data model, a plan) is a draw.io Diagram in the Docs page or ticket it explains; a Sketch is a person's hand drawing: read it, never draw one. \\\"The sign-up flow and its screens\\\" is both: the flow as a Diagram, the screens on a Canvas. Draw when words alone are hard to follow; a picture sits beside the words, never instead.\\n- Diagrams show in any text as one line `[Name](diagram:dg_xxxxxxxx)`. docs_read(diagram) reads one as a model (shapes, links, labels, boxes, problems); with `path` it also writes the .drawio XML to edit with your own file tools; docs_write(diagram_save) stores it (the `version` you read as base_version), docs_write(diagram_create) makes one from a file: put the returned `markdown` line on its own line in the text. Before you draw or change one, load the `drawio-diagrams` skill in Claude Code, else docs_read(diagram_guide).\\n- Sketches show as `![Name](sketch:sk_xxxxxxxx)`; keep that line as it is. docs_read(sketch) writes its PNG and layers (.sketch.json); what to do with one: the `sketches` skill, else docs_read(diagram_guide).\\n- Look before you hand in: docs_read(picture) writes a PNG of a diagram, a frame (canvas_id + board_id) or a local .drawio, .html or frame folder, and returns `markdown` (a copy on the board) for a comment. A saved diagram already shows by its `[Name](diagram:dg_…)` line: post that, not its PNG as well.\\n- Canvases: boards (HTML pages, pictures, Sketches, Diagrams) with notes and comments on one plane show in a text as one line `![Name](canvas:cv_xxxxxxxx)`; keep that line as it is. docs_read(canvases) lists them, docs_read(canvas, canvas_id) reads frames, notes, arrows and comments (add board_id for a frame's source). docs_write(canvas_create) makes a canvas from a folder of web pages (a sub-folder with an index.html per frame, optional frame.json for name and size) or adds frames to one, and returns the `markdown` line to put in the text; frames are open web pages (scripts, CDN links and fonts run). Write frames responsive: a canvas switches a frame between Desktop (1280), Tablet (820) and Phone (390) by redrawing the same page at that width, so use `<meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\">`, fluid widths (%, flex, grid, max-width) and media queries (`@media (max-width: 820px)`), not fixed pixel layouts; set frame.json size to the width the frame is mainly for. Before you design or change a frame, load the whole design guide: the `canvas-design` skill in Claude Code, else docs_read(design_guide); follow it. docs_write(canvas_comment) comments under your own name. You never take the lock on a frame a person is editing.\\n- AI team (v2). Each project has AI teams: a team is a member of the project that can be the assignee; its lead works a ticket as one Claude Code session and the roles of its pack (dev, reviewer, qa, pm, designer...) work as its subagents. From outside a run you act for the person: give a ticket to a team with manage_ticket(update, assignee=<team member id>) and the lead starts; to tell a running lead something, comment on the ticket (a person's comment reaches the lead live). Inside a run the board started you have ai_run: ask (a question for the person you work for, then stop), message (a note to another ticket's team or a Docs page), reply (your answer to a person who wrote to you in the ticket chat; then carry on), history (a ticket team's closed conversations: title, summary), team, runs, report. An @mention in a comment does not wake an AI. You finish a run with the final JSON report the run asks for.\\n- Each ticket has a Workspace, a scratch folder for outputs a person should see (reports, screenshots, logs): manage_ticket(action='workspace') makes it and gives its path. It is not the AI team's git worktree. ticket_items(item='attachment', path=<absolute path>) attaches a file to the ticket. How to use every part of a ticket: docs_read(ticket_guide).\\n- Before you work on a ticket, read docs_read(guides) once: how to work a ticket here (report only what is true, show proof, ask, work with the other roles, brainstorm, check as the user would, office files); working as one role (dev, qa, reviewer...), also docs_read(role_guide, query=<role>).\\n\\nWorking a ticket (the same rules every AI on the board follows)\\n- Report only what you did and saw: say what you skipped, what failed and what you could not check. Never say a person did something unless a tool showed it to you.\\n- Stop every server or watcher you started (kill its process) before your final message: a process left running keeps the run open.\\n- Hand in proof a person can see: screenshots of what they will look at, links, and for a command its real output pasted in a ``` block (\\\"2 passed\\\" in a sentence is a claim, not proof).\\n- Before you hand in anything a person will read or use, look at it as that person would (`end-user-eyes`: the first-time and five-second tests, their words) and say in your report what you changed.\\n- Write in the project's language everywhere: copy, titles, labels, comments and the report.\\n- Stay in your role and start from what earlier runs left on the ticket (comments, work log): never redo another role's work (say in your answer who should do it), and ask a person with ai_run(action='ask') rather than guess.\\n- Never claim without checking: before you say a file, branch or page exists or where it is, look (list the folder, read the ticket) and name the exact place. The same for a cause or a result: name a file, function or line as the cause only once you have read it, a result only once you have run it; otherwise write \\\"not checked\\\". If something you wrote on a ticket turns out wrong, correct it where you wrote it (the description, a criterion), not only in a later note. Code goes in the worktree, committed; outputs a person should see in the ticket's Workspace or attached to the ticket.\\n- Keep memory without being asked: when you learn something the next run would pay for again, or a person corrects you, save it with knowledge(action='remember', scope='role' | 'ticket' | 'project'); fix a wrong note (`keeping-memory`).\\n\\nConventions\\n- Failures come back as tool errors whose message says how to fix the call; read it and retry. A refusal starts with BLOCKED and ends with `Instead:`: do that, never retry it.\\n- Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).\\n- Omitted optional arguments mean \\\"unchanged\\\". To empty a field use manage_ticket's clear_fields.\\n- Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.\\n- File attachments and images use standard root-relative path '/uploads/{filename}' (e.g. '[report.pdf](/uploads/report.pdf)' or '![screenshot](/uploads/screenshot.png)'). Optional image width: '![screenshot|640px](/uploads/screenshot.png)'.\\n- Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.\\n- Every `delete` is permanent; prefer status 'wont_do' to retire tickets.\\n\"}}\r\n\r\n"
+  },
+  "initialize 2025-11-25": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{\"experimental\":{},\"prompts\":{\"listChanged\":false},\"resources\":{\"subscribe\":false,\"listChanged\":false},\"tools\":{\"listChanged\":false}},\"serverInfo\":{\"name\":\"kanban-mcp\",\"version\":\"1.27.0\"},\"instructions\":\"Kanban board for software projects. Typical flow: get_projects -> list_tickets -> get_ticket -> manage_ticket(update, status='in-progress') -> keep ticket_items (work_log = debug journal, comment) updated while you work -> ticket_items (test_case, criterion) -> manage_ticket(update, status='done'). To have the board's AI team do the work instead, see \\\"AI team\\\" below.\\n\\nTools: each write tool covers one area and takes an `action` (ticket_items also an `item`); its description lists the parameters every action takes, and a wrong call is answered with what that action accepts.\\n- get_projects, list_tickets, get_ticket, docs_read: read only.\\n- manage_project (projects, members), manage_ticket (tickets, blocks, links, workspace), ticket_items (comments, work log, acceptance criteria, sub-tasks, test cases), ticket_branches (git branches), docs_write, ai_schedules; ai_run only inside a run the board started.\\n\\nConcepts\\n- Project: has a UUID `id` and a `prefix`. Ticket: id 'PREFIX-N' (e.g. 'IAM-12'); statuses backlog, todo, in-progress, review, testing, done, wont_do. A ticket owns acceptance criteria, sub-tasks (checklist steps), test cases, comments, a work log, branches and relations (blocks / links); sub-items are addressed by the UUIDs (or test-case code / branch name) shown in get_ticket.\\n- Docs: each project has a page tree of Markdown pages: read with docs_read (list, get, search, versions, ...), write with docs_write (create, edit, update, upload, ...). Change one part with docs_write(edit, section | find), not the whole page; send the `version` you read as base_version. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: docs_read(comments) lists the threads, docs_write(comment with quote, reply) answers them. Before you write a page, load the `docs-pages` skill in Claude Code, else docs_read(docs_guide): the Markdown the editor keeps, linking, files.\\n- Which drawing: how a screen or page looks (its states, a click-through) goes on a Canvas; boxes and arrows a team will edit (a user flow's steps and decisions, who does what, a sequence, states, architecture, a data model, a plan) is a draw.io Diagram in the Docs page or ticket it explains; a Sketch is a person's hand drawing: read it, never draw one. \\\"The sign-up flow and its screens\\\" is both: the flow as a Diagram, the screens on a Canvas. Draw when words alone are hard to follow; a picture sits beside the words, never instead.\\n- Diagrams show in any text as one line `[Name](diagram:dg_xxxxxxxx)`. docs_read(diagram) reads one as a model (shapes, links, labels, boxes, problems); with `path` it also writes the .drawio XML to edit with your own file tools; docs_write(diagram_save) stores it (the `version` you read as base_version), docs_write(diagram_create) makes one from a file: put the returned `markdown` line on its own line in the text. Before you draw or change one, load the `drawio-diagrams` skill in Claude Code, else docs_read(diagram_guide).\\n- Sketches show as `![Name](sketch:sk_xxxxxxxx)`; keep that line as it is. docs_read(sketch) writes its PNG and layers (.sketch.json); what to do with one: the `sketches` skill, else docs_read(diagram_guide).\\n- Look before you hand in: docs_read(picture) writes a PNG of a diagram, a frame (canvas_id + board_id) or a local .drawio, .html or frame folder, and returns `markdown` (a copy on the board) for a comment. A saved diagram already shows by its `[Name](diagram:dg_…)` line: post that, not its PNG as well.\\n- Canvases: boards (HTML pages, pictures, Sketches, Diagrams) with notes and comments on one plane show in a text as one line `![Name](canvas:cv_xxxxxxxx)`; keep that line as it is. docs_read(canvases) lists them, docs_read(canvas, canvas_id) reads frames, notes, arrows and comments (add board_id for a frame's source). docs_write(canvas_create) makes a canvas from a folder of web pages (a sub-folder with an index.html per frame, optional frame.json for name and size) or adds frames to one, and returns the `markdown` line to put in the text; frames are open web pages (scripts, CDN links and fonts run). Write frames responsive: a canvas switches a frame between Desktop (1280), Tablet (820) and Phone (390) by redrawing the same page at that width, so use `<meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\">`, fluid widths (%, flex, grid, max-width) and media queries (`@media (max-width: 820px)`), not fixed pixel layouts; set frame.json size to the width the frame is mainly for. Before you design or change a frame, load the whole design guide: the `canvas-design` skill in Claude Code, else docs_read(design_guide); follow it. docs_write(canvas_comment) comments under your own name. You never take the lock on a frame a person is editing.\\n- AI team (v2). Each project has AI teams: a team is a member of the project that can be the assignee; its lead works a ticket as one Claude Code session and the roles of its pack (dev, reviewer, qa, pm, designer...) work as its subagents. From outside a run you act for the person: give a ticket to a team with manage_ticket(update, assignee=<team member id>) and the lead starts; to tell a running lead something, comment on the ticket (a person's comment reaches the lead live). Inside a run the board started you have ai_run: ask (a question for the person you work for, then stop), message (a note to another ticket's team or a Docs page), reply (your answer to a person who wrote to you in the ticket chat; then carry on), history (a ticket team's closed conversations: title, summary), team, runs, report. An @mention in a comment does not wake an AI. You finish a run with the final JSON report the run asks for.\\n- Each ticket has a Workspace, a scratch folder for outputs a person should see (reports, screenshots, logs): manage_ticket(action='workspace') makes it and gives its path. It is not the AI team's git worktree. ticket_items(item='attachment', path=<absolute path>) attaches a file to the ticket. How to use every part of a ticket: docs_read(ticket_guide).\\n- Before you work on a ticket, read docs_read(guides) once: how to work a ticket here (report only what is true, show proof, ask, work with the other roles, brainstorm, check as the user would, office files); working as one role (dev, qa, reviewer...), also docs_read(role_guide, query=<role>).\\n\\nWorking a ticket (the same rules every AI on the board follows)\\n- Report only what you did and saw: say what you skipped, what failed and what you could not check. Never say a person did something unless a tool showed it to you.\\n- Stop every server or watcher you started (kill its process) before your final message: a process left running keeps the run open.\\n- Hand in proof a person can see: screenshots of what they will look at, links, and for a command its real output pasted in a ``` block (\\\"2 passed\\\" in a sentence is a claim, not proof).\\n- Before you hand in anything a person will read or use, look at it as that person would (`end-user-eyes`: the first-time and five-second tests, their words) and say in your report what you changed.\\n- Write in the project's language everywhere: copy, titles, labels, comments and the report.\\n- Stay in your role and start from what earlier runs left on the ticket (comments, work log): never redo another role's work (say in your answer who should do it), and ask a person with ai_run(action='ask') rather than guess.\\n- Never claim without checking: before you say a file, branch or page exists or where it is, look (list the folder, read the ticket) and name the exact place. The same for a cause or a result: name a file, function or line as the cause only once you have read it, a result only once you have run it; otherwise write \\\"not checked\\\". If something you wrote on a ticket turns out wrong, correct it where you wrote it (the description, a criterion), not only in a later note. Code goes in the worktree, committed; outputs a person should see in the ticket's Workspace or attached to the ticket.\\n- Keep memory without being asked: when you learn something the next run would pay for again, or a person corrects you, save it with knowledge(action='remember', scope='role' | 'ticket' | 'project'); fix a wrong note (`keeping-memory`).\\n\\nConventions\\n- Failures come back as tool errors whose message says how to fix the call; read it and retry. A refusal starts with BLOCKED and ends with `Instead:`: do that, never retry it.\\n- Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).\\n- Omitted optional arguments mean \\\"unchanged\\\". To empty a field use manage_ticket's clear_fields.\\n- Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.\\n- File attachments and images use standard root-relative path '/uploads/{filename}' (e.g. '[report.pdf](/uploads/report.pdf)' or '![screenshot](/uploads/screenshot.png)'). Optional image width: '![screenshot|640px](/uploads/screenshot.png)'.\\n- Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.\\n- Every `delete` is permanent; prefer status 'wont_do' to retire tickets.\\n\"}}\r\n\r\n"
+  },
+  "initialize unknown version": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{\"experimental\":{},\"prompts\":{\"listChanged\":false},\"resources\":{\"subscribe\":false,\"listChanged\":false},\"tools\":{\"listChanged\":false}},\"serverInfo\":{\"name\":\"kanban-mcp\",\"version\":\"1.27.0\"},\"instructions\":\"Kanban board for software projects. Typical flow: get_projects -> list_tickets -> get_ticket -> manage_ticket(update, status='in-progress') -> keep ticket_items (work_log = debug journal, comment) updated while you work -> ticket_items (test_case, criterion) -> manage_ticket(update, status='done'). To have the board's AI team do the work instead, see \\\"AI team\\\" below.\\n\\nTools: each write tool covers one area and takes an `action` (ticket_items also an `item`); its description lists the parameters every action takes, and a wrong call is answered with what that action accepts.\\n- get_projects, list_tickets, get_ticket, docs_read: read only.\\n- manage_project (projects, members), manage_ticket (tickets, blocks, links, workspace), ticket_items (comments, work log, acceptance criteria, sub-tasks, test cases), ticket_branches (git branches), docs_write, ai_schedules; ai_run only inside a run the board started.\\n\\nConcepts\\n- Project: has a UUID `id` and a `prefix`. Ticket: id 'PREFIX-N' (e.g. 'IAM-12'); statuses backlog, todo, in-progress, review, testing, done, wont_do. A ticket owns acceptance criteria, sub-tasks (checklist steps), test cases, comments, a work log, branches and relations (blocks / links); sub-items are addressed by the UUIDs (or test-case code / branch name) shown in get_ticket.\\n- Docs: each project has a page tree of Markdown pages: read with docs_read (list, get, search, versions, ...), write with docs_write (create, edit, update, upload, ...). Change one part with docs_write(edit, section | find), not the whole page; send the `version` you read as base_version. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: docs_read(comments) lists the threads, docs_write(comment with quote, reply) answers them. Before you write a page, load the `docs-pages` skill in Claude Code, else docs_read(docs_guide): the Markdown the editor keeps, linking, files.\\n- Which drawing: how a screen or page looks (its states, a click-through) goes on a Canvas; boxes and arrows a team will edit (a user flow's steps and decisions, who does what, a sequence, states, architecture, a data model, a plan) is a draw.io Diagram in the Docs page or ticket it explains; a Sketch is a person's hand drawing: read it, never draw one. \\\"The sign-up flow and its screens\\\" is both: the flow as a Diagram, the screens on a Canvas. Draw when words alone are hard to follow; a picture sits beside the words, never instead.\\n- Diagrams show in any text as one line `[Name](diagram:dg_xxxxxxxx)`. docs_read(diagram) reads one as a model (shapes, links, labels, boxes, problems); with `path` it also writes the .drawio XML to edit with your own file tools; docs_write(diagram_save) stores it (the `version` you read as base_version), docs_write(diagram_create) makes one from a file: put the returned `markdown` line on its own line in the text. Before you draw or change one, load the `drawio-diagrams` skill in Claude Code, else docs_read(diagram_guide).\\n- Sketches show as `![Name](sketch:sk_xxxxxxxx)`; keep that line as it is. docs_read(sketch) writes its PNG and layers (.sketch.json); what to do with one: the `sketches` skill, else docs_read(diagram_guide).\\n- Look before you hand in: docs_read(picture) writes a PNG of a diagram, a frame (canvas_id + board_id) or a local .drawio, .html or frame folder, and returns `markdown` (a copy on the board) for a comment. A saved diagram already shows by its `[Name](diagram:dg_…)` line: post that, not its PNG as well.\\n- Canvases: boards (HTML pages, pictures, Sketches, Diagrams) with notes and comments on one plane show in a text as one line `![Name](canvas:cv_xxxxxxxx)`; keep that line as it is. docs_read(canvases) lists them, docs_read(canvas, canvas_id) reads frames, notes, arrows and comments (add board_id for a frame's source). docs_write(canvas_create) makes a canvas from a folder of web pages (a sub-folder with an index.html per frame, optional frame.json for name and size) or adds frames to one, and returns the `markdown` line to put in the text; frames are open web pages (scripts, CDN links and fonts run). Write frames responsive: a canvas switches a frame between Desktop (1280), Tablet (820) and Phone (390) by redrawing the same page at that width, so use `<meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\">`, fluid widths (%, flex, grid, max-width) and media queries (`@media (max-width: 820px)`), not fixed pixel layouts; set frame.json size to the width the frame is mainly for. Before you design or change a frame, load the whole design guide: the `canvas-design` skill in Claude Code, else docs_read(design_guide); follow it. docs_write(canvas_comment) comments under your own name. You never take the lock on a frame a person is editing.\\n- AI team (v2). Each project has AI teams: a team is a member of the project that can be the assignee; its lead works a ticket as one Claude Code session and the roles of its pack (dev, reviewer, qa, pm, designer...) work as its subagents. From outside a run you act for the person: give a ticket to a team with manage_ticket(update, assignee=<team member id>) and the lead starts; to tell a running lead something, comment on the ticket (a person's comment reaches the lead live). Inside a run the board started you have ai_run: ask (a question for the person you work for, then stop), message (a note to another ticket's team or a Docs page), reply (your answer to a person who wrote to you in the ticket chat; then carry on), history (a ticket team's closed conversations: title, summary), team, runs, report. An @mention in a comment does not wake an AI. You finish a run with the final JSON report the run asks for.\\n- Each ticket has a Workspace, a scratch folder for outputs a person should see (reports, screenshots, logs): manage_ticket(action='workspace') makes it and gives its path. It is not the AI team's git worktree. ticket_items(item='attachment', path=<absolute path>) attaches a file to the ticket. How to use every part of a ticket: docs_read(ticket_guide).\\n- Before you work on a ticket, read docs_read(guides) once: how to work a ticket here (report only what is true, show proof, ask, work with the other roles, brainstorm, check as the user would, office files); working as one role (dev, qa, reviewer...), also docs_read(role_guide, query=<role>).\\n\\nWorking a ticket (the same rules every AI on the board follows)\\n- Report only what you did and saw: say what you skipped, what failed and what you could not check. Never say a person did something unless a tool showed it to you.\\n- Stop every server or watcher you started (kill its process) before your final message: a process left running keeps the run open.\\n- Hand in proof a person can see: screenshots of what they will look at, links, and for a command its real output pasted in a ``` block (\\\"2 passed\\\" in a sentence is a claim, not proof).\\n- Before you hand in anything a person will read or use, look at it as that person would (`end-user-eyes`: the first-time and five-second tests, their words) and say in your report what you changed.\\n- Write in the project's language everywhere: copy, titles, labels, comments and the report.\\n- Stay in your role and start from what earlier runs left on the ticket (comments, work log): never redo another role's work (say in your answer who should do it), and ask a person with ai_run(action='ask') rather than guess.\\n- Never claim without checking: before you say a file, branch or page exists or where it is, look (list the folder, read the ticket) and name the exact place. The same for a cause or a result: name a file, function or line as the cause only once you have read it, a result only once you have run it; otherwise write \\\"not checked\\\". If something you wrote on a ticket turns out wrong, correct it where you wrote it (the description, a criterion), not only in a later note. Code goes in the worktree, committed; outputs a person should see in the ticket's Workspace or attached to the ticket.\\n- Keep memory without being asked: when you learn something the next run would pay for again, or a person corrects you, save it with knowledge(action='remember', scope='role' | 'ticket' | 'project'); fix a wrong note (`keeping-memory`).\\n\\nConventions\\n- Failures come back as tool errors whose message says how to fix the call; read it and retry. A refusal starts with BLOCKED and ends with `Instead:`: do that, never retry it.\\n- Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).\\n- Omitted optional arguments mean \\\"unchanged\\\". To empty a field use manage_ticket's clear_fields.\\n- Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.\\n- File attachments and images use standard root-relative path '/uploads/{filename}' (e.g. '[report.pdf](/uploads/report.pdf)' or '![screenshot](/uploads/screenshot.png)'). Optional image width: '![screenshot|640px](/uploads/screenshot.png)'.\\n- Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.\\n- Every `delete` is permanent; prefer status 'wont_do' to retire tickets.\\n\"}}\r\n\r\n"
+  },
+  "initialize version as a number": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{\"experimental\":{},\"prompts\":{\"listChanged\":false},\"resources\":{\"subscribe\":false,\"listChanged\":false},\"tools\":{\"listChanged\":false}},\"serverInfo\":{\"name\":\"kanban-mcp\",\"version\":\"1.27.0\"},\"instructions\":\"Kanban board for software projects. Typical flow: get_projects -> list_tickets -> get_ticket -> manage_ticket(update, status='in-progress') -> keep ticket_items (work_log = debug journal, comment) updated while you work -> ticket_items (test_case, criterion) -> manage_ticket(update, status='done'). To have the board's AI team do the work instead, see \\\"AI team\\\" below.\\n\\nTools: each write tool covers one area and takes an `action` (ticket_items also an `item`); its description lists the parameters every action takes, and a wrong call is answered with what that action accepts.\\n- get_projects, list_tickets, get_ticket, docs_read: read only.\\n- manage_project (projects, members), manage_ticket (tickets, blocks, links, workspace), ticket_items (comments, work log, acceptance criteria, sub-tasks, test cases), ticket_branches (git branches), docs_write, ai_schedules; ai_run only inside a run the board started.\\n\\nConcepts\\n- Project: has a UUID `id` and a `prefix`. Ticket: id 'PREFIX-N' (e.g. 'IAM-12'); statuses backlog, todo, in-progress, review, testing, done, wont_do. A ticket owns acceptance criteria, sub-tasks (checklist steps), test cases, comments, a work log, branches and relations (blocks / links); sub-items are addressed by the UUIDs (or test-case code / branch name) shown in get_ticket.\\n- Docs: each project has a page tree of Markdown pages: read with docs_read (list, get, search, versions, ...), write with docs_write (create, edit, update, upload, ...). Change one part with docs_write(edit, section | find), not the whole page; send the `version` you read as base_version. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: docs_read(comments) lists the threads, docs_write(comment with quote, reply) answers them. Before you write a page, load the `docs-pages` skill in Claude Code, else docs_read(docs_guide): the Markdown the editor keeps, linking, files.\\n- Which drawing: how a screen or page looks (its states, a click-through) goes on a Canvas; boxes and arrows a team will edit (a user flow's steps and decisions, who does what, a sequence, states, architecture, a data model, a plan) is a draw.io Diagram in the Docs page or ticket it explains; a Sketch is a person's hand drawing: read it, never draw one. \\\"The sign-up flow and its screens\\\" is both: the flow as a Diagram, the screens on a Canvas. Draw when words alone are hard to follow; a picture sits beside the words, never instead.\\n- Diagrams show in any text as one line `[Name](diagram:dg_xxxxxxxx)`. docs_read(diagram) reads one as a model (shapes, links, labels, boxes, problems); with `path` it also writes the .drawio XML to edit with your own file tools; docs_write(diagram_save) stores it (the `version` you read as base_version), docs_write(diagram_create) makes one from a file: put the returned `markdown` line on its own line in the text. Before you draw or change one, load the `drawio-diagrams` skill in Claude Code, else docs_read(diagram_guide).\\n- Sketches show as `![Name](sketch:sk_xxxxxxxx)`; keep that line as it is. docs_read(sketch) writes its PNG and layers (.sketch.json); what to do with one: the `sketches` skill, else docs_read(diagram_guide).\\n- Look before you hand in: docs_read(picture) writes a PNG of a diagram, a frame (canvas_id + board_id) or a local .drawio, .html or frame folder, and returns `markdown` (a copy on the board) for a comment. A saved diagram already shows by its `[Name](diagram:dg_…)` line: post that, not its PNG as well.\\n- Canvases: boards (HTML pages, pictures, Sketches, Diagrams) with notes and comments on one plane show in a text as one line `![Name](canvas:cv_xxxxxxxx)`; keep that line as it is. docs_read(canvases) lists them, docs_read(canvas, canvas_id) reads frames, notes, arrows and comments (add board_id for a frame's source). docs_write(canvas_create) makes a canvas from a folder of web pages (a sub-folder with an index.html per frame, optional frame.json for name and size) or adds frames to one, and returns the `markdown` line to put in the text; frames are open web pages (scripts, CDN links and fonts run). Write frames responsive: a canvas switches a frame between Desktop (1280), Tablet (820) and Phone (390) by redrawing the same page at that width, so use `<meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\">`, fluid widths (%, flex, grid, max-width) and media queries (`@media (max-width: 820px)`), not fixed pixel layouts; set frame.json size to the width the frame is mainly for. Before you design or change a frame, load the whole design guide: the `canvas-design` skill in Claude Code, else docs_read(design_guide); follow it. docs_write(canvas_comment) comments under your own name. You never take the lock on a frame a person is editing.\\n- AI team (v2). Each project has AI teams: a team is a member of the project that can be the assignee; its lead works a ticket as one Claude Code session and the roles of its pack (dev, reviewer, qa, pm, designer...) work as its subagents. From outside a run you act for the person: give a ticket to a team with manage_ticket(update, assignee=<team member id>) and the lead starts; to tell a running lead something, comment on the ticket (a person's comment reaches the lead live). Inside a run the board started you have ai_run: ask (a question for the person you work for, then stop), message (a note to another ticket's team or a Docs page), reply (your answer to a person who wrote to you in the ticket chat; then carry on), history (a ticket team's closed conversations: title, summary), team, runs, report. An @mention in a comment does not wake an AI. You finish a run with the final JSON report the run asks for.\\n- Each ticket has a Workspace, a scratch folder for outputs a person should see (reports, screenshots, logs): manage_ticket(action='workspace') makes it and gives its path. It is not the AI team's git worktree. ticket_items(item='attachment', path=<absolute path>) attaches a file to the ticket. How to use every part of a ticket: docs_read(ticket_guide).\\n- Before you work on a ticket, read docs_read(guides) once: how to work a ticket here (report only what is true, show proof, ask, work with the other roles, brainstorm, check as the user would, office files); working as one role (dev, qa, reviewer...), also docs_read(role_guide, query=<role>).\\n\\nWorking a ticket (the same rules every AI on the board follows)\\n- Report only what you did and saw: say what you skipped, what failed and what you could not check. Never say a person did something unless a tool showed it to you.\\n- Stop every server or watcher you started (kill its process) before your final message: a process left running keeps the run open.\\n- Hand in proof a person can see: screenshots of what they will look at, links, and for a command its real output pasted in a ``` block (\\\"2 passed\\\" in a sentence is a claim, not proof).\\n- Before you hand in anything a person will read or use, look at it as that person would (`end-user-eyes`: the first-time and five-second tests, their words) and say in your report what you changed.\\n- Write in the project's language everywhere: copy, titles, labels, comments and the report.\\n- Stay in your role and start from what earlier runs left on the ticket (comments, work log): never redo another role's work (say in your answer who should do it), and ask a person with ai_run(action='ask') rather than guess.\\n- Never claim without checking: before you say a file, branch or page exists or where it is, look (list the folder, read the ticket) and name the exact place. The same for a cause or a result: name a file, function or line as the cause only once you have read it, a result only once you have run it; otherwise write \\\"not checked\\\". If something you wrote on a ticket turns out wrong, correct it where you wrote it (the description, a criterion), not only in a later note. Code goes in the worktree, committed; outputs a person should see in the ticket's Workspace or attached to the ticket.\\n- Keep memory without being asked: when you learn something the next run would pay for again, or a person corrects you, save it with knowledge(action='remember', scope='role' | 'ticket' | 'project'); fix a wrong note (`keeping-memory`).\\n\\nConventions\\n- Failures come back as tool errors whose message says how to fix the call; read it and retry. A refusal starts with BLOCKED and ends with `Instead:`: do that, never retry it.\\n- Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).\\n- Omitted optional arguments mean \\\"unchanged\\\". To empty a field use manage_ticket's clear_fields.\\n- Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.\\n- File attachments and images use standard root-relative path '/uploads/{filename}' (e.g. '[report.pdf](/uploads/report.pdf)' or '![screenshot](/uploads/screenshot.png)'). Optional image width: '![screenshot|640px](/uploads/screenshot.png)'.\\n- Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.\\n- Every `delete` is permanent; prefer status 'wont_do' to retire tickets.\\n\"}}\r\n\r\n"
+  },
+  "initialize without params": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32602,\"message\":\"Invalid request parameters\",\"data\":\"\"}}\r\n\r\n"
+  },
+  "initialize without clientInfo": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32602,\"message\":\"Invalid request parameters\",\"data\":\"\"}}\r\n\r\n"
+  },
+  "initialize without capabilities": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32602,\"message\":\"Invalid request parameters\",\"data\":\"\"}}\r\n\r\n"
+  },
+  "initialize with extra fields": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":3,\"result\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"experimental\":{},\"prompts\":{\"listChanged\":false},\"resources\":{\"subscribe\":false,\"listChanged\":false},\"tools\":{\"listChanged\":false}},\"serverInfo\":{\"name\":\"kanban-mcp\",\"version\":\"1.27.0\"},\"instructions\":\"Kanban board for software projects. Typical flow: get_projects -> list_tickets -> get_ticket -> manage_ticket(update, status='in-progress') -> keep ticket_items (work_log = debug journal, comment) updated while you work -> ticket_items (test_case, criterion) -> manage_ticket(update, status='done'). To have the board's AI team do the work instead, see \\\"AI team\\\" below.\\n\\nTools: each write tool covers one area and takes an `action` (ticket_items also an `item`); its description lists the parameters every action takes, and a wrong call is answered with what that action accepts.\\n- get_projects, list_tickets, get_ticket, docs_read: read only.\\n- manage_project (projects, members), manage_ticket (tickets, blocks, links, workspace), ticket_items (comments, work log, acceptance criteria, sub-tasks, test cases), ticket_branches (git branches), docs_write, ai_schedules; ai_run only inside a run the board started.\\n\\nConcepts\\n- Project: has a UUID `id` and a `prefix`. Ticket: id 'PREFIX-N' (e.g. 'IAM-12'); statuses backlog, todo, in-progress, review, testing, done, wont_do. A ticket owns acceptance criteria, sub-tasks (checklist steps), test cases, comments, a work log, branches and relations (blocks / links); sub-items are addressed by the UUIDs (or test-case code / branch name) shown in get_ticket.\\n- Docs: each project has a page tree of Markdown pages: read with docs_read (list, get, search, versions, ...), write with docs_write (create, edit, update, upload, ...). Change one part with docs_write(edit, section | find), not the whole page; send the `version` you read as base_version. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: docs_read(comments) lists the threads, docs_write(comment with quote, reply) answers them. Before you write a page, load the `docs-pages` skill in Claude Code, else docs_read(docs_guide): the Markdown the editor keeps, linking, files.\\n- Which drawing: how a screen or page looks (its states, a click-through) goes on a Canvas; boxes and arrows a team will edit (a user flow's steps and decisions, who does what, a sequence, states, architecture, a data model, a plan) is a draw.io Diagram in the Docs page or ticket it explains; a Sketch is a person's hand drawing: read it, never draw one. \\\"The sign-up flow and its screens\\\" is both: the flow as a Diagram, the screens on a Canvas. Draw when words alone are hard to follow; a picture sits beside the words, never instead.\\n- Diagrams show in any text as one line `[Name](diagram:dg_xxxxxxxx)`. docs_read(diagram) reads one as a model (shapes, links, labels, boxes, problems); with `path` it also writes the .drawio XML to edit with your own file tools; docs_write(diagram_save) stores it (the `version` you read as base_version), docs_write(diagram_create) makes one from a file: put the returned `markdown` line on its own line in the text. Before you draw or change one, load the `drawio-diagrams` skill in Claude Code, else docs_read(diagram_guide).\\n- Sketches show as `![Name](sketch:sk_xxxxxxxx)`; keep that line as it is. docs_read(sketch) writes its PNG and layers (.sketch.json); what to do with one: the `sketches` skill, else docs_read(diagram_guide).\\n- Look before you hand in: docs_read(picture) writes a PNG of a diagram, a frame (canvas_id + board_id) or a local .drawio, .html or frame folder, and returns `markdown` (a copy on the board) for a comment. A saved diagram already shows by its `[Name](diagram:dg_…)` line: post that, not its PNG as well.\\n- Canvases: boards (HTML pages, pictures, Sketches, Diagrams) with notes and comments on one plane show in a text as one line `![Name](canvas:cv_xxxxxxxx)`; keep that line as it is. docs_read(canvases) lists them, docs_read(canvas, canvas_id) reads frames, notes, arrows and comments (add board_id for a frame's source). docs_write(canvas_create) makes a canvas from a folder of web pages (a sub-folder with an index.html per frame, optional frame.json for name and size) or adds frames to one, and returns the `markdown` line to put in the text; frames are open web pages (scripts, CDN links and fonts run). Write frames responsive: a canvas switches a frame between Desktop (1280), Tablet (820) and Phone (390) by redrawing the same page at that width, so use `<meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\">`, fluid widths (%, flex, grid, max-width) and media queries (`@media (max-width: 820px)`), not fixed pixel layouts; set frame.json size to the width the frame is mainly for. Before you design or change a frame, load the whole design guide: the `canvas-design` skill in Claude Code, else docs_read(design_guide); follow it. docs_write(canvas_comment) comments under your own name. You never take the lock on a frame a person is editing.\\n- AI team (v2). Each project has AI teams: a team is a member of the project that can be the assignee; its lead works a ticket as one Claude Code session and the roles of its pack (dev, reviewer, qa, pm, designer...) work as its subagents. From outside a run you act for the person: give a ticket to a team with manage_ticket(update, assignee=<team member id>) and the lead starts; to tell a running lead something, comment on the ticket (a person's comment reaches the lead live). Inside a run the board started you have ai_run: ask (a question for the person you work for, then stop), message (a note to another ticket's team or a Docs page), reply (your answer to a person who wrote to you in the ticket chat; then carry on), history (a ticket team's closed conversations: title, summary), team, runs, report. An @mention in a comment does not wake an AI. You finish a run with the final JSON report the run asks for.\\n- Each ticket has a Workspace, a scratch folder for outputs a person should see (reports, screenshots, logs): manage_ticket(action='workspace') makes it and gives its path. It is not the AI team's git worktree. ticket_items(item='attachment', path=<absolute path>) attaches a file to the ticket. How to use every part of a ticket: docs_read(ticket_guide).\\n- Before you work on a ticket, read docs_read(guides) once: how to work a ticket here (report only what is true, show proof, ask, work with the other roles, brainstorm, check as the user would, office files); working as one role (dev, qa, reviewer...), also docs_read(role_guide, query=<role>).\\n\\nWorking a ticket (the same rules every AI on the board follows)\\n- Report only what you did and saw: say what you skipped, what failed and what you could not check. Never say a person did something unless a tool showed it to you.\\n- Stop every server or watcher you started (kill its process) before your final message: a process left running keeps the run open.\\n- Hand in proof a person can see: screenshots of what they will look at, links, and for a command its real output pasted in a ``` block (\\\"2 passed\\\" in a sentence is a claim, not proof).\\n- Before you hand in anything a person will read or use, look at it as that person would (`end-user-eyes`: the first-time and five-second tests, their words) and say in your report what you changed.\\n- Write in the project's language everywhere: copy, titles, labels, comments and the report.\\n- Stay in your role and start from what earlier runs left on the ticket (comments, work log): never redo another role's work (say in your answer who should do it), and ask a person with ai_run(action='ask') rather than guess.\\n- Never claim without checking: before you say a file, branch or page exists or where it is, look (list the folder, read the ticket) and name the exact place. The same for a cause or a result: name a file, function or line as the cause only once you have read it, a result only once you have run it; otherwise write \\\"not checked\\\". If something you wrote on a ticket turns out wrong, correct it where you wrote it (the description, a criterion), not only in a later note. Code goes in the worktree, committed; outputs a person should see in the ticket's Workspace or attached to the ticket.\\n- Keep memory without being asked: when you learn something the next run would pay for again, or a person corrects you, save it with knowledge(action='remember', scope='role' | 'ticket' | 'project'); fix a wrong note (`keeping-memory`).\\n\\nConventions\\n- Failures come back as tool errors whose message says how to fix the call; read it and retry. A refusal starts with BLOCKED and ends with `Instead:`: do that, never retry it.\\n- Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).\\n- Omitted optional arguments mean \\\"unchanged\\\". To empty a field use manage_ticket's clear_fields.\\n- Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.\\n- File attachments and images use standard root-relative path '/uploads/{filename}' (e.g. '[report.pdf](/uploads/report.pdf)' or '![screenshot](/uploads/screenshot.png)'). Optional image width: '![screenshot|640px](/uploads/screenshot.png)'.\\n- Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.\\n- Every `delete` is permanent; prefer status 'wont_do' to retire tickets.\\n\"}}\r\n\r\n"
+  },
+  "initialize with a bad protocol header": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"experimental\":{},\"prompts\":{\"listChanged\":false},\"resources\":{\"subscribe\":false,\"listChanged\":false},\"tools\":{\"listChanged\":false}},\"serverInfo\":{\"name\":\"kanban-mcp\",\"version\":\"1.27.0\"},\"instructions\":\"Kanban board for software projects. Typical flow: get_projects -> list_tickets -> get_ticket -> manage_ticket(update, status='in-progress') -> keep ticket_items (work_log = debug journal, comment) updated while you work -> ticket_items (test_case, criterion) -> manage_ticket(update, status='done'). To have the board's AI team do the work instead, see \\\"AI team\\\" below.\\n\\nTools: each write tool covers one area and takes an `action` (ticket_items also an `item`); its description lists the parameters every action takes, and a wrong call is answered with what that action accepts.\\n- get_projects, list_tickets, get_ticket, docs_read: read only.\\n- manage_project (projects, members), manage_ticket (tickets, blocks, links, workspace), ticket_items (comments, work log, acceptance criteria, sub-tasks, test cases), ticket_branches (git branches), docs_write, ai_schedules; ai_run only inside a run the board started.\\n\\nConcepts\\n- Project: has a UUID `id` and a `prefix`. Ticket: id 'PREFIX-N' (e.g. 'IAM-12'); statuses backlog, todo, in-progress, review, testing, done, wont_do. A ticket owns acceptance criteria, sub-tasks (checklist steps), test cases, comments, a work log, branches and relations (blocks / links); sub-items are addressed by the UUIDs (or test-case code / branch name) shown in get_ticket.\\n- Docs: each project has a page tree of Markdown pages: read with docs_read (list, get, search, versions, ...), write with docs_write (create, edit, update, upload, ...). Change one part with docs_write(edit, section | find), not the whole page; send the `version` you read as base_version. Link pages with [[Title#Section]] and tickets by key (IAM-12). People comment on pages too: docs_read(comments) lists the threads, docs_write(comment with quote, reply) answers them. Before you write a page, load the `docs-pages` skill in Claude Code, else docs_read(docs_guide): the Markdown the editor keeps, linking, files.\\n- Which drawing: how a screen or page looks (its states, a click-through) goes on a Canvas; boxes and arrows a team will edit (a user flow's steps and decisions, who does what, a sequence, states, architecture, a data model, a plan) is a draw.io Diagram in the Docs page or ticket it explains; a Sketch is a person's hand drawing: read it, never draw one. \\\"The sign-up flow and its screens\\\" is both: the flow as a Diagram, the screens on a Canvas. Draw when words alone are hard to follow; a picture sits beside the words, never instead.\\n- Diagrams show in any text as one line `[Name](diagram:dg_xxxxxxxx)`. docs_read(diagram) reads one as a model (shapes, links, labels, boxes, problems); with `path` it also writes the .drawio XML to edit with your own file tools; docs_write(diagram_save) stores it (the `version` you read as base_version), docs_write(diagram_create) makes one from a file: put the returned `markdown` line on its own line in the text. Before you draw or change one, load the `drawio-diagrams` skill in Claude Code, else docs_read(diagram_guide).\\n- Sketches show as `![Name](sketch:sk_xxxxxxxx)`; keep that line as it is. docs_read(sketch) writes its PNG and layers (.sketch.json); what to do with one: the `sketches` skill, else docs_read(diagram_guide).\\n- Look before you hand in: docs_read(picture) writes a PNG of a diagram, a frame (canvas_id + board_id) or a local .drawio, .html or frame folder, and returns `markdown` (a copy on the board) for a comment. A saved diagram already shows by its `[Name](diagram:dg_…)` line: post that, not its PNG as well.\\n- Canvases: boards (HTML pages, pictures, Sketches, Diagrams) with notes and comments on one plane show in a text as one line `![Name](canvas:cv_xxxxxxxx)`; keep that line as it is. docs_read(canvases) lists them, docs_read(canvas, canvas_id) reads frames, notes, arrows and comments (add board_id for a frame's source). docs_write(canvas_create) makes a canvas from a folder of web pages (a sub-folder with an index.html per frame, optional frame.json for name and size) or adds frames to one, and returns the `markdown` line to put in the text; frames are open web pages (scripts, CDN links and fonts run). Write frames responsive: a canvas switches a frame between Desktop (1280), Tablet (820) and Phone (390) by redrawing the same page at that width, so use `<meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\">`, fluid widths (%, flex, grid, max-width) and media queries (`@media (max-width: 820px)`), not fixed pixel layouts; set frame.json size to the width the frame is mainly for. Before you design or change a frame, load the whole design guide: the `canvas-design` skill in Claude Code, else docs_read(design_guide); follow it. docs_write(canvas_comment) comments under your own name. You never take the lock on a frame a person is editing.\\n- AI team (v2). Each project has AI teams: a team is a member of the project that can be the assignee; its lead works a ticket as one Claude Code session and the roles of its pack (dev, reviewer, qa, pm, designer...) work as its subagents. From outside a run you act for the person: give a ticket to a team with manage_ticket(update, assignee=<team member id>) and the lead starts; to tell a running lead something, comment on the ticket (a person's comment reaches the lead live). Inside a run the board started you have ai_run: ask (a question for the person you work for, then stop), message (a note to another ticket's team or a Docs page), reply (your answer to a person who wrote to you in the ticket chat; then carry on), history (a ticket team's closed conversations: title, summary), team, runs, report. An @mention in a comment does not wake an AI. You finish a run with the final JSON report the run asks for.\\n- Each ticket has a Workspace, a scratch folder for outputs a person should see (reports, screenshots, logs): manage_ticket(action='workspace') makes it and gives its path. It is not the AI team's git worktree. ticket_items(item='attachment', path=<absolute path>) attaches a file to the ticket. How to use every part of a ticket: docs_read(ticket_guide).\\n- Before you work on a ticket, read docs_read(guides) once: how to work a ticket here (report only what is true, show proof, ask, work with the other roles, brainstorm, check as the user would, office files); working as one role (dev, qa, reviewer...), also docs_read(role_guide, query=<role>).\\n\\nWorking a ticket (the same rules every AI on the board follows)\\n- Report only what you did and saw: say what you skipped, what failed and what you could not check. Never say a person did something unless a tool showed it to you.\\n- Stop every server or watcher you started (kill its process) before your final message: a process left running keeps the run open.\\n- Hand in proof a person can see: screenshots of what they will look at, links, and for a command its real output pasted in a ``` block (\\\"2 passed\\\" in a sentence is a claim, not proof).\\n- Before you hand in anything a person will read or use, look at it as that person would (`end-user-eyes`: the first-time and five-second tests, their words) and say in your report what you changed.\\n- Write in the project's language everywhere: copy, titles, labels, comments and the report.\\n- Stay in your role and start from what earlier runs left on the ticket (comments, work log): never redo another role's work (say in your answer who should do it), and ask a person with ai_run(action='ask') rather than guess.\\n- Never claim without checking: before you say a file, branch or page exists or where it is, look (list the folder, read the ticket) and name the exact place. The same for a cause or a result: name a file, function or line as the cause only once you have read it, a result only once you have run it; otherwise write \\\"not checked\\\". If something you wrote on a ticket turns out wrong, correct it where you wrote it (the description, a criterion), not only in a later note. Code goes in the worktree, committed; outputs a person should see in the ticket's Workspace or attached to the ticket.\\n- Keep memory without being asked: when you learn something the next run would pay for again, or a person corrects you, save it with knowledge(action='remember', scope='role' | 'ticket' | 'project'); fix a wrong note (`keeping-memory`).\\n\\nConventions\\n- Failures come back as tool errors whose message says how to fix the call; read it and retry. A refusal starts with BLOCKED and ends with `Instead:`: do that, never retry it.\\n- Tools that change a ticket return it without its activity log; get_ticket returns the 10 most recent activity entries (activity_limit / activity_since narrow or widen that; activity_limit=-1 gives all).\\n- Omitted optional arguments mean \\\"unchanged\\\". To empty a field use manage_ticket's clear_fields.\\n- Text fields are Markdown. Dates are ISO 'YYYY-MM-DD'.\\n- File attachments and images use standard root-relative path '/uploads/{filename}' (e.g. '[report.pdf](/uploads/report.pdf)' or '![screenshot](/uploads/screenshot.png)'). Optional image width: '![screenshot|640px](/uploads/screenshot.png)'.\\n- Everything you change is attributed to the AI agent in the board's Activity tab; humans watch it live.\\n- Every `delete` is permanent; prefer status 'wont_do' to retire tickets.\\n\"}}\r\n\r\n"
+  },
+  "ping": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "ping with params": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "ping with a string id": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":\"abc\",\"result\":{}}\r\n\r\n"
+  },
+  "ping with id 0": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{}}\r\n\r\n"
+  },
+  "ping with a negative id": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":-7,\"result\":{}}\r\n\r\n"
+  },
+  "ping with a float id": {
+    "status": 202,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "0"
+    },
+    "body": ""
+  },
+  "ping with a whole float id": {
+    "status": 202,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "0"
+    },
+    "body": ""
+  },
+  "ping with a null id": {
+    "status": 202,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "0"
+    },
+    "body": ""
+  },
+  "ping with a boolean id": {
+    "status": 202,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "0"
+    },
+    "body": ""
+  },
+  "ping with an empty string id": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":\"\",\"result\":{}}\r\n\r\n"
+  },
+  "ping with a numeric string id": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":\"12\",\"result\":{}}\r\n\r\n"
+  },
+  "ping with extra members": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "ping with params as a list": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "951"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32602,\"message\":\"Validation error: 4 validation errors for JSONRPCMessage\\nJSONRPCRequest.params\\n  Input should be a valid dictionary [type=dict_type, input_value=[1], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.12/v/dict_type\\nJSONRPCNotification.params\\n  Input should be a valid dictionary [type=dict_type, input_value=[1], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.12/v/dict_type\\nJSONRPCResponse.result\\n  Field required [type=missing, input_value={'jsonrpc': '2.0', 'id': ...: 'ping', 'params': [1]}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCError.error\\n  Field required [type=missing, input_value={'jsonrpc': '2.0', 'id': ...: 'ping', 'params': [1]}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\"}}"
+  },
+  "ping with params null": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "resources/list": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":4,\"result\":{\"resources\":[]}}\r\n\r\n"
+  },
+  "resources/list with a cursor": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":4,\"result\":{\"resources\":[]}}\r\n\r\n"
+  },
+  "resources/templates/list": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":5,\"result\":{\"resourceTemplates\":[]}}\r\n\r\n"
+  },
+  "prompts/list": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":6,\"result\":{\"prompts\":[]}}\r\n\r\n"
+  },
+  "resources/read": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":7,\"error\":{\"code\":0,\"message\":\"Unknown resource: file:///x\"}}\r\n\r\n"
+  },
+  "resources/read without a uri": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":7,\"error\":{\"code\":-32602,\"message\":\"Invalid request parameters\",\"data\":\"\"}}\r\n\r\n"
+  },
+  "prompts/get": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":8,\"error\":{\"code\":0,\"message\":\"Unknown prompt: x\"}}\r\n\r\n"
+  },
+  "resources/subscribe": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":9,\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}\r\n\r\n"
+  },
+  "resources/unsubscribe": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":9,\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}\r\n\r\n"
+  },
+  "logging/setLevel": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":10,\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}\r\n\r\n"
+  },
+  "completion/complete": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":11,\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}\r\n\r\n"
+  },
+  "tasks/list": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":11,\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}\r\n\r\n"
+  },
+  "tasks/get": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":11,\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}\r\n\r\n"
+  },
+  "unknown method": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":12,\"error\":{\"code\":-32602,\"message\":\"Invalid request parameters\",\"data\":\"\"}}\r\n\r\n"
+  },
+  "unknown method with a string id": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":\"q\",\"error\":{\"code\":-32602,\"message\":\"Invalid request parameters\",\"data\":\"\"}}\r\n\r\n"
+  },
+  "empty method": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":12,\"error\":{\"code\":-32602,\"message\":\"Invalid request parameters\",\"data\":\"\"}}\r\n\r\n"
+  },
+  "a server-side method": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":12,\"error\":{\"code\":-32602,\"message\":\"Invalid request parameters\",\"data\":\"\"}}\r\n\r\n"
+  },
+  "tools/call unknown tool": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":13,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Unknown tool: no_such_tool\"}],\"isError\":true}}\r\n\r\n"
+  },
+  "tools/call without params": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":14,\"error\":{\"code\":-32602,\"message\":\"Invalid request parameters\",\"data\":\"\"}}\r\n\r\n"
+  },
+  "tools/call without a name": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":14,\"error\":{\"code\":-32602,\"message\":\"Invalid request parameters\",\"data\":\"\"}}\r\n\r\n"
+  },
+  "tools/call with a name that is not text": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":14,\"error\":{\"code\":-32602,\"message\":\"Invalid request parameters\",\"data\":\"\"}}\r\n\r\n"
+  },
+  "tools/call with arguments as a list": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":14,\"error\":{\"code\":-32602,\"message\":\"Invalid request parameters\",\"data\":\"\"}}\r\n\r\n"
+  },
+  "tools/call with arguments null": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":14,\"result\":{\"content\":[],\"structuredContent\":{\"result\":[]},\"isError\":false}}\r\n\r\n"
+  },
+  "tools/call without arguments": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":14,\"result\":{\"content\":[],\"structuredContent\":{\"result\":[]},\"isError\":false}}\r\n\r\n"
+  },
+  "tools/call with a task": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":14,\"result\":{\"content\":[],\"structuredContent\":{\"result\":[]},\"isError\":false}}\r\n\r\n"
+  },
+  "tools/list with a cursor": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":15,\"result\":{\"tools\":[<the tools>]}}\r\n\r\n"
+  },
+  "tools/list with a cursor that is not text": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":15,\"error\":{\"code\":-32602,\"message\":\"Invalid request parameters\",\"data\":\"\"}}\r\n\r\n"
+  },
+  "notifications/initialized": {
+    "status": 202,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "0"
+    },
+    "body": ""
+  },
+  "notifications/cancelled": {
+    "status": 202,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "0"
+    },
+    "body": ""
+  },
+  "unknown notification": {
+    "status": 202,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "0"
+    },
+    "body": ""
+  },
+  "a method without id that is a request": {
+    "status": 202,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "0"
+    },
+    "body": ""
+  },
+  "a response": {
+    "status": 202,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "0"
+    },
+    "body": ""
+  },
+  "an error response": {
+    "status": 202,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "0"
+    },
+    "body": ""
+  },
+  "empty body": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "128"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Expecting value: line 1 column 1 (char 0)\"}}"
+  },
+  "not JSON": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "128"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Expecting value: line 1 column 1 (char 0)\"}}"
+  },
+  "truncated JSON": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "164"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Expecting property name enclosed in double quotes: line 1 column 25 (char 24)\"}}"
+  },
+  "JSON then more": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "125"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Extra data: line 1 column 42 (char 41)\"}}"
+  },
+  "single quotes": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "162"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)\"}}"
+  },
+  "trailing comma": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "164"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Expecting property name enclosed in double quotes: line 1 column 41 (char 40)\"}}"
+  },
+  "missing colon": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "138"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Expecting ':' delimiter: line 1 column 12 (char 11)\"}}"
+  },
+  "missing comma": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "138"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Expecting ',' delimiter: line 1 column 18 (char 17)\"}}"
+  },
+  "unterminated string": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "146"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Unterminated string starting at: line 1 column 12 (char 11)\"}}"
+  },
+  "bad escape": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "131"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Invalid \\\\escape: line 1 column 15 (char 14)\"}}"
+  },
+  "list not closed": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "128"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Expecting value: line 1 column 4 (char 3)\"}}"
+  },
+  "list with a trailing comma": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "128"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Expecting value: line 1 column 4 (char 3)\"}}"
+  },
+  "whitespace only": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "128"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Expecting value: line 2 column 2 (char 4)\"}}"
+  },
+  "a number": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "994"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32602,\"message\":\"Validation error: 4 validation errors for JSONRPCMessage\\nJSONRPCRequest\\n  Input should be a valid dictionary or instance of JSONRPCRequest [type=model_type, input_value=5, input_type=int]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCNotification\\n  Input should be a valid dictionary or instance of JSONRPCNotification [type=model_type, input_value=5, input_type=int]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCResponse\\n  Input should be a valid dictionary or instance of JSONRPCResponse [type=model_type, input_value=5, input_type=int]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCError\\n  Input should be a valid dictionary or instance of JSONRPCError [type=model_type, input_value=5, input_type=int]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\"}}"
+  },
+  "a string": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "1014"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32602,\"message\":\"Validation error: 4 validation errors for JSONRPCMessage\\nJSONRPCRequest\\n  Input should be a valid dictionary or instance of JSONRPCRequest [type=model_type, input_value='ping', input_type=str]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCNotification\\n  Input should be a valid dictionary or instance of JSONRPCNotification [type=model_type, input_value='ping', input_type=str]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCResponse\\n  Input should be a valid dictionary or instance of JSONRPCResponse [type=model_type, input_value='ping', input_type=str]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCError\\n  Input should be a valid dictionary or instance of JSONRPCError [type=model_type, input_value='ping', input_type=str]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\"}}"
+  },
+  "null": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "1026"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32602,\"message\":\"Validation error: 4 validation errors for JSONRPCMessage\\nJSONRPCRequest\\n  Input should be a valid dictionary or instance of JSONRPCRequest [type=model_type, input_value=None, input_type=NoneType]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCNotification\\n  Input should be a valid dictionary or instance of JSONRPCNotification [type=model_type, input_value=None, input_type=NoneType]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCResponse\\n  Input should be a valid dictionary or instance of JSONRPCResponse [type=model_type, input_value=None, input_type=NoneType]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCError\\n  Input should be a valid dictionary or instance of JSONRPCError [type=model_type, input_value=None, input_type=NoneType]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\"}}"
+  },
+  "empty object": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "1966"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32602,\"message\":\"Validation error: 11 validation errors for JSONRPCMessage\\nJSONRPCRequest.method\\n  Field required [type=missing, input_value={}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCRequest.jsonrpc\\n  Field required [type=missing, input_value={}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCRequest.id\\n  Field required [type=missing, input_value={}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCNotification.method\\n  Field required [type=missing, input_value={}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCNotification.jsonrpc\\n  Field required [type=missing, input_value={}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCResponse.jsonrpc\\n  Field required [type=missing, input_value={}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCResponse.id\\n  Field required [type=missing, input_value={}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCResponse.result\\n  Field required [type=missing, input_value={}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCError.jsonrpc\\n  Field required [type=missing, input_value={}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCError.id\\n  Field required [type=missing, input_value={}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCError.error\\n  Field required [type=missing, input_value={}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\"}}"
+  },
+  "empty list": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "1002"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32602,\"message\":\"Validation error: 4 validation errors for JSONRPCMessage\\nJSONRPCRequest\\n  Input should be a valid dictionary or instance of JSONRPCRequest [type=model_type, input_value=[], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCNotification\\n  Input should be a valid dictionary or instance of JSONRPCNotification [type=model_type, input_value=[], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCResponse\\n  Input should be a valid dictionary or instance of JSONRPCResponse [type=model_type, input_value=[], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCError\\n  Input should be a valid dictionary or instance of JSONRPCError [type=model_type, input_value=[], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\"}}"
+  },
+  "a batch": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "1202"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32602,\"message\":\"Validation error: 4 validation errors for JSONRPCMessage\\nJSONRPCRequest\\n  Input should be a valid dictionary or instance of JSONRPCRequest [type=model_type, input_value=[{'jsonrpc': '2.0', 'id':...': 2, 'method': 'ping'}], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCNotification\\n  Input should be a valid dictionary or instance of JSONRPCNotification [type=model_type, input_value=[{'jsonrpc': '2.0', 'id':...': 2, 'method': 'ping'}], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCResponse\\n  Input should be a valid dictionary or instance of JSONRPCResponse [type=model_type, input_value=[{'jsonrpc': '2.0', 'id':...': 2, 'method': 'ping'}], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\\nJSONRPCError\\n  Input should be a valid dictionary or instance of JSONRPCError [type=model_type, input_value=[{'jsonrpc': '2.0', 'id':...': 2, 'method': 'ping'}], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\"}}"
+  },
+  "no jsonrpc member": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "1288"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32602,\"message\":\"Validation error: 6 validation errors for JSONRPCMessage\\nJSONRPCRequest.jsonrpc\\n  Field required [type=missing, input_value={'id': 1, 'method': 'ping'}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCNotification.jsonrpc\\n  Field required [type=missing, input_value={'id': 1, 'method': 'ping'}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCResponse.jsonrpc\\n  Field required [type=missing, input_value={'id': 1, 'method': 'ping'}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCResponse.result\\n  Field required [type=missing, input_value={'id': 1, 'method': 'ping'}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCError.jsonrpc\\n  Field required [type=missing, input_value={'id': 1, 'method': 'ping'}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCError.error\\n  Field required [type=missing, input_value={'id': 1, 'method': 'ping'}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\"}}"
+  },
+  "jsonrpc 1.0": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "1308"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32602,\"message\":\"Validation error: 6 validation errors for JSONRPCMessage\\nJSONRPCRequest.jsonrpc\\n  Input should be '2.0' [type=literal_error, input_value='1.0', input_type=str]\\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error\\nJSONRPCNotification.jsonrpc\\n  Input should be '2.0' [type=literal_error, input_value='1.0', input_type=str]\\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error\\nJSONRPCResponse.jsonrpc\\n  Input should be '2.0' [type=literal_error, input_value='1.0', input_type=str]\\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error\\nJSONRPCResponse.result\\n  Field required [type=missing, input_value={'jsonrpc': '1.0', 'id': 1, 'method': 'ping'}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCError.jsonrpc\\n  Input should be '2.0' [type=literal_error, input_value='1.0', input_type=str]\\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error\\nJSONRPCError.error\\n  Field required [type=missing, input_value={'jsonrpc': '1.0', 'id': 1, 'method': 'ping'}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\"}}"
+  },
+  "method is not text": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "921"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32602,\"message\":\"Validation error: 4 validation errors for JSONRPCMessage\\nJSONRPCRequest.method\\n  Input should be a valid string [type=string_type, input_value=5, input_type=int]\\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type\\nJSONRPCNotification.method\\n  Input should be a valid string [type=string_type, input_value=5, input_type=int]\\n    For further information visit https://errors.pydantic.dev/2.12/v/string_type\\nJSONRPCResponse.result\\n  Field required [type=missing, input_value={'jsonrpc': '2.0', 'id': 1, 'method': 5}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCError.error\\n  Field required [type=missing, input_value={'jsonrpc': '2.0', 'id': 1, 'method': 5}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\"}}"
+  },
+  "id only": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "901"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32602,\"message\":\"Validation error: 4 validation errors for JSONRPCMessage\\nJSONRPCRequest.method\\n  Field required [type=missing, input_value={'jsonrpc': '2.0', 'id': 1}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCNotification.method\\n  Field required [type=missing, input_value={'jsonrpc': '2.0', 'id': 1}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCResponse.result\\n  Field required [type=missing, input_value={'jsonrpc': '2.0', 'id': 1}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCError.error\\n  Field required [type=missing, input_value={'jsonrpc': '2.0', 'id': 1}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\"}}"
+  },
+  "id is an object": {
+    "status": 202,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "0"
+    },
+    "body": ""
+  },
+  "params is text": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "949"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32602,\"message\":\"Validation error: 4 validation errors for JSONRPCMessage\\nJSONRPCRequest.params\\n  Input should be a valid dictionary [type=dict_type, input_value='x', input_type=str]\\n    For further information visit https://errors.pydantic.dev/2.12/v/dict_type\\nJSONRPCNotification.params\\n  Input should be a valid dictionary [type=dict_type, input_value='x', input_type=str]\\n    For further information visit https://errors.pydantic.dev/2.12/v/dict_type\\nJSONRPCResponse.result\\n  Field required [type=missing, input_value={'jsonrpc': '2.0', 'id': ...: 'ping', 'params': 'x'}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\nJSONRPCError.error\\n  Field required [type=missing, input_value={'jsonrpc': '2.0', 'id': ...: 'ping', 'params': 'x'}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\"}}"
+  },
+  "no Accept": {
+    "status": 406,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "152"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Not Acceptable: Client must accept both application/json and text/event-stream\"}}"
+  },
+  "Accept json only": {
+    "status": 406,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "152"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Not Acceptable: Client must accept both application/json and text/event-stream\"}}"
+  },
+  "Accept event-stream only": {
+    "status": 406,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "152"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Not Acceptable: Client must accept both application/json and text/event-stream\"}}"
+  },
+  "Accept anything": {
+    "status": 406,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "152"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Not Acceptable: Client must accept both application/json and text/event-stream\"}}"
+  },
+  "Accept with parameters": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "Accept in upper case": {
+    "status": 406,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "152"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Not Acceptable: Client must accept both application/json and text/event-stream\"}}"
+  },
+  "no Content-Type": {
+    "status": 400,
+    "headers": {
+      "content-length": "27"
+    },
+    "body": "Invalid Content-Type header"
+  },
+  "Content-Type text/plain": {
+    "status": 400,
+    "headers": {
+      "content-length": "27"
+    },
+    "body": "Invalid Content-Type header"
+  },
+  "Content-Type with a charset": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "Content-Type in upper case": {
+    "status": 415,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "135"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Unsupported Media Type: Content-Type must be application/json\"}}"
+  },
+  "Content-Type application/jsonx": {
+    "status": 415,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "135"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Unsupported Media Type: Content-Type must be application/json\"}}"
+  },
+  "Content-Type application/json-rpc": {
+    "status": 415,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "135"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Unsupported Media Type: Content-Type must be application/json\"}}"
+  },
+  "no Accept and no Content-Type": {
+    "status": 400,
+    "headers": {
+      "content-length": "27"
+    },
+    "body": "Invalid Content-Type header"
+  },
+  "a session id": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "protocol header 2025-06-18": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "protocol header 2025-11-25": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "protocol header unknown": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "195"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Bad Request: Unsupported protocol version: 2020-01-01. Supported versions: 2024-11-05, 2025-03-26, 2025-06-18, 2025-11-25\"}}"
+  },
+  "protocol header empty": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "185"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Bad Request: Unsupported protocol version: . Supported versions: 2024-11-05, 2025-03-26, 2025-06-18, 2025-11-25\"}}"
+  },
+  "protocol header unknown on a notification": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "186"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Bad Request: Unsupported protocol version: x. Supported versions: 2024-11-05, 2025-03-26, 2025-06-18, 2025-11-25\"}}"
+  },
+  "protocol header unknown on bad JSON": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "128"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32700,\"message\":\"Parse error: Expecting value: line 1 column 1 (char 0)\"}}"
+  },
+  "Host localhost": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "Host ::1": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "Host without a port": {
+    "status": 421,
+    "headers": {
+      "content-length": "19"
+    },
+    "body": "Invalid Host header"
+  },
+  "Host elsewhere": {
+    "status": 421,
+    "headers": {
+      "content-length": "19"
+    },
+    "body": "Invalid Host header"
+  },
+  "Host elsewhere with a port": {
+    "status": 421,
+    "headers": {
+      "content-length": "19"
+    },
+    "body": "Invalid Host header"
+  },
+  "Origin local": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "Origin 127.0.0.1": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "Origin without a port": {
+    "status": 403,
+    "headers": {
+      "content-length": "21"
+    },
+    "body": "Invalid Origin header"
+  },
+  "Origin https local": {
+    "status": 403,
+    "headers": {
+      "content-length": "21"
+    },
+    "body": "Invalid Origin header"
+  },
+  "Origin elsewhere": {
+    "status": 403,
+    "headers": {
+      "content-length": "21"
+    },
+    "body": "Invalid Origin header"
+  },
+  "Origin null": {
+    "status": 403,
+    "headers": {
+      "content-length": "21"
+    },
+    "body": "Invalid Origin header"
+  },
+  "a bearer token on ping": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "Last-Event-ID": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "Host elsewhere and a bad Content-Type": {
+    "status": 400,
+    "headers": {
+      "content-length": "27"
+    },
+    "body": "Invalid Content-Type header"
+  },
+  "Host elsewhere and no Accept": {
+    "status": 421,
+    "headers": {
+      "content-length": "19"
+    },
+    "body": "Invalid Host header"
+  },
+  "no Accept and bad JSON": {
+    "status": 406,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "152"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Not Acceptable: Client must accept both application/json and text/event-stream\"}}"
+  },
+  "jsonx and no Accept": {
+    "status": 406,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "152"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Not Acceptable: Client must accept both application/json and text/event-stream\"}}"
+  },
+  "GET": {
+    "status": 406,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "126"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Not Acceptable: Client must accept text/event-stream\"}}"
+  },
+  "GET accepting json": {
+    "status": 406,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "126"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Not Acceptable: Client must accept text/event-stream\"}}"
+  },
+  "GET accepting an event stream": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": ""
+  },
+  "GET event stream with a bad protocol header": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "186"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Bad Request: Unsupported protocol version: x. Supported versions: 2024-11-05, 2025-03-26, 2025-06-18, 2025-11-25\"}}"
+  },
+  "GET event stream from another host": {
+    "status": 421,
+    "headers": {
+      "content-length": "19"
+    },
+    "body": "Invalid Host header"
+  },
+  "GET with a query": {
+    "status": 406,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "126"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Not Acceptable: Client must accept text/event-stream\"}}"
+  },
+  "DELETE": {
+    "status": 405,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "127"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Method Not Allowed: Session termination not supported\"}}"
+  },
+  "DELETE with a session id": {
+    "status": 405,
+    "headers": {
+      "content-type": "application/json",
+      "content-length": "127"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Method Not Allowed: Session termination not supported\"}}"
+  },
+  "PUT": {
+    "status": 405,
+    "headers": {
+      "content-type": "application/json",
+      "allow": "GET, POST, DELETE",
+      "content-length": "92"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Method Not Allowed\"}}"
+  },
+  "PATCH": {
+    "status": 405,
+    "headers": {
+      "content-type": "application/json",
+      "allow": "GET, POST, DELETE",
+      "content-length": "92"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Method Not Allowed\"}}"
+  },
+  "HEAD": {
+    "status": 405,
+    "headers": {
+      "content-type": "application/json",
+      "allow": "GET, POST, DELETE",
+      "content-length": "92"
+    },
+    "body": ""
+  },
+  "OPTIONS": {
+    "status": 405,
+    "headers": {
+      "content-type": "application/json",
+      "allow": "GET, POST, DELETE",
+      "content-length": "92"
+    },
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":\"server-error\",\"error\":{\"code\":-32600,\"message\":\"Method Not Allowed\"}}"
+  },
+  "GET below": {
+    "status": 404,
+    "headers": {
+      "content-length": "9",
+      "content-type": "text/plain; charset=utf-8"
+    },
+    "body": "Not Found"
+  },
+  "GET deeper": {
+    "status": 404,
+    "headers": {
+      "content-length": "9",
+      "content-type": "text/plain; charset=utf-8"
+    },
+    "body": "Not Found"
+  },
+  "POST below": {
+    "status": 404,
+    "headers": {
+      "content-length": "9",
+      "content-type": "text/plain; charset=utf-8"
+    },
+    "body": "Not Found"
+  },
+  "POST double slash": {
+    "status": 404,
+    "headers": {
+      "content-length": "9",
+      "content-type": "text/plain; charset=utf-8"
+    },
+    "body": "Not Found"
+  },
+  "POST with a query": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-cache, no-transform",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream",
+      "x-accel-buffering": "no",
+      "transfer-encoding": "chunked"
+    },
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{}}\r\n\r\n"
+  },
+  "POST without the slash": {
+    "status": 405,
+    "headers": {
+      "allow": "GET",
+      "content-length": "31",
+      "content-type": "application/json"
+    },
+    "body": "{\"detail\":\"Method Not Allowed\"}"
+  }
+}

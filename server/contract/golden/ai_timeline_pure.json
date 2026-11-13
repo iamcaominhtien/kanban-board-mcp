@@ -1,0 +1,1384 @@
+{
+ "role_label": [
+  [
+   "tester",
+   "Tester"
+  ],
+  [
+   "code-reviewer",
+   "Code reviewer"
+  ],
+  [
+   "snake_case_role",
+   "Snake case role"
+  ],
+  [
+   "",
+   "Agent"
+  ],
+  [
+   null,
+   "Agent"
+  ],
+  [
+   "x",
+   "X"
+  ],
+  [
+   "  spaced  ",
+   "Spaced"
+  ],
+  [
+   "ünï",
+   "Ünï"
+  ],
+  [
+   "a-b_c d",
+   "A b c d"
+  ],
+  [
+   "--",
+   ""
+  ],
+  [
+   "É",
+   "É"
+  ]
+ ],
+ "role_color": [
+  [
+   "dev",
+   "#2F6FB0"
+  ],
+  [
+   "Dev",
+   "#2F6FB0"
+  ],
+  [
+   " QA ",
+   "#0F8B8D"
+  ],
+  [
+   "reviewer",
+   "#7C5CD6"
+  ],
+  [
+   "tester",
+   "#5B5FA8"
+  ],
+  [
+   "",
+   "#C2417A"
+  ],
+  [
+   null,
+   "#C2417A"
+  ],
+  [
+   "code-reviewer",
+   "#7C5CD6"
+  ],
+  [
+   "x",
+   "#0F8B8D"
+  ],
+  [
+   "ünï",
+   "#7C5CD6"
+  ],
+  [
+   "agent",
+   "#C2417A"
+  ],
+  [
+   "designer",
+   "#C2417A"
+  ],
+  [
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "#7C5CD6"
+  ]
+ ],
+ "window": [
+  [
+   "hour",
+   null,
+   null,
+   "2026-11-12T09:00:00.250000+00:00",
+   "2026-11-12T10:00:00.250000+00:00"
+  ],
+  [
+   "today",
+   null,
+   null,
+   "2026-11-12T00:00:00+00:00",
+   "2026-11-12T10:00:00.250000+00:00"
+  ],
+  [
+   "24h",
+   null,
+   null,
+   "2026-11-11T10:00:00.250000+00:00",
+   "2026-11-12T10:00:00.250000+00:00"
+  ],
+  [
+   "7d",
+   null,
+   null,
+   "2026-11-05T10:00:00.250000+00:00",
+   "2026-11-12T10:00:00.250000+00:00"
+  ],
+  [
+   "x",
+   null,
+   null,
+   "2026-11-12T00:00:00+00:00",
+   "2026-11-12T10:00:00.250000+00:00"
+  ],
+  [
+   "hour",
+   "2026-01-01T00:00:00+07:00",
+   null,
+   "2026-01-01T00:00:00+07:00",
+   "2026-11-12T10:00:00.250000+00:00"
+  ],
+  [
+   "hour",
+   "2026-01-01T00:00:00+07:00",
+   "2026-01-02T00:00:00+00:00",
+   "2026-01-01T00:00:00+07:00",
+   "2026-01-02T00:00:00+00:00"
+  ]
+ ],
+ "group": {
+  "arrows": [
+   {
+    "id": "a0",
+    "at": "2026-11-12T08:20:00+00:00",
+    "to_at": "2026-11-12T08:20:00+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-0",
+    "run_id": "r0",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "a1",
+    "at": "2026-11-12T08:20:30+00:00",
+    "to_at": "2026-11-12T08:20:30+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-1",
+    "run_id": "r1",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "a2",
+    "at": "2026-11-12T08:21:00+00:00",
+    "to_at": "2026-11-12T08:21:00+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-2",
+    "run_id": "r2",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "a3",
+    "at": "2026-11-12T08:21:30+00:00",
+    "to_at": "2026-11-12T08:21:30+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-3",
+    "run_id": "r3",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "a4",
+    "at": "2026-11-12T08:22:00+00:00",
+    "to_at": "2026-11-12T08:22:00+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-4",
+    "run_id": "r4",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "a5",
+    "at": "2026-11-12T08:30:00+00:00",
+    "to_at": "2026-11-12T08:30:00+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-5",
+    "run_id": "r5",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "a6",
+    "at": "2026-11-12T08:30:30+00:00",
+    "to_at": "2026-11-12T08:30:30+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-6",
+    "run_id": "r6",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "a7",
+    "at": "2026-11-12T08:31:00+00:00",
+    "to_at": "2026-11-12T08:31:00+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-7",
+    "run_id": "r7",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "a8",
+    "at": "2026-11-12T08:31:30+00:00",
+    "to_at": "2026-11-12T08:31:30+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-8",
+    "run_id": "r8",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "a9",
+    "at": "2026-11-12T08:32:00+00:00",
+    "to_at": "2026-11-12T08:32:00+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-9",
+    "run_id": "r9",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "a10",
+    "at": "2026-11-12T08:40:00+00:00",
+    "to_at": "2026-11-12T08:40:00+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-10",
+    "run_id": "r10",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "a11",
+    "at": "2026-11-12T08:40:30+00:00",
+    "to_at": "2026-11-12T08:40:30+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-11",
+    "run_id": "r11",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "a12",
+    "at": "2026-11-12T08:41:00+00:00",
+    "to_at": "2026-11-12T08:41:00+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-12",
+    "run_id": "r12",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "a13",
+    "at": "2026-11-12T08:41:30+00:00",
+    "to_at": "2026-11-12T08:41:30+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-13",
+    "run_id": "r13",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "e1",
+    "at": null,
+    "to_at": null,
+    "kind": "assign",
+    "from": "you",
+    "to": "x",
+    "ticket_id": null,
+    "run_id": null,
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "e2",
+    "at": "garbage",
+    "to_at": "garbage",
+    "kind": "assign",
+    "from": "you",
+    "to": "x",
+    "ticket_id": null,
+    "run_id": null,
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null
+   },
+   {
+    "id": "e3",
+    "at": "2026-11-12T09:55:00+00:00",
+    "to_at": "2026-11-12T09:55:00+00:00",
+    "kind": "assign",
+    "from": "you",
+    "to": "x",
+    "ticket_id": null,
+    "run_id": "r",
+    "wait_s": 0,
+    "round": 0,
+    "label": "",
+    "by": ""
+   }
+  ],
+  "grouped_90": [
+   {
+    "id": "e1",
+    "at": null,
+    "to_at": null,
+    "kind": "assign",
+    "from": "you",
+    "to": "x",
+    "ticket_id": null,
+    "run_id": null,
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": null,
+    "parent_id": null,
+    "items": [
+     {
+      "id": "e1",
+      "ticket_id": null
+     }
+    ]
+   },
+   {
+    "id": "a0",
+    "at": "2026-11-12T08:20:00+00:00",
+    "to_at": "2026-11-12T08:20:00+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-0",
+    "run_id": "r0",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:20:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a0",
+      "ticket_id": "K-0"
+     }
+    ]
+   },
+   {
+    "id": "a1",
+    "at": "2026-11-12T08:20:30+00:00",
+    "to_at": "2026-11-12T08:20:30+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-1",
+    "run_id": "r1",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:20:30+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a1",
+      "ticket_id": "K-1"
+     }
+    ]
+   },
+   {
+    "id": "a2",
+    "at": "2026-11-12T08:21:00+00:00",
+    "to_at": "2026-11-12T08:21:00+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-2",
+    "run_id": "r2",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 2,
+    "at_last": "2026-11-12T08:22:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a2",
+      "ticket_id": "K-2"
+     },
+     {
+      "id": "a4",
+      "ticket_id": "K-4"
+     }
+    ]
+   },
+   {
+    "id": "a3",
+    "at": "2026-11-12T08:21:30+00:00",
+    "to_at": "2026-11-12T08:21:30+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-3",
+    "run_id": "r3",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:21:30+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a3",
+      "ticket_id": "K-3"
+     }
+    ]
+   },
+   {
+    "id": "a5",
+    "at": "2026-11-12T08:30:00+00:00",
+    "to_at": "2026-11-12T08:30:00+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-5",
+    "run_id": "r5",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 2,
+    "at_last": "2026-11-12T08:31:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a5",
+      "ticket_id": "K-5"
+     },
+     {
+      "id": "a7",
+      "ticket_id": "K-7"
+     }
+    ]
+   },
+   {
+    "id": "a6",
+    "at": "2026-11-12T08:30:30+00:00",
+    "to_at": "2026-11-12T08:30:30+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-6",
+    "run_id": "r6",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:30:30+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a6",
+      "ticket_id": "K-6"
+     }
+    ]
+   },
+   {
+    "id": "a8",
+    "at": "2026-11-12T08:31:30+00:00",
+    "to_at": "2026-11-12T08:31:30+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-8",
+    "run_id": "r8",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:31:30+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a8",
+      "ticket_id": "K-8"
+     }
+    ]
+   },
+   {
+    "id": "a9",
+    "at": "2026-11-12T08:32:00+00:00",
+    "to_at": "2026-11-12T08:32:00+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-9",
+    "run_id": "r9",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:32:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a9",
+      "ticket_id": "K-9"
+     }
+    ]
+   },
+   {
+    "id": "a10",
+    "at": "2026-11-12T08:40:00+00:00",
+    "to_at": "2026-11-12T08:40:00+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-10",
+    "run_id": "r10",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:40:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a10",
+      "ticket_id": "K-10"
+     }
+    ]
+   },
+   {
+    "id": "a11",
+    "at": "2026-11-12T08:40:30+00:00",
+    "to_at": "2026-11-12T08:40:30+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-11",
+    "run_id": "r11",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 2,
+    "at_last": "2026-11-12T08:41:30+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a11",
+      "ticket_id": "K-11"
+     },
+     {
+      "id": "a13",
+      "ticket_id": "K-13"
+     }
+    ]
+   },
+   {
+    "id": "a12",
+    "at": "2026-11-12T08:41:00+00:00",
+    "to_at": "2026-11-12T08:41:00+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-12",
+    "run_id": "r12",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:41:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a12",
+      "ticket_id": "K-12"
+     }
+    ]
+   },
+   {
+    "id": "e3",
+    "at": "2026-11-12T09:55:00+00:00",
+    "to_at": "2026-11-12T09:55:00+00:00",
+    "kind": "assign",
+    "from": "you",
+    "to": "x",
+    "ticket_id": null,
+    "run_id": "r",
+    "wait_s": 0,
+    "round": 0,
+    "label": "",
+    "by": "",
+    "count": 1,
+    "at_last": "2026-11-12T09:55:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "e3",
+      "ticket_id": null
+     }
+    ]
+   },
+   {
+    "id": "e2",
+    "at": "garbage",
+    "to_at": "garbage",
+    "kind": "assign",
+    "from": "you",
+    "to": "x",
+    "ticket_id": null,
+    "run_id": null,
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "garbage",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "e2",
+      "ticket_id": null
+     }
+    ]
+   }
+  ],
+  "grouped_600": [
+   {
+    "id": "e1",
+    "at": null,
+    "to_at": null,
+    "kind": "assign",
+    "from": "you",
+    "to": "x",
+    "ticket_id": null,
+    "run_id": null,
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": null,
+    "parent_id": null,
+    "items": [
+     {
+      "id": "e1",
+      "ticket_id": null
+     }
+    ]
+   },
+   {
+    "id": "a0",
+    "at": "2026-11-12T08:20:00+00:00",
+    "to_at": "2026-11-12T08:20:00+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-0",
+    "run_id": "r0",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:20:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a0",
+      "ticket_id": "K-0"
+     }
+    ]
+   },
+   {
+    "id": "a1",
+    "at": "2026-11-12T08:20:30+00:00",
+    "to_at": "2026-11-12T08:20:30+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-1",
+    "run_id": "r1",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 5,
+    "at_last": "2026-11-12T08:41:30+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a1",
+      "ticket_id": "K-1"
+     },
+     {
+      "id": "a5",
+      "ticket_id": "K-5"
+     },
+     {
+      "id": "a7",
+      "ticket_id": "K-7"
+     },
+     {
+      "id": "a11",
+      "ticket_id": "K-11"
+     },
+     {
+      "id": "a13",
+      "ticket_id": "K-13"
+     }
+    ]
+   },
+   {
+    "id": "a2",
+    "at": "2026-11-12T08:21:00+00:00",
+    "to_at": "2026-11-12T08:21:00+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-2",
+    "run_id": "r2",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 4,
+    "at_last": "2026-11-12T08:40:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a2",
+      "ticket_id": "K-2"
+     },
+     {
+      "id": "a4",
+      "ticket_id": "K-4"
+     },
+     {
+      "id": "a8",
+      "ticket_id": "K-8"
+     },
+     {
+      "id": "a10",
+      "ticket_id": "K-10"
+     }
+    ]
+   },
+   {
+    "id": "a3",
+    "at": "2026-11-12T08:21:30+00:00",
+    "to_at": "2026-11-12T08:21:30+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-3",
+    "run_id": "r3",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:21:30+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a3",
+      "ticket_id": "K-3"
+     }
+    ]
+   },
+   {
+    "id": "a6",
+    "at": "2026-11-12T08:30:30+00:00",
+    "to_at": "2026-11-12T08:30:30+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-6",
+    "run_id": "r6",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:30:30+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a6",
+      "ticket_id": "K-6"
+     }
+    ]
+   },
+   {
+    "id": "a9",
+    "at": "2026-11-12T08:32:00+00:00",
+    "to_at": "2026-11-12T08:32:00+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-9",
+    "run_id": "r9",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:32:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a9",
+      "ticket_id": "K-9"
+     }
+    ]
+   },
+   {
+    "id": "a12",
+    "at": "2026-11-12T08:41:00+00:00",
+    "to_at": "2026-11-12T08:41:00+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-12",
+    "run_id": "r12",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:41:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a12",
+      "ticket_id": "K-12"
+     }
+    ]
+   },
+   {
+    "id": "e3",
+    "at": "2026-11-12T09:55:00+00:00",
+    "to_at": "2026-11-12T09:55:00+00:00",
+    "kind": "assign",
+    "from": "you",
+    "to": "x",
+    "ticket_id": null,
+    "run_id": "r",
+    "wait_s": 0,
+    "round": 0,
+    "label": "",
+    "by": "",
+    "count": 1,
+    "at_last": "2026-11-12T09:55:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "e3",
+      "ticket_id": null
+     }
+    ]
+   },
+   {
+    "id": "e2",
+    "at": "garbage",
+    "to_at": "garbage",
+    "kind": "assign",
+    "from": "you",
+    "to": "x",
+    "ticket_id": null,
+    "run_id": null,
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "garbage",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "e2",
+      "ticket_id": null
+     }
+    ]
+   }
+  ],
+  "grouped_1": [
+   {
+    "id": "e1",
+    "at": null,
+    "to_at": null,
+    "kind": "assign",
+    "from": "you",
+    "to": "x",
+    "ticket_id": null,
+    "run_id": null,
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": null,
+    "parent_id": null,
+    "items": [
+     {
+      "id": "e1",
+      "ticket_id": null
+     }
+    ]
+   },
+   {
+    "id": "a0",
+    "at": "2026-11-12T08:20:00+00:00",
+    "to_at": "2026-11-12T08:20:00+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-0",
+    "run_id": "r0",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:20:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a0",
+      "ticket_id": "K-0"
+     }
+    ]
+   },
+   {
+    "id": "a1",
+    "at": "2026-11-12T08:20:30+00:00",
+    "to_at": "2026-11-12T08:20:30+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-1",
+    "run_id": "r1",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:20:30+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a1",
+      "ticket_id": "K-1"
+     }
+    ]
+   },
+   {
+    "id": "a2",
+    "at": "2026-11-12T08:21:00+00:00",
+    "to_at": "2026-11-12T08:21:00+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-2",
+    "run_id": "r2",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:21:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a2",
+      "ticket_id": "K-2"
+     }
+    ]
+   },
+   {
+    "id": "a3",
+    "at": "2026-11-12T08:21:30+00:00",
+    "to_at": "2026-11-12T08:21:30+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-3",
+    "run_id": "r3",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:21:30+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a3",
+      "ticket_id": "K-3"
+     }
+    ]
+   },
+   {
+    "id": "a4",
+    "at": "2026-11-12T08:22:00+00:00",
+    "to_at": "2026-11-12T08:22:00+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-4",
+    "run_id": "r4",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:22:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a4",
+      "ticket_id": "K-4"
+     }
+    ]
+   },
+   {
+    "id": "a5",
+    "at": "2026-11-12T08:30:00+00:00",
+    "to_at": "2026-11-12T08:30:00+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-5",
+    "run_id": "r5",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:30:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a5",
+      "ticket_id": "K-5"
+     }
+    ]
+   },
+   {
+    "id": "a6",
+    "at": "2026-11-12T08:30:30+00:00",
+    "to_at": "2026-11-12T08:30:30+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-6",
+    "run_id": "r6",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:30:30+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a6",
+      "ticket_id": "K-6"
+     }
+    ]
+   },
+   {
+    "id": "a7",
+    "at": "2026-11-12T08:31:00+00:00",
+    "to_at": "2026-11-12T08:31:00+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-7",
+    "run_id": "r7",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:31:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a7",
+      "ticket_id": "K-7"
+     }
+    ]
+   },
+   {
+    "id": "a8",
+    "at": "2026-11-12T08:31:30+00:00",
+    "to_at": "2026-11-12T08:31:30+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-8",
+    "run_id": "r8",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:31:30+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a8",
+      "ticket_id": "K-8"
+     }
+    ]
+   },
+   {
+    "id": "a9",
+    "at": "2026-11-12T08:32:00+00:00",
+    "to_at": "2026-11-12T08:32:00+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-9",
+    "run_id": "r9",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:32:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a9",
+      "ticket_id": "K-9"
+     }
+    ]
+   },
+   {
+    "id": "a10",
+    "at": "2026-11-12T08:40:00+00:00",
+    "to_at": "2026-11-12T08:40:00+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-10",
+    "run_id": "r10",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:40:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a10",
+      "ticket_id": "K-10"
+     }
+    ]
+   },
+   {
+    "id": "a11",
+    "at": "2026-11-12T08:40:30+00:00",
+    "to_at": "2026-11-12T08:40:30+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-11",
+    "run_id": "r11",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:40:30+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a11",
+      "ticket_id": "K-11"
+     }
+    ]
+   },
+   {
+    "id": "a12",
+    "at": "2026-11-12T08:41:00+00:00",
+    "to_at": "2026-11-12T08:41:00+00:00",
+    "kind": "ask",
+    "from": "x",
+    "to": "z",
+    "ticket_id": "K-12",
+    "run_id": "r12",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:41:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a12",
+      "ticket_id": "K-12"
+     }
+    ]
+   },
+   {
+    "id": "a13",
+    "at": "2026-11-12T08:41:30+00:00",
+    "to_at": "2026-11-12T08:41:30+00:00",
+    "kind": "report",
+    "from": "x",
+    "to": "y",
+    "ticket_id": "K-13",
+    "run_id": "r13",
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "2026-11-12T08:41:30+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "a13",
+      "ticket_id": "K-13"
+     }
+    ]
+   },
+   {
+    "id": "e3",
+    "at": "2026-11-12T09:55:00+00:00",
+    "to_at": "2026-11-12T09:55:00+00:00",
+    "kind": "assign",
+    "from": "you",
+    "to": "x",
+    "ticket_id": null,
+    "run_id": "r",
+    "wait_s": 0,
+    "round": 0,
+    "label": "",
+    "by": "",
+    "count": 1,
+    "at_last": "2026-11-12T09:55:00+00:00",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "e3",
+      "ticket_id": null
+     }
+    ]
+   },
+   {
+    "id": "e2",
+    "at": "garbage",
+    "to_at": "garbage",
+    "kind": "assign",
+    "from": "you",
+    "to": "x",
+    "ticket_id": null,
+    "run_id": null,
+    "wait_s": null,
+    "round": 0,
+    "label": null,
+    "by": null,
+    "count": 1,
+    "at_last": "garbage",
+    "parent_id": null,
+    "items": [
+     {
+      "id": "e2",
+      "ticket_id": null
+     }
+    ]
+   }
+  ]
+ }
+}

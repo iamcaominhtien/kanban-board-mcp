@@ -1,0 +1,6103 @@
+{
+  "GET board": {
+    "status": 200,
+    "json": {
+      "tickets": {
+        "KAN-1": {
+          "ended_at": "<time>",
+          "last_output_at": "<time>",
+          "member_id": "<uuid:1>",
+          "number": 2,
+          "question": null,
+          "run_id": "<run:1>",
+          "started_at": "<time>",
+          "state": "failed",
+          "steps_count": 3,
+          "summary": null
+        },
+        "KAN-2": {
+          "ended_at": null,
+          "last_output_at": "<time>",
+          "member_id": "<uuid:1>",
+          "number": 2,
+          "question": {
+            "text": "Which database?"
+          },
+          "run_id": "<run:2>",
+          "started_at": "<time>",
+          "state": "needs_input",
+          "steps_count": 3,
+          "summary": null
+        }
+      }
+    }
+  },
+  "GET flow": {
+    "status": 200,
+    "json": {
+      "all_teams": 1,
+      "edges": [
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-2",
+          "kind": "take",
+          "live": true,
+          "tickets": [
+            "KAN-2"
+          ],
+          "to": "KAN-2",
+          "waiting": true
+        },
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-1",
+          "kind": "take",
+          "live": false,
+          "tickets": [
+            "KAN-1"
+          ],
+          "to": "KAN-1",
+          "waiting": false
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "range": "today",
+      "runs": 4,
+      "runs_truncated": false,
+      "scope": {
+        "team_id": null,
+        "ticket_id": null
+      },
+      "since": "<time>",
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "roles": [],
+          "runs": 4,
+          "state": "waiting",
+          "tickets": 2
+        }
+      ],
+      "tickets": [
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-1",
+          "live": null,
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Fix add()",
+          "type": "task"
+        },
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-2",
+          "live": "waiting",
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Write the docs",
+          "type": "task"
+        }
+      ],
+      "truncated": false,
+      "until": "<time>",
+      "you": {
+        "asked": 0,
+        "waiting": 0
+      }
+    }
+  },
+  "GET flow scopes": {
+    "status": 200,
+    "json": {
+      "stories": [],
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "live": true,
+          "name": "Dev An",
+          "runs": 4
+        }
+      ],
+      "tickets": [
+        {
+          "at": "<time>",
+          "id": "KAN-2",
+          "live": true,
+          "status": "todo",
+          "story_id": null,
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Write the docs",
+          "type": "task",
+          "waiting": true
+        },
+        {
+          "at": "<time>",
+          "id": "KAN-1",
+          "live": false,
+          "status": "todo",
+          "story_id": null,
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Fix add()",
+          "type": "task",
+          "waiting": false
+        }
+      ]
+    }
+  },
+  "GET flow scopes: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET flow: 24h": {
+    "status": 200,
+    "json": {
+      "all_teams": 1,
+      "edges": [
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-2",
+          "kind": "take",
+          "live": true,
+          "tickets": [
+            "KAN-2"
+          ],
+          "to": "KAN-2",
+          "waiting": true
+        },
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-1",
+          "kind": "take",
+          "live": false,
+          "tickets": [
+            "KAN-1"
+          ],
+          "to": "KAN-1",
+          "waiting": false
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "range": "24h",
+      "runs": 4,
+      "runs_truncated": false,
+      "scope": {
+        "team_id": null,
+        "ticket_id": null
+      },
+      "since": "<time>",
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "roles": [],
+          "runs": 4,
+          "state": "waiting",
+          "tickets": 2
+        }
+      ],
+      "tickets": [
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-1",
+          "live": null,
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Fix add()",
+          "type": "task"
+        },
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-2",
+          "live": "waiting",
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Write the docs",
+          "type": "task"
+        }
+      ],
+      "truncated": false,
+      "until": "<time>",
+      "you": {
+        "asked": 0,
+        "waiting": 0
+      }
+    }
+  },
+  "GET flow: 7d": {
+    "status": 200,
+    "json": {
+      "all_teams": 1,
+      "edges": [
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-2",
+          "kind": "take",
+          "live": true,
+          "tickets": [
+            "KAN-2"
+          ],
+          "to": "KAN-2",
+          "waiting": true
+        },
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-1",
+          "kind": "take",
+          "live": false,
+          "tickets": [
+            "KAN-1"
+          ],
+          "to": "KAN-1",
+          "waiting": false
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "range": "7d",
+      "runs": 4,
+      "runs_truncated": false,
+      "scope": {
+        "team_id": null,
+        "ticket_id": null
+      },
+      "since": "<time>",
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "roles": [],
+          "runs": 4,
+          "state": "waiting",
+          "tickets": 2
+        }
+      ],
+      "tickets": [
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-1",
+          "live": null,
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Fix add()",
+          "type": "task"
+        },
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-2",
+          "live": "waiting",
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Write the docs",
+          "type": "task"
+        }
+      ],
+      "truncated": false,
+      "until": "<time>",
+      "you": {
+        "asked": 0,
+        "waiting": 0
+      }
+    }
+  },
+  "GET flow: a window": {
+    "status": 200,
+    "json": {
+      "all_teams": 1,
+      "edges": [
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-2",
+          "kind": "take",
+          "live": true,
+          "tickets": [
+            "KAN-2"
+          ],
+          "to": "KAN-2",
+          "waiting": true
+        },
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-1",
+          "kind": "take",
+          "live": false,
+          "tickets": [
+            "KAN-1"
+          ],
+          "to": "KAN-1",
+          "waiting": false
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "range": "today",
+      "runs": 4,
+      "runs_truncated": false,
+      "scope": {
+        "team_id": null,
+        "ticket_id": null
+      },
+      "since": "<time>",
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "roles": [],
+          "runs": 4,
+          "state": "waiting",
+          "tickets": 2
+        }
+      ],
+      "tickets": [
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-1",
+          "live": null,
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Fix add()",
+          "type": "task"
+        },
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-2",
+          "live": "waiting",
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Write the docs",
+          "type": "task"
+        }
+      ],
+      "truncated": false,
+      "until": "<time>",
+      "you": {
+        "asked": 0,
+        "waiting": 0
+      }
+    }
+  },
+  "GET flow: all": {
+    "status": 200,
+    "json": {
+      "all_teams": 1,
+      "edges": [
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-2",
+          "kind": "take",
+          "live": true,
+          "tickets": [
+            "KAN-2"
+          ],
+          "to": "KAN-2",
+          "waiting": true
+        },
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-1",
+          "kind": "take",
+          "live": false,
+          "tickets": [
+            "KAN-1"
+          ],
+          "to": "KAN-1",
+          "waiting": false
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "range": "all",
+      "runs": 4,
+      "runs_truncated": false,
+      "scope": {
+        "team_id": null,
+        "ticket_id": null
+      },
+      "since": null,
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "roles": [],
+          "runs": 4,
+          "state": "waiting",
+          "tickets": 2
+        }
+      ],
+      "tickets": [
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-1",
+          "live": null,
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Fix add()",
+          "type": "task"
+        },
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-2",
+          "live": "waiting",
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Write the docs",
+          "type": "task"
+        }
+      ],
+      "truncated": false,
+      "until": null,
+      "you": {
+        "asked": 0,
+        "waiting": 0
+      }
+    }
+  },
+  "GET flow: forever": {
+    "status": 200,
+    "json": {
+      "all_teams": 1,
+      "edges": [
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-2",
+          "kind": "take",
+          "live": true,
+          "tickets": [
+            "KAN-2"
+          ],
+          "to": "KAN-2",
+          "waiting": true
+        },
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-1",
+          "kind": "take",
+          "live": false,
+          "tickets": [
+            "KAN-1"
+          ],
+          "to": "KAN-1",
+          "waiting": false
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "range": "forever",
+      "runs": 4,
+      "runs_truncated": false,
+      "scope": {
+        "team_id": null,
+        "ticket_id": null
+      },
+      "since": "<time>",
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "roles": [],
+          "runs": 4,
+          "state": "waiting",
+          "tickets": 2
+        }
+      ],
+      "tickets": [
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-1",
+          "live": null,
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Fix add()",
+          "type": "task"
+        },
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-2",
+          "live": "waiting",
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Write the docs",
+          "type": "task"
+        }
+      ],
+      "truncated": false,
+      "until": "<time>",
+      "you": {
+        "asked": 0,
+        "waiting": 0
+      }
+    }
+  },
+  "GET flow: hour": {
+    "status": 200,
+    "json": {
+      "all_teams": 1,
+      "edges": [
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-2",
+          "kind": "take",
+          "live": true,
+          "tickets": [
+            "KAN-2"
+          ],
+          "to": "KAN-2",
+          "waiting": true
+        },
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-1",
+          "kind": "take",
+          "live": false,
+          "tickets": [
+            "KAN-1"
+          ],
+          "to": "KAN-1",
+          "waiting": false
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "range": "hour",
+      "runs": 4,
+      "runs_truncated": false,
+      "scope": {
+        "team_id": null,
+        "ticket_id": null
+      },
+      "since": "<time>",
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "roles": [],
+          "runs": 4,
+          "state": "waiting",
+          "tickets": 2
+        }
+      ],
+      "tickets": [
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-1",
+          "live": null,
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Fix add()",
+          "type": "task"
+        },
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-2",
+          "live": "waiting",
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Write the docs",
+          "type": "task"
+        }
+      ],
+      "truncated": false,
+      "until": "<time>",
+      "you": {
+        "asked": 0,
+        "waiting": 0
+      }
+    }
+  },
+  "GET flow: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET flow: one team": {
+    "status": 200,
+    "json": {
+      "all_teams": 1,
+      "edges": [
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-2",
+          "kind": "take",
+          "live": true,
+          "tickets": [
+            "KAN-2"
+          ],
+          "to": "KAN-2",
+          "waiting": true
+        },
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-1",
+          "kind": "take",
+          "live": false,
+          "tickets": [
+            "KAN-1"
+          ],
+          "to": "KAN-1",
+          "waiting": false
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "range": "all",
+      "runs": 4,
+      "runs_truncated": false,
+      "scope": {
+        "team_id": "<uuid:1>",
+        "ticket_id": null
+      },
+      "since": null,
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "roles": [],
+          "runs": 4,
+          "state": "waiting",
+          "tickets": 2
+        }
+      ],
+      "tickets": [
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-1",
+          "live": null,
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Fix add()",
+          "type": "task"
+        },
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-2",
+          "live": "waiting",
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Write the docs",
+          "type": "task"
+        }
+      ],
+      "truncated": false,
+      "until": null,
+      "you": {
+        "asked": 0,
+        "waiting": 0
+      }
+    }
+  },
+  "GET flow: one ticket": {
+    "status": 200,
+    "json": {
+      "all_teams": 1,
+      "edges": [
+        {
+          "count": 2,
+          "from": "<uuid:1>",
+          "id": "take:<uuid:1>:KAN-1",
+          "kind": "take",
+          "live": false,
+          "tickets": [
+            "KAN-1"
+          ],
+          "to": "KAN-1",
+          "waiting": false
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "range": "all",
+      "runs": 2,
+      "runs_truncated": false,
+      "scope": {
+        "team_id": null,
+        "ticket_id": "KAN-1"
+      },
+      "since": null,
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "roles": [],
+          "runs": 2,
+          "state": "waiting",
+          "tickets": 1
+        }
+      ],
+      "tickets": [
+        {
+          "blocked_by": [],
+          "context": false,
+          "id": "KAN-1",
+          "live": null,
+          "parent_id": null,
+          "status": "todo",
+          "teams": [
+            "<uuid:1>"
+          ],
+          "title": "Fix add()",
+          "type": "task"
+        }
+      ],
+      "truncated": false,
+      "until": null,
+      "you": {
+        "asked": 0,
+        "waiting": 0
+      }
+    }
+  },
+  "GET flow: until is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "until"
+        ]
+      ]
+    }
+  },
+  "GET health": {
+    "status": 200,
+    "json": {
+      "can_judge": false,
+      "counts": {
+        "fix": 0,
+        "good": 0,
+        "watch": 0
+      },
+      "fixes": [],
+      "has_teams": true,
+      "measures": {
+        "autonomy": {
+          "avoidable": 2,
+          "clean": 1,
+          "tickets": 2,
+          "touches": 3,
+          "touches_all": 3,
+          "value": 1.5,
+          "verdict": null
+        },
+        "cost": {
+          "cap_per_run": null,
+          "month_share": null,
+          "month_spend": 0.08,
+          "monthly_cap": null,
+          "per_run": 0.02,
+          "priced_runs": 4,
+          "runs": 4,
+          "runs_over_cap": 0,
+          "tokens": 600,
+          "tokens_only_runs": 0,
+          "tokens_per_run": 150,
+          "usd": 0.08,
+          "verdict": null
+        },
+        "quality": {
+          "findings": null,
+          "finished_tickets": 1,
+          "reopened": 0,
+          "runs_with_findings": 0,
+          "value": 0.0,
+          "verdict": null
+        },
+        "reliability": {
+          "cancelled": 0,
+          "ended": 2,
+          "failed": 1,
+          "ok": 1,
+          "timed_out": 0,
+          "value": 0.5,
+          "verdict": null
+        },
+        "speed": {
+          "run_median_s": 210.0,
+          "to_review_median_s": null,
+          "to_review_tickets": 0,
+          "verdict": null
+        }
+      },
+      "min_runs": 10,
+      "previous": {
+        "autonomy": null,
+        "priced_runs": 0,
+        "quality": null,
+        "reliability": null,
+        "run_median_s": null,
+        "runs": 0,
+        "tokens": 0,
+        "usd": 0
+      },
+      "range": "7d",
+      "runs": 4,
+      "since": "<time>",
+      "state": "unknown",
+      "teams": [
+        {
+          "id": "<uuid:1>",
+          "judged": false,
+          "measures": {
+            "autonomy": {
+              "avoidable": 2,
+              "clean": 1,
+              "tickets": 2,
+              "touches": 3,
+              "touches_all": 3,
+              "value": 1.5,
+              "verdict": null
+            },
+            "cost": {
+              "cap_per_run": null,
+              "month_share": null,
+              "month_spend": 0.08,
+              "monthly_cap": null,
+              "per_run": 0.02,
+              "priced_runs": 4,
+              "runs": 4,
+              "runs_over_cap": 0,
+              "tokens": 600,
+              "tokens_only_runs": 0,
+              "tokens_per_run": 150,
+              "usd": 0.08,
+              "verdict": null
+            },
+            "quality": {
+              "findings": null,
+              "finished_tickets": 1,
+              "reopened": 0,
+              "runs_with_findings": 0,
+              "value": 0.0,
+              "verdict": null
+            },
+            "reliability": {
+              "cancelled": 0,
+              "ended": 2,
+              "failed": 1,
+              "ok": 1,
+              "timed_out": 0,
+              "value": 0.5,
+              "verdict": null
+            },
+            "speed": {
+              "run_median_s": 210.0,
+              "to_review_median_s": null,
+              "to_review_tickets": 0,
+              "verdict": null
+            }
+          },
+          "name": "Dev An",
+          "paused": false,
+          "removed": false,
+          "runs": 4,
+          "status": "too_few"
+        }
+      ],
+      "text": "Only 4 runs in this range. The numbers show; the verdict waits for 10 runs.",
+      "tickets": 2,
+      "title": "Not enough to judge yet",
+      "until": "<time>"
+    }
+  },
+  "GET health: 30d": {
+    "status": 200,
+    "json": {
+      "can_judge": false,
+      "counts": {
+        "fix": 0,
+        "good": 0,
+        "watch": 0
+      },
+      "fixes": [],
+      "has_teams": true,
+      "measures": {
+        "autonomy": {
+          "avoidable": 2,
+          "clean": 1,
+          "tickets": 2,
+          "touches": 3,
+          "touches_all": 3,
+          "value": 1.5,
+          "verdict": null
+        },
+        "cost": {
+          "cap_per_run": null,
+          "month_share": null,
+          "month_spend": 0.08,
+          "monthly_cap": null,
+          "per_run": 0.02,
+          "priced_runs": 4,
+          "runs": 4,
+          "runs_over_cap": 0,
+          "tokens": 600,
+          "tokens_only_runs": 0,
+          "tokens_per_run": 150,
+          "usd": 0.08,
+          "verdict": null
+        },
+        "quality": {
+          "findings": null,
+          "finished_tickets": 1,
+          "reopened": 0,
+          "runs_with_findings": 0,
+          "value": 0.0,
+          "verdict": null
+        },
+        "reliability": {
+          "cancelled": 0,
+          "ended": 2,
+          "failed": 1,
+          "ok": 1,
+          "timed_out": 0,
+          "value": 0.5,
+          "verdict": null
+        },
+        "speed": {
+          "run_median_s": 210.0,
+          "to_review_median_s": null,
+          "to_review_tickets": 0,
+          "verdict": null
+        }
+      },
+      "min_runs": 10,
+      "previous": {
+        "autonomy": null,
+        "priced_runs": 0,
+        "quality": null,
+        "reliability": null,
+        "run_median_s": null,
+        "runs": 0,
+        "tokens": 0,
+        "usd": 0
+      },
+      "range": "30d",
+      "runs": 4,
+      "since": "<time>",
+      "state": "unknown",
+      "teams": [
+        {
+          "id": "<uuid:1>",
+          "judged": false,
+          "measures": {
+            "autonomy": {
+              "avoidable": 2,
+              "clean": 1,
+              "tickets": 2,
+              "touches": 3,
+              "touches_all": 3,
+              "value": 1.5,
+              "verdict": null
+            },
+            "cost": {
+              "cap_per_run": null,
+              "month_share": null,
+              "month_spend": 0.08,
+              "monthly_cap": null,
+              "per_run": 0.02,
+              "priced_runs": 4,
+              "runs": 4,
+              "runs_over_cap": 0,
+              "tokens": 600,
+              "tokens_only_runs": 0,
+              "tokens_per_run": 150,
+              "usd": 0.08,
+              "verdict": null
+            },
+            "quality": {
+              "findings": null,
+              "finished_tickets": 1,
+              "reopened": 0,
+              "runs_with_findings": 0,
+              "value": 0.0,
+              "verdict": null
+            },
+            "reliability": {
+              "cancelled": 0,
+              "ended": 2,
+              "failed": 1,
+              "ok": 1,
+              "timed_out": 0,
+              "value": 0.5,
+              "verdict": null
+            },
+            "speed": {
+              "run_median_s": 210.0,
+              "to_review_median_s": null,
+              "to_review_tickets": 0,
+              "verdict": null
+            }
+          },
+          "name": "Dev An",
+          "paused": false,
+          "removed": false,
+          "runs": 4,
+          "status": "too_few"
+        }
+      ],
+      "text": "Only 4 runs in this range. The numbers show; the verdict waits for 10 runs.",
+      "tickets": 2,
+      "title": "Not enough to judge yet",
+      "until": "<time>"
+    }
+  },
+  "GET health: 3d": {
+    "status": 200,
+    "json": {
+      "can_judge": false,
+      "counts": {
+        "fix": 0,
+        "good": 0,
+        "watch": 0
+      },
+      "fixes": [],
+      "has_teams": true,
+      "measures": {
+        "autonomy": {
+          "avoidable": 2,
+          "clean": 1,
+          "tickets": 2,
+          "touches": 3,
+          "touches_all": 3,
+          "value": 1.5,
+          "verdict": null
+        },
+        "cost": {
+          "cap_per_run": null,
+          "month_share": null,
+          "month_spend": 0.08,
+          "monthly_cap": null,
+          "per_run": 0.02,
+          "priced_runs": 4,
+          "runs": 4,
+          "runs_over_cap": 0,
+          "tokens": 600,
+          "tokens_only_runs": 0,
+          "tokens_per_run": 150,
+          "usd": 0.08,
+          "verdict": null
+        },
+        "quality": {
+          "findings": null,
+          "finished_tickets": 1,
+          "reopened": 0,
+          "runs_with_findings": 0,
+          "value": 0.0,
+          "verdict": null
+        },
+        "reliability": {
+          "cancelled": 0,
+          "ended": 2,
+          "failed": 1,
+          "ok": 1,
+          "timed_out": 0,
+          "value": 0.5,
+          "verdict": null
+        },
+        "speed": {
+          "run_median_s": 210.0,
+          "to_review_median_s": null,
+          "to_review_tickets": 0,
+          "verdict": null
+        }
+      },
+      "min_runs": 10,
+      "previous": {
+        "autonomy": null,
+        "priced_runs": 0,
+        "quality": null,
+        "reliability": null,
+        "run_median_s": null,
+        "runs": 0,
+        "tokens": 0,
+        "usd": 0
+      },
+      "range": "7d",
+      "runs": 4,
+      "since": "<time>",
+      "state": "unknown",
+      "teams": [
+        {
+          "id": "<uuid:1>",
+          "judged": false,
+          "measures": {
+            "autonomy": {
+              "avoidable": 2,
+              "clean": 1,
+              "tickets": 2,
+              "touches": 3,
+              "touches_all": 3,
+              "value": 1.5,
+              "verdict": null
+            },
+            "cost": {
+              "cap_per_run": null,
+              "month_share": null,
+              "month_spend": 0.08,
+              "monthly_cap": null,
+              "per_run": 0.02,
+              "priced_runs": 4,
+              "runs": 4,
+              "runs_over_cap": 0,
+              "tokens": 600,
+              "tokens_only_runs": 0,
+              "tokens_per_run": 150,
+              "usd": 0.08,
+              "verdict": null
+            },
+            "quality": {
+              "findings": null,
+              "finished_tickets": 1,
+              "reopened": 0,
+              "runs_with_findings": 0,
+              "value": 0.0,
+              "verdict": null
+            },
+            "reliability": {
+              "cancelled": 0,
+              "ended": 2,
+              "failed": 1,
+              "ok": 1,
+              "timed_out": 0,
+              "value": 0.5,
+              "verdict": null
+            },
+            "speed": {
+              "run_median_s": 210.0,
+              "to_review_median_s": null,
+              "to_review_tickets": 0,
+              "verdict": null
+            }
+          },
+          "name": "Dev An",
+          "paused": false,
+          "removed": false,
+          "runs": 4,
+          "status": "too_few"
+        }
+      ],
+      "text": "Only 4 runs in this range. The numbers show; the verdict waits for 10 runs.",
+      "tickets": 2,
+      "title": "Not enough to judge yet",
+      "until": "<time>"
+    }
+  },
+  "GET health: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET live": {
+    "status": 200,
+    "json": {
+      "runs": [
+        {
+          "account_id": null,
+          "answer": null,
+          "context_used": null,
+          "context_window": null,
+          "cost_usd": 0.02,
+          "diagnosis": null,
+          "effort": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "exit_code": null,
+          "files": [],
+          "id": "<run:1>",
+          "instruction": "Fix add()",
+          "kind": "team",
+          "last_output_at": "<time>",
+          "last_rss_mb": null,
+          "live": false,
+          "member_id": "<uuid:1>",
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "pid": null,
+          "project_id": "<uuid:2>",
+          "question": null,
+          "queued_at": "<time>",
+          "report": {},
+          "restarts": [],
+          "retries": [],
+          "session_id": null,
+          "session_name": null,
+          "started_at": "<time>",
+          "started_by": "user",
+          "state": "running",
+          "steps_count": 3,
+          "stop_code": null,
+          "summary": null,
+          "target": null,
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign",
+          "waiting_reason": null
+        },
+        {
+          "account_id": null,
+          "answer": null,
+          "context_used": null,
+          "context_window": null,
+          "cost_usd": 0.02,
+          "diagnosis": null,
+          "effort": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "exit_code": null,
+          "files": [],
+          "id": "<run:2>",
+          "instruction": "Fix add()",
+          "kind": "team",
+          "last_output_at": "<time>",
+          "last_rss_mb": null,
+          "live": false,
+          "member_id": "<uuid:1>",
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "pid": null,
+          "project_id": "<uuid:2>",
+          "question": {
+            "text": "Which database?"
+          },
+          "queued_at": "<time>",
+          "report": {},
+          "restarts": [],
+          "retries": [],
+          "session_id": null,
+          "session_name": null,
+          "started_at": "<time>",
+          "started_by": "user",
+          "state": "needs_input",
+          "steps_count": 3,
+          "stop_code": null,
+          "summary": null,
+          "target": null,
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign",
+          "waiting_reason": null
+        }
+      ],
+      "steps": [
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {
+            "added": 1,
+            "path": "calc.py",
+            "removed": 1
+          },
+          "has_output": false,
+          "id": 7,
+          "kind": "edit",
+          "member_id": "<uuid:1>",
+          "parent_tool_id": null,
+          "run_id": "<run:1>",
+          "seq": 1,
+          "ticket_id": "KAN-2",
+          "title": "Edited calc.py",
+          "tool": "Edit",
+          "tool_id": null
+        },
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {
+            "command": "pytest -q",
+            "exit_code": 0
+          },
+          "has_output": false,
+          "id": 8,
+          "kind": "command",
+          "member_id": "<uuid:1>",
+          "parent_tool_id": null,
+          "run_id": "<run:1>",
+          "seq": 2,
+          "ticket_id": "KAN-2",
+          "title": "Ran pytest -q",
+          "tool": "Bash",
+          "tool_id": null
+        },
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {},
+          "has_output": false,
+          "id": 9,
+          "kind": "text",
+          "member_id": "<uuid:1>",
+          "parent_tool_id": null,
+          "run_id": "<run:1>",
+          "seq": 3,
+          "ticket_id": "KAN-2",
+          "title": "Done.",
+          "tool": "",
+          "tool_id": null
+        },
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {
+            "added": 1,
+            "path": "calc.py",
+            "removed": 1
+          },
+          "has_output": false,
+          "id": 10,
+          "kind": "edit",
+          "member_id": "<uuid:1>",
+          "parent_tool_id": null,
+          "run_id": "<run:2>",
+          "seq": 1,
+          "ticket_id": "KAN-2",
+          "title": "Edited calc.py",
+          "tool": "Edit",
+          "tool_id": null
+        },
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {
+            "command": "pytest -q",
+            "exit_code": 0
+          },
+          "has_output": false,
+          "id": 11,
+          "kind": "command",
+          "member_id": "<uuid:1>",
+          "parent_tool_id": null,
+          "run_id": "<run:2>",
+          "seq": 2,
+          "ticket_id": "KAN-2",
+          "title": "Ran pytest -q",
+          "tool": "Bash",
+          "tool_id": null
+        },
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {},
+          "has_output": false,
+          "id": 12,
+          "kind": "text",
+          "member_id": "<uuid:1>",
+          "parent_tool_id": null,
+          "run_id": "<run:2>",
+          "seq": 3,
+          "ticket_id": "KAN-2",
+          "title": "Done.",
+          "tool": "",
+          "tool_id": null
+        }
+      ]
+    }
+  },
+  "GET live: limit 0": {
+    "status": 200,
+    "json": {
+      "runs": [
+        {
+          "account_id": null,
+          "answer": null,
+          "context_used": null,
+          "context_window": null,
+          "cost_usd": 0.02,
+          "diagnosis": null,
+          "effort": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "exit_code": null,
+          "files": [],
+          "id": "<run:1>",
+          "instruction": "Fix add()",
+          "kind": "team",
+          "last_output_at": "<time>",
+          "last_rss_mb": null,
+          "live": false,
+          "member_id": "<uuid:1>",
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "pid": null,
+          "project_id": "<uuid:2>",
+          "question": null,
+          "queued_at": "<time>",
+          "report": {},
+          "restarts": [],
+          "retries": [],
+          "session_id": null,
+          "session_name": null,
+          "started_at": "<time>",
+          "started_by": "user",
+          "state": "running",
+          "steps_count": 3,
+          "stop_code": null,
+          "summary": null,
+          "target": null,
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign",
+          "waiting_reason": null
+        },
+        {
+          "account_id": null,
+          "answer": null,
+          "context_used": null,
+          "context_window": null,
+          "cost_usd": 0.02,
+          "diagnosis": null,
+          "effort": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "exit_code": null,
+          "files": [],
+          "id": "<run:2>",
+          "instruction": "Fix add()",
+          "kind": "team",
+          "last_output_at": "<time>",
+          "last_rss_mb": null,
+          "live": false,
+          "member_id": "<uuid:1>",
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "pid": null,
+          "project_id": "<uuid:2>",
+          "question": {
+            "text": "Which database?"
+          },
+          "queued_at": "<time>",
+          "report": {},
+          "restarts": [],
+          "retries": [],
+          "session_id": null,
+          "session_name": null,
+          "started_at": "<time>",
+          "started_by": "user",
+          "state": "needs_input",
+          "steps_count": 3,
+          "stop_code": null,
+          "summary": null,
+          "target": null,
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign",
+          "waiting_reason": null
+        }
+      ],
+      "steps": [
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {
+            "added": 1,
+            "path": "calc.py",
+            "removed": 1
+          },
+          "has_output": false,
+          "id": 7,
+          "kind": "edit",
+          "member_id": "<uuid:1>",
+          "parent_tool_id": null,
+          "run_id": "<run:1>",
+          "seq": 1,
+          "ticket_id": "KAN-2",
+          "title": "Edited calc.py",
+          "tool": "Edit",
+          "tool_id": null
+        },
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {
+            "command": "pytest -q",
+            "exit_code": 0
+          },
+          "has_output": false,
+          "id": 8,
+          "kind": "command",
+          "member_id": "<uuid:1>",
+          "parent_tool_id": null,
+          "run_id": "<run:1>",
+          "seq": 2,
+          "ticket_id": "KAN-2",
+          "title": "Ran pytest -q",
+          "tool": "Bash",
+          "tool_id": null
+        },
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {},
+          "has_output": false,
+          "id": 9,
+          "kind": "text",
+          "member_id": "<uuid:1>",
+          "parent_tool_id": null,
+          "run_id": "<run:1>",
+          "seq": 3,
+          "ticket_id": "KAN-2",
+          "title": "Done.",
+          "tool": "",
+          "tool_id": null
+        },
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {
+            "added": 1,
+            "path": "calc.py",
+            "removed": 1
+          },
+          "has_output": false,
+          "id": 10,
+          "kind": "edit",
+          "member_id": "<uuid:1>",
+          "parent_tool_id": null,
+          "run_id": "<run:2>",
+          "seq": 1,
+          "ticket_id": "KAN-2",
+          "title": "Edited calc.py",
+          "tool": "Edit",
+          "tool_id": null
+        },
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {
+            "command": "pytest -q",
+            "exit_code": 0
+          },
+          "has_output": false,
+          "id": 11,
+          "kind": "command",
+          "member_id": "<uuid:1>",
+          "parent_tool_id": null,
+          "run_id": "<run:2>",
+          "seq": 2,
+          "ticket_id": "KAN-2",
+          "title": "Ran pytest -q",
+          "tool": "Bash",
+          "tool_id": null
+        },
+        {
+          "agent_id": null,
+          "at": "<time>",
+          "detail": {},
+          "has_output": false,
+          "id": 12,
+          "kind": "text",
+          "member_id": "<uuid:1>",
+          "parent_tool_id": null,
+          "run_id": "<run:2>",
+          "seq": 3,
+          "ticket_id": "KAN-2",
+          "title": "Done.",
+          "tool": "",
+          "tool_id": null
+        }
+      ]
+    }
+  },
+  "GET live: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET overview": {
+    "status": 200,
+    "json": {
+      "active": [
+        {
+          "member_id": "<uuid:1>",
+          "run_id": "<run:1>",
+          "state": "running",
+          "ticket_id": "KAN-2"
+        },
+        {
+          "member_id": "<uuid:1>",
+          "run_id": "<run:2>",
+          "state": "needs_input",
+          "ticket_id": "KAN-2"
+        }
+      ],
+      "paused_all": false,
+      "paused_reason": null,
+      "project_id": "<uuid:2>",
+      "runs": {
+        "failed": 1,
+        "finished": 1,
+        "needs_input": 1,
+        "running": 1
+      },
+      "teams": [
+        {
+          "color": "#2E6F40",
+          "health": "ok",
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "queued": 0,
+          "slots_in_use": 1,
+          "status": {
+            "code": "running",
+            "detail": "KAN-2",
+            "label": "Running",
+            "ticket_id": "KAN-2"
+          }
+        }
+      ]
+    }
+  },
+  "GET project activity": {
+    "status": 200,
+    "json": {
+      "teams": {
+        "<uuid:1>": {
+          "lead": {
+            "last_worked": {
+              "at": "<time>",
+              "number": 2,
+              "run_id": "<run:1>",
+              "state": "failed",
+              "ticket_id": "KAN-1",
+              "ticket_title": "Fix add()"
+            },
+            "runs_today": 4,
+            "steps_today": 12,
+            "working": {
+              "context_used": null,
+              "context_window": null,
+              "number": 2,
+              "run_id": "<run:2>",
+              "since": "<time>",
+              "state": "needs_input",
+              "step": {
+                "at": "<time>",
+                "kind": "text",
+                "title": "Done."
+              },
+              "ticket_id": "KAN-2",
+              "ticket_title": "Write the docs"
+            }
+          },
+          "roles": [
+            {
+              "key": "dev",
+              "last_worked": null,
+              "runs_today": 0,
+              "steps_today": 0,
+              "working": null
+            },
+            {
+              "key": "reviewer",
+              "last_worked": null,
+              "runs_today": 0,
+              "steps_today": 0,
+              "working": null
+            },
+            {
+              "key": "qa",
+              "last_worked": null,
+              "runs_today": 0,
+              "steps_today": 0,
+              "working": null
+            }
+          ],
+          "team_id": "<uuid:1>"
+        }
+      }
+    }
+  },
+  "GET project activity: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET recent": {
+    "status": 200,
+    "json": {
+      "notes": [
+        {
+          "at": "<time>",
+          "direction": "in",
+          "id": "<msg:1>",
+          "member_id": "<uuid:1>",
+          "peer": "An Nguyen",
+          "run_id": "<run:2>",
+          "text": "Please add a test.",
+          "ticket_id": "KAN-1",
+          "ticket_title": "Fix add()"
+        }
+      ],
+      "runs": [
+        {
+          "ended_at": "<time>",
+          "line": "",
+          "member_id": "<uuid:1>",
+          "number": 2,
+          "run_id": "<run:3>",
+          "state": "failed",
+          "steps_count": 3,
+          "ticket_id": "KAN-1",
+          "ticket_title": "Fix add()"
+        },
+        {
+          "ended_at": "<time>",
+          "line": "Fixed add(); tests pass.",
+          "member_id": "<uuid:1>",
+          "number": 1,
+          "run_id": "<run:2>",
+          "state": "finished",
+          "steps_count": 3,
+          "ticket_id": "KAN-1",
+          "ticket_title": "Fix add()"
+        }
+      ]
+    }
+  },
+  "GET recent: another team": {
+    "status": 200,
+    "json": {
+      "notes": [],
+      "runs": []
+    }
+  },
+  "GET recent: limit 0": {
+    "status": 200,
+    "json": {
+      "notes": [
+        {
+          "at": "<time>",
+          "direction": "in",
+          "id": "<msg:1>",
+          "member_id": "<uuid:1>",
+          "peer": "An Nguyen",
+          "run_id": "<run:2>",
+          "text": "Please add a test.",
+          "ticket_id": "KAN-1",
+          "ticket_title": "Fix add()"
+        }
+      ],
+      "runs": [
+        {
+          "ended_at": "<time>",
+          "line": "",
+          "member_id": "<uuid:1>",
+          "number": 2,
+          "run_id": "<run:3>",
+          "state": "failed",
+          "steps_count": 3,
+          "ticket_id": "KAN-1",
+          "ticket_title": "Fix add()"
+        }
+      ]
+    }
+  },
+  "GET recent: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET recent: one team": {
+    "status": 200,
+    "json": {
+      "notes": [
+        {
+          "at": "<time>",
+          "direction": "in",
+          "id": "<msg:1>",
+          "member_id": "<uuid:1>",
+          "peer": "An Nguyen",
+          "run_id": "<run:2>",
+          "text": "Please add a test.",
+          "ticket_id": "KAN-1",
+          "ticket_title": "Fix add()"
+        }
+      ],
+      "runs": [
+        {
+          "ended_at": "<time>",
+          "line": "",
+          "member_id": "<uuid:1>",
+          "number": 2,
+          "run_id": "<run:3>",
+          "state": "failed",
+          "steps_count": 3,
+          "ticket_id": "KAN-1",
+          "ticket_title": "Fix add()"
+        },
+        {
+          "ended_at": "<time>",
+          "line": "Fixed add(); tests pass.",
+          "member_id": "<uuid:1>",
+          "number": 1,
+          "run_id": "<run:2>",
+          "state": "finished",
+          "steps_count": 3,
+          "ticket_id": "KAN-1",
+          "ticket_title": "Fix add()"
+        }
+      ]
+    }
+  },
+  "GET resources": {
+    "status": 200,
+    "json": {
+      "limits": {
+        "auto_restarts": 2,
+        "board_max_parallel": 4,
+        "run_memory_limit_mb": 4096
+      },
+      "project_id": "<uuid:1>",
+      "runs": [
+        {
+          "cpu_pct": null,
+          "ended_at": null,
+          "ended_reason": null,
+          "extra_mb": null,
+          "history": [],
+          "live": false,
+          "member_color": "#2E6F40",
+          "member_id": "<uuid:2>",
+          "member_name": "Dev An",
+          "number": 1,
+          "peak_rss_mb": null,
+          "readable": true,
+          "restarts": [],
+          "roles_working": [],
+          "run_id": "<run:1>",
+          "started_at": "<time>",
+          "state": "running",
+          "stop_code": null,
+          "ticket_id": "KAN-2",
+          "ticket_title": "Write the docs"
+        }
+      ]
+    }
+  },
+  "GET resources: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET team activity": {
+    "status": 200,
+    "json": {
+      "lead": {
+        "last_worked": {
+          "at": "<time>",
+          "number": 2,
+          "run_id": "<run:1>",
+          "state": "failed",
+          "ticket_id": "KAN-1",
+          "ticket_title": "Fix add()"
+        },
+        "runs_today": 4,
+        "steps_today": 12,
+        "working": {
+          "context_used": null,
+          "context_window": null,
+          "number": 2,
+          "run_id": "<run:2>",
+          "since": "<time>",
+          "state": "needs_input",
+          "step": {
+            "at": "<time>",
+            "kind": "text",
+            "title": "Done."
+          },
+          "ticket_id": "KAN-2",
+          "ticket_title": "Write the docs"
+        }
+      },
+      "roles": [
+        {
+          "key": "dev",
+          "last_worked": null,
+          "runs_today": 0,
+          "steps_today": 0,
+          "working": null
+        },
+        {
+          "key": "reviewer",
+          "last_worked": null,
+          "runs_today": 0,
+          "steps_today": 0,
+          "working": null
+        },
+        {
+          "key": "qa",
+          "last_worked": null,
+          "runs_today": 0,
+          "steps_today": 0,
+          "working": null
+        }
+      ],
+      "team_id": "<uuid:1>"
+    }
+  },
+  "GET team activity: not found": {
+    "status": 404,
+    "json": {
+      "detail": "AI team not found"
+    }
+  },
+  "GET timeline": {
+    "status": 200,
+    "json": {
+      "arrows": [
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<run:1>:assign",
+          "items": [
+            {
+              "id": "<run:1>:assign",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:1>",
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<msg:2>",
+          "items": [
+            {
+              "id": "<msg:2>",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": "Please add a test.",
+          "parent_id": null,
+          "round": 0,
+          "run_id": null,
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": null
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": null,
+          "count": 1,
+          "from": "<uuid:1>",
+          "id": "<run:1>:done",
+          "items": [
+            {
+              "id": "<run:1>:done",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "report",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:1>",
+          "ticket_id": "KAN-1",
+          "to": "you",
+          "to_at": "<time>",
+          "wait_s": null
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<run:3>:assign",
+          "items": [
+            {
+              "id": "<run:3>:assign",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:3>",
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "user",
+          "count": 1,
+          "from": "you",
+          "id": "<run:4>:assign",
+          "items": [
+            {
+              "id": "<run:4>:assign",
+              "ticket_id": "KAN-2"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:4>",
+          "ticket_id": "KAN-2",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "user",
+          "count": 1,
+          "from": "you",
+          "id": "<run:5>:assign",
+          "items": [
+            {
+              "id": "<run:5>:assign",
+              "ticket_id": "KAN-2"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:5>",
+          "ticket_id": "KAN-2",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        }
+      ],
+      "autopilot": {
+        "delegate": null,
+        "grace_min": null,
+        "on": false
+      },
+      "bars": [
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": "ok",
+          "ended_at": "<time>",
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:1>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:1>",
+          "started_at": "<time>",
+          "state": "finished",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "Fixed add(); tests pass.",
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "run_button"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": "failed",
+          "ended_at": "<time>",
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:3>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:3>",
+          "started_at": "<time>",
+          "state": "failed",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "retry"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:4>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:4>",
+          "started_at": "<time>",
+          "state": "running",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:5>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": "Which database?",
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:5>",
+          "started_at": "<time>",
+          "state": "needs_input",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign"
+        }
+      ],
+      "docs": [],
+      "following": true,
+      "grouped_harder": false,
+      "last_ended_at": "<time>",
+      "lifelines": [
+        {
+          "color": "#1E2A22",
+          "id": "you",
+          "kind": "you",
+          "name": "You",
+          "state": "waiting"
+        },
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "kind": "ai",
+          "lead": true,
+          "name": "Lead",
+          "quiet": false,
+          "state": "waiting",
+          "team_id": "<uuid:1>",
+          "team_name": "Dev An"
+        }
+      ],
+      "live": [
+        {
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "mode": "work",
+          "run_id": "<run:4>",
+          "sender": "user",
+          "state": "working",
+          "step": "Done.",
+          "ticket_id": "KAN-2",
+          "ticket_title": "Write the docs",
+          "trigger": "assign"
+        },
+        {
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "mode": "work",
+          "run_id": "<run:5>",
+          "sender": "user",
+          "state": "waiting_you",
+          "step": "Done.",
+          "ticket_id": "KAN-2",
+          "ticket_title": "Write the docs",
+          "trigger": "assign"
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "paused_at": null,
+      "paused_by": null,
+      "pauses": [],
+      "range": "today",
+      "scope": {
+        "kind": "team",
+        "team_id": null,
+        "ticket_id": null
+      },
+      "since": "<time>",
+      "tickets": {
+        "KAN-1": {
+          "status": "todo",
+          "title": "Fix add()"
+        },
+        "KAN-2": {
+          "status": "todo",
+          "title": "Write the docs"
+        }
+      },
+      "touches": [],
+      "truncated": false,
+      "until": "<time>",
+      "waits": []
+    }
+  },
+  "GET timeline: 24h": {
+    "status": 200,
+    "json": {
+      "arrows": [
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<run:1>:assign",
+          "items": [
+            {
+              "id": "<run:1>:assign",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:1>",
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<msg:2>",
+          "items": [
+            {
+              "id": "<msg:2>",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": "Please add a test.",
+          "parent_id": null,
+          "round": 0,
+          "run_id": null,
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": null
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": null,
+          "count": 1,
+          "from": "<uuid:1>",
+          "id": "<run:1>:done",
+          "items": [
+            {
+              "id": "<run:1>:done",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "report",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:1>",
+          "ticket_id": "KAN-1",
+          "to": "you",
+          "to_at": "<time>",
+          "wait_s": null
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<run:3>:assign",
+          "items": [
+            {
+              "id": "<run:3>:assign",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:3>",
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "user",
+          "count": 1,
+          "from": "you",
+          "id": "<run:4>:assign",
+          "items": [
+            {
+              "id": "<run:4>:assign",
+              "ticket_id": "KAN-2"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:4>",
+          "ticket_id": "KAN-2",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "user",
+          "count": 1,
+          "from": "you",
+          "id": "<run:5>:assign",
+          "items": [
+            {
+              "id": "<run:5>:assign",
+              "ticket_id": "KAN-2"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:5>",
+          "ticket_id": "KAN-2",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        }
+      ],
+      "autopilot": {
+        "delegate": null,
+        "grace_min": null,
+        "on": false
+      },
+      "bars": [
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": "ok",
+          "ended_at": "<time>",
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:1>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:1>",
+          "started_at": "<time>",
+          "state": "finished",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "Fixed add(); tests pass.",
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "run_button"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": "failed",
+          "ended_at": "<time>",
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:3>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:3>",
+          "started_at": "<time>",
+          "state": "failed",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "retry"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:4>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:4>",
+          "started_at": "<time>",
+          "state": "running",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:5>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": "Which database?",
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:5>",
+          "started_at": "<time>",
+          "state": "needs_input",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign"
+        }
+      ],
+      "docs": [],
+      "following": true,
+      "grouped_harder": false,
+      "last_ended_at": "<time>",
+      "lifelines": [
+        {
+          "color": "#1E2A22",
+          "id": "you",
+          "kind": "you",
+          "name": "You",
+          "state": "waiting"
+        },
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "kind": "ai",
+          "lead": true,
+          "name": "Lead",
+          "quiet": false,
+          "state": "waiting",
+          "team_id": "<uuid:1>",
+          "team_name": "Dev An"
+        }
+      ],
+      "live": [
+        {
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "mode": "work",
+          "run_id": "<run:4>",
+          "sender": "user",
+          "state": "working",
+          "step": "Done.",
+          "ticket_id": "KAN-2",
+          "ticket_title": "Write the docs",
+          "trigger": "assign"
+        },
+        {
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "mode": "work",
+          "run_id": "<run:5>",
+          "sender": "user",
+          "state": "waiting_you",
+          "step": "Done.",
+          "ticket_id": "KAN-2",
+          "ticket_title": "Write the docs",
+          "trigger": "assign"
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "paused_at": null,
+      "paused_by": null,
+      "pauses": [],
+      "range": "24h",
+      "scope": {
+        "kind": "team",
+        "team_id": null,
+        "ticket_id": null
+      },
+      "since": "<time>",
+      "tickets": {
+        "KAN-1": {
+          "status": "todo",
+          "title": "Fix add()"
+        },
+        "KAN-2": {
+          "status": "todo",
+          "title": "Write the docs"
+        }
+      },
+      "touches": [],
+      "truncated": false,
+      "until": "<time>",
+      "waits": []
+    }
+  },
+  "GET timeline: 7d": {
+    "status": 200,
+    "json": {
+      "arrows": [
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<run:1>:assign",
+          "items": [
+            {
+              "id": "<run:1>:assign",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:1>",
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<msg:2>",
+          "items": [
+            {
+              "id": "<msg:2>",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": "Please add a test.",
+          "parent_id": null,
+          "round": 0,
+          "run_id": null,
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": null
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": null,
+          "count": 1,
+          "from": "<uuid:1>",
+          "id": "<run:1>:done",
+          "items": [
+            {
+              "id": "<run:1>:done",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "report",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:1>",
+          "ticket_id": "KAN-1",
+          "to": "you",
+          "to_at": "<time>",
+          "wait_s": null
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<run:3>:assign",
+          "items": [
+            {
+              "id": "<run:3>:assign",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:3>",
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "user",
+          "count": 1,
+          "from": "you",
+          "id": "<run:4>:assign",
+          "items": [
+            {
+              "id": "<run:4>:assign",
+              "ticket_id": "KAN-2"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:4>",
+          "ticket_id": "KAN-2",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "user",
+          "count": 1,
+          "from": "you",
+          "id": "<run:5>:assign",
+          "items": [
+            {
+              "id": "<run:5>:assign",
+              "ticket_id": "KAN-2"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:5>",
+          "ticket_id": "KAN-2",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        }
+      ],
+      "autopilot": {
+        "delegate": null,
+        "grace_min": null,
+        "on": false
+      },
+      "bars": [
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": "ok",
+          "ended_at": "<time>",
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:1>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:1>",
+          "started_at": "<time>",
+          "state": "finished",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "Fixed add(); tests pass.",
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "run_button"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": "failed",
+          "ended_at": "<time>",
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:3>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:3>",
+          "started_at": "<time>",
+          "state": "failed",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "retry"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:4>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:4>",
+          "started_at": "<time>",
+          "state": "running",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:5>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": "Which database?",
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:5>",
+          "started_at": "<time>",
+          "state": "needs_input",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign"
+        }
+      ],
+      "docs": [],
+      "following": true,
+      "grouped_harder": false,
+      "last_ended_at": "<time>",
+      "lifelines": [
+        {
+          "color": "#1E2A22",
+          "id": "you",
+          "kind": "you",
+          "name": "You",
+          "state": "waiting"
+        },
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "kind": "ai",
+          "lead": true,
+          "name": "Lead",
+          "quiet": false,
+          "state": "waiting",
+          "team_id": "<uuid:1>",
+          "team_name": "Dev An"
+        }
+      ],
+      "live": [
+        {
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "mode": "work",
+          "run_id": "<run:4>",
+          "sender": "user",
+          "state": "working",
+          "step": "Done.",
+          "ticket_id": "KAN-2",
+          "ticket_title": "Write the docs",
+          "trigger": "assign"
+        },
+        {
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "mode": "work",
+          "run_id": "<run:5>",
+          "sender": "user",
+          "state": "waiting_you",
+          "step": "Done.",
+          "ticket_id": "KAN-2",
+          "ticket_title": "Write the docs",
+          "trigger": "assign"
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "paused_at": null,
+      "paused_by": null,
+      "pauses": [],
+      "range": "7d",
+      "scope": {
+        "kind": "team",
+        "team_id": null,
+        "ticket_id": null
+      },
+      "since": "<time>",
+      "tickets": {
+        "KAN-1": {
+          "status": "todo",
+          "title": "Fix add()"
+        },
+        "KAN-2": {
+          "status": "todo",
+          "title": "Write the docs"
+        }
+      },
+      "touches": [],
+      "truncated": false,
+      "until": "<time>",
+      "waits": []
+    }
+  },
+  "GET timeline: a window": {
+    "status": 200,
+    "json": {
+      "arrows": [],
+      "autopilot": {
+        "delegate": null,
+        "grace_min": null,
+        "on": false
+      },
+      "bars": [],
+      "docs": [],
+      "following": false,
+      "grouped_harder": false,
+      "last_ended_at": null,
+      "lifelines": [
+        {
+          "color": "#1E2A22",
+          "id": "you",
+          "kind": "you",
+          "name": "You",
+          "state": "idle"
+        },
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "kind": "ai",
+          "lead": true,
+          "name": "Lead",
+          "quiet": true,
+          "state": "idle",
+          "team_id": "<uuid:1>",
+          "team_name": "Dev An"
+        }
+      ],
+      "live": [],
+      "now": "<time>",
+      "paused_all": false,
+      "paused_at": null,
+      "paused_by": null,
+      "pauses": [],
+      "range": "today",
+      "scope": {
+        "kind": "team",
+        "team_id": null,
+        "ticket_id": null
+      },
+      "since": "<time>",
+      "tickets": {},
+      "touches": [],
+      "truncated": false,
+      "until": "<time>",
+      "waits": []
+    }
+  },
+  "GET timeline: another team": {
+    "status": 200,
+    "json": {
+      "arrows": [],
+      "autopilot": {
+        "delegate": null,
+        "grace_min": null,
+        "on": false
+      },
+      "bars": [],
+      "docs": [],
+      "following": true,
+      "grouped_harder": false,
+      "last_ended_at": null,
+      "lifelines": [
+        {
+          "color": "#1E2A22",
+          "id": "you",
+          "kind": "you",
+          "name": "You",
+          "state": "idle"
+        }
+      ],
+      "live": [],
+      "now": "<time>",
+      "paused_all": false,
+      "paused_at": null,
+      "paused_by": null,
+      "pauses": [],
+      "range": "24h",
+      "scope": {
+        "kind": "team",
+        "team_id": "nope",
+        "ticket_id": null
+      },
+      "since": "<time>",
+      "tickets": {},
+      "touches": [],
+      "truncated": false,
+      "until": "<time>",
+      "waits": []
+    }
+  },
+  "GET timeline: forever": {
+    "status": 200,
+    "json": {
+      "arrows": [
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<run:1>:assign",
+          "items": [
+            {
+              "id": "<run:1>:assign",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:1>",
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<msg:2>",
+          "items": [
+            {
+              "id": "<msg:2>",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": "Please add a test.",
+          "parent_id": null,
+          "round": 0,
+          "run_id": null,
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": null
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": null,
+          "count": 1,
+          "from": "<uuid:1>",
+          "id": "<run:1>:done",
+          "items": [
+            {
+              "id": "<run:1>:done",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "report",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:1>",
+          "ticket_id": "KAN-1",
+          "to": "you",
+          "to_at": "<time>",
+          "wait_s": null
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<run:3>:assign",
+          "items": [
+            {
+              "id": "<run:3>:assign",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:3>",
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "user",
+          "count": 1,
+          "from": "you",
+          "id": "<run:4>:assign",
+          "items": [
+            {
+              "id": "<run:4>:assign",
+              "ticket_id": "KAN-2"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:4>",
+          "ticket_id": "KAN-2",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "user",
+          "count": 1,
+          "from": "you",
+          "id": "<run:5>:assign",
+          "items": [
+            {
+              "id": "<run:5>:assign",
+              "ticket_id": "KAN-2"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:5>",
+          "ticket_id": "KAN-2",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        }
+      ],
+      "autopilot": {
+        "delegate": null,
+        "grace_min": null,
+        "on": false
+      },
+      "bars": [
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": "ok",
+          "ended_at": "<time>",
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:1>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:1>",
+          "started_at": "<time>",
+          "state": "finished",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "Fixed add(); tests pass.",
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "run_button"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": "failed",
+          "ended_at": "<time>",
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:3>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:3>",
+          "started_at": "<time>",
+          "state": "failed",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "retry"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:4>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:4>",
+          "started_at": "<time>",
+          "state": "running",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:5>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": "Which database?",
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:5>",
+          "started_at": "<time>",
+          "state": "needs_input",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign"
+        }
+      ],
+      "docs": [],
+      "following": true,
+      "grouped_harder": false,
+      "last_ended_at": "<time>",
+      "lifelines": [
+        {
+          "color": "#1E2A22",
+          "id": "you",
+          "kind": "you",
+          "name": "You",
+          "state": "waiting"
+        },
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "kind": "ai",
+          "lead": true,
+          "name": "Lead",
+          "quiet": false,
+          "state": "waiting",
+          "team_id": "<uuid:1>",
+          "team_name": "Dev An"
+        }
+      ],
+      "live": [
+        {
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "mode": "work",
+          "run_id": "<run:4>",
+          "sender": "user",
+          "state": "working",
+          "step": "Done.",
+          "ticket_id": "KAN-2",
+          "ticket_title": "Write the docs",
+          "trigger": "assign"
+        },
+        {
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "mode": "work",
+          "run_id": "<run:5>",
+          "sender": "user",
+          "state": "waiting_you",
+          "step": "Done.",
+          "ticket_id": "KAN-2",
+          "ticket_title": "Write the docs",
+          "trigger": "assign"
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "paused_at": null,
+      "paused_by": null,
+      "pauses": [],
+      "range": "today",
+      "scope": {
+        "kind": "team",
+        "team_id": null,
+        "ticket_id": null
+      },
+      "since": "<time>",
+      "tickets": {
+        "KAN-1": {
+          "status": "todo",
+          "title": "Fix add()"
+        },
+        "KAN-2": {
+          "status": "todo",
+          "title": "Write the docs"
+        }
+      },
+      "touches": [],
+      "truncated": false,
+      "until": "<time>",
+      "waits": []
+    }
+  },
+  "GET timeline: hour": {
+    "status": 200,
+    "json": {
+      "arrows": [
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<run:1>:assign",
+          "items": [
+            {
+              "id": "<run:1>:assign",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:1>",
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<msg:2>",
+          "items": [
+            {
+              "id": "<msg:2>",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": "Please add a test.",
+          "parent_id": null,
+          "round": 0,
+          "run_id": null,
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": null
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": null,
+          "count": 1,
+          "from": "<uuid:1>",
+          "id": "<run:1>:done",
+          "items": [
+            {
+              "id": "<run:1>:done",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "report",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:1>",
+          "ticket_id": "KAN-1",
+          "to": "you",
+          "to_at": "<time>",
+          "wait_s": null
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<run:3>:assign",
+          "items": [
+            {
+              "id": "<run:3>:assign",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:3>",
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "user",
+          "count": 1,
+          "from": "you",
+          "id": "<run:4>:assign",
+          "items": [
+            {
+              "id": "<run:4>:assign",
+              "ticket_id": "KAN-2"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:4>",
+          "ticket_id": "KAN-2",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "user",
+          "count": 1,
+          "from": "you",
+          "id": "<run:5>:assign",
+          "items": [
+            {
+              "id": "<run:5>:assign",
+              "ticket_id": "KAN-2"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:5>",
+          "ticket_id": "KAN-2",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        }
+      ],
+      "autopilot": {
+        "delegate": null,
+        "grace_min": null,
+        "on": false
+      },
+      "bars": [
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": "ok",
+          "ended_at": "<time>",
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:1>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:1>",
+          "started_at": "<time>",
+          "state": "finished",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "Fixed add(); tests pass.",
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "run_button"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": "failed",
+          "ended_at": "<time>",
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:3>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:3>",
+          "started_at": "<time>",
+          "state": "failed",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "retry"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:4>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:4>",
+          "started_at": "<time>",
+          "state": "running",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:5>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": "Which database?",
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:5>",
+          "started_at": "<time>",
+          "state": "needs_input",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign"
+        }
+      ],
+      "docs": [],
+      "following": true,
+      "grouped_harder": false,
+      "last_ended_at": "<time>",
+      "lifelines": [
+        {
+          "color": "#1E2A22",
+          "id": "you",
+          "kind": "you",
+          "name": "You",
+          "state": "waiting"
+        },
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "kind": "ai",
+          "lead": true,
+          "name": "Lead",
+          "quiet": false,
+          "state": "waiting",
+          "team_id": "<uuid:1>",
+          "team_name": "Dev An"
+        }
+      ],
+      "live": [
+        {
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "mode": "work",
+          "run_id": "<run:4>",
+          "sender": "user",
+          "state": "working",
+          "step": "Done.",
+          "ticket_id": "KAN-2",
+          "ticket_title": "Write the docs",
+          "trigger": "assign"
+        },
+        {
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "mode": "work",
+          "run_id": "<run:5>",
+          "sender": "user",
+          "state": "waiting_you",
+          "step": "Done.",
+          "ticket_id": "KAN-2",
+          "ticket_title": "Write the docs",
+          "trigger": "assign"
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "paused_at": null,
+      "paused_by": null,
+      "pauses": [],
+      "range": "hour",
+      "scope": {
+        "kind": "team",
+        "team_id": null,
+        "ticket_id": null
+      },
+      "since": "<time>",
+      "tickets": {
+        "KAN-1": {
+          "status": "todo",
+          "title": "Fix add()"
+        },
+        "KAN-2": {
+          "status": "todo",
+          "title": "Write the docs"
+        }
+      },
+      "touches": [],
+      "truncated": false,
+      "until": "<time>",
+      "waits": []
+    }
+  },
+  "GET timeline: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET timeline: one team": {
+    "status": 200,
+    "json": {
+      "arrows": [
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<run:1>:assign",
+          "items": [
+            {
+              "id": "<run:1>:assign",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:1>",
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<msg:2>",
+          "items": [
+            {
+              "id": "<msg:2>",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": "Please add a test.",
+          "parent_id": null,
+          "round": 0,
+          "run_id": null,
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": null
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": null,
+          "count": 1,
+          "from": "<uuid:1>",
+          "id": "<run:1>:done",
+          "items": [
+            {
+              "id": "<run:1>:done",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "report",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:1>",
+          "ticket_id": "KAN-1",
+          "to": "you",
+          "to_at": "<time>",
+          "wait_s": null
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<run:3>:assign",
+          "items": [
+            {
+              "id": "<run:3>:assign",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:3>",
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "user",
+          "count": 1,
+          "from": "you",
+          "id": "<run:4>:assign",
+          "items": [
+            {
+              "id": "<run:4>:assign",
+              "ticket_id": "KAN-2"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:4>",
+          "ticket_id": "KAN-2",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "user",
+          "count": 1,
+          "from": "you",
+          "id": "<run:5>:assign",
+          "items": [
+            {
+              "id": "<run:5>:assign",
+              "ticket_id": "KAN-2"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:5>",
+          "ticket_id": "KAN-2",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        }
+      ],
+      "autopilot": {
+        "delegate": null,
+        "grace_min": null,
+        "on": false
+      },
+      "bars": [
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": "ok",
+          "ended_at": "<time>",
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:1>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:1>",
+          "started_at": "<time>",
+          "state": "finished",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "Fixed add(); tests pass.",
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "run_button"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": "failed",
+          "ended_at": "<time>",
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:3>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:3>",
+          "started_at": "<time>",
+          "state": "failed",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "retry"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:4>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:4>",
+          "started_at": "<time>",
+          "state": "running",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": null,
+          "ended_at": null,
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:5>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": "Which database?",
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:5>",
+          "started_at": "<time>",
+          "state": "needs_input",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-2",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "assign"
+        }
+      ],
+      "docs": [],
+      "following": true,
+      "grouped_harder": false,
+      "last_ended_at": "<time>",
+      "lifelines": [
+        {
+          "color": "#1E2A22",
+          "id": "you",
+          "kind": "you",
+          "name": "You",
+          "state": "waiting"
+        },
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "kind": "ai",
+          "lead": true,
+          "name": "Lead",
+          "quiet": false,
+          "state": "waiting",
+          "team_id": "<uuid:1>",
+          "team_name": "Dev An"
+        }
+      ],
+      "live": [
+        {
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "mode": "work",
+          "run_id": "<run:4>",
+          "sender": "user",
+          "state": "working",
+          "step": "Done.",
+          "ticket_id": "KAN-2",
+          "ticket_title": "Write the docs",
+          "trigger": "assign"
+        },
+        {
+          "member_id": "<uuid:1>",
+          "member_name": "Dev An",
+          "mode": "work",
+          "run_id": "<run:5>",
+          "sender": "user",
+          "state": "waiting_you",
+          "step": "Done.",
+          "ticket_id": "KAN-2",
+          "ticket_title": "Write the docs",
+          "trigger": "assign"
+        }
+      ],
+      "now": "<time>",
+      "paused_all": false,
+      "paused_at": null,
+      "paused_by": null,
+      "pauses": [],
+      "range": "24h",
+      "scope": {
+        "kind": "team",
+        "team_id": "<uuid:1>",
+        "ticket_id": null
+      },
+      "since": "<time>",
+      "tickets": {
+        "KAN-1": {
+          "status": "todo",
+          "title": "Fix add()"
+        },
+        "KAN-2": {
+          "status": "todo",
+          "title": "Write the docs"
+        }
+      },
+      "touches": [],
+      "truncated": false,
+      "until": "<time>",
+      "waits": []
+    }
+  },
+  "GET timeline: one ticket": {
+    "status": 200,
+    "json": {
+      "arrows": [
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<run:1>:assign",
+          "items": [
+            {
+              "id": "<run:1>:assign",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:1>",
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<msg:2>",
+          "items": [
+            {
+              "id": "<msg:2>",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": "Please add a test.",
+          "parent_id": null,
+          "round": 0,
+          "run_id": null,
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": null
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": null,
+          "count": 1,
+          "from": "<uuid:1>",
+          "id": "<run:1>:done",
+          "items": [
+            {
+              "id": "<run:1>:done",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "report",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:1>",
+          "ticket_id": "KAN-1",
+          "to": "you",
+          "to_at": "<time>",
+          "wait_s": null
+        },
+        {
+          "at": "<time>",
+          "at_last": "<time>",
+          "by": "An Nguyen",
+          "count": 1,
+          "from": "you",
+          "id": "<run:3>:assign",
+          "items": [
+            {
+              "id": "<run:3>:assign",
+              "ticket_id": "KAN-1"
+            }
+          ],
+          "kind": "assign",
+          "label": null,
+          "parent_id": null,
+          "round": 0,
+          "run_id": "<run:3>",
+          "ticket_id": "KAN-1",
+          "to": "<uuid:1>",
+          "to_at": "<time>",
+          "wait_s": 0
+        }
+      ],
+      "autopilot": {
+        "delegate": null,
+        "grace_min": null,
+        "on": false
+      },
+      "bars": [
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": "ok",
+          "ended_at": "<time>",
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:1>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 1,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:1>",
+          "started_at": "<time>",
+          "state": "finished",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "Fixed add(); tests pass.",
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "run_button"
+        },
+        {
+          "agent_id": null,
+          "autopilot": false,
+          "cost_usd": 0.02,
+          "end_kind": "failed",
+          "ended_at": "<time>",
+          "ended_by": null,
+          "ended_reason": null,
+          "held_by_pause": false,
+          "id": "<run:3>",
+          "label": null,
+          "last_rss_mb": null,
+          "member_id": "<uuid:1>",
+          "metered": false,
+          "mode": "work",
+          "model": null,
+          "number": 2,
+          "paused": false,
+          "peak_rss_mb": null,
+          "question": null,
+          "queued_at": "<time>",
+          "restarts": [],
+          "role": null,
+          "run_id": "<run:3>",
+          "started_at": "<time>",
+          "state": "failed",
+          "steps": 3,
+          "stop_code": null,
+          "summary": "",
+          "ticket_id": "KAN-1",
+          "tokens_cached": null,
+          "tokens_in": 100,
+          "tokens_out": 50,
+          "trigger": "retry"
+        }
+      ],
+      "docs": [],
+      "following": true,
+      "grouped_harder": false,
+      "last_ended_at": "<time>",
+      "lifelines": [
+        {
+          "color": "#1E2A22",
+          "id": "you",
+          "kind": "you",
+          "name": "You",
+          "state": "idle"
+        },
+        {
+          "color": "#2E6F40",
+          "id": "<uuid:1>",
+          "kind": "ai",
+          "lead": true,
+          "name": "Lead",
+          "quiet": false,
+          "state": "idle",
+          "team_id": "<uuid:1>",
+          "team_name": "Dev An"
+        }
+      ],
+      "live": [],
+      "now": "<time>",
+      "paused_all": false,
+      "paused_at": null,
+      "paused_by": null,
+      "pauses": [],
+      "range": "today",
+      "scope": {
+        "kind": "ticket",
+        "team_id": null,
+        "ticket_id": "KAN-1"
+      },
+      "since": "<time>",
+      "tickets": {
+        "KAN-1": {
+          "status": "todo",
+          "title": "Fix add()"
+        }
+      },
+      "touches": [],
+      "truncated": false,
+      "until": "<time>",
+      "waits": []
+    }
+  },
+  "GET timeline: since is text": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "since"
+        ]
+      ]
+    }
+  },
+  "GET timeline: until is empty": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "query",
+          "until"
+        ]
+      ]
+    }
+  },
+  "GET touches": {
+    "status": 200,
+    "json": {
+      "all_kinds": [
+        {
+          "key": "answer",
+          "label": "Answered a team's question"
+        },
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand"
+        },
+        {
+          "key": "stop",
+          "label": "Stopped a run"
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run"
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead"
+        },
+        {
+          "key": "edit",
+          "label": "Edited a ticket while a run worked on it"
+        },
+        {
+          "key": "signin",
+          "label": "Signed an account in again"
+        },
+        {
+          "key": "pause",
+          "label": "Paused or resumed"
+        }
+      ],
+      "items": [
+        {
+          "at": "<time>",
+          "details": "Run #2 continues the one before it",
+          "id": "retry:<run:1>",
+          "kind": "retry",
+          "label": "Retried a run",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:1>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        },
+        {
+          "at": "<time>",
+          "details": "“Please add a test.”",
+          "id": "msg:<msg:2>",
+          "kind": "message",
+          "label": "Sent a message to the lead",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:3>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        },
+        {
+          "at": "<time>",
+          "details": "Fix add()",
+          "id": "run:<run:3>",
+          "kind": "run_by_hand",
+          "label": "Started a run by hand",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:3>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        }
+      ],
+      "kinds": [
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand",
+          "total": 1
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run",
+          "total": 1
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead",
+          "total": 1
+        }
+      ],
+      "range": "7d",
+      "since": "<time>",
+      "teams": [
+        {
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "per_10_runs": 7.5,
+          "removed": false,
+          "runs": 4,
+          "touches": 3
+        }
+      ],
+      "totals": {
+        "avoidable": 0,
+        "needed": 0,
+        "per_ticket": 1.5,
+        "runs": 4,
+        "tickets": 2,
+        "touches": 3,
+        "unmarked": 3
+      },
+      "truncated": false
+    }
+  },
+  "GET touches: after": {
+    "status": 200,
+    "json": {
+      "all_kinds": [
+        {
+          "key": "answer",
+          "label": "Answered a team's question"
+        },
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand"
+        },
+        {
+          "key": "stop",
+          "label": "Stopped a run"
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run"
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead"
+        },
+        {
+          "key": "edit",
+          "label": "Edited a ticket while a run worked on it"
+        },
+        {
+          "key": "signin",
+          "label": "Signed an account in again"
+        },
+        {
+          "key": "pause",
+          "label": "Paused or resumed"
+        }
+      ],
+      "items": [
+        {
+          "at": "<time>",
+          "details": "Run #2 continues the one before it",
+          "id": "retry:<run:1>",
+          "kind": "retry",
+          "label": "Retried a run",
+          "lesson_id": "<lsn:2>",
+          "mark": "avoidable",
+          "marked_at": "<time>",
+          "marked_by": "user",
+          "run_id": "<run:1>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        },
+        {
+          "at": "<time>",
+          "details": "“Please add a test.”",
+          "id": "msg:<msg:3>",
+          "kind": "message",
+          "label": "Sent a message to the lead",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:4>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        },
+        {
+          "at": "<time>",
+          "details": "Fix add()",
+          "id": "run:<run:4>",
+          "kind": "run_by_hand",
+          "label": "Started a run by hand",
+          "lesson_id": "<lsn:5>",
+          "mark": "avoidable",
+          "marked_at": "<time>",
+          "marked_by": "user",
+          "run_id": "<run:4>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        }
+      ],
+      "kinds": [
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand",
+          "total": 1
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run",
+          "total": 1
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead",
+          "total": 1
+        }
+      ],
+      "range": "7d",
+      "since": "<time>",
+      "teams": [
+        {
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "per_10_runs": 7.5,
+          "removed": false,
+          "runs": 4,
+          "touches": 3
+        }
+      ],
+      "totals": {
+        "avoidable": 2,
+        "needed": 0,
+        "per_ticket": 1.5,
+        "runs": 4,
+        "tickets": 2,
+        "touches": 3,
+        "unmarked": 1
+      },
+      "truncated": false
+    }
+  },
+  "GET touches: kind=edit": {
+    "status": 200,
+    "json": {
+      "all_kinds": [
+        {
+          "key": "answer",
+          "label": "Answered a team's question"
+        },
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand"
+        },
+        {
+          "key": "stop",
+          "label": "Stopped a run"
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run"
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead"
+        },
+        {
+          "key": "edit",
+          "label": "Edited a ticket while a run worked on it"
+        },
+        {
+          "key": "signin",
+          "label": "Signed an account in again"
+        },
+        {
+          "key": "pause",
+          "label": "Paused or resumed"
+        }
+      ],
+      "items": [],
+      "kinds": [
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand",
+          "total": 1
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run",
+          "total": 1
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead",
+          "total": 1
+        }
+      ],
+      "range": "7d",
+      "since": "<time>",
+      "teams": [
+        {
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "per_10_runs": 7.5,
+          "removed": false,
+          "runs": 4,
+          "touches": 3
+        }
+      ],
+      "totals": {
+        "avoidable": 0,
+        "needed": 0,
+        "per_ticket": 1.5,
+        "runs": 4,
+        "tickets": 2,
+        "touches": 3,
+        "unmarked": 3
+      },
+      "truncated": false
+    }
+  },
+  "GET touches: kind=nope": {
+    "status": 200,
+    "json": {
+      "all_kinds": [
+        {
+          "key": "answer",
+          "label": "Answered a team's question"
+        },
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand"
+        },
+        {
+          "key": "stop",
+          "label": "Stopped a run"
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run"
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead"
+        },
+        {
+          "key": "edit",
+          "label": "Edited a ticket while a run worked on it"
+        },
+        {
+          "key": "signin",
+          "label": "Signed an account in again"
+        },
+        {
+          "key": "pause",
+          "label": "Paused or resumed"
+        }
+      ],
+      "items": [],
+      "kinds": [
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand",
+          "total": 1
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run",
+          "total": 1
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead",
+          "total": 1
+        }
+      ],
+      "range": "7d",
+      "since": "<time>",
+      "teams": [
+        {
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "per_10_runs": 7.5,
+          "removed": false,
+          "runs": 4,
+          "touches": 3
+        }
+      ],
+      "totals": {
+        "avoidable": 0,
+        "needed": 0,
+        "per_ticket": 1.5,
+        "runs": 4,
+        "tickets": 2,
+        "touches": 3,
+        "unmarked": 3
+      },
+      "truncated": false
+    }
+  },
+  "GET touches: mark=avoidable": {
+    "status": 200,
+    "json": {
+      "all_kinds": [
+        {
+          "key": "answer",
+          "label": "Answered a team's question"
+        },
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand"
+        },
+        {
+          "key": "stop",
+          "label": "Stopped a run"
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run"
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead"
+        },
+        {
+          "key": "edit",
+          "label": "Edited a ticket while a run worked on it"
+        },
+        {
+          "key": "signin",
+          "label": "Signed an account in again"
+        },
+        {
+          "key": "pause",
+          "label": "Paused or resumed"
+        }
+      ],
+      "items": [],
+      "kinds": [
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand",
+          "total": 1
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run",
+          "total": 1
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead",
+          "total": 1
+        }
+      ],
+      "range": "7d",
+      "since": "<time>",
+      "teams": [
+        {
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "per_10_runs": 7.5,
+          "removed": false,
+          "runs": 4,
+          "touches": 3
+        }
+      ],
+      "totals": {
+        "avoidable": 0,
+        "needed": 0,
+        "per_ticket": 1.5,
+        "runs": 4,
+        "tickets": 2,
+        "touches": 3,
+        "unmarked": 3
+      },
+      "truncated": false
+    }
+  },
+  "GET touches: mark=needed": {
+    "status": 200,
+    "json": {
+      "all_kinds": [
+        {
+          "key": "answer",
+          "label": "Answered a team's question"
+        },
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand"
+        },
+        {
+          "key": "stop",
+          "label": "Stopped a run"
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run"
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead"
+        },
+        {
+          "key": "edit",
+          "label": "Edited a ticket while a run worked on it"
+        },
+        {
+          "key": "signin",
+          "label": "Signed an account in again"
+        },
+        {
+          "key": "pause",
+          "label": "Paused or resumed"
+        }
+      ],
+      "items": [],
+      "kinds": [
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand",
+          "total": 1
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run",
+          "total": 1
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead",
+          "total": 1
+        }
+      ],
+      "range": "7d",
+      "since": "<time>",
+      "teams": [
+        {
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "per_10_runs": 7.5,
+          "removed": false,
+          "runs": 4,
+          "touches": 3
+        }
+      ],
+      "totals": {
+        "avoidable": 0,
+        "needed": 0,
+        "per_ticket": 1.5,
+        "runs": 4,
+        "tickets": 2,
+        "touches": 3,
+        "unmarked": 3
+      },
+      "truncated": false
+    }
+  },
+  "GET touches: marked": {
+    "status": 200,
+    "json": {
+      "all_kinds": [
+        {
+          "key": "answer",
+          "label": "Answered a team's question"
+        },
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand"
+        },
+        {
+          "key": "stop",
+          "label": "Stopped a run"
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run"
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead"
+        },
+        {
+          "key": "edit",
+          "label": "Edited a ticket while a run worked on it"
+        },
+        {
+          "key": "signin",
+          "label": "Signed an account in again"
+        },
+        {
+          "key": "pause",
+          "label": "Paused or resumed"
+        }
+      ],
+      "items": [
+        {
+          "at": "<time>",
+          "details": "Fix add()",
+          "id": "run:<run:1>",
+          "kind": "run_by_hand",
+          "label": "Started a run by hand",
+          "lesson_id": null,
+          "mark": "avoidable",
+          "marked_at": "<time>",
+          "marked_by": "user",
+          "run_id": "<run:1>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        }
+      ],
+      "kinds": [
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand",
+          "total": 1
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run",
+          "total": 1
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead",
+          "total": 1
+        }
+      ],
+      "range": "7d",
+      "since": "<time>",
+      "teams": [
+        {
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "per_10_runs": 7.5,
+          "removed": false,
+          "runs": 4,
+          "touches": 3
+        }
+      ],
+      "totals": {
+        "avoidable": 1,
+        "needed": 0,
+        "per_ticket": 1.5,
+        "runs": 4,
+        "tickets": 2,
+        "touches": 3,
+        "unmarked": 2
+      },
+      "truncated": false
+    }
+  },
+  "GET touches: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "GET touches: one team": {
+    "status": 200,
+    "json": {
+      "all_kinds": [
+        {
+          "key": "answer",
+          "label": "Answered a team's question"
+        },
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand"
+        },
+        {
+          "key": "stop",
+          "label": "Stopped a run"
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run"
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead"
+        },
+        {
+          "key": "edit",
+          "label": "Edited a ticket while a run worked on it"
+        },
+        {
+          "key": "signin",
+          "label": "Signed an account in again"
+        },
+        {
+          "key": "pause",
+          "label": "Paused or resumed"
+        }
+      ],
+      "items": [
+        {
+          "at": "<time>",
+          "details": "Run #2 continues the one before it",
+          "id": "retry:<run:1>",
+          "kind": "retry",
+          "label": "Retried a run",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:1>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        },
+        {
+          "at": "<time>",
+          "details": "“Please add a test.”",
+          "id": "msg:<msg:2>",
+          "kind": "message",
+          "label": "Sent a message to the lead",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:3>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        },
+        {
+          "at": "<time>",
+          "details": "Fix add()",
+          "id": "run:<run:3>",
+          "kind": "run_by_hand",
+          "label": "Started a run by hand",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:3>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        }
+      ],
+      "kinds": [
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand",
+          "total": 1
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run",
+          "total": 1
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead",
+          "total": 1
+        }
+      ],
+      "range": "7d",
+      "since": "<time>",
+      "teams": [
+        {
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "per_10_runs": 7.5,
+          "removed": false,
+          "runs": 4,
+          "touches": 3
+        }
+      ],
+      "totals": {
+        "avoidable": 0,
+        "needed": 0,
+        "per_ticket": 1.5,
+        "runs": 4,
+        "tickets": 2,
+        "touches": 3,
+        "unmarked": 3
+      },
+      "truncated": false
+    }
+  },
+  "GET touches: range=24h": {
+    "status": 200,
+    "json": {
+      "all_kinds": [
+        {
+          "key": "answer",
+          "label": "Answered a team's question"
+        },
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand"
+        },
+        {
+          "key": "stop",
+          "label": "Stopped a run"
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run"
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead"
+        },
+        {
+          "key": "edit",
+          "label": "Edited a ticket while a run worked on it"
+        },
+        {
+          "key": "signin",
+          "label": "Signed an account in again"
+        },
+        {
+          "key": "pause",
+          "label": "Paused or resumed"
+        }
+      ],
+      "items": [
+        {
+          "at": "<time>",
+          "details": "Run #2 continues the one before it",
+          "id": "retry:<run:1>",
+          "kind": "retry",
+          "label": "Retried a run",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:1>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        },
+        {
+          "at": "<time>",
+          "details": "“Please add a test.”",
+          "id": "msg:<msg:2>",
+          "kind": "message",
+          "label": "Sent a message to the lead",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:3>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        },
+        {
+          "at": "<time>",
+          "details": "Fix add()",
+          "id": "run:<run:3>",
+          "kind": "run_by_hand",
+          "label": "Started a run by hand",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:3>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        }
+      ],
+      "kinds": [
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand",
+          "total": 1
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run",
+          "total": 1
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead",
+          "total": 1
+        }
+      ],
+      "range": "24h",
+      "since": "<time>",
+      "teams": [
+        {
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "per_10_runs": 7.5,
+          "removed": false,
+          "runs": 4,
+          "touches": 3
+        }
+      ],
+      "totals": {
+        "avoidable": 0,
+        "needed": 0,
+        "per_ticket": 1.5,
+        "runs": 4,
+        "tickets": 2,
+        "touches": 3,
+        "unmarked": 3
+      },
+      "truncated": false
+    }
+  },
+  "GET touches: range=30d": {
+    "status": 200,
+    "json": {
+      "all_kinds": [
+        {
+          "key": "answer",
+          "label": "Answered a team's question"
+        },
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand"
+        },
+        {
+          "key": "stop",
+          "label": "Stopped a run"
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run"
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead"
+        },
+        {
+          "key": "edit",
+          "label": "Edited a ticket while a run worked on it"
+        },
+        {
+          "key": "signin",
+          "label": "Signed an account in again"
+        },
+        {
+          "key": "pause",
+          "label": "Paused or resumed"
+        }
+      ],
+      "items": [
+        {
+          "at": "<time>",
+          "details": "Run #2 continues the one before it",
+          "id": "retry:<run:1>",
+          "kind": "retry",
+          "label": "Retried a run",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:1>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        },
+        {
+          "at": "<time>",
+          "details": "“Please add a test.”",
+          "id": "msg:<msg:2>",
+          "kind": "message",
+          "label": "Sent a message to the lead",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:3>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        },
+        {
+          "at": "<time>",
+          "details": "Fix add()",
+          "id": "run:<run:3>",
+          "kind": "run_by_hand",
+          "label": "Started a run by hand",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:3>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        }
+      ],
+      "kinds": [
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand",
+          "total": 1
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run",
+          "total": 1
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead",
+          "total": 1
+        }
+      ],
+      "range": "30d",
+      "since": "<time>",
+      "teams": [
+        {
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "per_10_runs": 7.5,
+          "removed": false,
+          "runs": 4,
+          "touches": 3
+        }
+      ],
+      "totals": {
+        "avoidable": 0,
+        "needed": 0,
+        "per_ticket": 1.5,
+        "runs": 4,
+        "tickets": 2,
+        "touches": 3,
+        "unmarked": 3
+      },
+      "truncated": false
+    }
+  },
+  "GET touches: range=forever": {
+    "status": 200,
+    "json": {
+      "all_kinds": [
+        {
+          "key": "answer",
+          "label": "Answered a team's question"
+        },
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand"
+        },
+        {
+          "key": "stop",
+          "label": "Stopped a run"
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run"
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead"
+        },
+        {
+          "key": "edit",
+          "label": "Edited a ticket while a run worked on it"
+        },
+        {
+          "key": "signin",
+          "label": "Signed an account in again"
+        },
+        {
+          "key": "pause",
+          "label": "Paused or resumed"
+        }
+      ],
+      "items": [
+        {
+          "at": "<time>",
+          "details": "Run #2 continues the one before it",
+          "id": "retry:<run:1>",
+          "kind": "retry",
+          "label": "Retried a run",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:1>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        },
+        {
+          "at": "<time>",
+          "details": "“Please add a test.”",
+          "id": "msg:<msg:2>",
+          "kind": "message",
+          "label": "Sent a message to the lead",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:3>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        },
+        {
+          "at": "<time>",
+          "details": "Fix add()",
+          "id": "run:<run:3>",
+          "kind": "run_by_hand",
+          "label": "Started a run by hand",
+          "lesson_id": null,
+          "mark": null,
+          "marked_at": null,
+          "marked_by": null,
+          "run_id": "<run:3>",
+          "team_id": "<uuid:1>",
+          "team_ids": [
+            "<uuid:1>"
+          ],
+          "team_name": "Dev An",
+          "team_names": [
+            "Dev An"
+          ],
+          "ticket_id": "KAN-1",
+          "via": null,
+          "who": "An Nguyen"
+        }
+      ],
+      "kinds": [
+        {
+          "key": "run_by_hand",
+          "label": "Started a run by hand",
+          "total": 1
+        },
+        {
+          "key": "retry",
+          "label": "Retried a run",
+          "total": 1
+        },
+        {
+          "key": "message",
+          "label": "Sent a message to the lead",
+          "total": 1
+        }
+      ],
+      "range": "7d",
+      "since": "<time>",
+      "teams": [
+        {
+          "id": "<uuid:1>",
+          "name": "Dev An",
+          "per_10_runs": 7.5,
+          "removed": false,
+          "runs": 4,
+          "touches": 3
+        }
+      ],
+      "totals": {
+        "avoidable": 0,
+        "needed": 0,
+        "per_ticket": 1.5,
+        "runs": 4,
+        "tickets": 2,
+        "touches": 3,
+        "unmarked": 3
+      },
+      "truncated": false
+    }
+  },
+  "POST lesson": {
+    "status": 201,
+    "json": {
+      "id": "run:<run:1>",
+      "lesson": {
+        "created_at": "<time>",
+        "id": "<lsn:2>",
+        "kept_by": null,
+        "last_used_at": null,
+        "proposed_by": "user",
+        "source_run_id": "<run:1>",
+        "source_ticket_id": "KAN-1",
+        "state": "proposed",
+        "text": "Say which database in the ticket.",
+        "tokens": 9,
+        "updated_at": "<time>",
+        "uses": 0
+      },
+      "lesson_id": "<lsn:2>"
+    }
+  },
+  "POST lesson: again": {
+    "status": 409,
+    "json": {
+      "detail": "A lesson was already made from this touch."
+    }
+  },
+  "POST lesson: from a retry, a draft": {
+    "status": 201,
+    "json": {
+      "id": "retry:<run:1>",
+      "lesson": {
+        "created_at": "<time>",
+        "id": "<lsn:2>",
+        "kept_by": null,
+        "last_used_at": null,
+        "proposed_by": "user",
+        "source_run_id": "<run:1>",
+        "source_ticket_id": "KAN-1",
+        "state": "proposed",
+        "text": "Retried a run on KAN-1: Run #2 continues the one before it. Next time, do this without a person.",
+        "tokens": 24,
+        "updated_at": "<time>",
+        "uses": 0
+      },
+      "lesson_id": "<lsn:2>"
+    }
+  },
+  "POST lesson: no key": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "key"
+        ]
+      ]
+    }
+  },
+  "POST lesson: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "POST lesson: no such touch": {
+    "status": 409,
+    "json": {
+      "detail": "This touch is no longer in the list."
+    }
+  },
+  "POST lesson: not avoidable": {
+    "status": 409,
+    "json": {
+      "detail": "Mark the touch Avoidable first."
+    }
+  },
+  "POST lesson: too long": {
+    "status": 409,
+    "json": {
+      "detail": "The lesson is limited to 600 characters."
+    }
+  },
+  "PUT mark: a mark that is not one": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "mark"
+        ]
+      ]
+    }
+  },
+  "PUT mark: a retry": {
+    "status": 200,
+    "json": {
+      "id": "retry:<run:1>",
+      "lesson_id": null,
+      "mark": "avoidable",
+      "marked_at": "<time>",
+      "marked_by": "user"
+    }
+  },
+  "PUT mark: another project": {
+    "status": 409,
+    "json": {
+      "detail": "This touch belongs to another project."
+    }
+  },
+  "PUT mark: avoidable": {
+    "status": 200,
+    "json": {
+      "id": "run:<run:1>",
+      "lesson_id": null,
+      "mark": "avoidable",
+      "marked_at": "<time>",
+      "marked_by": "user"
+    }
+  },
+  "PUT mark: needed": {
+    "status": 200,
+    "json": {
+      "id": "run:<run:1>",
+      "lesson_id": null,
+      "mark": "needed",
+      "marked_at": "<time>",
+      "marked_by": "user"
+    }
+  },
+  "PUT mark: no key": {
+    "status": 422,
+    "json": {
+      "loc": [
+        [
+          "body",
+          "key"
+        ]
+      ]
+    }
+  },
+  "PUT mark: no such project": {
+    "status": 404,
+    "json": {
+      "detail": "Project not found"
+    }
+  },
+  "PUT mark: no such touch": {
+    "status": 409,
+    "json": {
+      "detail": "This touch is no longer in the list."
+    }
+  },
+  "PUT mark: take it away": {
+    "status": 409,
+    "json": {
+      "detail": "A lesson was made from this touch: its mark stays."
+    }
+  }
+}

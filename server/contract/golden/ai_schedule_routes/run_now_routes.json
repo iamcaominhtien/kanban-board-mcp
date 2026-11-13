@@ -1,0 +1,175 @@
+{
+  "GET history: after the run": {
+    "status": 200,
+    "json": [
+      {
+        "attempts": 1,
+        "catch_up": false,
+        "ended_at": "<time>",
+        "id": "<uuid:1>",
+        "member_id": "<uuid:2>",
+        "member_name": "Dev An",
+        "report": {
+          "branch": "ai/test",
+          "open_items": [],
+          "pr_url": null,
+          "run_id": "<run:1>",
+          "status": "done",
+          "summary": "Fixed add(); tests pass."
+        },
+        "schedule_id": "<sch:2>",
+        "slot_at": "<time>",
+        "started_at": "<time>",
+        "state": "passed",
+        "ticket_id": "KAN-1"
+      }
+    ]
+  },
+  "GET schedule: after the run": {
+    "status": 200,
+    "json": {
+      "backup_member_id": null,
+      "backup_member_name": null,
+      "catch_up": "run",
+      "catch_up_hours": 2.0,
+      "connection": "local",
+      "created_at": "<time>",
+      "created_by": "user",
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "ends": "never",
+      "ends_after": null,
+      "ends_on": null,
+      "failures_in_row": 0,
+      "id": "<sch:1>",
+      "instruction": "Fix the operator in calc.py.",
+      "kind": "once",
+      "last_run": {
+        "attempts": 1,
+        "catch_up": false,
+        "ended_at": "<time>",
+        "id": "<uuid:1>",
+        "member_id": "<uuid:2>",
+        "member_name": "Dev An",
+        "schedule_id": "<sch:1>",
+        "slot_at": "<time>",
+        "started_at": "<time>",
+        "state": "passed",
+        "ticket_id": "KAN-1"
+      },
+      "limits": {
+        "max_cost": null,
+        "retries": 1,
+        "stop_after_min": 45
+      },
+      "member_id": "<uuid:2>",
+      "member_name": "Dev An",
+      "next_in": "in 26512 d",
+      "next_run_at": "<time>",
+      "notify": [
+        "started",
+        "needs_input",
+        "failed",
+        "finished"
+      ],
+      "notify_people": [],
+      "offline_risk": null,
+      "paused_reason": null,
+      "problems": [
+        {
+          "key": "local",
+          "level": "warn",
+          "text": "Teams run only while the desktop app is open. Catch-up is on (2 h)."
+        }
+      ],
+      "project_id": "<uuid:3>",
+      "run_at": "<time>",
+      "runs": [
+        {
+          "attempts": 1,
+          "catch_up": false,
+          "ended_at": "<time>",
+          "id": "<uuid:1>",
+          "member_id": "<uuid:2>",
+          "member_name": "Dev An",
+          "report": {
+            "branch": "ai/test",
+            "open_items": [],
+            "pr_url": null,
+            "run_id": "<run:2>",
+            "status": "done",
+            "summary": "Fixed add(); tests pass."
+          },
+          "schedule_id": "<sch:1>",
+          "slot_at": "<time>",
+          "started_at": "<time>",
+          "state": "passed",
+          "ticket_id": "KAN-1"
+        }
+      ],
+      "runs_count": 0,
+      "state": "active",
+      "stats": {
+        "avg_s": 19,
+        "cost": 0.01,
+        "metered": true,
+        "of": 1,
+        "passed": 1
+      },
+      "summary": "On Mon Jun 15 at 09:30 (UTC), Dev An works on KAN-1. The lead decides what to do and reports. It never moves past Review.",
+      "ticket_changed": false,
+      "ticket_id": "KAN-1",
+      "ticket_status": "todo",
+      "ticket_title": "Fix add()",
+      "time": "02:00",
+      "tz": "UTC",
+      "tz_label": "UTC",
+      "updated_at": "<time>",
+      "when": "Once · Mon Jun 15, 09:30",
+      "window_end": null
+    }
+  },
+  "POST run-now": {
+    "status": 200,
+    "json": {
+      "attempts": 1,
+      "catch_up": false,
+      "id": "<uuid:1>",
+      "member_id": "<uuid:2>",
+      "member_name": null,
+      "schedule_id": "<sch:1>",
+      "slot_at": "<time>",
+      "ticket_id": "KAN-1"
+    }
+  },
+  "POST run-now: again": {
+    "status": 200,
+    "json": {
+      "attempts": 1,
+      "catch_up": false,
+      "ended_at": null,
+      "id": "<uuid:1>",
+      "member_id": "<uuid:2>",
+      "member_name": null,
+      "note": null,
+      "run_ids": [
+        "<run:1>"
+      ],
+      "schedule_id": "<sch:2>",
+      "slot_at": "<time>",
+      "started_at": "<time>",
+      "state": "running",
+      "ticket_id": "KAN-1"
+    }
+  },
+  "the slot ended as": {
+    "note": {
+      "state": "passed"
+    }
+  }
+}

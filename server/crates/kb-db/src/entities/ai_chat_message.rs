@@ -1,0 +1,71 @@
+//! `ai_chat_message` (Python model `AiChatMessage`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+use crate::float::Float;
+
+/// A message in a Board AI chat; an answer streams into `text` while `state` is thinking/streaming.
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ai_chat_message")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: String,
+    pub chat_id: String,
+    /// user | ai
+    pub role: String,
+    pub text: String,
+    /// queued | thinking | streaming | done | stopped | error | rate_limited | over_budget
+    pub state: String,
+    pub steps: String,
+    pub context: String,
+    /// suggested actions (drafts only)
+    pub actions: String,
+    pub draft_id: Option<String>,
+    pub error: String,
+    pub retry_at: Option<String>,
+    pub member_id: Option<String>,
+    pub model: Option<String>,
+    #[sea_orm(column_type = "Double")]
+    pub cost: Float,
+    pub tokens_in: i32,
+    pub tokens_out: i32,
+    pub metered: bool,
+    /// The asker's thumbs up / down with a reason: {thumb, reason, at}
+    pub feedback: String,
+    pub created_at: String,
+    pub finished_at: Option<String>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `AiChatMessage`.
+/// Set before saving: `chat_id`, `role`.
+pub fn new() -> ActiveModel {
+    ActiveModel {
+        id: Set(kb_base::time::uuid4()),
+        chat_id: NotSet,
+        role: NotSet,
+        text: Set("".to_string()),
+        state: Set("done".to_string()),
+        steps: Set("[]".to_string()),
+        context: Set("{}".to_string()),
+        actions: Set("[]".to_string()),
+        draft_id: Set(None),
+        error: Set("{}".to_string()),
+        retry_at: Set(None),
+        member_id: Set(None),
+        model: Set(None),
+        cost: Set(Float(0.0)),
+        tokens_in: Set(0),
+        tokens_out: Set(0),
+        metered: Set(true),
+        feedback: Set("{}".to_string()),
+        created_at: Set(kb_base::time::now_iso()),
+        finished_at: Set(None),
+    }
+}

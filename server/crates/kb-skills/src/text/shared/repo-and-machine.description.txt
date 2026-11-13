@@ -1,0 +1,1 @@
+How to work in the repository and on the machine without leaving a mess: branches, worktrees, commits and PRs, stopping the servers and watchers you started, ports, writing only inside your working folder, and where outputs for people go (the ticket's Workspace). Use before you change code, start a server or a watcher, write a file, or commit.

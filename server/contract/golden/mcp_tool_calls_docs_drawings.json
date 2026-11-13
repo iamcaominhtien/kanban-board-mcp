@@ -1,0 +1,1980 @@
+{
+  "setup: project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Draw\",\n  \"prefix\": \"DRW\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: other project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:2>\",\n  \"name\": \"Away\",\n  \"prefix\": \"AWY\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: a ticket": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"DRW-1\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Draw it\",\n  \"description\": \"\",\n  \"type\": \"task\",\n  \"status\": \"backlog\",\n  \"priority\": \"medium\",\n  \"estimate\": null,\n  \"due_date\": null,\n  \"start_date\": null,\n  \"tags\": [],\n  \"parent_id\": null,\n  \"comments\": [],\n  \"acceptance_criteria\": [],\n  \"sub_tasks\": [],\n  \"work_log\": [],\n  \"test_cases\": [],\n  \"wont_do_reason\": null,\n  \"created_by\": \"<uuid:3>\",\n  \"assignee\": null,\n  \"blocks\": [],\n  \"blocked_by\": [],\n  \"block_done_if_acs_incomplete\": false,\n  \"block_done_if_tcs_incomplete\": false,\n  \"links\": [],\n  \"branches\": [],\n  \"workspace_retention_days\": null,\n  \"repo_path\": null,\n  \"reopen_count\": 0,\n  \"last_reopened_at\": null,\n  \"last_reopened_by\": null,\n  \"last_reopen_reason\": null,\n  \"reopen_history\": [],\n  \"pending\": false,\n  \"pending_reason_type\": null,\n  \"pending_ticket_id\": null,\n  \"pending_member_id\": null,\n  \"pending_party\": null,\n  \"pending_note\": null,\n  \"pending_since\": null,\n  \"pending_by\": null,\n  \"from_idea_id\": null,\n  \"tests_assumption_id\": null,\n  \"wave_pin\": null,\n  \"review_requested_from\": null,\n  \"completed_at\": null,\n  \"completed_by\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "setup: a page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Design\",\n  \"slug\": \"design\",\n  \"status\": \"published\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "diagrams: none yet": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "diagrams: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='diagrams') requires project_id. Missing: project_id."
+      }
+    ],
+    "isError": true
+  },
+  "diagrams: a project that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Project not found"
+      }
+    ],
+    "isError": true
+  },
+  "diagram: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='diagram') requires diagram_id; optional: path, version. Missing: diagram_id."
+      }
+    ],
+    "isError": true
+  },
+  "diagram: one that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Diagram not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_create: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='diagram_create') requires project_id, title, path; optional: svg_path, summary. Missing: project_id, title, path."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_create: no path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='diagram_create') requires project_id, title, path; optional: svg_path, summary. Missing: path."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_create: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='diagram_create') does not use: owner_id. It requires project_id, title, path; optional: svg_path, summary."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_create: a project that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Project not found"
+      }
+    ],
+    "isError": true
+  },
+  "diagram_create: a relative path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: path: give an absolute path (got 'flow.drawio')."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_create: a file that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: path: /no/such/flow.drawio is not a file."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_create: a folder": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: path: <files>/canvas is not a file."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_create: a file that is not a drawing": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: The diagram file is not valid XML (syntax error: line 1, column 0)."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_create: a drawing with a DTD": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: The diagram file contains a DTD or entity declaration, which is not allowed."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_create: a file over 2 MB": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: This diagram is 2.0 MB. The limit is 2 MB. Remove embedded images or split it into pages, then save again."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_create: a file that is not UTF-8": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: path: <files>/latin1.drawio is not UTF-8 text."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_create: an svg that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: svg_path: /no/such.svg is not a file."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_create: an svg with a script": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:1>\",\n  \"label\": \"Flow\",\n  \"version\": 1,\n  \"markdown\": \"[Flow](diagram:<dg:1>)\",\n  \"preview\": \"your SVG\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "diagram_create: a drawing": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:2>\",\n  \"label\": \"Request flow\",\n  \"version\": 1,\n  \"markdown\": \"[Request flow](diagram:<dg:2>)\",\n  \"preview\": \"plain: boxes, arrows and text only; shapes beyond those show as boxes until someone opens the diagram in the editor and saves\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "diagram_create: with its own svg": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:3>\",\n  \"label\": \"Own  svg name\",\n  \"version\": 1,\n  \"markdown\": \"[Own  svg name](diagram:<dg:3>)\",\n  \"preview\": \"your SVG\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "diagram_create: a drawing with a link to nothing": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:4>\",\n  \"label\": \"Lonely\",\n  \"version\": 1,\n  \"markdown\": \"[Lonely](diagram:<dg:4>)\",\n  \"preview\": \"plain: boxes, arrows and text only; shapes beyond those show as boxes until someone opens the diagram in the editor and saves\",\n  \"problems\": [\n    \"Link 'e0' points at 'zz', which is not a shape: use the id of a shape on this page (or drop the attribute and give the link sourcePoint / targetPoint).\"\n  ],\n  \"fix\": \"Saved as it is. Fix these in the file and save again (docs_write diagram_save with the new version).\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "diagram_create: in the other project": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:5>\",\n  \"label\": \"Away\",\n  \"version\": 1,\n  \"markdown\": \"[Away](diagram:<dg:5>)\",\n  \"preview\": \"plain: boxes, arrows and text only; shapes beyond those show as boxes until someone opens the diagram in the editor and saves\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "diagrams: the list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:4>\",\n  \"label\": \"Lonely\",\n  \"version\": 1,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"summary\": \"\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:3>\",\n  \"label\": \"Own  svg name\",\n  \"version\": 1,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"summary\": \"\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:2>\",\n  \"label\": \"Request flow\",\n  \"version\": 1,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"summary\": \"Client to service\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:1>\",\n  \"label\": \"Flow\",\n  \"version\": 1,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"summary\": \"\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<dg:4>",
+          "label": "Lonely",
+          "version": 1,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "summary": ""
+        },
+        {
+          "id": "<dg:3>",
+          "label": "Own  svg name",
+          "version": 1,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "summary": ""
+        },
+        {
+          "id": "<dg:2>",
+          "label": "Request flow",
+          "version": 1,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "summary": "Client to service"
+        },
+        {
+          "id": "<dg:1>",
+          "label": "Flow",
+          "version": 1,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "summary": ""
+        }
+      ]
+    },
+    "isError": false
+  },
+  "diagram: the model": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:2>\",\n  \"label\": \"Request flow\",\n  \"version\": 1,\n  \"markdown\": \"[Request flow](diagram:<dg:2>)\",\n  \"model\": {\n    \"page\": \"Page-1\",\n    \"pages\": 1,\n    \"shapes\": [\n      {\n        \"id\": \"n0\",\n        \"label\": \"Client\",\n        \"shape\": \"rounded\",\n        \"x\": 40.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      },\n      {\n        \"id\": \"n1\",\n        \"label\": \"API gateway\",\n        \"shape\": \"rounded\",\n        \"x\": 200.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      },\n      {\n        \"id\": \"n2\",\n        \"label\": \"Service\",\n        \"shape\": \"rounded\",\n        \"x\": 360.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      }\n    ],\n    \"links\": [\n      {\n        \"id\": \"e0\",\n        \"label\": \"yes\",\n        \"from\": \"n0\",\n        \"to\": \"n1\",\n        \"style\": \"endArrow=classic;\"\n      },\n      {\n        \"id\": \"e1\",\n        \"label\": \"\",\n        \"from\": \"n1\",\n        \"to\": \"n2\",\n        \"style\": \"endArrow=classic;\"\n      }\n    ],\n    \"problems\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<dg:2>",
+        "label": "Request flow",
+        "version": 1,
+        "markdown": "[Request flow](diagram:<dg:2>)",
+        "model": {
+          "page": "Page-1",
+          "pages": 1,
+          "shapes": [
+            {
+              "id": "n0",
+              "label": "Client",
+              "shape": "rounded",
+              "x": 40.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            },
+            {
+              "id": "n1",
+              "label": "API gateway",
+              "shape": "rounded",
+              "x": 200.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            },
+            {
+              "id": "n2",
+              "label": "Service",
+              "shape": "rounded",
+              "x": 360.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            }
+          ],
+          "links": [
+            {
+              "id": "e0",
+              "label": "yes",
+              "from": "n0",
+              "to": "n1",
+              "style": "endArrow=classic;"
+            },
+            {
+              "id": "e1",
+              "label": "",
+              "from": "n1",
+              "to": "n2",
+              "style": "endArrow=classic;"
+            }
+          ],
+          "problems": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "diagram: a model with problems": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:4>\",\n  \"label\": \"Lonely\",\n  \"version\": 1,\n  \"markdown\": \"[Lonely](diagram:<dg:4>)\",\n  \"model\": {\n    \"page\": \"Page-1\",\n    \"pages\": 1,\n    \"shapes\": [\n      {\n        \"id\": \"n0\",\n        \"label\": \"Alone\",\n        \"shape\": \"rounded\",\n        \"x\": 40.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      },\n      {\n        \"id\": \"n1\",\n        \"label\": \"Another\",\n        \"shape\": \"rounded\",\n        \"x\": 200.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      }\n    ],\n    \"links\": [\n      {\n        \"id\": \"e0\",\n        \"label\": \"yes\",\n        \"from\": \"n0\",\n        \"to\": \"zz\",\n        \"style\": \"endArrow=classic;\"\n      }\n    ],\n    \"problems\": [\n      \"Link 'e0' points at 'zz', which is not a shape: use the id of a shape on this page (or drop the attribute and give the link sourcePoint / targetPoint).\"\n    ]\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<dg:4>",
+        "label": "Lonely",
+        "version": 1,
+        "markdown": "[Lonely](diagram:<dg:4>)",
+        "model": {
+          "page": "Page-1",
+          "pages": 1,
+          "shapes": [
+            {
+              "id": "n0",
+              "label": "Alone",
+              "shape": "rounded",
+              "x": 40.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            },
+            {
+              "id": "n1",
+              "label": "Another",
+              "shape": "rounded",
+              "x": 200.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            }
+          ],
+          "links": [
+            {
+              "id": "e0",
+              "label": "yes",
+              "from": "n0",
+              "to": "zz",
+              "style": "endArrow=classic;"
+            }
+          ],
+          "problems": [
+            "Link 'e0' points at 'zz', which is not a shape: use the id of a shape on this page (or drop the attribute and give the link sourcePoint / targetPoint)."
+          ]
+        }
+      }
+    },
+    "isError": false
+  },
+  "diagram: an older version that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Diagram version 2 not found"
+      }
+    ],
+    "isError": true
+  },
+  "diagram: to a file": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/out/flow.drawio\",\n  \"id\": \"<dg:2>\",\n  \"label\": \"Request flow\",\n  \"version\": 1,\n  \"markdown\": \"[Request flow](diagram:<dg:2>)\",\n  \"model\": {\n    \"page\": \"Page-1\",\n    \"pages\": 1,\n    \"shapes\": [\n      {\n        \"id\": \"n0\",\n        \"label\": \"Client\",\n        \"shape\": \"rounded\",\n        \"x\": 40.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      },\n      {\n        \"id\": \"n1\",\n        \"label\": \"API gateway\",\n        \"shape\": \"rounded\",\n        \"x\": 200.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      },\n      {\n        \"id\": \"n2\",\n        \"label\": \"Service\",\n        \"shape\": \"rounded\",\n        \"x\": 360.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      }\n    ],\n    \"links\": [\n      {\n        \"id\": \"e0\",\n        \"label\": \"yes\",\n        \"from\": \"n0\",\n        \"to\": \"n1\",\n        \"style\": \"endArrow=classic;\"\n      },\n      {\n        \"id\": \"e1\",\n        \"label\": \"\",\n        \"from\": \"n1\",\n        \"to\": \"n2\",\n        \"style\": \"endArrow=classic;\"\n      }\n    ],\n    \"problems\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/out/flow.drawio",
+        "id": "<dg:2>",
+        "label": "Request flow",
+        "version": 1,
+        "markdown": "[Request flow](diagram:<dg:2>)",
+        "model": {
+          "page": "Page-1",
+          "pages": 1,
+          "shapes": [
+            {
+              "id": "n0",
+              "label": "Client",
+              "shape": "rounded",
+              "x": 40.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            },
+            {
+              "id": "n1",
+              "label": "API gateway",
+              "shape": "rounded",
+              "x": 200.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            },
+            {
+              "id": "n2",
+              "label": "Service",
+              "shape": "rounded",
+              "x": 360.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            }
+          ],
+          "links": [
+            {
+              "id": "e0",
+              "label": "yes",
+              "from": "n0",
+              "to": "n1",
+              "style": "endArrow=classic;"
+            },
+            {
+              "id": "e1",
+              "label": "",
+              "from": "n1",
+              "to": "n2",
+              "style": "endArrow=classic;"
+            }
+          ],
+          "problems": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "diagram: to a file [file 1]": {
+    "sha256": "8354fb37d7ffa42188ba312d7d1699acf30c983455b64b8e733397435ec982ba",
+    "name": "flow.drawio"
+  },
+  "diagram: to a folder": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/out/dir/Request-flow.drawio\",\n  \"id\": \"<dg:2>\",\n  \"label\": \"Request flow\",\n  \"version\": 1,\n  \"markdown\": \"[Request flow](diagram:<dg:2>)\",\n  \"model\": {\n    \"page\": \"Page-1\",\n    \"pages\": 1,\n    \"shapes\": [\n      {\n        \"id\": \"n0\",\n        \"label\": \"Client\",\n        \"shape\": \"rounded\",\n        \"x\": 40.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      },\n      {\n        \"id\": \"n1\",\n        \"label\": \"API gateway\",\n        \"shape\": \"rounded\",\n        \"x\": 200.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      },\n      {\n        \"id\": \"n2\",\n        \"label\": \"Service\",\n        \"shape\": \"rounded\",\n        \"x\": 360.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      }\n    ],\n    \"links\": [\n      {\n        \"id\": \"e0\",\n        \"label\": \"yes\",\n        \"from\": \"n0\",\n        \"to\": \"n1\",\n        \"style\": \"endArrow=classic;\"\n      },\n      {\n        \"id\": \"e1\",\n        \"label\": \"\",\n        \"from\": \"n1\",\n        \"to\": \"n2\",\n        \"style\": \"endArrow=classic;\"\n      }\n    ],\n    \"problems\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/out/dir/Request-flow.drawio",
+        "id": "<dg:2>",
+        "label": "Request flow",
+        "version": 1,
+        "markdown": "[Request flow](diagram:<dg:2>)",
+        "model": {
+          "page": "Page-1",
+          "pages": 1,
+          "shapes": [
+            {
+              "id": "n0",
+              "label": "Client",
+              "shape": "rounded",
+              "x": 40.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            },
+            {
+              "id": "n1",
+              "label": "API gateway",
+              "shape": "rounded",
+              "x": 200.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            },
+            {
+              "id": "n2",
+              "label": "Service",
+              "shape": "rounded",
+              "x": 360.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            }
+          ],
+          "links": [
+            {
+              "id": "e0",
+              "label": "yes",
+              "from": "n0",
+              "to": "n1",
+              "style": "endArrow=classic;"
+            },
+            {
+              "id": "e1",
+              "label": "",
+              "from": "n1",
+              "to": "n2",
+              "style": "endArrow=classic;"
+            }
+          ],
+          "problems": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "diagram: to a folder [file 1]": {
+    "sha256": "8354fb37d7ffa42188ba312d7d1699acf30c983455b64b8e733397435ec982ba",
+    "name": "Request-flow.drawio"
+  },
+  "diagram: to a folder that is not there with a slash": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/out/new/Own-svg-name.drawio\",\n  \"id\": \"<dg:3>\",\n  \"label\": \"Own  svg name\",\n  \"version\": 1,\n  \"markdown\": \"[Own  svg name](diagram:<dg:3>)\",\n  \"model\": {\n    \"page\": \"Page-1\",\n    \"pages\": 1,\n    \"shapes\": [\n      {\n        \"id\": \"n0\",\n        \"label\": \"Client\",\n        \"shape\": \"rounded\",\n        \"x\": 40.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      },\n      {\n        \"id\": \"n1\",\n        \"label\": \"API gateway\",\n        \"shape\": \"rounded\",\n        \"x\": 200.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      },\n      {\n        \"id\": \"n2\",\n        \"label\": \"Service\",\n        \"shape\": \"rounded\",\n        \"x\": 360.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      }\n    ],\n    \"links\": [\n      {\n        \"id\": \"e0\",\n        \"label\": \"yes\",\n        \"from\": \"n0\",\n        \"to\": \"n1\",\n        \"style\": \"endArrow=classic;\"\n      },\n      {\n        \"id\": \"e1\",\n        \"label\": \"\",\n        \"from\": \"n1\",\n        \"to\": \"n2\",\n        \"style\": \"endArrow=classic;\"\n      }\n    ],\n    \"problems\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/out/new/Own-svg-name.drawio",
+        "id": "<dg:3>",
+        "label": "Own  svg name",
+        "version": 1,
+        "markdown": "[Own  svg name](diagram:<dg:3>)",
+        "model": {
+          "page": "Page-1",
+          "pages": 1,
+          "shapes": [
+            {
+              "id": "n0",
+              "label": "Client",
+              "shape": "rounded",
+              "x": 40.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            },
+            {
+              "id": "n1",
+              "label": "API gateway",
+              "shape": "rounded",
+              "x": 200.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            },
+            {
+              "id": "n2",
+              "label": "Service",
+              "shape": "rounded",
+              "x": 360.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            }
+          ],
+          "links": [
+            {
+              "id": "e0",
+              "label": "yes",
+              "from": "n0",
+              "to": "n1",
+              "style": "endArrow=classic;"
+            },
+            {
+              "id": "e1",
+              "label": "",
+              "from": "n1",
+              "to": "n2",
+              "style": "endArrow=classic;"
+            }
+          ],
+          "problems": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "diagram: to a folder that is not there with a slash [file 1]": {
+    "sha256": "8354fb37d7ffa42188ba312d7d1699acf30c983455b64b8e733397435ec982ba",
+    "name": "Own-svg-name.drawio"
+  },
+  "diagram: to a relative path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Give an absolute path (got 'flow.drawio')."
+      }
+    ],
+    "isError": true
+  },
+  "diagram: to a place that cannot be written": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: <files>/pic.png/x.drawio could not be written (File exists)."
+      }
+    ],
+    "isError": true
+  },
+  "diagram: another project's": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:5>\",\n  \"label\": \"Away\",\n  \"version\": 1,\n  \"markdown\": \"[Away](diagram:<dg:5>)\",\n  \"model\": {\n    \"page\": \"Page-1\",\n    \"pages\": 1,\n    \"shapes\": [\n      {\n        \"id\": \"n0\",\n        \"label\": \"Client\",\n        \"shape\": \"rounded\",\n        \"x\": 40.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      },\n      {\n        \"id\": \"n1\",\n        \"label\": \"API gateway\",\n        \"shape\": \"rounded\",\n        \"x\": 200.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      },\n      {\n        \"id\": \"n2\",\n        \"label\": \"Service\",\n        \"shape\": \"rounded\",\n        \"x\": 360.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      }\n    ],\n    \"links\": [\n      {\n        \"id\": \"e0\",\n        \"label\": \"yes\",\n        \"from\": \"n0\",\n        \"to\": \"n1\",\n        \"style\": \"endArrow=classic;\"\n      },\n      {\n        \"id\": \"e1\",\n        \"label\": \"\",\n        \"from\": \"n1\",\n        \"to\": \"n2\",\n        \"style\": \"endArrow=classic;\"\n      }\n    ],\n    \"problems\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<dg:5>",
+        "label": "Away",
+        "version": 1,
+        "markdown": "[Away](diagram:<dg:5>)",
+        "model": {
+          "page": "Page-1",
+          "pages": 1,
+          "shapes": [
+            {
+              "id": "n0",
+              "label": "Client",
+              "shape": "rounded",
+              "x": 40.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            },
+            {
+              "id": "n1",
+              "label": "API gateway",
+              "shape": "rounded",
+              "x": 200.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            },
+            {
+              "id": "n2",
+              "label": "Service",
+              "shape": "rounded",
+              "x": 360.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            }
+          ],
+          "links": [
+            {
+              "id": "e0",
+              "label": "yes",
+              "from": "n0",
+              "to": "n1",
+              "style": "endArrow=classic;"
+            },
+            {
+              "id": "e1",
+              "label": "",
+              "from": "n1",
+              "to": "n2",
+              "style": "endArrow=classic;"
+            }
+          ],
+          "problems": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "diagram_save: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='diagram_save') requires diagram_id, path, base_version; optional: svg_path, title. Missing: diagram_id, path, base_version."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_save: no base_version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='diagram_save') requires diagram_id, path, base_version; optional: svg_path, title. Missing: base_version."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_save: a diagram that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Diagram not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_save: a stale version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: agent saved a newer version while you were editing. Export the diagram again, re-apply your change on the new version, and save it."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_save: a file that is not a drawing": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: The diagram file is not valid XML (syntax error: line 1, column 0)."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_save: a file that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: path: /no/such/flow.drawio is not a file."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_save: a new version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:2>\",\n  \"label\": \"Request flow\",\n  \"version\": 2,\n  \"preview\": \"plain: boxes, arrows and text only; shapes beyond those show as boxes until someone opens the diagram in the editor and saves\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "diagram_save: with problems and a new name": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:2>\",\n  \"label\": \"Request flow v3\",\n  \"version\": 3,\n  \"preview\": \"plain: boxes, arrows and text only; shapes beyond those show as boxes until someone opens the diagram in the editor and saves\",\n  \"problems\": [\n    \"Link 'e0' points at 'zz', which is not a shape: use the id of a shape on this page (or drop the attribute and give the link sourcePoint / targetPoint).\"\n  ],\n  \"fix\": \"Saved as it is. Fix these in the file and save again (docs_write diagram_save with the new version).\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "diagram_save: with an svg": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:3>\",\n  \"label\": \"Own  svg name\",\n  \"version\": 2,\n  \"preview\": \"your SVG\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "diagram: the new version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:2>\",\n  \"label\": \"Request flow v3\",\n  \"version\": 3,\n  \"markdown\": \"[Request flow v3](diagram:<dg:2>)\",\n  \"model\": {\n    \"page\": \"Page-1\",\n    \"pages\": 1,\n    \"shapes\": [\n      {\n        \"id\": \"n0\",\n        \"label\": \"Alone\",\n        \"shape\": \"rounded\",\n        \"x\": 40.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      },\n      {\n        \"id\": \"n1\",\n        \"label\": \"Another\",\n        \"shape\": \"rounded\",\n        \"x\": 200.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      }\n    ],\n    \"links\": [\n      {\n        \"id\": \"e0\",\n        \"label\": \"yes\",\n        \"from\": \"n0\",\n        \"to\": \"zz\",\n        \"style\": \"endArrow=classic;\"\n      }\n    ],\n    \"problems\": [\n      \"Link 'e0' points at 'zz', which is not a shape: use the id of a shape on this page (or drop the attribute and give the link sourcePoint / targetPoint).\"\n    ]\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<dg:2>",
+        "label": "Request flow v3",
+        "version": 3,
+        "markdown": "[Request flow v3](diagram:<dg:2>)",
+        "model": {
+          "page": "Page-1",
+          "pages": 1,
+          "shapes": [
+            {
+              "id": "n0",
+              "label": "Alone",
+              "shape": "rounded",
+              "x": 40.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            },
+            {
+              "id": "n1",
+              "label": "Another",
+              "shape": "rounded",
+              "x": 200.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            }
+          ],
+          "links": [
+            {
+              "id": "e0",
+              "label": "yes",
+              "from": "n0",
+              "to": "zz",
+              "style": "endArrow=classic;"
+            }
+          ],
+          "problems": [
+            "Link 'e0' points at 'zz', which is not a shape: use the id of a shape on this page (or drop the attribute and give the link sourcePoint / targetPoint)."
+          ]
+        }
+      }
+    },
+    "isError": false
+  },
+  "diagram: the first version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:2>\",\n  \"label\": \"Request flow v3\",\n  \"version\": 3,\n  \"markdown\": \"[Request flow v3](diagram:<dg:2>)\",\n  \"model\": {\n    \"page\": \"Page-1\",\n    \"pages\": 1,\n    \"shapes\": [\n      {\n        \"id\": \"n0\",\n        \"label\": \"Client\",\n        \"shape\": \"rounded\",\n        \"x\": 40.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      },\n      {\n        \"id\": \"n1\",\n        \"label\": \"API gateway\",\n        \"shape\": \"rounded\",\n        \"x\": 200.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      },\n      {\n        \"id\": \"n2\",\n        \"label\": \"Service\",\n        \"shape\": \"rounded\",\n        \"x\": 360.0,\n        \"y\": 40.0,\n        \"w\": 120.0,\n        \"h\": 60.0,\n        \"style\": \"rounded=1;fillColor=#E6F2EA;\"\n      }\n    ],\n    \"links\": [\n      {\n        \"id\": \"e0\",\n        \"label\": \"yes\",\n        \"from\": \"n0\",\n        \"to\": \"n1\",\n        \"style\": \"endArrow=classic;\"\n      },\n      {\n        \"id\": \"e1\",\n        \"label\": \"\",\n        \"from\": \"n1\",\n        \"to\": \"n2\",\n        \"style\": \"endArrow=classic;\"\n      }\n    ],\n    \"problems\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<dg:2>",
+        "label": "Request flow v3",
+        "version": 3,
+        "markdown": "[Request flow v3](diagram:<dg:2>)",
+        "model": {
+          "page": "Page-1",
+          "pages": 1,
+          "shapes": [
+            {
+              "id": "n0",
+              "label": "Client",
+              "shape": "rounded",
+              "x": 40.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            },
+            {
+              "id": "n1",
+              "label": "API gateway",
+              "shape": "rounded",
+              "x": 200.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            },
+            {
+              "id": "n2",
+              "label": "Service",
+              "shape": "rounded",
+              "x": 360.0,
+              "y": 40.0,
+              "w": 120.0,
+              "h": 60.0,
+              "style": "rounded=1;fillColor=#E6F2EA;"
+            }
+          ],
+          "links": [
+            {
+              "id": "e0",
+              "label": "yes",
+              "from": "n0",
+              "to": "n1",
+              "style": "endArrow=classic;"
+            },
+            {
+              "id": "e1",
+              "label": "",
+              "from": "n1",
+              "to": "n2",
+              "style": "endArrow=classic;"
+            }
+          ],
+          "problems": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "diagram_delete: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='diagram_delete') requires diagram_id. Missing: diagram_id."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_delete: one that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Diagram not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_delete: a diagram": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:4>\",\n  \"deleted_at\": \"<time>\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "diagram_delete: again": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Diagram not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "diagram: a deleted one": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Diagram not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "diagrams: after the delete": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:3>\",\n  \"label\": \"Own  svg name\",\n  \"version\": 2,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"summary\": \"\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:2>\",\n  \"label\": \"Request flow v3\",\n  \"version\": 3,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"summary\": \"Client to service\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:1>\",\n  \"label\": \"Flow\",\n  \"version\": 1,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"summary\": \"\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<dg:3>",
+          "label": "Own  svg name",
+          "version": 2,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "summary": ""
+        },
+        {
+          "id": "<dg:2>",
+          "label": "Request flow v3",
+          "version": 3,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "summary": "Client to service"
+        },
+        {
+          "id": "<dg:1>",
+          "label": "Flow",
+          "version": 1,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "summary": ""
+        }
+      ]
+    },
+    "isError": false
+  },
+  "diagram_restore: a diagram": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:4>\",\n  \"label\": \"Lonely\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "diagram_restore: one that is not deleted": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<dg:4>\",\n  \"label\": \"Lonely\",\n  \"version\": 1\n}"
+      }
+    ],
+    "isError": false
+  },
+  "diagram_restore: one that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Diagram not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "diagram_restore: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='diagram_restore') requires diagram_id. Missing: diagram_id."
+      }
+    ],
+    "isError": true
+  },
+  "page: a diagram in a page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Design\",\n  \"version\": 2,\n  \"published\": true\n}"
+      }
+    ],
+    "isError": false
+  },
+  "page: the diagram is pinned": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Design\",\n  \"slug\": \"design\",\n  \"status\": \"published\",\n  \"version\": 2,\n  \"markdown\": \"## Flow\\n\\n[Request flow](diagram:$dg1)\\n\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Flow\",\n      \"slug\": \"flow\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "id": "<uuid:4>",
+        "project_id": "<uuid:1>",
+        "parent_id": null,
+        "title": "Design",
+        "slug": "design",
+        "status": "published",
+        "version": 2,
+        "markdown": "## Flow\n\n[Request flow](diagram:$dg1)\n",
+        "headings": [
+          {
+            "level": 2,
+            "text": "Flow",
+            "slug": "flow"
+          }
+        ],
+        "updated_by": "agent",
+        "updated_at": "<time>",
+        "referenced_by": {
+          "pages": [],
+          "tickets": []
+        }
+      }
+    },
+    "isError": false
+  },
+  "sketches: none yet": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "sketches: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='sketches') requires project_id. Missing: project_id."
+      }
+    ],
+    "isError": true
+  },
+  "sketch: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='sketch') requires sketch_id, path. Missing: sketch_id, path."
+      }
+    ],
+    "isError": true
+  },
+  "sketch: no path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='sketch') requires sketch_id, path. Missing: path."
+      }
+    ],
+    "isError": true
+  },
+  "sketch: one that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Sketch not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='sketch_create') requires owner_kind, owner_id, title, path; optional: source_path. Missing: owner_kind, owner_id, title, path."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: no path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='sketch_create') requires owner_kind, owner_id, title, path; optional: source_path. Missing: path."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: an owner kind that is not one": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='sketch_create'): owner_kind: Input should be 'ticket' or 'doc'"
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: an owner kind unknown": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\nowner_kind\n  Input should be 'ticket', 'doc' or 'idea' [type=literal_error, input_value='comment', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: an owner that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: No ticket with id 'NOPE-1'."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: a page that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: No Docs page with id 'nope'."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: a file that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: The picture is not a file: /no/such.png."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: a relative path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Give an absolute path for the picture (got 'dot.png')."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: not a picture": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: The picture is not a PNG image."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: a picture over 10 MB": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: This drawing is too large to save. The limit is 4096 × 4096 px and 10 MB. Crop it or shrink the canvas."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: a source that is not a sketch": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: This is not a sketch source (wrong format)."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: a source that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: The source is not a file: /no/such.json."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: a source of another size": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: The size in the source does not match the picture."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: a source with too many layers": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: A drawing has 1 to 10 layers (this one has 11). Merge some layers."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_create: a picture": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sk:6>\",\n  \"title\": \"Dot sketch\",\n  \"version\": 1,\n  \"markdown\": \"![Dot sketch](sketch:<sk:6>)\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "sketch_create: a picture on a page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sk:7>\",\n  \"title\": \"Dot\",\n  \"version\": 1,\n  \"markdown\": \"![Dot](sketch:<sk:7>)\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "sketch_create: with its source on a ticket": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sk:8>\",\n  \"title\": \"Dot with layers\",\n  \"version\": 1,\n  \"markdown\": \"![Dot with layers](sketch:<sk:8>)\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "sketches: the list": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sk:8>\",\n  \"title\": \"Dot with layers\",\n  \"owner_kind\": \"ticket\",\n  \"owner_id\": \"DRW-1\",\n  \"version\": 1,\n  \"width\": 1,\n  \"height\": 1,\n  \"layers\": 1,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"markdown\": \"![Dot with layers](sketch:<sk:8>)\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sk:7>\",\n  \"title\": \"Dot\",\n  \"owner_kind\": \"doc\",\n  \"owner_id\": \"<uuid:4>\",\n  \"version\": 1,\n  \"width\": 1,\n  \"height\": 1,\n  \"layers\": 3,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"markdown\": \"![Dot](sketch:<sk:7>)\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sk:6>\",\n  \"title\": \"Dot sketch\",\n  \"owner_kind\": \"doc\",\n  \"owner_id\": \"<uuid:4>\",\n  \"version\": 1,\n  \"width\": 1,\n  \"height\": 1,\n  \"layers\": 3,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"markdown\": \"![Dot sketch](sketch:<sk:6>)\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<sk:8>",
+          "title": "Dot with layers",
+          "owner_kind": "ticket",
+          "owner_id": "DRW-1",
+          "version": 1,
+          "width": 1,
+          "height": 1,
+          "layers": 1,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "markdown": "![Dot with layers](sketch:<sk:8>)"
+        },
+        {
+          "id": "<sk:7>",
+          "title": "Dot",
+          "owner_kind": "doc",
+          "owner_id": "<uuid:4>",
+          "version": 1,
+          "width": 1,
+          "height": 1,
+          "layers": 3,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "markdown": "![Dot](sketch:<sk:7>)"
+        },
+        {
+          "id": "<sk:6>",
+          "title": "Dot sketch",
+          "owner_kind": "doc",
+          "owner_id": "<uuid:4>",
+          "version": 1,
+          "width": 1,
+          "height": 1,
+          "layers": 3,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "markdown": "![Dot sketch](sketch:<sk:6>)"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "sketches: a project that does not exist": {
+    "content": [],
+    "structuredContent": {
+      "result": []
+    },
+    "isError": false
+  },
+  "sketch: to a folder": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"png_path\": \"<files>/sk/Dot-with-layers.png\",\n  \"source_path\": \"<files>/sk/Dot-with-layers.sketch.json\",\n  \"id\": \"<sk:8>\",\n  \"title\": \"Dot with layers\",\n  \"version\": 1,\n  \"width\": 1,\n  \"height\": 1,\n  \"layers\": 1,\n  \"markdown\": \"![Dot with layers](sketch:<sk:8>)\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "png_path": "<files>/sk/Dot-with-layers.png",
+        "source_path": "<files>/sk/Dot-with-layers.sketch.json",
+        "id": "<sk:8>",
+        "title": "Dot with layers",
+        "version": 1,
+        "width": 1,
+        "height": 1,
+        "layers": 1,
+        "markdown": "![Dot with layers](sketch:<sk:8>)"
+      }
+    },
+    "isError": false
+  },
+  "sketch: to a folder [file 1]": {
+    "sha256": "8cf8513dd0fb04730604640ba5a61a5277b0bb0f3f446b5047b7ad17438e0732",
+    "name": "Dot-with-layers.png"
+  },
+  "sketch: to a folder [file 2]": {
+    "sha256": "ad75fddda5d51b438ec4b8bae3509e526accfeb06b4f752099bbe930b63031e2",
+    "name": "Dot-with-layers.sketch.json"
+  },
+  "sketch: to a png path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"png_path\": \"<files>/sk/mine.png\",\n  \"source_path\": \"<files>/sk/mine.sketch.json\",\n  \"id\": \"<sk:7>\",\n  \"title\": \"Dot\",\n  \"version\": 1,\n  \"width\": 1,\n  \"height\": 1,\n  \"layers\": 3,\n  \"markdown\": \"![Dot](sketch:<sk:7>)\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "png_path": "<files>/sk/mine.png",
+        "source_path": "<files>/sk/mine.sketch.json",
+        "id": "<sk:7>",
+        "title": "Dot",
+        "version": 1,
+        "width": 1,
+        "height": 1,
+        "layers": 3,
+        "markdown": "![Dot](sketch:<sk:7>)"
+      }
+    },
+    "isError": false
+  },
+  "sketch: to a png path [file 1]": {
+    "sha256": "8cf8513dd0fb04730604640ba5a61a5277b0bb0f3f446b5047b7ad17438e0732",
+    "name": "mine.png"
+  },
+  "sketch: to a png path [file 2]": {
+    "sha256": "48fe551fe9bac8b85e053591ddce2483df9c83e657d6c9d0475d0b0faba360ee",
+    "name": "mine.sketch.json"
+  },
+  "sketch: to a relative path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Give an absolute path (got 'mine.png')."
+      }
+    ],
+    "isError": true
+  },
+  "sketch: to a folder with a slash": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"png_path\": \"<files>/sk/fresh/Dot.png\",\n  \"source_path\": \"<files>/sk/fresh/Dot.sketch.json\",\n  \"id\": \"<sk:7>\",\n  \"title\": \"Dot\",\n  \"version\": 1,\n  \"width\": 1,\n  \"height\": 1,\n  \"layers\": 3,\n  \"markdown\": \"![Dot](sketch:<sk:7>)\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "png_path": "<files>/sk/fresh/Dot.png",
+        "source_path": "<files>/sk/fresh/Dot.sketch.json",
+        "id": "<sk:7>",
+        "title": "Dot",
+        "version": 1,
+        "width": 1,
+        "height": 1,
+        "layers": 3,
+        "markdown": "![Dot](sketch:<sk:7>)"
+      }
+    },
+    "isError": false
+  },
+  "sketch: to a folder with a slash [file 1]": {
+    "sha256": "8cf8513dd0fb04730604640ba5a61a5277b0bb0f3f446b5047b7ad17438e0732",
+    "name": "Dot.png"
+  },
+  "sketch: to a folder with a slash [file 2]": {
+    "sha256": "48fe551fe9bac8b85e053591ddce2483df9c83e657d6c9d0475d0b0faba360ee",
+    "name": "Dot.sketch.json"
+  },
+  "sketch_save: nothing else": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='sketch_save') requires sketch_id, path, base_version; optional: source_path, title. Missing: sketch_id, path, base_version."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_save: no base_version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: docs_write(action='sketch_save') requires sketch_id, path, base_version; optional: source_path, title. Missing: base_version."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_save: one that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: Sketch not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_save: a stale version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: agent saved this drawing while you were drawing. Export the sketch again, re-apply your change on the new version, and save it."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_save: a file that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: The picture is not a file: /no/such.png."
+      }
+    ],
+    "isError": true
+  },
+  "sketch_save: a new version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sk:7>\",\n  \"title\": \"Dot v2\",\n  \"version\": 2\n}"
+      }
+    ],
+    "isError": false
+  },
+  "sketch_save: with its source": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sk:8>\",\n  \"title\": \"Dot with layers\",\n  \"version\": 2\n}"
+      }
+    ],
+    "isError": false
+  },
+  "sketch_save: a source that is not a sketch": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_write: This is not a sketch source (wrong format)."
+      }
+    ],
+    "isError": true
+  },
+  "sketches: after the saves": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sk:8>\",\n  \"title\": \"Dot with layers\",\n  \"owner_kind\": \"ticket\",\n  \"owner_id\": \"DRW-1\",\n  \"version\": 2,\n  \"width\": 1,\n  \"height\": 1,\n  \"layers\": 1,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"markdown\": \"![Dot with layers](sketch:<sk:8>)\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sk:7>\",\n  \"title\": \"Dot v2\",\n  \"owner_kind\": \"doc\",\n  \"owner_id\": \"<uuid:4>\",\n  \"version\": 2,\n  \"width\": 1,\n  \"height\": 1,\n  \"layers\": 3,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"markdown\": \"![Dot v2](sketch:<sk:7>)\"\n}"
+      },
+      {
+        "type": "text",
+        "text": "{\n  \"id\": \"<sk:6>\",\n  \"title\": \"Dot sketch\",\n  \"owner_kind\": \"doc\",\n  \"owner_id\": \"<uuid:4>\",\n  \"version\": 1,\n  \"width\": 1,\n  \"height\": 1,\n  \"layers\": 3,\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"markdown\": \"![Dot sketch](sketch:<sk:6>)\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": [
+        {
+          "id": "<sk:8>",
+          "title": "Dot with layers",
+          "owner_kind": "ticket",
+          "owner_id": "DRW-1",
+          "version": 2,
+          "width": 1,
+          "height": 1,
+          "layers": 1,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "markdown": "![Dot with layers](sketch:<sk:8>)"
+        },
+        {
+          "id": "<sk:7>",
+          "title": "Dot v2",
+          "owner_kind": "doc",
+          "owner_id": "<uuid:4>",
+          "version": 2,
+          "width": 1,
+          "height": 1,
+          "layers": 3,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "markdown": "![Dot v2](sketch:<sk:7>)"
+        },
+        {
+          "id": "<sk:6>",
+          "title": "Dot sketch",
+          "owner_kind": "doc",
+          "owner_id": "<uuid:4>",
+          "version": 1,
+          "width": 1,
+          "height": 1,
+          "layers": 3,
+          "updated_by": "agent",
+          "updated_at": "<time>",
+          "markdown": "![Dot sketch](sketch:<sk:6>)"
+        }
+      ]
+    },
+    "isError": false
+  },
+  "picture: nothing": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Give diagram_id, canvas_id (+ board_id) or sketch_id, or `path` of a local .drawio, .svg, .html file or frame folder to look at."
+      }
+    ],
+    "isError": true
+  },
+  "picture: two ids": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Give one of diagram_id, canvas_id or sketch_id."
+      }
+    ],
+    "isError": true
+  },
+  "picture: a parameter it does not use": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: docs_read(action='picture') does not use: query. It requires nothing else; optional: path, diagram_id, version, canvas_id, board_id, sketch_id, width."
+      }
+    ],
+    "isError": true
+  },
+  "picture: a diagram that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Diagram not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "picture: a version that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Diagram version 9 not found"
+      }
+    ],
+    "isError": true
+  },
+  "picture: a sketch that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Sketch not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "picture: a canvas that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Canvas not found. It was deleted, or you do not have access."
+      }
+    ],
+    "isError": true
+  },
+  "picture: a relative path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Give an absolute path (got 'flow.drawio')."
+      }
+    ],
+    "isError": true
+  },
+  "picture: a file that does not exist": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: /no/such/flow.drawio does not exist: write the file first, then look."
+      }
+    ],
+    "isError": true
+  },
+  "picture: a file of a type it cannot draw": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: notes.txt: a picture is drawn of a frame folder or an .html, .svg or .drawio file."
+      }
+    ],
+    "isError": true
+  },
+  "picture: a folder without a page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: <files>/nopage has no index.html: give a frame folder, an .html, .svg or .drawio file."
+      }
+    ],
+    "isError": true
+  },
+  "picture: a drawing that is not a drawing": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: The diagram file is not valid XML (syntax error: line 1, column 0)."
+      }
+    ],
+    "isError": true
+  },
+  "picture: a diagram": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/pic/diagram.png\",\n  \"width\": 320,\n  \"height\": 100,\n  \"drawn_by\": \"browser\",\n  \"note\": \"Drawn by the board's plain renderer (boxes, ellipses, diamonds, cylinders, arrows, text); other shapes show as boxes and the editor draws them exactly.\",\n  \"markdown\": \"![Request flow v3](/uploads/diagram-<random>.png)\",\n  \"look\": \"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/pic/diagram.png",
+        "width": 320,
+        "height": 100,
+        "drawn_by": "browser",
+        "note": "Drawn by the board's plain renderer (boxes, ellipses, diamonds, cylinders, arrows, text); other shapes show as boxes and the editor draws them exactly.",
+        "markdown": "![Request flow v3](/uploads/diagram-<random>.png)",
+        "look": "Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page."
+      }
+    },
+    "isError": false
+  },
+  "picture: a diagram [file 1]": {
+    "sha256": "<not compared>",
+    "name": "diagram.png"
+  },
+  "picture: a diagram of the first version": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/pic/v1/Request-flow-v3.png\",\n  \"width\": 480,\n  \"height\": 100,\n  \"drawn_by\": \"browser\",\n  \"note\": \"Drawn by the board's plain renderer (boxes, ellipses, diamonds, cylinders, arrows, text); other shapes show as boxes and the editor draws them exactly.\",\n  \"markdown\": \"![Request flow v3](/uploads/Request-flow-v3-<random>.png)\",\n  \"look\": \"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/pic/v1/Request-flow-v3.png",
+        "width": 480,
+        "height": 100,
+        "drawn_by": "browser",
+        "note": "Drawn by the board's plain renderer (boxes, ellipses, diamonds, cylinders, arrows, text); other shapes show as boxes and the editor draws them exactly.",
+        "markdown": "![Request flow v3](/uploads/Request-flow-v3-<random>.png)",
+        "look": "Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page."
+      }
+    },
+    "isError": false
+  },
+  "picture: a diagram of the first version [file 1]": {
+    "sha256": "<not compared>",
+    "name": "Request-flow-v3.png"
+  },
+  "picture: a diagram with its own svg": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/pic/own.png\",\n  \"width\": 200,\n  \"height\": 100,\n  \"drawn_by\": \"browser\",\n  \"markdown\": \"![Own  svg name](/uploads/own-<random>.png)\",\n  \"look\": \"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/pic/own.png",
+        "width": 200,
+        "height": 100,
+        "drawn_by": "browser",
+        "markdown": "![Own  svg name](/uploads/own-<random>.png)",
+        "look": "Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page."
+      }
+    },
+    "isError": false
+  },
+  "picture: a diagram with its own svg [file 1]": {
+    "sha256": "<not compared>",
+    "name": "own.png"
+  },
+  "picture: a sketch": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/pic/sketch.png\",\n  \"width\": 1,\n  \"height\": 1,\n  \"drawn_by\": \"stored\",\n  \"markdown\": \"![Dot v2](/uploads/sketch-<random>.png)\",\n  \"look\": \"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/pic/sketch.png",
+        "width": 1,
+        "height": 1,
+        "drawn_by": "stored",
+        "markdown": "![Dot v2](/uploads/sketch-<random>.png)",
+        "look": "Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page."
+      }
+    },
+    "isError": false
+  },
+  "picture: a sketch [file 1]": {
+    "sha256": "8cf8513dd0fb04730604640ba5a61a5277b0bb0f3f446b5047b7ad17438e0732",
+    "name": "sketch.png"
+  },
+  "picture: a sketch to a relative path": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error executing tool docs_read: Give an absolute path for the picture (got 'sketch.png')."
+      }
+    ],
+    "isError": true
+  },
+  "picture: a local drawing": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/flow2.png\",\n  \"width\": 640,\n  \"height\": 100,\n  \"drawn_by\": \"browser\",\n  \"note\": \"Drawn by the board's plain renderer (boxes, ellipses, diamonds, cylinders, arrows, text); other shapes show as boxes and the editor draws them exactly.\",\n  \"markdown\": \"![flow2](/uploads/flow2-<random>.png)\",\n  \"look\": \"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/flow2.png",
+        "width": 640,
+        "height": 100,
+        "drawn_by": "browser",
+        "note": "Drawn by the board's plain renderer (boxes, ellipses, diamonds, cylinders, arrows, text); other shapes show as boxes and the editor draws them exactly.",
+        "markdown": "![flow2](/uploads/flow2-<random>.png)",
+        "look": "Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page."
+      }
+    },
+    "isError": false
+  },
+  "picture: a local drawing [file 1]": {
+    "sha256": "<not compared>",
+    "name": "flow2.png"
+  },
+  "picture: a local svg": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/flow.png\",\n  \"width\": 200,\n  \"height\": 100,\n  \"drawn_by\": \"browser\",\n  \"markdown\": \"![flow](/uploads/flow-<random>.png)\",\n  \"look\": \"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/flow.png",
+        "width": 200,
+        "height": 100,
+        "drawn_by": "browser",
+        "markdown": "![flow](/uploads/flow-<random>.png)",
+        "look": "Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page."
+      }
+    },
+    "isError": false
+  },
+  "picture: a local svg [file 1]": {
+    "sha256": "<not compared>",
+    "name": "flow.png"
+  },
+  "picture: a local svg at a width": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/flow.png\",\n  \"width\": 400,\n  \"height\": 200,\n  \"drawn_by\": \"browser\",\n  \"markdown\": \"![flow](/uploads/flow-<random>.png)\",\n  \"look\": \"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/flow.png",
+        "width": 400,
+        "height": 200,
+        "drawn_by": "browser",
+        "markdown": "![flow](/uploads/flow-<random>.png)",
+        "look": "Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page."
+      }
+    },
+    "isError": false
+  },
+  "picture: a local svg at a width [file 1]": {
+    "sha256": "<not compared>",
+    "name": "flow.png"
+  },
+  "picture: a local page": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/flat.png\",\n  \"width\": 1280,\n  \"height\": 800,\n  \"drawn_by\": \"browser\",\n  \"markdown\": \"![flat](/uploads/flat-<random>.png)\",\n  \"look\": \"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/flat.png",
+        "width": 1280,
+        "height": 800,
+        "drawn_by": "browser",
+        "markdown": "![flat](/uploads/flat-<random>.png)",
+        "look": "Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page."
+      }
+    },
+    "isError": false
+  },
+  "picture: a local page [file 1]": {
+    "sha256": "<not compared>",
+    "name": "flat.png"
+  },
+  "picture: a frame folder": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/canvas/01-home.png\",\n  \"width\": 390,\n  \"height\": 2011,\n  \"drawn_by\": \"browser\",\n  \"markdown\": \"![01-home](/uploads/01-home-<random>.png)\",\n  \"look\": \"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/canvas/01-home.png",
+        "width": 390,
+        "height": 2011,
+        "drawn_by": "browser",
+        "markdown": "![01-home](/uploads/01-home-<random>.png)",
+        "look": "Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page."
+      }
+    },
+    "isError": false
+  },
+  "picture: a frame folder [file 1]": {
+    "sha256": "<not compared>",
+    "name": "01-home.png"
+  },
+  "picture: a frame folder at a width": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/canvas/02-detail.png\",\n  \"width\": 390,\n  \"height\": 2011,\n  \"drawn_by\": \"browser\",\n  \"markdown\": \"![02-detail](/uploads/02-detail-<random>.png)\",\n  \"look\": \"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/canvas/02-detail.png",
+        "width": 390,
+        "height": 2011,
+        "drawn_by": "browser",
+        "markdown": "![02-detail](/uploads/02-detail-<random>.png)",
+        "look": "Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page."
+      }
+    },
+    "isError": false
+  },
+  "picture: a frame folder at a width [file 1]": {
+    "sha256": "<not compared>",
+    "name": "02-detail.png"
+  },
+  "picture: a frame folder of a tablet": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"path\": \"<files>/canvas/03-notes.png\",\n  \"width\": 1280,\n  \"height\": 800,\n  \"drawn_by\": \"browser\",\n  \"markdown\": \"![03-notes](/uploads/03-notes-<random>.png)\",\n  \"look\": \"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "path": "<files>/canvas/03-notes.png",
+        "width": 1280,
+        "height": 800,
+        "drawn_by": "browser",
+        "markdown": "![03-notes](/uploads/03-notes-<random>.png)",
+        "look": "Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page."
+      }
+    },
+    "isError": false
+  },
+  "picture: a frame folder of a tablet [file 1]": {
+    "sha256": "<not compared>",
+    "name": "03-notes.png"
+  }
+}
