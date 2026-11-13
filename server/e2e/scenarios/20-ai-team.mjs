@@ -230,7 +230,7 @@ export default {
       await d.getByText('Edited calc.py').waitFor();
       await d.getByText(/Ran pytest -q API_TOKEN=•+ · exit 0/).waitFor();
       await d.getByText(/Asked reviewer: Review the diff/).waitFor();
-      await d.getByRole('button', { name: /^reviewer 2 steps/ }).waitFor();
+      await d.getByRole('button', { name: /^(reviewer|role) 2 steps/ }).waitFor();
       await d.getByText('Wrote the final report').waitFor();
       await d.getByText(/Files touched/).waitFor();
       await d.getByText('calc.py').first().waitFor();
@@ -242,7 +242,7 @@ export default {
       if (body.includes('secret123456')) throw new Error('a secret is shown in the run detail');
       await d.getByRole('button', { name: 'Collapse all' }).click();
       await d.getByRole('button', { name: 'Expand all' }).click();
-      await d.getByRole('button', { name: /^reviewer 2 steps/ }).click();
+      await d.getByRole('button', { name: /^(reviewer|role) 2 steps/ }).click();
       await d.getByText('git diff --stat').first().waitFor();
       await d.getByText('Show run #1').count();
       await d.getByRole('button', { name: 'Show run #1' }).waitFor();
@@ -257,7 +257,7 @@ export default {
       await d.getByText(`${TEAM} asks a question`).waitFor({ timeout: 40000 });
       await d.getByText('Which database: SQLite or PostgreSQL?').first().waitFor();
       await d.getByRole('button', { name: 'Answer and resume' }).waitFor();
-      await d.getByText(/Waiting on/).first().waitFor();
+      await d.getByText('Needs input', { exact: true }).first().waitFor();
       await closeTicket(s);
       await p.getByText(/Asks user: Which database/).waitFor();
       await p.getByRole('button', { name: /^Notifications, 1 needs you/ }).waitFor();
@@ -270,13 +270,109 @@ export default {
       await d.getByRole('textbox', { name: 'Type an answer…' }).fill('SQLite');
       await d.getByRole('button', { name: 'Answer and resume' }).click();
       await d.getByRole('button', { name: 'Answer and resume' }).waitFor({ state: 'detached', timeout: 40000 });
-      await d.getByRole('tab', { name: 'AI activity' }).click();
-      await d.getByText(/Run #\d+ finished/).waitFor({ timeout: 40000 });
-      await d.getByRole('button', { name: 'Open run ›' }).click();
-      await d.getByText(/Done with your answer/).first().waitFor();
+      await d.getByText(/Done with your answer: .*SQLite/).first().waitFor({ timeout: 40000 });
+      await d.getByText('Finished', { exact: true }).first().waitFor();
       await closeTicket(s);
       await p.getByRole('button', { name: /ALP-1 Fix add Finished/ }).waitFor();
       await p.getByRole('button', { name: /^Notifications, 1 needs you/ }).waitFor({ state: 'detached' });
+    });
+
+    await s.step('AI Team: Now lists the team, the recent runs and the spend', async () => {
+      await aiTeamView();
+      await p.getByRole('tab', { name: 'Now', exact: true }).and(p.locator('[aria-selected="true"]')).waitFor();
+      await p.getByText(/0 running/).first().waitFor();
+      await p.getByText(/0 waiting for you/).first().waitFor();
+      await p.getByRole('heading', { name: 'Needs you', level: 2 }).waitFor();
+      await p.getByText('Nothing waits for you.').waitFor();
+      await p.getByRole('heading', { name: 'Teams', level: 2 }).waitFor();
+      await p.getByRole('button', { name: TEAM, exact: true }).waitFor();
+      await p.getByText(/Standard feature/).first().waitFor();
+      await p.getByRole('heading', { name: 'Active runs', level: 2 }).waitFor();
+      await p.getByText('No run is active.').waitFor();
+      await p.getByRole('heading', { name: 'Recent', level: 2 }).waitFor();
+      await p.getByRole('button', { name: 'ALP-1', exact: true }).first().waitFor();
+      await p.getByRole('heading', { name: 'Spend today', level: 2 }).waitFor();
+      await p.getByText(/2 runs today/).first().waitFor();
+      await p.getByRole('button', { name: 'Open run' }).first().click();
+      await p.getByText('Fixed add(); tests pass.').first().waitFor();
+    });
+
+    await s.step('AI Team: Flow shows the map and the timeline of the team', async () => {
+      await aiTeamView('Flow');
+      await p.getByRole('navigation', { name: 'What Flow looks at' }).getByText('All teams').waitFor();
+      await p.getByText(/1 team · 1 ticket with AI work/).waitFor();
+      const map = p.getByRole('group', { name: 'Map of the teams, you and the tickets' });
+      await map.getByRole('button', { name: TEAM }).waitFor();
+      await map.getByRole('button', { name: /^ALP-1 Backlog Fix add/ }).waitFor();
+      await map.getByRole('button', { name: 'Look at the flow of ALP-1' }).click();
+      await p.getByRole('navigation', { name: 'What Flow looks at' }).getByText('ALP-1').waitFor();
+      await p.getByRole('group', { name: 'View' }).getByRole('button', { name: 'Timeline' }).click();
+      await p.getByRole('button', { name: /^ALP-1 · run 1, finished/ }).waitFor();
+      await p.getByRole('button', { name: /^ALP-1 · run 2, finished/ }).waitFor();
+      await p.getByRole('button', { name: 'Range' }).waitFor();
+      await p.getByRole('button', { name: 'Table' }).click();
+      await p.getByRole('table').first().waitFor();
+    });
+
+    await s.step('AI Team: Run history filters the runs', async () => {
+      await aiTeamView('Run history');
+      const rows = () => p.getByRole('button', { name: 'ALP-1', exact: true });
+      await until(async () => (await rows().count()) === 2, 'two runs in the history');
+      await p.getByText('Finished', { exact: true }).first().waitFor();
+      await p.getByRole('radio', { name: 'Failed' }).click();
+      await until(async () => (await rows().count()) === 0, 'no failed run');
+      await p.getByRole('radio', { name: 'Waiting for you' }).click();
+      await until(async () => (await rows().count()) === 0, 'no run waiting for you');
+      await p.getByRole('radio', { name: 'Finished' }).click();
+      await until(async () => (await rows().count()) === 2, 'the finished runs');
+      await rows().first().click();
+      await p.getByText('Fixed add(); tests pass.').first().waitFor();
+    });
+
+    await s.step('AI Team: You stepped in counts the answer the person gave', async () => {
+      await aiTeamView('You stepped in');
+      await p.getByText(/Touches/).first().waitFor();
+      await p.getByText(/1 ticket with AI work/).first().waitFor();
+      await p.getByRole('button', { name: /^Not marked/ }).waitFor();
+      await p.getByRole('button', { name: 'Range' }).waitFor();
+    });
+
+    await s.step('AI Team: Health says it is too early to judge', async () => {
+      await aiTeamView('Health');
+      await p.getByText('Not enough to judge yet').waitFor();
+      await p.getByText(/Reliability/).first().waitFor();
+      await p.getByText(/Autonomy/).first().waitFor();
+      await p.getByRole('button', { name: TEAM, exact: true }).waitFor();
+      await p.getByText(/What to fix/).first().waitFor();
+    });
+
+    await s.step('AI Team: Resources shows the machine and the limits', async () => {
+      await aiTeamView('Resources');
+      await p.getByText('No AI is running right now.').waitFor();
+      await p.getByText(/Machine RAM/).waitFor();
+      await p.getByText(/Machine load/).waitFor();
+      await p.getByRole('button', { name: 'ALP-1', exact: true }).first().waitFor();
+      await p.getByRole('spinbutton', { name: 'Memory of one run (MB)' }).fill('2048');
+      await p.getByRole('spinbutton', { name: 'Memory of one run (MB)' }).blur();
+      await s.settle();
+      await aiTeamView('Resources');
+      await until(async () => (await p.getByRole('spinbutton', { name: 'Memory of one run (MB)' }).inputValue()) === '2048', 'the saved memory limit');
+      await p.getByRole('spinbutton', { name: 'Memory of one run (MB)' }).fill('4096');
+      await p.getByRole('spinbutton', { name: 'Memory of one run (MB)' }).blur();
+      await s.settle();
+    });
+
+    await s.step('AI Team: Memory keeps the lesson the run proposed and takes a new one', async () => {
+      await aiTeamView('Memory');
+      await p.getByRole('tab', { name: /^Memory \d/ }).and(p.locator('[aria-selected="true"]')).waitFor();
+      await p.getByText('Run pytest -q from the server folder.').waitFor();
+      await p.getByRole('button', { name: 'Add a lesson' }).click();
+      await p.getByRole('textbox').last().fill('Never push to main.');
+      await p.getByRole('button', { name: /^(Save|Add)/ }).last().click();
+      await p.getByText('Never push to main.').waitFor();
+      await p.getByRole('tab', { name: 'Instructions' }).click();
+      await p.getByRole('tab', { name: 'Knowledge base' }).click();
+      await p.getByRole('tab', { name: /^Memory \d/ }).click();
     });
   },
 };
