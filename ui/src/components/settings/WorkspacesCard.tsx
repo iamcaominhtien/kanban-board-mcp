@@ -33,12 +33,14 @@ export function WorkspacesCard() {
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>(null);
+  // the answer to Add sits under the button: the form is long, and the card's own status line is off screen
+  const [addStatus, setAddStatus] = useState<Status>(null);
   const isElectron = !!window.electronAPI?.selectFolder;
   const items = data?.items ?? [];
   const switchable = data?.switchable ?? false;
 
   async function handleAdd() {
-    setStatus(null);
+    setAddStatus(null);
     try {
       await add.mutateAsync({
         name,
@@ -48,9 +50,9 @@ export function WorkspacesCard() {
       setName('');
       setFolder('');
       setDraft(emptyDraft('sqlite'));
-      setStatus({ ok: true, text: 'Workspace added. Switch to it when you are ready.' });
+      setAddStatus({ ok: true, text: 'Workspace added. Switch to it when you are ready.' });
     } catch (e) {
-      setStatus({ ok: false, text: workspaceError(e, 'Could not add the workspace') });
+      setAddStatus({ ok: false, text: workspaceError(e, 'Could not add the workspace') });
     }
   }
 
@@ -201,7 +203,7 @@ export function WorkspacesCard() {
           value={name}
           onChange={(e) => {
             setName(e.target.value);
-            setStatus(null);
+            setAddStatus(null);
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && name.trim()) void handleAdd();
@@ -215,7 +217,7 @@ export function WorkspacesCard() {
           value={draft.engine}
           onChange={(e) => {
             setDraft(emptyDraft(e.target.value as ConnectionDraft['engine']));
-            setStatus(null);
+            setAddStatus(null);
           }}
         >
           <option value="sqlite">A file on this computer (SQLite)</option>
@@ -228,7 +230,7 @@ export function WorkspacesCard() {
           draft={draft}
           onChange={(d) => {
             setDraft(d);
-            setStatus(null);
+            setAddStatus(null);
           }}
           passwordStore={database.data?.passwordStore ?? 'file'}
           sqlitePath=""
@@ -270,6 +272,11 @@ export function WorkspacesCard() {
           {add.isPending ? 'Adding…' : 'Add workspace'}
         </button>
       </div>
+      {addStatus && (
+        <span className={addStatus.ok ? styles.statusOk : styles.statusErr} role="status">
+          {addStatus.text}
+        </span>
+      )}
       <div className={styles.hint}>
         Claude Code and VS Code follow the switch by themselves within a few seconds. AI runs must be finished first.
       </div>
