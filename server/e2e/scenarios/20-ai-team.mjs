@@ -55,6 +55,12 @@ export default {
       await nav().getByRole('button', { name: 'AI', exact: true }).click();
       await p.getByRole('heading', { name: 'AI', level: 1 }).waitFor();
     };
+    // A toast lives a few seconds and the machine may be slow: it is recorded (and compared between the servers), the
+    // state it announces is asserted next to it.
+    const toastNote = async (text) => {
+      const seen = await p.getByText(text, { exact: true }).first().waitFor({ timeout: 5000 }).then(() => true, () => false);
+      s.note(`toast "${text}" shown`, seen);
+    };
     // open the ticket by its title: the middle of a card with a run can be its "Run again" button
     const openCard = async () => {
       await p.getByRole('button', { name: /ALP-1 / }).first().getByText('Fix add', { exact: true }).click();
@@ -536,7 +542,7 @@ export default {
       await d.getByText(/Nothing was changed\./).waitFor();
       await d.getByRole('button', { name: 'Create schedule' }).click();
       await d.waitFor({ state: 'detached' });
-      await p.getByText('Schedule created', { exact: true }).waitFor();
+      await toastNote('Schedule created');
       await p.getByRole('button', { name: /^Schedules 1/ }).waitFor();
       await p.getByText('Fix add').first().waitFor();
     });
@@ -546,11 +552,14 @@ export default {
       const d = p.getByRole('dialog', { name: 'Schedule' });
       await d.getByText(/Every weekday at 03:15/).first().waitFor();
       await d.getByRole('button', { name: 'Run now' }).click();
-      await p.getByText('Run started', { exact: true }).waitFor();
+      await toastNote('Run started');
+      await d.getByText(/Run #?\d+|Waiting|Running|Finished|Started/).first().waitFor();
       await d.getByRole('button', { name: 'Pause', exact: true }).click();
-      await p.getByText('Schedule paused', { exact: true }).waitFor();
+      await toastNote('Schedule paused');
+      await d.getByRole('button', { name: 'Resume', exact: true }).waitFor();
       await d.getByRole('button', { name: 'Resume', exact: true }).click();
-      await p.getByText('Schedule resumed', { exact: true }).waitFor();
+      await toastNote('Schedule resumed');
+      await d.getByRole('button', { name: 'Pause', exact: true }).waitFor();
       await d.getByRole('button', { name: 'Edit' }).click();
       await p.getByRole('dialog', { name: /schedule/i }).last().getByRole('button', { name: 'Cancel' }).click();
       p.once('dialog', (dlg) => void dlg.accept());
