@@ -195,8 +195,9 @@ export default {
       await p.getByRole('menuitem').first().click();
       await banner.waitFor({ state: 'detached' });
     });
-    await s.step('Create tickets from this page: draft, edit the title, create (see the note on the 4.0.3 answer)', async () => {
-      fake({ 'docs-tickets': { drafts: [{ title: 'Add paging', text: 'From the API page.', type: 'task' }], skipped: [] } });
+    await s.step('Create tickets from this page: draft, edit the title, create; the toast and the key in the draft', async () => {
+      // the draft's text is the checklist line it came from, so that "Replace the text" can find it in the draft
+      fake({ 'docs-tickets': { drafts: [{ title: 'Add paging', text: 'Add paging', type: 'task' }], skipped: [] } });
       await aiMenu('tickets');
       const d = p.getByRole('dialog', { name: 'Create tickets' });
       await d.getByTestId('ticket-draft').waitFor({ timeout: 30000 });
@@ -210,19 +211,18 @@ export default {
       const out = await res.json();
       if (out.tickets.length !== 1 || out.tickets[0].title !== 'Add paging to the API') throw new Error('unexpected answer ' + JSON.stringify(out));
       s.note('create answer keys', Object.keys(out).sort().join());
-      // KNOWN BUG of 4.0.3 (the UI is newer than that server): the answer has no `not_replaced`, so the dialog's
-      // onSuccess throws on `notReplaced.length` before it shows the "1 ticket created" toast and closes. The ticket
-      // exists; the dialog stays open and is closed by hand. A server that sends the field makes the toast appear.
-      await Promise.race([
-        d.waitFor({ state: 'detached' }),
-        p.waitForTimeout(2500),
-      ]);
-      if (await d.count()) {
-        s.note('dialog stayed open after create', true);
-        await d.getByRole('button', { name: 'Cancel' }).click();
-        await d.waitFor({ state: 'detached' });
-      }
-    }, { expectConsole: true });
+      // what the dialog reads (CreatedTickets): numbers and lists, the draft with the key at the end of its line
+      const key = out.tickets[0].id;
+      ids.ticket = key;
+      if (out.replaced !== 1 || out.linked !== 1 || !Array.isArray(out.not_replaced) || out.not_replaced.length) throw new Error('replaced/linked/not_replaced: ' + JSON.stringify(out));
+      if (out.draft_markdown !== `# API\n\nThe API uses REST.\n\n- [ ] Add paging ${key}\n`) throw new Error('draft_markdown: ' + JSON.stringify(out.draft_markdown));
+      // the dialog closes and the toast says what was made (it threw on `notReplaced.length` before)
+      await d.waitFor({ state: 'detached', timeout: 10000 });
+      await p.getByText('1 ticket created in Backlog').waitFor();
+      const page = await api(`/docs/pages/${ids.API}`);
+      if (page.draft?.markdown !== out.draft_markdown) throw new Error('the draft was not saved: ' + JSON.stringify(page.draft));
+      s.note('draft after create', page.draft.markdown);
+    });
     await s.step('the new ticket is on the board and lists the page', async () => {
       await p.getByRole('button', { name: 'Board', exact: true }).click();
       await p.getByText('Add paging to the API').first().waitFor();
@@ -238,10 +238,12 @@ export default {
         ] },
         'docs-fix': { old: 'The API uses REST.', new: 'The API uses REST v2.' },
       });
-      await p.getByRole('button', { name: 'Edit', exact: true }).click();
+      // creating the ticket saved the key into the draft of the page, so the page offers to continue it
+      await p.getByRole('button', { name: 'Continue editing', exact: true }).click();
       const content = p.getByRole('textbox', { name: 'Page content' });
       // the page's text is in the editor before the caret moves: else the new line lands before it
       await content.getByText('The API uses REST.').waitFor();
+      await content.getByText(new RegExp(`Add paging\\s*${ids.ticket}`)).waitFor();
       await content.click();
       await p.keyboard.press('Control+End');
       await p.keyboard.press('Enter');
@@ -276,37 +278,28 @@ export default {
       await p.getByText('Published · v2').waitFor();
       await p.getByText('The API uses REST v2.').waitFor();
     });
-    await s.step('New page, Write with AI: picking a source crashes the screen (KNOWN BUG of 4.0.3, kept as it is)', async () => {
-      // KNOWN BUG of 4.0.3: the "What will be sent" answer of POST /projects/{id}/docs/ai/write/preview is
-      // {cost, items, left_out, tokens}; the UI reads its `send` object (`send.ticket`) and the whole app goes
-      // blank with "Cannot read properties of undefined (reading 'ticket')". This step asserts that behaviour so a
-      // server that behaves differently shows up as a difference. The next step works around it.
+    await s.step('New page, Write with AI: "What will be sent" shows the chips and the tokens', async () => {
       await p.getByRole('button', { name: 'New page' }).first().click();
       const d = p.getByRole('dialog', { name: 'New page' });
       await d.getByRole('group', { name: 'Write with AI' }).waitFor();
       for (const t of ['From a ticket', 'From an idea', 'From pasted notes', 'From a prompt']) await d.getByRole('button', { name: t }).waitFor();
       await d.getByTestId('write-ai-prompt').click();
-      const crash = p.waitForEvent('pageerror', { timeout: 15000 }).catch(() => null);
       await d.getByRole('textbox', { name: 'What the page is about' }).fill('How paging works in the API');
-      const err = await crash;
-      s.note('page error on the Write preview', err ? String(err.message).split('\n')[0] : 'none');
-      const blank = await p.evaluate(() => !document.querySelector('[role="dialog"]') && document.body.innerText.trim() === '');
-      s.note('screen blank after the preview', blank);
-    }, { expectConsole: true });
+      const sent = d.getByTestId('what-will-be-sent');
+      await sent.getByText('Your request', { exact: true }).waitFor();
+      await sent.getByText(/~\d[\d,]* tokens/).waitFor();
+      await sent.getByText(/Not metered/).waitFor();
+      s.note('what will be sent', await sent.innerText());
+      // the same answer for a ticket: the ticket, its linked page (the one the tickets step linked) and the tokens
+      const pv = await (await p.request.post(`${s.server.base}/projects/${ids.project}/docs/ai/write/preview`, {
+        data: { source: { kind: 'ticket', ticket_id: ids.ticket }, include: { comments: true, linked_pages: true, code_changes: false } },
+      })).json();
+      s.note('ticket preview', { send: pv.send, items: pv.items.map((i) => i.kind), skipped: pv.skipped, tokens: pv.tokens > 0, cost: pv.cost, metered: pv.metered, member: pv.member, from: pv.from, title: pv.suggested_title });
+      if (pv.send.ticket?.id !== ids.ticket || !pv.send.description || pv.send.pages.length !== 1 || pv.send.pages[0].id !== ids.API) throw new Error('ticket preview: ' + JSON.stringify(pv.send));
+      if (!(pv.tokens > 0) || pv.cost !== 0 || pv.metered !== false || pv.member !== 'Docs helper' || pv.from !== ids.ticket) throw new Error('ticket preview: ' + JSON.stringify(pv));
+    });
     await s.step('Write with AI from a prompt: the draft the stand-in names opens', async () => {
-      // The stand-in cannot call the board's tools, so it writes no page: its answer names an existing one. The
-      // preview answer is completed with the `send` object the UI needs (see the step before) so that the rest runs.
-      await p.route('**/docs/ai/write/preview', async (route) => {
-        const res = await route.fetch();
-        const j = await res.json();
-        j.send = { ticket: null, description: false, comments: 0, pages: [], code: false, idea: false, notes: false, prompt: true, style_guide: null };
-        j.skipped = j.skipped ?? [];
-        j.notes = j.notes ?? [];
-        // 4.0.3 also sends null for tokens and cost; the UI formats them
-        Object.assign(j, { tokens: 1200, cost: 0, metered: false, member: 'Docs helper', suggested_title: 'Paging', from: 'a prompt', injections: [] });
-        j.items = j.items.map((it, i) => ({ n: i + 1, ...it }));
-        await route.fulfill({ response: res, json: j });
-      });
+      // The stand-in cannot call the board's tools, so it writes no page: its answer names an existing one.
       fake({ 'docs-write': { page_id: ids['Release notes'], title: 'Paging', gaps: ['Who owns it?'] } });
       await home(s);
       await openDocs(s);
@@ -314,7 +307,7 @@ export default {
       const d = p.getByRole('dialog', { name: 'New page' });
       await d.getByTestId('write-ai-prompt').click();
       await d.getByRole('textbox', { name: 'What the page is about' }).fill('How paging works in the API');
-      await d.getByTestId('what-will-be-sent').waitFor();
+      await d.getByTestId('what-will-be-sent').getByText(/~\d[\d,]* tokens/).waitFor();
       s.note('what will be sent', await d.getByTestId('what-will-be-sent').innerText());
       await d.getByRole('textbox', { name: 'Title' }).fill('Paging');
       await d.getByTestId('write-draft').click();
@@ -415,16 +408,37 @@ export default {
       s.note('reply', { by: last.author, ai: last.ai, body: last.body });
       if (last.body !== 'Nobody owns paging yet: assign it.') throw new Error('unexpected last comment ' + last.body);
     });
-    await s.step('Changes since you last viewed: "Summarise with AI" (the 4.0.3 answer is recorded)', async () => {
-      // 4.0.3 answers the job with `lines`, the card reads `pages`; what the card does is recorded for the diff.
-      fake({ 'docs-history': { lines: [{ page_id: ids.API, line: 'Added the REST v2 line.' }] } });
+    await s.step('Changes since you last viewed: "Summarise with AI" lists the changed pages with their lines', async () => {
+      // This person saw the current version of Release notes and the space was left (the card reads the time of the
+      // last visit); then the next version is published. The server finds the page by the version this person saw
+      // (`PUT /docs/pages/{id}/seen`).
+      const notes = ids['Release notes'];
+      const v = (await api(`/docs/pages/${notes}`)).version;
+      const seen = await p.request.put(`${s.server.base}/docs/pages/${notes}/seen`, { data: { version: v } });
+      if (!seen.ok()) throw new Error('seen answered ' + seen.status());
+      await home(s);
+      const published = await p.request.post(`${s.server.base}/docs/pages/${notes}/publish`, {
+        data: { base_version: v, markdown: '# Release notes\n\nThe release ships the API described in [[API]]. Paging comes next.\n', note: 'Paging' },
+      });
+      if (!published.ok()) throw new Error('publish answered ' + published.status());
+      fake({ 'docs-history': { lines: ['Release notes: Added the paging line.'] } });
+      await openDocs(s);
       const card = p.getByTestId('since-viewed-digest');
-      if (!(await card.count())) { s.note('digest card', 'not shown'); return; }
       await card.getByText('Changes since you last viewed').waitFor();
-      await card.getByRole('button', { name: /Summarise with AI/ }).click();
-      await p.waitForTimeout(3000);
-      await s.settle();
-      s.note('digest after the summary', (await card.count()) ? (await card.innerText()).slice(0, 300) : 'card gone');
+      const [res] = await Promise.all([
+        p.waitForResponse((r) => r.request().method() === 'POST' && /\/docs\/ai\/since-viewed$/.test(r.url())),
+        card.getByRole('button', { name: /Summarise with AI/ }).click(),
+      ]);
+      if (res.status() !== 200) throw new Error('since-viewed answered ' + res.status());
+      const job = await res.json();
+      // the card lists the page with its line, and a button that opens it
+      await card.getByText('Added the paging line.').waitFor({ timeout: 30000 });
+      await card.getByRole('button', { name: 'Release notes' }).waitFor();
+      const done = await api(`/docs/ai/jobs/${job.id}`);
+      const row = (done.result.pages ?? []).find((x) => x.page_id === notes);
+      s.note('digest job result', done.result);
+      if (!row || row.kind !== 'changed' || row.from_version !== v || row.to_version !== v + 1 || row.line !== 'Added the paging line.') throw new Error('since_viewed result: ' + JSON.stringify(done.result));
+      s.note('digest after the summary', (await card.innerText()).slice(0, 300));
     });
     await s.step('Follow a page: the bell menu, Everything, Only mentions, Muted, unfollow', async () => {
       await p.getByTestId('comments-button').or(p.getByRole('button', { name: /^Comments/ })).first().click().catch(() => {});
