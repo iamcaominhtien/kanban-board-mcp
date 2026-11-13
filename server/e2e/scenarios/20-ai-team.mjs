@@ -528,7 +528,8 @@ export default {
       await d.getByRole('button', { name: 'Pick a ticket' }).click();
       await p.getByRole('option', { name: /ALP-1 Fix add/ }).click();
       await d.getByRole('textbox', { name: 'Time of day' }).fill('03:15');
-      await d.getByText(/Every weekday at 03:15 \(UTC\), Backend team works on ALP-1/).waitFor();
+      await d.getByText(/Backend team works on ALP-1/).waitFor();
+      await d.getByText(/Every weekday at 03:15/).waitFor();
       await d.getByRole('button', { name: 'Dry run' }).click();
       await d.getByText(/Plan by Backend team/).waitFor({ timeout: 40000 });
       await d.getByText(/Nothing was changed\./).waitFor();

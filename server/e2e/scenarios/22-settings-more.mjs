@@ -390,11 +390,11 @@ export default {
       await p.getByRole('switch', { name: 'A question from an AI: in app (always on)' }).and(p.locator(':disabled')).waitFor();
       await finished.click();
       await unchecked(finished).waitFor();
+      await p.getByRole('combobox', { name: 'Which sound' }).selectOption({ label: 'Bell' });
       await p.getByRole('switch', { name: 'Sound' }).click();
       await p.getByRole('switch', { name: 'Sound' }).and(p.locator('[aria-checked="false"]')).waitFor();
       await p.getByRole('combobox', { name: 'Remind me if unanswered' }).selectOption({ label: 'After 30 min' });
       await p.getByRole('combobox', { name: 'Keep notifications for' }).selectOption({ label: '180 days' });
-      await p.getByRole('combobox', { name: 'Which sound' }).selectOption({ label: 'Bell' });
       await p.getByRole('textbox', { name: 'Quiet hours start' }).fill('23:30');
       await p.getByRole('textbox', { name: 'Quiet hours start' }).blur();
       await p.getByRole('button', { name: 'Sat' }).click();
@@ -402,6 +402,7 @@ export default {
       await openSettings('Notifications');
       await unchecked(p.getByRole('switch', { name: 'An AI finished work: in app' })).waitFor();
       await unchecked(p.getByRole('switch', { name: 'Sound' })).waitFor();
+      await p.getByRole('combobox', { name: 'Which sound' }).locator('option:checked').filter({ hasText: 'Bell' }).waitFor({ state: 'attached' });
       await until(async () => (await p.getByRole('combobox', { name: 'Remind me if unanswered' }).inputValue()) === '30', 'the reminder of 30 min');
       await until(async () => (await p.getByRole('combobox', { name: 'Keep notifications for' }).inputValue()) === '180', 'the retention of 180 days');
       await until(async () => (await p.getByRole('textbox', { name: 'Quiet hours start' }).inputValue()) === '23:30', 'quiet hours from 23:30');
