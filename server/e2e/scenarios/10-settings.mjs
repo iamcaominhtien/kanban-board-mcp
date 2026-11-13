@@ -46,6 +46,24 @@ export default {
     });
     await s.step('change the Docs edit policy of the project', async () => {
       await section('Docs', 'Docs');
+      const members = p.getByRole('radio', { name: /^Members/ });
+      const admins = p.getByRole('radio', { name: /^Admins/ });
+      await members.and(p.locator('[aria-checked="true"]')).waitFor();
+      await admins.click();
+      await p.getByText('Saved', { exact: true }).waitFor();
+      await admins.and(p.locator('[aria-checked="true"]')).waitFor();
+      await members.and(p.locator('[aria-checked="false"]')).waitFor();
+      // the change is stored: reload the app and look again
+      await p.reload();
+      await p.getByRole('navigation', { name: 'Settings pages' }).waitFor({ timeout: 20000 }).catch(() => {});
+      if (!(await p.getByRole('heading', { name: 'Docs', level: 1 }).count())) {
+        if (!(await nav().count())) await p.getByRole('button', { name: 'Settings' }).click();
+        await section('Docs', 'Docs');
+      }
+      await p.getByRole('radio', { name: /^Admins/ }).and(p.locator('[aria-checked="true"]')).waitFor();
+      // and back to the default
+      await p.getByRole('radio', { name: /^Members/ }).click();
+      await p.getByRole('radio', { name: /^Members/ }).and(p.locator('[aria-checked="true"]')).waitFor();
     });
     await s.step('back to the board', async () => {
       await p.getByRole('button', { name: 'Back to board' }).click();
