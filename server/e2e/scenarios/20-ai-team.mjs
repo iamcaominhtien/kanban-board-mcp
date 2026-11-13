@@ -274,6 +274,14 @@ export default {
       await d.getByRole('textbox', { name: 'Type an answer…' }).fill('SQLite');
       await d.getByRole('button', { name: 'Answer and resume' }).click();
       await d.getByRole('button', { name: 'Answer and resume' }).waitFor({ state: 'detached', timeout: 40000 });
+      await d.getByText('Answer sent to the lead').first().waitFor().catch(() => {});
+      // the ticket opens on its own tab or on its runs, as it was left: look at the run in both cases
+      await p.waitForTimeout(500);
+      if (await d.getByRole('tablist', { name: 'Ticket or AI activity' }).count()) {
+        await d.getByRole('tab', { name: 'AI activity' }).click();
+        await d.getByText(/Run #\d+ finished/).waitFor({ timeout: 40000 });
+        await d.getByRole('button', { name: 'Open run ›' }).click();
+      }
       await d.getByText(/Done with your answer: .*SQLite/).first().waitFor({ timeout: 40000 });
       await d.getByText('Finished', { exact: true }).first().waitFor();
       await closeTicket(s);
@@ -509,6 +517,123 @@ export default {
       await until(async () => (await again.getByRole('combobox', { name: 'Hand over finished code by' }).inputValue()) === 'leave', 'the saved hand-over').catch(async () => {
         await again.getByRole('combobox', { name: 'Hand over finished code by' }).locator('option:checked').filter({ hasText: 'Leave the branch' }).waitFor();
       });
+    });
+
+    await s.step('Schedules: a dry run shows the plan, then the schedule is created', async () => {
+      await home(s);
+      await p.getByRole('button', { name: /^Schedules/ }).click();
+      await p.getByRole('heading', { name: 'No schedules yet', level: 3 }).waitFor();
+      await p.getByRole('button', { name: 'New schedule' }).first().click();
+      const d = p.getByRole('dialog', { name: 'New schedule' });
+      await d.getByRole('button', { name: /^Nightly test run/ }).waitFor();
+      await d.getByRole('button', { name: 'Dry run' }).and(p.locator(':disabled')).waitFor();
+      await d.getByRole('button', { name: 'Create schedule' }).and(p.locator(':disabled')).waitFor();
+      await d.getByRole('button', { name: 'Pick a ticket' }).click();
+      await p.getByRole('option', { name: /ALP-1 Fix add/ }).click();
+      await d.getByRole('textbox', { name: 'Time of day' }).fill('03:15');
+      await d.getByText(/Every weekday at 03:15 \(UTC\), Backend team works on ALP-1/).waitFor();
+      await d.getByRole('button', { name: 'Dry run' }).click();
+      await d.getByText(/Plan by Backend team/).waitFor({ timeout: 40000 });
+      await d.getByText(/Nothing was changed\./).waitFor();
+      await d.getByRole('button', { name: 'Create schedule' }).click();
+      await d.waitFor({ state: 'detached' });
+      await p.getByText('Schedule created', { exact: true }).waitFor();
+      await p.getByRole('button', { name: /^Schedules 1/ }).waitFor();
+      await p.getByText('Fix add').first().waitFor();
+    });
+
+    await s.step('Schedules: Run now starts a run, Pause and Resume change the state, Delete removes it', async () => {
+      await p.getByText('Fix add').first().click();
+      const d = p.getByRole('dialog', { name: 'Schedule' });
+      await d.getByText(/Every weekday at 03:15/).first().waitFor();
+      await d.getByRole('button', { name: 'Run now' }).click();
+      await p.getByText('Run started', { exact: true }).waitFor();
+      await d.getByRole('button', { name: 'Pause', exact: true }).click();
+      await p.getByText('Schedule paused', { exact: true }).waitFor();
+      await d.getByRole('button', { name: 'Resume', exact: true }).click();
+      await p.getByText('Schedule resumed', { exact: true }).waitFor();
+      await d.getByRole('button', { name: 'Edit' }).click();
+      await p.getByRole('dialog', { name: /schedule/i }).last().getByRole('button', { name: 'Cancel' }).click();
+      p.once('dialog', (dlg) => void dlg.accept());
+      await d.getByRole('button', { name: 'More' }).click();
+      await p.getByRole('menuitem', { name: /Delete schedule/ }).click();
+      await d.waitFor({ state: 'detached' });
+      await p.getByRole('heading', { name: 'No schedules yet', level: 3 }).waitFor();
+    });
+
+    await s.step('Board AI: ask a question and get the answer with its actions', async () => {
+      s.server.fake({ FAKE_CLAUDE_MODE: 'assistant', FAKE_CLAUDE_ASSISTANT_TEXT: 'Nothing is overdue.' });
+      await home(s);
+      await p.getByRole('button', { name: /^Ask AI/ }).first().click();
+      const a = p.getByRole('complementary', { name: 'Board AI' });
+      await a.getByText(/online/).waitFor();
+      await a.getByRole('tab', { name: 'This project' }).and(p.locator('[aria-selected="true"]')).waitFor();
+      await a.getByRole('button', { name: 'What should I pick up next?' }).waitFor();
+      await a.getByRole('textbox', { name: 'Ask the Board AI' }).fill('What is overdue?');
+      await a.getByRole('button', { name: 'Send' }).click();
+      await a.getByText('Nothing is overdue.').waitFor({ timeout: 40000 });
+      await a.getByRole('button', { name: 'Copy answer' }).waitFor();
+      await a.getByRole('button', { name: 'Regenerate' }).waitFor();
+      await a.getByRole('button', { name: 'Helpful' }).click();
+      await a.getByRole('button', { name: 'Close Board AI' }).click();
+      await a.waitFor({ state: 'detached' });
+    });
+
+    await s.step('Board health: Check now lists what the AI found', async () => {
+      const board = await (await fetch(`${s.server.base}/projects`)).json();
+      const pid = (Array.isArray(board) ? board : board.projects)[0].id;
+      const tickets = await (await fetch(`${s.server.base}/projects/${pid}/tickets`)).json();
+      const tid = (Array.isArray(tickets) ? tickets : tickets.tickets)[0].id;
+      s.server.fake({
+        FAKE_CLAUDE_MODE: 'assistant',
+        FAKE_CLAUDE_ASSISTANT_JSON: JSON.stringify({
+          insights: [{ kind: 'stuck', ticket_id: tid, title: 'ALP-1 has not moved for 6 days', detail: 'In backlog since Monday.', score: 80 }],
+          summary: 'One ticket is stuck.',
+        }),
+      });
+      await home(s);
+      await p.getByRole('button', { name: 'Board health' }).click();
+      const d = p.getByRole('dialog', { name: 'Board health' });
+      await d.getByText(/Not checked yet/).waitFor();
+      await d.getByRole('button', { name: 'Check now' }).click();
+      await d.getByText('ALP-1 has not moved for 6 days').waitFor({ timeout: 40000 });
+      await d.getByText('One ticket is stuck.').waitFor();
+      await d.getByRole('button', { name: 'Needs action 1' }).waitFor();
+      await d.getByRole('button', { name: 'Close' }).click();
+      await d.waitFor({ state: 'detached' });
+    });
+
+    await s.step('Idea Space: Ask about ideas and write the weekly digest', async () => {
+      s.server.fake({ FAKE_CLAUDE_MODE: 'assistant', FAKE_CLAUDE_ASSISTANT_TEXT: 'Ideas look fine.' });
+      await home(s);
+      await p.getByRole('button', { name: 'Idea Space' }).click();
+      await p.getByRole('button', { name: 'Ask', exact: true }).click();
+      const a = p.getByRole('complementary', { name: 'Ask about ideas' });
+      await a.getByRole('button', { name: 'Which ideas are stale?' }).waitFor();
+      await a.getByRole('textbox', { name: 'Ask about your ideas' }).fill('Which ideas are stale?');
+      await a.getByRole('button', { name: 'Send' }).click();
+      await a.getByText('Ideas look fine.').waitFor({ timeout: 40000 });
+      await a.getByText(/Read 0 ideas/).waitFor();
+      await p.getByRole('button', { name: 'Write it now' }).click();
+      await p.getByText(/Weekly digest/).first().waitFor();
+      await p.getByText(/Nothing needs attention this week\./).waitFor({ timeout: 40000 });
+    });
+
+    await s.step('remove the team and the account', async () => {
+      s.server.fake({});
+      await teamPage();
+      await p.getByRole('button', { name: 'Remove…' }).click();
+      await p.getByRole('heading', { name: `Remove team ${TEAM}` }).waitFor();
+      const d = p.getByRole('dialog').filter({ has: p.getByRole('heading', { name: `Remove team ${TEAM}` }) });
+      await d.getByRole('button', { name: /^(Reassign & remove|Remove)$/ }).click();
+      await p.getByRole('heading', { name: 'Members', level: 1 }).waitFor();
+      await p.getByText('No AI teams yet').waitFor();
+      await p.getByRole('tab', { name: 'AI accounts 1' }).click();
+      await p.getByRole('button', { name: 'More actions for Main Claude' }).click();
+      await p.getByRole('menuitem', { name: /Remove/ }).click();
+      await p.getByRole('heading', { name: 'Remove Main Claude?' }).waitFor();
+      await p.getByRole('button', { name: 'Remove account' }).click();
+      await p.getByText('No AI accounts yet').waitFor();
     });
   },
 };

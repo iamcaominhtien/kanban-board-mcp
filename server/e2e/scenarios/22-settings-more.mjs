@@ -85,8 +85,9 @@ export default {
 
     await s.step('Workspace: turning it off makes a ticket say it is not set up, turning it on brings the folder back', async () => {
       await openSettings('Storage & backup');
+      await p.getByRole('switch', { name: 'Enable workspace' }).and(p.locator('[aria-checked="true"]')).waitFor();
       await p.getByRole('switch', { name: 'Enable workspace' }).click();
-      await p.getByRole('switch', { name: 'Enable workspace' }).and(p.locator('[aria-checked="false"]')).waitFor();
+      await p.getByText(/Turned off: the Workspace tab is hidden on every ticket/).waitFor();
       await s.settle();
       await home(s);
       let d = await openTicket(s, 'ALP-1');
@@ -95,8 +96,11 @@ export default {
       if (await d.getByRole('button', { name: 'Create folder' }).count()) throw new Error('a folder can be created while the workspace is off');
       await closeTicket(s);
       await openSettings('Storage & backup');
+      await p.getByText(/Turned off: the Workspace tab is hidden on every ticket/).waitFor();
+      await p.getByRole('textbox', { name: 'Workspace root path' }).and(p.locator(':disabled')).waitFor();
       await p.getByRole('switch', { name: 'Enable workspace' }).click();
       await p.getByRole('switch', { name: 'Enable workspace' }).and(p.locator('[aria-checked="true"]')).waitFor();
+      await p.getByRole('textbox', { name: 'Workspace root path' }).and(p.locator(':enabled')).waitFor();
       await s.settle();
       await home(s);
       d = await openTicket(s, 'ALP-1');
@@ -133,10 +137,12 @@ export default {
       await d.getByRole('textbox', { name: 'Port' }).fill('1');
       await d.getByRole('textbox', { name: 'User' }).fill('nobody');
       await d.getByRole('button', { name: 'Test connection' }).click();
-      await d.getByRole('button', { name: 'Test connection' }).and(p.locator(':enabled')).waitFor({ timeout: 40000 });
+      await d.getByText('What the test found').waitFor({ timeout: 40000 });
+      const found = d.getByRole('list').filter({ hasText: /Cannot reach the server/ });
+      await found.waitFor();
+      await d.getByText(/Next is off until every line is green or amber\./).waitFor();
       await d.getByRole('button', { name: 'Next' }).and(p.locator(':disabled')).waitFor();
-      const shown = (await d.innerText()).replace(/\s+/g, ' ');
-      if (!/refused|could not|can.t connect|unreachable|failed|no server|not reach/i.test(shown)) throw new Error(`no failure is shown: ${shown.slice(-400)}`);
+      s.note('wizard: what the failed test says', (await found.innerText()).replace(/\s+/g, ' ').trim());
       s.note('wizard: a failed test leaves Next disabled', true);
       await d.getByRole('button', { name: 'Back' }).click();
       await d.getByRole('button', { name: /^Cancel/ }).click().catch(async () => { await p.keyboard.press('Escape'); });
@@ -207,15 +213,23 @@ export default {
       await sec.getByText('Not installed').first().waitFor();
     });
 
-    await s.step('MCP integrations: Full control over MCP is off by default and asks before it turns on', async () => {
+    await s.step('MCP integrations: Full control over MCP is off by default, asks first and is kept when turned on', async () => {
       await p.getByRole('heading', { name: 'Full control over MCP', level: 2 }).waitFor();
       await p.getByText(/Off by default\./).waitFor();
       await p.getByRole('button', { name: 'Turn on…' }).click();
-      const d = p.getByRole('dialog').last();
-      await d.waitFor();
-      s.note('full control dialog title', (await d.getByRole('heading').first().innerText()).trim());
-      await d.getByRole('button', { name: /^Cancel/ }).click();
-      await d.waitFor({ state: 'detached' });
+      const ask = p.getByRole('alertdialog', { name: 'Turn on full control over MCP' });
+      await ask.getByText('Turn on full control over MCP?').waitFor();
+      await ask.getByRole('button', { name: 'Turn on', exact: true }).and(p.locator(':disabled')).waitFor();
+      await ask.getByRole('button', { name: 'Cancel' }).click();
+      await ask.waitFor({ state: 'detached' });
+      await p.getByRole('button', { name: 'Turn on…' }).click();
+      await ask.getByRole('checkbox', { name: /I understand and accept all the risks/ }).check();
+      await ask.getByRole('button', { name: 'Turn on', exact: true }).click();
+      await p.getByRole('button', { name: 'Turn off', exact: true }).waitFor();
+      await s.settle();
+      await openSettings('Integrations');
+      await p.getByRole('button', { name: 'Turn off', exact: true }).waitFor();
+      await p.getByRole('button', { name: 'Turn off', exact: true }).click();
       await p.getByRole('button', { name: 'Turn on…' }).waitFor();
     });
 
@@ -239,8 +253,8 @@ export default {
       await home(s);
       const d = await openTicket(s, 'ALP-1');
       await d.getByRole('combobox').nth(1).selectOption('high');
-      await d.getByRole('button', { name: /^Activity — \d+ changes/ }).waitFor();
-      await d.getByRole('button', { name: /^Activity/ }).click();
+      await d.getByText('Activity — 2 changes').waitFor({ state: 'attached' });
+      await d.getByRole('button', { name: 'Activity', exact: true }).click();
       await d.getByText(/\d+ changes? · ALP-1/).waitFor();
       await d.getByText('Created · Watch me').waitFor();
       await d.getByText('Ticket created').waitFor();
@@ -269,10 +283,12 @@ export default {
       const ask = p.getByRole('dialog', { name: 'Mark ALP-1 as pending' });
       await ask.waitFor();
       await ask.getByRole('button', { name: 'Waiting on a person or party' }).click();
+      await ask.getByRole('textbox', { name: 'Customer, Design team, vendor name...' }).fill('Design team');
       await ask.getByRole('textbox', { name: 'What is it waiting for?' }).fill('The design review');
       await ask.getByRole('button', { name: 'Mark pending' }).click();
       await ask.waitFor({ state: 'detached' });
       await d.getByText(/Pending since/).waitFor();
+      await d.getByText(/Design team/).first().waitFor();
       await d.getByText(/The design review/).first().waitFor();
       await p.keyboard.press('p');
       await d.getByText(/Pending since/).waitFor({ state: 'detached' });

@@ -362,7 +362,9 @@ export default {
       await item('API').click();
       await p.getByTestId('page-title').getByText('API', { exact: true }).waitFor();
       await p.getByPlaceholder('Write a comment on this page…').click();
+      await p.waitForTimeout(600);
       await p.keyboard.type('Please add an example request.');
+      await p.getByText('Please add an example request.').waitFor();
       await Promise.all([
         p.waitForResponse((r) => r.request().method() === 'POST' && /comments/.test(r.url()), { timeout: 8000 }),
         p.keyboard.press('Control+Enter'),
@@ -379,7 +381,7 @@ export default {
       await box.getByTestId('send-to-ai-to-page_assistant').check();
       await box.getByTestId('send-to-ai-go').getByText("Send to the page's assistant").waitFor();
       await box.getByTestId('send-to-ai-go').click();
-      await p.getByText('Sent to AI', { exact: true }).waitFor();
+      await p.getByText(/Sent to the page.s assistant/).first().waitFor();
       await p.getByText('An example request would be GET /items?page=2.').first().waitFor({ timeout: 30000 });
     });
     await s.step('the reply is marked as written by the Docs AI', async () => {
