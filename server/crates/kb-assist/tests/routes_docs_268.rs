@@ -6,6 +6,9 @@
 //! functions of `docs_edit` and `docs_guide`; `test_give_a_page_to_an_ai_member` is the MCP form of this one and also
 //! waits with the tools.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod http;
 
 use http::start;

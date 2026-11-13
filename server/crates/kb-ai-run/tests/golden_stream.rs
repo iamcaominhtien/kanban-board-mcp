@@ -2,6 +2,9 @@
 //! made by `gen_ai_stream.py`): every line of every transcript is fed to one parser per transcript, and everything the
 //! line gave is compared, values and key order. A line the Python parser raises on must be an `Err` here.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::collections::HashMap;

@@ -2,6 +2,9 @@
 //! result merged, its error written as the job's error), stopping a job that is running, and the hooks of other
 //! crates (`kb_draw::hooks::CanvasDelivery`, `kb_docs::hooks::AssignHook`) answering through `seams::Runs`.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::sync::Arc;

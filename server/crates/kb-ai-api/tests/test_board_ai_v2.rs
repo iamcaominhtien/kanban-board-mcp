@@ -5,6 +5,9 @@
 //! The Python test sets `FAKE_CLAUDE_ASSISTANT_JSON` with `monkeypatch.setenv` before its request; the server here
 //! starts with it (nothing else in the test changes it).
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use common::{project, start, ticket};

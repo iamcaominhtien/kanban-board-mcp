@@ -4,6 +4,9 @@
 //! with what the Python call gave (the job as the API shows it, the draft, the result, the findings, the note a team
 //! is sent...), and so is what the CLI was started with.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::collections::BTreeMap;

@@ -28,16 +28,38 @@ pub const CHROME_ENV: &str = "KANBAN_CHROME_PATH";
 /// A JSON list: the desktop app's own executable, started with `--export-svg` / `--export-png`.
 pub const EXPORT_CMD_ENV: &str = "KANBAN_EXPORT_CMD";
 
+#[cfg(unix)]
 fn is_executable_file(path: &Path) -> bool {
     use std::os::unix::fs::PermissionsExt;
     path.metadata().is_ok_and(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
 }
 
+/// On Windows a file runs by its extension (`which` tries those of `PATHEXT`).
+#[cfg(not(unix))]
+fn is_executable_file(path: &Path) -> bool {
+    path.is_file()
+}
+
+/// The names `which` looks for in each folder: `name` itself, and on Windows `name` with each extension of `PATHEXT`
+/// when it has none of them yet (as `shutil.which` does).
+fn names_to_try(name: &str) -> Vec<String> {
+    if cfg!(windows) {
+        let exts = std::env::var("PATHEXT").unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".to_string());
+        let exts: Vec<String> = exts.split(';').filter(|e| !e.is_empty()).map(str::to_lowercase).collect();
+        if exts.iter().any(|e| name.to_lowercase().ends_with(e.as_str())) {
+            return vec![name.to_string()];
+        }
+        return exts.iter().map(|e| format!("{name}{e}")).collect();
+    }
+    vec![name.to_string()]
+}
+
 /// `shutil.which(name)`.
 fn which(name: &str) -> Option<String> {
     let path = std::env::var_os("PATH")?;
+    let names = names_to_try(name);
     std::env::split_paths(&path)
-        .map(|dir| dir.join(name))
+        .flat_map(|dir| names.iter().map(move |n| dir.join(n)))
         .find(|candidate| is_executable_file(candidate))
         .map(|p| p.to_string_lossy().into_owned())
 }

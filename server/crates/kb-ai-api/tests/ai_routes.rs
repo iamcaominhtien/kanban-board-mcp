@@ -9,6 +9,9 @@
 //! wording is Pydantic's). The stand-in CLI answers for `claude` (see `tests/common`); a team, a run, a lesson are
 //! rows added to the database.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::collections::{BTreeMap, HashMap};

@@ -3,6 +3,9 @@
 //! (the servers a folder asks for) and `profiles` (environments, sign-in commands, status read from a fake CLI, what
 //! `create` and `prepare` write). Paths in the file are written with `{T}` for the temporary folder of the run.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::collections::HashSet;

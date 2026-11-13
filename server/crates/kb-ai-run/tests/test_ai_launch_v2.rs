@@ -9,6 +9,9 @@
 //! tests `docs_guide` (`kb-doctext`), not `launch`. Python replaces `launch.data_root` with a temporary folder; here
 //! the whole process has its own data folder, so the real one is used.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::collections::HashSet;

@@ -2,6 +2,9 @@
 //! functions of `canvas_comments` and `canvas_delivery`, and what `screenshots` lets the hidden browser load and its
 //! throwaway server serve (a security property: every refusal is checked).
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 use std::path::Path;
 
 mod common;

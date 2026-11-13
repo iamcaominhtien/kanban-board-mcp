@@ -49,6 +49,7 @@ async fn test_rejects_a_sibling_whose_name_starts_with_the_home_name() {
     assert_eq!(r.status, 400);
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn test_rejects_a_symlink_that_points_outside_home() {
     let fx = Fixture::with_db().await;

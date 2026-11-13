@@ -5,6 +5,9 @@
 //! the guard of a run entered, which is what the rule needs (`activity.current_ai`); the tool's own text for the
 //! error waits with the tool.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use kb_base::ctx;

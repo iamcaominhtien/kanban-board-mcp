@@ -3,6 +3,9 @@
 //! the lead's rules say which skill is for which drawing. The guides' texts are tested with `board_skills`
 //! (`crates/kb-ai-know/tests/test_visual_tools_267.rs`). New test, no Python counterpart of its own.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::path::Path;

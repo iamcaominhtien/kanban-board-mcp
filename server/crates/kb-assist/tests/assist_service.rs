@@ -3,6 +3,9 @@
 //! changed a ticket, and Undo; answers left over from a board that stopped (`recover`); a turn that is dropped; the
 //! hook of the database helper.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::sync::Arc;

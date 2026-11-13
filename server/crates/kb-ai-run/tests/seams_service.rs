@@ -2,6 +2,9 @@
 //! (`kb_ai_know::seams::Cli`), asked from a plain function as `kb-ai-know` asks them, and the slots `teams` and
 //! `launch` leave for modules a later task ports.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use kb_ai_run::seams;

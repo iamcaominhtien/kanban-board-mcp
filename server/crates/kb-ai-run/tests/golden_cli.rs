@@ -2,6 +2,9 @@
 //! `gen_ai_cli.py`): command lines on each platform branch, `looks_like_cli`, the CLI's environment, limit messages
 //! (in several zones of the computer, across DST, with the clock frozen), tool calls as step texts, test counts.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use chrono::{DateTime, Utc};

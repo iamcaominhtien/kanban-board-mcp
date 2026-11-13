@@ -2,6 +2,9 @@
 //! of the prompt block, the digest and the light model are unit tests of `kb-ai-know`. A lesson an AI proposed
 //! (`knowledge.add_lesson(..., state="proposed")`) is a row added to the server's database.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use common::{NOW, id, insert, project, start};

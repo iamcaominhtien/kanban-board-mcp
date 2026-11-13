@@ -4,6 +4,9 @@
 //! `board_skills` (`crates/kb-ai-know/tests/test_shared_skills_277.rs`). New tests, no Python counterpart of their own
 //! (Python covers this through whole runs).
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::path::Path;

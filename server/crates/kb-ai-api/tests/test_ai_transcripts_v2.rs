@@ -5,6 +5,9 @@
 //! The Python file reads the transcript with `transcripts.read` and the file with `gzip`; here the folder of the
 //! runs (`KANBAN_AI_RUNS_DIR`) is the test's own, and `kb_ai::transcripts::read_lines` reads the file the server wrote.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::path::Path;

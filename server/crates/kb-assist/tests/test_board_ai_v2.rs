@@ -8,6 +8,9 @@
 //! `test_an_editor_result_is_held_until_accepted` (`assistant/editor.py`) is here too, ported with the editor. One
 //! test waits whole: `test_a_schedule_dry_run_is_a_plan_from_the_assistant` (`services/ai/schedules.py`).
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use kb_assist::assistant::chat::{self, NewChat, SendOpts};

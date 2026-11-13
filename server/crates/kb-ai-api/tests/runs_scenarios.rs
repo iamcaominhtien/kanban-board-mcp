@@ -22,6 +22,9 @@
 //! steps arrive in (the writer's 250 ms timer), plain `invalidate` announcements (the database watcher's), how long a
 //! run took (the work log names minutes and seconds), memory readings, the local time a usage window reopens.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};

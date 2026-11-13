@@ -6,6 +6,9 @@
 //! Left out: `test_a_schedule_dry_run_is_a_plan_from_the_assistant` goes through `POST
 //! /projects/{id}/ai/schedules/dry-run` (`api/ai_schedules.py`), a route of the schedules task, not of this crate.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod http;
 
 use std::time::Duration;

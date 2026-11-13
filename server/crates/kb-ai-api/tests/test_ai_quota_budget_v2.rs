@@ -2,6 +2,9 @@
 //! shows in a run's stream holds the account, and the next run waits. The tests that call `services.ai.quota` and
 //! `services.ai.budget` directly are in `crates/kb-ai/tests/test_ai_quota_budget_v2.rs`.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::time::Duration;

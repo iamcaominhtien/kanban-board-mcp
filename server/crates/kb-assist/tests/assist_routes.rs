@@ -10,6 +10,9 @@
 //! wording is Pydantic's). The stand-in CLI answers for `claude` (see `tests/http`); a team is a row added to the
 //! database. A GET that no route serves reaches the UI's last route (`Resp::is_ui_index`), recorded as without a UI.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod http;
 
 use http::{Fixture, Rec, post_form, start};

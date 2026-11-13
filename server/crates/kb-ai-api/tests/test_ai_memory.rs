@@ -2,6 +2,9 @@
 //! `POST /projects/{pid}/ai/notes`, which calls it. The MCP tool test, the pick of notes for a run, `paths_in` and the
 //! skill test are for `kb-ai-know`, `kb-mcp` and `kb-skills`; a team a test needs is a row added to the database.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use common::{exec, id, project, scalar, start, team, ticket};

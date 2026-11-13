@@ -3,6 +3,9 @@
 //! functions are unit tests of `kb-ai` (`tests/test_ai_power_v2.rs` there). A team and its runs are rows added to the
 //! server's database.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use common::{project, run, scalar, start, team, ticket};

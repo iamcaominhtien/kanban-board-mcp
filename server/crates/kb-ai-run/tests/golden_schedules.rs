@@ -7,6 +7,9 @@
 //! stay queued: no CLI is started, a story moves a run on by changing its row). After every step the schedules, the
 //! slots, the runs, the tickets' Activity, the schedule's feed and the notifications are the ones Python had.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::collections::HashMap;

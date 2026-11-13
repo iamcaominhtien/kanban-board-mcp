@@ -4,6 +4,9 @@
 //! `test_every_team_pack_resolves_to_known_roles`) are in `crates/kb-ai-know/tests/test_ai_teams.rs` and are not
 //! repeated here.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use common::{id, project, runner, sign_in, start, ticket, tmp};

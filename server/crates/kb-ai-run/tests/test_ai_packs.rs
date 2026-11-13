@@ -3,6 +3,9 @@
 //! (`crates/kb-ai-know/tests/test_ai_packs.rs`); here the same sentences are looked for where a run gets them. New
 //! tests, no Python counterpart of their own.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use kb_ai_know::roles;

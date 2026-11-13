@@ -2,6 +2,9 @@
 //! `assistant`, the conversation kept per name, the person's authority through a chat token
 //! (`server/tests/test_assistant_engine.py`, the same tests at service level with the stand-in CLI).
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use kb_ai::steps;

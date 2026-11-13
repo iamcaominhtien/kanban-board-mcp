@@ -6,6 +6,9 @@
 //! history of a ticket's conversations (`start_over` with an assistant that answers, fails or is absent) and
 //! `compact_ticket` with a script in place of the CLI.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::collections::HashMap;

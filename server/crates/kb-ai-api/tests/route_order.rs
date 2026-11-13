@@ -8,6 +8,9 @@
 //! cd server && KANBAN_CONFIG_DIR=.. KANBAN_DB_PATH=.. KANBAN_LOG_DIR=.. .venv/bin/python -c "import main; ..."
 //! ```
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 /// `api/schedules.py` is included right after the projects' router, before everything else here; the Rust app
 /// registers this crate's routers one after the other, and no route registered before them can take a path of the
 /// schedules (the order is checked against the OpenAPI table of `kb-app`'s route coverage), so the schedules' routes

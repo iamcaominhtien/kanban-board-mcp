@@ -4,6 +4,9 @@
 //! config, the schema, the system prompts, the child's environment), each built from the rows the Python models
 //! dumped and run with a program that records what it is started with.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::collections::{BTreeMap, HashSet};

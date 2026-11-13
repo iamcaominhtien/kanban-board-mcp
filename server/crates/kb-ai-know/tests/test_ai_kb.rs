@@ -3,6 +3,9 @@
 //! has no test file of its own for `kb`; these tests are new. The light model is a script that stands in for `claude`
 //! (the `cli` seam); no real CLI runs and nothing reaches the network.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::path::{Path, PathBuf};

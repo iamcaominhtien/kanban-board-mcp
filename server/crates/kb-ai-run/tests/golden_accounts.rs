@@ -2,6 +2,9 @@
 //! (`contract/golden/ai_accounts.json`, made by `gen_ai_accounts.py`): the account state machine, names and folders,
 //! versions, an account as the UI sees it, the status bar's reading of the terminal, the command to run by hand.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::path::Path;

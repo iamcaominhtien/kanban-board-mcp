@@ -10,6 +10,9 @@
 //! `test_a_subagents_task_events_land_on_the_row_the_stream_made` in `kb-ai/tests/test_ai_runs_v2.rs`. Left for the
 //! routes task: the checks of `GET /projects/{id}/ai/board` and `/ai/overview` at the end of the first test.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use common::runs_env::{Env, assign, last_run, steps_of, wait};

@@ -7,6 +7,9 @@
 //! port (`kb-mcp`): left out. What goes through HTTP is its last part: a person resolving their own thread is not
 //! asked to reply.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod http;
 
 use http::start;

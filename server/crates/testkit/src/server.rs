@@ -194,8 +194,10 @@ impl Server {
         cmd.stdin(if opts.secret.is_some() { Stdio::piped() } else { Stdio::null() })
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .process_group(0)
             .kill_on_drop(true);
+        // its own process group, so stopping it stops what it started (Unix only)
+        #[cfg(unix)]
+        cmd.process_group(0);
 
         let mut child = cmd.spawn().unwrap_or_else(|e| panic!("cannot start the server: {e}"));
         if let Some(secret) = &opts.secret {

@@ -4,6 +4,8 @@
 //! The Python test made its tickets through `POST /projects/{id}/tickets` and `PATCH /tickets/{id}`; those routes are
 //! not ported yet, so the ticket rows are added to the server's SQLite file in the stored formats.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
 #![recursion_limit = "256"]
 
 mod common;

@@ -6,6 +6,9 @@
 //! their routes make (the routes of `api/ai.py` come with a later task). The first test needs the server program
 //! (`cargo build -p kanban-server`, or `KANBAN_SERVER_BIN`) and says so when it is not there.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::path::PathBuf;

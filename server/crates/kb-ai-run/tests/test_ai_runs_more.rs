@@ -4,6 +4,9 @@
 //!
 //! Still waiting (they need the routes of `api/ai.py`, or modules of part 3): see the report of the task.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use common::runs_env::{Env, assign, last_run, wait};

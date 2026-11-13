@@ -7,6 +7,9 @@
 //! service `docs_work.assign_page` is called, which is what both end in. The 422 of the route for a member that is not
 //! there is `Error::Value`; the tool's own `kind` check waits with the tool.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::sync::Arc;

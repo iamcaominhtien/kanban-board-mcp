@@ -5,6 +5,9 @@
 //! beside this one). On the Rust server these tests report SKIPPED until `/settings/data-path` is served; on the
 //! Python server they run. The Python test replaced `Path.home` in process; a server finds the home folder in `HOME`.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 use std::path::{Path, PathBuf};
 
 use serde_json::json;

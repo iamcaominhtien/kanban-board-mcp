@@ -7,6 +7,9 @@
 //! `test_a_subagents_task_events_land_on_the_row_the_stream_made` (they call `runs` and `steps` directly: service
 //! level, in `kb-ai-run` and `kb-ai`).
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::time::Duration;

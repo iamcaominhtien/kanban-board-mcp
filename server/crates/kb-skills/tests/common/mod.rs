@@ -130,7 +130,10 @@ impl Fixture {
         let bin = root.join("bin");
         std::fs::create_dir_all(&home).expect("home");
         std::fs::create_dir_all(&bin).expect("bin");
+        #[cfg(unix)]
         std::os::unix::fs::symlink(env!("CARGO_BIN_EXE_fake-claude-cli"), bin.join("claude")).expect("fake claude");
+        #[cfg(not(unix))]
+        std::fs::copy(env!("CARGO_BIN_EXE_fake-claude-cli"), bin.join("claude.exe")).expect("fake claude");
         let path = path_of(&bin, opts.claude);
 
         let inner = if is_python() {

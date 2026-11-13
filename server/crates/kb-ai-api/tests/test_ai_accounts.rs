@@ -5,6 +5,9 @@
 //! A team a test needs is a row added to the server's database; what the Python test reads back from
 //! `GET /ai/teams/{id}` is read from that row.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::path::Path;

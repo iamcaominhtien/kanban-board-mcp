@@ -8,6 +8,9 @@
 //! Teams are made through the route, on the stand-in CLI (see `tests/common`); runs are started the way a person
 //! starts them and followed until they rest.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::time::Duration;

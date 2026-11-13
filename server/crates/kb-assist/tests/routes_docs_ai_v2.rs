@@ -6,6 +6,9 @@
 //! (`KANBAN_SERVER_BIN`). The stand-in CLI answers for `claude`; a team is a row added to the database (the route that
 //! makes it is not ported yet).
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod http;
 
 use http::{Fixture, start};

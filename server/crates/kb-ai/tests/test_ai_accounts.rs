@@ -3,6 +3,9 @@
 //! for `accounts`, `signin`, `cli` and `runs`. `test_a_cli_without_check_cannot_be_made` has no Rust form: a type that
 //! does not implement `Profile::check` does not compile.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 use std::collections::HashSet;
 use std::os::unix::fs::PermissionsExt;
 

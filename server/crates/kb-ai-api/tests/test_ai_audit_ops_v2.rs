@@ -2,6 +2,9 @@
 //! (`services/ai/audit.py`) and the project's settings column (`services/ai/ops.py`), written by the routes). The
 //! rest of the file calls `record` and `ops` directly and is in `crates/kb-ai/tests/test_ai_audit_ops_v2.rs`.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use common::{project, runner, scalar, sign_in, start, ticket, wait_run};

@@ -133,9 +133,8 @@ fn shutil_move(src: &Path, dst: &Path) -> io::Result<()> {
 fn copy_entry(src: &Path, dst: &Path) -> io::Result<()> {
     let meta = std::fs::symlink_metadata(src)?;
     if meta.file_type().is_symlink() {
-        let target = std::fs::read_link(src)?;
         #[cfg(unix)]
-        return std::os::unix::fs::symlink(target, dst);
+        return std::os::unix::fs::symlink(std::fs::read_link(src)?, dst);
         #[cfg(not(unix))]
         return std::fs::copy(src, dst).map(|_| ());
     }

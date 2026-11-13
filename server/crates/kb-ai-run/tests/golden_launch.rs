@@ -5,6 +5,9 @@
 //! dumped. Compared: the command line, the settings JSON, the MCP config, the prompt, the system prompts, the agents
 //! JSON, the plugin folders and the environment of the child.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::collections::{BTreeMap, HashSet};

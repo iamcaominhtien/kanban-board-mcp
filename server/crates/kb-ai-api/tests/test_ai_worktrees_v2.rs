@@ -13,6 +13,9 @@
 //! The Python tests change `FAKE_CLAUDE_*` with `monkeypatch.setenv` before the run they start; a server here starts
 //! with the variables of its test. `FAKE_CLAUDE_CWD_RECORD` and the like name files in a folder of the test.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::path::{Path, PathBuf};

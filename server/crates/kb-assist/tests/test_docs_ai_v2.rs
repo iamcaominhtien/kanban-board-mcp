@@ -8,6 +8,9 @@
 //! or selection, a `scope` the route refuses) waits with the routes and is named in a comment where it was left out.
 //! `test_a_note_to_a_page_reaches_the_page_assistant` waits whole: it calls `ai/messaging.py` (`deliver_to_page`).
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::time::{Duration, Instant};

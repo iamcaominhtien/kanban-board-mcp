@@ -2,6 +2,9 @@
 //! two other routes of that file: what the runner posts (`POST /internal/ai/events`) and where the CLIs run
 //! (`GET /ai/runner`). The run of the test is a row (the Python test adds it through its session).
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use common::{exec, project, run, scalar, start, team, ticket};

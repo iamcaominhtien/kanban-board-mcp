@@ -11,6 +11,9 @@
 //! After the ported tests: what the Python suite covers only through whole runs, here against a `seams::Runs` that
 //! records the calls (pausing with "cancel the current run", removing a team with runs in flight) and `health_check`.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::sync::Arc;

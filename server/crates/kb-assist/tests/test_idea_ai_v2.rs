@@ -7,6 +7,9 @@
 //! the per-idea `errors` and `none` lists of `POST /advice`, a path that answers `{stopped: false}`) waits with the
 //! routes and is named in a comment where it was left out.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use kb_assist::assistant::ideas;

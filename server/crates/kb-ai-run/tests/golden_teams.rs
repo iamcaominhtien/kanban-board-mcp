@@ -4,6 +4,9 @@
 //! audit entries), and `describe`, `list_teams` and `removal_impact` for teams in every shape. The rows of each
 //! situation are the ones the Python models dumped.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use kb_ai_run::teams;

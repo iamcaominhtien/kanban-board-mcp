@@ -8,6 +8,9 @@
 //! (the route `POST /projects/{id}/ai/schedules/dry-run` is ported with `api/schedules.py`; the assistant is the
 //! seam `seams::Assistant`, which `kb-assist` fills).
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::collections::HashMap;

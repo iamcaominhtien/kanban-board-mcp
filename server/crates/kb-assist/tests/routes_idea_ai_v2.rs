@@ -2,6 +2,9 @@
 //! Ask, Prepare a ticket and the digest are turns of the Idea assistant with a skill; the ideas are given to it
 //! (`server/tests/test_idea_ai_v2.py`, through HTTP: the route assertions that `test_idea_ai_v2.rs` left out).
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod http;
 
 use http::{Fixture, start};

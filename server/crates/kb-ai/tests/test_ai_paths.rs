@@ -2,6 +2,9 @@
 //! roots come from `KANBAN_AI_ROOTS` in Python (`monkeypatch.setenv`); the process environment is never changed here, so
 //! the tests give the roots with `work_roots_with` and call the `_in` forms, which are what `folder` and `program` call.
 
+// Unix only: it starts shell scripts, makes files executable or links them (Windows CI only compiles the tests).
+#![cfg(unix)]
+
 mod common;
 
 use std::os::unix::fs::symlink;
