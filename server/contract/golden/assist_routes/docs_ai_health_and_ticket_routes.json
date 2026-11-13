@@ -237,13 +237,19 @@
   "tickets/create": {
     "status": 200,
     "json": {
-      "linked": true,
-      "replaced": false,
+      "draft_markdown": null,
+      "linked": 1,
+      "not_replaced": [],
+      "replaced": 0,
       "tickets": [
         {
+          "assignee": null,
+          "due_date": null,
           "id": "KAN-1",
           "project_id": "<uuid:1>",
-          "title": "Add paging"
+          "status": "backlog",
+          "title": "Add paging",
+          "type": "task"
         }
       ],
       "undo_token": "<uuid:2>"
@@ -275,13 +281,51 @@
   "tickets/create: not linked": {
     "status": 200,
     "json": {
-      "linked": false,
-      "replaced": false,
+      "draft_markdown": null,
+      "linked": 0,
+      "not_replaced": [],
+      "replaced": 0,
       "tickets": [
         {
+          "assignee": null,
+          "due_date": null,
           "id": "KAN-2",
           "project_id": "<uuid:1>",
-          "title": "Plain"
+          "status": "backlog",
+          "title": "Plain",
+          "type": "task"
+        }
+      ],
+      "undo_token": "<uuid:2>"
+    }
+  },
+  "tickets/create: replace text": {
+    "status": 200,
+    "json": {
+      "draft_markdown": "# API\n\nThe API uses REST.\n\n- [ ] Add paging KAN-3\n",
+      "linked": 2,
+      "not_replaced": [
+        "Not there"
+      ],
+      "replaced": 1,
+      "tickets": [
+        {
+          "assignee": null,
+          "due_date": null,
+          "id": "KAN-3",
+          "project_id": "<uuid:1>",
+          "status": "backlog",
+          "title": "Page it",
+          "type": "task"
+        },
+        {
+          "assignee": null,
+          "due_date": null,
+          "id": "KAN-4",
+          "project_id": "<uuid:1>",
+          "status": "backlog",
+          "title": "Gone",
+          "type": "task"
         }
       ],
       "undo_token": "<uuid:2>"
@@ -434,10 +478,11 @@
   "tickets/undo": {
     "status": 200,
     "json": {
+      "deleted": 1,
+      "draft_restored": false,
       "removed": [
         "KAN-1"
-      ],
-      "restored_text": false
+      ]
     }
   },
   "tickets/undo: again": {

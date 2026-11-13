@@ -214,7 +214,10 @@ async fn docs_ai_write_routes() {
         &c.post(&format!("{base}/write/preview"), json!({"source": {"kind": "prompt", "text": "Paging design"}})).await,
     );
     let ticket = c
-        .post(&format!("/projects/{pid}/tickets"), json!({"title": "Paging", "description": "Page the list.", "status": "todo"}))
+        .post(
+            &format!("/projects/{pid}/tickets"),
+            json!({"title": "Paging", "description": "Page the list.", "status": "todo"}),
+        )
         .await;
     ticket.assert_status(201);
     rec.check(
@@ -229,7 +232,7 @@ async fn docs_ai_write_routes() {
         "write/preview: no such ticket",
         &c.post(&format!("{base}/write/preview"), json!({"source": {"kind": "ticket", "ticket_id": "KAN-9"}})).await,
     );
-    c.delete("/tickets/KAN-1").await.assert_status(200);
+    c.delete("/tickets/KAN-1").await.assert_status(204);
     rec.check("write/preview: no source", &c.post(&format!("{base}/write/preview"), json!({})).await);
     rec.check(
         "write/preview: no notes",

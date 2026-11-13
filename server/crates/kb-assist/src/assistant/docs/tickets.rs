@@ -5,11 +5,11 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{LazyLock, Mutex, MutexGuard};
 
 use kb_base::{activity, pyjson, pytext, time};
-use kb_doctext::docs_text;
 use kb_board::tickets::{self, NewTicket};
 use kb_db::Session;
 use kb_db::entities::{docs_ai_job, project};
 use kb_db::sea_orm::EntityTrait;
+use kb_doctext::docs_text;
 use serde_json::{Map, Value, json};
 
 use super::{TurnExtra, boxed, clip, cost, get, get_or, input, items, merge, text_of, turn};

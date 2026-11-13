@@ -5,9 +5,10 @@
 //! (ignoring a finding, creating the reviewed ticket drafts, markers in a draft) is plain code here.
 //!
 //! The Python module is one file; here it is this file (lines 1 to 641: the constants, the turn of a job, a page's
-//! jobs, asking the docs, writing a page, the history jobs), `tickets` (644 to 723: from a page to tickets) and
-//! `threads` (730 to 1106: comment threads, the @mentions of an AI member, what the comments list shows of the
-//! assistant). Every name of the Python module is `docs::<name>` here too.
+//! jobs, asking the docs, writing a page, the history jobs), `preview` ("What will be sent" of Write with AI),
+//! `since` ("Changes since you last viewed"), `tickets` (644 to 723: from a page to tickets) and `threads` (730 to
+//! 1106: comment threads, the @mentions of an AI member, what the comments list shows of the assistant). Every name
+//! of the Python module is `docs::<name>` here too.
 
 use std::collections::HashSet;
 
@@ -35,9 +36,9 @@ mod since;
 mod threads;
 mod tickets;
 
-pub use threads::{THREAD_KINDS, annotate, deliver, docs_ai_on, member_rows, start_route_job, start_thread_job};
 pub use preview::write_preview;
 pub use since::{Change, Changed, MAX_DIGEST_PAGES, NEW_PAGE_DAYS, changed_since_viewed};
+pub use threads::{THREAD_KINDS, annotate, deliver, docs_ai_on, member_rows, start_route_job, start_thread_job};
 pub use tickets::{LineKeys, create_tickets, undo_tickets};
 
 /// The longest question the Docs UI sends.

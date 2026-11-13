@@ -234,7 +234,10 @@ async fn test_create_tickets_with_replace_text_answers_what_the_dialog_reads() {
     let out = made.json();
     let key = out["tickets"][0]["id"].as_str().expect("key").to_string();
     let draft = format!("# API\n\nThe API uses REST.\n\n- [ ] Add paging {key}\n");
-    assert_eq!((&out["replaced"], &out["linked"], &out["not_replaced"]), (&json!(1), &json!(2), &json!(["Not on the page"])));
+    assert_eq!(
+        (&out["replaced"], &out["linked"], &out["not_replaced"]),
+        (&json!(1), &json!(2), &json!(["Not on the page"]))
+    );
     assert_eq!(out["draft_markdown"], json!(draft));
     assert_eq!(c.get(&format!("/docs/pages/{page}")).await.json()["draft"]["markdown"], json!(draft));
     // undo puts the draft back

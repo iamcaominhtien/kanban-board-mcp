@@ -160,6 +160,39 @@
       "tokens_out": 0
     }
   },
+  "since-viewed: job": {
+    "status": 200,
+    "json": {
+      "comment_id": null,
+      "cost": 0.0,
+      "ended_at": "<time>",
+      "error": {},
+      "id": "<dj:1>",
+      "instruction": "Changes since you last viewed",
+      "kind": "since_viewed",
+      "member_id": null,
+      "metered": false,
+      "page_id": null,
+      "project_id": "<uuid:1>",
+      "queued_at": "<time>",
+      "reads": [],
+      "reply_comment_id": null,
+      "result": {
+        "cost": 0.0,
+        "count": 0,
+        "lines": [],
+        "metered": false,
+        "pages": []
+      },
+      "started_at": "<time>",
+      "started_by": "user",
+      "state": "finished",
+      "steps": [],
+      "thread_id": null,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  },
   "since-viewed: no project": {
     "status": 404,
     "json": {
@@ -376,19 +409,33 @@
   "write/preview": {
     "status": 200,
     "json": {
-      "cost": null,
+      "cost": 0.0,
+      "from": "a prompt",
+      "injections": [],
       "items": [
         {
           "kind": "prompt",
-          "label": "Your text"
-        },
-        {
-          "kind": "pages",
-          "label": "Pages it links and two or three pages of this space, for the voice"
+          "label": "The request",
+          "n": 1
         }
       ],
-      "left_out": [],
-      "tokens": null
+      "member": "Claude Code · Backend",
+      "metered": false,
+      "notes": [],
+      "send": {
+        "code": false,
+        "comments": 0,
+        "description": false,
+        "idea": false,
+        "notes": false,
+        "pages": [],
+        "prompt": true,
+        "style_guide": null,
+        "ticket": null
+      },
+      "skipped": [],
+      "suggested_title": "",
+      "tokens": 26
     }
   },
   "write/preview: no notes": {
@@ -409,26 +456,46 @@
       ]
     }
   },
+  "write/preview: no such ticket": {
+    "status": 404,
+    "json": {
+      "code": "not_found",
+      "detail": "KAN-9 is not a ticket in this project."
+    }
+  },
   "write/preview: ticket": {
     "status": 200,
     "json": {
-      "cost": null,
+      "cost": 0.0,
+      "from": "KAN-1",
+      "injections": [],
       "items": [
         {
-          "kind": "ticket",
-          "label": "KAN-1"
-        },
-        {
-          "kind": "pages",
-          "label": "Pages it links and two or three pages of this space, for the voice"
-        },
-        {
-          "kind": "comments",
-          "label": "The ticket's comments"
+          "kind": "description",
+          "label": "KAN-1 description",
+          "n": 1
         }
       ],
-      "left_out": [],
-      "tokens": null
+      "member": "Claude Code · Backend",
+      "metered": false,
+      "notes": [],
+      "send": {
+        "code": false,
+        "comments": 0,
+        "description": true,
+        "idea": false,
+        "notes": false,
+        "pages": [],
+        "prompt": false,
+        "style_guide": null,
+        "ticket": {
+          "id": "KAN-1",
+          "title": "Paging"
+        }
+      },
+      "skipped": [],
+      "suggested_title": "Paging",
+      "tokens": 37
     }
   },
   "write: bad kind": {

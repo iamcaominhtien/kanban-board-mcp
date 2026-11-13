@@ -96,12 +96,7 @@ async fn published_text(session: &Session, page: &docs_page::Model) -> Result<St
 }
 
 /// Add the pages a ticket links: only published pages of this project are read; the others are listed as skipped.
-async fn page_sources(
-    session: &Session,
-    project_id: &str,
-    page_ids: &[String],
-    g: &mut Gathered,
-) -> Result<(), Error> {
+async fn page_sources(session: &Session, project_id: &str, page_ids: &[String], g: &mut Gathered) -> Result<(), Error> {
     for page_id in page_ids {
         let page = docs_page::Entity::find_by_id(page_id.as_str()).one(session).await?;
         let Some(page) = page.filter(|p| p.deleted_at.is_none() && p.project_id == project_id) else { continue };
@@ -152,7 +147,9 @@ async fn ticket_sources(
     if flag("comments") {
         let comments: Vec<Value> = json_list(&t.comments)
             .into_iter()
-            .filter(|c| c.is_object() && !c.get("deleted_at").is_some_and(pyjson::truthy) && !field(c, "text").is_empty())
+            .filter(|c| {
+                c.is_object() && !c.get("deleted_at").is_some_and(pyjson::truthy) && !field(c, "text").is_empty()
+            })
             .collect();
         if !comments.is_empty() {
             let body: Vec<String> = comments
@@ -270,7 +267,8 @@ async fn gather(session: &Session, project_id: &str, p: &Map<String, Value>) -> 
 
 /// The text the assistant would start from: what to write, the numbered sources and the style guide.
 fn build_prompt(g: &Gathered, page_kind: &str, title: &str) -> String {
-    let mut head = vec![format!("Write a page of this kind: {page_kind}."), format!("The page title is \u{201c}{title}\u{201d}.")];
+    let mut head =
+        vec![format!("Write a page of this kind: {page_kind}."), format!("The page title is \u{201c}{title}\u{201d}.")];
     if !g.style.is_empty() {
         head.push(format!(
             "Style guide page \u{201c}{}\u{201d} (follow its wording rules; it is not a source of facts):\n{}",
@@ -323,12 +321,8 @@ pub async fn write_preview(
         "prompt": g.has("prompt"),
         "style_guide": if g.style_title.is_empty() { Value::Null } else { json!(g.style_title) },
     });
-    let items: Vec<Value> = g
-        .sources
-        .iter()
-        .enumerate()
-        .map(|(i, s)| json!({"n": i + 1, "kind": s.kind, "label": s.label}))
-        .collect();
+    let items: Vec<Value> =
+        g.sources.iter().enumerate().map(|(i, s)| json!({"n": i + 1, "kind": s.kind, "label": s.label})).collect();
     let mut out = Map::new();
     out.insert("send".into(), send);
     out.insert("items".into(), Value::Array(items));

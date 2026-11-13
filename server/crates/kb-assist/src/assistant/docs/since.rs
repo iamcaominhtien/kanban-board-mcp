@@ -60,11 +60,7 @@ pub struct Changed {
 /// Pages published since `person` last viewed them, newest first. A page the person never viewed counts only when it
 /// is new (made in the last `NEW_PAGE_DAYS` days by somebody else); a page they changed themselves and have seen
 /// since is left out.
-pub async fn changed_since_viewed(
-    session: &Session,
-    project_id: &str,
-    person: &str,
-) -> Result<Vec<Changed>, Error> {
+pub async fn changed_since_viewed(session: &Session, project_id: &str, person: &str) -> Result<Vec<Changed>, Error> {
     let cutoff = time::iso(&(Utc::now() - Duration::days(NEW_PAGE_DAYS)));
     let seen: HashMap<String, i32> = docs_page_seen::Entity::find()
         .filter(docs_page_seen::Column::Viewer.eq(person))
@@ -117,7 +113,8 @@ fn lines_by_page(rows: &[Changed], lines: &[Value]) -> Vec<Option<String>> {
             Value::Object(map) => {
                 let said = |key: &str| map.get(key).filter(|v| pyjson::truthy(v)).map(text_of);
                 let line = said("line").or_else(|| said("text")).unwrap_or_default();
-                (said("page_id"), title_key(&said("title").unwrap_or_default()), line.trim().to_string())
+                let title = said("title").or_else(|| said("page")).unwrap_or_default();
+                (said("page_id"), title_key(&title), line.trim().to_string())
             }
             _ => continue,
         };
@@ -181,8 +178,9 @@ pub fn since_viewed_job(job: docs_ai_job::Model) -> HandlerFuture {
             })
             .collect();
         let mut result = Map::new();
-        result.insert("count".into(), json!(pages.len()));
+        let count = pages.len();
         result.insert("pages".into(), Value::Array(pages));
+        result.insert("count".into(), json!(count));
         result.insert("lines".into(), Value::Array(lines));
         if spent.is_empty() {
             spent.insert("cost".into(), json!(0.0));
