@@ -78,7 +78,16 @@ fn fernet_of(key: &str) -> Result<Fernet, String> {
 }
 
 /// The encryption key from the OS keychain; a key file left from before moves into the keychain once.
+///
+/// The keychain is asked on a thread of its own: on Linux the Secret Service client blocks on a runtime of its own,
+/// which panics on a thread of the app's async runtime (and the app asks from there: a request, its start).
 fn keychain_fernet() -> Result<Fernet, SecretStoreError> {
+    std::thread::scope(|scope| {
+        scope.spawn(keychain_fernet_here).join().unwrap_or_else(|_| Err(SecretStoreError(KEYCHAIN_DENIED.to_string())))
+    })
+}
+
+fn keychain_fernet_here() -> Result<Fernet, SecretStoreError> {
     let denied = || SecretStoreError(KEYCHAIN_DENIED.to_string());
     let mut cached = CACHED_KEYCHAIN.lock().unwrap_or_else(|e| e.into_inner());
     if let Some(key) = cached.as_deref() {
