@@ -77,8 +77,18 @@ pub trait WorkspaceHook: Send + Sync {
     async fn busy(&self) -> Option<String>;
 
     /// The board was switched: stop what still holds the old one (the AI runner starts again, on the new board, with
-    /// the next run).
-    async fn switched(&self);
+    /// the next run). `left` says whether the board left behind answered: a runner waiting on one that does not is
+    /// stopped at once rather than given its time to finish.
+    async fn switched(&self, left: LeftBoard);
+}
+
+/// How the board left behind by a switch was.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LeftBoard {
+    /// It answered (no AI run was working on it).
+    Answered,
+    /// It did not answer: what waits on it cannot finish cleanly.
+    Silent,
 }
 
 static WORKSPACE: OnceLock<Box<dyn WorkspaceHook>> = OnceLock::new();

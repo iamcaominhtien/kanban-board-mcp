@@ -252,7 +252,11 @@ pub async fn reinit_db(new_db_path: Option<PathBuf>) -> Result<(), DatabaseError
     let db_path = new_db_path.unwrap_or_else(get_db_path);
     let (target, source) = resolve_target(&db_path)?;
     set_target(target, source, db_path).await?;
-    let _ = old.close().await;
+    // the old pool closes once the requests that still hold it end; a server that hangs would keep this waiting for
+    // its timeout, and the board just opened has nothing to wait for
+    tokio::spawn(async move {
+        let _ = old.close().await;
+    });
     init_db().await?;
     // the board just opened answered (the schema was checked on it): it is no longer "cannot be reached", which was
     // about the one left behind

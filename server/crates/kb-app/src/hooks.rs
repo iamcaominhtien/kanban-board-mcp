@@ -59,8 +59,12 @@ impl kb_dbkit::hooks::WorkspaceHook for Workspaces {
         })
     }
 
-    async fn switched(&self) {
-        kb_ai::runner_link::stop().await;
+    async fn switched(&self, left: kb_dbkit::hooks::LeftBoard) {
+        match left {
+            kb_dbkit::hooks::LeftBoard::Answered => kb_ai::runner_link::stop().await,
+            // a runner waiting on a board that does not answer cannot finish cleanly: it is not waited for
+            kb_dbkit::hooks::LeftBoard::Silent => kb_ai::runner_link::kill().await,
+        }
     }
 }
 

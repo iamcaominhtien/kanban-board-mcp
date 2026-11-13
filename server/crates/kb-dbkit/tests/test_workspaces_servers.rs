@@ -240,10 +240,19 @@ async fn test_the_environment_deciding_the_database_turns_the_switch_off() {
     common::wipe(&url).await;
 }
 
-/// A TCP proxy to `to`; dropping the returned handle cuts the connections that are open and stops listening.
+/// A TCP proxy to `to`; dropping the returned handle cuts the connections that are open and stops listening, and
+/// `hang` makes it a server that stops answering without closing anything (a network that drops the packets).
 struct Proxy {
     port: u16,
     task: tokio::task::JoinHandle<()>,
+    hung: tokio::sync::watch::Sender<bool>,
+}
+
+impl Proxy {
+    /// From now on nothing goes through, and nothing is closed either.
+    fn hang(&self) {
+        let _ = self.hung.send(true);
+    }
 }
 
 impl Drop for Proxy {
@@ -255,24 +264,47 @@ impl Drop for Proxy {
 async fn proxy_to(to: String) -> Proxy {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("a free port");
     let port = listener.local_addr().expect("address").port();
+    let (hung, watch) = tokio::sync::watch::channel(false);
     let task = tokio::spawn(async move {
         // the connections live in this set: when the task is aborted they go with it
         let mut connections = tokio::task::JoinSet::new();
         while let Ok((mut inbound, _)) = listener.accept().await {
             let to = to.clone();
+            let mut watch = watch.clone();
             connections.spawn(async move {
-                if let Ok(mut outbound) = tokio::net::TcpStream::connect(to).await {
-                    let _ = tokio::io::copy_bidirectional(&mut inbound, &mut outbound).await;
+                if !*watch.borrow() {
+                    if let Ok(mut outbound) = tokio::net::TcpStream::connect(to).await {
+                        tokio::select! {
+                            _ = tokio::io::copy_bidirectional(&mut inbound, &mut outbound) => return,
+                            _ = watch.wait_for(|hung| *hung) => {}
+                        }
+                    }
                 }
+                // hung: keep the connection open and say nothing
+                std::future::pending::<()>().await;
+                drop(inbound);
             });
         }
     });
-    Proxy { port, task }
+    Proxy { port, task, hung }
 }
 
 /// The office server is not reachable from home: a board on a server that stops answering must not trap the person. The
 /// workspace list and the switch keep working while the board is down, and the way back to the SQLite board is there.
 async fn a_server_board_that_stops_answering_can_be_left(test: &str, engine: Engine, database: &str) {
+    server_board_that_goes_away_can_be_left(test, engine, database, Away::Closed).await;
+}
+
+/// How a database server goes away.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Away {
+    /// It refuses connections (the server stopped).
+    Closed,
+    /// It says nothing and closes nothing (the network drops the packets: the office server seen from home).
+    Silent,
+}
+
+async fn server_board_that_goes_away_can_be_left(test: &str, engine: Engine, database: &str, away: Away) {
     if !skip_unless_available(test) {
         return;
     }
@@ -291,25 +323,37 @@ async fn a_server_board_that_stops_answering_can_be_left(test: &str, engine: Eng
     new_project(&c, "At the office", "OFC").await;
 
     // the server goes away
-    drop(proxy);
-    let mut down = false;
-    for _ in 0..80 {
-        let r = c.get("/projects").await;
-        if r.status == 503 {
-            assert_eq!(r.json()["detail"]["code"], "database_unreachable");
-            down = true;
-            break;
+    let _hung = match away {
+        Away::Closed => {
+            drop(proxy);
+            let mut down = false;
+            for _ in 0..80 {
+                let r = c.get("/projects").await;
+                if r.status == 503 {
+                    assert_eq!(r.json()["detail"]["code"], "database_unreachable");
+                    down = true;
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(500)).await;
+            }
+            assert!(down, "the board never reported the server as unreachable");
+            None
         }
-        tokio::time::sleep(Duration::from_millis(500)).await;
-    }
-    assert!(down, "the board never reported the server as unreachable");
+        // the board does not know yet: nothing has failed so far, requests just wait
+        Away::Silent => {
+            proxy.hang();
+            Some(proxy)
+        }
+    };
 
     // the list shows, and says which board is in use, instead of answering 503
     let o = overview(&c).await;
     assert_eq!(o["active_id"], json!(office));
-    // and the person can leave it
+    // and the person can leave it, without waiting for the connection timeouts of the board left behind
+    let started = std::time::Instant::now();
     let r = c.post_empty(&format!("/workspaces/{default}/switch")).await;
     assert_eq!(r.status, 200, "{}", r.text());
+    assert!(started.elapsed() < Duration::from_secs(12), "leaving took {:?}", started.elapsed());
     assert_eq!(engine_of(&c).await, "sqlite");
     assert_eq!(project_names(&c).await, vec!["On SQLite"]);
     drop(s);
@@ -322,6 +366,28 @@ async fn test_a_postgres_board_that_stops_answering_can_be_left() {
         "test_a_postgres_board_that_stops_answering_can_be_left",
         POSTGRES,
         "kanban_dbkit_workspaces_down",
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn test_a_postgres_board_that_hangs_can_be_left_quickly() {
+    server_board_that_goes_away_can_be_left(
+        "test_a_postgres_board_that_hangs_can_be_left_quickly",
+        POSTGRES,
+        "kanban_dbkit_workspaces_hangs",
+        Away::Silent,
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn test_a_mysql_board_that_hangs_can_be_left_quickly() {
+    server_board_that_goes_away_can_be_left(
+        "test_a_mysql_board_that_hangs_can_be_left_quickly",
+        MYSQL,
+        "kanban_dbkit_workspaces_hangs",
+        Away::Silent,
     )
     .await;
 }

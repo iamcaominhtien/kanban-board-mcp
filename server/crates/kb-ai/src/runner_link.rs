@@ -234,6 +234,21 @@ pub async fn stop() {
     }
 }
 
+/// Stop the runner process at once, without the time `stop` gives it to finish (it waits on a database that does not
+/// answer, so it could not finish anyway).
+pub async fn kill() {
+    let (child, watch) = {
+        let mut st = state();
+        (st.proc.take(), st.watch.take())
+    };
+    if let Some(watch) = watch {
+        watch.abort();
+    }
+    if let Some(mut child) = child {
+        let _ = child.kill().await;
+    }
+}
+
 /// `Popen.terminate()`: SIGTERM on POSIX (through `kill`, the process API has no safe signal call), the process is
 /// stopped by `taskkill` on Windows.
 async fn terminate(child: &Child) {

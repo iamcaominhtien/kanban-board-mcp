@@ -30,7 +30,7 @@ use kb_db::targets::{self, Target};
 use kb_files::{pathlib, uploads};
 use serde_json::{Map, Value, json};
 
-use crate::hooks;
+use crate::hooks::{self, LeftBoard};
 use crate::probe::{self, Report};
 
 /// The key of the list in the config file.
@@ -560,10 +560,13 @@ pub async fn switch(id: &str) -> Result<Item, Error> {
         return Ok(Item { active: true, has_board: has_board(&target), workspace: target });
     }
     // a board that does not answer cannot have runs working on it, and asking it would wait for the connection
-    if database::unreachable().is_none() {
+    let mut left = if database::unreachable().is_some() { LeftBoard::Silent } else { LeftBoard::Answered };
+    if left == LeftBoard::Answered {
         if let Some(hook) = hooks::workspace() {
-            if let Ok(Some(reason)) = tokio::time::timeout(BUSY_CHECK, hook.busy()).await {
-                return Err(Error::Busy(reason));
+            match tokio::time::timeout(BUSY_CHECK, hook.busy()).await {
+                Ok(Some(reason)) => return Err(Error::Busy(reason)),
+                Ok(None) => {}
+                Err(_) => left = LeftBoard::Silent,
             }
         }
     }
@@ -606,7 +609,7 @@ pub async fn switch(id: &str) -> Result<Item, Error> {
     }
     let _ = uploads::get_uploads_dir(true);
     if let Some(hook) = hooks::workspace() {
-        hook.switched().await;
+        hook.switched(left).await;
     }
     events::invalidate().await;
     Ok(Item { active: true, has_board: true, workspace: target })
