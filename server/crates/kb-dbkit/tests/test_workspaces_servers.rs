@@ -239,3 +239,99 @@ async fn test_the_environment_deciding_the_database_turns_the_switch_off() {
     drop(s);
     common::wipe(&url).await;
 }
+
+/// A TCP proxy to `to`; dropping the returned handle cuts the connections that are open and stops listening.
+struct Proxy {
+    port: u16,
+    task: tokio::task::JoinHandle<()>,
+}
+
+impl Drop for Proxy {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
+}
+
+async fn proxy_to(to: String) -> Proxy {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("a free port");
+    let port = listener.local_addr().expect("address").port();
+    let task = tokio::spawn(async move {
+        // the connections live in this set: when the task is aborted they go with it
+        let mut connections = tokio::task::JoinSet::new();
+        while let Ok((mut inbound, _)) = listener.accept().await {
+            let to = to.clone();
+            connections.spawn(async move {
+                if let Ok(mut outbound) = tokio::net::TcpStream::connect(to).await {
+                    let _ = tokio::io::copy_bidirectional(&mut inbound, &mut outbound).await;
+                }
+            });
+        }
+    });
+    Proxy { port, task }
+}
+
+/// The office server is not reachable from home: a board on a server that stops answering must not trap the person. The
+/// workspace list and the switch keep working while the board is down, and the way back to the SQLite board is there.
+async fn a_server_board_that_stops_answering_can_be_left(test: &str, engine: Engine, database: &str) {
+    if !skip_unless_available(test) {
+        return;
+    }
+    let Some(url) = own_database(test, engine, database).await else { return };
+    let real = kb_db::targets::from_url(&url).expect("a test database URL");
+    let proxy = proxy_to(format!("{}:{}", real.host, real.port_or_default())).await;
+    let through = url.replacen(&format!(":{}/", real.port_or_default()), &format!(":{}/", proxy.port), 1);
+    let (s, _tmp) = start(Vec::new()).await;
+    let c = s.client();
+    new_project(&c, "On SQLite", "LIT").await;
+    let r = c.post("/workspaces", json!({"name": "Office", "connection": {"url": through}})).await;
+    assert_eq!(r.status, 200, "{}", r.text());
+    let office = r.json()["id"].as_str().unwrap().to_string();
+    let default = id_of(&overview(&c).await, "Default");
+    assert_eq!(c.post_empty(&format!("/workspaces/{office}/switch")).await.status, 200);
+    new_project(&c, "At the office", "OFC").await;
+
+    // the server goes away
+    drop(proxy);
+    let mut down = false;
+    for _ in 0..80 {
+        let r = c.get("/projects").await;
+        if r.status == 503 {
+            assert_eq!(r.json()["detail"]["code"], "database_unreachable");
+            down = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(500)).await;
+    }
+    assert!(down, "the board never reported the server as unreachable");
+
+    // the list shows, and says which board is in use, instead of answering 503
+    let o = overview(&c).await;
+    assert_eq!(o["active_id"], json!(office));
+    // and the person can leave it
+    let r = c.post_empty(&format!("/workspaces/{default}/switch")).await;
+    assert_eq!(r.status, 200, "{}", r.text());
+    assert_eq!(engine_of(&c).await, "sqlite");
+    assert_eq!(project_names(&c).await, vec!["On SQLite"]);
+    drop(s);
+    common::wipe(&url).await;
+}
+
+#[tokio::test]
+async fn test_a_postgres_board_that_stops_answering_can_be_left() {
+    a_server_board_that_stops_answering_can_be_left(
+        "test_a_postgres_board_that_stops_answering_can_be_left",
+        POSTGRES,
+        "kanban_dbkit_workspaces_down",
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn test_a_mysql_board_that_stops_answering_can_be_left() {
+    a_server_board_that_stops_answering_can_be_left(
+        "test_a_mysql_board_that_stops_answering_can_be_left",
+        MYSQL,
+        "kanban_dbkit_workspaces_down",
+    )
+    .await;
+}

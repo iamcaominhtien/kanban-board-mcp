@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Project } from '../types';
 import { AppLogo } from './icons';
 import { useAppCommand } from '../utils/appCommands';
@@ -32,12 +32,23 @@ interface ProjectSidebarProps {
   /** The boards kept on this computer (App settings › Storage & backup › Workspaces); the switcher shows with two or more. */
   workspaces?: {
     items: { id: string; name: string; active: boolean }[];
-    /** False while a switch is not possible (a database server): the list shows, the rows are disabled. */
+    /** False while a switch is not possible (`KANBAN_DATABASE_URL` decides the database): the rows are disabled. */
     switchable: boolean;
     onSwitch: (id: string) => void;
-    /** The server's reason for the last refused switch. */
+    /** A switch is on its way (the server checks the board first, which can take a few seconds). */
+    switching?: boolean;
+    /** The server's reason for the last refused switch; it stays under the switcher until dismissed. */
     error?: string | null;
+    onDismissError?: () => void;
   } | null;
+}
+
+/** Up to two letters that stand for a workspace in the collapsed rail. */
+export function workspaceInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '?';
+  if (words.length === 1) return Array.from(words[0]).slice(0, 2).join('').toUpperCase();
+  return (Array.from(words[0])[0] + Array.from(words[1])[0]).toUpperCase();
 }
 
 const PRESET_COLORS = ['#AACC2E', '#F472B6', '#F5C518', '#E8441A', '#5BB8F5', '#A78BFA', '#34D399', '#FB923C'];
@@ -81,6 +92,23 @@ export function ProjectSidebar({
   const [showForm, setShowForm] = useState(false);
   const [showWorkspaces, setShowWorkspaces] = useState(false);
   const activeWorkspace = workspaces?.items.find((w) => w.active);
+  const switcherRef = useRef<HTMLDivElement>(null);
+  // Escape or a click elsewhere closes the menu (it keeps the rail open while it is shown)
+  useEffect(() => {
+    if (!showWorkspaces) return undefined;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowWorkspaces(false);
+    };
+    const onDown = (e: MouseEvent) => {
+      if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) setShowWorkspaces(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onDown);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onDown);
+    };
+  }, [showWorkspaces]);
   // Desktop menu: File › New Project…
   useAppCommand('new-project', () => setShowForm(true));
   const [formName, setFormName] = useState('');
@@ -136,17 +164,23 @@ export function ProjectSidebar({
 
       {/* Workspace switcher: only when this computer keeps more than one board */}
       {workspaces && workspaces.items.length > 1 && (
-        <div className={styles.workspaceSwitcher}>
+        <div className={styles.workspaceSwitcher} ref={switcherRef}>
           <button
             type="button"
             className={styles.sidebarIconBtn}
             title={`Workspace: ${activeWorkspace?.name ?? ''}`}
             aria-haspopup="true"
             aria-expanded={showWorkspaces}
+            disabled={workspaces.switching}
             onClick={() => setShowWorkspaces((open) => !open)}
           >
-            <LineIcon name="layers" size={16} />
-            <span className={styles.navLabel}>{activeWorkspace?.name ?? 'Workspace'}</span>
+            {/* the first letters of the board in use stay visible when the rail is collapsed */}
+            <span className={styles.workspaceBadge} aria-hidden="true">
+              {workspaceInitials(activeWorkspace?.name ?? '')}
+            </span>
+            <span className={styles.navLabel}>
+              {workspaces.switching ? 'Switching…' : (activeWorkspace?.name ?? 'Workspace')}
+            </span>
           </button>
           {showWorkspaces && (
             <div className={styles.workspaceMenu} role="menu" aria-label="Workspaces">
@@ -157,7 +191,7 @@ export function ProjectSidebar({
                   role="menuitemradio"
                   aria-checked={w.active}
                   className={`${styles.workspaceMenuItem} ${w.active ? styles.workspaceMenuItemActive : ''}`}
-                  disabled={w.active || !workspaces.switchable}
+                  disabled={w.active || !workspaces.switchable || workspaces.switching}
                   onClick={() => {
                     setShowWorkspaces(false);
                     workspaces.onSwitch(w.id);
@@ -166,7 +200,17 @@ export function ProjectSidebar({
                   {w.name}
                 </button>
               ))}
-              {workspaces.error && <div className={styles.workspaceError}>{workspaces.error}</div>}
+            </div>
+          )}
+          {/* outside the menu: the menu closes on a click, and a refusal must still be seen */}
+          {workspaces.error && (
+            <div className={styles.workspaceError} role="alert">
+              <span>{workspaces.error}</span>
+              {workspaces.onDismissError && (
+                <button type="button" className={styles.workspaceErrorClose} onClick={workspaces.onDismissError}>
+                  Dismiss
+                </button>
+              )}
             </div>
           )}
         </div>

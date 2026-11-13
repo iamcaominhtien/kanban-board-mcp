@@ -357,6 +357,22 @@ async function fetchActiveRuns({ port, apiSecret, fetchFn = globalThis.fetch, ti
   }
 }
 
+/**
+ * The folder the board in use keeps its data in (the workspace that is open), asked of the running server; `fallback`
+ * when the server cannot say (the app's own folder, where the first board lives).
+ */
+async function fetchDataFolder({ port, fallback, fetchFn = globalThis.fetch, timeoutMs = 5000 }) {
+  if (!port) return fallback;
+  try {
+    const res = await fetchFn(`http://127.0.0.1:${port}/settings`, { signal: AbortSignal.timeout(timeoutMs) });
+    if (!res.ok) return fallback;
+    const body = await res.json();
+    return typeof body.data_folder === 'string' && body.data_folder ? body.data_folder : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 /** Tells the board the computer woke up so it looks at the runs it thinks are going. */
 async function postWake({ port, apiSecret, fetchFn = globalThis.fetch, timeoutMs = 30000 }) {
   if (!port) return false;
@@ -467,6 +483,7 @@ module.exports = {
   createPowerKeeper,
   decidePowerBlock,
   fetchActiveRuns,
+  fetchDataFolder,
   postWake,
   readPreferences,
   writePreferences,

@@ -80,6 +80,8 @@ interface BoardProps {
   boardNotice?: ReactNode;
   /** Extra controls at the left of the view switcher (Board health, Ask AI, the bell). */
   headerExtra?: ReactNode;
+  /** The workspace in use, named next to the project when this computer keeps more than one board. */
+  workspaceName?: string;
   /** Controls in the right action group, next to New Ticket (“Pause all AI” / “AI paused | Resume…”). */
   headerActions?: ReactNode;
   /** A banner under the top bar that pushes the page down (the AI paused banner). */
@@ -154,6 +156,7 @@ export function Board({
   statusSlot,
   boardNotice,
   headerExtra,
+  workspaceName,
   headerActions,
   topBanner,
   filterReopened,
@@ -296,6 +299,11 @@ export function Board({
             <h1 className={styles.title} title={projectName}>
               {projectName}
             </h1>
+          )}
+          {workspaceName && loadState !== 'projects' && (
+            <span className={styles.workspaceTag} title={`Workspace: ${workspaceName}`} data-testid="workspace-tag">
+              {workspaceName}
+            </span>
           )}
           <div className={styles.topBarRight}>
             {headerExtra}

@@ -12,8 +12,14 @@
 //! a whole board.
 //!
 //! The one thing that stops a switch is `KANBAN_DATABASE_URL`: the environment then decides the database.
+//!
+//! What keeps a person's boards safe: the config file is changed under one lock and saved all or nothing
+//! (`kb_base::config::update`), a switch changes its three keys in one save, the board to open is checked before
+//! anything is changed, only one switch runs at a time, and this process's own `follow_settings` stands still while
+//! it runs. The entry of the board in use follows that board when Settings moves its folder or changes its database.
 
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use kb_base::{config, events, pytext, time};
 use kb_db::database;
@@ -22,18 +28,30 @@ use kb_files::{pathlib, uploads};
 use serde_json::{Map, Value, json};
 
 use crate::hooks;
+use crate::probe::{self, Report};
 
 /// The key of the list in the config file.
-const CONFIG_KEY: &str = "workspaces";
-/// The id of the folder in use when no entry of the list names it yet.
+const LIST_KEY: &str = "workspaces";
+/// The key of the workspace the app was last switched to (or registered as): the one that follows the board in use.
+const ACTIVE_KEY: &str = "workspace_active";
+/// The id of the board in use when no entry of the list names it yet.
 pub const CURRENT_ID: &str = "current";
 /// The longest name of a workspace, in characters.
 pub const MAX_NAME: usize = 60;
+/// How long a board is given to answer before a switch to it is refused.
+const PREFLIGHT: Duration = Duration::from_secs(15);
+/// The folder, in the home folder, that new workspaces are made in.
+const FOLDERS: &str = "Kanban Boards";
+
+/// One switch at a time.
+static SWITCH: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 /// A saved workspace.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Workspace {
+    /// Its id in the config file and the routes.
     pub id: String,
+    /// What the person calls it; unique, any case.
     pub name: String,
     /// The data folder: `uploads/` lives in it, and `kanban.db` when the board is SQLite.
     pub folder: PathBuf,
@@ -70,10 +88,11 @@ impl Workspace {
 /// A workspace as the list shows it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Item {
+    /// The saved workspace.
     pub workspace: Workspace,
     /// This is the board the app shows now.
     pub active: bool,
-    /// The folder holds a database already (a new workspace gets its board the first time it is opened).
+    /// The board exists already (a new SQLite folder gets its board the first time it is opened).
     pub has_board: bool,
 }
 
@@ -104,45 +123,122 @@ pub enum Error {
     /// The name or the folder is taken.
     #[error("{0}")]
     Taken(String),
-    /// The board does not run on a SQLite folder.
+    /// `KANBAN_DATABASE_URL` decides the database, so there is nothing to switch.
     #[error("{0}")]
     Unsupported(String),
     /// Something is running that a switch would cut off.
     #[error("{0}")]
     Busy(String),
-    /// The switch or the save failed (the previous board is back in use).
+    /// The board to open cannot be used (no answer, wrong password, not a board, made by a newer version). Nothing
+    /// was changed.
+    #[error("{0}")]
+    Unusable(String),
+    /// The save or the switch failed unexpectedly (the previous board is back in use).
     #[error("{0}")]
     Failed(String),
 }
 
-fn read() -> Vec<Workspace> {
-    let Some(Value::Array(entries)) = config::get_value(CONFIG_KEY) else { return Vec::new() };
-    entries
-        .iter()
-        .filter_map(|entry| {
-            let text = |key: &str| entry.get(key).and_then(Value::as_str).filter(|v| !v.is_empty());
-            Some(Workspace {
-                id: text("id")?.to_string(),
-                name: text("name")?.to_string(),
-                folder: PathBuf::from(text("folder")?),
-                database: entry.get("database").and_then(Value::as_object).cloned(),
-            })
-        })
-        .collect()
+/// The saved list and the id of the workspace that follows the board in use.
+struct Book {
+    list: Vec<Workspace>,
+    active: Option<String>,
 }
 
-fn write(all: &[Workspace]) -> Result<(), Error> {
-    let entries: Vec<Value> = all
-        .iter()
-        .map(|w| {
-            let mut entry = json!({"id": w.id, "name": w.name, "folder": w.folder.to_string_lossy()});
-            if let Some(database) = &w.database {
-                entry["database"] = Value::Object(database.clone());
+impl Book {
+    fn from_values(list: Option<&Value>, active: Option<&Value>) -> Book {
+        let entries = list.and_then(Value::as_array).cloned().unwrap_or_default();
+        let list = entries
+            .iter()
+            .filter_map(|entry| {
+                let text = |key: &str| entry.get(key).and_then(Value::as_str).filter(|v| !v.is_empty());
+                Some(Workspace {
+                    id: text("id")?.to_string(),
+                    name: text("name")?.to_string(),
+                    folder: PathBuf::from(text("folder")?),
+                    database: entry.get("database").and_then(Value::as_object).cloned(),
+                })
+            })
+            .collect();
+        Book { list, active: active.and_then(Value::as_str).map(str::to_string) }
+    }
+
+    fn from_config(data: &Map<String, Value>) -> Book {
+        Book::from_values(data.get(LIST_KEY), data.get(ACTIVE_KEY))
+    }
+
+    fn read() -> Book {
+        Book::from_values(config::get_value(LIST_KEY).as_ref(), config::get_value(ACTIVE_KEY).as_ref())
+    }
+
+    fn write_into(&self, data: &mut Map<String, Value>) {
+        let entries: Vec<Value> = self
+            .list
+            .iter()
+            .map(|w| {
+                let mut entry = json!({"id": w.id, "name": w.name, "folder": w.folder.to_string_lossy()});
+                if let Some(database) = &w.database {
+                    entry["database"] = Value::Object(database.clone());
+                }
+                entry
+            })
+            .collect();
+        data.insert(LIST_KEY.into(), Value::Array(entries));
+        match &self.active {
+            Some(id) => data.insert(ACTIVE_KEY.into(), Value::String(id.clone())),
+            None => data.shift_remove(ACTIVE_KEY),
+        };
+    }
+
+    /// Make the list agree with the board in use. When another part of Settings moved the data folder or changed
+    /// the database of the workspace that was last opened, that workspace now lives there: its entry follows (else
+    /// opening it would start an empty board and look like lost data). Returns whether anything changed.
+    fn reconcile(&mut self) -> bool {
+        if locked().is_some() {
+            return false;
+        }
+        if let Some(current) = self.list.iter().find(|w| w.is_current()) {
+            if self.active.as_deref() == Some(current.id.as_str()) {
+                return false;
             }
-            entry
-        })
-        .collect();
-    config::set_value(CONFIG_KEY, Value::Array(entries)).map_err(|e| Error::Failed(format!("Could not save: {e}")))
+            self.active = Some(current.id.clone());
+            return true;
+        }
+        let Some(active) = self.active.clone() else { return false };
+        let Some(entry) = self.list.iter_mut().find(|w| w.id == active) else { return false };
+        let database = if database::is_sqlite() {
+            None
+        } else {
+            match targets::section_of(&database::current_target()) {
+                Ok(section) => Some(section),
+                // the password cannot be kept safely: leave the entry as it is rather than lose its way back
+                Err(_) => return false,
+            }
+        };
+        entry.folder = current_folder();
+        entry.database = database;
+        true
+    }
+}
+
+/// Read the list, change it, and save it, all under the lock of the config file and in one save.
+fn mutate<R>(change: impl FnOnce(&mut Book) -> Result<R, Error>) -> Result<R, Error> {
+    let mut outcome: Option<Result<R, Error>> = None;
+    let saved = config::update(|data| {
+        let mut book = Book::from_config(data);
+        book.reconcile();
+        let result = change(&mut book);
+        let saves = result.is_ok();
+        outcome = Some(result);
+        if saves {
+            book.write_into(data);
+        }
+        saves
+    });
+    match (saved, outcome) {
+        (Err(err), _) => Err(Error::Failed(format!("Could not save the workspaces: {err}"))),
+        (Ok(_), Some(result)) => result,
+        (Ok(_), None) => Err(Error::Failed("Could not save the workspaces".into())),
+    }
 }
 
 /// The data folder in use, resolved.
@@ -186,15 +282,18 @@ fn current_workspace(name: String) -> Workspace {
 }
 
 /// Every workspace, the one in use marked. The board in use is listed even when no entry names it yet (nobody has
-/// added a workspace so far, or the data folder or the database was changed in Settings).
+/// added a workspace so far).
 pub fn list() -> Vec<Item> {
-    let stored = read();
-    let mut items: Vec<Item> =
-        stored.iter().map(|w| Item { active: w.is_current(), has_board: has_board(w), workspace: w.clone() }).collect();
+    let mut book = Book::read();
+    book.reconcile();
+    let mut items: Vec<Item> = book
+        .list
+        .iter()
+        .map(|w| Item { active: w.is_current(), has_board: has_board(w), workspace: w.clone() })
+        .collect();
     if !items.iter().any(|item| item.active) {
-        let name = unique_name(&stored, &name_of_folder(&current_folder(), stored.is_empty()));
-        let workspace = current_workspace(name);
-        items.insert(0, Item { active: true, has_board: true, workspace });
+        let name = unique_name(&book.list, &name_of_folder(&current_folder(), book.list.is_empty()));
+        items.insert(0, Item { active: true, has_board: true, workspace: current_workspace(name) });
     }
     items
 }
@@ -234,7 +333,7 @@ fn unique_name(all: &[Workspace], wanted: &str) -> String {
     name
 }
 
-/// A folder name from a workspace name: lowercase letters, digits and hyphens.
+/// A folder name from a workspace name: letters, digits and hyphens.
 fn slug(name: &str) -> String {
     let mut out = String::new();
     for c in name.to_lowercase().chars() {
@@ -248,32 +347,39 @@ fn slug(name: &str) -> String {
     if out.is_empty() { "board".into() } else { out }
 }
 
-/// Put the board in use into the saved list (when no entry names it) so that the way back is kept; returns its id.
+/// Put the board in use into the list (when no entry names it) so that the way back is kept, and mark it as the one
+/// that follows the board in use; returns its id.
 ///
 /// # Errors
 /// `Failed` when the password of a server database cannot be encrypted.
-fn register_current(all: &mut Vec<Workspace>) -> Result<String, Error> {
-    if let Some(found) = all.iter().find(|w| w.is_current()) {
+fn register_current(book: &mut Book) -> Result<String, Error> {
+    if let Some(found) = book.list.iter().find(|w| w.is_current()) {
+        book.active = Some(found.id.clone());
         return Ok(found.id.clone());
     }
-    let name = unique_name(all, &name_of_folder(&current_folder(), all.is_empty()));
+    let name = unique_name(&book.list, &name_of_folder(&current_folder(), book.list.is_empty()));
     let mut workspace = current_workspace(name);
     if !database::is_sqlite() && workspace.database.is_none() {
         return Err(Error::Failed("The password of the database in use could not be kept safely".into()));
     }
     workspace.id = time::uuid4_hex()[..12].to_string();
     let id = workspace.id.clone();
-    all.insert(0, workspace);
+    book.list.insert(0, workspace);
+    book.active = Some(id.clone());
     Ok(id)
 }
 
-/// A folder the person typed: absolute after `~`, inside the home folder (as the data folder is), not a file.
+/// A folder the person typed: a full path (after `~`), inside the home folder (as the data folder is), not a file.
 fn checked_folder(raw: &str) -> Result<PathBuf, Error> {
     let raw = pytext::strip(raw);
     if raw.is_empty() || raw.contains('\0') {
         return Err(Error::Invalid("Folder must not be empty".into()));
     }
-    let resolved = pathlib::resolve(&config::expanduser(raw));
+    let typed = config::expanduser(raw);
+    if !typed.is_absolute() {
+        return Err(Error::Invalid("Enter the full path of the folder, for example /Users/you/boards/home".into()));
+    }
+    let resolved = pathlib::resolve(&typed);
     let home = pathlib::resolve(&config::home_dir()).display().to_string();
     let sep = std::path::MAIN_SEPARATOR;
     let home_root = format!("{}{sep}", home.trim_end_matches(sep));
@@ -286,9 +392,9 @@ fn checked_folder(raw: &str) -> Result<PathBuf, Error> {
     Ok(resolved)
 }
 
-/// Add a workspace. `folder` `None` makes a new one next to the settings file; a folder that already holds a board
-/// (a copy of another computer's data, say) is added as it is. `server` names a PostgreSQL or MySQL/MariaDB database
-/// the board lives in (the caller has tested it); the folder then holds the attachments only.
+/// Add a workspace. `folder` `None` makes a new one in `~/Kanban Boards`; a folder that already holds a board (a copy
+/// of another computer's data, say) is added as it is. `server` names a PostgreSQL or MySQL/MariaDB database the board
+/// lives in (the caller has tested it); the folder then holds the attachments only.
 ///
 /// # Errors
 /// `Invalid` for a bad name or folder, `Taken` when the name, the folder or the database is already a workspace,
@@ -298,45 +404,45 @@ pub fn add(name: &str, folder: Option<&str>, server: Option<&Target>) -> Result<
         return Err(Error::Unsupported(reason));
     }
     let name = clean_name(name)?;
-    let mut all = read();
-    register_current(&mut all)?;
-    if name_taken(&all, &name, None) {
-        return Err(Error::Taken(format!("A workspace named \"{name}\" already exists")));
-    }
-    let server = server.filter(|t| !t.is_sqlite());
-    if let Some(target) = server {
-        if all.iter().any(|w| w.target().is_some_and(|t| same_database(&t, target))) {
-            return Err(Error::Taken("That database is already a workspace".into()));
+    mutate(|book| {
+        register_current(book)?;
+        if name_taken(&book.list, &name, None) {
+            return Err(Error::Taken(format!("A workspace named \"{name}\" already exists")));
         }
-    }
-    let folder = match folder.map(pytext::strip).filter(|f| !f.is_empty()) {
-        Some(raw) => checked_folder(raw)?,
-        None => {
-            let base = pathlib::resolve(&config::config_dir().join("workspaces"));
-            let (stem, mut n) = (slug(&name), 1);
-            let mut candidate = base.join(&stem);
-            while candidate.exists() || all.iter().any(|w| same_folder(&w.folder, &candidate)) {
-                n += 1;
-                candidate = base.join(format!("{stem}-{n}"));
+        let server = server.filter(|t| !t.is_sqlite());
+        if let Some(target) = server {
+            if book.list.iter().any(|w| w.target().is_some_and(|t| same_database(&t, target))) {
+                return Err(Error::Taken("That database is already a workspace".into()));
             }
-            candidate
         }
-    };
-    if all.iter().any(|w| same_folder(&w.folder, &folder)) {
-        return Err(Error::Taken("That folder is already a workspace".into()));
-    }
-    let database = match server {
-        Some(target) => Some(
-            targets::section_of(target)
-                .map_err(|e| Error::Failed(format!("The password could not be kept safely: {e}")))?,
-        ),
-        None => None,
-    };
-    std::fs::create_dir_all(&folder).map_err(|e| Error::Failed(format!("Could not create the folder: {e}")))?;
-    let workspace = Workspace { id: time::uuid4_hex()[..12].to_string(), name, folder, database };
-    all.push(workspace.clone());
-    write(&all)?;
-    Ok(Item { active: false, has_board: has_board(&workspace), workspace })
+        let folder = match folder.map(pytext::strip).filter(|f| !f.is_empty()) {
+            Some(raw) => checked_folder(raw)?,
+            None => {
+                let base = pathlib::resolve(&config::home_dir().join(FOLDERS));
+                let (stem, mut n) = (slug(&name), 1);
+                let mut candidate = base.join(&stem);
+                while candidate.exists() || book.list.iter().any(|w| same_folder(&w.folder, &candidate)) {
+                    n += 1;
+                    candidate = base.join(format!("{stem}-{n}"));
+                }
+                candidate
+            }
+        };
+        if book.list.iter().any(|w| same_folder(&w.folder, &folder)) {
+            return Err(Error::Taken("That folder is already a workspace".into()));
+        }
+        let database = match server {
+            Some(target) => Some(
+                targets::section_of(target)
+                    .map_err(|e| Error::Failed(format!("The password could not be kept safely: {e}")))?,
+            ),
+            None => None,
+        };
+        std::fs::create_dir_all(&folder).map_err(|e| Error::Failed(format!("Could not create the folder: {e}")))?;
+        let workspace = Workspace { id: time::uuid4_hex()[..12].to_string(), name, folder, database };
+        book.list.push(workspace.clone());
+        Ok(Item { active: false, has_board: has_board(&workspace), workspace })
+    })
 }
 
 /// Rename a workspace.
@@ -345,19 +451,19 @@ pub fn add(name: &str, folder: Option<&str>, server: Option<&Target>) -> Result<
 /// `NotFound` for an unknown id, `Invalid` or `Taken` for the name.
 pub fn rename(id: &str, name: &str) -> Result<Item, Error> {
     let name = clean_name(name)?;
-    let mut all = read();
-    let id = if id == CURRENT_ID { register_current(&mut all)? } else { id.to_string() };
-    if !all.iter().any(|w| w.id == id) {
-        return Err(Error::NotFound);
-    }
-    if name_taken(&all, &name, Some(&id)) {
-        return Err(Error::Taken(format!("A workspace named \"{name}\" already exists")));
-    }
-    if let Some(w) = all.iter_mut().find(|w| w.id == id) {
-        w.name = name;
-    }
-    write(&all)?;
-    list().into_iter().find(|item| item.workspace.id == id).ok_or(Error::NotFound)
+    mutate(|book| {
+        let id = if id == CURRENT_ID { register_current(book)? } else { id.to_string() };
+        if !book.list.iter().any(|w| w.id == id) {
+            return Err(Error::NotFound);
+        }
+        if name_taken(&book.list, &name, Some(&id)) {
+            return Err(Error::Taken(format!("A workspace named \"{name}\" already exists")));
+        }
+        let entry = book.list.iter_mut().find(|w| w.id == id).ok_or(Error::NotFound)?;
+        entry.name = name;
+        let workspace = entry.clone();
+        Ok(Item { active: workspace.is_current(), has_board: has_board(&workspace), workspace })
+    })
 }
 
 /// Forget a workspace. Its folder, its database and the data in them stay where they are; add it again to use it.
@@ -365,36 +471,78 @@ pub fn rename(id: &str, name: &str) -> Result<Item, Error> {
 /// # Errors
 /// `NotFound` for an unknown id, `Invalid` for the workspace in use.
 pub fn remove(id: &str) -> Result<(), Error> {
-    let mut all = read();
-    let Some(at) = all.iter().position(|w| w.id == id) else {
-        return Err(if id == CURRENT_ID { Error::Invalid(in_use()) } else { Error::NotFound });
-    };
-    if all[at].is_current() {
-        return Err(Error::Invalid(in_use()));
-    }
-    all.remove(at);
-    write(&all)
+    mutate(|book| {
+        let Some(at) = book.list.iter().position(|w| w.id == id) else {
+            return Err(if id == CURRENT_ID { Error::Invalid(in_use()) } else { Error::NotFound });
+        };
+        if book.list[at].is_current() {
+            return Err(Error::Invalid(in_use()));
+        }
+        book.list.remove(at);
+        if book.active.as_deref() == Some(id) {
+            book.active = None;
+        }
+        Ok(())
+    })
 }
 
 fn in_use() -> String {
     "The workspace in use cannot be removed; switch to another one first".into()
 }
 
+/// What stops a board from being opened, in words for the person, or `None` when it can be. A database that is
+/// empty or already holds a board is fine.
+pub fn problem_of(report: &Report) -> Option<String> {
+    let first_error = || report.findings.iter().find(|f| f.level == "error").map(|f| f.title.clone());
+    match report.state.as_str() {
+        "foreign" => {
+            Some("That database already holds tables that are not a Kanban board. Choose an empty one.".into())
+        }
+        "newer" => Some("That board was made by a newer version of the app. Update the app first.".into()),
+        _ if !report.ok() => Some(first_error().unwrap_or_else(|| "That database cannot be reached.".into())),
+        "empty" | "board" => None,
+        _ => Some(first_error().unwrap_or_else(|| "That database cannot be used.".into())),
+    }
+}
+
+/// Look at the board a switch would open, before anything is changed: it must answer, and be empty or a board of
+/// this app (not made by a newer version). A SQLite folder with no database yet gets a new board and needs no look.
+async fn preflight(workspace: &Workspace) -> Result<(), Error> {
+    let target = match workspace.target() {
+        Some(target) => target,
+        None if !has_board(workspace) => return Ok(()),
+        None => Target::sqlite(workspace.folder.join("kanban.db").to_string_lossy().into_owned()),
+    };
+    let report = tokio::time::timeout(PREFLIGHT, probe::test(&target))
+        .await
+        .map_err(|_| {
+            Error::Unusable(format!("{} did not answer in {} seconds.", workspace.place(), PREFLIGHT.as_secs()))
+        })?
+        .map_err(|e| Error::Unusable(format!("Could not check {}: {e}", workspace.place())))?;
+    match problem_of(&report) {
+        None => Ok(()),
+        Some(message) => Err(Error::Unusable(message)),
+    }
+}
+
 /// Open another workspace: the app, its AI runner's next start and the stdio MCP processes use its database and
 /// folder from now on. A folder with no board yet gets an empty one, and so does an empty database.
 ///
-/// Refused while an AI run is working (it would go on writing to the board it started on). On any failure the
-/// previous workspace stays in use.
+/// The board to open is checked first and nothing is changed if it cannot be opened. Refused while an AI run is
+/// working (it would go on writing to the board it started on). If opening still fails, the previous workspace
+/// stays in use.
 ///
 /// # Errors
-/// `NotFound`, `Unsupported` (`KANBAN_DATABASE_URL` decides the database), `Busy` (AI runs are working), `Failed` (the
-/// board cannot be opened, for instance a database made by a newer version, or a server that does not answer).
+/// `NotFound`, `Unsupported` (`KANBAN_DATABASE_URL` decides the database), `Busy` (AI runs are working), `Unusable`
+/// (the board does not answer, or is not a usable board), `Failed` (anything unexpected).
 pub async fn switch(id: &str) -> Result<Item, Error> {
     if let Some(reason) = locked() {
         return Err(Error::Unsupported(reason));
     }
-    let mut all = read();
-    let target = match all.iter().find(|w| w.id == id) {
+    let _one_at_a_time = SWITCH.lock().await;
+    let mut book = Book::read();
+    book.reconcile();
+    let target = match book.list.iter().find(|w| w.id == id) {
         Some(w) => w.clone(),
         None if id == CURRENT_ID => return Ok(list().remove(0)),
         None => return Err(Error::NotFound),
@@ -402,31 +550,42 @@ pub async fn switch(id: &str) -> Result<Item, Error> {
     if target.is_current() {
         return Ok(Item { active: true, has_board: has_board(&target), workspace: target });
     }
-    if let Some(hook) = hooks::workspace() {
-        if let Some(reason) = hook.busy().await {
-            return Err(Error::Busy(reason));
+    // a board that does not answer cannot have runs working on it, and asking it would wait for the connection
+    if database::unreachable().is_none() {
+        if let Some(hook) = hooks::workspace() {
+            if let Some(reason) = hook.busy().await {
+                return Err(Error::Busy(reason));
+            }
         }
     }
+    preflight(&target).await?;
     // keep the way back before leaving
-    register_current(&mut all)?;
-    write(&all)?;
+    mutate(|book| register_current(book).map(|_| ()))?;
 
-    let before = Before {
-        data_folder: current_folder(),
-        db_path: database::get_db_path(),
-        uploads: uploads::get_uploads_dir(false),
-        section: config::get_section(targets::CONFIG_KEY),
-    };
+    let before = Before::capture();
     std::fs::create_dir_all(&target.folder).map_err(|e| Error::Failed(format!("Could not open the folder: {e}")))?;
+    // this process must not follow its own change of the settings while it makes it
+    let _quiet = database::pause_following();
     if database::is_sqlite() {
         // fold the write-ahead log into the file, so the board left behind is complete on its own
         let conn = database::conn();
-        let _ = kb_db::sea_orm::ConnectionTrait::execute_unprepared(&conn, "PRAGMA wal_checkpoint(TRUNCATE)").await;
+        if let Err(err) =
+            kb_db::sea_orm::ConnectionTrait::execute_unprepared(&conn, "PRAGMA wal_checkpoint(TRUNCATE)").await
+        {
+            tracing::warn!(target: "workspaces", "The write-ahead log of the board left behind was not folded in: {err}");
+        }
     }
-
     let opened = async {
-        config::set_data_folder(&target.folder).map_err(|e| e.to_string())?;
-        config::set_section(targets::CONFIG_KEY, target.database.clone()).map_err(|e| e.to_string())?;
+        config::update(|data| {
+            data.insert("data_folder".into(), Value::String(target.folder.to_string_lossy().into_owned()));
+            match &target.database {
+                Some(section) => data.insert(targets::CONFIG_KEY.into(), Value::Object(section.clone())),
+                None => data.shift_remove(targets::CONFIG_KEY),
+            };
+            data.insert(ACTIVE_KEY.into(), Value::String(target.id.clone()));
+            true
+        })
+        .map_err(|e| e.to_string())?;
         uploads::set_uploads_dir_env(&target.folder.join("uploads"));
         database::reinit_db(Some(target.folder.join("kanban.db"))).await.map_err(|e| e.to_string())
     }
@@ -434,7 +593,7 @@ pub async fn switch(id: &str) -> Result<Item, Error> {
     if let Err(message) = opened {
         tracing::error!(target: "workspaces", "Switch to {} failed: {message}", target.place());
         before.restore().await;
-        return Err(Error::Failed(message));
+        return Err(Error::Failed(format!("Could not open {}: {message}", target.place())));
     }
     let _ = uploads::get_uploads_dir(true);
     if let Some(hook) = hooks::workspace() {
@@ -451,13 +610,38 @@ struct Before {
     uploads: PathBuf,
     /// The `database` section of the config file (empty: SQLite).
     section: Map<String, Value>,
+    active: Option<Value>,
 }
 
 impl Before {
+    fn capture() -> Before {
+        Before {
+            data_folder: current_folder(),
+            db_path: database::get_db_path(),
+            uploads: uploads::get_uploads_dir(false),
+            section: config::get_section(targets::CONFIG_KEY),
+            active: config::get_value(ACTIVE_KEY),
+        }
+    }
+
+    /// Put the three keys of the config file, the uploads folder and the database connection back.
     async fn restore(&self) {
-        let section = if self.section.is_empty() { None } else { Some(self.section.clone()) };
-        let _ = config::set_data_folder(&self.data_folder);
-        let _ = config::set_section(targets::CONFIG_KEY, section);
+        let put_back = config::update(|data| {
+            data.insert("data_folder".into(), Value::String(self.data_folder.to_string_lossy().into_owned()));
+            if self.section.is_empty() {
+                data.shift_remove(targets::CONFIG_KEY);
+            } else {
+                data.insert(targets::CONFIG_KEY.into(), Value::Object(self.section.clone()));
+            }
+            match &self.active {
+                Some(active) => data.insert(ACTIVE_KEY.into(), active.clone()),
+                None => data.shift_remove(ACTIVE_KEY),
+            };
+            true
+        });
+        if let Err(err) = put_back {
+            tracing::error!(target: "workspaces", "The settings of the previous workspace could not be put back: {err}");
+        }
         uploads::set_uploads_dir_env(&self.uploads);
         if let Err(err) = database::reinit_db(Some(self.db_path.clone())).await {
             tracing::error!(target: "workspaces", "The previous workspace could not be opened again: {err}");

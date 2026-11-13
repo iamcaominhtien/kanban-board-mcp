@@ -29,6 +29,7 @@ const {
   shouldWriteSetupFlag,
   terminateBackendProcess,
   writePreferences,
+  fetchDataFolder,
 } = require('./main-helpers');
 
 // Profiler records timestamps for each startup milestone.
@@ -346,7 +347,8 @@ function handleMenuCommand(id, payload) {
     case 'open-logs':
       return void openFolder(logsDir());
     case 'open-data':
-      return void openFolder(app.getPath('userData'));
+      // the folder of the workspace that is open, not always the app's own
+      return void fetchDataFolder({ port: backendPort, fallback: app.getPath('userData') }).then(openFolder);
     case 'copy-diagnostics':
       clipboard.writeText(buildDiagnosticsText(collectDiagnostics()));
       return toastInPage('success', 'Copied', 'Diagnostics info is on the clipboard.');

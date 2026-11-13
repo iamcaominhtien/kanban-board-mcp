@@ -1,0 +1,34 @@
+.notice {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 10px 16px;
+  background: #fff4d6;
+  border-bottom: 1px solid #e8c766;
+  color: #4a3a0a;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.reload {
+  border: 1px solid #b4791e;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 5px 12px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #4a3a0a;
+  cursor: pointer;
+}
+
+.reload:hover {
+  background: #fff9e8;
+}

@@ -7,7 +7,14 @@ import { IdeaLinksProvider } from './components/ideas/ideaLinks';
 import { useIdeaCounts } from './api/ideas';
 import { MembersPanel } from './components/MembersPanel';
 import { ProjectSidebar } from './components/ProjectSidebar';
-import { reloadAfterSwitch, useSwitchWorkspace, useWorkspaces, workspaceError } from './api/workspaces';
+import {
+  activeWorkspace,
+  reloadAfterSwitch,
+  useSwitchWorkspace,
+  useWorkspaces,
+  workspaceError,
+} from './api/workspaces';
+import { WorkspaceSwitchedNotice } from './components/WorkspaceSwitchedNotice';
 import { SettingsPage, type SettingsTarget } from './components/settings/SettingsPage';
 import { isSettingsPageId, type SettingsPageId } from './components/settings/settingsIndex';
 import { TicketModal } from './components/TicketModal';
@@ -118,7 +125,11 @@ function SidebarWithAssist(
           ? {
               items: workspaces.data.items,
               switchable: workspaces.data.switchable,
-              error: switchWorkspace.isError ? workspaceError(switchWorkspace.error, 'Could not switch') : null,
+              switching: switchWorkspace.isPending,
+              error: switchWorkspace.isError
+                ? workspaceError(switchWorkspace.error, 'Could not switch the workspace')
+                : null,
+              onDismissError: () => switchWorkspace.reset(),
               onSwitch: (id) => switchWorkspace.mutate(id, { onSuccess: reloadAfterSwitch }),
             }
           : null
@@ -220,6 +231,12 @@ export default function App() {
   const aiTeams = useAiTeams(currentProjectId ?? '');
   const aiSettings = useAiSettings(currentProjectId ?? '');
   const queryClient = useQueryClient();
+  // With more than one workspace the board in use is named next to the project, so no one writes into the wrong one
+  const workspacesQuery = useWorkspaces();
+  const workspaceTag =
+    workspacesQuery.data && workspacesQuery.data.items.length > 1
+      ? activeWorkspace(workspacesQuery.data)?.name
+      : undefined;
   const aiState = useMemo<Omit<AiBoardState, 'runsByTicket'>>(
     () => ({
       projectId: currentProjectId ?? '',
@@ -971,6 +988,7 @@ export default function App() {
                 onView={showMenuView}
               />
               <AssistOverlays />
+              <WorkspaceSwitchedNotice />
               <SidebarWithAssist
                 projectId={currentProjectId}
                 projects={apiProjects}
@@ -1087,6 +1105,7 @@ export default function App() {
                     ) : (
                       <>
                         <Board
+                          workspaceName={workspaceTag}
                           tickets={filteredTickets}
                           allTickets={allAvailableTickets}
                           onDragEnd={handleDragEnd}

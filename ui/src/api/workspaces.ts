@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 import type { ConnectionBody } from './database';
@@ -39,7 +40,7 @@ export function useWorkspaces() {
 }
 
 /**
- * Add a workspace; nothing is switched. `folder` empty: a new folder next to the settings file. `connection`: the
+ * Add a workspace; nothing is switched. `folder` empty: a new folder in `~/Kanban Boards`. `connection`: the
  * board lives in that PostgreSQL or MySQL/MariaDB database (tested by the server before it is saved).
  */
 export function useAddWorkspace() {
@@ -96,4 +97,27 @@ export function workspaceError(error: unknown, fallback: string): string {
   if (typeof detail === 'string' && detail) return detail;
   const message = (detail as { message?: unknown } | null)?.message;
   return typeof message === 'string' && message ? message : fallback;
+}
+
+/** The workspace in use, or `undefined` while it is not known. */
+export function activeWorkspace(data: WorkspacesData | undefined): WorkspaceItem | undefined {
+  return data?.items.find((item) => item.active);
+}
+
+/**
+ * The workspace this window was opened on, and the one the board was switched to since by another window, the
+ * desktop app or an editor's MCP (`switchedTo`, null while nothing changed). A window that goes on would show and
+ * change the other board without the person noticing, so the app asks them to reload.
+ *
+ * A switch changes both the id and the name of the workspace in use; adding the first workspace changes only the id
+ * (the board in use gets its own entry) and a rename or a move of the folder only one of them, so those do not count.
+ */
+export function useWorkspaceSwitchedElsewhere(): { switchedTo: string | null } {
+  const { data } = useWorkspaces();
+  const first = useRef<WorkspaceItem | null>(null);
+  const active = activeWorkspace(data);
+  if (active && !first.current) first.current = active;
+  const was = first.current;
+  const switched = !!active && !!was && active.id !== was.id && active.name !== was.name;
+  return { switchedTo: switched ? active.name : null };
 }

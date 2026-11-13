@@ -455,8 +455,14 @@ export default {
       // the new board has no project: the first-run screen, then its own project and no ticket of the other board
       await ensureProject(s, { name: 'Cottage', prefix: 'COT' });
       if (await p.getByText('Watch me').count()) throw new Error('a ticket of the other board shows in this one');
-      // the sidebar now offers the switch back
+      // the board in use is named beside the project, so no one writes into the wrong one
+      await p.getByTestId('workspace-tag').filter({ hasText: 'Home' }).waitFor();
+      // the sidebar now offers the switch back; Escape closes its menu without switching
       const sidebar = p.getByRole('complementary', { name: 'Project navigation' });
+      await sidebar.getByRole('button', { name: 'Home', exact: true }).click();
+      await p.getByRole('menu', { name: 'Workspaces' }).waitFor();
+      await p.keyboard.press('Escape');
+      await p.getByRole('menu', { name: 'Workspaces' }).waitFor({ state: 'detached' });
       await sidebar.getByRole('button', { name: 'Home', exact: true }).click();
       await Promise.all([p.waitForNavigation(), p.getByRole('menuitemradio', { name: 'Default' }).click()]);
       await sidebar.waitFor();

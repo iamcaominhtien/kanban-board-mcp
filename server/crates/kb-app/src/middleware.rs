@@ -16,8 +16,8 @@ use kb_files::drawio_bundle;
 
 use crate::LocalAddr;
 
-const DB_FREE_PATHS: [&str; 8] =
-    ["/database", "/version", "/settings", "/events", "/logs", "/mcp-clients", "/assets", "/drawio"];
+const DB_FREE_PATHS: [&str; 9] =
+    ["/database", "/version", "/settings", "/events", "/logs", "/mcp-clients", "/assets", "/drawio", "/workspaces"];
 
 fn unreachable_response(state: Map<String, Value>) -> Response {
     let mut detail = Map::new();

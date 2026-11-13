@@ -8,6 +8,7 @@ import {
   type DatabaseUnreachable,
 } from '../../../api/databaseDown';
 import { extractError } from '../../../api/extractError';
+import { reloadAfterSwitch, useSwitchWorkspace, useWorkspaces, workspaceError } from '../../../api/workspaces';
 import { SIcon } from '../settingsUi';
 import settings from '../SettingsPage.module.css';
 import { EditConnectionDialog } from './EditConnectionDialog';
@@ -34,6 +35,10 @@ export function DatabaseDownScreen({ down }: { down: DatabaseUnreachable }) {
   const [edit, setEdit] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const busy = useRef(false);
+  const workspaces = useWorkspaces();
+  const openWorkspace = useSwitchWorkspace();
+  // the other boards of this computer: the way out when this one does not answer (the office server, from home)
+  const others = (workspaces.data?.items ?? []).filter((w) => !w.active);
 
   const tryNow = useCallback(async () => {
     if (busy.current) return;
@@ -117,6 +122,44 @@ export function DatabaseDownScreen({ down }: { down: DatabaseUnreachable }) {
             Edit connection…
           </button>
         </div>
+        {others.length > 0 && workspaces.data?.switchable && (
+          <div className={styles.box} data-testid="down-workspaces">
+            <b>Open another board</b>
+            <span>
+              Your other workspaces are not affected. This board waits for its database, and you can come back to it.
+            </span>
+            <div className={settings.row}>
+              {others.map((w) => (
+                <button
+                  key={w.id}
+                  type="button"
+                  className={settings.btn}
+                  disabled={openWorkspace.isPending}
+                  onClick={() =>
+                    openWorkspace.mutate(w.id, {
+                      onSuccess: () => {
+                        clearDatabaseUnreachable();
+                        reloadAfterSwitch();
+                      },
+                    })
+                  }
+                >
+                  {openWorkspace.isPending && openWorkspace.variables === w.id ? (
+                    <Spinner />
+                  ) : (
+                    <SIcon d={DB_ICONS.database} size={14} />
+                  )}
+                  {w.name}
+                </button>
+              ))}
+            </div>
+            {openWorkspace.isError && (
+              <span className={settings.statusErr}>
+                {workspaceError(openWorkspace.error, 'Could not open that board')}
+              </span>
+            )}
+          </div>
+        )}
         {sqlite?.exists && (
           <div className={styles.box}>
             <b>Use the old SQLite file instead</b>

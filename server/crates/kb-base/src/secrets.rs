@@ -32,9 +32,45 @@ fn key_file() -> PathBuf {
     }
 }
 
+/// The key of the config file where the app records which store it uses, for the programs it does not start itself.
+pub const STORE_CONFIG_KEY: &str = "secret_store";
+
 /// keychain (desktop app) | file.
+///
+/// `KANBAN_SECRET_STORE` decides when it is set. Otherwise the config file does: the desktop app records
+/// `secret_store: keychain` when it starts (`record_store`), so that the stdio MCP processes that editors launch
+/// (which are not given the variable) read the same key. Without that they could not decrypt the password of a
+/// board on a database server.
 pub fn store_kind() -> &'static str {
-    if std::env::var("KANBAN_SECRET_STORE").is_ok_and(|v| v == "keychain") { "keychain" } else { "file" }
+    match std::env::var("KANBAN_SECRET_STORE").as_deref() {
+        Ok("keychain") => "keychain",
+        Ok("file") => "file",
+        _ => {
+            if crate::config::get_value(STORE_CONFIG_KEY).is_some_and(|v| v == "keychain") {
+                "keychain"
+            } else {
+                "file"
+            }
+        }
+    }
+}
+
+/// Record in the config file that this process keeps its key in the OS keychain (`KANBAN_SECRET_STORE=keychain`), so
+/// that every other program of the same person reads it from there. Does nothing for any other store.
+pub fn record_store() {
+    if std::env::var("KANBAN_SECRET_STORE").is_ok_and(|v| v == "keychain") {
+        let wanted = Value::String("keychain".into());
+        let saved = crate::config::update(|data| {
+            let same = data.get(STORE_CONFIG_KEY) == Some(&wanted);
+            if !same {
+                data.insert(STORE_CONFIG_KEY.into(), wanted);
+            }
+            !same
+        });
+        if let Err(err) = saved {
+            tracing::warn!("Could not record the secret store in the config file: {err}");
+        }
+    }
 }
 
 fn fernet_of(key: &str) -> Result<Fernet, String> {

@@ -253,7 +253,11 @@ pub async fn reinit_db(new_db_path: Option<PathBuf>) -> Result<(), DatabaseError
     let (target, source) = resolve_target(&db_path)?;
     set_target(target, source, db_path).await?;
     let _ = old.close().await;
-    init_db().await
+    init_db().await?;
+    // the board just opened answered (the schema was checked on it): it is no longer "cannot be reached", which was
+    // about the one left behind
+    set_unreachable(None);
+    Ok(())
 }
 
 /// Point the app at `target` now and remember it in Settings (the wizard's Switch). Refused while
@@ -408,6 +412,25 @@ pub async fn check_reachable(timeout: Duration) -> Value {
     }
 }
 
+static FOLLOW_PAUSED: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
+/// Keeps `follow_settings` of this process still while it is alive: a workspace switch changes the settings and
+/// re-points the process itself, and must not be raced by the follow loop reading the file in between.
+pub struct FollowPause(());
+
+impl Drop for FollowPause {
+    fn drop(&mut self) {
+        FOLLOW_PAUSED.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+/// Pause `follow_settings` of this process until the returned guard is dropped. What changed meanwhile is seen at the
+/// next look afterwards (and does nothing when it is the database already in use).
+pub fn pause_following() -> FollowPause {
+    FOLLOW_PAUSED.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    FollowPause(())
+}
+
 /// Re-point this process when the database setting or the data folder changes (the wizard's switch in the board,
 /// `kanban-db use` on the command line, a workspace switch): the board and the stdio MCP processes that editors
 /// launch then always use one database.
@@ -415,6 +438,9 @@ pub async fn follow_settings(interval: Duration) {
     let mut seen = settings_key();
     loop {
         tokio::time::sleep(interval).await;
+        if FOLLOW_PAUSED.load(std::sync::atomic::Ordering::SeqCst) > 0 {
+            continue;
+        }
         let now = settings_key();
         if now == seen {
             continue;

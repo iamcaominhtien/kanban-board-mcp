@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ProjectSidebar } from './ProjectSidebar';
+import { ProjectSidebar, workspaceInitials } from './ProjectSidebar';
 
 type Props = Parameters<typeof ProjectSidebar>[0];
 
@@ -58,5 +58,47 @@ describe('ProjectSidebar workspace switcher', () => {
     const home = screen.getByRole('menuitemradio', { name: 'Home' }) as HTMLButtonElement;
     expect(home.disabled).toBe(true);
     expect(screen.getByText('2 AI run(s) are working on this board.')).toBeTruthy();
+  });
+
+  it('shows a refusal under the switcher after the menu has closed, until it is dismissed', () => {
+    const onDismissError = vi.fn();
+    renderSidebar({
+      items,
+      switchable: true,
+      onSwitch: vi.fn(),
+      error: 'That board was made by a newer version of the app.',
+      onDismissError,
+    });
+    // the menu is closed, and the person still sees why nothing happened
+    expect(screen.queryByRole('menu', { name: 'Workspaces' })).toBeNull();
+    expect(screen.getByRole('alert').textContent).toContain('newer version');
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(onDismissError).toHaveBeenCalledTimes(1);
+  });
+
+  it('says it is switching and cannot be started twice', () => {
+    renderSidebar({ items, switchable: true, onSwitch: vi.fn(), switching: true });
+    const button = screen.getByRole('button', { name: 'Switching…' }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+  });
+
+  it('closes the menu with Escape and with a click elsewhere', () => {
+    renderSidebar({ items, switchable: true, onSwitch: vi.fn() });
+    fireEvent.click(screen.getByRole('button', { name: 'Office' }));
+    expect(screen.getByRole('menu', { name: 'Workspaces' })).toBeTruthy();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('menu', { name: 'Workspaces' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Office' }));
+    expect(screen.getByRole('menu', { name: 'Workspaces' })).toBeTruthy();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole('menu', { name: 'Workspaces' })).toBeNull();
+  });
+
+  it('keeps the first letters of the board in use visible for the collapsed rail', () => {
+    renderSidebar({ items, switchable: true, onSwitch: vi.fn() });
+    expect(screen.getByRole('button', { name: 'Office' }).textContent).toContain('OF');
+    expect(workspaceInitials('Home Office')).toBe('HO');
+    expect(workspaceInitials('  ')).toBe('?');
+    expect(workspaceInitials('Đặng')).toBe('ĐẶ');
   });
 });

@@ -1,6 +1,8 @@
 //! Workspaces (`/workspaces`): several boards on one computer and the switch between them, on a real server.
 
 use serde_json::{Value, json};
+mod common;
+
 use testkit::{Client, Options, Server, skip_unless_available};
 
 /// A server whose home folder is `<tmp>/home` (a workspace folder must be inside it).
@@ -163,11 +165,117 @@ async fn test_a_folder_with_a_newer_database_is_refused_and_the_board_stays() {
     assert_eq!(r.status, 200, "{}", r.text());
     let id = r.json()["id"].as_str().unwrap().to_string();
 
+    let config_before = std::fs::read_to_string(s.config_dir().join("config.json")).unwrap();
     let r = c.post_empty(&format!("/workspaces/{id}/switch")).await;
-    assert_eq!(r.status, 500, "{}", r.text());
+    assert_eq!(r.status, 422, "{}", r.text());
+    assert_eq!(r.json()["detail"]["code"], "not_usable");
+    assert!(r.json()["detail"]["message"].as_str().unwrap().contains("not a SQLite database"), "{}", r.text());
+    // the board was looked at before anything was changed: the settings are exactly as they were
+    assert_eq!(std::fs::read_to_string(s.config_dir().join("config.json")).unwrap(), config_before);
     // the board in use works as before
     assert_eq!(project_names(&c).await, vec!["Stays"]);
     let o = overview(&c).await;
     assert_eq!(o["items"].as_array().unwrap().iter().filter(|i| i["active"] == true).count(), 1);
     assert_eq!(id_of(&o, "Default"), o["active_id"].as_str().unwrap());
+}
+
+#[tokio::test]
+async fn test_a_board_made_by_a_newer_version_is_refused_before_anything_changes() {
+    if !skip_unless_available("test_a_board_made_by_a_newer_version_is_refused_before_anything_changes") {
+        return;
+    }
+    let (s, home, _tmp) = start().await;
+    let c = s.client();
+    let folder = home.join("newer");
+    std::fs::create_dir_all(&folder).unwrap();
+    // a real board of this app, stamped with a migration this version does not know
+    common::sqlite_exec(
+        &folder.join("kanban.db"),
+        "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)",
+        &[],
+    )
+    .await;
+    common::sqlite_exec(&folder.join("kanban.db"), "INSERT INTO alembic_version VALUES ('0123456789ab')", &[]).await;
+    common::sqlite_exec(&folder.join("kanban.db"), "CREATE TABLE ticket (id TEXT)", &[]).await;
+    let r = c.post("/workspaces", json!({"name": "Newer", "folder": folder.display().to_string()})).await;
+    assert_eq!(r.status, 200, "{}", r.text());
+    let id = r.json()["id"].as_str().unwrap().to_string();
+    let config_before = std::fs::read_to_string(s.config_dir().join("config.json")).unwrap();
+    let r = c.post_empty(&format!("/workspaces/{id}/switch")).await;
+    assert_eq!(r.status, 422, "{}", r.text());
+    assert!(r.json()["detail"]["message"].as_str().unwrap().contains("newer version"), "{}", r.text());
+    assert_eq!(std::fs::read_to_string(s.config_dir().join("config.json")).unwrap(), config_before);
+    assert_eq!(overview(&c).await["items"].as_array().unwrap().iter().filter(|i| i["active"] == true).count(), 1);
+}
+
+/// Two tabs (or an editor and a tab) changing workspaces at the same time must not lose each other's change: the
+/// settings file held `data_folder`, the port and the list, and 20 concurrent adds used to leave only some of it.
+#[tokio::test]
+async fn test_many_changes_at_once_lose_nothing() {
+    if !skip_unless_available("test_many_changes_at_once_lose_nothing") {
+        return;
+    }
+    let (s, _home, _tmp) = start().await;
+    let c = s.client();
+    assert_eq!(c.post("/workspaces", json!({"name": "First"})).await.status, 200);
+    let before: Value =
+        serde_json::from_str(&std::fs::read_to_string(s.config_dir().join("config.json")).unwrap()).unwrap();
+    let mut tasks = Vec::new();
+    for n in 0..20 {
+        let c = s.client();
+        tasks.push(tokio::spawn(
+            async move { c.post("/workspaces", json!({"name": format!("Board {n}")})).await.status },
+        ));
+    }
+    for t in tasks {
+        assert_eq!(t.await.unwrap(), 200);
+    }
+    let o = overview(&c).await;
+    assert_eq!(o["items"].as_array().unwrap().len(), 22, "Default, First and 20 more: {o}");
+    // the names still point at their own folders, and the settings kept the keys they had
+    let after: Value =
+        serde_json::from_str(&std::fs::read_to_string(s.config_dir().join("config.json")).unwrap()).unwrap();
+    for key in before.as_object().unwrap().keys().filter(|k| *k != "workspaces" && *k != "workspace_active") {
+        assert_eq!(after[key], before[key], "{key} was lost or changed");
+    }
+    let folders: std::collections::HashSet<_> =
+        o["items"].as_array().unwrap().iter().map(|i| i["folder"].as_str().unwrap().to_string()).collect();
+    assert_eq!(folders.len(), 22, "two workspaces share a folder");
+    let default = o["items"].as_array().unwrap().iter().find(|i| i["name"] == "Default").unwrap();
+    assert_eq!(default["active"], true, "the board in use is still Default: {o}");
+}
+
+/// Settings › Data folder moves the board in use; the workspace that was open follows it (else opening that workspace
+/// would start an empty board and look like lost data).
+#[tokio::test]
+async fn test_moving_the_data_folder_moves_the_open_workspace_with_it() {
+    if !skip_unless_available("test_moving_the_data_folder_moves_the_open_workspace_with_it") {
+        return;
+    }
+    let (s, home, _tmp) = start().await;
+    let c = s.client();
+    let made = c.post("/workspaces", json!({"name": "Real"})).await.json();
+    let real = made["id"].as_str().unwrap().to_string();
+    assert_eq!(c.post_empty(&format!("/workspaces/{real}/switch")).await.status, 200);
+    let p = c.post("/projects", json!({"name": "Kept", "prefix": "KEP", "color": "#0a0"})).await;
+    assert_eq!(p.status, 201);
+
+    let moved = home.join("moved");
+    let r = c.post("/settings/data-path", json!({"path": moved.display().to_string()})).await;
+    assert_eq!(r.status, 200, "{}", r.text());
+
+    let o = overview(&c).await;
+    let names: Vec<_> =
+        o["items"].as_array().unwrap().iter().map(|i| i["name"].as_str().unwrap().to_string()).collect();
+    assert_eq!(names, vec!["Default", "Real"], "no stray entry: {o}");
+    let real_item = o["items"].as_array().unwrap().iter().find(|i| i["name"] == "Real").unwrap();
+    assert_eq!(real_item["active"], true);
+    assert_eq!(real_item["folder"].as_str().unwrap(), moved.display().to_string());
+    assert_eq!(real_item["has_board"], true);
+
+    // away and back: the board is where the entry says
+    let default = id_of(&o, "Default");
+    assert_eq!(c.post_empty(&format!("/workspaces/{default}/switch")).await.status, 200);
+    assert_eq!(c.post_empty(&format!("/workspaces/{real}/switch")).await.status, 200);
+    assert_eq!(project_names(&c).await, vec!["Kept"]);
 }

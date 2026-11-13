@@ -45,6 +45,7 @@ fn failure(error: Error) -> ApiError {
         Error::Invalid(message) => ApiError::bad_request(message),
         Error::NotFound => ApiError::not_found("Workspace not found"),
         Error::Taken(message) | Error::Unsupported(message) | Error::Busy(message) => ApiError::conflict(message),
+        Error::Unusable(message) => ApiError::unprocessable(json!({"code": "not_usable", "message": message})),
         Error::Failed(message) => ApiError::code(500, message),
     }
 }
@@ -99,17 +100,7 @@ async fn post_switch(UrlPath(workspace_id): UrlPath<String>) -> ApiResult<Json<V
 async fn usable_server(connection: &ConnectionBody) -> ApiResult<kb_db::targets::Target> {
     let target = target_of(connection)?;
     let report = probe::test(&target).await?;
-    let first_error = || report.findings.iter().find(|f| f.level == "error").map(|f| f.title.clone());
-    let problem = match report.state.as_str() {
-        "foreign" => {
-            Some("That database already holds tables that are not a Kanban board. Choose an empty one.".to_string())
-        }
-        "newer" => Some("That board was made by a newer version of the app. Update the app first.".to_string()),
-        _ if !report.ok() => Some(first_error().unwrap_or_else(|| "That database cannot be reached.".to_string())),
-        "empty" | "board" => None,
-        _ => Some(first_error().unwrap_or_else(|| "That database cannot be used.".to_string())),
-    };
-    match problem {
+    match workspaces::problem_of(&report) {
         None => Ok(target),
         Some(message) => Err(ApiError::unprocessable(json!({
             "code": "not_usable",

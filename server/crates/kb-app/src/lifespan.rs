@@ -18,6 +18,8 @@ pub struct Running {
 /// Bring the database up and start the background work.
 pub async fn startup() -> Result<Running, DatabaseError> {
     crate::hooks::install();
+    // the programs this one does not start (the stdio MCP of an editor) must read the same key store
+    kb_base::secrets::record_store();
     database::setup().await?;
     database::init_db_or_wait().await?;
     let follow = tokio::spawn(database::follow_settings(Duration::from_secs(2)));
@@ -25,6 +27,32 @@ pub async fn startup() -> Result<Running, DatabaseError> {
     let sweeper = tokio::spawn(kb_board::workspace::sweep_loop());
     let db_watcher =
         tokio::spawn(database::watch_database(None, Duration::from_millis(400), Duration::from_millis(150)));
+    if database::unreachable().is_some() {
+        // A database server that does not answer must not stop the app: the person has to be able to open it, and
+        // to switch to another board from Settings. What needs the database starts when it answers.
+        tracing::warn!(
+            target: "kanban.http",
+            "The database cannot be reached: the AI runs, jobs and notifications start when it answers"
+        );
+        let rescans = tokio::spawn(async {
+            while database::unreachable().is_some() {
+                tokio::time::sleep(Duration::from_secs(2)).await;
+            }
+            if let Err(err) = start_database_work().await {
+                tracing::error!(target: "kanban.http", "The background work could not start: {err}");
+            }
+            rescan_loop().await;
+        });
+        return Ok(Running { follow, sweeper, db_watcher, rescans });
+    }
+    start_database_work().await?;
+    let rescans = tokio::spawn(rescan_loop());
+    Ok(Running { follow, sweeper, db_watcher, rescans })
+}
+
+/// The background work that reads the database: recover what the last start left, and start the AI runs, the
+/// schedules, the notifications and the GitHub sync.
+async fn start_database_work() -> Result<(), DatabaseError> {
     // the AI runs: recover what the last start left and start the scheduler (or, with KANBAN_RUNNER=process, the
     // runner process, which does both)
     kb_ai_run::runs::start_scheduler().await.map_err(DatabaseError::from)?;
@@ -34,8 +62,7 @@ pub async fn startup() -> Result<Running, DatabaseError> {
     kb_ai_run::schedules::start_scheduler();
     kb_notify::start();
     kb_ai_work::github::start();
-    let rescans = tokio::spawn(rescan_loop());
-    Ok(Running { follow, sweeper, db_watcher, rescans })
+    Ok(())
 }
 
 const RESCAN_EVERY: Duration = Duration::from_secs(30 * 60);

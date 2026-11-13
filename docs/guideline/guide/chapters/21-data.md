@@ -45,15 +45,19 @@ In the desktop app, {menu:Help › Open Data Folder} opens the data folder. You 
 If you keep a board in one place (the office, say) and another in a second place (home, a client), you do not need to export one and import the other. Give each board its own **workspace** and switch between them.
 
 1. Open {menu:Settings › Storage & backup} and find **Workspaces**. The board you have now is listed as **Default** (rename it if you like).
-2. Type a name and press **Add workspace**. You get a new, empty board in its own folder. To open a board you already have in a folder (a copy of your other computer's data, say), type that folder too; it must be inside your home folder. To keep the board on a database server instead, choose **A PostgreSQL server** or **A MySQL / MariaDB server** under *Where the board is kept* and fill in the connection, as in the Database card; the server is tested before the workspace is saved, and an empty database gets a new board.
-3. Press **Switch** on the workspace you want. The page reloads with that board. From then on, a switcher under the logo lets you change in one click.
+2. Type a name and press **Add workspace**. You get a new, empty board in its own folder, made in **Kanban Boards** in your home folder. To open a board you already have in a folder (a copy of your other computer's data, say), type that folder too; it must be inside your home folder. To keep the board on a database server instead, choose **A PostgreSQL server** or **A MySQL / MariaDB server** under *Where the board is kept* and fill in the connection, as in the Database card; the server is tested before the workspace is saved, and an empty database gets a new board.
+3. Press **Switch** on the workspace you want. The page reloads with that board. From then on, a switcher under the logo lets you change in one click, and the workspace in use is named next to the project title.
 
-Each workspace has its own database and attachments, so nothing is shared and nothing is copied. **Remove** only forgets the entry; the folder and the database stay where they are.
+Each workspace has its own database and attachments, so nothing is shared and nothing is copied. **Remove** only forgets the entry; the folder and the database stay where they are (the confirmation says where).
 
 !!! note "Good to know"
-    - A switch waits until no AI run is working. Claude Code and VS Code follow it by themselves within a few seconds.
-    - Workspaces here are whole boards. They are not the **Workspace** of a ticket (its scratch folder).
+    - A switch is refused while an AI run is working: wait for it or stop it. The board you are switching to is checked first, so if it cannot be opened (the server does not answer, the password is wrong, it was made by a newer version of the app) nothing changes and you are told why.
+    - If the server of a board stops answering (the office server, when you are at home), the reconnect screen lists your other workspaces. Open one; the first is waiting for its server and you can come back to it.
+    - Claude Code and VS Code follow a switch by themselves within a few seconds. Ticket keys such as `ABC-12` can exist in both boards, so after a switch an AI agent works on the board now in use. A window you left open on the other board tells you to reload.
+    - Docs AI jobs and Board AI chats that are in flight are not waited for when you switch.
+    - Settings › Data folder and the Database card change where the workspace in use lives; its entry follows. In the desktop app, Help › Open Data Folder opens the folder of the workspace in use.
     - **Switch** is off only when `KANBAN_DATABASE_URL` is set: the environment then decides the database.
+    - Workspaces here are whole boards. They are not the **Workspace** of a ticket (its scratch folder).
 
 ## Before an upgrade
 

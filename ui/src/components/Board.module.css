@@ -331,3 +331,20 @@
   width: max-content;
   max-width: calc(100% - 24px);
 }
+
+/* The workspace in use, beside the project title (shown only with two or more workspaces) */
+.workspaceTag {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #eef3e2;
+  border: 1px solid #c9d9a3;
+  color: #3b4d1a;
+  font-size: 12px;
+  font-weight: 600;
+}

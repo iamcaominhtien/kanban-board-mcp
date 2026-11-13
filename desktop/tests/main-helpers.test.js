@@ -4,6 +4,7 @@ const path = require('node:path');
 
 const {
   buildBackendLaunchSpec,
+  fetchDataFolder,
   getLegacyMcpStdioBinaryPath,
   getMcpStdioBinaryPath,
   isOpenablePath,
@@ -385,4 +386,20 @@ test('only the app page with docsWindow=1 opens as a Docs window (#268)', () => 
   assert.equal(isDocsWindowUrl('not a url', app), false);
   assert.equal(isAppUrl(`${app}?proj=p1&ticket=KAN-1`, app), true);
   assert.equal(isAppUrl('https://example.com/', app), false);
+});
+
+test('fetchDataFolder asks the running server for the folder of the workspace that is open', async () => {
+  const ok = async (url) => {
+    assert.equal(url, 'http://127.0.0.1:4321/settings');
+    return { ok: true, json: async () => ({ data_folder: '/Users/me/Kanban Boards/home' }) };
+  };
+  assert.equal(await fetchDataFolder({ port: 4321, fallback: '/app', fetchFn: ok }), '/Users/me/Kanban Boards/home');
+});
+
+test('fetchDataFolder falls back to the app folder when the server cannot say', async () => {
+  const fallback = '/app/userData';
+  assert.equal(await fetchDataFolder({ port: null, fallback }), fallback);
+  assert.equal(await fetchDataFolder({ port: 1, fallback, fetchFn: async () => ({ ok: false }) }), fallback);
+  assert.equal(await fetchDataFolder({ port: 1, fallback, fetchFn: async () => { throw new Error('down'); } }), fallback);
+  assert.equal(await fetchDataFolder({ port: 1, fallback, fetchFn: async () => ({ ok: true, json: async () => ({}) }) }), fallback);
 });

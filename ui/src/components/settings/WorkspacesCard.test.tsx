@@ -92,7 +92,7 @@ describe('WorkspacesCard', () => {
     renderCard();
     await screen.findByText('Home');
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
-    expect(screen.getByText(/The folder and its data stay on disk/)).toBeTruthy();
+    expect(screen.getByText(/Nothing is deleted: the board stays at/)).toBeTruthy();
     expect(mocked.delete).not.toHaveBeenCalled();
     fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0]);
     await waitFor(() => expect(mocked.delete).toHaveBeenCalledWith('/workspaces/b2'));

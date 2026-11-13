@@ -150,7 +150,7 @@ export function WorkspacesCard() {
                 </>
               ) : removing === item.id ? (
                 <>
-                  <span className={styles.hint}>Forget it? The folder and its data stay on disk.</span>
+                  <span className={styles.hint}>Forget it? Nothing is deleted: the board stays at {item.place}.</span>
                   <button type="button" className={styles.btn} onClick={() => setRemoving(null)}>
                     Cancel
                   </button>
@@ -242,8 +242,8 @@ export function WorkspacesCard() {
         htmlFor="workspace-folder-input"
         hint={
           draft.engine === 'sqlite'
-            ? 'Leave empty for a new folder next to the settings file. A folder that already holds a board is added as it is.'
-            : 'Attachments and AI logs of this board. Leave empty for a new folder next to the settings file. The server is tested before the workspace is saved; an empty database gets a new board.'
+            ? 'Leave empty for a new folder in “Kanban Boards” in your home folder. A folder that already holds a board is added as it is.'
+            : 'Attachments and AI logs of this board. Leave empty for a new folder in “Kanban Boards” in your home folder. The server is tested before the workspace is saved; an empty database gets a new board.'
         }
       >
         <input
