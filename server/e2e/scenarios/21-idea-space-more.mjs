@@ -17,6 +17,16 @@ export default {
       await p.getByText(title, { exact: true }).first().click();
       await p.getByRole('textbox', { name: 'Idea title' }).waitFor();
     };
+    // Back from Settings the app may show the idea page again or the board: end on the page of "Offline mode"
+    const backToIdea = async () => {
+      await p.waitForTimeout(600);
+      if (await p.getByTestId('idea-page').count()) return;
+      await p.getByRole('button', { name: 'Idea Space' }).click();
+      await view('List').click();
+      await p.getByRole('button', { name: 'Exploring' }).click();
+      await p.getByText('Offline mode', { exact: true }).first().click();
+      await p.getByRole('textbox', { name: 'Idea title' }).waitFor();
+    };
     const addAssumption = async (text, impact) => {
       await sections().getByRole('tab', { name: /^Assumptions/ }).click();
       const box = p.getByRole('textbox', { name: 'New assumption' });
@@ -267,10 +277,7 @@ export default {
     });
     await s.step('with AI help off, the Idea Space shows no AI buttons', async () => {
       await p.getByRole('button', { name: 'Back to board' }).click();
-      await p.getByRole('button', { name: 'Idea Space' }).click();
-      await view('List').click();
-      await p.getByRole('button', { name: 'Exploring' }).click();
-      await p.getByText('Offline mode', { exact: true }).first().click();
+      await backToIdea();
       await p.getByRole('textbox', { name: 'Idea title' }).waitFor();
       await p.waitForTimeout(800);
       if (await p.getByTestId('ask-ai-button').count()) throw new Error('Ask AI is still offered');
@@ -283,10 +290,7 @@ export default {
       await set.getByRole('switch', { name: 'Enable AI help' }).click();
       await set.getByRole('switch', { name: 'Enable AI help', checked: true }).waitFor();
       await p.getByRole('button', { name: 'Back to board' }).click();
-      await p.getByRole('button', { name: 'Idea Space' }).click();
-      await view('List').click();
-      await p.getByRole('button', { name: 'Exploring' }).click();
-      await p.getByText('Offline mode', { exact: true }).first().click();
+      await backToIdea();
       await p.getByTestId('ask-ai-button').waitFor();
     });
   },

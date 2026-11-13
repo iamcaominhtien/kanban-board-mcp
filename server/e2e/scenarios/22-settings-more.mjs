@@ -352,7 +352,7 @@ export default {
       await d.getByText(/Quick add an idea/).waitFor();
       await d.getByRole('searchbox', { name: 'Search shortcuts and commands' }).fill('publish');
       await d.getByText(/^Publish/).first().waitFor();
-      await until(async () => (await d.getByText(/Quick add an idea/).count()) === 0, 'the search narrowing the list');
+      await until(async () => (await d.getByText(/Quick add an idea/).count()) === 0, 'the search narrowing the list').catch(async (e) => { throw new Error(`${e.message}: ${(await d.innerText()).replace(/\s+/g, ' ').slice(0, 300)} / ${await d.getByRole('searchbox').inputValue()}`); });
       await d.getByRole('searchbox', { name: 'Search shortcuts and commands' }).fill('zzzz');
       await d.getByText(/No shortcut matches/).waitFor();
       // a toast sent by the same menu channel
