@@ -263,15 +263,14 @@ export default {
       await p.getByPlaceholder('Sub-ticket title…').fill('Child one');
       await p.keyboard.press('Enter');
       await dlg().getByText('Child one').first().waitFor();
-      await p.keyboard.press('Escape');
-      await dlg().getByRole('button', { name: 'Add sub-ticket' }).click();
+      // the form stays open to add another; switch it to "Existing"
       await dlg().getByRole('button', { name: 'Existing', exact: true }).click();
       await p.getByPlaceholder('Search tickets…').last().fill('Old idea');
       await dlg().getByRole('button', { name: /Old idea/ }).click();
       await dlg().getByText('Old idea').first().waitFor();
     });
     await s.step('remove a sub-ticket from its parent', async () => {
-      await dlg().getByRole('button', { name: 'Remove sub-ticket' }).last().click({ force: true });
+      await dlg().getByRole('button', { name: 'Remove sub-ticket' }).first().click({ force: true });
       await dlg().getByText('Old idea').waitFor({ state: 'detached' });
       await dlg().getByText('Child one').first().waitFor();
     });
@@ -304,7 +303,7 @@ export default {
       await p.getByPlaceholder('Sub-ticket title…').fill('Pay with card');
       await p.keyboard.press('Enter');
       await dlg().getByText('Pay with card').first().waitFor();
-      await p.keyboard.press('Escape');
+      await dlg().getByRole('button', { name: 'Cancel', exact: true }).click();
       await closeTicket(s);
     });
     await s.step('the Story page lists its sub-ticket', async () => {

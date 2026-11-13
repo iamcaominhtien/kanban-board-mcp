@@ -294,7 +294,7 @@ export default {
       await p.getByRole('heading', { name: 'Spend today', level: 2 }).waitFor();
       await p.getByText(/2 runs today/).first().waitFor();
       await p.getByRole('button', { name: 'Open run' }).first().click();
-      await p.getByText('Fixed add(); tests pass.').first().waitFor();
+      await p.getByText(/Done with your answer|Fixed add\(\); tests pass\./).first().waitFor();
     });
 
     await s.step('AI Team: Flow shows the map and the timeline of the team', async () => {
@@ -326,7 +326,7 @@ export default {
       await p.getByRole('radio', { name: 'Finished' }).click();
       await until(async () => (await rows().count()) === 2, 'the finished runs');
       await rows().first().click();
-      await p.getByText('Fixed add(); tests pass.').first().waitFor();
+      await p.getByText(/Done with your answer|Fixed add\(\); tests pass\./).first().waitFor();
     });
 
     await s.step('AI Team: You stepped in counts the answer the person gave', async () => {

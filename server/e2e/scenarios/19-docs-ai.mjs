@@ -92,7 +92,7 @@ export default {
     await s.step('AI menu on the page API: Summarise shows a block above the page', async () => {
       fake({ 'docs-summarise': { text: 'A REST API with paging still to do.', title: 'API' } });
       await item('API').click();
-      await p.getByRole('heading', { name: 'API', level: 1 }).waitFor();
+      await p.getByTestId('page-title').getByText('API', { exact: true }).waitFor();
       await p.getByTestId('page-ai-menu').click();
       const menu = p.getByRole('menu', { name: 'AI' });
       for (const t of ['Ask this page', 'Summarise', 'Check if up to date', 'Create tickets from this page', 'Suggest links', 'Translate view…', 'Edit with AI…']) {
@@ -128,6 +128,88 @@ export default {
       await p.getByRole('button', { name: 'Translate', exact: true }).click();
       await p.getByText(/Showing a French translation by AI/).waitFor({ timeout: 30000 });
       await p.getByText('L\u2019API utilise REST.').waitFor();
+    });
+    await s.step('Translate view: close the translation', async () => {
+      // the banner has no Close once the translation is shown: reload the page from the tree instead
+      await item('Release notes').click();
+      await p.getByTestId('page-title').getByText('Release notes', { exact: true }).waitFor();
+      await item('API').click();
+      await p.getByTestId('page-title').getByText('API', { exact: true }).waitFor();
+      await p.getByText('The API uses REST.').waitFor();
+    });
+    await s.step('Check if up to date: a stale banner with its reason, then "Still correct"', async () => {
+      fake({ 'docs-freshness': { state: 'stale', reasons: [{ quote: 'REST', source: 'ALP-1', why: 'The API moved to gRPC.' }] } });
+      await aiMenu('check');
+      const banner = p.getByTestId('freshness-banner');
+      await banner.getByText('This page may be out of date').waitFor({ timeout: 30000 });
+      await banner.getByTestId('freshness-reason').getByText('The API moved to gRPC.').waitFor();
+      await banner.getByTestId('freshness-still-correct').click();
+      await banner.waitFor({ state: 'detached' });
+    });
+    await s.step('Check if up to date: dismiss one reason', async () => {
+      fake({ 'docs-freshness': { state: 'stale', reasons: [{ quote: 'paging', source: 'ALP-2', why: 'Paging was dropped.' }] } });
+      await aiMenu('check');
+      const banner = p.getByTestId('freshness-banner');
+      await banner.getByText('Paging was dropped.').waitFor({ timeout: 30000 });
+      await banner.getByRole('button', { name: 'Dismiss this reason' }).click();
+      await p.getByRole('menuitem').first().click();
+      await banner.waitFor({ state: 'detached' });
+    });
+    await s.step('Create tickets from this page: draft, edit the title, create', async () => {
+      fake({ 'docs-tickets': { drafts: [{ title: 'Add paging', text: 'From the API page.', type: 'task' }], skipped: [] } });
+      await aiMenu('tickets');
+      const d = p.getByRole('dialog', { name: 'Create tickets' });
+      await d.getByTestId('ticket-draft').waitFor({ timeout: 30000 });
+      await d.getByRole('textbox', { name: /^Title of ticket/ }).fill('Add paging to the API');
+      await d.getByTestId('create-tickets-submit').getByText('Create 1 ticket').waitFor();
+      await d.getByTestId('create-tickets-submit').click();
+      await p.getByText(/1 ticket created in/).waitFor();
+      await d.waitFor({ state: 'detached' });
+    });
+    await s.step('the new ticket is on the board and lists the page', async () => {
+      await p.getByRole('button', { name: 'Board', exact: true }).click();
+      await p.getByText('Add paging to the API').first().waitFor();
+      await openDocs(s);
+      await item('API').click();
+      await p.getByTestId('page-title').getByText('API', { exact: true }).waitFor();
+    });
+    await s.step('Check this page in the editor (/ai): findings, Fix as draft, Accept', async () => {
+      fake({
+        'docs-check': { findings: [
+          { kind: 'unclear', quote: 'The API uses REST.', message: 'Say which version.', suggestion: 'The API uses REST v2.' },
+          { kind: 'style', quote: 'Add paging', message: 'Write a full sentence.' },
+        ] },
+        'docs-fix': { old: 'The API uses REST.', new: 'The API uses REST v2.' },
+      });
+      await p.getByRole('button', { name: 'Edit', exact: true }).click();
+      await p.getByRole('textbox', { name: 'Page content' }).click();
+      await p.keyboard.press('Control+End');
+      await p.keyboard.press('Enter');
+      await p.keyboard.type('/ai');
+      const menu = p.getByRole('listbox', { name: 'Insert block' });
+      await menu.waitFor();
+      await menu.getByRole('option', { name: /Check this page/ }).click();
+      const panel = p.getByTestId('check-this-page');
+      await panel.waitFor();
+      await panel.getByTestId('check-finding').first().waitFor({ timeout: 30000 });
+      if ((await panel.getByTestId('check-finding').count()) !== 2) throw new Error('expected two findings');
+      await panel.getByText('Say which version.').waitFor();
+      await panel.getByText('Write a full sentence.').waitFor();
+      s.note('finding kinds', await panel.getByTestId('check-finding').evaluateAll((els) => els.map((e) => e.dataset.kind)));
+    });
+    await s.step('Check this page: ignore the style finding', async () => {
+      const panel = p.getByTestId('check-this-page');
+      const style = panel.locator('[data-testid="check-finding"][data-kind="style"]');
+      await style.getByTestId('ignore-finding').click();
+      await style.waitFor({ state: 'detached' });
+    });
+    await s.step('Check this page: Fix as draft shows a diff, Accept puts it in the editor', async () => {
+      const panel = p.getByTestId('check-this-page');
+      await panel.getByTestId('fix-as-draft').click();
+      await panel.getByTestId('fix-diff').waitFor({ timeout: 30000 });
+      await panel.getByTestId('fix-accept').click();
+      await p.getByRole('textbox', { name: 'Page content' }).getByText('The API uses REST v2.').waitFor();
+      await s.settle();
     });
   },
 };
