@@ -52,6 +52,8 @@ const noiseOf = (id) => {
 const IGNORE_BODY = new Set(['GET /version', 'GET /version?']); // the two servers report their own release number
 
 const key = (e) => `${e.method} ${e.path.split('?')[0]}`;
+// Text for one cell of a Markdown table: backslashes first, then the pipes that would end the cell, and no line breaks.
+const cell = (v) => String(v).replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/[\r\n]+/g, ' ');
 const short = (v) => { const s = typeof v === 'string' ? JSON.stringify(v) : JSON.stringify(v); return s && s.length > 160 ? s.slice(0, 157) + '...' : s; };
 
 function groupEx(list) {
@@ -193,7 +195,7 @@ export function writeReports(py, rs, dir) {
         if (!diffs.length) { same++; sSame++; continue; }
         differ++;
         const first = diffs[0];
-        table.push(`| ${group} | ${sp.id} | ${n} | ${diffs.length} | ${first.kind}: ${String(first.msg).replace(/\|/g, '\\|').slice(0, 140)} |`);
+        table.push(`| ${group} | ${sp.id} | ${n} | ${diffs.length} | ${first.kind}: ${cell(first.msg).slice(0, 140)} |`);
         details.push({ group, id: sp.id, step: n, diffs });
       }
       sumByScenario.push(`| ${group} | ${sp.id} | ${names.length} | ${sSame} | ${names.length - sSame} |`);
