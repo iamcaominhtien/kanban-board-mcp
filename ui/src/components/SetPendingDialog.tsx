@@ -130,10 +130,11 @@ export const SetPendingDialog: React.FC<SetPendingDialogProps> = ({
         alsoAddBlockedBy,
       });
     } else {
+      // a member picked from the list is a 'person'; a name typed in is a 'party' (the server asks a member id of a person)
       onConfirm({
-        reasonType: 'person',
+        reasonType: selectedMemberId ? 'person' : 'party',
         pendingMemberId: selectedMemberId || undefined,
-        pendingParty: customParty.trim() || undefined,
+        pendingParty: selectedMemberId ? undefined : customParty.trim() || undefined,
         note: note.trim() || undefined,
       });
     }

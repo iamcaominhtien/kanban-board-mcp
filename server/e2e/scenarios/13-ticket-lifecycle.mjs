@@ -181,18 +181,17 @@ export default {
       await dlg().getByText('Mockups from Ada').first().waitFor();
       await dlg().getByRole('status').getByText('Ada Lovelace').waitFor();
     });
-    await s.step('a free-text party is refused by the server (old app: the UI sends reason_type person)', async () => {
-      // Python 4.0.3: PUT /tickets/{id}/pending {"reason_type":"person","party":"Design team"} -> 400 "member_id is required
-      // when reason_type is 'person'". The UI never sends reason_type "party", so a free-text name cannot be saved. Kept as is.
+    await s.step('change the reason to a party typed in (not a member)', async () => {
+      // 4.0.3 sent reason_type "person" with the typed name and the server refused it (400, "member_id is required
+      // when reason_type is 'person'"); a typed name is a "party"
       await dlg().getByRole('button', { name: 'Change reason' }).click();
       const d = p.getByRole('dialog', { name: 'Change pending reason for ALP-3' });
       await d.getByRole('button', { name: 'Waiting on a person or party' }).click();
       await d.getByPlaceholder('Customer, Design team, vendor name...').fill('Design team');
       await d.getByRole('button', { name: 'Save changes' }).click();
-      await d.getByText('Could not save the change').or(d.getByText(/Could not .*pending/)).first().waitFor();
-      await d.getByRole('button', { name: 'Cancel' }).click();
       await d.waitFor({ state: 'detached' });
-    }, { expectConsole: true });
+      await dlg().getByRole('status').getByText('Design team').waitFor();
+    });
     await s.step('the card shows the pending state and the Pending filter finds it', async () => {
       await closeTicket(s);
       await p.getByRole('button', { name: /^Pending/ }).click();
@@ -205,7 +204,7 @@ export default {
       await openTicket(s, 'ALP-3');
       await setStatus('Backlog', 'Done');
       const c = p.getByRole('dialog', { name: 'ALP-3 is pending' });
-      await c.getByText('It is waiting on Ada Lovelace. Marking it done also clears Pending.').waitFor();
+      await c.getByText('It is waiting on Design team. Marking it done also clears Pending.').waitFor();
       await c.getByRole('button', { name: 'Cancel' }).click();
       await c.waitFor({ state: 'detached' });
       await dlg().getByRole('button', { name: 'Backlog', exact: true }).first().waitFor();

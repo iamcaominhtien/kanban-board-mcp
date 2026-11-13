@@ -42,7 +42,8 @@ for (const sig of ['SIGINT', 'SIGTERM', 'exit']) {
 }
 
 // `env`: more variables for the server (the stress check names its database with KANBAN_DATABASE_URL).
-export async function startServer(target, { uiDist = path.join(REPO, 'ui/dist'), env: extra = {} } = {}) {
+// E2E_UI_DIST: another built UI (a run beside another one that rebuilds ui/dist)
+export async function startServer(target, { uiDist = process.env.E2E_UI_DIST || path.join(REPO, 'ui/dist'), env: extra = {} } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kanban-e2e-'));
   for (const d of ['data', 'config', 'logs', 'workspace', 'uploads', 'claude', 'bin', 'home', 'accounts']) fs.mkdirSync(path.join(root, d));
   // The AI CLI is the stand-in of the Rust tests (crates/fake-claude), on PATH as `claude`, for both servers. Before it
