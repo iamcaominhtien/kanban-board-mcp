@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { home, ensureProject, createTicket, openTicket, closeTicket } from '../lib/ui.mjs';
+import { home, ensureProject, createTicket, closeTicket } from '../lib/ui.mjs';
 
 // The AI team end to end, through the stand-in CLI (server/crates/fake-claude): accounts and the sign-in terminal, a
 // team, a ticket run (steps, report, run detail), a question that needs the person, the team pages, the settings of
@@ -8,7 +8,9 @@ import { home, ensureProject, createTicket, openTicket, closeTicket } from '../l
 //
 // What the stand-in cannot drive (so it is not covered here): a real browser sign-in (the terminal gets the code
 // "good"), the machine's RAM/CPU of a running CLI (the Resources numbers are near zero), the keep-awake chip and the
-// runner of the desktop app, installing a plugin from the internet (no network), real cost and quota.
+// runner of the desktop app, installing a plugin from the internet (no network; a plugin is installed from a folder
+// instead), real cost and quota, a sign-in in a real browser, the sleeping-machine states.
+// E2E_SOFT=1 keeps going after a failed step (to see every difference of a server in one run).
 export default {
   name: 'AI team: accounts, a team, a run through the stand-in CLI, its pages and settings',
   group: 'ai',

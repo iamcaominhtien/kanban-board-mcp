@@ -370,3 +370,26 @@ async fn the_snapshot_lists_running_runs_and_those_that_ended_a_moment_ago() {
     broken.restarts = "{not json".into();
     assert_eq!(resources::restarts_of(&broken), Vec::<Value>::new());
 }
+
+#[tokio::test]
+async fn a_cli_that_ends_within_a_second_is_read_once_and_saved_with_the_run() {
+    let _lock = fresh().await;
+    let (project, _) = common::project().await;
+    let (team, _) = common::team(&project, "Claude Code · Backend", common::TeamOpts::default()).await;
+    let run =
+        common::run(&project, &team.id, None, "running", |r| r.started_at = Set(Some(kb_base::time::now_iso()))).await;
+    let repo = common::tmp_path("repo");
+    let env = common::fake_env("v2", &[]);
+    let proc = Arc::new(CliProcess::new(common::stream_args("x", "s"), &repo.to_string_lossy(), Some(env), true, None));
+    proc.start().await.expect("start");
+    // the default timing: the loop reads every 2 s, the first reading comes at once (as the run engine asks for it)
+    MON.track(&run.id, proc.clone(), &project);
+    MON.read_now(&run.id).await.expect("read now");
+    let mut lines = proc.lines();
+    while let Ok(Some(_)) = tokio::time::timeout(Duration::from_secs(10), lines.next()).await.expect("in time") {}
+    proc.wait().await.expect("the CLI ends");
+    MON.untrack(&run.id).await.expect("untrack");
+    let saved = run_row(&run.id).await;
+    assert!(saved.peak_rss_mb.is_some_and(|mb| mb.get() > 0.0), "peak {:?}", saved.peak_rss_mb);
+    assert!(saved.last_rss_mb.is_some_and(|mb| mb.get() > 0.0), "last {:?}", saved.last_rss_mb);
+}

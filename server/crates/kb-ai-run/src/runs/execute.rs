@@ -447,6 +447,10 @@ pub(crate) fn execute_cli<'a>(
             guard::mark_resumed(run_id);
         }
         resources::MON.track(run_id, proc.clone(), &run.project_id);
+        // numbers for a screen never stop a run
+        if let Err(e) = resources::MON.read_now(run_id).await {
+            tracing::debug!(target: "kanban.ai.resources", "Could not read the CLI of {run_id}: {e}");
+        }
         // From here the CLI runs. Python leaves it running when anything below raises (the run is ended as failed and
         // nothing holds the process any more); here it is stopped first: no CLI outlives its run.
         let driven =

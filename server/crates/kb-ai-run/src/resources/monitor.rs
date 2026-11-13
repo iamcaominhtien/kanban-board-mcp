@@ -181,6 +181,19 @@ impl Monitor {
         self.ensure_running();
     }
 
+    /// Read a CLI just tracked now, without waiting for the loop's next round.
+    ///
+    /// In Python the loop's first reading comes at the first `await` after `track`, before the run reads anything
+    /// the CLI wrote; here the loop runs as its own task and may be sleeping, so a CLI that ends within a second would
+    /// end with no reading and its run with no memory figures. Does nothing when the CLI already ended.
+    ///
+    /// # Errors
+    /// When the run or the project's settings cannot be read or written.
+    pub async fn read_now(&self, run_id: &str) -> Result<(), DbErr> {
+        let live: Vec<_> = self.live().into_iter().filter(|(id, _, _)| id == run_id).collect();
+        self.read_all(&live).await
+    }
+
     /// The CLI ended: save its peak and last value with the run.
     pub async fn untrack(&self, run_id: &str) -> Result<(), DbErr> {
         self.inner().tracked.retain(|(id, _, _)| id != run_id);
