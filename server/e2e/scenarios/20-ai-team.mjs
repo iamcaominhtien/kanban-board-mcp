@@ -528,6 +528,7 @@ export default {
       await d.getByRole('button', { name: 'Pick a ticket' }).click();
       await p.getByRole('option', { name: /ALP-1 Fix add/ }).click();
       await d.getByRole('textbox', { name: 'Time of day' }).fill('03:15');
+      await d.getByRole('textbox', { name: 'Time of day' }).blur();
       await d.getByText(/Backend team works on ALP-1/).waitFor();
       await d.getByText(/Every weekday at 03:15/).waitFor();
       await d.getByRole('button', { name: 'Dry run' }).click();
