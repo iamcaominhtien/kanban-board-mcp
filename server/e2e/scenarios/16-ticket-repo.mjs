@@ -159,13 +159,30 @@ export default {
       await dlg().getByText('main', { exact: true }).first().waitFor();
     });
 
+    await s.step('create a branch with its own git worktree', async () => {
+      await backToTicket();
+      await tab('Branches').click();
+      await dlg().getByRole('button', { name: 'Create branch' }).click();
+      const m = p.getByRole('dialog', { name: 'New branch' });
+      await m.getByRole('textbox', { name: 'Name' }).fill('feature/with-tree');
+      await m.getByRole('checkbox', { name: 'Create git worktree for this branch' }).check();
+      await m.getByRole('button', { name: 'Create branch' }).click();
+      await m.waitFor({ state: 'detached' });
+      await dlg().getByText(/Open worktree from main/).waitFor();
+      await dlg().getByRole('button', { name: 'List', exact: true }).click();
+      await dlg().getByText(/ALP-1-feature-with-tree/).first().waitFor();
+      const wt = git('worktree', 'list');
+      if (!/with-tree/.test(wt)) throw new Error(`no git worktree was made: ${wt}`);
+      s.note('worktree made', /with-tree/.test(wt));
+    });
+
     // ---- workspace
     await s.step('the Workspace tab: the folder does not exist yet, create it', async () => {
       await backToTicket();
       await tab('Workspace').click();
       await dlg().getByText('This ticket has no workspace folder yet.').waitFor({ timeout: 15000 });
       await dlg().getByRole('button', { name: 'Create folder' }).click();
-      await dlg().getByText('0 files · 0 B', { exact: true }).waitFor();
+      await dlg().getByText(/^0 files · 0 B/i).waitFor();
       await dlg().getByText(/No files yet\. The folder exists/).waitFor();
       if (!fs.existsSync(path.join(s.server.dirs.workspace, 'ALP-1'))) throw new Error('the workspace folder was not created on disk');
     });
@@ -175,7 +192,7 @@ export default {
       fs.mkdirSync(path.join(root, 'docs'));
       fs.writeFileSync(path.join(root, 'docs', 'a.txt'), 'aaa');
       await dlg().getByRole('button', { name: 'Refresh' }).click();
-      await dlg().getByText('2 files · 16 B', { exact: true }).waitFor();
+      await dlg().getByText(/^2 files · 16 B/i).waitFor();
       await dlg().getByRole('button', { name: 'Preview notes.md' }).first().waitFor();
       await dlg().getByRole('button', { name: 'Preview docs/a.txt' }).first().waitFor();
     });
@@ -184,13 +201,19 @@ export default {
       await dlg().getByRole('button', { name: 'Upload' }).click();
       await (await chooser).setFiles({ name: 'upload.txt', mimeType: 'text/plain', buffer: Buffer.from('uploaded text') });
       await dlg().getByRole('button', { name: 'Preview upload.txt' }).first().waitFor();
-      await dlg().getByText(/^3 files/).waitFor();
+      await dlg().getByText(/^3 files/i).waitFor();
       if (fs.readFileSync(path.join(s.server.dirs.workspace, 'ALP-1', 'upload.txt'), 'utf8') !== 'uploaded text') throw new Error('upload content differs on disk');
     });
-    await s.step('preview a file', async () => {
+    await s.step('preview a file: rendered, source, next file, close', async () => {
       await dlg().getByRole('button', { name: 'Preview notes.md' }).first().click();
-      await p.getByText('hello').first().waitFor();
-      s.note('preview shown', await p.getByRole('dialog').last().innerText());
+      const pv = p.getByRole('dialog', { name: 'Preview of notes.md' });
+      await pv.getByRole('heading', { name: 'Notes', level: 1 }).waitFor();
+      await pv.getByRole('tab', { name: 'Source' }).click();
+      await pv.getByText('# Notes').first().waitFor();
+      await pv.getByRole('button', { name: 'Next file' }).click();
+      await p.getByRole('dialog', { name: 'Preview of upload.txt' }).getByText('uploaded text').first().waitFor();
+      await p.getByRole('dialog', { name: 'Preview of upload.txt' }).getByRole('button', { name: 'Close', exact: true }).click();
+      await p.getByRole('dialog', { name: /^Preview of/ }).waitFor({ state: 'detached' });
     });
     await s.step('delete a file after confirming', async () => {
       await dlg().getByRole('button', { name: 'Delete upload.txt' }).click();
@@ -208,6 +231,7 @@ export default {
       s.note('retention options', await menu.innerText());
       await menu.getByRole('menuitemradio').nth(1).click();
       await menu.waitFor({ state: 'detached' });
+      await dlg().getByTestId('retention-chip').getByText(/7/).waitFor();
     });
   },
 };

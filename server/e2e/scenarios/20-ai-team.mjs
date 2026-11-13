@@ -397,12 +397,12 @@ export default {
       await d.getByRole('textbox', { name: 'Reason (optional)' }).fill('Maintenance window');
       await d.getByRole('button', { name: 'Pause all AI' }).click();
       await p.getByText('Nothing new starts until you resume.').waitFor();
-      await reg.getByText(/AI paused since/).waitFor();
+      await reg.getByLabel(/^AI paused since/).waitFor();
       await reg.getByRole('button', { name: 'Resume…' }).waitFor();
       // the board says so too, and the team page shows the pause
       await p.getByRole('button', { name: 'Back to board' }).click();
       await home(s);
-      await p.getByText(/AI paused since/).first().waitFor();
+      await p.getByLabel(/^AI paused since/).first().waitFor();
       await teamPage();
       await p.getByText(/AI paused/).first().waitFor();
     });
@@ -412,7 +412,7 @@ export default {
       const d = p.getByRole('dialog', { name: 'Resume AI' });
       await d.getByRole('button', { name: 'Resume AI' }).click();
       await p.getByText('Queued runs start again.', { exact: true }).waitFor();
-      await p.getByText(/AI paused since/).first().waitFor({ state: 'detached' });
+      await p.getByLabel(/^AI paused since/).first().waitFor({ state: 'detached' });
       await p.getByRole('button', { name: 'Pause all AI' }).first().waitFor();
     });
 

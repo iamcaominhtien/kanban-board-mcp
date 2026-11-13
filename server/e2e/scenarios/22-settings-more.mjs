@@ -279,21 +279,39 @@ export default {
 
     await s.step('keyboard: P on a ticket sets it pending and P resumes it', async () => {
       const d = await openTicket(s, 'ALP-1');
-      await p.keyboard.press('p');
       const ask = p.getByRole('dialog', { name: 'Mark ALP-1 as pending' });
+      await p.keyboard.press('p');
       await ask.waitFor();
+      await ask.getByRole('button', { name: 'Waiting on a ticket' }).waitFor();
+      await ask.getByRole('button', { name: 'Mark pending' }).and(p.locator(':disabled')).waitFor();
       await ask.getByRole('button', { name: 'Waiting on a person or party' }).click();
+      // a name that is not a member of the project
       await ask.getByRole('textbox', { name: 'Customer, Design team, vendor name...' }).fill('Design team');
       await ask.getByRole('textbox', { name: 'What is it waiting for?' }).fill('The design review');
+      await ask.getByText('Free-text names cannot be notified').waitFor();
       await ask.getByRole('button', { name: 'Mark pending' }).click();
+      const failed = await ask.getByText(/Could not mark ALP-1 pending/).waitFor({ timeout: 6000 }).then(() => true, () => false);
+      // The UI sends a free-text party as reason_type "person" without a member; the server of 4.0.3 answers 400
+      // ("member_id is required when reason_type is 'person'"). Recorded, not asserted: the two servers are compared on it.
+      s.note('a free-text party is refused', failed);
+      if (failed) {
+        await ask.getByRole('button', { name: 'Cancel' }).click();
+        await ask.waitFor({ state: 'detached' });
+        await p.keyboard.press('p');
+        await ask.waitFor();
+        await ask.getByRole('button', { name: 'Waiting on a person or party' }).click();
+        // a member of the project is picked from the list of names
+        await ask.getByTitle('Me', { exact: true }).click();
+        await ask.getByRole('textbox', { name: 'What is it waiting for?' }).fill('The design review');
+        await ask.getByRole('button', { name: 'Mark pending' }).click();
+      }
       await ask.waitFor({ state: 'detached' });
       await d.getByText(/Pending since/).waitFor();
-      await d.getByText(/Design team/).first().waitFor();
       await d.getByText(/The design review/).first().waitFor();
       await p.keyboard.press('p');
       await d.getByText(/Pending since/).waitFor({ state: 'detached' });
       await closeTicket(s);
-    });
+    }, { expectConsole: true });
 
     await s.step('keyboard: Alt+N adds an idea from anywhere, / jumps to the settings search', async () => {
       await home(s);

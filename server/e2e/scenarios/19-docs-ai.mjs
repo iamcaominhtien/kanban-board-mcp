@@ -371,7 +371,8 @@ export default {
       ]);
       await p.getByText('Please add an example request.').first().waitFor();
     });
-    await s.step('Comments panel: Send to AI, the page\'s assistant answers in the thread', async () => {
+    await s.step('Comments panel: Send to AI, to the page\'s assistant', async () => {
+      // The stand-in answers the job but has no board tool to post the reply, so only the "Sent to" line shows.
       fake({ 'docs-thread': { reply: 'An example request would be GET /items?page=2.', posted: true } });
       await p.getByTestId('comments-button').or(p.getByRole('button', { name: /^Comments/ })).first().click();
       await p.getByTestId('send-to-ai-open').click();
@@ -382,12 +383,29 @@ export default {
       await box.getByTestId('send-to-ai-go').getByText("Send to the page's assistant").waitFor();
       await box.getByTestId('send-to-ai-go').click();
       await p.getByText(/Sent to the page.s assistant/).first().waitFor();
-      await p.getByText('An example request would be GET /items?page=2.').first().waitFor({ timeout: 30000 });
+      await box.waitFor({ state: 'detached' });
     });
-    await s.step('the reply is marked as written by the Docs AI', async () => {
-      const reply = p.getByText('An example request would be GET /items?page=2.').first();
-      await reply.waitFor();
-      s.note('thread text', (await p.getByRole('complementary').last().innerText().catch(() => '')).slice(0, 500));
+    await s.step('a comment that mentions the AI team gets its answer in the thread', async () => {
+      fake({ 'docs-thread': { reply: 'Nobody owns paging yet: assign it.', posted: false } });
+      await p.getByPlaceholder('Write a comment on this page…').click();
+      await p.waitForTimeout(600);
+      await p.keyboard.type('@Docs');
+      const pick = p.getByRole('option', { name: /Docs helper/ }).or(p.getByText('Docs helper', { exact: true }).last());
+      await pick.first().waitFor();
+      await p.keyboard.press('Enter');
+      await p.keyboard.type(' who owns paging?');
+      await p.getByText(/who owns paging\?/).waitFor();
+      await Promise.all([
+        p.waitForResponse((r) => r.request().method() === 'POST' && /comments/.test(r.url()), { timeout: 8000 }),
+        p.keyboard.press('Control+Enter'),
+      ]);
+      await p.getByText('Nobody owns paging yet: assign it.').first().waitFor({ timeout: 30000 });
+    });
+    await s.step('the answer is written as the Docs AI', async () => {
+      const cm = await api(`/docs/pages/${ids.API}/comments`);
+      const last = cm.threads.at(-1).comments.at(-1);
+      s.note('reply', { by: last.author, ai: last.ai, body: last.body });
+      if (last.body !== 'Nobody owns paging yet: assign it.') throw new Error('unexpected last comment ' + last.body);
     });
   },
 };
