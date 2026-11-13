@@ -543,12 +543,19 @@ export default {
       await d.getByRole('button', { name: 'Dry run' }).click();
       await d.getByText(/Plan by Backend team/).waitFor({ timeout: 40000 });
       await d.getByText(/Nothing was changed\./).waitFor();
+      // the tab's count is "schedules that run in the next 24 hours" (its tooltip): whether a weekday 03:15 schedule
+      // is one depends on the day and the server's time zone, so the badge must show what the list the UI reloads says
+      const listed = p.waitForResponse((r) => r.request().method() === 'GET' && /\/projects\/[^/]+\/ai\/schedules(\?|$)/.test(r.url()));
       await d.getByRole('button', { name: 'Create schedule' }).click();
       await d.waitFor({ state: 'detached' });
+      const next24h = (await (await listed).json()).next24h;
+      if (typeof next24h !== 'number') throw new Error('the schedule list has no next24h');
       await toastNote('Schedule created');
       await p.getByText('Fix add').first().waitFor();
       await p.getByText(/03:15/).first().waitFor();
-      s.note('Schedules tab label after the create', (await p.getByRole('button', { name: /^Schedules/ }).innerText()).replace(/\s+/g, ' '));
+      const tab = p.getByRole('button', { name: /^Schedules/ });
+      await tab.locator('[data-testid="schedules-badge"]', { hasText: new RegExp(`^${next24h}$`) }).waitFor({ timeout: 10000 });
+      s.note('Schedules tab label after the create', (await tab.innerText()).replace(/\s+/g, ' '));
     });
 
     await s.step('Schedules: Run now starts a run, Pause and Resume change the state, Delete removes it', async () => {
@@ -572,6 +579,7 @@ export default {
       await d.getByRole('button', { name: 'Delete schedule' }).click();
       await d.waitFor({ state: 'detached' });
       await p.getByRole('heading', { name: 'No schedules yet', level: 3 }).waitFor();
+      await p.getByRole('button', { name: /^Schedules/ }).locator('[data-testid="schedules-badge"]', { hasText: /^0$/ }).waitFor({ timeout: 10000 });
     });
 
     await s.step('Settings > Board assistant: the features, the language and the tone are kept', async () => {

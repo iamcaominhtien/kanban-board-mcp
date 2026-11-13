@@ -41,6 +41,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
   and 7:00 was not counted, and west of UTC runs from the evening before were.
 - **A scheduled AI run over its time or cost limit is stopped again.** The schedule loop asked to cancel the run with a parameter that call no longer had, so every tick failed at that point and the run went on past its limit. The loop now cancels it.
 - **A schedule slot that had already been opened no longer stops the scheduler.** When the loop met such a slot it read the schedule's id after a rollback, and the error stopped the scheduler.
+- **A pending ticket can wait on a party you type in.** A name typed in the Pending dialog (a customer, another team) was sent as a person without a member, and the server refused it.
+- **Write with AI no longer blanks the screen.** Its "What will be sent" answer lacked the part the dialog reads; it now lists the ticket, its comments, the linked pages (and the ones left out), the code, idea, notes or prompt and the style guide, with an estimate of the tokens.
+- **Create tickets from a page works again.** The dialog failed on the answer; the tickets are created, linked, and with "Replace the text" each ticket's key is added to the line it came from in your draft. Undo puts the draft back unless you changed it since.
+- **"Changes since you last viewed" lists the pages.** The server now finds the pages changed or new since you last looked and gives each its line, as the card expects.
+- **Find in page finds the text right after you publish**, without opening the page again.
 
 ### Known differences
 - A JSON body that gives a string for a number or a boolean (`"3"`, `"true"`) is refused with 422; the app sends typed JSON, so it is not affected. A body that leaves out several required fields names only the first in the 422.

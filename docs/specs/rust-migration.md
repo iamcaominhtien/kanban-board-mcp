@@ -268,12 +268,10 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
   and ranged reads), which Rust answers in parallel; a run or a toast that is still there or already gone when the
   screen is read (Rust is faster); the version number and the development command of the MCP entry. The scenarios
   found one fault of the port, fixed: a run whose CLI ended within a second kept no memory figures (the monitor now
-  reads the CLI as soon as it is tracked). They also found faults that 4.0.3 has as well, kept as they are and
-  asserted as they behave: a pending ticket with a free-text party is refused (400, the UI sends no member); the
-  "What will be sent" answer of Docs AI's Write has no `send`, so the screen goes blank; the answer of "Create
-  tickets" from a page has no `not_replaced`, so the dialog fails; the "changed since you last viewed" card reads
-  `pages` where the server sends `lines`; the Write preview shows no tokens or cost; Find in page finds nothing right
-  after a publish; the Schedules tab's counter stays at 0 after a schedule is created. draw.io, a real Claude sign-in
+  reads the CLI as soon as it is tracked). They also found faults that 4.0.3 has as well, fixed after the switch (CHANGELOG 5.0.0, Fixed): a pending ticket
+  with a free-text party was refused; Docs AI's Write preview, "Create tickets" and "changed since you last viewed"
+  answers lacked what the UI reads (the server had stubs since AI v2); Find in page found nothing right after a
+  publish. The Schedules tab's count, also suspected, is by design the schedules that run in the next 24 hours. draw.io, a real Claude sign-in
   and the desktop-only windows are not covered.
 - To do at the switch, found while writing the documentation: `docs/guideline/guide/facts.py` reads Python files of
   the server (version, MCP tools, models): read them from `Cargo.toml` and `contract/` instead; the `Databases` job
@@ -316,9 +314,11 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
       and the `PARITY_TARGET=python` mode went with it (the test harness says so when asked for it)
 - [x] `CLAUDE.md`, READMEs, `docs/arch/backend-architecture.md`, `docs/guideline/databases.md`, the guide's
       `facts.py` and cover version, `CHANGELOG.md` (5.0.0); the app's version is 5.0.0 (`desktop/`, `ui/`)
-- Left: the guide's three AI facts (`ai_parallel`, `ai_runs_per_day`, `ai_daily_budget`) read
-  `server/services/ai/members.py`, which 4.0.0 removed (AI v2): the guide build has failed on them since 4.0.0, and
-  the chapters that use them describe limits AI v2 no longer has. They need a rewrite of those chapters.
+- [x] The guide build (it had failed since 4.0.0 removed `server/services/ai/members.py` and
+      `memberPresets.json`): the parallel runs of a new team are read from `kb-ai-run`, the built-in roles from the
+      role packs (`@packs`), and the sentences on runs a day and budget say a new team has no limit. Left: chapters 14
+      and 17 still describe the AI members of 3.x (the four-step dialog, API-key AIs) and need a rewrite for AI teams;
+      `docs/guideline/ai/build.py` still reads `memberPresets.json`.
 
 ### P8 Acceptance
 

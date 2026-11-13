@@ -211,16 +211,12 @@ export default {
       await p.getByText('Remember to publish.').waitFor();
       await p.locator('.katex').first().waitFor();
     });
-    await s.step('Find in page right after publishing (recorded, not asserted)', async () => {
-      // Observed on 4.0.3: the bar opens but finds 0 matches until the page is opened again (the body root is
-      // lost when the editor closes). The UI is shared by both servers; the count is recorded for the diff only.
+    await s.step('Find in page right after publishing finds the matches without reloading', async () => {
       await p.keyboard.press('Control+f');
       const bar = p.getByRole('search', { name: 'Find in page' });
       await bar.waitFor();
       await bar.getByRole('textbox', { name: 'Find' }).fill('item');
-      await s.settle();
-      await p.waitForTimeout(500);
-      s.note('find counter right after publishing', await bar.locator('span').filter({ hasText: /^\d+\/\d+$/ }).first().textContent());
+      await bar.getByText('1/2').waitFor();
       await bar.getByRole('button', { name: 'Close' }).click();
       await bar.waitFor({ state: 'detached' });
     });
