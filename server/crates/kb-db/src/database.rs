@@ -55,6 +55,18 @@ static STATE: RwLock<Option<State>> = RwLock::new(None);
 /// The API answers 503 with code "database_unreachable" meanwhile, and the app shows the reconnect screen.
 static UNREACHABLE: RwLock<Option<Map<String, Value>>> = RwLock::new(None);
 pub const RETRY_S: u64 = 8;
+/// How long the database is given to answer at the start before the app starts without it.
+const FIRST_ANSWER: Duration = Duration::from_secs(10);
+
+/// Whether the schema of the database in use was checked (and brought up to date) by `init_db`: what reads the
+/// database in the background starts only then.
+static SCHEMA_CHECKED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Whether `init_db` has checked the schema of the database in use (false from the moment another one is opened
+/// until its schema is checked).
+pub fn schema_checked() -> bool {
+    SCHEMA_CHECKED.load(std::sync::atomic::Ordering::SeqCst)
+}
 
 fn read<T>(f: impl FnOnce(&State) -> T) -> T {
     let guard = STATE.read().unwrap_or_else(|e| e.into_inner());
@@ -235,12 +247,14 @@ pub async fn init_db() -> Result<(), DatabaseError> {
         }
     }
     txn.commit().await?;
+    SCHEMA_CHECKED.store(true, std::sync::atomic::Ordering::SeqCst);
     Ok(())
 }
 
 async fn set_target(target: Target, source: &'static str, db_path: PathBuf) -> Result<(), DbErr> {
     let conn = targets::make_engine(&target, None).await?;
     *STATE.write().unwrap_or_else(|e| e.into_inner()) = Some(State { db_path, target, source, conn });
+    SCHEMA_CHECKED.store(false, std::sync::atomic::Ordering::SeqCst);
     Ok(())
 }
 
@@ -344,27 +358,42 @@ fn unreachable_entry(error: String) -> Map<String, Value> {
     entry
 }
 
-/// `init_db`, but a server database that does not answer at startup leaves the app running in the "cannot reach its
-/// database" state, retrying every few seconds, instead of failing to start.
+/// Bring the database up at the start of the app. A server database that does not answer within `FIRST_ANSWER`
+/// does not stop the app: the "cannot be reached" state is set (the app shows its reconnect screen, from which
+/// another board can be opened) and the start is tried again every `RETRY_S` seconds until the schema is checked.
+///
+/// # Errors
+/// The schema cannot be used (made by a newer app, not a board), or SQLite fails.
 pub async fn init_db_or_wait() -> Result<(), DatabaseError> {
-    match init_db().await {
-        Ok(()) => {
-            set_unreachable(None);
-            return Ok(());
-        }
-        Err(err @ DatabaseError::Schema(_)) => return Err(err),
-        Err(err) => {
-            if is_sqlite() || !is_connection_error(&err) {
-                return Err(err);
+    // a quick question first: the pool would wait its whole timeout (30 s) for a server that does not answer, and
+    // `init_db` itself must not be cut off in the middle of a migration
+    let answered = is_sqlite() || check_reachable(FIRST_ANSWER).await["ok"] == json!(true);
+    if answered {
+        match init_db().await {
+            Ok(()) => {
+                set_unreachable(None);
+                return Ok(());
             }
-            let entry = unreachable_entry(first_line(&err));
-            tracing::error!("The database cannot be reached: {}", entry["error"].as_str().unwrap_or(""));
-            set_unreachable(Some(entry));
+            Err(err @ DatabaseError::Schema(_)) => return Err(err),
+            Err(err) => {
+                if is_sqlite() || !is_connection_error(&err) {
+                    return Err(err);
+                }
+                let entry = unreachable_entry(first_line(&err));
+                tracing::error!("The database cannot be reached: {}", entry["error"].as_str().unwrap_or(""));
+                set_unreachable(Some(entry));
+            }
         }
+    } else if let Some(entry) = unreachable() {
+        tracing::error!("The database cannot be reached: {}", entry["error"].as_str().unwrap_or(""));
     }
     tokio::spawn(async {
-        while unreachable().is_some() {
+        // until a schema is checked: this board's when it answers, or the board a switch opened meanwhile
+        while !schema_checked() {
             tokio::time::sleep(Duration::from_secs(RETRY_S)).await;
+            if schema_checked() {
+                break;
+            }
             match init_db().await {
                 Ok(()) => {
                     set_unreachable(None);
@@ -373,8 +402,11 @@ pub async fn init_db_or_wait() -> Result<(), DatabaseError> {
                 Err(err) => {
                     // keep trying
                     let mut guard = UNREACHABLE.write().unwrap_or_else(|e| e.into_inner());
-                    if let Some(entry) = guard.as_mut() {
-                        entry.insert("error".into(), json!(first_line(&err)));
+                    match guard.as_mut() {
+                        Some(entry) => {
+                            entry.insert("error".into(), json!(first_line(&err)));
+                        }
+                        None => *guard = Some(unreachable_entry(first_line(&err))),
                     }
                 }
             }

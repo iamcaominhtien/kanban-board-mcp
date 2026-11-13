@@ -35,7 +35,9 @@ pub async fn startup() -> Result<Running, DatabaseError> {
             "The database cannot be reached: the AI runs, jobs and notifications start when it answers"
         );
         let rescans = tokio::spawn(async {
-            while database::unreachable().is_some() {
+            // the schema must have been checked too: a health check clears "cannot be reached" as soon as the server
+            // answers a ping, before the board is brought up to date
+            while database::unreachable().is_some() || !database::schema_checked() {
                 tokio::time::sleep(Duration::from_secs(2)).await;
             }
             if let Err(err) = start_database_work().await {

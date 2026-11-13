@@ -485,3 +485,66 @@ async fn test_a_board_moved_to_postgres_keeps_its_workspace() {
     drop(s);
     common::wipe(&url).await;
 }
+
+/// The app starts while the server of its board does not answer (the laptop is away from the office): it opens in a
+/// few seconds (the reconnect screen, from which another board can be opened), and what reads the database in the
+/// background (the AI runs, schedules, notifications) starts once the server answers.
+#[tokio::test]
+async fn test_an_app_started_while_its_server_board_is_down_starts_its_work_when_it_answers() {
+    let test = "test_an_app_started_while_its_server_board_is_down_starts_its_work_when_it_answers";
+    if !skip_unless_available(test) {
+        return;
+    }
+    let Some(url) = own_database(test, POSTGRES, "kanban_dbkit_workspaces_late").await else { return };
+    let real = kb_db::targets::from_url(&url).expect("a test database URL");
+    // a port nobody listens at yet
+    let port = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+    let config = tempfile::tempdir().unwrap();
+    let mut section = real.public();
+    section.insert("port".into(), json!(port));
+    std::fs::write(config.path().join("config.json"), json!({"database": section}).to_string()).unwrap();
+
+    let started = std::time::Instant::now();
+    let (s, _tmp) = start(vec![("KANBAN_CONFIG_DIR".into(), config.path().display().to_string())]).await;
+    assert!(started.elapsed() < Duration::from_secs(25), "the start took {:?}", started.elapsed());
+    let c = s.client();
+    let r = c.get("/projects").await;
+    assert_eq!(r.status, 503, "{}", r.text());
+    let log = || std::fs::read_to_string(s.log_dir().join("kanban.log")).unwrap_or_default();
+    assert!(!log().contains("AI runner started"), "{}", log());
+
+    // the server answers again
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", port)).await.expect("the port is still free");
+    let to = format!("{}:{}", real.host, real.port_or_default());
+    let _proxy = tokio::spawn(async move {
+        while let Ok((mut inbound, _)) = listener.accept().await {
+            let to = to.clone();
+            tokio::spawn(async move {
+                if let Ok(mut outbound) = tokio::net::TcpStream::connect(to).await {
+                    let _ = tokio::io::copy_bidirectional(&mut inbound, &mut outbound).await;
+                }
+            });
+        }
+    });
+    let mut up = false;
+    for _ in 0..80 {
+        if c.get("/projects").await.status == 200 {
+            up = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(500)).await;
+    }
+    assert!(up, "the board never came back: {}", log());
+    let mut working = false;
+    for _ in 0..60 {
+        let _ = c.get("/projects").await;
+        if log().contains("AI runner started") {
+            working = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(500)).await;
+    }
+    assert!(working, "the background work never started: {}", log());
+    drop(s);
+    common::wipe(&url).await;
+}
