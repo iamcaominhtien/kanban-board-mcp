@@ -49,7 +49,9 @@ async fn a_schedule(
     row.member_id = Set(member_id.to_string());
     row.created_by = Set("An Nguyen".to_string());
     row.days = Set("[0, 1, 2, 3, 4, 5, 6]".to_string());
-    row.time = Set("00:00".to_string());
+    // Half a day away, so the slot after the one a test sets is never due while it runs (with a fixed "00:00", a run
+    // just after midnight UTC also started today's slot)
+    row.time = Set((Utc::now() + Duration::hours(12)).format("%H:%M").to_string());
     edit(&mut row);
     row.insert(&session).await.expect("schedule");
     session.commit().await.expect("commit");
