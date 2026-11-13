@@ -34,7 +34,7 @@ mod threads;
 mod tickets;
 
 pub use threads::{THREAD_KINDS, annotate, deliver, docs_ai_on, member_rows, start_route_job, start_thread_job};
-pub use tickets::{create_tickets, undo_tickets};
+pub use tickets::{LineKeys, create_tickets, undo_tickets};
 
 /// The longest question the Docs UI sends.
 pub const MAX_QUESTION: usize = 1000;

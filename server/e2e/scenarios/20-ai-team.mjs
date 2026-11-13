@@ -548,7 +548,19 @@ export default {
       await toastNote('Schedule created');
       await p.getByText('Fix add').first().waitFor();
       await p.getByText(/03:15/).first().waitFor();
-      s.note('Schedules tab label after the create', (await p.getByRole('button', { name: /^Schedules/ }).innerText()).replace(/\s+/g, ' '));
+      // The tab's count is "schedules that run in the next 24 hours" (its tooltip): a weekday schedule at 03:15 UTC
+      // counts only when its next run is that close, so the expected number follows the clock the check runs at.
+      const next24h = (() => {
+        const now = new Date();
+        for (let d = 0; d < 8; d++) {
+          const at = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + d, 3, 15));
+          if (at > now && at.getUTCDay() >= 1 && at.getUTCDay() <= 5) return at - now <= 24 * 3600 * 1000 ? 1 : 0;
+        }
+        return 0;
+      })();
+      const tab = p.getByRole('button', { name: /^Schedules/ });
+      await tab.locator('[data-testid="schedules-badge"]', { hasText: new RegExp(`^${next24h}$`) }).waitFor({ timeout: 10000 });
+      s.note('Schedules tab label after the create', (await tab.innerText()).replace(/\s+/g, ' '));
     });
 
     await s.step('Schedules: Run now starts a run, Pause and Resume change the state, Delete removes it', async () => {
@@ -572,6 +584,7 @@ export default {
       await d.getByRole('button', { name: 'Delete schedule' }).click();
       await d.waitFor({ state: 'detached' });
       await p.getByRole('heading', { name: 'No schedules yet', level: 3 }).waitFor();
+      await p.getByRole('button', { name: /^Schedules/ }).locator('[data-testid="schedules-badge"]', { hasText: /^0$/ }).waitFor({ timeout: 10000 });
     });
 
     await s.step('Settings > Board assistant: the features, the language and the tone are kept', async () => {

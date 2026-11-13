@@ -805,7 +805,12 @@ export function DocsView({
         nodes={nodes}
         onOpenPage={select}
         onOpenTicket={onOpenTicket}
-        onEditorRoot={onBodyRef}
+        // The editor clears its root in a passive cleanup, which runs after the page view that replaces it has
+        // already announced its body: forwarding that null would wipe the new root (Find in page found nothing
+        // right after publishing). A root that left the document is dropped by the consumer instead.
+        onEditorRoot={(el) => {
+          if (el) onBodyRef?.(el);
+        }}
         onExit={(updated) => {
           setEditing(false);
           if (updated) setSelectedId(updated.id);
