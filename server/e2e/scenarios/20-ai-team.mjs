@@ -53,8 +53,15 @@ export default {
       await nav().getByRole('button', { name: 'AI', exact: true }).click();
       await p.getByRole('heading', { name: 'AI', level: 1 }).waitFor();
     };
+    // open the ticket by its title: the middle of a card with a run can be its "Run again" button
+    const openCard = async () => {
+      await p.getByRole('button', { name: /ALP-1 / }).first().getByText('Fix add', { exact: true }).click();
+      const d = p.getByRole('dialog', { name: 'Ticket ALP-1' });
+      await d.waitFor();
+      return d;
+    };
     const assignTo = async (how) => {
-      const d = await openTicket(s, 'ALP-1');
+      const d = await openCard();
       await d.getByRole('button', { name: 'Unassigned' }).click();
       await p.getByRole('button', { name: new RegExp(`^${TEAM}`) }).click();
       await p.getByRole('button', { name: how }).click();
@@ -204,7 +211,7 @@ export default {
     });
 
     await s.step('ticket: AI activity shows the finished run', async () => {
-      const d = await openTicket(s, 'ALP-1');
+      const d = await openCard();
       await d.getByRole('tab', { name: 'AI activity' }).click();
       await d.getByText(/Run #1 finished/).waitFor();
       await d.getByText('Right now').waitFor();
@@ -239,6 +246,37 @@ export default {
       await d.getByText('git diff --stat').first().waitFor();
       await d.getByText('Show run #1').count();
       await d.getByRole('button', { name: 'Show run #1' }).waitFor();
+    });
+
+    await s.step('run it again: the lead asks a question and waits for the person', async () => {
+      s.server.fake({ FAKE_CLAUDE_MODE: 'v2_ask' });
+      await closeTicket(s);
+      await home(s);
+      const d = await openCard();
+      await d.getByRole('button', { name: `Run ${TEAM}` }).click();
+      await d.getByText(`${TEAM} asks a question`).waitFor({ timeout: 40000 });
+      await d.getByText('Which database: SQLite or PostgreSQL?').first().waitFor();
+      await d.getByRole('button', { name: 'Answer and resume' }).waitFor();
+      await d.getByText(/Waiting on/).first().waitFor();
+      await closeTicket(s);
+      await p.getByText(/Asks user: Which database/).waitFor();
+      await p.getByRole('button', { name: /^Notifications, 1 needs you/ }).waitFor();
+      await p.getByRole('button', { name: /^AI Team 1/ }).waitFor();
+    });
+
+    await s.step('answer the question: the same run resumes and finishes with the answer', async () => {
+      s.server.fake({ FAKE_CLAUDE_MODE: 'v2' });
+      const d = await openCard();
+      await d.getByRole('textbox', { name: 'Type an answer…' }).fill('SQLite');
+      await d.getByRole('button', { name: 'Answer and resume' }).click();
+      await d.getByRole('button', { name: 'Answer and resume' }).waitFor({ state: 'detached', timeout: 40000 });
+      await d.getByRole('tab', { name: 'AI activity' }).click();
+      await d.getByText(/Run #\d+ finished/).waitFor({ timeout: 40000 });
+      await d.getByRole('button', { name: 'Open run ›' }).click();
+      await d.getByText(/Done with your answer/).first().waitFor();
+      await closeTicket(s);
+      await p.getByRole('button', { name: /ALP-1 Fix add Finished/ }).waitFor();
+      await p.getByRole('button', { name: /^Notifications, 1 needs you/ }).waitFor({ state: 'detached' });
     });
   },
 };
