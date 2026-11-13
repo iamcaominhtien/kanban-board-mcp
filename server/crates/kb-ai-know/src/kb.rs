@@ -566,7 +566,7 @@ pub async fn read(
     let d = ai_knowledge_doc::Entity::find_by_id(doc_id).one(session).await?;
     let stores = stores_for(session, project_id).await?;
     let d = d.filter(|d| {
-        !d.deleted_at.as_deref().is_some_and(|t| !t.is_empty())
+        d.deleted_at.as_deref().is_none_or(str::is_empty)
             && stores.contains(&d.store.as_str())
             && visible(d, person)
             && !(d.store == "project" && d.project_id.as_deref() != Some(project_id))

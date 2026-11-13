@@ -145,12 +145,18 @@ pub async fn create(session: &Session, new: NewJob) -> Result<docs_ai_job::Model
 
 /// Run a job in the background.
 pub fn spawn(job_id: &str) {
+    let id = job_id.to_string();
+    background(job_id, async move { run(&id).await });
+}
+
+/// Run `work` (a job's whole run) in the background, stoppable through `cancel`.
+fn background(job_id: &str, work: impl Future<Output = Result<(), DbErr>> + Send + 'static) {
     let stop = Arc::new(Notify::new());
     let serial = SERIAL.fetch_add(1, Ordering::SeqCst);
     tasks().insert(job_id.to_string(), (serial, stop.clone()));
     let job_id = job_id.to_string();
     ctx::spawn(async move {
-        if let Err(err) = run_stoppable(&job_id, &stop).await {
+        if let Err(err) = run_stoppable(&job_id, &stop, work).await {
             tracing::error!(target: "kanban.docs_ai.jobs", "Docs AI job {job_id} was not recorded: {err}");
         }
         let mut tasks = tasks();
@@ -160,10 +166,16 @@ pub fn spawn(job_id: &str) {
     });
 }
 
-/// Create a job and run it in the background.
+/// Create a job, mark it running and run it in the background. It returns the job as created (queued), as the
+/// routes answer. It is marked running here rather than in the background task, so what the same request reads back
+/// (the jobs of a thread) always says "running"; the task could otherwise begin before or after that read, depending
+/// on the machine's load.
 pub async fn start(session: &Session, new: NewJob) -> Result<docs_ai_job::Model, DbErr> {
     let job = create(session, new).await?;
-    spawn(&job.id);
+    match mark_running(&job.id).await? {
+        Some(running) => background(&job.id, async move { work(running).await }),
+        None => spawn(&job.id),
+    }
     publish().await;
     Ok(job)
 }
@@ -171,7 +183,11 @@ pub async fn start(session: &Session, new: NewJob) -> Result<docs_ai_job::Model,
 /// `run` and, beside it, the stop signal (`CancelledError`): the job is finished as cancelled. A job stopped before
 /// its task began never ran in Python (the task is cancelled before its first step): the row stays as `cancel` wrote
 /// it. The stop signal is looked at first, so one that came before the task began wins.
-async fn run_stoppable(job_id: &str, stop: &Notify) -> Result<(), DbErr> {
+async fn run_stoppable(
+    job_id: &str,
+    stop: &Notify,
+    work: impl Future<Output = Result<(), DbErr>>,
+) -> Result<(), DbErr> {
     tokio::select! {
         biased;
         () = stop.notified() => {
@@ -184,25 +200,37 @@ async fn run_stoppable(job_id: &str, stop: &Notify) -> Result<(), DbErr> {
             }
             finish(job_id, "cancelled", None, Some(json!({"code": "cancelled", "message": "Stopped."}))).await
         }
-        result = run(job_id) => result,
+        result = work => result,
     }
 }
 
 /// Do the job: mark it running, call its handler, record the result or the error.
 pub async fn run(job_id: &str) -> Result<(), DbErr> {
-    let job = {
-        let session = database::session();
-        let Some(job) = docs_ai_job::Entity::find_by_id(job_id).one(&session).await? else { return Ok(()) };
-        if job.state != "queued" {
-            return Ok(());
-        }
-        let mut row = kb_db::edit(job);
-        row.state = Set("running".to_string());
-        row.started_at = Set(Some(now_iso()));
-        let job = row.update(&session).await?;
-        session.commit().await?;
-        job
-    };
+    match mark_running(job_id).await? {
+        Some(job) => work(job).await,
+        None => Ok(()),
+    }
+}
+
+/// Mark a queued job running (None when it is gone or no longer queued).
+async fn mark_running(job_id: &str) -> Result<Option<docs_ai_job::Model>, DbErr> {
+    let session = database::session();
+    let Some(job) = docs_ai_job::Entity::find_by_id(job_id).one(&session).await? else { return Ok(None) };
+    if job.state != "queued" {
+        return Ok(None);
+    }
+    let mut row = kb_db::edit(job);
+    row.state = Set("running".to_string());
+    row.started_at = Set(Some(now_iso()));
+    let job = row.update(&session).await?;
+    session.commit().await?;
+    Ok(Some(job))
+}
+
+/// Call the handler of a running job and record the result or the error.
+async fn work(job: docs_ai_job::Model) -> Result<(), DbErr> {
+    let job_id = job.id.clone();
+    let job_id = job_id.as_str();
     let kind = job.kind.clone();
     let outcome = match handler_of(&kind) {
         None => Err(DocsAiError::new("unavailable", format!("No handler for {kind} jobs.")).into()),

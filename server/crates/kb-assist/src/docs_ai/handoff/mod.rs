@@ -84,7 +84,7 @@ pub fn fence(source: &str, text: &str) -> String {
 /// `_page`: a live page, or 404 `not_found`.
 pub(crate) async fn page_of(session: &Session, page_id: &str) -> Result<docs_page::Model, Error> {
     match docs_page::Entity::find_by_id(page_id).one(session).await? {
-        Some(page) if !page.deleted_at.as_deref().is_some_and(|d| !d.is_empty()) => Ok(page),
+        Some(page) if page.deleted_at.as_deref().is_none_or(str::is_empty) => Ok(page),
         _ => Err(docs_err(404, "not_found", "The page is gone.")),
     }
 }

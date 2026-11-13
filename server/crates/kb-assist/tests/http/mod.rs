@@ -486,6 +486,11 @@ pub fn tidy(value: &Value) -> Value {
                     // a request id is made up for each reply (12 hex characters)
                     if k == "request_id" && m[k].is_string() {
                         out.insert(k.clone(), Value::String("<request-id>".to_string()));
+                    } else if k == "day"
+                        && m[k].as_str().is_some_and(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").is_ok())
+                    {
+                        // the date of a board digest is the day the check runs
+                        out.insert(k.clone(), Value::String("<day>".to_string()));
                     } else {
                         out.insert(k.clone(), sorted(&m[k]));
                     }

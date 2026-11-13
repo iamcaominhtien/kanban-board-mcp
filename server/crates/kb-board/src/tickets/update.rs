@@ -209,7 +209,7 @@ pub async fn update_ticket(
     if new_status == Some("wont_do") {
         if let Some(parent_id) = &ticket.parent_id {
             let parent = ticket::Entity::find_by_id(parent_id).one(session).await?;
-            if !parent.is_some_and(|p| p.r#type == "story") {
+            if parent.is_none_or(|p| p.r#type != "story") {
                 // a Story's plan drops a ticket it no longer needs
                 return value_error("Child tickets cannot be set to wont_do");
             }
@@ -262,7 +262,7 @@ pub async fn update_ticket(
     // Validate assignee belongs to the ticket's project
     if let Some(assignee) = text_of(&update_data, "assignee") {
         let assignee_member = member::Entity::find_by_id(assignee).one(session).await?;
-        if !assignee_member.is_some_and(|m| m.project_id == ticket.project_id) {
+        if assignee_member.is_none_or(|m| m.project_id != ticket.project_id) {
             return value_error("Assignee must be a member of this project");
         }
     }
@@ -270,7 +270,7 @@ pub async fn update_ticket(
     // Whose review it waits for: a member of the ticket's project (a person or an AI member)
     if let Some(reviewer_id) = text_of(&update_data, "review_requested_from").filter(|r| !r.is_empty()) {
         let reviewer = member::Entity::find_by_id(reviewer_id).one(session).await?;
-        if !reviewer.is_some_and(|m| m.project_id == ticket.project_id) {
+        if reviewer.is_none_or(|m| m.project_id != ticket.project_id) {
             return value_error("The reviewer must be a member of this project");
         }
     }

@@ -423,7 +423,7 @@ pub async fn assess_with(
             if !pyjson::truthy(&loads(Some(&s.days), json!([]))) {
                 when_checks.push(check("error", "Pick at least one day.", "when"));
             }
-            if s.ends == "after" && !s.ends_after.is_some_and(|n| n > 0) {
+            if s.ends == "after" && s.ends_after.is_none_or(|n| n <= 0) {
                 when_checks.push(check("error", "Enter how many runs.", "ends"));
             }
             if s.ends == "on_date" && s.ends_on.as_deref().unwrap_or("").is_empty() {
@@ -497,7 +497,7 @@ pub(crate) async fn offline_risk(
     s: &ai_schedule::Model,
     profile: Option<&ai_team::Model>,
 ) -> Result<Option<String>, Error> {
-    if s.state != "active" || !profile.is_some_and(|p| p.connection == "local") {
+    if s.state != "active" || profile.is_none_or(|p| p.connection != "local") {
         return Ok(None);
     }
     if offline_history(session, s, &[]).await?.is_empty() {

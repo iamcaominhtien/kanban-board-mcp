@@ -139,7 +139,7 @@ pub async fn restart_run(run_id: &str, by: &str) -> Result<ai_run::Model, RunErr
         let mut payload = Map::new();
         payload.insert("by".into(), json!(by));
         let row = runner_link::command(run_id, "restart", Some(&payload), true).await?;
-        if !row.taken_at.as_deref().is_some_and(|t| !t.is_empty()) {
+        if row.taken_at.as_deref().is_none_or(str::is_empty) {
             return refuse("The runner did not answer. Try again in a moment.");
         }
         return Ok(run);

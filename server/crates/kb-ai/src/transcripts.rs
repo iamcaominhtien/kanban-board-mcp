@@ -415,7 +415,7 @@ pub async fn read(run_id: &str) -> Result<Option<Vec<Value>>, DbErr> {
     let session = database::session();
     let row = ai_run_transcript::Entity::find_by_id(run_id).one(&session).await?;
     Ok(match row {
-        Some(row) if !row.deleted_at.as_ref().is_some_and(|d| !d.is_empty()) => Some(read_lines(Path::new(&row.path))),
+        Some(row) if row.deleted_at.as_ref().is_none_or(|d| d.is_empty()) => Some(read_lines(Path::new(&row.path))),
         _ => None,
     })
 }

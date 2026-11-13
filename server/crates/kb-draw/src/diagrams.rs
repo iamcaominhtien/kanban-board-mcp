@@ -554,7 +554,7 @@ pub async fn list_diagrams(session: &Session, project_id: &str, deleted: bool) -
         .await?;
     let mut out = Vec::new();
     for d in rows {
-        if !is_live(&d.deleted_at) == deleted {
+        if is_live(&d.deleted_at) != deleted {
             out.push(self::out(session, &d, None).await?);
         }
     }

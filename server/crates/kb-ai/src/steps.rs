@@ -227,7 +227,7 @@ pub async fn append(run_id: &str, rows: Vec<Value>, extras: Extras) -> Result<Ve
             agent.ended_at = None;
             marks.push("start");
         }
-        if a.get("ended").is_some_and(pyjson::truthy) && !agent.ended_at.as_ref().is_some_and(|e| !e.is_empty()) {
+        if a.get("ended").is_some_and(pyjson::truthy) && agent.ended_at.as_ref().is_none_or(|e| e.is_empty()) {
             agent.ended_at = Some(text_or(&a, "at").map_or_else(now_iso, str::to_string));
             marks.push("stop");
         }

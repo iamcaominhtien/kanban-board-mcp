@@ -180,7 +180,7 @@ pub async fn create_ticket(session: &Session, project_id: &str, new: NewTicket<'
     // Validate assignee belongs to this project
     if let Some(assignee) = new.assignee {
         let assignee_member = member::Entity::find_by_id(assignee).one(session).await?;
-        if !assignee_member.is_some_and(|m| m.project_id == project_id) {
+        if assignee_member.is_none_or(|m| m.project_id != project_id) {
             return value_error("Assignee must be a member of this project");
         }
     }

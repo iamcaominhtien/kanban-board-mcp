@@ -489,9 +489,14 @@ async fn page_routes() {
         &["machine", "cli_rss_mb", "at"],
     );
     rec.check("GET resources: no such project", &c.get("/projects/nope/ai/resources").await);
-    rec.check_hiding("GET project activity", &c.get(&format!("/projects/{pid}/ai/team/activity")).await, &["day"]);
+    // "Today" is the UTC date: in the first hour after midnight UTC the runs made up to 50 minutes ago belong to
+    // yesterday, so the counts of today are left out of the comparison then
+    let after_midnight = chrono::Utc::now().time().signed_duration_since(chrono::NaiveTime::MIN);
+    let today: &[&str] =
+        if after_midnight < chrono::Duration::minutes(60) { &["day", "runs_today", "steps_today"] } else { &["day"] };
+    rec.check_hiding("GET project activity", &c.get(&format!("/projects/{pid}/ai/team/activity")).await, today);
     rec.check("GET project activity: no such project", &c.get("/projects/nope/ai/team/activity").await);
-    rec.check_hiding("GET team activity", &c.get(&format!("/ai/teams/{team_id}/activity")).await, &["day"]);
+    rec.check_hiding("GET team activity", &c.get(&format!("/ai/teams/{team_id}/activity")).await, today);
     rec.check("GET team activity: not found", &c.get("/ai/teams/nope/activity").await);
     let recent = format!("/projects/{pid}/ai/recent");
     rec.check("GET recent", &c.get(&recent).await);

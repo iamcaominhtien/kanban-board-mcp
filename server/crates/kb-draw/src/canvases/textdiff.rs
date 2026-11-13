@@ -147,7 +147,7 @@ impl<'a> Matcher<'a> {
             }
             group.push((tag, i1, i2, j1, j2));
         }
-        if !group.is_empty() && !(group.len() == 1 && group[0].0 == "equal") {
+        if !(group.is_empty() || (group.len() == 1 && group[0].0 == "equal")) {
             groups.push(group);
         }
         groups

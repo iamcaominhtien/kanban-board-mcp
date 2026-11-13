@@ -68,9 +68,7 @@ async fn test_min_supported_version_can_be_overridden() {
     s.stop().await;
 }
 
-/// The desktop and UI packages carry the server's version. The Rust server is 5.0.0 and the packages still say the
-/// Python server's version until the switch (P7 of the plan bumps them), so against Rust the packages are only
-/// compared with the Python server's `version.py`, which they must still match.
+/// The desktop and UI packages carry the server's version (the release reads it from `desktop/package-lock.json`).
 #[tokio::test]
 async fn test_server_version_matches_the_desktop_and_ui_packages() {
     if !skip_unless_available("test_server_version_matches_the_desktop_and_ui_packages") {
@@ -78,23 +76,12 @@ async fn test_server_version_matches_the_desktop_and_ui_packages() {
     }
     let s = Server::start().await;
     let body = version_of(&s).await;
+    let server_version = body["version"].as_str().expect("version");
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
-    let py = std::fs::read_to_string(root.join("server/version.py")).expect("version.py");
-    let python_version = py
-        .lines()
-        .find(|l| l.starts_with("APP_VERSION"))
-        .and_then(|l| l.split('"').nth(1))
-        .expect("version")
-        .to_string();
-    for package in ["desktop", "ui"] {
-        let text = std::fs::read_to_string(root.join(package).join("package.json")).expect("package.json");
+    for package in ["desktop/package.json", "desktop/package-lock.json", "ui/package.json"] {
+        let text = std::fs::read_to_string(root.join(package)).expect(package);
         let pkg: serde_json::Value = serde_json::from_str(&text).expect("json");
-        let expected = if target() == Target::Python {
-            body["version"].as_str().expect("version")
-        } else {
-            python_version.as_str()
-        };
-        assert_eq!(pkg["version"], expected, "{package}/package.json is out of sync with server/version.py");
+        assert_eq!(pkg["version"], server_version, "{package} is out of sync with the server ({server_version})");
     }
     s.stop().await;
 }
