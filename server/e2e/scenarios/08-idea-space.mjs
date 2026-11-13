@@ -77,6 +77,11 @@ export default {
       await p.getByRole('menuitem', { name: 'Move to Ready' }).click();
       await p.getByRole('dialog', { name: 'Move without the checks' }).getByRole('button', { name: 'Move anyway' }).click();
       await p.getByRole('complementary', { name: 'Decide' }).getByText('Ready', { exact: true }).waitFor();
+      // the "Moved to Ready / Undo" toast covers the promote dialog's footer, and a pointer over it stops its timer:
+      // a fast server reaches the next click while it is still there
+      const toast = p.getByRole('alert').filter({ hasText: 'to Ready' });
+      await toast.first().getByRole('button', { name: 'Close notification' }).click();
+      await toast.first().waitFor({ state: 'detached' });
     }, { expectConsole: true }); // the first move is refused (409) because of the open assumption
     await s.step('promote the idea to a ticket', async () => {
       await p.getByRole('button', { name: 'Promote' }).click();

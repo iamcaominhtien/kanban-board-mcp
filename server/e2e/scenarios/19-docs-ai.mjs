@@ -239,7 +239,10 @@ export default {
         'docs-fix': { old: 'The API uses REST.', new: 'The API uses REST v2.' },
       });
       await p.getByRole('button', { name: 'Edit', exact: true }).click();
-      await p.getByRole('textbox', { name: 'Page content' }).click();
+      const content = p.getByRole('textbox', { name: 'Page content' });
+      // the page's text is in the editor before the caret moves: else the new line lands before it
+      await content.getByText('The API uses REST.').waitFor();
+      await content.click();
       await p.keyboard.press('Control+End');
       await p.keyboard.press('Enter');
       await p.keyboard.type('/ai');
