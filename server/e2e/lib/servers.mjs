@@ -41,7 +41,8 @@ for (const sig of ['SIGINT', 'SIGTERM', 'exit']) {
   });
 }
 
-export async function startServer(target, { uiDist = path.join(REPO, 'ui/dist') } = {}) {
+// `env`: more variables for the server (the stress check names its database with KANBAN_DATABASE_URL).
+export async function startServer(target, { uiDist = path.join(REPO, 'ui/dist'), env: extra = {} } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kanban-e2e-'));
   for (const d of ['data', 'config', 'logs', 'workspace', 'uploads', 'claude']) fs.mkdirSync(path.join(root, d));
   const env = {};
@@ -64,6 +65,7 @@ export async function startServer(target, { uiDist = path.join(REPO, 'ui/dist') 
     // (the same rule as `testkit::morning_zone` of the Rust tests).
     TZ: morningZone(),
   });
+  Object.assign(env, extra);
   let cmd, args, cwd;
   if (target === 'python') {
     // The Python server was removed in 5.0.0. To compare with it, check out the commit before its removal

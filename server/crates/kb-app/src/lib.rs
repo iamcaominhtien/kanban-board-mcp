@@ -87,8 +87,30 @@ pub fn app() -> Router {
 #[derive(Debug, Clone, Copy)]
 pub struct LocalAddr(pub std::net::SocketAddr);
 
-impl axum::extract::connect_info::Connected<axum::serve::IncomingStream<'_, tokio::net::TcpListener>> for LocalAddr {
-    fn connect_info(stream: axum::serve::IncomingStream<'_, tokio::net::TcpListener>) -> Self {
+/// The board's listener: every connection it accepts sends without delay (`TCP_NODELAY`). Without it an answer
+/// written in more than one piece (the MCP answers, written as a server-sent event) waited for the client's delayed
+/// acknowledgement: about 40 ms on every call.
+pub struct BoardListener(tokio::net::TcpListener);
+
+impl axum::serve::Listener for BoardListener {
+    type Io = tokio::net::TcpStream;
+    type Addr = std::net::SocketAddr;
+
+    async fn accept(&mut self) -> (Self::Io, Self::Addr) {
+        let (io, addr) = axum::serve::Listener::accept(&mut self.0).await;
+        if let Err(err) = io.set_nodelay(true) {
+            tracing::debug!("TCP_NODELAY could not be set on a connection: {err}");
+        }
+        (io, addr)
+    }
+
+    fn local_addr(&self) -> std::io::Result<Self::Addr> {
+        self.0.local_addr()
+    }
+}
+
+impl axum::extract::connect_info::Connected<axum::serve::IncomingStream<'_, BoardListener>> for LocalAddr {
+    fn connect_info(stream: axum::serve::IncomingStream<'_, BoardListener>) -> Self {
         LocalAddr(stream.io().local_addr().unwrap_or_else(|_| std::net::SocketAddr::from(([127, 0, 0, 1], 0))))
     }
 }
@@ -102,7 +124,7 @@ pub fn startup_mark(t0: Instant, stage: &str) {
 pub async fn serve(listener: std::net::TcpListener, t0: Instant) -> std::io::Result<()> {
     let port = listener.local_addr()?.port();
     listener.set_nonblocking(true)?;
-    let listener = tokio::net::TcpListener::from_std(listener)?;
+    let listener = BoardListener(tokio::net::TcpListener::from_std(listener)?);
     // `ai_runs.set_board_url(os.environ["KANBAN_BOARD_URL"])` of `main.py`, which runs before the app starts: a run
     // recovered at startup must already know where the board listens
     kb_ai_run::runs::set_board_url(&format!("http://127.0.0.1:{port}"));

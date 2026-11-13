@@ -54,11 +54,17 @@ impl Rec {
         self.ignored.extend(keys.iter().map(|k| k.to_string()));
     }
 
-    /// `check` with some keys left out of this answer only.
+    /// `check` with some keys left out of this answer only (and out of its recorded answer, which may hold them).
     pub fn check_hiding(&mut self, label: &str, r: &Resp, keys: &[&str]) {
         let before = self.ignored.len();
         self.ignore(keys);
         self.check(label, r);
+        if !self.record
+            && let Some(want) = self.golden.get(label).cloned()
+        {
+            let want = self.without_ignored(&want);
+            self.golden.insert(label.to_string(), want);
+        }
         self.ignored.truncate(before);
     }
 
