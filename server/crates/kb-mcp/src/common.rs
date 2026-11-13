@@ -536,7 +536,7 @@ where
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     #[test]
@@ -562,8 +562,9 @@ mod tests {
         .await;
     }
 
-    /// The tests that count what was published take turns.
-    static TURN: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+    /// The tests that count what was published, and those that publish (a tool call through `notify_on_success`),
+    /// take turns: they share the process's one event bus.
+    pub(crate) static TURN: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
     /// `test_an_mcp_tool_announces_what_it_wrote` (tests/test_runner_announcements.py): an MCP mutation names the
     /// tables it wrote: a ticket refetches the tickets and the Docs a ticket reaches, a table with no topic

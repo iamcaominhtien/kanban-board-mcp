@@ -340,6 +340,8 @@ mod tests {
 
     #[tokio::test]
     async fn a_call_goes_through_the_ai_guard_with_the_token_of_its_request() {
+        // its calls announce on the event bus that other tests count
+        let _turn = crate::common::tests::TURN.lock().await;
         hooks::set_ai_guard_hook(Box::new(Guard));
         ctx::scope(async {
             // no token: a call from outside any run, made as the agent
