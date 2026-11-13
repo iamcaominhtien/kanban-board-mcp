@@ -335,3 +335,87 @@ async fn test_a_mysql_board_that_stops_answering_can_be_left() {
     )
     .await;
 }
+
+/// Settings › Database can point the app at another database that already holds a board. That is another board, not
+/// the workspace that was open moving: its entry keeps naming its own board, and the list shows the other one as the
+/// board in use with no entry yet (a switch away keeps the way back to it).
+async fn connecting_to_another_board_keeps_each_workspace_on_its_board(test: &str, engine: Engine, database: &str) {
+    if !skip_unless_available(test) {
+        return;
+    }
+    let Some(url) = own_database(test, engine, database).await else { return };
+    let (s, _tmp) = start(Vec::new()).await;
+    let c = s.client();
+    new_project(&c, "On SQLite", "LIT").await;
+    // a board on the server (made through a workspace that is then forgotten)
+    let r = c.post("/workspaces", json!({"name": "Colleague", "connection": {"url": url}})).await;
+    assert_eq!(r.status, 200, "{}", r.text());
+    let colleague = r.json()["id"].as_str().unwrap().to_string();
+    let default = id_of(&overview(&c).await, "Default");
+    assert_eq!(c.post_empty(&format!("/workspaces/{colleague}/switch")).await.status, 200);
+    new_project(&c, "On the server", "SRV").await;
+    assert_eq!(c.post_empty(&format!("/workspaces/{default}/switch")).await.status, 200);
+    assert_eq!(c.delete(&format!("/workspaces/{colleague}")).await.status, 200);
+
+    let r = c.post("/database/connection", json!({"url": url})).await;
+    assert_eq!(r.status, 200, "{}", r.text());
+    let o = overview(&c).await;
+    let items = o["items"].as_array().unwrap();
+    let entry = items.iter().find(|i| i["id"] == json!(default)).unwrap();
+    assert_eq!((&entry["engine"], &entry["active"]), (&json!("sqlite"), &json!(false)), "{o}");
+    let in_use = items.iter().find(|i| i["active"] == true).unwrap();
+    assert_eq!((&in_use["id"], &in_use["engine"]), (&json!("current"), &json!(engine.name)), "{o}");
+
+    // Default still opens the SQLite board
+    assert_eq!(c.post_empty(&format!("/workspaces/{default}/switch")).await.status, 200);
+    assert_eq!(project_names(&c).await, vec!["On SQLite"]);
+    drop(s);
+    common::wipe(&url).await;
+}
+
+#[tokio::test]
+async fn test_connecting_to_another_postgres_board_keeps_each_workspace_on_its_board() {
+    connecting_to_another_board_keeps_each_workspace_on_its_board(
+        "test_connecting_to_another_postgres_board_keeps_each_workspace_on_its_board",
+        POSTGRES,
+        "kanban_dbkit_workspaces_connect",
+    )
+    .await;
+}
+
+/// The database wizard's move copies the board in use to a server and opens it there: the workspace that named it
+/// follows, so opening it later opens the board on the server and not the SQLite copy left behind.
+#[tokio::test]
+async fn test_a_board_moved_to_postgres_keeps_its_workspace() {
+    let test = "test_a_board_moved_to_postgres_keeps_its_workspace";
+    if !skip_unless_available(test) {
+        return;
+    }
+    let Some(url) = own_database(test, POSTGRES, "kanban_dbkit_workspaces_moved").await else { return };
+    let (s, _tmp) = start(Vec::new()).await;
+    let c = s.client();
+    new_project(&c, "Moving", "MOV").await;
+    let other = c.post("/workspaces", json!({"name": "Other"})).await.json()["id"].as_str().unwrap().to_string();
+    let default = id_of(&overview(&c).await, "Default");
+    assert_eq!(c.post("/database/move/check", json!({"url": url})).await.status, 200);
+    assert_eq!(c.post("/database/move/start", json!({})).await.status, 200);
+    let job = common::wait(&c, &["verified", "verified_with_differences", "failed"]).await;
+    assert_eq!(job["state"], "verified", "{job}");
+    let r = c.post("/database/move/switch", json!({})).await;
+    assert_eq!(r.status, 200, "{}", r.text());
+    new_project(&c, "After the move", "AFT").await;
+
+    let o = overview(&c).await;
+    assert_eq!(o["items"].as_array().unwrap().len(), 2, "{o}");
+    let entry = o["items"].as_array().unwrap().iter().find(|i| i["id"] == json!(default)).unwrap().clone();
+    assert_eq!((&entry["engine"], &entry["active"]), (&json!("postgresql"), &json!(true)), "{o}");
+    // away and back: the board on the server, with what was written after the move
+    assert_eq!(c.post_empty(&format!("/workspaces/{other}/switch")).await.status, 200);
+    assert_eq!(c.post_empty(&format!("/workspaces/{default}/switch")).await.status, 200);
+    assert_eq!(engine_of(&c).await, "postgresql");
+    let mut names = project_names(&c).await;
+    names.sort();
+    assert_eq!(names, vec!["After the move", "Moving"]);
+    drop(s);
+    common::wipe(&url).await;
+}

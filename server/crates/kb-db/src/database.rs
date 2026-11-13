@@ -270,6 +270,8 @@ pub async fn use_target(target: &Target) -> Result<(), DatabaseError> {
         }
         .into());
     }
+    // this process re-points itself below; its follow loop must not do it at the same time
+    let _quiet = pause_following();
     let old = app_config::get_section(targets::CONFIG_KEY);
     targets::save_choice(target).map_err(|e| DatabaseError::Other(e.to_string()))?;
     match reinit_db(None).await {
@@ -550,6 +552,38 @@ pub async fn follow_settings(interval: Duration, on_switch: OnSwitch) {
             // keep following
             Err(err) => tracing::error!("Could not follow the database setting: {err}"),
         }
+    }
+}
+
+/// Where the board in use lives: its database (with its password) and its data folder.
+#[derive(Debug, Clone)]
+pub struct Place {
+    /// The database.
+    pub target: Target,
+    /// The data folder (attachments and AI logs; `kanban.db` when the board is SQLite).
+    pub folder: PathBuf,
+}
+
+/// Where the board in use lives now; take it before moving the board, for `board_moved`.
+pub fn place_in_use() -> Place {
+    read(|s| Place { target: s.target.clone(), folder: s.db_path.parent().map(Path::to_path_buf).unwrap_or_default() })
+}
+
+/// What is told that the board in use moved (the workspace list: `kb_dbkit::workspaces::follow_move`).
+type MovedHook = Box<dyn Fn(&Place) + Send + Sync>;
+static ON_MOVED: std::sync::OnceLock<MovedHook> = std::sync::OnceLock::new();
+
+/// Register what follows a move of the board in use (once, at startup; a second call is ignored).
+pub fn on_board_moved(hook: MovedHook) {
+    let _ = ON_MOVED.set(hook);
+}
+
+/// The board in use was moved from `before` to where it is now (Settings › Data folder, the database wizard's move):
+/// it is the same board at a new place. Pointing the app at another board that already exists (the database card's
+/// connection, `kanban-db use`) is not a move and must not call this.
+pub fn board_moved(before: &Place) {
+    if let Some(hook) = ON_MOVED.get() {
+        hook(before);
     }
 }
 

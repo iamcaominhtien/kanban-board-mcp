@@ -16,7 +16,10 @@
 //! What keeps a person's boards safe: the config file is changed under one lock and saved all or nothing
 //! (`kb_base::config::update`), a switch changes its three keys in one save, the board to open is checked before
 //! anything is changed, only one switch runs at a time, and this process's own `follow_settings` stands still while
-//! it runs. The entry of the board in use follows that board when Settings moves its folder or changes its database.
+//! it runs. After a switch, an editor's stdio MCP stays on its board and refuses to work, and a window that loaded
+//! the other board can change nothing (`kb_db::database::OnSwitch`, `board_token`). When Settings moves the board in
+//! use to another folder or database, its entry moves with it (`follow_move`); pointing the app at another existing
+//! board is not a move, and the list then shows that board as the one in use with no entry yet.
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -32,7 +35,8 @@ use crate::probe::{self, Report};
 
 /// The key of the list in the config file.
 const LIST_KEY: &str = "workspaces";
-/// The key of the workspace the app was last switched to (or registered as): the one that follows the board in use.
+/// The key of the workspace the app was last switched to (or registered as): how the stdio MCP processes tell a
+/// switch from a move (`kb_db::database::follow_settings`).
 const ACTIVE_KEY: &str = "workspace_active";
 /// The id of the board in use when no entry of the list names it yet.
 pub const CURRENT_ID: &str = "current";
@@ -40,6 +44,9 @@ pub const CURRENT_ID: &str = "current";
 pub const MAX_NAME: usize = 60;
 /// How long a board is given to answer before a switch to it is refused.
 const PREFLIGHT: Duration = Duration::from_secs(15);
+/// How long the board left behind is given to say whether AI runs work on it: one that hangs must not keep the
+/// person on it.
+const BUSY_CHECK: Duration = Duration::from_secs(5);
 /// The folder, in the home folder, that new workspaces are made in.
 const FOLDERS: &str = "Kanban Boards";
 
@@ -188,36 +195,6 @@ impl Book {
             None => data.shift_remove(ACTIVE_KEY),
         };
     }
-
-    /// Make the list agree with the board in use. When another part of Settings moved the data folder or changed
-    /// the database of the workspace that was last opened, that workspace now lives there: its entry follows (else
-    /// opening it would start an empty board and look like lost data). Returns whether anything changed.
-    fn reconcile(&mut self) -> bool {
-        if locked().is_some() {
-            return false;
-        }
-        if let Some(current) = self.list.iter().find(|w| w.is_current()) {
-            if self.active.as_deref() == Some(current.id.as_str()) {
-                return false;
-            }
-            self.active = Some(current.id.clone());
-            return true;
-        }
-        let Some(active) = self.active.clone() else { return false };
-        let Some(entry) = self.list.iter_mut().find(|w| w.id == active) else { return false };
-        let database = if database::is_sqlite() {
-            None
-        } else {
-            match targets::section_of(&database::current_target()) {
-                Ok(section) => Some(section),
-                // the password cannot be kept safely: leave the entry as it is rather than lose its way back
-                Err(_) => return false,
-            }
-        };
-        entry.folder = current_folder();
-        entry.database = database;
-        true
-    }
 }
 
 /// Read the list, change it, and save it, all under the lock of the config file and in one save.
@@ -225,7 +202,6 @@ fn mutate<R>(change: impl FnOnce(&mut Book) -> Result<R, Error>) -> Result<R, Er
     let mut outcome: Option<Result<R, Error>> = None;
     let saved = config::update(|data| {
         let mut book = Book::from_config(data);
-        book.reconcile();
         let result = change(&mut book);
         let saves = result.is_ok();
         outcome = Some(result);
@@ -284,8 +260,7 @@ fn current_workspace(name: String) -> Workspace {
 /// Every workspace, the one in use marked. The board in use is listed even when no entry names it yet (nobody has
 /// added a workspace so far).
 pub fn list() -> Vec<Item> {
-    let mut book = Book::read();
-    book.reconcile();
+    let book = Book::read();
     let mut items: Vec<Item> = book
         .list
         .iter()
@@ -486,6 +461,41 @@ pub fn remove(id: &str) -> Result<(), Error> {
     })
 }
 
+/// The board in use was moved from `before` to where it is now (`kb_db::database::board_moved`): the entry that named
+/// it at its old place names the new one, so opening it later opens this board and not the copy left behind (or an
+/// empty one). Nothing happens when no entry named the old place.
+pub fn follow_move(before: &database::Place) {
+    if locked().is_some() {
+        return;
+    }
+    let was_there = |w: &Workspace| match w.target() {
+        Some(target) => !before.target.is_sqlite() && same_database(&target, &before.target),
+        None => before.target.is_sqlite() && same_folder(&w.folder, &before.folder),
+    };
+    let database = if database::is_sqlite() {
+        None
+    } else {
+        match targets::section_of(&database::current_target()) {
+            Ok(section) => Some(section),
+            Err(err) => {
+                // the entry keeps its old place rather than lose the password of the new one
+                tracing::error!(target: "workspaces", "The workspace could not follow its board: {err}");
+                return;
+            }
+        }
+    };
+    let followed = mutate(|book| {
+        if let Some(entry) = book.list.iter_mut().find(|w| was_there(w)) {
+            entry.folder = current_folder();
+            entry.database = database;
+        }
+        Ok(())
+    });
+    if let Err(err) = followed {
+        tracing::error!(target: "workspaces", "The workspace could not follow its board: {err}");
+    }
+}
+
 fn in_use() -> String {
     "The workspace in use cannot be removed; switch to another one first".into()
 }
@@ -540,8 +550,7 @@ pub async fn switch(id: &str) -> Result<Item, Error> {
         return Err(Error::Unsupported(reason));
     }
     let _one_at_a_time = SWITCH.lock().await;
-    let mut book = Book::read();
-    book.reconcile();
+    let book = Book::read();
     let target = match book.list.iter().find(|w| w.id == id) {
         Some(w) => w.clone(),
         None if id == CURRENT_ID => return Ok(list().remove(0)),
@@ -553,7 +562,7 @@ pub async fn switch(id: &str) -> Result<Item, Error> {
     // a board that does not answer cannot have runs working on it, and asking it would wait for the connection
     if database::unreachable().is_none() {
         if let Some(hook) = hooks::workspace() {
-            if let Some(reason) = hook.busy().await {
+            if let Ok(Some(reason)) = tokio::time::timeout(BUSY_CHECK, hook.busy()).await {
                 return Err(Error::Busy(reason));
             }
         }

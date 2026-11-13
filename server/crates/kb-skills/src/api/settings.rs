@@ -207,6 +207,10 @@ async fn set_data_path(Body(req): Body<DataPathRequest>) -> ApiResult<Json<Value
 
     let current_db = old_db_path.clone();
     let current_uploads = old_uploads.clone();
+    // the same board at a new place: the workspace that names it follows (`board_moved`)
+    let before = db::place_in_use();
+    // this process re-points itself below; its follow loop must not do it at the same time
+    let _quiet = db::pause_following();
 
     let new_db = new_folder.join("kanban.db");
     let new_uploads = new_folder.join("uploads");
@@ -268,6 +272,7 @@ async fn set_data_path(Body(req): Body<DataPathRequest>) -> ApiResult<Json<Value
         }
         return Err(ApiError::code(500, "Failed to move data folder. Attempted rollback."));
     }
+    db::board_moved(&before);
 
     Ok(Json(json!({
         "db_path": new_db.display().to_string(),

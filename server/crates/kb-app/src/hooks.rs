@@ -187,6 +187,8 @@ pub fn install() {
     kb_ideas::register();
     kb_dbkit::hooks::set_docs_search_hook(Box::new(DocsSearch));
     kb_dbkit::hooks::set_workspace_hook(Box::new(Workspaces));
+    // the workspace that names the board in use follows it when Settings moves it
+    kb_db::database::on_board_moved(Box::new(kb_dbkit::workspaces::follow_move));
     kb_board::hooks::set_db_move_hook(Box::new(DbMove));
     kb_doctext::docs_access::set_notifications_hook(Box::new(Notifications));
     // `kanban_mcp/common.py` registers its listener when it is imported: an MCP tool names what it wrote

@@ -618,7 +618,10 @@ impl Job {
             mover.close().await;
         }
         drop(guard);
+        let before = database::place_in_use();
         database::use_target(&self.target).await.map_err(|err| move_db::Error::Other(err.to_string()))?;
+        // the board was copied there: the workspace that named it follows
+        database::board_moved(&before);
         Ok(())
     }
 
