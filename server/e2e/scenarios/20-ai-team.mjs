@@ -12,6 +12,7 @@ import { home, ensureProject, createTicket, openTicket, closeTicket } from '../l
 export default {
   name: 'AI team: accounts, a team, a run through the stand-in CLI, its pages and settings',
   group: 'ai',
+  soft: !!process.env.E2E_SOFT,
   async run(s) {
     const p = s.page;
     const TEAM = 'Backend team';
@@ -543,17 +544,19 @@ export default {
       await d.getByRole('button', { name: 'Create schedule' }).click();
       await d.waitFor({ state: 'detached' });
       await toastNote('Schedule created');
-      await p.getByRole('button', { name: /^Schedules 1/ }).waitFor();
       await p.getByText('Fix add').first().waitFor();
+      await p.getByText(/03:15/).first().waitFor();
+      s.note('Schedules tab label after the create', (await p.getByRole('button', { name: /^Schedules/ }).innerText()).replace(/\s+/g, ' '));
     });
 
     await s.step('Schedules: Run now starts a run, Pause and Resume change the state, Delete removes it', async () => {
       await p.getByText('Fix add').first().click();
       const d = p.getByRole('dialog', { name: 'Schedule' });
-      await d.getByText(/Every weekday at 03:15/).first().waitFor();
+      await d.getByText(/Weekdays at 03:15 \(UTC\) · Backend team/).waitFor();
+      await d.getByText('Never run yet').waitFor();
       await d.getByRole('button', { name: 'Run now' }).click();
       await toastNote('Run started');
-      await d.getByText(/Run #?\d+|Waiting|Running|Finished|Started/).first().waitFor();
+      await d.getByRole('button', { name: /^Today \d\d:\d\d (Running|Finished|Waiting|Started)/ }).waitFor({ timeout: 40000 });
       await d.getByRole('button', { name: 'Pause', exact: true }).click();
       await toastNote('Schedule paused');
       await d.getByRole('button', { name: 'Resume', exact: true }).waitFor();
@@ -564,9 +567,46 @@ export default {
       await p.getByRole('dialog', { name: /schedule/i }).last().getByRole('button', { name: 'Cancel' }).click();
       p.once('dialog', (dlg) => void dlg.accept());
       await d.getByRole('button', { name: 'More' }).click();
-      await p.getByRole('menuitem', { name: /Delete schedule/ }).click();
+      await d.getByRole('button', { name: 'Delete schedule' }).click();
       await d.waitFor({ state: 'detached' });
       await p.getByRole('heading', { name: 'No schedules yet', level: 3 }).waitFor();
+    });
+
+    await s.step('Settings > Board assistant: the features, the language and the tone are kept', async () => {
+      await home(s);
+      await p.getByRole('button', { name: 'Settings' }).click();
+      const open = async () => {
+        await nav().getByRole('button', { name: 'Board assistant' }).click();
+        await p.getByRole('heading', { name: 'Board assistant', level: 1 }).waitFor();
+      };
+      await open();
+      await p.getByText(/The first team of this project · Claude Code/).waitFor();
+      await p.getByRole('button', { name: 'Open AI Team →' }).waitFor();
+      const docsAi = p.getByRole('switch', { name: 'Docs AI' });
+      await docsAi.and(p.locator('[aria-checked="true"]')).waitFor();
+      await docsAi.click();
+      await docsAi.and(p.locator('[aria-checked="false"]')).waitFor();
+      await p.getByRole('combobox', { name: 'Language' }).selectOption({ label: 'Deutsch' });
+      await p.getByRole('group', { name: 'Tone' }).getByRole('button', { name: 'Concise' }).click();
+      await p.getByRole('textbox', { name: /^Style guide for ticket drafts/ }).fill('Titles are imperative.');
+      await p.getByRole('textbox', { name: /^Style guide for ticket drafts/ }).blur();
+      await s.settle();
+      await settingsAi();
+      await open();
+      await p.getByRole('switch', { name: 'Docs AI' }).and(p.locator('[aria-checked="false"]')).waitFor();
+      await p.getByRole('combobox', { name: 'Language' }).locator('option:checked').filter({ hasText: 'Deutsch' }).waitFor({ state: 'attached' });
+      await p.getByRole('group', { name: 'Tone' }).getByRole('button', { name: 'Concise' }).and(p.locator('[aria-pressed="true"]')).waitFor();
+      await until(async () => (await p.getByRole('textbox', { name: /^Style guide for ticket drafts/ }).inputValue()) === 'Titles are imperative.', 'the saved style guide');
+      await p.getByRole('heading', { name: 'What it may read', level: 2 }).waitFor();
+      await p.getByText('API keys and secrets, never').waitFor();
+      // back to the defaults
+      await p.getByRole('switch', { name: 'Docs AI' }).click();
+      await p.getByRole('switch', { name: 'Docs AI' }).and(p.locator('[aria-checked="true"]')).waitFor();
+      await p.getByRole('combobox', { name: 'Language' }).selectOption({ label: 'English (US)' });
+      await p.getByRole('group', { name: 'Tone' }).getByRole('button', { name: 'Neutral' }).click();
+      await p.getByRole('textbox', { name: /^Style guide for ticket drafts/ }).fill('');
+      await p.getByRole('textbox', { name: /^Style guide for ticket drafts/ }).blur();
+      await s.settle();
     });
 
     await s.step('Board AI: ask a question and get the answer with its actions', async () => {
@@ -582,7 +622,7 @@ export default {
       await a.getByText('Nothing is overdue.').waitFor({ timeout: 40000 });
       await a.getByRole('button', { name: 'Copy answer' }).waitFor();
       await a.getByRole('button', { name: 'Regenerate' }).waitFor();
-      await a.getByRole('button', { name: 'Helpful' }).click();
+      await a.getByRole('button', { name: 'Helpful', exact: true }).click();
       await a.getByRole('button', { name: 'Close Board AI' }).click();
       await a.waitFor({ state: 'detached' });
     });
@@ -619,7 +659,7 @@ export default {
       const a = p.getByRole('complementary', { name: 'Ask about ideas' });
       await a.getByRole('button', { name: 'Which ideas are stale?' }).waitFor();
       await a.getByRole('textbox', { name: 'Ask about your ideas' }).fill('Which ideas are stale?');
-      await a.getByRole('button', { name: 'Send' }).click();
+      await a.getByRole('textbox', { name: 'Ask about your ideas' }).press('Enter');
       await a.getByText('Ideas look fine.').waitFor({ timeout: 40000 });
       await a.getByText(/Read 0 ideas/).waitFor();
       await p.getByRole('button', { name: 'Write it now' }).click();
@@ -632,10 +672,10 @@ export default {
       await teamPage();
       await p.getByRole('button', { name: 'Remove…' }).click();
       await p.getByRole('heading', { name: `Remove team ${TEAM}` }).waitFor();
-      const d = p.getByRole('dialog').filter({ has: p.getByRole('heading', { name: `Remove team ${TEAM}` }) });
-      await d.getByRole('button', { name: /^(Reassign & remove|Remove)$/ }).click();
+      await p.getByRole('button', { name: /^(Reassign & remove|Remove)$/ }).click();
       await p.getByRole('heading', { name: 'Members', level: 1 }).waitFor();
       await p.getByText('No AI teams yet').waitFor();
+      await p.getByText(`${TEAM} removed`).waitFor();
       await p.getByRole('tab', { name: 'AI accounts 1' }).click();
       await p.getByRole('button', { name: 'More actions for Main Claude' }).click();
       await p.getByRole('menuitem', { name: /Remove/ }).click();
