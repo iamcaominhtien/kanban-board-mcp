@@ -309,6 +309,10 @@ export default {
       await d.getByText(/Pending since/).first().waitFor();
       await d.getByText(/The design review/).first().waitFor();
       await p.keyboard.press('p');
+      const back = p.getByRole('dialog', { name: 'Resume ALP-1?' });
+      await back.getByText('Removes the Pending flag. It stays in Backlog.').waitFor();
+      await back.getByRole('button', { name: 'Resume', exact: true }).click();
+      await back.waitFor({ state: 'detached' });
       await d.getByText(/Pending since/).first().waitFor({ state: 'detached' });
       await closeTicket(s);
     }, { expectConsole: true });

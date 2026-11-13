@@ -19,8 +19,10 @@ export default {
     };
     const addAssumption = async (text, impact) => {
       await sections().getByRole('tab', { name: /^Assumptions/ }).click();
-      await p.getByRole('textbox', { name: 'New assumption' }).fill(text);
-      await p.getByRole('combobox', { name: 'Impact if wrong' }).selectOption({ label: impact });
+      const box = p.getByRole('textbox', { name: 'New assumption' });
+      await box.fill(text);
+      // the table rows have an "Impact if wrong" select too: take the one in the add form
+      await p.locator('select[aria-label="Impact if wrong"]:not(table select)').selectOption({ label: impact });
       await p.getByRole('button', { name: 'Add an assumption' }).click();
       await p.getByText(text).first().waitFor();
     };
@@ -88,7 +90,7 @@ export default {
     await s.step('add a link as evidence for the first assumption', async () => {
       const tab = p.getByTestId('evidence-tab');
       const form = tab.getByTestId('evidence-form');
-      await form.getByText('People work on trains without signal').locator('..').getByRole('checkbox').check();
+      await form.getByRole('checkbox', { name: 'People work on trains without signal' }).check();
       await form.getByRole('textbox', { name: 'Evidence' }).fill('https://example.com/train-study');
       await form.getByRole('textbox', { name: 'Title' }).fill('Train study');
       await form.getByRole('button', { name: 'Add', exact: true }).click();
@@ -104,14 +106,15 @@ export default {
       const tab = p.getByTestId('evidence-tab');
       const form = tab.getByTestId('evidence-form');
       await form.getByRole('combobox', { name: 'Kind of evidence' }).selectOption({ label: 'Note' });
-      await form.getByText('People work on trains without signal').locator('..').getByRole('checkbox').check();
-      await form.getByText('Sync conflicts are rare').locator('..').getByRole('checkbox').check();
+      await form.getByRole('checkbox', { name: 'People work on trains without signal' }).check();
+      await form.getByRole('checkbox', { name: 'Sync conflicts are rare' }).check();
       await form.getByRole('textbox', { name: 'Evidence' }).fill('Two interviewees lost drafts on the metro');
       await form.getByRole('button', { name: 'Add', exact: true }).click();
       const note = tab.getByRole('listitem').filter({ hasText: 'Two interviewees lost drafts on the metro' });
       await note.getByText(/Note · used by 2 assumptions/).waitFor();
       await note.getByText('Supports: Sync conflicts are rare').waitFor();
-      await sections().getByRole('tab', { name: /^Evidence 2/ }).waitFor();
+      // the tab counts the links between evidence and assumptions: the link once, the note for each of the two
+      await sections().getByRole('tab', { name: /^Evidence 3/ }).waitFor();
     });
     await s.step('the Assumptions tab counts the evidence', async () => {
       await sections().getByRole('tab', { name: /^Assumptions/ }).click();

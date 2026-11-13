@@ -513,9 +513,8 @@ export default {
       await settingsAi();
       const again = p.getByRole('region', { name: 'Repositories' });
       await until(async () => (await again.getByRole('textbox', { name: 'Base branch' }).inputValue()) === 'main', 'the saved base branch');
-      await until(async () => (await again.getByRole('combobox', { name: 'Hand over finished code by' }).inputValue()) === 'leave', 'the saved hand-over').catch(async () => {
-        await again.getByRole('combobox', { name: 'Hand over finished code by' }).locator('option:checked').filter({ hasText: 'Leave the branch' }).waitFor();
-      });
+      await until(async () => (await again.getByRole('combobox', { name: 'Hand over finished code by' }).inputValue()) === 'branch', 'the saved hand-over');
+    });
     });
 
     await s.step('Schedules: a dry run shows the plan, then the schedule is created', async () => {
