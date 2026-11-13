@@ -30,10 +30,14 @@ use crate::docs_ai::errors::{DocsAiError, Error};
 use crate::docs_ai::jobs::{self, HandlerFuture};
 use crate::docs_ai::settings as svc_settings;
 
+mod preview;
+mod since;
 mod threads;
 mod tickets;
 
 pub use threads::{THREAD_KINDS, annotate, deliver, docs_ai_on, member_rows, start_route_job, start_thread_job};
+pub use preview::write_preview;
+pub use since::{Change, Changed, MAX_DIGEST_PAGES, NEW_PAGE_DAYS, changed_since_viewed};
 pub use tickets::{LineKeys, create_tickets, undo_tickets};
 
 /// The longest question the Docs UI sends.
@@ -201,7 +205,7 @@ pub fn register_handlers() {
     jobs::register("write", write_job);
     jobs::register("history_summary", history_summary_job);
     jobs::register("publish_note", publish_note_job);
-    jobs::register("since_viewed", since_viewed_job);
+    jobs::register("since_viewed", since::since_viewed_job);
     jobs::register("tickets_draft", tickets::tickets_draft_job);
     jobs::register("thread_summary", threads::thread_summary_job);
     jobs::register("thread_reply", threads::thread_reply_job);
@@ -704,34 +708,6 @@ pub fn normalize_write(params: &Map<String, Value>) -> Result<Map<String, Value>
     Ok(out)
 }
 
-/// "What will be sent": the assistant reads through the board's tools, so this lists the sources it starts from.
-pub async fn write_preview(
-    _session: &Session,
-    _project_id: &str,
-    params: &Map<String, Value>,
-) -> Result<Map<String, Value>, Error> {
-    let p = normalize_write(params)?;
-    let src = p.get("source").and_then(Value::as_object).cloned().unwrap_or_default();
-    let include = p.get("include").and_then(Value::as_object).cloned().unwrap_or_default();
-    let label = or_default(src.get("ticket_id"), or_default(src.get("idea_id"), json!("Your text")));
-    let mut list = vec![json!({"kind": get(&src, "kind"), "label": label})];
-    if include.get("linked_pages").is_some_and(pyjson::truthy) {
-        list.push(
-            json!({"kind": "pages", "label": "Pages it links and two or three pages of this space, for the voice"}),
-        );
-    }
-    if include.get("comments").is_some_and(pyjson::truthy) && src.get("kind").and_then(Value::as_str) == Some("ticket")
-    {
-        list.push(json!({"kind": "comments", "label": "The ticket's comments"}));
-    }
-    let mut out = Map::new();
-    out.insert("items".into(), Value::Array(list));
-    out.insert("tokens".into(), Value::Null);
-    out.insert("cost".into(), Value::Null);
-    out.insert("left_out".into(), json!([]));
-    Ok(out)
-}
-
 /// Start writing a page from the picked sources (a `write` job).
 pub async fn start_write(
     session: &Session,
@@ -823,20 +799,6 @@ pub fn publish_note_job(job: docs_ai_job::Model) -> HandlerFuture {
         let note = text_of(&get_or(&out.data(), "note", json!(out.text)));
         let mut result = Map::new();
         result.insert("note".into(), json!(clip(pytext::strip(&note), 200)));
-        Ok(merge(result, cost(&out)))
-    })
-}
-
-/// What changed in the space since the person last looked, one line per page.
-pub fn since_viewed_job(job: docs_ai_job::Model) -> HandlerFuture {
-    boxed(async move {
-        let mut inputs = Map::new();
-        inputs.insert("task".into(), json!("since_viewed"));
-        inputs.insert("project_id".into(), json!(job.project_id));
-        let name = format!("docs-ask:{}", job.project_id);
-        let out = turn(&job, "docs-history", inputs, Some(name), TurnExtra::default()).await?;
-        let mut result = Map::new();
-        result.insert("lines".into(), get_or(&out.data(), "lines", json!([])));
         Ok(merge(result, cost(&out)))
     })
 }

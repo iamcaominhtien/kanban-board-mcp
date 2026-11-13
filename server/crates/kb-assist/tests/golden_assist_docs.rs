@@ -313,7 +313,7 @@ async fn do_call(pid: &str, call: &Value) -> Value {
             let drafts_in = call["drafts"].as_array().cloned().unwrap_or_default();
             let link = call["link"].as_bool().unwrap_or(true);
             let mut out = Map::new();
-            let made = adocs::create_tickets(&session, page_id, "An Nguyen", &drafts_in, link).await.expect("create");
+            let made = adocs::create_tickets(&session, page_id, "An Nguyen", &drafts_in, link, adocs::LineKeys::Keep).await.expect("create");
             let token = text(&Value::Object(made.clone()), "undo_token").to_string();
             out.insert("made".into(), Value::Object(made));
             out.insert(
@@ -324,7 +324,7 @@ async fn do_call(pid: &str, call: &Value) -> Value {
                 out.insert("again".into(), fail(&err));
             }
             let bad = [json!({"title": "x", "project_id": "nope"})];
-            if let Err(err) = adocs::create_tickets(&session, page_id, "An Nguyen", &bad, true).await {
+            if let Err(err) = adocs::create_tickets(&session, page_id, "An Nguyen", &bad, true, adocs::LineKeys::Keep).await {
                 out.insert("bad_project".into(), fail(&err));
             }
             Value::Object(out)
@@ -617,10 +617,11 @@ async fn docs_helpers(pid: &str, call: &Value) -> Value {
         match adocs::normalize_write(&params) {
             Ok(n) => {
                 out.insert(format!("normalize {i}"), Value::Object(n));
-                out.insert(
-                    format!("preview {i}"),
-                    Value::Object(adocs::write_preview(&session, pid, &params).await.expect("preview")),
-                );
+                let preview = match adocs::write_preview(&session, pid, &params).await {
+                    Ok(out) => Value::Object(out),
+                    Err(err) => fail(&err),
+                };
+                out.insert(format!("preview {i}"), preview);
             }
             Err(err) => {
                 out.insert(format!("normalize {i}"), fail_docs_ai(&err));

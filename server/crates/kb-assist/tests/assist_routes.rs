@@ -213,6 +213,10 @@ async fn docs_ai_write_routes() {
         "write/preview",
         &c.post(&format!("{base}/write/preview"), json!({"source": {"kind": "prompt", "text": "Paging design"}})).await,
     );
+    let ticket = c
+        .post(&format!("/projects/{pid}/tickets"), json!({"title": "Paging", "description": "Page the list.", "status": "todo"}))
+        .await;
+    ticket.assert_status(201);
     rec.check(
         "write/preview: ticket",
         &c.post(
@@ -221,6 +225,11 @@ async fn docs_ai_write_routes() {
         )
         .await,
     );
+    rec.check(
+        "write/preview: no such ticket",
+        &c.post(&format!("{base}/write/preview"), json!({"source": {"kind": "ticket", "ticket_id": "KAN-9"}})).await,
+    );
+    c.delete("/tickets/KAN-1").await.assert_status(200);
     rec.check("write/preview: no source", &c.post(&format!("{base}/write/preview"), json!({})).await);
     rec.check(
         "write/preview: no notes",
@@ -261,7 +270,7 @@ async fn docs_ai_write_routes() {
     rec.check("publish-note: no body", &c.post_empty(&format!("/docs/pages/{page}/ai/publish-note")).await);
     let sv = c.post_empty(&format!("{base}/since-viewed")).await;
     rec.check("since-viewed", &sv);
-    f.job(&http::id(&sv.json())).await;
+    rec.check("since-viewed: job", &f.job_resp(&http::id(&sv.json())).await);
     rec.check("since-viewed: no project", &c.post_empty("/projects/nope/docs/ai/since-viewed").await);
     let tidy = format!("{base}/tidy");
     rec.check("tidy", &c.post(&tidy, json!({"markdown": "# A\n\ntext\n\n# B\n\nmore KAN-1\n", "options": {"split_by_heading": true, "ticket_chips": true}})).await);
@@ -336,6 +345,15 @@ async fn docs_ai_health_and_ticket_routes() {
     rec.check(
         "tickets/create: not linked",
         &c.post(&format!("{tickets}/create"), json!({"drafts": [{"title": "Plain"}], "link": false})).await,
+    );
+    rec.check(
+        "tickets/create: replace text",
+        &c.post(
+            &format!("{tickets}/create"),
+            json!({"drafts": [{"title": "Page it", "text": "Add paging"}, {"title": "Gone", "text": "Not there"}],
+                   "replace_text": true}),
+        )
+        .await,
     );
     rec.check("tickets/create: no title", &c.post(&format!("{tickets}/create"), json!({"drafts": [{}]})).await);
     rec.check("tickets/create: no page", &c.post("/docs/pages/nope/ai/tickets/create", json!({"drafts": []})).await);

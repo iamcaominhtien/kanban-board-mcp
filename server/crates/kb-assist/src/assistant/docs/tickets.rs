@@ -77,7 +77,7 @@ fn chip_lines(base: &str, drafts: &[(String, String)]) -> Chipped {
     let mut missing = Vec::new();
     for (text, key) in drafts {
         let at = index.get(&norm(text)).and_then(|rows| rows.iter().copied().find(|i| !used.contains(i)));
-        let Some(at) = at.filter(|_| !text.is_empty()) else {
+        let Some(at) = at else {
             missing.push(text.clone());
             continue;
         };
@@ -154,7 +154,7 @@ pub async fn create_tickets(
 ) -> Result<Map<String, Value>, Error> {
     let page = kb_docs::docs::get_page(session, page_id, false, true).await?;
     let mut made: Vec<Value> = Vec::new();
-    // (text, ticket id) of the drafts made in the page's own project: the ones that have a line on the page
+    // (text, ticket id) of the drafts made in the page's own project that have a text to find
     let mut on_page: Vec<(String, String)> = Vec::new();
     let mut linked = 0;
     for d in drafts {
@@ -185,8 +185,10 @@ pub async fn create_tickets(
             "assignee": ticket.assignee,
             "due_date": ticket.due_date,
         }));
-        if project_id == page.project_id {
-            on_page.push((pytext::strip(given(d, "text").unwrap_or("")).to_string(), ticket.id.clone()));
+        // a draft with no text has no line to look for
+        let text = pytext::strip(given(d, "text").unwrap_or("")).to_string();
+        if project_id == page.project_id && !text.is_empty() {
+            on_page.push((text, ticket.id.clone()));
         }
         // a link that fails does not undo the ticket
         if link && kb_docs::docs::link_ticket_doc(session, &ticket.id, &page.id).await.is_ok() {
