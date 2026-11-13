@@ -32,7 +32,7 @@ python3 build.py --facts            # print the facts read from the code and che
 | `kind` | `chapter` (default) or `sheet` (one page, no opener) |
 | `standalone` | A name: also build this chapter as a stand-alone PDF |
 
-**In the text.** Plain Markdown, plus: `!!! tip "Title"` (also `note`, `warning`, `caution`, `ai`) for callouts; numbered lists become steps; `++Ctrl+N++` for keys (`Mod` is Ctrl, or ⌘ on a Mac); `{menu:Settings › Updates}` for menu paths; `@figure <image-name> "Caption" markers=x,y;x,y` for a figure with numbered markers (percent positions; the build fails when the image is missing, and the caption is the alt text); `{fact:tool_count}` for a value read from the code; `{confirm: what to check}` for something that must be checked before release; `@preset pm persona` for the text of a built-in AI role; `{{shortcuts}}` and `{{releases}}` for generated tables. Headings level 2 are numbered `chapter.section` and listed on the chapter opener.
+**In the text.** Plain Markdown, plus: `!!! tip "Title"` (also `note`, `warning`, `caution`, `ai`) for callouts; numbered lists become steps; `++Ctrl+N++` for keys (`Mod` is Ctrl, or ⌘ on a Mac); `{menu:Settings › Updates}` for menu paths; `@figure <image-name> "Caption" markers=x,y;x,y` for a figure with numbered markers (percent positions; the build fails when the image is missing, and the caption is the alt text); `{fact:tool_count}` for a value read from the code; `{confirm: what to check}` for something that must be checked before release; `@packs` for the table of the built-in AI roles; `{{shortcuts}}` and `{{releases}}` for generated tables. Headings level 2 are numbered `chapter.section` and listed on the chapter opener.
 
 **Screenshots** are `guide/images/<name>.jpg` (the AI guide's `ai/images/` are used too). Retake them with `guide/shots/take_screenshots.js` (the header of the script says how to start a demo server); JPEG, 1440 × 900, about 1500 px wide.
 
@@ -47,11 +47,11 @@ python3 build.py --facts            # print the facts read from the code and che
 | Fact | Where it comes from |
 | --- | --- |
 | Number and names of MCP tools, the Idea Space tools | `server/contract/mcp-tools.json`, `mcp-tools-ideas.json` (read by `facts.py`) |
-| AI defaults (parallel runs, runs per day, daily budget) | `server/services/ai/members.py` (read by `facts.py`) |
+| AI defaults (parallel runs of a new team) | `server/crates/kb-ai-run/src/teams/edit.rs` (read by `facts.py`) |
 | Statuses, types, priorities | `server/crates/kb-mcp/src/common.rs` (read by `facts.py`) |
 | Settings pages and their scope | `ui/src/components/settings/settingsIndex.ts` (read by `facts.py`) |
 | Menu items, accelerators, which items need the backend | `desktop/menu.js` (tested in `desktop/tests/menu.test.js`) |
-| The built-in AI roles | `ui/src/components/ai/memberPresets.json` (read through `@preset`) |
+| The built-in AI roles | `server/crates/kb-ai-know/src/text/packs.json` (read through `@packs`) |
 | Docs, Sketch, Idea Space and editor shortcuts and limits stated in prose | `shortcuts.json` entries name their `source`; limits come from `CHANGELOG.md` and `docs/specs/` and are re-read when the feature changes |
 | What an AI request contains (privacy chapter) | `server/services/ai/` (to confirm) |
 

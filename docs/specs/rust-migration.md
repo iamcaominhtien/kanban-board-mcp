@@ -316,9 +316,11 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
       and the `PARITY_TARGET=python` mode went with it (the test harness says so when asked for it)
 - [x] `CLAUDE.md`, READMEs, `docs/arch/backend-architecture.md`, `docs/guideline/databases.md`, the guide's
       `facts.py` and cover version, `CHANGELOG.md` (5.0.0); the app's version is 5.0.0 (`desktop/`, `ui/`)
-- Left: the guide's three AI facts (`ai_parallel`, `ai_runs_per_day`, `ai_daily_budget`) read
-  `server/services/ai/members.py`, which 4.0.0 removed (AI v2): the guide build has failed on them since 4.0.0, and
-  the chapters that use them describe limits AI v2 no longer has. They need a rewrite of those chapters.
+- [x] The guide build (it had failed since 4.0.0 removed `server/services/ai/members.py` and
+      `memberPresets.json`): the parallel runs of a new team are read from `kb-ai-run`, the built-in roles from the
+      role packs (`@packs`), and the sentences on runs a day and budget say a new team has no limit. Left: chapters 14
+      and 17 still describe the AI members of 3.x (the four-step dialog, API-key AIs) and need a rewrite for AI teams;
+      `docs/guideline/ai/build.py` still reads `memberPresets.json`.
 
 ### P8 Acceptance
 

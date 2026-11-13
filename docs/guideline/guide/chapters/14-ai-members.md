@@ -51,7 +51,7 @@ Open **Members**, choose the **AI** tab, then **Add AI member**. A four-step win
 
 1. **Type**: Claude Code, an API-key provider or another MCP client.
 2. **Connect**: the app finds the CLI, its version and the account. Fill in the **Working folder** and **Model** (Sonnet or Haiku for Claude Code), then press **Run test** and wait for “Connection OK”.
-3. **Identity and limits**: a **Name** (not used by anyone else in the project), a short description, a **Role / persona** (up to 1000 characters), **Max parallel runs** (default {fact:ai_parallel}) and **Scheduled runs per day** (default {fact:ai_runs_per_day}; only scheduled runs count). The row **Start from** fills all of this with PM, Dev or Reviewer.
+3. **Identity and limits**: a **Name** (not used by anyone else in the project), a short description, a **Role / persona** (up to 1000 characters), **Max parallel runs** (default {fact:ai_parallel}) and **Scheduled runs per day** (no limit unless you set one; only scheduled runs count). The row **Start from** fills all of this with PM, Dev or Reviewer.
 4. **Permissions and review**: **May move tickets up to** (None, Backlog, To Do, In Progress or Review; Testing and Done need an extra confirmation) and the switches **Ask a person first before it can…** (delete a ticket, change an assignee, create tickets, edit docs).
 
 @figure a05-add-step2-connect "Step 2 of the Add AI member window: the CLI is found, the working folder and model are chosen, and the connection is tested."
@@ -62,19 +62,9 @@ The window has no template choice: a new AI always starts with the Developer tem
 
 ### The built-in roles
 
-The roles in **Start from** come from one file in the app, so the text below is what the app offers.
+The roles come from the role packs the app ships (**Settings › AI › Role packs**), so the list below is what the app offers.
 
-**PM**
-
-@preset pm persona
-
-**Dev**
-
-@preset dev persona
-
-**Reviewer**
-
-@preset reviewer persona
+@packs
 
 ## After you create it
 
