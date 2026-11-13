@@ -29,7 +29,7 @@ export default {
       await home(s);
       if (!(await p.getByRole('heading', { name: 'Members', level: 1 }).count())) {
         await p.getByRole('button', { name: /^Members/ }).first().click();
-        await p.getByRole('button', { name: /^AI/ }).click();
+        await p.getByRole('button', { name: /^AI( \d+)?$/ }).click();
         await p.getByRole('button', { name: /Add AI team/ }).first().click();
         await p.getByRole('dialog', { name: 'Add AI team' }).getByRole('button', { name: 'Cancel' }).click();
       }
@@ -38,7 +38,7 @@ export default {
     };
     const teamPage = async () => {
       await membersPage('AI teams');
-      await p.getByRole('button', { name: TEAM, exact: true }).first().click();
+      await p.getByText(TEAM, { exact: true }).first().click();
       await p.getByRole('heading', { name: TEAM, level: 1 }).waitFor();
     };
     const aiTeamView = async (tab) => {
@@ -192,6 +192,53 @@ export default {
       await p.getByRole('radio', { name: /^Auto/ }).and(p.locator('[aria-checked="true"]')).waitFor();
       await p.getByRole('radio', { name: /^Bypass/ }).click();
       await p.getByRole('radio', { name: /^Bypass/ }).and(p.locator('[aria-checked="true"]')).waitFor();
+    });
+
+    await s.step('assign the ticket and start: the lead works and the card says finished', async () => {
+      await home(s);
+      const d = await assignTo('Assign & start');
+      await d.getByRole('button', { name: new RegExp(`^${TEAM}`) }).waitFor();
+      await closeTicket(s);
+      await p.getByRole('button', { name: /ALP-1 Fix add Finished/ }).waitFor({ timeout: 40000 });
+      await p.getByRole('button', { name: 'Run again', exact: true }).last().waitFor();
+    });
+
+    await s.step('ticket: AI activity shows the finished run', async () => {
+      const d = await openTicket(s, 'ALP-1');
+      await d.getByRole('tab', { name: 'AI activity' }).click();
+      await d.getByText(/Run #1 finished/).waitFor();
+      await d.getByText('Right now').waitFor();
+      await d.getByText('Nobody is working.').waitFor();
+      await d.getByText('Resources').first().waitFor();
+      await d.getByRole('button', { name: 'Open in Flow' }).waitFor();
+    });
+
+    await s.step('run detail: the report, the steps, the files and the commands', async () => {
+      const d = p.getByRole('dialog', { name: 'Ticket ALP-1' });
+      await d.getByRole('button', { name: 'Open run ›' }).click();
+      await d.getByText('Run #1').first().waitFor();
+      await d.getByText('Finished', { exact: true }).first().waitFor();
+      await d.getByText('Fixed add(); tests pass.').first().waitFor();
+      await d.getByText('ai/test').first().waitFor();
+      await d.getByText('Edited calc.py').waitFor();
+      await d.getByText(/Ran pytest -q API_TOKEN=•+ · exit 0/).waitFor();
+      await d.getByText(/Asked reviewer: Review the diff/).waitFor();
+      await d.getByRole('button', { name: /^reviewer 2 steps/ }).waitFor();
+      await d.getByText('Wrote the final report').waitFor();
+      await d.getByText(/Files touched/).waitFor();
+      await d.getByText('calc.py').first().waitFor();
+      await d.getByText('Test results').waitFor();
+      await d.getByText('4 passed').first().waitFor();
+      await d.getByText(/Secrets, tokens and key-like strings are masked/).waitFor();
+      // the secret the stand-in CLI printed never reaches the page
+      const body = await p.locator('body').innerText();
+      if (body.includes('secret123456')) throw new Error('a secret is shown in the run detail');
+      await d.getByRole('button', { name: 'Collapse all' }).click();
+      await d.getByRole('button', { name: 'Expand all' }).click();
+      await d.getByRole('button', { name: /^reviewer 2 steps/ }).click();
+      await d.getByText('git diff --stat').first().waitFor();
+      await d.getByText('Show run #1').count();
+      await d.getByRole('button', { name: 'Show run #1' }).waitFor();
     });
   },
 };

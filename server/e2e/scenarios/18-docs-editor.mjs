@@ -51,25 +51,25 @@ export default {
       await content().getByRole('heading', { name: 'Tour of the editor', level: 1 }).waitFor();
       await p.keyboard.press('Enter');
     });
-    await s.step('toolbar: bold, italic and strikethrough on typed words', async () => {
-      await p.keyboard.type('Plain words then bold words.');
-      for (let i = 0; i < 'bold words.'.length; i++) await p.keyboard.press('Shift+ArrowLeft');
-      await tb('Bold').click();
-      await content().locator('strong', { hasText: 'bold words.' }).waitFor();
-      await p.keyboard.press('End');
-      await p.keyboard.type(' ');
-      await tb('Bold').click(); // off again
-      await p.keyboard.type('Italic one');
-      for (let i = 0; i < 'Italic one'.length; i++) await p.keyboard.press('Shift+ArrowLeft');
-      await tb('Italic').click();
-      await content().locator('em', { hasText: 'Italic one' }).waitFor();
-      await p.keyboard.press('End');
-      await p.keyboard.type(' struck');
-      for (let i = 0; i < 'struck'.length; i++) await p.keyboard.press('Shift+ArrowLeft');
-      await tb('Strikethrough').click();
-      await content().locator('s, del', { hasText: 'struck' }).waitFor();
-      s.note('paragraph html', await content().locator('p').first().innerHTML());
-      await tb('Bold').and(p.locator('[aria-pressed]')).waitFor();
+    await s.step('toolbar: bold, italic, strikethrough, inline code and highlight, one line each', async () => {
+      // a line is typed, selected with Shift+Home, and the toolbar button applies the mark to it
+      const format = async (button, text, selector) => {
+        if ((await tb(button).getAttribute('aria-pressed')) === 'true') await tb(button).click(); // a mark carried over from the line above
+        await p.keyboard.type(text);
+        await p.keyboard.press('Shift+Home');
+        await tb(button).click();
+        await content().locator(selector, { hasText: text }).waitFor();
+        await tb(button).and(p.locator('[aria-pressed="true"]')).waitFor();
+        await p.keyboard.press('End');
+        await tb(button).click(); // off for what follows
+        await p.keyboard.press('Enter');
+      };
+      await format('Bold', 'Bold line', 'strong');
+      await format('Italic', 'Italic line', 'em');
+      await format('Strikethrough', 'Struck line', 's, del');
+      await format('Inline code', 'code line', 'code');
+      await format('Highlight', 'Marked line', 'mark');
+      await saved();
     });
     await s.step('toolbar: a bulleted list and a quote', async () => {
       await p.keyboard.press('End');
@@ -205,10 +205,10 @@ export default {
       await publishDoc(s, 'Editor tour');
       await p.getByText('Published · v1').waitFor();
       await p.getByRole('heading', { name: 'Tour of the editor', level: 1 }).first().waitFor();
-      await p.locator('strong', { hasText: 'bold words.' }).first().waitFor();
+      await p.locator('strong', { hasText: 'Bold line' }).first().waitFor();
+      await p.locator('s, del', { hasText: 'Struck line' }).first().waitFor();
       await p.getByRole('table').getByText('Engineer').waitFor();
       await p.getByText('Remember to publish.').waitFor();
-      await p.locator('pre code', { hasText: 'fn main() {}' }).waitFor();
       await p.locator('.katex').first().waitFor();
     });
     await s.step('Find in page on the published page', async () => {
@@ -228,7 +228,7 @@ export default {
       const text = fs.readFileSync(await dl.path(), 'utf8');
       s.note('export content', text);
       if (!dl.suggestedFilename().endsWith('.md')) throw new Error('not a .md file: ' + dl.suggestedFilename());
-      for (const part of ['# Editor tour', 'Tour of the editor', '**bold words.**', 'first item', 'second item', 'Engineer', 'Remember to publish.', '```', 'fn main() {}', '$$']) {
+      for (const part of ['# Editor tour', 'Tour of the editor', '**Bold line**', '*Italic line*', '~~Struck line~~', '`code line`', '==Marked line==', 'first item', 'second item', 'Engineer', 'Remember to publish.', '```', 'fn main() {}', '$$']) {
         if (!text.includes(part)) throw new Error(`the export lacks ${JSON.stringify(part)}:\n${text}`);
       }
     });

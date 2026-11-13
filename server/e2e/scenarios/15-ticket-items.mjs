@@ -186,20 +186,21 @@ export default {
       await dlg().getByRole('button', { name: /^Activity/ }).click();
       await dlg().getByRole('button', { name: /^All \(\d+\)/ }).waitFor();
       // the newest changes come first; older ones sit behind "Show N earlier changes"
-      await dlg().getByText(/^Link removed/).first().waitFor();
-      await dlg().getByText(/Blocked by removed/).first().waitFor();
-      await dlg().getByText(/Debug · Developer added/).first().waitFor();
-      await dlg().getByText(/Test case · TC-1/).first().waitFor();
+      const act = (re) => dlg().locator('[class*="acMain"]').filter({ hasText: re }).first();
+      await act(/Link\s*removed/).waitFor();
+      await act(/Blocked by\s*removed/).waitFor();
+      await act(/Debug · Developer\s*added/).waitFor();
+      await act(/Test case · TC-1/).waitFor();
       await dlg().getByRole('button', { name: /^Show \d+ earlier changes/ }).click();
-      await dlg().getByText('Ticket created').first().waitFor();
-      await dlg().getByText(/Sub-task added/).first().waitFor();
+      await act(/Ticket created/).waitFor();
+      await act(/Sub-task\s*added/).waitFor();
       // a filter narrows the list to the entries of that kind
       await dlg().getByRole('button', { name: /^Comments \(\d+\)/ }).click();
-      await dlg().getByText('Ticket created').waitFor({ state: 'detached' });
+      await dlg().locator('[class*="acMain"]').filter({ hasText: /Ticket created/ }).waitFor({ state: 'detached' });
     });
     await s.step('filter the activity back to all', async () => {
       await dlg().getByRole('button', { name: /^All \(/ }).click();
-      await dlg().getByText(/Blocked by removed/).first().waitFor();
+      await dlg().locator('[class*="acMain"]').filter({ hasText: /Link\s*removed/ }).first().waitFor();
     });
     await s.step('back and close', async () => {
       await back('ALP-1');
