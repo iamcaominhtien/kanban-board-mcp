@@ -474,11 +474,15 @@ export default {
       const notice = other.getByTestId('workspace-switched-notice');
       await notice.filter({ hasText: 'Default is now the board in use' }).waitFor({ timeout: 15000 });
       // what that window's client sends with a change: the board it loaded
-      const refused = await other.evaluate(async (board) => {
-        const r = await fetch('/projects', { method: 'POST', headers: { 'content-type': 'application/json', 'x-kanban-board': board }, body: JSON.stringify({ name: 'Stray', prefix: 'STR', color: '#000000' }) });
-        return r.status;
-      }, homeBoard);
+      // (sent from the test, not the page, so the expected 409 is not a console error of the page)
+      const refused = (
+        await other.request.post(new URL('/projects', other.url()).href, {
+          headers: { 'x-kanban-board': homeBoard },
+          data: { name: 'Stray', prefix: 'STR', color: '#000000' },
+        })
+      ).status();
       if (refused !== 409) throw new Error(`a change for another board answered ${refused}`);
+      if (await p.getByRole('button', { name: /^Stray STR/ }).count()) throw new Error('the refused change made a project');
       await Promise.all([other.waitForNavigation(), notice.getByRole('button', { name: 'Show Default' }).click()]);
       await other.getByTestId('workspace-switched-notice').waitFor({ state: 'detached' });
       await other.close();
@@ -514,7 +518,7 @@ export default {
         await p.getByRole('button', { name: /^Alpha ALP/ }).click();
         if (await p.getByRole('button', { name: /^Cloud CLD/ }).count()) throw new Error('a project of the PostgreSQL board shows in the SQLite one');
         // and the PostgreSQL board is still there when it is opened again
-        await p.getByRole('button', { name: 'Default', exact: true }).click();
+        await p.getByRole('button', { name: 'Workspace: Default', exact: true }).click();
         await Promise.all([p.waitForNavigation(), p.getByRole('menuitemradio', { name: 'Server' }).click()]);
         await p.getByRole('button', { name: /^Cloud CLD/ }).waitFor();
       });
