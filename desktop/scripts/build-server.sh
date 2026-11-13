@@ -14,7 +14,7 @@
 set -euo pipefail
 
 # The Rust workspace, relative to the repository root. The one place this script names it.
-SERVER_DIR="server-rs"
+SERVER_DIR="server"
 
 WORKSPACE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CARGO_DIR="$WORKSPACE_ROOT/$SERVER_DIR"

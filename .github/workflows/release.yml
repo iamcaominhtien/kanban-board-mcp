@@ -12,7 +12,7 @@ env:
   NODE_VERSION: '20'
   PYTHON_VERSION: '3.12' # the guide's build
   # The Rust workspace that holds the server (the cache path below). desktop/scripts/build-server.sh names it too.
-  SERVER_DIR: server-rs
+  SERVER_DIR: server
   # Keep equal to rust-version in <SERVER_DIR>/Cargo.toml
   RUST_TOOLCHAIN: '1.94'
 

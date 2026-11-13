@@ -16,7 +16,7 @@ Without notarization, macOS users must right-click → Open to bypass Gatekeeper
 
 ## Bundled server
 
-`../scripts/build-server.sh` builds the Rust programs `kanban-server` and `kanban-mcp-stdio` (`server-rs/`) into
+`../scripts/build-server.sh` builds the Rust programs `kanban-server` and `kanban-mcp-stdio` (`server/`) into
 `dist-server/kanban-mcp-stdio/`, and `package.json` copies that folder into the app's Resources (`extraResources` of
 `mac` and `win`). The programs are signed with the app when a signing identity is set; `entitlements.mac.plist`
 applies to the whole app, Electron's helpers included.

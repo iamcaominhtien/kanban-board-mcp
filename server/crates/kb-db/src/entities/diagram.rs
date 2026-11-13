@@ -1,0 +1,55 @@
+//! `diagram` (Python model `Diagram`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+/// A draw.io diagram referenced from markdown as ``[label](diagram:id)``.
+///
+/// Deleting only unlinks it: the row is kept (``deleted_at``) so it stays in the Recycle Bin.
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "diagram")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: String,
+    pub project_id: String,
+    pub label: String,
+    /// short text summary offered next to the image
+    pub summary: String,
+    /// ticket | comment | doc
+    pub item_kind: Option<String>,
+    pub item_id: Option<String>,
+    /// latest saved version
+    pub version: i32,
+    pub created_by: String,
+    pub created_at: String,
+    pub updated_by: String,
+    pub updated_at: String,
+    pub deleted_at: Option<String>,
+    pub deleted_by: Option<String>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `Diagram`.
+/// Set before saving: `project_id`.
+pub fn new() -> ActiveModel {
+    ActiveModel {
+        id: Set(kb_base::time::prefixed_id("dg_", 8)),
+        project_id: NotSet,
+        label: Set("Diagram".to_string()),
+        summary: Set("".to_string()),
+        item_kind: Set(None),
+        item_id: Set(None),
+        version: Set(1),
+        created_by: Set("user".to_string()),
+        created_at: Set(kb_base::time::now_iso()),
+        updated_by: Set("user".to_string()),
+        updated_at: Set(kb_base::time::now_iso()),
+        deleted_at: Set(None),
+        deleted_by: Set(None),
+    }
+}

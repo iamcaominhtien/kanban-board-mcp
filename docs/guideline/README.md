@@ -46,9 +46,9 @@ python3 build.py --facts            # print the facts read from the code and che
 
 | Fact | Where it comes from |
 | --- | --- |
-| Number and names of MCP tools, the Idea Space tools | `server/kanban_mcp/tools/__init__.py`, `registry.py` (read by `facts.py`) |
+| Number and names of MCP tools, the Idea Space tools | `server/contract/mcp-tools.json`, `mcp-tools-ideas.json` (read by `facts.py`) |
 | AI defaults (parallel runs, runs per day, daily budget) | `server/services/ai/members.py` (read by `facts.py`) |
-| Statuses, types, priorities | `server/models.py` (read by `facts.py`) |
+| Statuses, types, priorities | `server/crates/kb-mcp/src/common.rs` (read by `facts.py`) |
 | Settings pages and their scope | `ui/src/components/settings/settingsIndex.ts` (read by `facts.py`) |
 | Menu items, accelerators, which items need the backend | `desktop/menu.js` (tested in `desktop/tests/menu.test.js`) |
 | The built-in AI roles | `ui/src/components/ai/memberPresets.json` (read through `@preset`) |
@@ -80,7 +80,7 @@ python3 build.py        # writes huong-dan-dung-ai.pdf
 ```
 
 It needs Python 3, Node and Playwright with Chromium (`npm i playwright && npx playwright install chromium`). The version on the
-cover and in the footer is read from `server/version.py`, so rebuild when the app version changes. Look at the pages after a
+cover and in the footer is read from `server/Cargo.toml`, so rebuild when the app version changes. Look at the pages after a
 build (for example `pdftoppm -r 60 -png huong-dan-dung-ai.pdf page`): tables and figures flow across pages, so a longer
 paragraph can leave a short last page.
 

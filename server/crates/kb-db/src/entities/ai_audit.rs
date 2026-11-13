@@ -1,0 +1,60 @@
+//! `ai_audit` (Python model `AiAudit`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+/// Append-only record of every action an AI member attempted, chained by hash (table).
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ai_audit")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: String,
+    pub seq: i32,
+    pub project_id: String,
+    pub member_id: Option<String>,
+    pub member_name: String,
+    pub on_behalf_of: Option<String>,
+    pub run_id: Option<String>,
+    /// permission action or a lifecycle event (run_started, kill_switch, …)
+    pub action: String,
+    /// usually a ticket id
+    pub target: Option<String>,
+    /// allowed | approved | needs_approval | denied | blocked | reverted | info
+    pub result: String,
+    /// JSON: request (redacted), reason, before/after
+    pub detail: String,
+    pub created_at: String,
+    pub reverted_at: Option<String>,
+    pub reverted_by: Option<String>,
+    pub prev_hash: String,
+    pub hash: String,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `AiAudit`.
+/// Set before saving: `project_id`, `action`.
+pub fn new() -> ActiveModel {
+    ActiveModel {
+        id: Set(kb_base::time::prefixed_id("aud_", 10)),
+        seq: Set(0),
+        project_id: NotSet,
+        member_id: Set(None),
+        member_name: Set("".to_string()),
+        on_behalf_of: Set(None),
+        run_id: Set(None),
+        action: NotSet,
+        target: Set(None),
+        result: Set("allowed".to_string()),
+        detail: Set("{}".to_string()),
+        created_at: Set(kb_base::time::now_iso()),
+        reverted_at: Set(None),
+        reverted_by: Set(None),
+        prev_hash: Set("".to_string()),
+        hash: Set("".to_string()),
+    }
+}

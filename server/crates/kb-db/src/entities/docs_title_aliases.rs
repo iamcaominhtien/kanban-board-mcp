@@ -1,0 +1,27 @@
+//! `docs_title_aliases` (Python model `DocsTitleAlias`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+/// A title a page used to have: ``[[Old title]]`` keeps resolving to the page (by id) after a rename.
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "docs_title_aliases")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: String,
+    pub page_id: String,
+    /// lower-cased, trimmed
+    pub old_title: String,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `DocsTitleAlias`.
+/// Set before saving: `page_id`, `old_title`.
+pub fn new() -> ActiveModel {
+    ActiveModel { id: Set(kb_base::time::uuid4()), page_id: NotSet, old_title: NotSet }
+}

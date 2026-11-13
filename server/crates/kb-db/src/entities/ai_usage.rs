@@ -1,0 +1,47 @@
+//! `ai_usage` (Python model `AiUsage`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+use crate::float::Float;
+
+/// Metering of the Board AI per feature (chat, drafting, split, test_cases, health, docs).
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ai_usage")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: String,
+    pub project_id: String,
+    pub feature: String,
+    pub member_id: Option<String>,
+    pub person: Option<String>,
+    #[sea_orm(column_type = "Double")]
+    pub cost: Float,
+    pub tokens_in: i32,
+    pub tokens_out: i32,
+    pub metered: bool,
+    pub created_at: String,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `AiUsage`.
+/// Set before saving: `project_id`, `feature`.
+pub fn new() -> ActiveModel {
+    ActiveModel {
+        id: Set(kb_base::time::uuid4()),
+        project_id: NotSet,
+        feature: NotSet,
+        member_id: Set(None),
+        person: Set(None),
+        cost: Set(Float(0.0)),
+        tokens_in: Set(0),
+        tokens_out: Set(0),
+        metered: Set(true),
+        created_at: Set(kb_base::time::now_iso()),
+    }
+}

@@ -1,0 +1,155 @@
+//! `ai_run` (Python model `AiRun`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+use crate::float::Float;
+
+/// One Claude Code session the board started (AI v2): a team's lead on a ticket (`kind` team), an assistant on a
+/// page or the board (`assistant`), or a schedule's run (`schedule`). Steps are rows of `ai_run_step`. (table)
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ai_run")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: String,
+    pub project_id: String,
+    /// team | assistant | schedule
+    pub kind: String,
+    pub ticket_id: Option<String>,
+    /// An assistant's target: docs:<page id> | board | idea:<id> | sketch:<id>
+    pub target: Option<String>,
+    /// the team
+    pub member_id: String,
+    /// per ticket
+    pub number: i32,
+    /// work | ask
+    pub mode: String,
+    /// assign | run_button | message (the ticket chat) | ai_message (another AI's note) | docs_threads (comment threads
+    /// sent from Docs) | ci_red | review_comments | retry | schedule | github | api
+    pub trigger: String,
+    /// How many AI-to-AI hand-offs lie behind this run (0: a person started it). `ai_run message` stops at MAX_DEPTH.
+    pub depth: i32,
+    /// queued | starting | running | needs_input | finished | failed | cancelled
+    pub state: String,
+    pub started_by: String,
+    pub instruction: String,
+    pub reply_comment_id: Option<String>,
+    pub queued_at: String,
+    pub started_at: Option<String>,
+    pub ended_at: Option<String>,
+    pub last_output_at: Option<String>,
+    pub ended_reason: Option<String>,
+    pub ended_by: Option<String>,
+    pub exit_code: Option<i32>,
+    pub summary: Option<String>,
+    /// JSON: the lead's final report (--json-schema): status, summary, branch, pr_url, open_items, lessons, asks
+    pub report: String,
+    pub question: Option<String>,
+    pub answer: Option<String>,
+    /// CLI session, for --resume
+    pub session_id: Option<String>,
+    pub session_name: Option<String>,
+    /// JSON list of {path, added, removed, new}
+    pub files: String,
+    pub tokens_in: i32,
+    pub tokens_out: i32,
+    pub tokens_cached: Option<i32>,
+    #[sea_orm(column_type = "Double")]
+    pub cost_usd: Float,
+    pub metered: bool,
+    pub context_used: Option<i32>,
+    pub context_window: Option<i32>,
+    pub pid: Option<i32>,
+    pub token_hash: Option<String>,
+    pub model: Option<String>,
+    pub effort: Option<String>,
+    pub paused: bool,
+    pub paused_at: Option<String>,
+    /// Why the run ended when it was not its own doing: budget | memory | board_closed | deleted | reassigned
+    pub stop_code: Option<String>,
+    #[sea_orm(column_type = "Double")]
+    pub peak_rss_mb: Option<Float>,
+    #[sea_orm(column_type = "Double")]
+    pub last_rss_mb: Option<Float>,
+    /// JSON [{at, rss_mb, limit_mb, by, n}]
+    pub restarts: String,
+    /// JSON: why the run is in trouble
+    pub diagnosis: Option<String>,
+    /// JSON [{at, label, n, of}]
+    pub retries: String,
+    pub retry_at: Option<String>,
+    pub account_id: Option<String>,
+    /// --debug-file of the run
+    pub debug_log: Option<String>,
+    pub steps_count: i32,
+    pub waiting_reason: Option<String>,
+    pub live: bool,
+    pub details_removed_at: Option<String>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `AiRun`.
+/// Set before saving: `project_id`, `member_id`.
+pub fn new() -> ActiveModel {
+    ActiveModel {
+        id: Set(kb_base::time::prefixed_id("run_", 12)),
+        project_id: NotSet,
+        kind: Set("team".to_string()),
+        ticket_id: Set(None),
+        target: Set(None),
+        member_id: NotSet,
+        number: Set(1),
+        mode: Set("work".to_string()),
+        trigger: Set("assign".to_string()),
+        depth: Set(0),
+        state: Set("queued".to_string()),
+        started_by: Set("user".to_string()),
+        instruction: Set("".to_string()),
+        reply_comment_id: Set(None),
+        queued_at: Set(kb_base::time::now_iso()),
+        started_at: Set(None),
+        ended_at: Set(None),
+        last_output_at: Set(None),
+        ended_reason: Set(None),
+        ended_by: Set(None),
+        exit_code: Set(None),
+        summary: Set(None),
+        report: Set("{}".to_string()),
+        question: Set(None),
+        answer: Set(None),
+        session_id: Set(None),
+        session_name: Set(None),
+        files: Set("[]".to_string()),
+        tokens_in: Set(0),
+        tokens_out: Set(0),
+        tokens_cached: Set(None),
+        cost_usd: Set(Float(0.0)),
+        metered: Set(false),
+        context_used: Set(None),
+        context_window: Set(None),
+        pid: Set(None),
+        token_hash: Set(None),
+        model: Set(None),
+        effort: Set(None),
+        paused: Set(false),
+        paused_at: Set(None),
+        stop_code: Set(None),
+        peak_rss_mb: Set(None),
+        last_rss_mb: Set(None),
+        restarts: Set("[]".to_string()),
+        diagnosis: Set(None),
+        retries: Set("[]".to_string()),
+        retry_at: Set(None),
+        account_id: Set(None),
+        debug_log: Set(None),
+        steps_count: Set(0),
+        waiting_reason: Set(None),
+        live: Set(false),
+        details_removed_at: Set(None),
+    }
+}

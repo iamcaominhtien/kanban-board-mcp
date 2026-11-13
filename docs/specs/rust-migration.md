@@ -113,7 +113,7 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
       (`cargo test -p kb-app --test route_coverage -- --nocapture`)
 - [x] `sea-orm` on the three databases: one scenario passes on SQLite, PostgreSQL 16 and MariaDB 10.11
       (`scripts/dev-databases.sh start`, then `KANBAN_TEST_POSTGRES_URL` / `KANBAN_TEST_MYSQL_URL` for `cargo test -p kb-db`)
-- [ ] Spikes left: FTS5 `bm25` in the bundled SQLite (with the docs search port)
+- [x] FTS5 `bm25` in the bundled SQLite (with the docs search port)
 - [x] Golden vectors: `contract/golden/gen_<name>.py` writes `<name>.json` (first one: fuzzy scores)
 - [x] Module dependency map: the crate order is base, db, files, notify, doctext, draw, docs, board, ideas, skills, ai,
       assist, dbkit, mcp, app; a call that goes up this order is a hook (PORTING.md)
@@ -150,7 +150,7 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
       `docs_guide` in `kb-doctext`)
 - [x] docs, part 1: pages, versions, links, the bin, search with FTS5 (`services/docs.py`, `docs_search.py`,
       `docs_work.py`, 38 routes of `api/docs.py`)
-- [ ] docs, part 2: comments and import (`docs_comments.py`, `docs_import.py`, the other routes of `api/docs.py`)
+- [x] docs, part 2: comments and import (`docs_comments.py`, `docs_import.py`, the other routes of `api/docs.py`)
 - [x] diagrams and sketches (`services/diagram*.py`, `sketches.py`, `api/diagrams.py`, `sketches.py`)
 - [x] canvases, part 1 (`services/canvases.py`, `canvas_png.py`, `canvas_html.py`, `canvas_locks.py`, 30 routes of
       `api/canvases.py`)
@@ -260,9 +260,9 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
 
 ### P7 Switch
 
-- [ ] The development command of the MCP entry (`uv --directory <repo>/server run mcp_stdio.py` today, in
-      `kb_skills::mcp_clients`) and `demo_video_skill/scripts/start_board.py` lines 16 and 34 (`uv run python main.py`)
-      must name the Rust binaries
+- [x] The development command of the MCP entry is the workspace's `target/debug/kanban-mcp-stdio`
+      (`kb_skills::mcp_clients`); the demo skill's `start_board.py` builds and starts `kanban-server`; the database
+      command text (`GET /database/command`) names the running program (`<kanban-server> db ...`)
 - [ ] One copy of the BA templates and the design examples (now in `kb-skills`, `kb-doctext` and `kb-draw`)
 
 - [x] Desktop: `build-desktop.sh`, `desktop/scripts/build-server.sh` (a release build and a smoke test),
@@ -270,11 +270,19 @@ Legend: `[ ]` not started, `[~]` in progress, `[x]` done and verified.
       `KANBAN_SERVER_BIN` overrides); the PyInstaller spec and script are removed. Not run on macOS or Windows yet
 - [x] CI: `ci.yml` (fmt, clippy, and `cargo check` on macOS and Windows), `release.yml`, `nightly-quality.yml`,
       `sonar-project.properties`; the jobs the owner had switched off stay off. The workflows have not run yet
-- [ ] At the rename of `server-rs/` to `server/`: `SERVER_DIR` in `desktop/scripts/build-server.sh`,
-      `desktop/main-helpers.js` and the three workflows, and the paths in `sonar-project.properties`
-- [ ] Delete the Python server, move `server-rs/` to `server/`
-- [ ] `CLAUDE.md`, `.claude/scripts/codegraph.sh`, READMEs, `docs/arch/backend-architecture.md`,
-      `docs/guideline/databases.md`, `CHANGELOG.md` (5.0.0)
+- [x] `SERVER_DIR` in `desktop/scripts/build-server.sh`, `desktop/main-helpers.js` and the three workflows, and the
+      paths in `sonar-project.properties`, name `server/`
+- [x] The 4.0.2 and 4.0.3 fixes of the Python server (merged from `main` during the port) are ported: runner
+      announcements, the SQLite write gate, no lost ticket changes, faster Docs pages, the port kept across restarts
+- [x] The Python server is deleted and `server-rs/` is `server/`. The last commit with the Python server is the parent
+      of the commit that removed it (`git log --diff-filter=D -- server/main.py`). Its recorded answers stay in
+      `contract/golden/` as the expected values; the generators (`gen_*.py`, `export_contract.py`, `gen_entities.py`)
+      and the `PARITY_TARGET=python` mode went with it (the test harness says so when asked for it)
+- [x] `CLAUDE.md`, READMEs, `docs/arch/backend-architecture.md`, `docs/guideline/databases.md`, the guide's
+      `facts.py` and cover version, `CHANGELOG.md` (5.0.0); the app's version is 5.0.0 (`desktop/`, `ui/`)
+- Left: the guide's three AI facts (`ai_parallel`, `ai_runs_per_day`, `ai_daily_budget`) read
+  `server/services/ai/members.py`, which 4.0.0 removed (AI v2): the guide build has failed on them since 4.0.0, and
+  the chapters that use them describe limits AI v2 no longer has. They need a rewrite of those chapters.
 
 ### P8 Acceptance
 

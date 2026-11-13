@@ -4,7 +4,7 @@ const os = require('node:os');
 
 // The Rust workspace that holds the server (kanban-server and kanban-mcp-stdio), relative to the repository root.
 // The one place that names it: change this line when the folder is renamed.
-const SERVER_DIR = 'server-rs';
+const SERVER_DIR = 'server';
 
 function resolveConfiguredUploadsDir(userDataPath, configPath = null) {
   if (configPath) {

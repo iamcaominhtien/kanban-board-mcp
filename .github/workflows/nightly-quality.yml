@@ -29,7 +29,7 @@ permissions:
 env:
   # The Rust workspace that holds the server. The one place this file names it: change this line when the folder is
   # renamed (the paths below read it).
-  SERVER_DIR: server-rs
+  SERVER_DIR: server
   # Keep equal to rust-version in <SERVER_DIR>/Cargo.toml
   RUST_TOOLCHAIN: "1.94"
 

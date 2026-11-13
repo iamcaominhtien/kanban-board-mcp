@@ -1,0 +1,28 @@
+//! `docs_ai_ignore` (Python model `DocsAiIgnore`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+/// A "Check this page" finding a person chose to ignore for a page (the key is a hash of kind + quote).
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "docs_ai_ignore")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub page_id: String,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub key: String,
+    pub by: String,
+    pub at: String,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `DocsAiIgnore`.
+/// Set before saving: `page_id`, `key`.
+pub fn new() -> ActiveModel {
+    ActiveModel { page_id: NotSet, key: NotSet, by: Set("user".to_string()), at: Set(kb_base::time::now_iso()) }
+}

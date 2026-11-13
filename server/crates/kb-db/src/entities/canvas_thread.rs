@@ -1,0 +1,59 @@
+//! `canvas_thread` (Python model `CanvasThread`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+use crate::float::Float;
+
+/// A comment thread pinned to a board (moves with it) or to a point of the plane.
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "canvas_thread")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: String,
+    pub canvas_id: String,
+    /// pins are numbered in the order they were made
+    pub number: i32,
+    pub board_id: Option<String>,
+    #[sea_orm(column_type = "Double")]
+    pub x: Float,
+    #[sea_orm(column_type = "Double")]
+    pub y: Float,
+    /// page tab of a plane pin
+    pub page: Option<String>,
+    /// JSON {sel, text, ox, oy, w}: the element a pin was put on (CSS selector or visible text), where inside it, and at
+    /// what frame width; x and y stay as the fallback when the element is not found or the frame is only a picture
+    pub anchor: Option<String>,
+    /// open | resolved
+    pub status: String,
+    pub created_by: String,
+    pub created_at: String,
+    pub resolved_by: Option<String>,
+    pub resolved_at: Option<String>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `CanvasThread`.
+/// Set before saving: `canvas_id`.
+pub fn new() -> ActiveModel {
+    ActiveModel {
+        id: Set(kb_base::time::uuid4()),
+        canvas_id: NotSet,
+        number: Set(1),
+        board_id: Set(None),
+        x: Set(Float(0.5)),
+        y: Set(Float(0.5)),
+        page: Set(None),
+        anchor: Set(None),
+        status: Set("open".to_string()),
+        created_by: Set("user".to_string()),
+        created_at: Set(kb_base::time::now_iso()),
+        resolved_by: Set(None),
+        resolved_at: Set(None),
+    }
+}

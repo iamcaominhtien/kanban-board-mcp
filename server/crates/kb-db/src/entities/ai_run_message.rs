@@ -1,0 +1,41 @@
+//! `ai_run_message` (Python model `AiRunMessage`). Generated from the Python model by `contract/gen_entities.py` (removed in 5.0.0, with the Python server); now edited by hand.
+
+use sea_orm::ActiveValue::{NotSet, Set};
+use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+/// A message into or out of a run: a person's note to the running lead, a message from or to another AI
+/// session (table).
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "ai_run_message")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: String,
+    pub run_id: String,
+    /// in | out
+    pub direction: String,
+    /// a session name, or a person's name
+    pub peer: String,
+    pub text: String,
+    pub at: String,
+    pub delivered_at: Option<String>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// A new row with the defaults of the Python model `AiRunMessage`.
+/// Set before saving: `run_id`.
+pub fn new() -> ActiveModel {
+    ActiveModel {
+        id: Set(kb_base::time::prefixed_id("msg_", 12)),
+        run_id: NotSet,
+        direction: Set("in".to_string()),
+        peer: Set("".to_string()),
+        text: Set("".to_string()),
+        at: Set(kb_base::time::now_iso()),
+        delivered_at: Set(None),
+    }
+}

@@ -57,7 +57,7 @@ comments_*.png
 docs/guideline/guide/dist/
 docs/guideline/guide/node_modules/
 
-# Slide themes: render scratch (services/slides_skill/themes/build.py)
-server/services/slides_skill/themes/*/.look/
-server/services/slides_skill/examples/*/.look/
-server/services/slides_skill/examples/*/deck-office-fonts.pptx
+# Slide themes: render scratch (themes/build.py of the slides skill, kept with the server's embedded assets)
+server/crates/kb-skills/assets/slides_skill/themes/*/.look/
+server/crates/kb-skills/assets/slides_skill/examples/*/.look/
+server/crates/kb-skills/assets/slides_skill/examples/*/deck-office-fonts.pptx
