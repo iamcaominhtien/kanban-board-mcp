@@ -441,6 +441,10 @@ pub fn slugify(text: &str) -> String {
 
 /// `_strip_inline`: a line as plain text: `[[page|label]]` and `[text](url)` become their label, emphasis marks go.
 pub fn strip_inline(text: &str) -> String {
+    // most lines have no link and no mark: then only the surrounding space goes
+    if !text.contains(['[', '=', '*', '_', '`', '~']) {
+        return crate::pystr::strip(text).to_string();
+    }
     let text = link_labels(&ref_labels(text));
     // re.sub(r"==|[*_`~]", "", text).strip()
     let chars: Vec<char> = text.chars().collect();

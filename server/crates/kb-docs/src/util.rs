@@ -6,8 +6,11 @@ use std::hash::Hash;
 
 use unicode_normalization::UnicodeNormalization;
 
-/// `text.casefold()`.
+/// `text.casefold()`. ASCII text, most of what a search walks, folds to its lower case without the Unicode tables.
 pub fn casefold(text: &str) -> String {
+    if text.is_ascii() {
+        return text.to_ascii_lowercase();
+    }
     caseless::default_case_fold_str(text)
 }
 
