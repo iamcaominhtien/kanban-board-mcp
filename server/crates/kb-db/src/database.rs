@@ -526,8 +526,9 @@ fn left_behind_message(stayed_on: Option<&str>, opened: Option<&str>) -> String 
     format!(
         "The Kanban app was switched from {stayed} to another board, {opened}. This MCP server stays on {stayed} and \
          does nothing more, so that the ticket keys you read there are not used to change other tickets in {opened}. \
-         Tell the person: switch back to {stayed} in the app to go on here, or restart the Kanban MCP server (start a \
-         new session) to work on {opened}."
+         Nothing was changed. Tell the person, and do not retry: either switch back to {stayed} in the app and go on, \
+         or reconnect the Kanban MCP server in the editor (Claude Code: type /mcp, choose kanban, reconnect; or start \
+         a new session) and read the tickets again on {opened} before changing anything."
     )
 }
 
