@@ -16,7 +16,7 @@ use kb_fuzzy::{fuzz, process};
 use serde_json::{Map, Value as Json, json};
 
 use super::index::{contents, ensure_fts};
-use super::query::{Query, build_matches, contains, highlight, passes, plain_line, window};
+use super::query::{Query, build_matches, contains, count_matches, highlight, passes, plain_line, window};
 use crate::util::casefold;
 use crate::{Result, docs_err};
 
@@ -536,8 +536,7 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
     let match_count: usize = counted
         .iter()
         .map(|p| {
-            build_matches(all_content.get(&p.id).map(String::as_str).unwrap_or(""), &positive, headings_only, 1000)
-                .len()
+            count_matches(all_content.get(&p.id).map(String::as_str).unwrap_or(""), &positive, headings_only, 1000)
                 .max(1)
         })
         .sum();

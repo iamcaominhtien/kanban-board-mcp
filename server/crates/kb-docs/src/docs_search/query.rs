@@ -133,26 +133,41 @@ pub(crate) fn passes(query: &Query, fields: &[&str]) -> bool {
 ///
 /// `terms` are matched case-insensitively; the result is safe HTML.
 pub fn highlight(plain: &str, terms: &[String]) -> String {
-    let mut seen = HashSet::new();
-    let mut terms: Vec<&String> = terms.iter().filter(|t| !t.is_empty() && seen.insert(*t)).collect();
-    // `sorted(..., key=len, reverse=True)`: longest first
-    terms.sort_by_key(|t| std::cmp::Reverse(t.chars().count()));
-    if terms.is_empty() {
-        return html_escape(plain);
+    Marker::new(terms).mark(plain)
+}
+
+/// `highlight` with its pattern built once, for marking many snippets with the same terms (building the
+/// case-insensitive pattern costs far more than using it; Python's `re` keeps compiled patterns in a cache).
+pub struct Marker {
+    rx: Option<regex::Regex>,
+}
+
+impl Marker {
+    /// The pattern of `terms`: longest first, as `sorted(..., key=len, reverse=True)`. None when there is no term.
+    pub fn new(terms: &[String]) -> Self {
+        let mut seen = HashSet::new();
+        let mut terms: Vec<&String> = terms.iter().filter(|t| !t.is_empty() && seen.insert(*t)).collect();
+        terms.sort_by_key(|t| std::cmp::Reverse(t.chars().count()));
+        if terms.is_empty() {
+            return Marker { rx: None };
+        }
+        let pattern = terms.iter().map(|t| regex::escape(t)).collect::<Vec<_>>().join("|");
+        Marker { rx: RegexBuilder::new(&pattern).case_insensitive(true).build().ok() }
     }
-    let pattern = terms.iter().map(|t| regex::escape(t)).collect::<Vec<_>>().join("|");
-    let Ok(rx) = RegexBuilder::new(&pattern).case_insensitive(true).build() else {
-        return html_escape(plain);
-    };
-    let mut out = String::new();
-    let mut last = 0;
-    for m in rx.find_iter(plain) {
-        out.push_str(&html_escape(&plain[last..m.start()]));
-        out.push_str(&format!("<mark>{}</mark>", html_escape(m.as_str())));
-        last = m.end();
+
+    /// HTML-escape `plain` and wrap each occurrence of a term in `<mark>`.
+    pub fn mark(&self, plain: &str) -> String {
+        let Some(rx) = &self.rx else { return html_escape(plain) };
+        let mut out = String::new();
+        let mut last = 0;
+        for m in rx.find_iter(plain) {
+            out.push_str(&html_escape(&plain[last..m.start()]));
+            out.push_str(&format!("<mark>{}</mark>", html_escape(m.as_str())));
+            last = m.end();
+        }
+        out.push_str(&html_escape(&plain[last..]));
+        out
     }
-    out.push_str(&html_escape(&plain[last..]));
-    out
 }
 
 /// A window of about `width` characters around the first hit (positions as Python reads them: an index into the
@@ -182,12 +197,41 @@ pub(crate) fn plain_line(raw: &str) -> String {
 
 /// The sections whose text contains a term, each with a marked snippet: `{section, slug, snippet}`.
 pub fn build_matches(markdown: &str, terms: &[String], headings_only: bool, limit: usize) -> Vec<Map<String, Value>> {
+    let marker = Marker::new(terms);
+    let mut out = Vec::new();
+    scan_matches(markdown, terms, headings_only, limit, |section, slug, plain| {
+        let mut m = Map::new();
+        m.insert("section".into(), section.map(Value::from).unwrap_or(Value::Null));
+        m.insert("slug".into(), slug.map(Value::from).unwrap_or(Value::Null));
+        m.insert("snippet".into(), json!(marker.mark(&window(plain, terms, 150))));
+        out.push(m);
+    });
+    out
+}
+
+/// How many sections `build_matches` would list, without making their snippets.
+pub fn count_matches(markdown: &str, terms: &[String], headings_only: bool, limit: usize) -> usize {
+    let mut n = 0;
+    scan_matches(markdown, terms, headings_only, limit, |_, _, _| n += 1);
+    n
+}
+
+/// The walk of `build_matches`: `found(section text, slug, the line as plain text)` for the first line of each
+/// section that holds a term, at most `limit` times.
+fn scan_matches(
+    markdown: &str,
+    terms: &[String],
+    headings_only: bool,
+    limit: usize,
+    mut found: impl FnMut(Option<&str>, Option<&str>, &str),
+) {
+    let folded: Vec<String> = terms.iter().map(|t| casefold(t)).collect();
     let anchors = heading_anchors(markdown);
     let mut section: Option<&kb_doctext::docs_text::HeadingAnchor> = None;
     let mut idx = 0;
     let mut in_fence = false;
-    let mut seen: HashSet<Option<String>> = HashSet::new();
-    let mut out = Vec::new();
+    let mut seen: HashSet<Option<&str>> = HashSet::new();
+    let mut count = 0;
     for raw in pytext::splitlines(markdown) {
         if is_fence(raw) {
             in_fence = !in_fence;
@@ -205,23 +249,24 @@ pub fn build_matches(markdown: &str, terms: &[String], headings_only: bool, limi
             continue;
         }
         let plain = plain_line(raw);
-        if plain.is_empty() || !terms.iter().any(|t| contains(&plain, t)) {
+        if plain.is_empty() {
             continue;
         }
-        let key = section.map(|s| s.slug.clone());
-        if !seen.insert(key.clone()) {
+        // `contains(plain, t)` for each term, with the line case-folded once
+        let low = casefold(&plain);
+        if !folded.iter().any(|t| low.contains(t.as_str())) {
             continue;
         }
-        let mut m = Map::new();
-        m.insert("section".into(), section.map(|s| json!(s.text)).unwrap_or(Value::Null));
-        m.insert("slug".into(), key.map(Value::from).unwrap_or(Value::Null));
-        m.insert("snippet".into(), json!(highlight(&window(&plain, terms, 150), terms)));
-        out.push(m);
-        if out.len() >= limit {
+        let key = section.map(|s| s.slug.as_str());
+        if !seen.insert(key) {
+            continue;
+        }
+        found(section.map(|s| s.text.as_str()), key, &plain);
+        count += 1;
+        if count >= limit {
             break;
         }
     }
-    out
 }
 
 #[cfg(test)]
