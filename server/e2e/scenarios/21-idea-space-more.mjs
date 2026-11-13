@@ -19,9 +19,9 @@ export default {
     };
     // Back from Settings the app may show the idea page again or the board: end on the page of "Offline mode"
     const backToIdea = async () => {
-      await p.waitForTimeout(600);
+      await p.waitForTimeout(800);
       if (await p.getByTestId('idea-page').count()) return;
-      await p.getByRole('button', { name: 'Idea Space' }).click();
+      if (!(await p.getByTestId('idea-space').count())) await p.getByRole('button', { name: 'Idea Space' }).click();
       await view('List').click();
       await p.getByRole('button', { name: 'Exploring' }).click();
       await p.getByText('Offline mode', { exact: true }).first().click();

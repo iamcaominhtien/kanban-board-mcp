@@ -350,10 +350,14 @@ export default {
       for (const g of ['Go to', 'Create', 'Search', 'AI', 'Docs editor', 'On a ticket', 'Idea Inbox triage']) await d.getByRole('heading', { name: g, level: 3 }).waitFor();
       await d.getByText(/Ask AI \(open or close the Board AI\)/).waitFor();
       await d.getByText(/Quick add an idea/).waitFor();
-      await d.getByRole('searchbox', { name: 'Search shortcuts and commands' }).fill('publish');
+      const box = d.getByRole('searchbox', { name: 'Search shortcuts and commands' });
+      // typed again until it holds: the window can be rebuilt once while the page is still starting its data
+      await until(async () => {
+        if ((await box.inputValue()) !== 'publish') await box.fill('publish');
+        return (await box.inputValue()) === 'publish' && (await d.getByText(/Quick add an idea/).count()) === 0;
+      }, 'the search narrowing the list');
       await d.getByText(/^Publish/).first().waitFor();
-      await until(async () => (await d.getByText(/Quick add an idea/).count()) === 0, 'the search narrowing the list').catch(async (e) => { throw new Error(`${e.message}: ${(await d.innerText()).replace(/\s+/g, ' ').slice(0, 300)} / ${await d.getByRole('searchbox').inputValue()}`); });
-      await d.getByRole('searchbox', { name: 'Search shortcuts and commands' }).fill('zzzz');
+      await box.fill('zzzz');
       await d.getByText(/No shortcut matches/).waitFor();
       // a toast sent by the same menu channel
       await q.evaluate(() => window.__menu({ command: 'toast', variant: 'success', title: 'Menu says hello', message: 'From the stand-in menu' }));
