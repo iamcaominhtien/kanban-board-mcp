@@ -1,6 +1,8 @@
 //! Golden vectors from the Python server (`contract/golden/gen_skills.py` -> `skills.json`): every text constant
 //! and every assembled output of `shared_skills` and `role_skills`, and for each skill folder the names and the
-//! SHA-256 of every file `files()` hands out. A long text is stored as its hash and length.
+//! SHA-256 of every file `files()` hands out. A long text is stored as its hash and length. The generator went with
+//! the Python server in 5.0.0, so a deliberate change to an asset updates its entries by hand (5.0.0:
+//! `demo_video_skill/scripts/start_board.py` starts the Rust server).
 
 use std::collections::BTreeMap;
 use std::path::Path;
