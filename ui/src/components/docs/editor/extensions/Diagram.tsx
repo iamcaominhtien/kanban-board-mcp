@@ -2,6 +2,7 @@ import { Node, mergeAttributes } from '@tiptap/core';
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react';
 import { DiagramEmbed } from '../../../diagrams/DiagramEmbed';
 import { DIAGRAM_LINE } from '../../../diagrams/diagramRefs';
+import { dataOnly } from '../../../../richdoc/extensions/attr';
 
 function DiagramView({ node, updateAttributes, editor }: NodeViewProps) {
   const { id, label } = node.attrs as { id: string; label: string };
@@ -42,9 +43,9 @@ export const Diagram = Node.create({
     ];
   },
 
-  renderHTML({ node }) {
+  renderHTML({ node, HTMLAttributes }) {
     const a = node.attrs as { id: string; label: string };
-    return ['div', mergeAttributes({ 'data-diagram': a.id, 'data-label': a.label }), a.label];
+    return ['div', mergeAttributes(dataOnly(HTMLAttributes), { 'data-diagram': a.id, 'data-label': a.label }), a.label];
   },
 
   renderText({ node }) {

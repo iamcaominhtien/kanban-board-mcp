@@ -1,0 +1,95 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000001"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "See "
+        },
+        {
+          "type": "docRef",
+          "attrs": {
+            "page": "Spec",
+            "pageId": "pg_9",
+            "section": "Fields",
+            "targetBlockId": "b-00ab12"
+          }
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "docRef",
+          "attrs": {
+            "label": "the plan",
+            "page": "Plan"
+          }
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "ticketRef",
+          "attrs": {
+            "key": "KAN-7"
+          }
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "mathInline",
+          "attrs": {
+            "latex": "a^2"
+          }
+        },
+        {
+          "type": "text",
+          "text": "."
+        }
+      ]
+    },
+    {
+      "type": "diagram",
+      "attrs": {
+        "blockId": "b-000002",
+        "id": "dg_abc12345",
+        "label": "Flow",
+        "version": 3,
+        "widthPct": 60
+      }
+    },
+    {
+      "type": "sketch",
+      "attrs": {
+        "blockId": "b-000003",
+        "id": "sk_abc12345",
+        "label": "Whiteboard"
+      }
+    },
+    {
+      "type": "canvas",
+      "attrs": {
+        "blockId": "b-000004",
+        "fragment": "b_12345678",
+        "id": "cv_abc12345",
+        "label": "Screens"
+      }
+    },
+    {
+      "type": "mathBlock",
+      "attrs": {
+        "blockId": "b-000005",
+        "latex": "\\int_0^1 x\\,dx"
+      }
+    }
+  ]
+}

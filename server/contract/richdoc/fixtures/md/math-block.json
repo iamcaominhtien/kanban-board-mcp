@@ -1,0 +1,32 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "mathBlock",
+      "attrs": {
+        "blockId": "b-000001",
+        "latex": "E = mc^2"
+      }
+    },
+    {
+      "type": "mathBlock",
+      "attrs": {
+        "blockId": "b-000002",
+        "latex": "x + y"
+      }
+    },
+    {
+      "type": "mathBlock",
+      "attrs": {
+        "blockId": "b-000003",
+        "latex": "\\begin{aligned}\na &= b \\\\\nc &= d\n\\end{aligned}"
+      }
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000004"
+      }
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000001",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "See "
+        },
+        {
+          "type": "docRef",
+          "attrs": {
+            "page": "Spec",
+            "section": "Fields"
+          }
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000002",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Ticket "
+        },
+        {
+          "type": "ticketRef",
+          "attrs": {
+            "key": "KAN-42"
+          }
+        },
+        {
+          "type": "text",
+          "text": " heading"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000003",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "A "
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": "https://example.com"
+              }
+            }
+          ],
+          "text": "link"
+        },
+        {
+          "type": "text",
+          "text": " heading"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000004"
+      }
+    }
+  ]
+}

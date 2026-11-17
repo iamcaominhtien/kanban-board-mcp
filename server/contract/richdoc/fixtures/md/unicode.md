@@ -1,0 +1,6 @@
+# Tiếng Việt và 日本語
+
+Emoji 🎉 and arrows → ← and a — dash and “quotes”.
+
+- ñandú
+- Ελληνικά

@@ -14,7 +14,8 @@ implementations and `FORMAT_VERSION` together.
   the drawing they show.)
 - A missing, malformed or duplicated id is replaced when the page is saved (`ensure_block_ids`); the first holder of a
   duplicated id keeps it. Ids never change otherwise: moving, editing or restyling a block keeps its id.
-- The **top-level blocks** are the children of `doc` and the children of each `column`. They are the unit of AI
+- The **top-level blocks** are the children of `doc` and the children of each `column` (in reading order: a
+  `columns` block, then the blocks of its first column, its second…). They are the unit of AI
   edits, suggestions and diffs. Nested blocks (list items, paragraphs in a callout or a cell) keep their own ids for
   comment and highlight anchors.
 
@@ -34,17 +35,17 @@ syntax the editor already kept before format 1, written exactly as the TipTap ed
 |---|---|
 | heading 1–6, paragraph, bold, italic, strike, code, link, lists, task list, quote, code fence, GFM table, `---` | GFM |
 | highlight (any colour) | `==text==` |
-| callout | `> [!INFO]`, `[!WARNING]`, `[!SUCCESS]`, `[!DANGER]`, `[!NOTE]` (the kind upper-cased; `custom` is written `[!INFO]`) |
+| callout | `> [!INFO]`, `[!WARNING]`, `[!SUCCESS]`, `[!DANGER]`, `[!NOTE]` (the kind upper-cased; `custom` is written `[!INFO]`); a `title` goes on the marker line (`> [!DANGER] Do not`) and reads back as the first line of the body |
 | image | `![alt\|width](src)` (width in px, when set) |
 | docRef | `[[Page#Section\|label]]` |
 | ticketRef | the bare key `KAN-12` |
 | diagram / sketch / canvas | `[Name](diagram:dg_…)`, `![Name](sketch:sk_…)`, `![Name](canvas:cv_…#frag)` |
 | mathInline / mathBlock | `$…$` / `$$\n…\n$$` |
-| fileCard | `[name](/uploads/…)` on its own line |
-| pageCard / ticketCard | `[[Page]]` / `KAN-12` on its own line |
+| fileCard | `[name](/uploads/…)` on its own line (`name`, or `src` when empty, escaped as editor text: `[report\_v2.pdf](…)`) |
+| pageCard / ticketCard | `[[Page]]` / `KAN-12` on its own line (`[`, `]`, `\|`, `#` and line breaks in the page become spaces; nothing for an empty page) |
 | pullQuote | `> text` |
 | columns | the columns' blocks one after another |
-| video, htmlEmbed, linkEmbed, a table with merged cells | one placeholder line `[embed: <kind> · <title>]` (`kind`: `video`, `HTML embed`, `link`, `table with merged cells`) |
+| video, htmlEmbed, linkEmbed, a table with merged cells | one placeholder line `[embed: <kind> · <title>]` (`kind`: `video`, `HTML embed`, `link`, `table with merged cells`), or `[embed: <kind>]` when the title is empty. Title: video `title`, else `caption`, else `src`; htmlEmbed `title`; linkEmbed `title`, else `url`; merged table its first row as in `text` (cells joined by ` \| `). In the title `[`, `]` and line breaks become spaces, runs of white space one space, trimmed |
 | colour, font, size, alignment, indent, spacing, drop cap, underline, sup/sub, image placement… | dropped (the text stays) |
 
 **Annotated** (the MCP view `docs_read get` and the input of `docs_write` edits): plain, plus
@@ -68,3 +69,11 @@ syntax the editor already kept before format 1, written exactly as the TipTap ed
 - `text`: plain text, one line per text block, for search, snippets, word counts and Docs health
   (`fixtures/*.txt`). Table cells are separated by ` | `, list items start with `- `; embeds contribute their title,
   caption, alt text, file name or code; nothing is read from inside an image, a video, a drawing or a file.
+
+## Canonical JSON
+
+The fixtures and both implementations compare pages in one canonical form: an attribute at its schema default is left
+out (an `attrs` left empty too), attribute keys are sorted by code point, marks come in the order of `schema.json`
+`marks`, and the keys of a node come in the order `type`, `attrs`, `content`, `marks`, `text`. Files are
+`JSON.stringify(doc, null, 2)` plus a newline. Like the editor (StarterKit's trailing node), reading Markdown whose
+last block is not a paragraph adds an empty paragraph at the end. How the fixtures are made: `fixtures/README.md`.

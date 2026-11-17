@@ -1,0 +1,121 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000001"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Fixes "
+        },
+        {
+          "type": "ticketRef",
+          "attrs": {
+            "key": "KAN-12"
+          }
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "ticketRef",
+          "attrs": {
+            "key": "AB-1"
+          }
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "ticketRef",
+          "attrs": {
+            "key": "PROJ1-999"
+          }
+        },
+        {
+          "type": "text",
+          "text": "."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000002"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Not keys: kan-12, K-1, KAN-, KAN-12-3, "
+        },
+        {
+          "type": "ticketRef",
+          "attrs": {
+            "key": "UTF-8"
+          }
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "ticketRef",
+          "attrs": {
+            "key": "ISO-8601"
+          }
+        },
+        {
+          "type": "text",
+          "text": ", /path/KAN-12, KAN-12x."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000003"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "("
+        },
+        {
+          "type": "ticketRef",
+          "attrs": {
+            "key": "KAN-7"
+          }
+        },
+        {
+          "type": "text",
+          "text": "), "
+        },
+        {
+          "type": "ticketRef",
+          "attrs": {
+            "key": "KAN-8"
+          }
+        },
+        {
+          "type": "text",
+          "text": ". "
+        },
+        {
+          "type": "ticketRef",
+          "attrs": {
+            "key": "KAN-9"
+          }
+        },
+        {
+          "type": "text",
+          "text": "!"
+        }
+      ]
+    }
+  ]
+}

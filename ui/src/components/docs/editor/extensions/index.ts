@@ -3,7 +3,6 @@ import { Markdown } from '@tiptap/markdown';
 import StarterKit from '@tiptap/starter-kit';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { TableKit } from '@tiptap/extension-table';
-import Highlight from '@tiptap/extension-highlight';
 import { Callout } from './Callout';
 import { CommentHighlights } from './CommentHighlights';
 import { CodeBlock } from './CodeBlock';
@@ -19,6 +18,26 @@ import { Sketch } from './Sketch';
 import { Canvas } from './Canvas';
 import { TableMethods } from './TableMethods';
 import { TicketRef } from './TicketRef';
+import { BlockId } from '../../../../richdoc/blockId';
+import {
+  Column,
+  Columns,
+  FileCard,
+  HtmlEmbed,
+  LinkEmbed,
+  PageCard,
+  PullQuote,
+  RichAttrs,
+  RichHighlight,
+  RichTable,
+  Subscript,
+  Superscript,
+  TextStyle,
+  TicketCard,
+  Underline,
+  Video,
+  richLink,
+} from '../../../../richdoc/extensions';
 
 export interface ExtensionOptions {
   onCommentSelect?: (threadId: string) => void;
@@ -56,25 +75,43 @@ export function buildExtensions(opts: ExtensionOptions): AnyExtension[] {
     StarterKit.configure({
       codeBlock: false,
       underline: false,
-      link: {
-        openOnClick: false,
-        autolink: true,
-        linkOnPaste: true,
-        HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
-      },
+      // the link comes from richLink: the same extension, storing only href and title (schema.json)
+      link: false,
+    }),
+    richLink({
+      openOnClick: false,
+      autolink: true,
+      linkOnPaste: true,
+      HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
     }),
     Markdown.configure({ markedOptions: { gfm: true, breaks: false } }),
-    // `==text==` in the Markdown, a <mark> on screen, Mod-Shift-H (the reading view renders the same, remarkDocs)
-    Highlight.configure({ multicolor: false }),
+    // `==text==` in the Markdown whatever its colour (format 1 `color`), a <mark> on screen, Mod-Shift-H (the reading
+    // view renders the same, remarkDocs)
+    RichHighlight,
+    Underline,
+    Superscript,
+    Subscript,
+    TextStyle,
     TaskList,
     TaskItem.configure({ nested: true }),
-    TableKit.configure({ table: { resizable: false } }),
+    // the table itself is RichTable: a table with merged cells is a placeholder line in plain Markdown
+    RichTable.configure({ resizable: false }),
+    TableKit.configure({ table: false }),
     CodeBlock,
     DocImage,
     Diagram,
     Sketch,
     Canvas,
     Callout,
+    PullQuote,
+    Columns,
+    Column,
+    Video,
+    HtmlEmbed,
+    FileCard,
+    LinkEmbed,
+    PageCard,
+    TicketCard,
     DocRefInput,
     MathInline,
     MathBlock,
@@ -85,5 +122,8 @@ export function buildExtensions(opts: ExtensionOptions): AnyExtension[] {
     Placeholder,
     NeedsInput,
     Shortcuts.configure({ onLink: opts.onLink }),
+    // format 1: the rich attributes of the existing blocks, and a unique blockId on every block
+    RichAttrs,
+    BlockId,
   ];
 }

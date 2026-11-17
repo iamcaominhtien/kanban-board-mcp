@@ -3,6 +3,7 @@ import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tip
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { dataOnly } from '../../../../richdoc/extensions/attr';
 
 function MathView({ node, selected, updateAttributes }: NodeViewProps) {
   const block = node.type.name === 'mathBlock';
@@ -130,9 +131,13 @@ export const MathBlock = Node.create({
     return [{ tag: 'div[data-math-block]', getAttrs: (el) => ({ latex: (el as HTMLElement).dataset.latex ?? '' }) }];
   },
 
-  renderHTML({ node }) {
+  renderHTML({ node, HTMLAttributes }) {
     const latex = (node.attrs as { latex: string }).latex;
-    return ['div', mergeAttributes({ 'data-math-block': '', 'data-latex': latex }), `$$${latex}$$`];
+    return [
+      'div',
+      mergeAttributes(dataOnly(HTMLAttributes), { 'data-math-block': '', 'data-latex': latex }),
+      `$$${latex}$$`,
+    ];
   },
 
   renderText({ node }) {

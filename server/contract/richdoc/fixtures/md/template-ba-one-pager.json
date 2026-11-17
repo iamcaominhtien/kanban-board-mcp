@@ -1,0 +1,180 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000001",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Problem"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000002"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "What is wrong or missing today, for whom, and how we know (a number, a quote, a ticket)."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000003",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Appetite"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000004"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "How much it is worth: a few days, two weeks? The solution must fit it."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000005",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Proposed solution"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000006"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "The core of the idea in a few lines or a rough sketch, enough to judge it, not a design."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000007",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Success"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000008"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "How we will know it worked, measured: \"complaints about X fall by half\"."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-000009",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "No-gos"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00000a"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "What we will deliberately not do, to keep it inside the appetite."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-00000b",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Risks and rabbit holes"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00000c"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "The parts that could take much longer than they look."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "blockId": "b-00000d",
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Open questions and the ask"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00000e"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "What the reader must decide, and the options."
+        }
+      ]
+    }
+  ]
+}

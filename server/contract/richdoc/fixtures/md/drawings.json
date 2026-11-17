@@ -1,0 +1,65 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "diagram",
+      "attrs": {
+        "blockId": "b-000001",
+        "id": "dg_abc12345",
+        "label": "Flow"
+      }
+    },
+    {
+      "type": "sketch",
+      "attrs": {
+        "blockId": "b-000002",
+        "id": "sk_abc12345"
+      }
+    },
+    {
+      "type": "canvas",
+      "attrs": {
+        "blockId": "b-000003",
+        "id": "cv_abc12345"
+      }
+    },
+    {
+      "type": "canvas",
+      "attrs": {
+        "blockId": "b-000004",
+        "fragment": "b_12345678",
+        "id": "cv_abc12345",
+        "label": "Board"
+      }
+    },
+    {
+      "type": "canvas",
+      "attrs": {
+        "blockId": "b-000005",
+        "fragment": "p_87654321",
+        "id": "cv_abc12345",
+        "label": "Page frame"
+      }
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000006"
+      },
+      "content": [
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": "diagram:dg_bad"
+              }
+            }
+          ],
+          "text": "Not a diagram"
+        }
+      ]
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tip
 import { Icon } from '../../Icon';
 import { useEditorEnv } from '../context';
 import { useResolved } from '../useResolved';
+import { dataOnly } from '../../../../richdoc/extensions/attr';
 
 export interface DocRefAttrs {
   page: string;
@@ -101,11 +102,11 @@ export const DocRef = Node.create({
     ];
   },
 
-  renderHTML({ node }) {
+  renderHTML({ node, HTMLAttributes }) {
     const a = node.attrs as DocRefAttrs;
     return [
       'span',
-      mergeAttributes({
+      mergeAttributes(dataOnly(HTMLAttributes), {
         'data-docref': '',
         'data-page': a.page,
         'data-section': a.section ?? '',

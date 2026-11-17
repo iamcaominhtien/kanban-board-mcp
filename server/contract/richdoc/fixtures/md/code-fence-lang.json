@@ -1,0 +1,37 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "blockId": "b-000001",
+        "language": "python"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "def hello():\n    return \"hi\"  # *not* emphasis"
+        }
+      ]
+    },
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "blockId": "b-000002",
+        "language": "ts"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "const a = `template ${x}`;"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000003"
+      }
+    }
+  ]
+}

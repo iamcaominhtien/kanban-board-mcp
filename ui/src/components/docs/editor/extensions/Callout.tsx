@@ -268,6 +268,8 @@ export const Callout = Node.create({
     const kind = (node.attrs?.kind as CalloutKind) ?? 'info';
     const body = h.renderChildren(node.content ?? [], '\n\n');
     const lines = body.split('\n').map((l) => (l ? `> ${l}` : '>'));
-    return [`> [!${CALLOUT_STYLE[kind]?.marker ?? 'INFO'}]`, ...lines].join('\n');
+    // a title (format 1) goes on the marker line: read back, it is the first line of the body (today's rule)
+    const title = typeof node.attrs?.title === 'string' ? node.attrs.title.replace(/\s+/g, ' ').trim() : '';
+    return [`> [!${CALLOUT_STYLE[kind]?.marker ?? 'INFO'}]${title ? ` ${title}` : ''}`, ...lines].join('\n');
   },
 });

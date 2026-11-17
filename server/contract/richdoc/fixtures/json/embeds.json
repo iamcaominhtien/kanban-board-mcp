@@ -1,0 +1,109 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "video",
+      "attrs": {
+        "blockId": "b-000001",
+        "caption": "Two minutes",
+        "description": "What is new in 5.1",
+        "loop": true,
+        "muted": true,
+        "poster": "/uploads/demo.png",
+        "src": "/uploads/demo.mp4",
+        "title": "Release demo",
+        "widthPct": 80
+      }
+    },
+    {
+      "type": "video",
+      "attrs": {
+        "blockId": "b-000002",
+        "caption": "Only a caption",
+        "provider": "youtube",
+        "src": "https://www.youtube.com/watch?v=abc"
+      }
+    },
+    {
+      "type": "video",
+      "attrs": {
+        "blockId": "b-000003",
+        "src": "/uploads/raw.mp4"
+      }
+    },
+    {
+      "type": "htmlEmbed",
+      "attrs": {
+        "blockId": "b-000004",
+        "height": 320,
+        "html": "<p>Hello</p>",
+        "runScripts": true,
+        "title": "Signup form"
+      }
+    },
+    {
+      "type": "htmlEmbed",
+      "attrs": {
+        "blockId": "b-000005",
+        "html": "<b>untitled</b>"
+      }
+    },
+    {
+      "type": "fileCard",
+      "attrs": {
+        "blockId": "b-000006",
+        "mime": "application/pdf",
+        "name": "report_v2.pdf",
+        "preview": true,
+        "size": 120400,
+        "src": "/uploads/report_v2.pdf"
+      }
+    },
+    {
+      "type": "linkEmbed",
+      "attrs": {
+        "blockId": "b-000007",
+        "description": "Why we ship",
+        "image": "https://example.com/i.png",
+        "site": "Example",
+        "title": "A [great] post",
+        "url": "https://example.com/post"
+      }
+    },
+    {
+      "type": "linkEmbed",
+      "attrs": {
+        "blockId": "b-000008",
+        "kind": "video",
+        "url": "https://example.com/video"
+      }
+    },
+    {
+      "type": "pageCard",
+      "attrs": {
+        "blockId": "b-000009",
+        "page": "Roadmap",
+        "pageId": "pg_123"
+      }
+    },
+    {
+      "type": "ticketCard",
+      "attrs": {
+        "blockId": "b-00000a",
+        "key": "KAN-12"
+      }
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-00000b"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "After the embeds."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+> [!INFO]
+> An informational note.

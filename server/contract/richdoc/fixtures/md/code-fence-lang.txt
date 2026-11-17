@@ -1,0 +1,3 @@
+def hello():
+    return "hi"  # *not* emphasis
+const a = `template ${x}`;

@@ -1,0 +1,4 @@
+- bullet
+- ordered right after
+- [ ] task
+- plain item in the same list

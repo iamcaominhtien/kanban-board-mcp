@@ -1,0 +1,47 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "image",
+      "attrs": {
+        "alt": "Wide shot",
+        "blockId": "b-000001",
+        "src": "/uploads/wide.png",
+        "width": 640
+      }
+    },
+    {
+      "type": "image",
+      "attrs": {
+        "alt": "Spaced",
+        "blockId": "b-000002",
+        "src": "/uploads/spaced.png",
+        "width": 480
+      }
+    },
+    {
+      "type": "image",
+      "attrs": {
+        "alt": "Px",
+        "blockId": "b-000003",
+        "src": "/uploads/px.png",
+        "width": 320
+      }
+    },
+    {
+      "type": "image",
+      "attrs": {
+        "alt": "Size",
+        "blockId": "b-000004",
+        "src": "/uploads/w.png",
+        "width": 200
+      }
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "blockId": "b-000005"
+      }
+    }
+  ]
+}
