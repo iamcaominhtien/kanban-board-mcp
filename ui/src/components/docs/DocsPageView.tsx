@@ -22,6 +22,8 @@ import { TranslateBanner, useTranslatedMarkdown } from './ai/TranslateView';
 import { usePageAiView } from './ai/usePageAiView';
 import { FollowBell } from '../notifications-follow/FollowBell';
 import { CommentsPanel } from './comments/CommentsPanel';
+import { MarginMarks } from './comments/MarginMarks';
+import { PhoneComments } from './comments/PhoneComments';
 import { PageComments } from './comments/PageComments';
 import { ComposePopover, SelectionToolbar, type Pick } from './comments/SelectionComment';
 import { personOf } from './comments/people';
@@ -1189,6 +1191,20 @@ export function DocsPageView({
                     )}
                   </div>
                 )}
+                {!older && !offline && published && commentsData && (
+                  <MarginMarks
+                    root={bodyEl}
+                    doc={richDoc && !translated ? richDoc : null}
+                    threads={inlineThreads}
+                    panelOpen={cc.open}
+                    activeId={cc.activeId}
+                    layout={layout}
+                    revision={richKey || page.markdown}
+                    canComment={canComment}
+                    onSelect={cc.activate}
+                    onComment={setCompose}
+                  />
+                )}
               </div>
               {!older && (
                 <ReadingFooter prev={around.prev} next={around.next} book={book} onOpen={(id) => onOpenPage(id)} />
@@ -1214,6 +1230,7 @@ export function DocsPageView({
               reattachId={cc.reattachId}
               onReattach={cc.setReattachId}
               onClose={() => cc.setOpen(false)}
+              doc={!older && published && !translated ? richDoc : null}
             />
           )}
           {inlineOutline && outlineOn && (
@@ -1241,7 +1258,24 @@ export function DocsPageView({
             </nav>
           )}
         </div>
-        {cc.open && !offline && touch && (
+        {cc.open && !offline && phone && (
+          <PhoneComments
+            projectId={projectId}
+            version={page.version}
+            data={commentsData}
+            loading={cc.query.isLoading}
+            actions={cc.actions}
+            tab={cc.tab}
+            onTab={cc.setTab}
+            activeId={cc.activeId}
+            onActivate={cc.activate}
+            reattachId={cc.reattachId}
+            onReattach={cc.setReattachId}
+            onClose={() => cc.setOpen(false)}
+            doc={!older && published && !translated ? richDoc : null}
+          />
+        )}
+        {cc.open && !offline && touch && !phone && (
           <DocsDrawer
             side="right"
             width={420}
@@ -1265,6 +1299,7 @@ export function DocsPageView({
               reattachId={cc.reattachId}
               onReattach={cc.setReattachId}
               onClose={() => cc.setOpen(false)}
+              doc={!older && published && !translated ? richDoc : null}
             />
           </DocsDrawer>
         )}

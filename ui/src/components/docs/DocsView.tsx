@@ -6,7 +6,6 @@ import {
   useDocsPage,
   useDocsRecycleBin,
   useDocsTree,
-  useMovePage,
   useDocsVersion,
   usePublishPage,
   useRestorePage,
@@ -68,8 +67,20 @@ import { useDocsOffline } from './useDocsOffline';
 import './docs.css';
 import { useAppCommand } from '../../utils/appCommands';
 import { useDocsLayout, type DocsLayout } from '../../hooks/useDocsLayout';
-import { DocsDrawer } from './DocsSheets';
-import { PageSettingsPanel } from './PageSettingsPanel';
+import { BottomSheet, DocsDrawer } from './DocsSheets';
+import { PageSettingsPanel, type SettingsTab } from './PageSettingsPanel';
+import { patchPageSettings, docsKeys } from '../../api/docs';
+import { useQueryClient } from '@tanstack/react-query';
+import { IconPicker } from './tree/IconPicker';
+import { GalleryView, RecentView } from './tree/PageViews';
+import { BulkDeleteDialog } from './tree/SelectionBar';
+import { affectedPages } from './tree/treeModel';
+import { useTreeActions } from './tree/useTreeActions';
+import { useTreeViewState } from './tree/useTreeViewState';
+import { SuggestionMarker } from './suggestions/extras';
+
+/** The event that opens the app's Recycle Bin (the row under the page tree). */
+export const OPEN_RECYCLE_BIN_EVENT = 'kb:open-recycle-bin';
 import { isWidePage, readPageLook } from './pageSettings';
 import { sketchesAsImages } from '../sketch/sketchRefs';
 import { canvasesAsImages } from '../canvas/canvasRefs';
@@ -166,12 +177,31 @@ function TreePageMenu({
   node,
   onAction,
   onClose,
+  sheet,
 }: {
   node: DocsTreeNode;
   onAction: (a: PageMenuAction) => void;
   onClose: () => void;
+  /** A phone: the menu is an action sheet. */
+  sheet?: boolean;
 }) {
   const { data } = useDocsPage(node.id);
+  if (sheet)
+    return (
+      <BottomSheet label={node.title} onClose={onClose} testId="tree-menu-sheet">
+        {data ? (
+          <PageMenu
+            page={data}
+            onAction={onAction}
+            onClose={onClose}
+            variant="sheet"
+            hidden={node.kind === 'canvas' ? TREE_CANVAS_HIDDEN : undefined}
+          />
+        ) : (
+          <div className="skel" style={{ height: 120, margin: 16 }} />
+        )}
+      </BottomSheet>
+    );
   if (!data) {
     return (
       <div
@@ -193,7 +223,39 @@ function TreePageMenu({
       </div>
     );
   }
-  return <PageMenu page={data} onAction={onAction} onClose={onClose} />;
+  return (
+    <PageMenu
+      page={data}
+      onAction={onAction}
+      onClose={onClose}
+      hidden={node.kind === 'canvas' ? TREE_CANVAS_HIDDEN : undefined}
+    />
+  );
+}
+
+/** A canvas page has no Page settings, so no book either. */
+const TREE_CANVAS_HIDDEN: readonly PageMenuAction[] = ['settings', 'save-template', 'book'];
+
+/** A page object for a dialog that only needs the tree's facts about it (Move to for several pages). */
+function cachedToPageStub(n: DocsTreeNode, projectId: string): Partial<DocsPage> {
+  return {
+    id: n.id,
+    projectId,
+    parentId: n.parentId,
+    title: n.title,
+    slug: n.slug,
+    status: n.status,
+    version: n.version,
+    markdown: '',
+    headings: [],
+    path: [],
+    createdBy: '',
+    updatedBy: '',
+    updatedAt: n.updatedAt,
+    createdAt: n.updatedAt,
+    hasUnpublishedChanges: n.hasDraft,
+    draft: null,
+  };
 }
 
 function cachedToPage(
@@ -312,15 +374,39 @@ export function DocsView({
   const [railOpen, setRailOpen] = useState(false);
   // the page whose Page settings panel is open (it closes when another page opens)
   const [settingsFor, setSettingsFor] = useState<string | null>(null);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab | undefined>(undefined);
+  // the tree's view, sort and filters; the page icon picker; several pages picked
+  const treeView = useTreeViewState(projectId);
+  const [iconFor, setIconFor] = useState<{ id: string; title: string; icon: string | null } | null>(null);
+  const [bulkMove, setBulkMove] = useState<string[] | null>(null);
+  const [bulkDelete, setBulkDelete] = useState<string[] | null>(null);
+  // the "···" of a gallery card or a recent row
+  const [viewMenu, setViewMenu] = useState<{ node: DocsTreeNode; at: DOMRect } | null>(null);
+  const qc = useQueryClient();
   const [treeCollapsed, setTreeCollapsed] = useState(() => localStorage.getItem('docsTreeCollapsed') === '1');
   const [dragFiles, setDragFiles] = useState<number | null>(null);
   const [failedAt, setFailedAt] = useState(() => new Date());
 
-  const move = useMovePage(projectId);
   const restore = useRestorePage(projectId);
   const publish = usePublishPage(projectId);
   const renameApi = useRenameWithLinks(projectId);
   const recycle = useDocsRecycleBin(projectId);
+  const treeActions = useTreeActions(projectId, nodes);
+
+  /** Saves a page's icon (or removes it) and shows it in the tree at once. */
+  async function saveIcon(pageId: string, icon: string | null) {
+    const tree = docsKeys.tree(projectId);
+    const before = qc.getQueryData<DocsTreeNode[]>(tree);
+    qc.setQueryData<DocsTreeNode[]>(tree, (old) => old?.map((n) => (n.id === pageId ? { ...n, icon } : n)));
+    try {
+      const saved = await patchPageSettings(pageId, { icon });
+      qc.setQueryData<DocsPage>(docsKeys.page(pageId), (old) => (old ? { ...old, ...saved } : saved));
+      void qc.invalidateQueries({ queryKey: tree });
+    } catch (e) {
+      qc.setQueryData(tree, before);
+      toast.error("Couldn't change the page icon", docsErrorDetail(e)?.message ?? extractError(e));
+    }
+  }
 
   const layoutRef = useRef(onLayoutChange);
   layoutRef.current = onLayoutChange;
@@ -386,6 +472,9 @@ export function DocsView({
   const treeError = tree.error ? docsErrorDetail(tree.error) : null;
   const networkDown = (pageQuery.isError && !pageError) || (tree.isError && !treeError);
   const access = useDocsAccess(projectId);
+  // who is looking and when, for the filters of the gallery and the recent list (a new "now" with each tree)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const viewCtx = useMemo(() => ({ me: access.data?.me ?? '', now: new Date() }), [access.data?.me, nodes]);
   const aiState = useDocsAiState(projectId);
   const aiOn = aiState.data?.state === 'ready' || aiState.data?.state === 'no_member';
   const healthCount = useDocsHealthCount(projectId, aiState.data?.state === 'ready');
@@ -561,13 +650,21 @@ export function DocsView({
         setHistory({});
         return;
       case 'rename':
-        if (showRail || layout === 'phone') showTree();
-        setRenamingId(target.id);
+        // the dialog: the icon is part of the name, and it says what happens to links (F2 on a row renames inline)
+        setRenameFor({ node: { id: target.id, title: target.title }, newTitle: target.title });
         return;
       case 'settings':
+      case 'book':
         if (page?.id !== target.id) select(target.id);
+        treeView.setView('tree');
+        setSettingsTab(action === 'book' ? 'book' : undefined);
         setSettingsFor(target.id);
         return;
+      case 'icon': {
+        const known = nodes.find((n) => n.id === target.id)?.icon ?? null;
+        setIconFor({ id: target.id, title: target.title, icon: known });
+        return;
+      }
       case 'save-template':
         if (readOnly) {
           toast.info('Read-only', readOnly);
@@ -590,7 +687,19 @@ export function DocsView({
     }
   }
 
-  const anyDialog = !!(newPage || moveFor || dupFor || history || deleteFor || renameFor || giveFor || saveTplFor);
+  const anyDialog = !!(
+    newPage ||
+    moveFor ||
+    dupFor ||
+    history ||
+    deleteFor ||
+    renameFor ||
+    giveFor ||
+    saveTplFor ||
+    iconFor ||
+    bulkMove ||
+    bulkDelete
+  );
   usePageShortcuts(
     (a) => {
       if (page) void runAction(a, page);
@@ -729,6 +838,7 @@ export function DocsView({
       loadingId={pageQuery.isLoading ? selectedId : null}
       onSelect={(id) => {
         setHealthOpen(false);
+        treeView.setView('tree');
         select(id);
       }}
       onNewPage={(parentId) => setNewPage({ parentId })}
@@ -762,11 +872,32 @@ export function DocsView({
       onRequestRename={(n, t) => void requestRename(n, t)}
       renamingId={renamingId}
       onRenamingChange={setRenamingId}
-      onMove={(id, parentId, beforeId, afterId) =>
-        move.mutateAsync({ pageId: id, parentId, beforeId, afterId }).catch((e) => {
-          toast.error("Couldn't move the page", docsErrorDetail(e)?.message ?? extractError(e));
-        })
-      }
+      onMove={(id, parentId, beforeId, afterId) => treeActions.moveOne(id, { parentId, beforeId, afterId })}
+      layout={layout}
+      view={treeView.view}
+      onViewChange={(v) => {
+        treeView.setView(v);
+        setHealthOpen(false);
+        if (v !== 'tree') {
+          onCloseResults?.();
+          setEditing(false);
+          setRailOpen(false);
+        }
+      }}
+      sort={treeView.sort}
+      onSortChange={treeView.setSort}
+      filters={treeView.filters}
+      onFiltersChange={treeView.setFilters}
+      me={access.data?.me ?? ''}
+      onBulk={(action, roots) => {
+        if (action === 'move') setBulkMove(roots);
+        else if (action === 'delete') setBulkDelete(roots);
+        else if (action === 'duplicate') void treeActions.duplicateMany(roots);
+        else treeActions.exportMany(roots);
+      }}
+      onMoveTo={(n) => void runAction('move', n)}
+      binCount={recycle.data?.length}
+      onOpenBin={() => window.dispatchEvent(new CustomEvent(OPEN_RECYCLE_BIN_EVENT))}
       onCollapse={() => (railOpen ? setRailOpen(false) : setCollapsed(true))}
       aiOn={aiOn}
       onAskDocs={onAskDocs}
@@ -776,6 +907,7 @@ export function DocsView({
       renderMenu={(node, close) => (
         <TreePageMenu
           node={node}
+          sheet={layout === 'phone'}
           onClose={close}
           onAction={(a) => {
             close();
@@ -1042,6 +1174,44 @@ export function DocsView({
     );
   }
 
+  // Gallery and Recent take the page's place (the tree stays on the left)
+  const otherView =
+    treeView.view !== 'tree' &&
+    resultsQuery === null &&
+    !leftOverride &&
+    !docsDisabled &&
+    !noAccess &&
+    !treeLoading &&
+    !empty &&
+    !(healthOpen && aiOn);
+  if (otherView) {
+    const viewProps = {
+      nodes,
+      layout,
+      filters: treeView.filters,
+      onFiltersChange: treeView.setFilters,
+      ctx: viewCtx,
+      sort: treeView.sort,
+      onSortChange: treeView.setSort,
+      onOpen: (id: string) => {
+        treeView.setView('tree');
+        select(id);
+      },
+      onMenu: (node: DocsTreeNode, at: DOMRect) => setViewMenu({ node, at }),
+      renderSuggestions: (n: DocsTreeNode) => <SuggestionMarker count={n.suggestions} />,
+    };
+    content =
+      treeView.view === 'gallery' ? (
+        <GalleryView
+          {...viewProps}
+          onMove={readOnly ? undefined : (id, t) => void treeActions.moveOne(id, t)}
+          onAddChild={readOnly ? undefined : (parentId) => setNewPage({ parentId })}
+        />
+      ) : (
+        <RecentView {...viewProps} />
+      );
+  }
+
   const treeDrawer = railOpen && !leftOverride && (
     <DocsDrawer
       label="Pages"
@@ -1071,8 +1241,10 @@ export function DocsView({
   const settingsPage = page && settingsFor === page.id && page.kind !== 'canvas' && !leftOverride ? page : null;
   const settingsPanel = settingsPage && (
     <PageSettingsPanel
-      key={settingsPage.id}
+      key={`${settingsPage.id}:${settingsTab ?? ''}`}
       page={settingsPage}
+      initialTab={settingsTab}
+      nodes={nodes}
       layout={layout}
       readOnly={readOnly ?? (offlineCopy ? 'Reconnect to change the page settings.' : null)}
       onClose={() => setSettingsFor(null)}
@@ -1211,6 +1383,8 @@ export function DocsView({
             initialCompare={history.compare}
             onClose={() => setHistory(null)}
             onReopen={() => setHistory({})}
+            onOpenPage={select}
+            layout={layout}
             onRead={(v) => {
               setReading({ pageId: page.id, version: v });
               setHistory(null);
@@ -1248,11 +1422,85 @@ export function DocsView({
             }}
           />
         )}
+        {iconFor && (
+          <IconPicker
+            projectId={projectId}
+            title={iconFor.title}
+            current={iconFor.icon}
+            layout={layout}
+            onClose={() => setIconFor(null)}
+            onPick={(icon) => {
+              const id = iconFor.id;
+              setIconFor(null);
+              void saveIcon(id, icon);
+            }}
+          />
+        )}
+        {bulkMove && nodes.find((n) => n.id === bulkMove[0]) && (
+          <MoveToDialog
+            projectId={projectId}
+            page={
+              cachedToPageStub(
+                nodes.find((n) => n.id === bulkMove[0])!,
+                projectId,
+              ) as DocsPage
+            }
+            nodes={nodes.filter((n) => !bulkMove.slice(1).includes(n.id))}
+            heading={bulkMove.length > 1 ? `Move ${bulkMove.length} pages` : undefined}
+            onClose={() => setBulkMove(null)}
+            onChoose={(t) => void treeActions.moveMany(bulkMove, t)}
+          />
+        )}
+        {bulkDelete && (
+          <BulkDeleteDialog
+            roots={nodes.filter((n) => bulkDelete.includes(n.id))}
+            affected={affectedPages(nodes, bulkDelete).size}
+            layout={layout}
+            onClose={() => setBulkDelete(null)}
+            onConfirm={() => {
+              const roots = bulkDelete;
+              setBulkDelete(null);
+              if (selectedId && affectedPages(nodes, roots).has(selectedId)) {
+                localStorage.removeItem(`docsPage:${projectId}`);
+                setSelectedId(null);
+                setEditing(false);
+              }
+              void treeActions.deleteMany(roots);
+            }}
+          />
+        )}
+        {viewMenu && (
+          <div
+            className="docs-root"
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              position: 'fixed',
+              left: viewMenu.at.right,
+              top: viewMenu.at.bottom - 6,
+              width: 0,
+              height: 0,
+              zIndex: 300,
+            }}
+          >
+            <TreePageMenu
+              node={viewMenu.node}
+              sheet={layout === 'phone'}
+              onClose={() => setViewMenu(null)}
+              onAction={(a) => {
+                const n = viewMenu.node;
+                setViewMenu(null);
+                void runAction(a, n);
+              }}
+            />
+          </div>
+        )}
         {renameFor && (
           <RenameDialog
             projectId={projectId}
             page={renameFor.node}
             newTitle={renameFor.newTitle}
+            nodes={nodes}
+            layout={layout}
             onClose={() => setRenameFor(null)}
             onRenamed={() => setRenameFor(null)}
           />

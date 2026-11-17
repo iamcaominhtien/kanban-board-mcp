@@ -168,6 +168,12 @@ export default function App() {
   );
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [recycleBinOpen, setRecycleBinOpen] = useState(false);
+  // the Recycle Bin row under the Docs page tree (DocsView's OPEN_RECYCLE_BIN_EVENT)
+  useEffect(() => {
+    const open = () => setRecycleBinOpen(true);
+    window.addEventListener('kb:open-recycle-bin', open);
+    return () => window.removeEventListener('kb:open-recycle-bin', open);
+  }, []);
   const [membersPanelOpen, setMembersPanelOpen] = useState(false);
   // Settings page (null = closed); `?settings=<page>` opens it on that page
   const [settingsTarget, setSettingsTarget] = useState<SettingsTarget | null>(() => {

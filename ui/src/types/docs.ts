@@ -237,6 +237,8 @@ export interface DocsAnchor {
   section: string | null;
   state: 'attached' | 'orphaned';
   pos: number | null;
+  /** The block it is on (rich pages): an image, a table or an embed can be commented on as a whole. */
+  blockId?: string | null;
 }
 
 export interface DocsCommentItem {
@@ -351,6 +353,8 @@ export interface CommentAnchorInput {
   prefix: string;
   suffix: string;
   section: string | null;
+  /** The block it is in (rich pages; sent as `block_id`). */
+  blockId?: string;
 }
 
 export interface DocsCommentEvent {

@@ -12,6 +12,12 @@ interface MoveToDialogProps {
   nodes: DocsTreeNode[];
   onClose: () => void;
   onMoved?: (page: DocsPage) => void;
+  /**
+   * Choose a place only: called with it instead of moving the page (several selected pages are moved by the caller).
+   */
+  onChoose?: (target: { parentId: string | null; afterId: string | null; beforeId: string | null }) => void;
+  /** The title for several pages ("Move 3 pages"); the page's own title otherwise. */
+  heading?: string;
 }
 
 /** Where the page will land: under `parentId`, between `afterId` and `beforeId`. */
@@ -60,8 +66,10 @@ function highlight(text: string, query: string): ReactNode {
  * @param props.nodes - Page tree, used to pick the new parent.
  * @param props.onClose - Called to dismiss the dialog.
  * @param props.onMoved - Called with the page after it moved.
+ * @param props.onChoose - Picks the place only and hands it back (no move here).
+ * @param props.heading - The dialog's title in place of "Move “page”".
  */
-export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveToDialogProps) {
+export function MoveToDialog({ projectId, page, nodes, onClose, onMoved, onChoose, heading }: MoveToDialogProps) {
   const toast = useToast();
   const move = useMovePage(projectId);
   const [query, setQuery] = useState('');
@@ -231,6 +239,15 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
   async function confirm() {
     if (!target) return;
     setError(null);
+    if (onChoose) {
+      onChoose({
+        parentId: target.parentId,
+        afterId: target.afterId,
+        beforeId: target.afterId ? null : target.beforeId,
+      });
+      onClose();
+      return;
+    }
     const prevSibs = childrenOf(page.parentId).filter((n) => n.id !== page.id);
     const idx = childrenOf(page.parentId).findIndex((n) => n.id === page.id);
     const oldAfter = idx > 0 ? (childrenOf(page.parentId)[idx - 1]?.id ?? null) : null;
@@ -254,7 +271,7 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
           ]
             .filter(Boolean)
             .join(' ') || undefined,
-        duration: 8000,
+        duration: 10000,
         action: {
           label: 'Undo',
           onClick: () => {
@@ -476,9 +493,9 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved }: MoveT
   return (
     <ModalShell
       width={560}
-      ariaLabel={`Move “${page.title}”`}
+      ariaLabel={heading ?? `Move “${page.title}”`}
       icon="i35"
-      title={<>Move “{page.title}”</>}
+      title={heading ?? <>Move “{page.title}”</>}
       subtitle={
         <>
           {currentParent ? `Currently under ${currentParent.title}` : 'Currently at the top level'}

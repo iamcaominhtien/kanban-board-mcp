@@ -18,7 +18,7 @@ interface Props {
 const crumb = { fontSize: 12.5, color: '#5B6B60', whiteSpace: 'nowrap' } as const;
 
 /** A canvas page has no page settings. */
-const CANVAS_HIDDEN = ['settings', 'save-template'] as const;
+const CANVAS_HIDDEN = ['settings', 'save-template', 'book'] as const;
 
 /**
  * A Docs page of kind canvas: it opens right in Docs with the same editor as an inline canvas, without Done (changes

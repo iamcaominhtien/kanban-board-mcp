@@ -1,11 +1,14 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
-import { docsErrorDetail, usePurgePage, useRestorePage } from '../../api/docs';
+import { client } from '../../api/client';
+import { docsErrorDetail, docsKeys, usePurgePage, useRestorePage } from '../../api/docs';
 import { useEmptyRecycleBin, useRecycleEntries } from '../../api/docsActions';
 import { extractError } from '../../api/extractError';
 import type { RecycleEntry } from '../../types/docsActions';
 import { useToast } from '../Toast';
 import { Icon } from './Icon';
 import { agoText, displayName, plural } from './docsShared';
+import { daysLeftText, daysLeftTone, pagesToEmpty, type EmptyScope, type RestoreWhere } from './tree/RecycleBinParts';
 
 const errMsg = (err: unknown) => docsErrorDetail(err)?.message ?? extractError(err);
 
@@ -21,27 +24,80 @@ export function useDocsRecycle(projectId: string, onOpenPage?: (pageId: string) 
   const restore = useRestorePage(projectId);
   const purge = usePurgePage(projectId);
   const empty = useEmptyRecycleBin(projectId);
+  const qc = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
-  async function restoreEntry(entry: RecycleEntry) {
+  /**
+   * Restores a page with its child pages. A page whose parent is gone comes back at the top level, under a page
+   * chosen for it, or under its parent restored first (`where`).
+   */
+  async function restoreEntry(entry: RecycleEntry, where?: RestoreWhere) {
     setBusyId(entry.id);
     setRowError(null);
     try {
+      if (where?.kind === 'parent-first') await restore.mutateAsync(where.parentId);
       const res = await restore.mutateAsync(entry.id);
+      if (where?.kind === 'page')
+        await client.post(`/docs/pages/${entry.id}/move`, { parentId: where.parentId, beforeId: null, afterId: null });
+      void qc.invalidateQueries({ queryKey: docsKeys.tree(projectId) });
       const children = res.restoredPages - 1;
       toast.showToast({
         variant: 'success',
         title: `Restored “${entry.title}”${children > 0 ? ` and ${plural(children, 'child page')}` : ''}`,
-        message: res.movedToTopLevel
-          ? `Its parent is still deleted, so “${entry.title}” returned at the top level.`
-          : 'Back in the tree, in its old position.',
+        message:
+          where?.kind === 'page'
+            ? 'Back in the tree, under the page you chose.'
+            : where?.kind === 'parent-first'
+              ? `Back in the tree, under ${entry.parentTitle}.`
+              : res.movedToTopLevel
+                ? `Its parent is still deleted, so “${entry.title}” returned at the top level.`
+                : 'Back in the tree, in its old position.',
         action: onOpenPage ? { label: 'Open', onClick: () => onOpenPage(entry.id) } : undefined,
       });
     } catch (err) {
       setRowError({ id: entry.id, message: errMsg(err) });
     } finally {
       setBusyId(null);
+    }
+  }
+
+  /** Restores several pages, each in its own place (a page whose parent is gone comes back at the top level). */
+  async function restoreMany(list: RecycleEntry[]): Promise<boolean> {
+    setBulkBusy(true);
+    let done = 0;
+    try {
+      for (const e of list) {
+        await restore.mutateAsync(e.id);
+        done += 1;
+      }
+      toast.success(`Restored ${plural(done, 'page')}`, 'Each one is back in its own place.');
+      return true;
+    } catch (err) {
+      toast.error(done ? `Restored ${done} of ${list.length} pages` : "Couldn't restore the pages", errMsg(err));
+      return false;
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  /** Deletes several pages forever. */
+  async function purgeMany(list: RecycleEntry[]): Promise<boolean> {
+    setBulkBusy(true);
+    let done = 0;
+    try {
+      for (const e of list) {
+        await purge.mutateAsync(e.id);
+        done += 1;
+      }
+      toast.success(`Deleted ${plural(done, 'page')} forever`);
+      return true;
+    } catch (err) {
+      toast.error(done ? `Deleted ${done} of ${list.length} pages` : "Couldn't delete the pages", errMsg(err));
+      return false;
+    } finally {
+      setBulkBusy(false);
     }
   }
 
@@ -60,7 +116,9 @@ export function useDocsRecycle(projectId: string, onOpenPage?: (pageId: string) 
     }
   }
 
-  async function emptyBin(): Promise<boolean> {
+  async function emptyBin(scope: EmptyScope = 'all'): Promise<boolean> {
+    // only the older pages: one by one (the server empties the whole bin or nothing)
+    if (scope === 'older') return purgeMany(pagesToEmpty(query.data ?? [], 'older'));
     try {
       await empty.mutateAsync();
       toast.success('Recycle Bin emptied', 'Deleted pages were removed forever.');
@@ -77,9 +135,12 @@ export function useDocsRecycle(projectId: string, onOpenPage?: (pageId: string) 
     error: query.isError ? errMsg(query.error) : null,
     busyId,
     rowError,
-    emptying: empty.isPending,
+    emptying: empty.isPending || bulkBusy,
+    bulkBusy,
     restoreEntry,
+    restoreMany,
     purgeEntry,
+    purgeMany,
     emptyBin,
   };
 }
@@ -104,6 +165,7 @@ export function BinRow({
   first,
   last,
   pinned,
+  check,
 }: {
   kind: 'page' | 'ticket';
   title: string;
@@ -117,6 +179,8 @@ export function BinRow({
   last?: boolean;
   /** Keep the actions visible (a confirmation or a request is in progress). */
   pinned?: boolean;
+  /** A checkbox before the row (several pages picked). */
+  check?: ReactNode;
 }) {
   const isPage = kind === 'page';
   return (
@@ -133,6 +197,7 @@ export function BinRow({
       data-first={first ? '1' : undefined}
       data-pinned={pinned ? '1' : undefined}
     >
+      {check}
       <div
         style={{
           width: 32,
@@ -215,10 +280,15 @@ export function PageBinRow({
   onAskPurge,
   onCancelPurge,
   onPurge,
+  selected,
+  onToggleSelect,
 }: {
   entry: RecycleEntry;
   busy: boolean;
   confirming: boolean;
+  /** Picked for Restore or Delete forever of several pages; absent: no checkbox. */
+  selected?: boolean;
+  onToggleSelect?: () => void;
   error?: string | null;
   first?: boolean;
   last?: boolean;
@@ -228,6 +298,7 @@ export function PageBinRow({
   onPurge: () => void;
 }) {
   const extra = entry.pageCount - 1;
+  const tone = daysLeftTone(entry.daysLeft);
   let note: ReactNode = null;
   if (entry.parentDeleted && entry.parentTitle) {
     note = (
@@ -287,8 +358,29 @@ export function PageBinRow({
         </>
       }
       lines={[
-        `${displayName(entry.deletedBy)} · ${agoText(entry.deletedAt)} · ${entry.daysLeft} ${entry.daysLeft === 1 ? 'day' : 'days'} left`,
+        <>
+          {displayName(entry.deletedBy)} · {agoText(entry.deletedAt)} ·{' '}
+          <span
+            className="tr-days"
+            style={{ color: tone.color, fontWeight: tone.tone === 'grey' ? 500 : 700 }}
+            data-testid="bin-days-left"
+            data-tone={tone.tone}
+          >
+            {daysLeftText(entry.daysLeft)}
+          </span>
+        </>,
       ]}
+      check={
+        onToggleSelect ? (
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onChange={onToggleSelect}
+            aria-label={`Select ${entry.title}`}
+            style={{ accentColor: '#2E6F40', width: 16, height: 16, marginTop: 8 }}
+          />
+        ) : undefined
+      }
       footer={
         <>
           {note}

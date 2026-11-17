@@ -129,8 +129,8 @@ export function useSetTeamApply(projectId: string) {
       (
         await client.patch<SpaceAiSettings>(
           `/projects/${projectId}/docs/settings`,
-          { aiApply: { [v.memberId]: v.apply } },
-          { rawKeys: ['aiApply'], keepKeys: true },
+          { settings: { aiApply: { [v.memberId]: v.apply } } },
+          { rawKeys: ['settings'], keepKeys: true },
         )
       ).data,
     onSuccess: (data) => {

@@ -10,7 +10,6 @@ import { FilterButton, FilterChips, ViewMenu } from './tree/TreeToolbar';
 import {
   activeFilterCount,
   affectedPages,
-  ancestorsOf,
   buildRows,
   chapterNumbers,
   describeTarget,
@@ -296,6 +295,18 @@ export function DocsTree({
   onHealth,
   healthActive,
   healthCount,
+  layout = 'desktop',
+  view = 'tree',
+  onViewChange,
+  sort = 'edited',
+  onSortChange,
+  filters = NO_FILTERS,
+  onFiltersChange,
+  me = '',
+  onBulk,
+  onMoveTo,
+  binCount,
+  onOpenBin,
 }: Props) {
   const storageKey = `docsTreeClosed:${projectId}`;
   const [closed, setClosed] = useState<Set<string>>(() => {
@@ -319,6 +330,17 @@ export function DocsTree({
   const dragRef = useRef<{ id: string; sx: number; sy: number; started: boolean } | null>(null);
   const dropRef = useRef<Drop | null>(null);
   const suppressClick = useRef(false);
+  const touch = layout !== 'desktop';
+  // several pages picked (checkboxes), the anchor of a Shift-click range
+  const [selectMode, setSelectMode] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  const anchor = useRef<string | null>(null);
+  // the touch reorder mode and the page its buttons move
+  const [reorder, setReorder] = useState(false);
+  const [reorderId, setReorderId] = useState<string | null>(null);
+  // what a keyboard move said, for screen readers
+  const [announce, setAnnounce] = useState('');
+  const longPress = useRef<number | undefined>(undefined);
 
   const persist = useCallback(
     (next: Set<string>) => {
@@ -363,52 +385,18 @@ export function DocsTree({
   }, [selectedId, byId]);
 
   const q = filter.trim();
-  const rows = useMemo<Row[]>(() => {
-    const out: Row[] = [];
-    if (q) {
-      const lc = q.toLowerCase();
-      const matches = new Set(nodes.filter((n) => n.title.toLowerCase().includes(lc)).map((n) => n.id));
-      const keep = new Set<string>(matches);
-      for (const id of matches) {
-        let cur = byId.get(id)?.parentId ?? null;
-        while (cur) {
-          keep.add(cur);
-          cur = byId.get(cur)?.parentId ?? null;
-        }
-      }
-      const walk = (parent: string | null, depth: number) => {
-        for (const n of childrenOf.get(parent) ?? []) {
-          if (!keep.has(n.id)) continue;
-          const kids = (childrenOf.get(n.id) ?? []).filter((c) => keep.has(c.id));
-          const total = (childrenOf.get(n.id) ?? []).length;
-          const isMatch = matches.has(n.id);
-          out.push({
-            node: n,
-            depth,
-            hasChildren: total > 0,
-            open: kids.length > 0 && !isMatch ? true : kids.length > 0,
-            childCount: total,
-            dim: !isMatch,
-          });
-          if (kids.length) walk(n.id, depth + 1);
-        }
-      };
-      walk(null, 0);
-      return out;
-    }
-    const walk = (parent: string | null, depth: number) => {
-      for (const n of childrenOf.get(parent) ?? []) {
-        const kids = childrenOf.get(n.id) ?? [];
-        const open = kids.length > 0 && !closed.has(n.id);
-        out.push({ node: n, depth, hasChildren: kids.length > 0, open, childCount: kids.length, dim: false });
-        if (open) walk(n.id, depth + 1);
-      }
-    };
-    walk(null, 0);
-    return out;
-  }, [nodes, byId, childrenOf, closed, q]);
+  const filtering = activeFilterCount(filters) > 0;
+  // "now" for the age rules moves on with the tree, not with every render
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `nodes` stands for "the tree changed": a new now
+  const ctx = useMemo(() => ({ me, now: new Date() }), [me, nodes]);
+  const rows = useMemo<Row[]>(() => buildRows(nodes, { closed, q, filters, ctx }), [nodes, closed, q, filters, ctx]);
+  const chapters = useMemo(() => chapterNumbers(nodes), [nodes]);
+  const counts = useMemo(() => filterCounts(nodes, ctx), [nodes, ctx]);
+  const filterShown = useMemo(() => nodes.filter((n) => matchesFilters(n, filters, ctx)).length, [nodes, filters, ctx]);
+  const affected = useMemo(() => affectedPages(nodes, picked), [nodes, picked]);
+  const hover = useHoverCard(!touch && !drag && !menu && !selectMode && !reorder);
 
-  const matchCount = q ? rows.filter((r) => !r.dim).length : 0;
+  const matchCount = q || filtering ? rows.filter((r) => !r.dim).length : 0;
 
   function toggle(id: string) {
     setClosed((prev) => {
@@ -529,21 +517,67 @@ export function DocsTree({
   }, [drop?.rowId, drop?.zone]);
 
   function startPointer(e: React.PointerEvent, id: string) {
-    if (e.button !== 0 || q || renamingId) return;
+    if (e.button !== 0 || q || filtering || renamingId || selectMode) return;
     if ((e.target as HTMLElement).closest('button, input')) return;
+    // touch: hold half a second to lift the row (a quick swipe still scrolls the tree); the reorder mode's handle
+    // lifts it at once; a mouse drags after 5 px
+    const byTouch = e.pointerType !== 'mouse';
+    const handle = !!(e.target as HTMLElement).closest('[data-drag-handle]');
+    const held = byTouch && !(reorder && handle);
     dragRef.current = { id, sx: e.clientX, sy: e.clientY, started: false };
+    let armed = !held;
+    let last = { x: e.clientX, y: e.clientY };
+    const lift = () => {
+      const d = dragRef.current;
+      if (!d) return;
+      d.started = true;
+      armed = true;
+      navigator.vibrate?.(10);
+      setDrag({ id: d.id, x: last.x, y: last.y });
+      setDrop(computeDrop(last.x, last.y, d.id));
+    };
+    if (held) longPress.current = window.setTimeout(lift, 500);
+    // while a row is lifted on touch, the finger moves it instead of scrolling the drawer
+    const noScroll = (ev: TouchEvent) => {
+      if (dragRef.current?.started) ev.preventDefault();
+    };
     const move = (ev: PointerEvent) => {
       const d = dragRef.current;
       if (!d) return;
+      last = { x: ev.clientX, y: ev.clientY };
+      if (!armed) {
+        // moved before the hold ended: this is a scroll, not a drag
+        if (Math.hypot(ev.clientX - d.sx, ev.clientY - d.sy) > 8) cancel();
+        return;
+      }
       if (!d.started && Math.hypot(ev.clientX - d.sx, ev.clientY - d.sy) < 5) return;
       d.started = true;
       setDrag({ id: d.id, x: ev.clientX, y: ev.clientY });
       setDrop(computeDrop(ev.clientX, ev.clientY, d.id));
+      // the tree scrolls at its top and bottom edge
+      const body = bodyRef.current;
+      const box = body?.getBoundingClientRect();
+      if (body && box) {
+        if (ev.clientY < box.top + 36) body.scrollTop -= 10;
+        else if (ev.clientY > box.bottom - 36) body.scrollTop += 10;
+      }
     };
-    const up = () => {
+    const detach = () => {
+      window.clearTimeout(longPress.current);
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', cancel);
       window.removeEventListener('keydown', esc);
+      window.removeEventListener('touchmove', noScroll);
+    };
+    const cancel = () => {
+      detach();
+      dragRef.current = null;
+      setDrag(null);
+      setDrop(null);
+    };
+    const up = () => {
+      detach();
       const d = dragRef.current;
       dragRef.current = null;
       const target = dropRef.current;
@@ -555,19 +589,86 @@ export function DocsTree({
       if (target) void commitDrop(d.id, target);
     };
     const esc = (ev: KeyboardEvent) => {
-      if (ev.key === 'Escape') {
-        dragRef.current = null;
-        setDrag(null);
-        setDrop(null);
-        window.removeEventListener('pointermove', move);
-        window.removeEventListener('pointerup', up);
-        window.removeEventListener('keydown', esc);
-      }
+      if (ev.key === 'Escape') cancel();
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', cancel);
     window.addEventListener('keydown', esc);
+    window.addEventListener('touchmove', noScroll, { passive: false });
   }
+
+  /** Moves a page by the keyboard or the reorder buttons, and says where it went. */
+  async function moveBy(id: string, dir: MoveDir) {
+    const t = keyboardMove(nodes, id, dir);
+    const n = byId.get(id);
+    if (!n) return;
+    if (!t) {
+      setAnnounce(
+        dir === 'up'
+          ? `${n.title} is already first`
+          : dir === 'down'
+            ? `${n.title} is already last`
+            : dir === 'out'
+              ? `${n.title} is already at the top level`
+              : `${n.title} has no page above it to go into`,
+      );
+      return;
+    }
+    setAnnounce(`${describeTarget(nodes, t, 'Moving', id).replace(/^Moving/, `Moving ${n.title}`)}`);
+    if (t.parentId) expand(t.parentId);
+    setMovingId(id);
+    try {
+      await onMove(id, t.parentId, t.beforeId, t.afterId);
+    } finally {
+      setMovingId(null);
+      // the row is drawn again in its new place: keep the focus on it
+      setTimeout(() => rowEls.current.get(id)?.focus(), 0);
+    }
+  }
+
+  /* ---------- selecting several pages ---------- */
+
+  function togglePick(id: string, range: boolean) {
+    setSelectMode(true);
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (range && anchor.current) {
+        const ids = rows.map((r) => r.node.id);
+        const a = ids.indexOf(anchor.current);
+        const b = ids.indexOf(id);
+        if (a >= 0 && b >= 0) {
+          for (const x of ids.slice(Math.min(a, b), Math.max(a, b) + 1)) next.add(x);
+          return next;
+        }
+      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      anchor.current = id;
+      return next;
+    });
+  }
+
+  function endSelect() {
+    setSelectMode(false);
+    setPicked(new Set());
+    anchor.current = null;
+  }
+
+  function bulk(action: 'move' | 'duplicate' | 'export' | 'delete') {
+    const roots = selectionRoots(nodes, picked);
+    if (!roots.length) return;
+    onBulk?.(action, roots);
+    if (action !== 'export' && action !== 'delete' && action !== 'move') endSelect();
+  }
+
+  // a page that left the tree (deleted, moved away by someone) leaves the selection too
+  useEffect(() => {
+    setPicked((prev) => {
+      const kept = [...prev].filter((id) => byId.has(id));
+      return kept.length === prev.size ? prev : new Set(kept);
+    });
+  }, [byId]);
 
   /** Where a drop lands: parent plus neighbour ids. */
   function landing(
@@ -608,6 +709,28 @@ export function DocsTree({
 
   const dragNode = drag ? byId.get(drag.id) : null;
   const dropLanding = drop && !(drop.zone === 'nest') ? landing(drop.rowId, drop.zone) : null;
+  const dragKids = dragNode ? affectedPages(nodes, [dragNode.id]).size - 1 : 0;
+  // the tip under the dragged chip says the outcome in words (frame 21)
+  let dragTip = '';
+  if (drag && dragNode) {
+    if (!drop) {
+      const under = rows.find((r) => {
+        const box = rowEls.current.get(r.node.id)?.getBoundingClientRect();
+        return !!box && drag.y >= box.top && drag.y < box.bottom;
+      });
+      dragTip =
+        under && isInside(under.node.id, dragNode.id) ? 'A page cannot go inside itself' : 'Drop it in the tree';
+    } else if (drop.zone === 'nest') {
+      const over = rows.find((r) => r.node.id === drop.rowId);
+      const target = landing(drop.rowId, 'nest');
+      dragTip =
+        over && over.hasChildren && !over.open
+          ? `Hold to open ${over.node.title}`
+          : drop.nestReady && target
+            ? describeTarget(nodes, target, 'Move', dragNode.id)
+            : `Hold to move under ${over?.node.title ?? ''}`;
+    } else if (dropLanding) dragTip = describeTarget(nodes, dropLanding, 'Move', dragNode.id);
+  }
 
   function indicator(depth: number) {
     return (
@@ -650,6 +773,13 @@ export function DocsTree({
     const isDrag = drag?.id === n.id;
     const nesting = drop?.rowId === n.id && drop.zone === 'nest' && drop.nestReady;
     const renaming = renamingId === n.id;
+    const status = rowStatus(n, ctx.now);
+    const chapter = chapters.get(n.id);
+    const pickedHere = picked.has(n.id);
+    // a child of a picked page comes with it: a lighter check it can't take off
+    const follows = !pickedHere && affected.has(n.id);
+    const book = isBook(n);
+    const lifted = reorder && reorderId === n.id;
     return (
       <Fragment key={n.id}>
         {dropLanding && drop?.zone === 'before' && drop.rowId === n.id && indicator(dropLanding.depth)}
@@ -658,23 +788,94 @@ export function DocsTree({
             if (el) rowEls.current.set(n.id, el);
             else rowEls.current.delete(n.id);
           }}
-          className={`dk-tree-row${active ? ' dk-tree-active' : ''}${isDrag ? ' dk-row-dim' : ''}${nesting ? ' dk-row-nest' : ''}${menu?.id === n.id ? ' dk-tree-hover' : ''}`}
-          style={{ opacity: r.dim && !isDrag ? 0.6 : undefined, touchAction: 'none', userSelect: 'none' }}
+          className={`dk-tree-row${active ? ' dk-tree-active' : ''}${isDrag ? ' dk-row-dim' : ''}${nesting ? ' dk-row-nest' : ''}${menu?.id === n.id ? ' dk-tree-hover' : ''}${pickedHere || follows ? ' tr-row-picked' : ''}${lifted ? ' tr-row-lifted' : ''}`}
+          style={{
+            opacity: r.dim && !isDrag ? 0.6 : undefined,
+            // touch scrolls the tree; a long press lifts the row (then the finger moves it)
+            touchAction: touch ? 'pan-y' : 'none',
+            userSelect: 'none',
+            WebkitTouchCallout: 'none',
+          }}
           role="treeitem"
           aria-level={r.depth + 1}
-          aria-selected={active}
+          aria-selected={selectMode ? pickedHere || follows : active}
+          aria-current={active ? 'page' : undefined}
           aria-expanded={r.hasChildren ? r.open : undefined}
           tabIndex={0}
           data-testid={`tree-row-${n.slug}`}
           data-page-id={n.id}
+          data-status={status.key}
           onPointerDown={(e) => startPointer(e, n.id)}
-          onClick={() => {
+          {...hover.bind(n.id)}
+          onContextMenu={(e) => {
+            // right-click opens the row menu where the pointer is; a long press on touch lifts the row instead
+            e.preventDefault();
+            if (touch || renaming) return;
+            hover.hide();
+            setMenu({ id: n.id, left: e.clientX + 290, top: e.clientY - 6 });
+          }}
+          onClick={(e) => {
             if (suppressClick.current || renaming) return;
+            if (reorder) {
+              setReorderId((cur) => (cur === n.id ? null : n.id));
+              return;
+            }
+            if (selectMode || ((e.ctrlKey || e.metaKey || e.shiftKey) && onBulk)) {
+              if (follows) return;
+              togglePick(n.id, e.shiftKey);
+              return;
+            }
             onSelect(n.id);
           }}
           onKeyDown={(e) => {
             if (renaming) return;
-            if (e.key === 'Enter' || e.key === ' ') {
+            if (e.altKey && e.shiftKey && !readOnly && !q && !filtering) {
+              const dir: MoveDir | null =
+                e.key === 'ArrowUp'
+                  ? 'up'
+                  : e.key === 'ArrowDown'
+                    ? 'down'
+                    : e.key === 'ArrowLeft'
+                      ? 'out'
+                      : e.key === 'ArrowRight'
+                        ? 'in'
+                        : null;
+              if (dir) {
+                e.preventDefault();
+                e.stopPropagation();
+                void moveBy(n.id, dir);
+                return;
+              }
+            }
+            if (!e.altKey && !e.ctrlKey && !e.metaKey && !readOnly) {
+              if (e.key === 'F2') {
+                e.preventDefault();
+                e.stopPropagation();
+                onRenamingChange(n.id);
+                return;
+              }
+              if ((e.key === 'n' || e.key === 'N') && !e.shiftKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                onNewPage(n.id);
+                return;
+              }
+              if ((e.key === 'm' || e.key === 'M') && !e.shiftKey && onMoveTo) {
+                e.preventDefault();
+                e.stopPropagation();
+                onMoveTo(n);
+                return;
+              }
+            }
+            if (e.key === 'Escape' && (selectMode || reorder)) {
+              endSelect();
+              setReorder(false);
+              return;
+            }
+            if (selectMode && e.key === ' ') {
+              e.preventDefault();
+              if (!follows) togglePick(n.id, e.shiftKey);
+            } else if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               onSelect(n.id);
             } else if (e.key === 'ArrowRight' && r.hasChildren && !r.open) toggle(n.id);
@@ -687,7 +888,8 @@ export function DocsTree({
           }}
         >
           <span
-            className="dk-hov"
+            className={`dk-hov${reorder ? ' tr-handle-on' : ''}`}
+            data-drag-handle=""
             style={{
               position: 'absolute',
               left: 1,
@@ -733,9 +935,19 @@ export function DocsTree({
           ) : (
             <span style={{ width: 16, flexShrink: 0 }} />
           )}
-          <span style={{ display: 'flex', color: active ? '#2E6F40' : '#9AA8A0' }}>
-            <Icon name={n.kind === 'canvas' ? 'canvas' : 'page'} size={15} strokeWidth={1.7} />
-          </span>
+          {selectMode && (
+            <span
+              className={`tr-check${pickedHere ? ' tr-check-on' : follows ? ' tr-check-follow' : ''}`}
+              role="checkbox"
+              aria-checked={pickedHere || follows}
+              aria-disabled={follows || undefined}
+              aria-label={follows ? `${n.title} comes with its parent` : `Select ${n.title}`}
+              data-testid={`tree-check-${n.slug}`}
+            >
+              {(pickedHere || follows) && <Icon name="check" size={11} strokeWidth={3} />}
+            </span>
+          )}
+          <PageIcon icon={n.icon} kind={n.kind} active={active} />
           {renaming ? (
             <RenameInput
               initial={n.title}
@@ -746,22 +958,20 @@ export function DocsTree({
               onCancel={() => onRenamingChange(null)}
             />
           ) : (
-            <TitleTip title={n.title} suppressed={!!drag || menu?.id === n.id}>
+            <TitleTip
+              title={chapter ? `${chapter}. ${n.title}` : n.title}
+              suppressed={!!drag || menu?.id === n.id || hover.shown?.id === n.id}
+            >
+              {chapter ? <span className="tr-chapter">{chapter}. </span> : null}
               {highlight(n.title, q)}
             </TitleTip>
           )}
-          {!renaming && n.status === 'draft' && (
-            <span
-              title="Draft"
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: 2,
-                background: '#B4791E',
-                flexShrink: 0,
-                margin: '0 3px',
-              }}
-            />
+          {!renaming && <ConvertMark state={n.convertState} />}
+          {!renaming && <StatusDot status={status} />}
+          {!renaming && book && (
+            <span className="tr-tag tr-tag-book" aria-hidden="true">
+              Book
+            </span>
           )}
           {!renaming && <SuggestionMarker count={n.suggestions} />}
           {!renaming && r.hasChildren && !r.open && (
@@ -845,6 +1055,40 @@ export function DocsTree({
           )}
         </div>
         {dropLanding && drop?.zone === 'after' && drop.rowId === n.id && indicator(dropLanding.depth)}
+        {lifted && (
+          <div
+            className="tr-reorder-btns"
+            role="toolbar"
+            aria-label={`Move ${n.title}`}
+            data-testid="tree-reorder-buttons"
+          >
+            {(
+              [
+                ['up', 'Up', 'i34'],
+                ['down', 'Down', 'i06'],
+                ['out', 'Outdent', 'i16'],
+                ['in', 'Indent', 'i45'],
+              ] as const
+            ).map(([dir, label, icon]) => (
+              <button
+                key={dir}
+                type="button"
+                className="tr-selbtn"
+                disabled={!keyboardMove(nodes, n.id, dir) || movingId === n.id}
+                onClick={() => void moveBy(n.id, dir)}
+              >
+                <Icon name={icon} size={14} strokeWidth={2} />
+                {label}
+              </button>
+            ))}
+            {onMoveTo && (
+              <button type="button" className="tr-selbtn" onClick={() => onMoveTo(n)}>
+                <Icon name="i35" size={14} strokeWidth={1.9} />
+                Move to…
+              </button>
+            )}
+          </div>
+        )}
       </Fragment>
     );
   }
@@ -975,9 +1219,69 @@ export function DocsTree({
           <span className="dk-kbd">/</span>
         )}
       </div>
-      {q && (
+      {(onViewChange || onFiltersChange) && (
+        <div className="tr-toolbar">
+          {onViewChange && (
+            <ViewMenu
+              view={view}
+              sort={sort}
+              onView={onViewChange}
+              onSort={(v) => onSortChange?.(v)}
+              onSelectMode={
+                onBulk
+                  ? () => {
+                      setReorder(false);
+                      setSelectMode(true);
+                    }
+                  : undefined
+              }
+              onReorderMode={
+                !readOnly
+                  ? () => {
+                      endSelect();
+                      setReorder(true);
+                    }
+                  : undefined
+              }
+            />
+          )}
+          {onFiltersChange && (
+            <FilterButton
+              layout={layout}
+              filters={filters}
+              counts={counts}
+              shown={filterShown}
+              onChange={onFiltersChange}
+            />
+          )}
+        </div>
+      )}
+      {onFiltersChange && <FilterChips filters={filters} onChange={onFiltersChange} />}
+      {(q || filtering) && (
         <div role="status" style={{ padding: '0 14px 6px', fontSize: 11.5, color: '#5B6B60', minHeight: 18 }}>
           {matchCount === 0 ? '0 pages' : matchCount === 1 ? '1 page matches' : `${matchCount} pages match`}
+        </div>
+      )}
+      {reorder && (
+        <div className="tr-modebar" role="status" data-testid="tree-reorder-bar">
+          <span>
+            <b>Reorder pages</b>
+            <small>
+              {touch
+                ? 'Drag a handle, or pick a page and use the buttons'
+                : 'Drag a page, or pick one and use the buttons'}
+            </small>
+          </span>
+          <button
+            type="button"
+            className="st-btn st-btn-sm st-btn-primary"
+            onClick={() => {
+              setReorder(false);
+              setReorderId(null);
+            }}
+          >
+            Done
+          </button>
         </div>
       )}
       {aiOn && (
@@ -1005,6 +1309,14 @@ export function DocsTree({
       <div ref={bodyRef} role="tree" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
         {nodes.length === 0 ? (
           <TreeEmpty />
+        ) : filtering && rows.length === 0 ? (
+          <NoMatch
+            filters={filters}
+            onClear={() => {
+              onFiltersChange?.(NO_FILTERS);
+              setFilter('');
+            }}
+          />
         ) : q && rows.length === 0 ? (
           <div
             style={{
@@ -1066,7 +1378,30 @@ export function DocsTree({
           </div>
         )}
       </div>
-      {!readOnly && (
+      {selectMode && (
+        <SelectionBar
+          selected={picked.size}
+          affected={affected.size}
+          readOnly={!!readOnly}
+          onMove={() => bulk('move')}
+          onDuplicate={() => bulk('duplicate')}
+          onExport={() => bulk('export')}
+          onDelete={() => bulk('delete')}
+          onSelectAll={() => {
+            // the pages shown (not the dimmed parents), counted once: a picked parent brings its children
+            setPicked(new Set(selectionRoots(nodes, new Set(rows.filter((r) => !r.dim).map((r) => r.node.id)))));
+          }}
+          onDone={endSelect}
+        />
+      )}
+      {onOpenBin && !selectMode && (
+        <button type="button" className="tr-binrow" onClick={onOpenBin} data-testid="tree-recycle-bin">
+          <Icon name="i12" size={14} strokeWidth={1.8} />
+          <span style={{ flex: 1, textAlign: 'left' }}>Recycle Bin</span>
+          {!!binCount && <span className="dk-tree-count">{binCount}</span>}
+        </button>
+      )}
+      {!readOnly && !selectMode && (
         <div style={{ padding: '8px 10px 14px', display: 'flex', gap: 4, position: 'relative' }}>
           <button
             type="button"
@@ -1156,9 +1491,24 @@ export function DocsTree({
             color: '#1E2A22',
           }}
         >
-          <Icon name="page" size={15} strokeWidth={1.8} style={{ color: '#2E6F40' }} /> {dragNode.title}
+          <PageIcon icon={dragNode.icon} kind={dragNode.kind} active />
+          <span style={{ display: 'flex', flexDirection: 'column' }}>
+            <span>
+              {dragNode.title}
+              {dragKids > 0 && <span className="tr-count">{dragKids + 1}</span>}
+            </span>
+            <span className="tr-drag-tip" data-testid="drag-tip">
+              {dragTip}
+            </span>
+          </span>
         </div>
       )}
+      {hover.shown && byId.get(hover.shown.id) && (
+        <HoverCard node={byId.get(hover.shown.id)!} nodes={nodes} anchor={hover.shown.rect} />
+      )}
+      <div aria-live="polite" className="tr-sr" data-testid="tree-announce">
+        {announce}
+      </div>
     </aside>
   );
 }

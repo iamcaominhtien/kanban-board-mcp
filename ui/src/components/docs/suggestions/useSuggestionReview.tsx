@@ -383,11 +383,12 @@ export function useSuggestionReview(o: ReviewOptions) {
     return { onBlock, after, unplaced };
   }, [doc, list]);
   // the reader renders every block again when `wrap` changes: it changes only with where suggestions sit
-  const shape = [...placed.onBlock.keys(), '|', ...placed.after.keys()].join(',');
+  // (and with the suggestions themselves: a frame gets its suggestion when the reader renders the block)
+  const shape = list.length ? list.map((s) => `${s.id}${s.stale ? '!' : ''}`).join(',') : '';
   const placedRef = useRef(placed);
   placedRef.current = placed;
   const wrap = useMemo(() => {
-    if (!shape || shape === '|') return undefined;
+    if (!shape) return undefined;
     return (node: RichDoc, rendered: ReactNode): ReactNode => {
       const id = str(node.attrs?.blockId);
       const p = placedRef.current;

@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useDocsCommentEvents, type useCommentActions } from '../../../api/docsComments';
-import type { DocsCommentsResult } from '../../../types/docs';
+import type { DocsCommentsResult, RichDoc } from '../../../types/docs';
 import { relativeTime } from '../../../utils/relativeTime';
 import { Icon } from '../Icon';
 import { personOf } from './people';
 import { SendToAiBox } from './SendToAi';
 import { ThreadCard } from './ThreadCard';
 import { useCommentSuggest } from './commentAi';
+import { orderThreads, threadPlace } from './blockAnchor';
+import './blocks.css';
 import { useResizablePanel } from '../../../hooks/useResizablePanel';
 import { PanelMaxButton, PanelResizer, panelSizing } from '../../PanelResizer';
 
@@ -28,6 +30,8 @@ interface Props {
   reattachId: string | null;
   onReattach: (id: string | null) => void;
   onClose: () => void;
+  /** The published rich page: threads are listed in page order and say when their quote or block changed. */
+  doc?: RichDoc | null;
 }
 
 const EVENT_TEXT: Record<string, string> = {
@@ -54,6 +58,7 @@ const EVENT_TEXT: Record<string, string> = {
  * @param props.reattachId - Thread waiting for a new selection.
  * @param props.onReattach - Start or cancel re-attaching.
  * @param props.onClose - Close the panel.
+ * @param props.doc - The published rich page (page order, thread states); omit on a Markdown page.
  */
 export function CommentsPanel({
   pageId,
@@ -71,13 +76,17 @@ export function CommentsPanel({
   reattachId,
   onReattach,
   onClose,
+  doc,
 }: Props) {
   const [showActivity, setShowActivity] = useState(false);
   const panel = useResizablePanel('doc-comments', 392, { min: 280 });
   const sizing = panelSizing(panel);
   const events = useDocsCommentEvents(projectId);
   const inline = useMemo(() => (data?.threads ?? []).filter((t) => t.kind === 'inline'), [data]);
-  const shown = inline.filter((t) => tab === 'all' || t.status === tab);
+  const shown = useMemo(
+    () => orderThreads(inline, doc).filter((t) => tab === 'all' || t.status === tab),
+    [inline, doc, tab],
+  );
   const suggest = useCommentSuggest(data);
   const c = data?.counts;
   const pageEvents = (events.data ?? []).filter((e) => e.pageId === pageId).slice(0, 8);
@@ -175,6 +184,7 @@ export function CommentsPanel({
               onActivate={onActivate}
               onReattach={onReattach}
               suggestMembers={suggest}
+              place={doc ? threadPlace(t, doc) : undefined}
             />
           ))}
         {data && (

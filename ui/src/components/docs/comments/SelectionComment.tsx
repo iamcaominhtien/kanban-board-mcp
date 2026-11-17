@@ -3,6 +3,7 @@ import type { CommentAnchorInput } from '../../../types/docs';
 import { Icon } from '../Icon';
 import { CommentBox } from './CommentBox';
 import { anchorFromRange } from './anchorDom';
+import { topBlockOf } from './blockAnchor';
 import type { SuggestMember } from '../RefSuggester';
 import type { CommentPerson } from './people';
 
@@ -12,6 +13,8 @@ export interface Pick {
   rect: { left: number; right: number; top: number; bottom: number };
   /** The selected DOM range (view mode), kept highlighted while the box is open. */
   range?: Range;
+  /** What a comment on a whole block is about ("Image · Float right"), shown in place of the quote. */
+  label?: string;
 }
 
 export const SHORTCUT_LABEL = /Mac|iPhone|iPad/.test(typeof navigator === 'undefined' ? '' : navigator.platform)
@@ -46,8 +49,19 @@ export function pickFromSelection(root: HTMLElement | null): Pick | null {
   const range = sel.getRangeAt(0);
   const anchor = anchorFromRange(root, range);
   if (!anchor) return null;
+  // on a rich page the comment also carries the block it starts in, so it follows that block through edits
+  const top = topBlockOf(range.startContainer);
+  const blockId = top?.getAttribute('data-block-id');
+  if (blockId) anchor.blockId = blockId;
+  // cells of a table: the quote is their text, the comment says how many cells
+  const cells = top ? Array.from(top.querySelectorAll('td,th')).filter((c) => range.intersectsNode(c)).length : 0;
   const r = range.getBoundingClientRect();
-  return { anchor, rect: { left: r.left, right: r.right, top: r.top, bottom: r.bottom }, range: range.cloneRange() };
+  return {
+    anchor,
+    rect: { left: r.left, right: r.right, top: r.top, bottom: r.bottom },
+    range: range.cloneRange(),
+    ...(cells > 1 ? { label: `Table · ${cells} cells` } : {}),
+  };
 }
 
 /**
@@ -188,9 +202,9 @@ export function ComposePopover({
           <Icon name="close" size={13} strokeWidth={2} />
         </button>
       </div>
-      <div className="dc-quote">
+      <div className="dc-quote" data-testid="compose-about">
         <Icon name="comment" size={13} strokeWidth={1.8} />
-        <span>“{pick.anchor.quote}”</span>
+        <span>{pick.label ?? `“${pick.anchor.quote}”`}</span>
       </div>
       <CommentBox
         projectId={projectId}

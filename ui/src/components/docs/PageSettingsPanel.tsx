@@ -9,7 +9,8 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { uploadDescriptionImage } from '../../api/tickets';
 import { resolveOrigin } from '../../api/resolveOrigin';
 import type { DocsLayout } from '../../hooks/useDocsLayout';
-import type { DocsPage, RichDoc } from '../../types/docs';
+import type { DocsPage, DocsTreeNode, RichDoc } from '../../types/docs';
+import { AccessTab, BookTab, type AnyPatch } from './tree/PageSettingsTabs';
 import { useToast } from '../Toast';
 import { BottomSheet, DocsDrawer } from './DocsSheets';
 import { Icon } from './Icon';
@@ -43,13 +44,15 @@ import {
 import { draftDoc, publishedDoc } from './richPage';
 import { usePageSettingsSaver } from './usePageSettings';
 
-export type SettingsTab = 'layout' | 'text' | 'colour' | 'cover' | 'header';
+export type SettingsTab = 'layout' | 'text' | 'colour' | 'cover' | 'header' | 'book' | 'access';
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: 'layout', label: 'Layout' },
   { id: 'text', label: 'Text' },
   { id: 'colour', label: 'Colour' },
   { id: 'cover', label: 'Cover' },
   { id: 'header', label: 'Header' },
+  { id: 'book', label: 'Book' },
+  { id: 'access', label: 'Access' },
 ];
 
 interface Props {
@@ -59,6 +62,8 @@ interface Props {
   readOnly?: string | null;
   initialTab?: SettingsTab;
   onClose: () => void;
+  /** The space's tree (the Book tab counts the chapters). */
+  nodes?: DocsTreeNode[];
   /** "Save as template…" at the foot of the panel (editors); left out when not given. */
   onSaveTemplate?: () => void;
 }
@@ -629,14 +634,25 @@ function HeaderTab({ look, set }: TabProps) {
  * @param props.initialTab - The tab it opens on.
  * @param props.onClose - Called by Done, the close button, Esc or a tap outside.
  * @param props.onSaveTemplate - Opens "Save as a template" for the page.
+ * @param props.nodes - The space's tree (the Book tab counts the chapters).
  */
-export function PageSettingsPanel({ page, layout, readOnly, initialTab = 'layout', onClose, onSaveTemplate }: Props) {
+export function PageSettingsPanel({
+  page,
+  layout,
+  readOnly,
+  initialTab = 'layout',
+  onClose,
+  onSaveTemplate,
+  nodes,
+}: Props) {
   const [tab, setTab] = useState<SettingsTab>(initialTab);
   const save = usePageSettingsSaver(page.id);
   const look = readPageLook(page.settings);
   const set = (patch: SettingsPatch) => {
     if (!readOnly) save(patch);
   };
+  // the Book and Access tabs change keys beyond the look (book, notForAi, highlights); the saver sends any key
+  const setAny = (patch: AnyPatch) => set(patch as SettingsPatch);
   const anySet = LOOK_KEYS.some((k) => page.settings?.[k] !== undefined);
 
   const body = (
@@ -691,6 +707,8 @@ export function PageSettingsPanel({ page, layout, readOnly, initialTab = 'layout
           {tab === 'colour' && <ColourTab look={look} set={set} />}
           {tab === 'cover' && <CoverTab look={look} set={set} page={page} />}
           {tab === 'header' && <HeaderTab key={page.id} look={look} set={set} />}
+          {tab === 'book' && <BookTab page={page} nodes={nodes ?? []} set={setAny} />}
+          {tab === 'access' && <AccessTab page={page} set={setAny} />}
         </fieldset>
       </div>
       <div className="dk-ps-foot">

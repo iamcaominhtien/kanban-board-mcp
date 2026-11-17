@@ -29,6 +29,7 @@ import { cardToChip, chipToCard, chipsIn } from './refCards';
 import { Row, Seg, useBlockLayout, useCoarsePointer } from './ui';
 import { useEditorTick } from './useInside';
 import { useBlockLock } from '../../suggestions/pageAi';
+import { WHOLE_COMMENT_BLOCKS } from '../../comments/blockAnchor';
 
 const LISTS = ['bulletList', 'orderedList', 'taskList'];
 
@@ -331,7 +332,12 @@ export function BlockMenu({
               label="Comment"
               kbd="Ctrl Alt M"
               onClick={done(() => {
-                if (selectBlockText(editor, pos)) onComment();
+                // an image, a table or an embed is commented on as a whole
+                const node = editor.state.doc.nodeAt(pos);
+                if (node && WHOLE_COMMENT_BLOCKS.has(node.type.name)) {
+                  editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, pos)));
+                  onComment();
+                } else if (selectBlockText(editor, pos)) onComment();
                 else toast.error('Nothing to comment on', 'A comment attaches to text inside a block.');
               })}
             />

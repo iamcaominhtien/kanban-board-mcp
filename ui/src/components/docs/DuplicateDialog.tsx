@@ -289,6 +289,38 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
           </div>
         )}
 
+        {/* the server copies neither yet: shown, switched off, so the choice is known to come */}
+        {(
+          [
+            ['Include comments', 'Off: comments and their threads stay on the original.'],
+            ['Include files and uploads', 'Off: the copy shows the same files as the original.'],
+          ] as const
+        ).map(([label, hint]) => (
+          <div
+            key={label}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 2px', opacity: 0.6 }}
+            data-testid={`dup-${label === 'Include comments' ? 'comments' : 'files'}`}
+          >
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22' }}>
+                {label} <span style={{ fontSize: 11.5, fontWeight: 600, color: '#5B6B60' }}>· coming later</span>
+              </div>
+              <div style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.45 }}>{hint}</div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={false}
+              aria-label={label}
+              disabled
+              className="st-toggle-track"
+              style={{ background: '#C7D2CB', border: 'none', padding: 0, cursor: 'default' }}
+            >
+              <span className="st-toggle-dot" style={{ left: 2 }} />
+            </button>
+          </div>
+        ))}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={checkRow}>
             <Icon name="i10" size={13} strokeWidth={2.4} />

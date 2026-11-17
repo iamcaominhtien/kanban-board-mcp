@@ -30,8 +30,9 @@ import { EditorEnvContext, RefResolver, type EditorEnv, type TicketLite } from '
 import { EditorToc } from './EditorToc';
 import { EditorToolbar, type ToolbarVariant } from './EditorToolbar';
 import { buildExtensions } from './extensions';
-import { anchorFromState, commentHighlightKey, type HighlightThread } from './extensions/CommentHighlights';
+import { commentHighlightKey, type HighlightThread } from './extensions/CommentHighlights';
 import { useCommentShortcut, type Pick } from '../comments/SelectionComment';
+import { editorCommentPick } from '../comments/editorAnchor';
 import { tiptapAdapter } from '../../ai/editor/adapters';
 import { NodeSelection } from '@tiptap/pm/state';
 import { EditorAiSelectionBar, useEditorAi } from '../../ai/editor/useEditorAi';
@@ -812,17 +813,13 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   const startComment = useCallback(() => {
     const ed = editorRef.current;
     if (!ed || ed.isDestroyed || !comments) return;
-    const hit = anchorFromState(ed.state);
-    if (!hit) {
+    // the selected text with its block, or a whole image, table or embed
+    const pick = editorCommentPick(ed);
+    if (!pick) {
       live.current.toast.error('Select text in one paragraph', 'A comment attaches to text inside a single block.');
       return;
     }
-    const a = ed.view.coordsAtPos(hit.from);
-    const b = ed.view.coordsAtPos(hit.to);
-    comments.onPick({
-      anchor: hit.anchor,
-      rect: { left: Math.min(a.left, b.left), right: Math.max(a.right, b.right), top: a.top, bottom: b.bottom },
-    });
+    comments.onPick(pick);
   }, [comments]);
   useCommentShortcut(startComment, !!comments && !readOnly);
 

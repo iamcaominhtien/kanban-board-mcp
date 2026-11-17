@@ -482,8 +482,79 @@ export default {
       await p.getByRole('button', { name: 'Docs', exact: true }).click();
       await p.getByRole('switch', { name: 'Following this space', checked: true }).waitFor();
     });
+    await s.step('AI teams on a page: the page menu sets how a team\'s changes arrive, and Not for AI teams', async () => {
+      await item('API').click();
+      await p.getByTestId('page-title').getByText('API', { exact: true }).waitFor();
+      const settingsOf = async () => (await api(`/docs/pages/${ids.API}`)).settings ?? {};
+      const saved = () => p.waitForResponse((r) => r.request().method() === 'PATCH' && /\/docs\/pages\/[^/]+\/settings$/.test(r.url()), { timeout: 8000 });
+      await p.getByTestId('page-menu').click();
+      await p.getByTestId('menu-ai-changes').click();
+      await p.getByText('WHEN A TEAM CHANGES THIS PAGE').waitFor();
+      await p.getByRole('menuitemradio', { name: /Team default: Suggest first/, checked: true }).waitFor();
+      await Promise.all([saved(), p.getByTestId('ai-apply-direct').click()]);
+      if ((await settingsOf()).aiApply !== 'direct') throw new Error('aiApply was not saved: ' + JSON.stringify(await settingsOf()));
+      await p.getByTestId('page-menu').click();
+      await p.getByTestId('menu-ai-changes').getByText('Apply directly').waitFor();
+      await p.getByTestId('menu-ai-changes').click();
+      await Promise.all([saved(), p.getByTestId('ai-apply-default').click()]);
+      if ('aiApply' in (await settingsOf())) throw new Error('the page should follow the team again');
+      await p.getByTestId('page-menu').click();
+      await Promise.all([saved(), p.getByTestId('menu-not-for-ai').click()]);
+      if ((await settingsOf()).notForAi !== true) throw new Error('notForAi was not saved');
+      await p.getByTestId('page-menu').click();
+      await p.getByRole('menuitemcheckbox', { name: 'Not for AI teams', checked: true }).waitFor();
+      await Promise.all([saved(), p.getByTestId('menu-not-for-ai').click()]);
+      if ('notForAi' in (await settingsOf())) throw new Error('notForAi should be off again');
+    });
+    await s.step('Ask the team on a selection: one purple button; the verbs, then Format this as…, Change tone, Translate', async () => {
+      const para = p.getByTestId('page-body').locator('.dk-rich p').first();
+      await para.scrollIntoViewIfNeeded();
+      const box = await para.boundingBox();
+      await p.mouse.move(box.x + 2, box.y + box.height / 2);
+      await p.mouse.down();
+      await p.mouse.move(box.x + 80, box.y + box.height / 2, { steps: 6 });
+      await p.mouse.up();
+      await p.getByTestId('ask-team').click();
+      const m = p.getByTestId('ask-team-menu');
+      await m.getByText('Docs helper', { exact: true }).waitFor();
+      await m.getByText('Changes arrive as suggestions here').waitFor();
+      for (const t of ['Improve', 'Shorten', 'Fix spelling', 'Ask…', 'Format this as…', 'Change tone', 'Translate']) {
+        await m.getByRole('menuitem', { name: t, exact: true }).waitFor();
+      }
+      s.note('ask the team menu', await m.innerText());
+      await m.getByTestId('ask-team-format').click();
+      for (const t of ['Table', 'Bulleted list', 'Numbered list', 'Callout', 'Pull quote']) await m.getByRole('menuitem', { name: t, exact: true }).waitFor();
+      await m.getByRole('menuitem', { name: '‹ Back' }).click();
+      await m.getByTestId('ask-team-tone').click();
+      for (const t of ['Friendly', 'Formal', 'Plain', 'Confident', 'Shorter sentences']) await m.getByRole('menuitem', { name: t, exact: true }).waitFor();
+      await m.getByRole('menuitem', { name: '‹ Back' }).click();
+      await m.getByTestId('ask-team-translate').click();
+      await m.getByRole('menuitem', { name: 'Vietnamese', exact: true }).waitFor();
+      await p.keyboard.press('Escape');
+      await m.waitFor({ state: 'detached' });
+    });
+    await s.step('Settings, Docs: how each team changes pages, Suggest first or Apply directly', async () => {
+      await p.getByRole('button', { name: 'Settings', exact: true }).click();
+      await p.getByRole('navigation', { name: 'Settings pages' }).getByRole('button', { name: 'Docs', exact: true }).click();
+      const g = p.getByRole('radiogroup', { name: 'How Docs helper changes pages' });
+      await g.getByRole('radio', { name: 'Suggest first', checked: true }).waitFor();
+      const saved = () => p.waitForResponse((r) => r.request().method() === 'PATCH' && /\/docs\/settings$/.test(r.url()), { timeout: 8000 });
+      const [res] = await Promise.all([saved(), g.getByRole('radio', { name: 'Apply directly' }).click()]);
+      s.note('team setting saved', `${res.status()} ${(await res.text()).slice(0, 300)}`);
+      await g.getByRole('radio', { name: 'Apply directly', checked: true }).waitFor();
+      const st = await api(`/projects/${ids.project}/docs/settings`);
+      if (!Object.values(st.aiApply ?? st.ai_apply ?? {}).includes('direct')) throw new Error('aiApply not saved: ' + JSON.stringify(st));
+      await Promise.all([saved(), g.getByRole('radio', { name: 'Suggest first' }).click()]);
+      await g.getByRole('radio', { name: 'Suggest first', checked: true }).waitFor();
+      await p.getByRole('button', { name: 'Back to board' }).click();
+      // back to the Docs space as the steps before left it
+      await p.reload();
+      await p.getByRole('complementary', { name: 'Project navigation' }).waitFor({ timeout: 20000 });
+      await p.getByRole('button', { name: 'Docs', exact: true }).click();
+      await p.getByTestId('tree-ask-docs').waitFor();
+    });
     await s.step('turn Docs AI off: the AI entries disappear', async () => {
-      await p.getByRole('button', { name: 'Settings' }).click();
+      await p.getByRole('button', { name: 'Settings', exact: true }).click(); // not the page's Reading settings
       await p.getByRole('navigation', { name: 'Settings pages' }).getByRole('button', { name: 'Docs', exact: true }).click();
       await p.getByRole('switch', { name: 'Use AI in Docs' }).click();
       await p.getByRole('switch', { name: 'Use AI in Docs', checked: false }).waitFor();

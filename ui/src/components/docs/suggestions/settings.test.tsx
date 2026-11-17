@@ -121,8 +121,8 @@ describe('Settings › Docs AI: how each team changes pages', () => {
     await waitFor(() =>
       expect(http.patch).toHaveBeenCalledWith(
         '/projects/proj/docs/settings',
-        { aiApply: { tm_dev: 'direct' } },
-        { rawKeys: ['aiApply'], keepKeys: true },
+        { settings: { aiApply: { tm_dev: 'direct' } } },
+        { rawKeys: ['settings'], keepKeys: true },
       ),
     );
   });

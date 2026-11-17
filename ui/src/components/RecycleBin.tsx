@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Ticket } from '../types';
+import { useDocsTree } from '../api/docs';
+import type { RecycleEntry } from '../types/docsActions';
 import { BinRow, PageBinRow, useDocsRecycle } from './docs/DocsRecycleSection';
+import { EmptyBinDialog, parentEntryOf, PurgeDialog, RestoreWhereDialog } from './docs/tree/RecycleBinParts';
 import { Icon } from './docs/Icon';
 import { CloseButton } from './docs/docsShared';
 import { relativeTime } from '../utils/relativeTime';
@@ -28,14 +31,26 @@ type Filter = 'all' | 'pages' | 'tickets';
 export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsPage }: RecycleBinProps) {
   const [visible, setVisible] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
-  const [confirmId, setConfirmId] = useState<string | null>(null);
   const [confirmEmpty, setConfirmEmpty] = useState(false);
+  // pages picked for Restore / Delete forever of several, the pages a Delete forever asks about, the page whose
+  // parent is gone (where should it go?)
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  const [purgeFor, setPurgeFor] = useState<RecycleEntry[] | null>(null);
+  const [whereFor, setWhereFor] = useState<RecycleEntry | null>(null);
+  const [phone] = useState(() => typeof window !== 'undefined' && window.innerWidth < 600);
+  const tree = useDocsTree(whereFor ? (projectId ?? '') : '');
   const panelRef = useRef<HTMLDivElement>(null);
   const docs = useDocsRecycle(projectId ?? '', (id) => {
     onOpenDocsPage?.(id);
     handleClose();
   });
-  const pages = projectId ? docs.entries : [];
+  const pages = useMemo(() => (projectId ? docs.entries : []), [projectId, docs.entries]);
+  const pickedPages = pages.filter((p) => picked.has(p.id));
+
+  function restore(entry: RecycleEntry) {
+    if (entry.parentDeleted) setWhereFor(entry);
+    else void docs.restoreEntry(entry);
+  }
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
@@ -49,7 +64,12 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose();
+      // Esc in one of its dialogs closes only that dialog
+      if (
+        e.key === 'Escape' &&
+        !document.querySelector('[role="dialog"][aria-modal="true"]:not([aria-label="Recycle Bin"])')
+      )
+        handleClose();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -123,34 +143,27 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
           <CloseButton onClick={handleClose} />
         </div>
 
-        {confirmEmpty && (
-          <div
-            role="alert"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 20px',
-              background: '#FBE7E4',
-              borderBottom: '1px solid #F0C4B8',
-              fontSize: 12.5,
-              color: '#1E2A22',
-            }}
-          >
-            <span style={{ flex: 1 }}>
-              Delete {pages.length} deleted {pages.length === 1 ? 'page' : 'pages'} forever? Tickets are not affected.
-              This can’t be undone.
-            </span>
-            <button type="button" className="st-btn st-btn-sm" onClick={() => setConfirmEmpty(false)}>
-              Cancel
+        {pickedPages.length > 0 && (
+          <div className="tr-binbar" role="toolbar" aria-label="Selected pages" data-testid="bin-selection-bar">
+            <span style={{ flex: 1 }}>{pickedPages.length} selected</span>
+            <button
+              type="button"
+              className="st-btn st-btn-sm"
+              disabled={docs.bulkBusy}
+              onClick={() => void docs.restoreMany(pickedPages).then((ok) => ok && setPicked(new Set()))}
+            >
+              Restore {pickedPages.length}
             </button>
             <button
               type="button"
-              className="st-btn st-btn-sm st-btn-danger"
-              disabled={docs.emptying}
-              onClick={() => void docs.emptyBin().then((ok) => ok && setConfirmEmpty(false))}
+              className="st-btn st-btn-sm st-btn-danger-outline"
+              disabled={docs.bulkBusy}
+              onClick={() => setPurgeFor(pickedPages)}
             >
-              {docs.emptying ? 'Emptying…' : 'Empty bin'}
+              Delete forever
+            </button>
+            <button type="button" className="st-btn st-btn-sm" onClick={() => setPicked(new Set())}>
+              Cancel
             </button>
           </div>
         )}
@@ -179,9 +192,14 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
             </p>
           )}
           {shown.length === 0 && (
-            <p style={{ margin: 0, padding: '28px 20px', textAlign: 'center', fontSize: 13, color: '#5B6B60' }}>
-              {empty(filter)}
-            </p>
+            <div style={{ padding: '28px 20px', textAlign: 'center', fontSize: 13, color: '#5B6B60' }}>
+              <p style={{ margin: 0, fontWeight: 700, color: '#1E2A22' }}>{empty(filter)}</p>
+              {filter !== 'tickets' && (
+                <p style={{ margin: '6px 0 0', lineHeight: 1.5 }}>
+                  Pages you delete wait here for 30 days. Restoring brings back the page, its child pages and its files.
+                </p>
+              )}
+            </div>
           )}
           {shown.map((it, i) => {
             const last = i === shown.length - 1;
@@ -194,12 +212,21 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
                   last={last}
                   first={i === 0}
                   busy={docs.busyId === entry.id}
-                  confirming={confirmId === entry.id}
+                  confirming={false}
                   error={docs.rowError?.id === entry.id ? docs.rowError.message : null}
-                  onRestore={() => void docs.restoreEntry(entry)}
-                  onAskPurge={() => setConfirmId(entry.id)}
-                  onCancelPurge={() => setConfirmId(null)}
-                  onPurge={() => void docs.purgeEntry(entry).then((ok) => ok && setConfirmId(null))}
+                  onRestore={() => restore(entry)}
+                  onAskPurge={() => setPurgeFor([entry])}
+                  onCancelPurge={() => setPurgeFor(null)}
+                  onPurge={() => setPurgeFor([entry])}
+                  selected={picked.has(entry.id)}
+                  onToggleSelect={() =>
+                    setPicked((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(entry.id)) next.delete(entry.id);
+                      else next.add(entry.id);
+                      return next;
+                    })
+                  }
                 />
               );
             }
@@ -254,9 +281,51 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
             flexShrink: 0,
           }}
         >
-          Pages are deleted forever 30 days after they were removed. If a restored page's parent is gone, it comes back
-          at the top level. Tickets marked as Won’t Do stay here until restored.
+          Pages are deleted forever 30 days after they were removed; the last week turns amber and the last three days
+          red. If a restored page's parent is gone, you choose where it comes back (the top level unless you pick a
+          page). Tickets marked as Won’t Do stay here until restored.
         </div>
+        {confirmEmpty && (
+          <EmptyBinDialog
+            entries={pages}
+            tickets={tickets.length}
+            phone={phone}
+            busy={docs.emptying}
+            onClose={() => setConfirmEmpty(false)}
+            onConfirm={(scope) => void docs.emptyBin(scope).then((ok) => ok && setConfirmEmpty(false))}
+          />
+        )}
+        {purgeFor && (
+          <PurgeDialog
+            entries={purgeFor}
+            phone={phone}
+            busy={docs.bulkBusy || purgeFor.some((e) => docs.busyId === e.id)}
+            onClose={() => setPurgeFor(null)}
+            onConfirm={() => {
+              const list = purgeFor;
+              const run = list.length === 1 ? docs.purgeEntry(list[0]) : docs.purgeMany(list);
+              void run.then((ok) => {
+                if (!ok) return;
+                setPurgeFor(null);
+                setPicked((prev) => new Set([...prev].filter((id) => !list.some((e) => e.id === id))));
+              });
+            }}
+          />
+        )}
+        {whereFor && (
+          <RestoreWhereDialog
+            entry={whereFor}
+            parent={parentEntryOf(whereFor, pages)}
+            nodes={tree.data ?? []}
+            phone={phone}
+            onClose={() => setWhereFor(null)}
+            onRestore={(where) => {
+              const entry = whereFor;
+              setWhereFor(null);
+              void docs.restoreEntry(entry, where);
+            }}
+          />
+        )}
       </div>
     </div>
   );

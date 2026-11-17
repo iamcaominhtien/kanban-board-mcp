@@ -11,6 +11,8 @@ export type PageMenuAction =
   | 'move'
   | 'history'
   | 'settings'
+  | 'icon'
+  | 'book'
   | 'save-template'
   | 'export'
   | 'print'
@@ -52,7 +54,9 @@ const GROUPS: Item[][] = [
     { action: 'move', label: 'Move to…', icon: 'i35', kbd: 'M' },
   ],
   [
+    { action: 'icon', label: 'Page icon…', icon: 'i58' },
     { action: 'settings', label: 'Page settings…', icon: 'i42' },
+    { action: 'book', label: 'Turn into a book…', icon: 'i00' },
     { action: 'save-template', label: 'Save as template…', icon: 'i24' },
     { action: 'history', label: 'Page history', icon: 'i39', kbd: 'H' },
     { action: 'export', label: 'Export…', icon: 'i43' },
@@ -109,8 +113,10 @@ export function usePageShortcuts(onAction: (a: PageMenuAction) => void, enabled 
  * @param props.extra - Optional entries to draw (Print).
  * @param props.aiItems - AI team rows drawn after "Give to an AI team…".
  */
-export function PageMenu({ onAction, onClose, variant = 'popover', hidden, extra, aiItems }: PageMenuProps) {
+export function PageMenu({ page, onAction, onClose, variant = 'popover', hidden, extra, aiItems }: PageMenuProps) {
   const sheet = variant === 'sheet';
+  // a book's entry opens its settings instead of turning it into one
+  const isBook = (page.settings?.book as { isBook?: boolean } | undefined)?.isBook === true;
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -180,7 +186,7 @@ export function PageMenu({ onAction, onClose, variant = 'popover', hidden, extra
                 <span style={{ color: it.danger ? '#C4432A' : '#5B6B60', display: 'flex' }}>
                   <Icon name={it.icon} size={15} strokeWidth={1.8} />
                 </span>
-                <span>{it.label}</span>
+                <span>{it.action === 'book' && isBook ? 'Book settings…' : it.label}</span>
                 {it.kbd && !sheet && (
                   <span style={{ marginLeft: 'auto' }}>
                     <span className="dk-kbd">{it.kbd}</span>

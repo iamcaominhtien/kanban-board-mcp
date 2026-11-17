@@ -10,6 +10,7 @@ import type { SuggestMember } from '../RefSuggester';
 import { aiCostLabel, aiReplyKind, canSummarise, thinking } from '../../../utils/docsThreadAiRules';
 import { LineIcon } from '../../ui/LineIcon';
 import { ThreadSendButton } from './SendToAi';
+import type { ThreadPlace } from './blockAnchor';
 
 type Actions = ReturnType<typeof useCommentActions>;
 
@@ -28,6 +29,8 @@ interface Props {
   onReattach: (id: string | null) => void;
   /** Members offered after `@` (people, and AI members while Docs AI is on). */
   suggestMembers: SuggestMember[];
+  /** Where the thread stands on a rich page (quote edited, block deleted) and what its block is called. */
+  place?: ThreadPlace;
 }
 
 const FOLD_AFTER = 4;
@@ -164,6 +167,8 @@ function Avatar({ p, size = 28 }: { p: CommentPerson; size?: number }) {
  * @param props.onActivate - Called with the thread id when the card is clicked.
  * @param props.onReattach - Start (id) or cancel (null) re-attaching to a new selection.
  * @param props.suggestMembers - Members offered after `@`.
+ * @param props.place - On a rich page: the thread's state against the page ("quote edited", "block deleted") and the
+ *   name of the block a whole-block comment is on.
  */
 export function ThreadCard({
   thread,
@@ -177,6 +182,7 @@ export function ThreadCard({
   onActivate,
   onReattach,
   suggestMembers,
+  place,
 }: Props) {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -192,7 +198,9 @@ export function ThreadCard({
   const ai = useThreadAiActions(thread.pageId);
   const replyMembers = useMemo(() => threadMembers(thread, suggestMembers), [thread, suggestMembers]);
   const working = thinking(thread);
-  const orphaned = thread.anchor?.state === 'orphaned';
+  const blockGone = place?.state === 'blockDeleted';
+  const quoteEdited = place?.state === 'quoteEdited';
+  const orphaned = thread.anchor?.state === 'orphaned' || blockGone;
   const resolved = thread.status === 'resolved';
 
   useEffect(() => {
@@ -484,13 +492,13 @@ export function ThreadCard({
       className={`dc-card${active ? ' is-active' : ''}${resolved ? ' is-resolved' : ''}${orphaned ? ' is-orphaned' : ''}`}
       data-testid="thread-card"
       data-thread={thread.id}
-      data-state={orphaned ? 'orphaned' : thread.status}
+      data-state={blockGone ? 'blockDeleted' : orphaned ? 'orphaned' : quoteEdited ? 'quoteEdited' : thread.status}
       onClick={() => onActivate(thread.id)}
     >
       {!page && (
         <header className="dc-card-head">
           {orphaned && !resolved ? (
-            <span className="dc-chip dc-chip-red">Text removed</span>
+            <span className="dc-chip dc-chip-red">{blockGone ? 'Block deleted' : 'Text removed'}</span>
           ) : resolved ? (
             <span className="dc-chip dc-chip-green">
               <Icon name="check" size={12} strokeWidth={2.4} /> Resolved
@@ -500,6 +508,7 @@ export function ThreadCard({
               {thread.number ?? '·'}
             </span>
           )}
+          {quoteEdited && !resolved && <span className="dc-chip dc-chip-amber">Quote edited</span>}
           {thread.unread && <span className="dc-unread" data-testid="unread-dot" title="Unread" />}
           <span style={{ flex: 1 }} />
           {resolved && thread.canResolve && (
@@ -532,10 +541,21 @@ export function ThreadCard({
           )}
         </header>
       )}
-      {!page && thread.anchor?.quote && (
-        <div className="dc-quote" data-testid="thread-quote">
+      {!page && place?.label && (
+        <div className="dc-quote" data-testid="thread-block">
+          <Icon name="comment" size={13} strokeWidth={1.8} />
+          <span className="dc-block-label">{place.label}</span>
+        </div>
+      )}
+      {!page && !place?.label && thread.anchor?.quote && (
+        <div className={`dc-quote${quoteEdited ? ' is-edited' : ''}`} data-testid="thread-quote">
           <Icon name="comment" size={13} strokeWidth={1.8} />
           <span>“{thread.anchor.quote}”</span>
+        </div>
+      )}
+      {quoteEdited && !resolved && (
+        <div className="dc-state-note" data-testid="thread-quote-edited">
+          The text changed since. The thread follows its block and keeps the words it was written on.
         </div>
       )}
       {thread.aiSummary && (
@@ -601,8 +621,8 @@ export function ThreadCard({
       ))}
       {orphaned && !resolved && (
         <div className="dc-orphan" data-testid="orphan-notice">
-          <p>
-            The text this comment was attached to was edited or deleted
+          <p data-testid={blockGone ? 'thread-block-deleted' : undefined}>
+            {blockGone ? 'The block was removed' : 'The text this comment was attached to was edited or deleted'}
             {version > 0 ? (
               <>
                 {' '}
