@@ -10,6 +10,7 @@ export type PageMenuAction =
   | 'copy-markdown'
   | 'move'
   | 'history'
+  | 'settings'
   | 'export'
   | 'give-ai'
   | 'delete';
@@ -18,6 +19,10 @@ interface PageMenuProps {
   page: DocsPage;
   onAction: (a: PageMenuAction) => void;
   onClose: () => void;
+  /** `sheet`: drawn in place (a phone's bottom sheet) instead of as a popover under its button. */
+  variant?: 'popover' | 'sheet';
+  /** Entries left out (a canvas page has no Page settings). */
+  hidden?: readonly PageMenuAction[];
 }
 
 interface Item {
@@ -38,6 +43,7 @@ const GROUPS: Item[][] = [
     { action: 'move', label: 'Move to…', icon: 'i35', kbd: 'M' },
   ],
   [
+    { action: 'settings', label: 'Page settings…', icon: 'i42' },
     { action: 'history', label: 'Page history', icon: 'i39', kbd: 'H' },
     { action: 'export', label: 'Export as Markdown', icon: 'i43' },
   ],
@@ -87,8 +93,11 @@ export function usePageShortcuts(onAction: (a: PageMenuAction) => void, enabled 
  * The page header "···" menu. Position it with a relatively-positioned wrapper; it opens below, right-aligned.
  * @param props.onAction - Called with the chosen menu action.
  * @param props.onClose - Called to dismiss the menu.
+ * @param props.variant - `sheet` draws it in place, full width, with 44 px rows (a phone's bottom sheet).
+ * @param props.hidden - Entries to leave out.
  */
-export function PageMenu({ onAction, onClose }: PageMenuProps) {
+export function PageMenu({ onAction, onClose, variant = 'popover', hidden }: PageMenuProps) {
+  const sheet = variant === 'sheet';
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -122,48 +131,51 @@ export function PageMenu({ onAction, onClose }: PageMenuProps) {
   return (
     <div
       ref={rootRef}
-      className="dk-menu docs-root"
+      className={sheet ? 'dk-menu-sheet docs-root' : 'dk-menu docs-root'}
       role="menu"
       aria-label="Page actions"
       onKeyDown={moveFocus}
-      style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 290, zIndex: 60 }}
+      style={sheet ? undefined : { position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 290, zIndex: 60 }}
     >
-      {GROUPS.map((group, gi) => (
-        <div key={gi}>
-          {gi > 0 && <div style={{ height: 1, background: '#EEF3EF', margin: '4px 6px' }} />}
-          {group.map((it) => (
-            <button
-              key={it.action}
-              type="button"
-              role="menuitem"
-              className="dk-mi"
-              data-testid={`menu-${it.action}`}
-              onClick={() => {
-                onClose();
-                onAction(it.action);
-              }}
-              style={{
-                width: '100%',
-                border: 'none',
-                background: 'none',
-                textAlign: 'left',
-                fontFamily: 'inherit',
-                ...(it.danger ? { color: '#C4432A' } : {}),
-              }}
-            >
-              <span style={{ color: it.danger ? '#C4432A' : '#5B6B60', display: 'flex' }}>
-                <Icon name={it.icon} size={15} strokeWidth={1.8} />
-              </span>
-              <span>{it.label}</span>
-              {it.kbd && (
-                <span style={{ marginLeft: 'auto' }}>
-                  <span className="dk-kbd">{it.kbd}</span>
+      {GROUPS.map((all, gi) => ({ all, gi })).map(({ all, gi }) => {
+        const group = hidden ? all.filter((it) => !hidden.includes(it.action)) : all;
+        return (
+          <div key={gi}>
+            {gi > 0 && <div style={{ height: 1, background: '#EEF3EF', margin: '4px 6px' }} />}
+            {group.map((it) => (
+              <button
+                key={it.action}
+                type="button"
+                role="menuitem"
+                className="dk-mi"
+                data-testid={`menu-${it.action}`}
+                onClick={() => {
+                  onClose();
+                  onAction(it.action);
+                }}
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  background: 'none',
+                  textAlign: 'left',
+                  fontFamily: 'inherit',
+                  ...(it.danger ? { color: '#C4432A' } : {}),
+                }}
+              >
+                <span style={{ color: it.danger ? '#C4432A' : '#5B6B60', display: 'flex' }}>
+                  <Icon name={it.icon} size={15} strokeWidth={1.8} />
                 </span>
-              )}
-            </button>
-          ))}
-        </div>
-      ))}
+                <span>{it.label}</span>
+                {it.kbd && !sheet && (
+                  <span style={{ marginLeft: 'auto' }}>
+                    <span className="dk-kbd">{it.kbd}</span>
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }

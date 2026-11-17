@@ -1,0 +1,70 @@
+/**
+ * Gives the editor's blocks their editing views (images, columns, quotes, pull quotes, dividers) without changing
+ * their schema: the same extensions, extended with `addNodeView`. The headless converter (richdoc) keeps the plain
+ * ones; only the mounted editor (DocsEditor) uses these.
+ */
+
+import { flattenExtensions, type AnyExtension, type Node as TiptapNode } from '@tiptap/core';
+import { ReactNodeViewRenderer } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { ColumnsView } from './ColumnsView';
+import { ImageView, imageOuterAttrs } from './ImageView';
+import { BlockquoteView, PullQuoteView, RuleView } from './QuoteViews';
+import './blocks.css';
+
+const VIEWS: Record<string, (ext: TiptapNode) => AnyExtension> = {
+  image: (ext) =>
+    ext.extend({
+      addNodeView() {
+        return ReactNodeViewRenderer(ImageView, {
+          attrs: ({ node }) => imageOuterAttrs(node.attrs as Record<string, unknown>),
+        });
+      },
+    }),
+  columns: (ext) =>
+    ext.extend({
+      addNodeView() {
+        return ReactNodeViewRenderer(ColumnsView);
+      },
+    }),
+  pullQuote: (ext) =>
+    ext.extend({
+      addNodeView() {
+        return ReactNodeViewRenderer(PullQuoteView);
+      },
+    }),
+  blockquote: (ext) =>
+    ext.extend({
+      addNodeView() {
+        return ReactNodeViewRenderer(BlockquoteView);
+      },
+    }),
+  horizontalRule: (ext) =>
+    ext.extend({
+      addNodeView() {
+        return ReactNodeViewRenderer(RuleView);
+      },
+    }),
+};
+
+/** The kit's nodes that get a view; the kit is configured without them and they come back extended. */
+const FROM_KIT = ['blockquote', 'horizontalRule'] as const;
+
+/**
+ * The extensions with the block views added.
+ * @param extensions - What buildExtensions returns.
+ */
+export function withBlockViews(extensions: AnyExtension[]): AnyExtension[] {
+  const out: AnyExtension[] = [];
+  for (const ext of extensions) {
+    if (ext.name === 'starterKit') {
+      const opts = (ext.options ?? {}) as Record<string, unknown>;
+      const kids = flattenExtensions([ext]).filter((e) => (FROM_KIT as readonly string[]).includes(e.name));
+      out.push(StarterKit.configure({ ...opts, blockquote: false, horizontalRule: false }));
+      for (const k of kids) out.push(VIEWS[k.name](k as TiptapNode));
+      continue;
+    }
+    out.push(ext.name in VIEWS && ext.type === 'node' ? VIEWS[ext.name](ext as TiptapNode) : ext);
+  }
+  return out;
+}

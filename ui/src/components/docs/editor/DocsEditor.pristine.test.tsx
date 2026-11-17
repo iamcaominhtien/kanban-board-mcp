@@ -34,12 +34,10 @@ function renderEditor(onChange = vi.fn(), markdown = 'Intro') {
         <DocsEditor
           projectId="p1"
           markdown={markdown}
-          mode="visual"
           onChange={onChange}
           nodes={[]}
           currentPageId="pg1"
           pageTitle="Overview"
-          filename="overview.md"
         />
       </ToastProvider>
     </QueryClientProvider>,

@@ -6,6 +6,7 @@ import { FindInPage, useDocsFindHotkey } from './FindInPage';
 import { ImportDialog } from './ImportDialog';
 import { RefCheatSheetHost } from './RefCheatSheet';
 import { SearchPalette, rememberDocsPage, useDocsSearchHotkey } from './SearchPalette';
+import type { DocsLayout } from '../../hooks/useDocsLayout';
 import './docs.css';
 
 interface Props {
@@ -18,6 +19,10 @@ interface Props {
   onBack?: () => void;
   /** Move Docs into a window of its own, on this page (#268). */
   onPopOut?: (pageId: string | null) => void;
+  /** Opens the project sidebar where the app hides it (tablet and phone widths). */
+  onOpenSidebar?: () => void;
+  /** Called with true while the app bar should hide (editing on a tablet or a phone), false after. */
+  onImmersiveChange?: (on: boolean) => void;
 }
 
 /**
@@ -30,6 +35,8 @@ interface Props {
  * @param props.onOpenSettings - Called to open project settings when Docs is disabled.
  * @param props.onBack - Called to leave the Docs space.
  * @param props.onPopOut - Called with the open page to move Docs into a window of its own.
+ * @param props.onOpenSidebar - Opens the project sidebar the app hides on narrow screens.
+ * @param props.onImmersiveChange - Called with true while the app bar should hide (editing on touch layouts).
  */
 export function DocsSpace({
   projectId,
@@ -40,6 +47,8 @@ export function DocsSpace({
   onOpenSettings,
   onBack,
   onPopOut,
+  onOpenSidebar,
+  onImmersiveChange,
 }: Props) {
   const tree = useDocsTree(projectId);
   const nodes = tree.data ?? [];
@@ -50,6 +59,7 @@ export function DocsSpace({
   const [importing, setImporting] = useState<{ files?: File[] } | null>(null);
   const [findOpen, setFindOpen] = useState(false);
   const [root, setRoot] = useState<HTMLElement | null>(null);
+  const [layout, setLayout] = useState<DocsLayout>('desktop');
 
   // a root whose page or editor was closed is no longer in the document
   const liveRoot = root?.isConnected ? root : null;
@@ -96,6 +106,9 @@ export function DocsSpace({
         onCloseResults={() => setResults(null)}
         intent={intent}
         onIntentHandled={() => setIntent(null)}
+        onOpenSidebar={onOpenSidebar}
+        onImmersiveChange={onImmersiveChange}
+        onLayoutChange={setLayout}
       />
       <RefCheatSheetHost />
       {findOpen && (
@@ -113,6 +126,7 @@ export function DocsSpace({
           pageId={current ?? undefined}
           initialQuery={palette.q}
           mode={palette.mode}
+          fullScreen={layout === 'phone'}
           onClose={() => setPalette(null)}
           onOpenPage={(id, anchor) => {
             setPalette(null);

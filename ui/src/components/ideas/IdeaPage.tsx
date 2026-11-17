@@ -951,13 +951,11 @@ function PageTab({
         ref={editor}
         projectId={projectId}
         markdown={value}
-        mode="visual"
         nodes={tree.data ?? []}
         currentPageId={idea.id}
         sketchOwnerKind="idea"
         inlineAi={{ surface: 'idea', projectId: aiProjectId }}
         pageTitle={idea.title}
-        filename={`${idea.id}.md`}
         toc={null}
         readOnly={readOnly}
         onOpenTicket={onOpenTicket}

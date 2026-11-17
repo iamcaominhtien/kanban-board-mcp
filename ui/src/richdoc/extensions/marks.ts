@@ -3,9 +3,35 @@
  * no syntax for them, so they write nothing there and the text stays (README.md, "The two Markdown flavours").
  */
 
-import { Mark, mergeAttributes } from '@tiptap/core';
+import { Mark, mergeAttributes, type Attribute } from '@tiptap/core';
 import Highlight from '@tiptap/extension-highlight';
-import { dataAttr } from './attr';
+import { cssColor } from '../../components/docs/editor/ribbon/palette';
+import { FONT_FAMILY, type PageFont } from '../../components/docs/pageSettings';
+import { dataAttr, type AttrKind } from './attr';
+
+/**
+ * `dataAttr` that also draws the value: the `data-*` attribute is what is read back, the inline style is what the
+ * editor shows (a palette name through its page variable, so it follows the page background).
+ * @param name - The attribute.
+ * @param kind - How `data-*` stores it.
+ * @param css - The CSS declaration for a value, or null to draw nothing.
+ */
+function styledAttr(name: string, kind: AttrKind, css: (v: unknown) => string | null): Attribute {
+  const base = dataAttr(name, null, kind);
+  return {
+    ...base,
+    renderHTML: (attrs) => {
+      const out = (base.renderHTML?.(attrs) ?? {}) as Record<string, unknown>;
+      const decl = attrs[name] == null ? null : css(attrs[name]);
+      return decl ? { ...out, style: decl } : out;
+    },
+  };
+}
+
+const colorCss = (kind: 'text' | 'highlight') => (v: unknown) => {
+  const c = cssColor(kind, v);
+  return c ? `${kind === 'text' ? 'color' : 'background-color'}: ${c}` : null;
+};
 
 /** A mark shown as one HTML element (`u`, `sup`, `sub`), with no Markdown of its own. */
 function tagMark(name: string, tag: string) {
@@ -31,9 +57,13 @@ export const TextStyle = Mark.create({
 
   addAttributes() {
     return {
-      color: dataAttr('color', null),
-      fontFamily: dataAttr('fontFamily', null),
-      fontSize: dataAttr('fontSize', null, 'json'),
+      color: styledAttr('color', 'string', colorCss('text')),
+      fontFamily: styledAttr('fontFamily', 'string', (v) =>
+        typeof v === 'string' && v in FONT_FAMILY ? `font-family: ${FONT_FAMILY[v as PageFont]}` : null,
+      ),
+      fontSize: styledAttr('fontSize', 'json', (v) =>
+        typeof v === 'number' && Number.isFinite(v) ? `font-size: ${v}px` : null,
+      ),
     };
   },
 
@@ -60,6 +90,6 @@ export const TextStyle = Mark.create({
  */
 export const RichHighlight = Highlight.extend({
   addAttributes() {
-    return { color: dataAttr('color', null) };
+    return { color: styledAttr('color', 'string', colorCss('highlight')) };
   },
 }).configure({ multicolor: true });

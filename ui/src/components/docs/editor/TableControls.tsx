@@ -2,6 +2,9 @@ import type { Editor } from '@tiptap/react';
 import { CellSelection } from '@tiptap/pm/tables';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { Icon } from '../Icon';
+import { canSplitCell } from './blocks/commands';
+import { CellProps, MergeButtons, PhoneTableBar, TableProps } from './blocks/TableTools';
+import { useBlockLayout } from './blocks/ui';
 
 interface Geo {
   table: { left: number; top: number; width: number; height: number };
@@ -39,6 +42,9 @@ function cellIndexOf(dom: HTMLElement | null): { col: number; row: number } | nu
 export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: RefObject<HTMLDivElement> }) {
   const [geo, setGeo] = useState<Geo | null>(null);
   const [tip, setTip] = useState<string | null>(null);
+  // Rich Docs phase 4: Cell properties / Table properties panels, and the phone's bar under a selected cell
+  const [panel, setPanel] = useState<{ kind: 'cell' | 'table'; anchor: DOMRect } | null>(null);
+  const layout = useBlockLayout();
   // The overlay fills the editor column (inset 0), which sits below the page header inside the host; positions
   // are measured against it, not against the host.
   const layerRef = useRef<HTMLDivElement>(null);
@@ -112,6 +118,8 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
   }, [editor, compute, hostRef]);
 
   if (!geo) return <div ref={layerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />;
+  const splitable = canSplitCell(editor);
+  const phone = layout === 'phone';
 
   const tableOf = () => {
     const { $from } = editor.state.selection;
@@ -230,6 +238,19 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
       })}
       <button
         type="button"
+        aria-label="Table properties"
+        title="Table properties"
+        className="dk-table-corner"
+        data-block-ui=""
+        style={{ left: geo.table.left - 16, top: geo.table.top - 16 }}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={(e) => setPanel({ kind: 'table', anchor: e.currentTarget.getBoundingClientRect() })}
+      />
+      {panel?.kind === 'table' && <TableProps editor={editor} anchor={panel.anchor} onClose={() => setPanel(null)} />}
+      {panel?.kind === 'cell' && <CellProps editor={editor} anchor={panel.anchor} onClose={() => setPanel(null)} />}
+      {phone && <PhoneTableBar editor={editor} />}
+      <button
+        type="button"
         aria-label="Add column"
         title="Add column"
         style={{
@@ -289,8 +310,9 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
         <Icon name="i01" size={12} />
       </button>
 
-      {geo.anySel && (
+      {(geo.anySel || splitable) && !phone && (
         <div
+          data-block-ui=""
           data-testid="cell-toolbar"
           style={{
             position: 'absolute',
@@ -312,6 +334,17 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
               {tip}
             </div>
           )}
+          <MergeButtons editor={editor} onTip={setTip} />
+          <button
+            type="button"
+            className="dk-bubble-btn"
+            style={{ width: 'auto', padding: '0 7px', fontSize: 12, color: '#EEF3EF' }}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => setPanel({ kind: 'cell', anchor: e.currentTarget.getBoundingClientRect() })}
+          >
+            Cell properties
+          </button>
+          {sep}
           {mini('Add row above', () => c().addRowBefore().run(), 'i55', 'y')}
           {mini('Add row below', () => c().addRowAfter().run(), 'i55')}
           {mini('Add column left', () => c().addColumnBefore().run(), 'i56', 'x')}

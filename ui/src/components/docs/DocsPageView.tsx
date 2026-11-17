@@ -4,6 +4,9 @@ import { useDocsAiState } from '../../api/docsAi';
 import { aiGate } from '../../utils/docsAiRules';
 import { actorInitials, actorName, relativeTime } from '../../utils/relativeTime';
 import { DocsMarkdown, type DocsMarkdownProps } from './DocsMarkdown';
+import { RichDocView } from './RichDocView';
+import { ConvertBar, ConvertedNotice } from './ConvertBanners';
+import { convertLock, convertLockTip, draftDoc, publishedDoc } from './richPage';
 import { OfflineBanner } from './DocsStates';
 import { DocsAiBanners } from './ai/DocsAiBanners';
 import { ExplainCard } from './ai/ExplainCard';
@@ -33,6 +36,10 @@ import { SharePopover } from './SharePopover';
 import { AiChangedBar } from './AiChangedBar';
 import { SinceViewedBanner, useSinceViewed } from './SinceViewedBanner';
 import { useCommentSuggest } from './comments/commentAi';
+import type { DocsLayout } from '../../hooks/useDocsLayout';
+import { BottomSheet, DocsDrawer } from './DocsSheets';
+import { PageHeader, titleClass } from './PageHeader';
+import { foldCrumbs, isWidePage, lookClass, lookVars, readPageLook, readingMinutes } from './pageSettings';
 
 export type PageAction = PageMenuAction | 'edit' | 'share';
 
@@ -55,6 +62,14 @@ interface Props {
   onReplaceSection?: DocsMarkdownProps['onReplaceSection'];
   /** The element holding the rendered body (for find-in-page). */
   onBodyRef?: (el: HTMLElement | null) => void;
+  /** Desktop, tablet or phone (useDocsLayout): what the page bar holds and where the outline and menus open. */
+  layout?: DocsLayout;
+  /** Opens the project sidebar (tablet and phone, where it is hidden); no menu button without it. */
+  onOpenSidebar?: () => void;
+  /** Opens the page tree (phone: the Pages button). */
+  onOpenTree?: () => void;
+  /** Opens search (phone: the search button in the page bar). */
+  onSearch?: () => void;
 }
 
 function initials(actor: string): string {
@@ -89,6 +104,11 @@ const crumb = { fontSize: 12.5, fontWeight: 500, color: '#5B6B60', whiteSpace: '
  * @param props.onRestorePage - Called with a page id when a deleted referenced page is restored.
  * @param props.onReplaceSection - Called when a stale section reference is replaced.
  * @param props.onBodyRef - Receives the element holding the rendered body (for find-in-page).
+ * @param props.layout - Desktop, tablet or phone: the page bar folds (breadcrumb middle, Share and the rest into the
+ *   menu), the outline becomes a button, and on a phone Edit floats and the menus are bottom sheets.
+ * @param props.onOpenSidebar - Opens the hidden project sidebar (menu button).
+ * @param props.onOpenTree - Opens the page tree (phone Pages button).
+ * @param props.onSearch - Opens search (phone search button).
  */
 export function DocsPageView({
   page,
@@ -106,6 +126,10 @@ export function DocsPageView({
   onRestorePage,
   onReplaceSection,
   onBodyRef,
+  layout = 'desktop',
+  onOpenSidebar,
+  onOpenTree,
+  onSearch,
 }: Props) {
   const since = useSinceViewed(page, !offline);
   const { data: members = [] } = useMembers(projectId);
@@ -140,6 +164,9 @@ export function DocsPageView({
   const anyUnread = !!commentsData?.threads.some((t) => t.unread);
   const canComment = !offline && commentsData?.role !== 'viewer' && page.version > 0;
   const headings = page.headings.filter((h) => h.level <= 3);
+  // a page converting to the rich format cannot be edited yet; one whose conversion failed stays read-only
+  const lock = offline ? null : convertLock(page);
+  const editBlocked = offline ? 'Reconnect to edit' : readOnly || (lock ? convertLockTip(lock) : null);
 
   const setBody = useCallback(
     (el: HTMLDivElement | null) => {
@@ -241,6 +268,9 @@ export function DocsPageView({
   }, [page.id]);
 
   const published = page.version > 0;
+  // the published page, or an unpublished draft's preview, when it is stored in the rich format
+  const richDoc = published ? publishedDoc(page) : draftDoc(page.draft);
+  const richKey = useMemo(() => (richDoc ? contentKey(JSON.stringify(richDoc)) : ''), [richDoc]);
   const settled = !(published || page.draft) || renderedKey === page.id;
   const showDraft = page.hasUnpublishedChanges && !!page.draft;
   const who = showDraft ? page.draft!.author : page.updatedBy;
@@ -251,6 +281,32 @@ export function DocsPageView({
   const mc = member?.color ? getAvatarColors(member.color) : null;
   const av = mc ? { background: mc.bg, color: mc.color } : avatarColors(actorName(who));
   const canShare = published && !offline;
+  const phone = layout === 'phone';
+  const touch = layout !== 'desktop';
+  const look = readPageLook(page.settings);
+  // Wide and Full pages fold "On this page" to a button, as a tablet or a phone does
+  const inlineOutline = layout === 'desktop' && !narrow && !isWidePage(look) && !cc.open;
+  const outlineOn = look.showOutline && headings.length > 0;
+  const minutes = useMemo(
+    () => readingMinutes(published ? page.markdown : (page.draft?.markdown ?? '')),
+    [published, page.markdown, page.draft?.markdown],
+  );
+  const authorName = actorName(page.createdBy);
+  const authorMember = members.find((m) => m.name.toLowerCase() === authorName.toLowerCase());
+  const authorColors = authorMember?.color ? getAvatarColors(authorMember.color) : null;
+  const byline =
+    published || page.draft
+      ? {
+          name: authorName,
+          initials: initials(page.createdBy),
+          avatar: authorColors ? { background: authorColors.bg, color: authorColors.color } : avatarColors(authorName),
+          date: published ? page.updatedAt : page.createdAt,
+          minutes,
+        }
+      : null;
+  // the path folds its middle to "…" when there is little room (tablet, phone) or it is long
+  const [crumbsOpen, setCrumbsOpen] = useState(false);
+  const shownPath = crumbsOpen ? page.path : foldCrumbs(page.path, phone ? 1 : touch ? 2 : 3);
 
   const tocList = (
     <div style={{ borderLeft: '1px solid #E3E8E5', marginLeft: 1 }}>
@@ -286,6 +342,175 @@ export function DocsPageView({
     </div>
   );
 
+  const statusChips = (
+    <>
+      {published ? (
+        <span className="mc-chip" style={{ background: '#DCEEE1', color: '#1F5A31' }} data-testid="status-badge">
+          <span className="mc-dot" style={{ background: '#2E6F40' }} />
+          Published · v{page.version}
+        </span>
+      ) : (
+        <span className="mc-chip" style={{ background: '#FCEFD9', color: '#7A4F08' }} data-testid="status-badge">
+          <span className="mc-dot" style={{ background: '#B4791E' }} />
+          Draft
+        </span>
+      )}
+      {showDraft && published && (
+        <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }}>
+          <span className="mc-dot" style={{ background: '#2F6FB0' }} />
+          Unpublished changes
+        </span>
+      )}
+      {offline && (
+        <span className="mc-chip" style={{ background: '#F1F3F1', color: '#3A4A3E' }}>
+          Offline copy
+        </span>
+      )}
+    </>
+  );
+
+  const pageInfo = (
+    <div
+      data-popover
+      style={{
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        fontSize: 12.5,
+        color: 'var(--dp-muted, #5B6B60)',
+        minWidth: 0,
+      }}
+    >
+      <span
+        title={actorName(who)}
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: '50%',
+          ...av,
+          fontSize: 11,
+          fontWeight: 700,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        {initials(who)}
+      </span>
+      <button
+        type="button"
+        onClick={() => setInfo((v) => !v)}
+        aria-expanded={info}
+        data-testid="page-info"
+        className="dk-page-info"
+      >
+        {lead} <b style={{ color: 'var(--dp-ink, #1E2A22)', fontWeight: 600 }}>{actorName(who)}</b> ·{' '}
+        <span
+          onMouseEnter={() => setTimeTip(true)}
+          onMouseLeave={() => setTimeTip(false)}
+          style={{ borderBottom: '1px dotted #9AA8A0', cursor: 'default' }}
+        >
+          {relativeTime(whenIso)}
+        </span>
+      </button>
+      {timeTip && !info && (
+        <div
+          className="dk-tt"
+          role="tooltip"
+          style={{ position: 'absolute', left: 150, top: 30, zIndex: 3, pointerEvents: 'none' }}
+        >
+          {pageFullTime(whenIso, actorName(who), published ? page.version : 0)}
+        </div>
+      )}
+      {info && (
+        <PageInfoPopover
+          page={page}
+          onClose={() => setInfo(false)}
+          onOpenHistory={() => {
+            setInfo(false);
+            onAction('history');
+          }}
+          onOpenReferences={() =>
+            scrollRef.current
+              ?.querySelector('[data-testid="referenced-by"]')
+              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        />
+      )}
+    </div>
+  );
+
+  const outlineButton =
+    outlineOn && !inlineOutline ? (
+      <div data-popover style={{ position: 'relative' }}>
+        <button
+          type="button"
+          className={phone ? 'dk-icobtn dk-bar-ico' : 'st-btn st-btn-sm'}
+          aria-expanded={toc}
+          aria-label={phone ? 'On this page' : undefined}
+          title={phone ? 'On this page' : undefined}
+          onClick={() => setToc((v) => !v)}
+          data-testid="toc-button"
+        >
+          <Icon name="i42" size={phone ? 18 : 14} strokeWidth={1.9} />
+          {!phone && (
+            <>
+              On this page
+              <Icon name="chevronDown" size={11} strokeWidth={2.3} style={{ color: '#9AA8A0' }} />
+            </>
+          )}
+        </button>
+        {toc && !phone && (
+          <div
+            className="dk-menu"
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: 'calc(100% + 6px)',
+              zIndex: 40,
+              width: 240,
+              padding: '10px 12px',
+              // a long list scrolls inside the popover instead of running off the window
+              maxHeight: 'min(60vh, 420px)',
+              overflowY: 'auto',
+            }}
+          >
+            <span className="dk-toc-head">On this page</span>
+            {tocList}
+          </div>
+        )}
+      </div>
+    ) : null;
+
+  const menuButton = (
+    <div data-popover style={{ position: 'relative' }}>
+      <button
+        type="button"
+        className="dk-icobtn dk-bar-more"
+        aria-label="Page actions"
+        aria-expanded={menu}
+        data-testid="page-menu"
+        onClick={() => setMenu((v) => !v)}
+      >
+        <Icon name="more" size={16} strokeWidth={1.8} />
+      </button>
+      {menu && !phone && (
+        <PageMenu
+          page={page}
+          onAction={(a) => {
+            setMenu(false);
+            onAction(a);
+          }}
+          onClose={() => setMenu(false)}
+        />
+      )}
+    </div>
+  );
+
+  const editLabel = page.draft ? 'Continue editing' : 'Edit';
+
   return (
     <PageSettledContext.Provider value={settled}>
       <div
@@ -300,6 +525,7 @@ export function DocsPageView({
         }}
         className="dk-find-push"
         data-testid="docs-page"
+        data-layout={layout}
       >
         {offline && (
           <OfflineBanner
@@ -312,16 +538,181 @@ export function DocsPageView({
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
           <div
             ref={scrollRef}
+            className={`dk-page-scroll ${lookClass(look)}`}
             style={{
               flex: 1,
               minWidth: 0,
               overflowY: 'auto',
-              padding: narrow ? '28px 40px 40px' : '28px 44px 40px',
               boxSizing: 'border-box',
               position: 'relative',
+              ...lookVars(look, layout),
             }}
+            data-page-width={look.width}
+            data-page-bg={look.background}
           >
-            <div style={{ maxWidth: 'min(100%, clamp(640px, 62vw, 1120px))', margin: '0 auto' }}>
+            {/* The page bar: where you are, the status and the page actions; it stays while the page scrolls */}
+            <div className="dk-pagebar" data-testid="page-bar">
+              {onOpenSidebar && (
+                <button
+                  type="button"
+                  className="dk-icobtn dk-bar-ico"
+                  aria-label="Open the project sidebar"
+                  title="Projects"
+                  data-testid="open-sidebar"
+                  onClick={onOpenSidebar}
+                >
+                  <MenuGlyph />
+                </button>
+              )}
+              {phone && onOpenTree && (
+                <button
+                  type="button"
+                  className="dk-icobtn dk-bar-ico"
+                  aria-label="Pages"
+                  title="Pages"
+                  data-testid="open-tree"
+                  onClick={onOpenTree}
+                >
+                  <Icon name="sidePanel" size={18} strokeWidth={1.8} />
+                </button>
+              )}
+              <nav aria-label="Breadcrumb" className="dk-crumbs">
+                {!phone && (
+                  <>
+                    <Icon name="folder" size={13} strokeWidth={1.8} style={{ color: '#9AA8A0', flexShrink: 0 }} />
+                    <span style={crumb}>{projectName}</span>
+                    <Icon name="chevronRight" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB', flexShrink: 0 }} />
+                  </>
+                )}
+                {shownPath.map((p, i) =>
+                  p ? (
+                    <span key={p.id} style={{ display: 'contents' }}>
+                      <button type="button" className="dk-crumb" onClick={() => onOpenPage(p.id)} style={crumb}>
+                        {p.title}
+                      </button>
+                      <Icon
+                        name="chevronRight"
+                        size={10}
+                        strokeWidth={2.4}
+                        style={{ color: '#C7D2CB', flexShrink: 0 }}
+                      />
+                    </span>
+                  ) : (
+                    <span key={`fold-${i}`} style={{ display: 'contents' }}>
+                      <button
+                        type="button"
+                        className="dk-crumb"
+                        aria-label="Show the whole path"
+                        title={page.path.map((x) => x.title).join(' › ')}
+                        onClick={() => setCrumbsOpen(true)}
+                        style={crumb}
+                        data-testid="crumbs-fold"
+                      >
+                        …
+                      </button>
+                      <Icon
+                        name="chevronRight"
+                        size={10}
+                        strokeWidth={2.4}
+                        style={{ color: '#C7D2CB', flexShrink: 0 }}
+                      />
+                    </span>
+                  ),
+                )}
+                <span className="dk-crumb-here">{page.title}</span>
+              </nav>
+              <div className="dk-pagebar-actions">
+                {outlineButton}
+                {phone && onSearch && (
+                  <button
+                    type="button"
+                    className="dk-icobtn dk-bar-ico"
+                    aria-label="Search pages"
+                    title="Search pages"
+                    onClick={onSearch}
+                  >
+                    <Icon name="search" size={18} strokeWidth={1.8} />
+                  </button>
+                )}
+                {!phone && !offline && (
+                  <PageAiMenu
+                    projectId={projectId}
+                    page={page}
+                    canEdit={!readOnly}
+                    view={aiView}
+                    onEdit={() => onAction('edit')}
+                    onOpenTicket={onOpenTicket}
+                  />
+                )}
+                {!phone && !offline && <FollowBell scope="page" scopeId={page.id} projectId={projectId} />}
+                {!phone && !offline && (
+                  <button
+                    type="button"
+                    className="st-btn"
+                    aria-pressed={cc.open}
+                    data-testid="comments-button"
+                    onClick={() => cc.setOpen((v) => !v)}
+                  >
+                    <Icon name="comment" size={14} strokeWidth={1.9} />
+                    Comments
+                    <span className="dc-btn-count" data-testid="comments-count">
+                      {commentTotal}
+                    </span>
+                    {anyUnread && <span className="dc-btn-dot" data-testid="comments-unread" />}
+                  </button>
+                )}
+                {!phone && (
+                  <div data-popover style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      className="st-btn"
+                      onClick={() => (canShare ? setShare((v) => !v) : onAction('copy-link'))}
+                      data-testid="share"
+                      aria-expanded={share}
+                    >
+                      <Icon name="link" size={14} strokeWidth={1.9} />
+                      {canShare ? 'Share' : 'Copy link'}
+                    </button>
+                    {share && <SharePopover page={page} onClose={() => setShare(false)} />}
+                  </div>
+                )}
+                {!phone && (
+                  <div
+                    style={{ position: 'relative' }}
+                    onMouseEnter={() => editBlocked && setEditTip(true)}
+                    onMouseLeave={() => setEditTip(false)}
+                  >
+                    <button
+                      type="button"
+                      className={editBlocked ? 'st-btn' : 'st-btn st-btn-primary'}
+                      disabled={!!editBlocked}
+                      onClick={() => onAction('edit')}
+                      data-testid="edit-page"
+                    >
+                      <Icon name={lock ? 'lock' : 'i15'} size={14} strokeWidth={1.9} />
+                      {editLabel}
+                    </button>
+                    {editTip && editBlocked && (
+                      <div
+                        className="dk-tt"
+                        role="tooltip"
+                        style={{ position: 'absolute', right: 0, top: 'calc(100% + 10px)', zIndex: 3 }}
+                      >
+                        {editBlocked}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {menuButton}
+              </div>
+            </div>
+            <div className="dk-statusrow">
+              {statusChips}
+              {pageInfo}
+            </div>
+            <div className="dk-doc-col" data-testid="page-column">
+              {lock && <ConvertBar lock={lock} />}
+              {!offline && <ConvertedNotice page={page} onViewOriginal={() => onAction('history')} />}
               {!offline && (
                 <AiChangedBar
                   page={page}
@@ -339,349 +730,17 @@ export function DocsPageView({
               {!offline && (
                 <DocsAiBanners projectId={projectId} page={page} canEdit={!readOnly} onOpenTicket={onOpenTicket} />
               )}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {/* The breadcrumb has its own row, as every Docs board draws it; the page actions sit beside the title
-                    below and wrap under it when the window is too narrow, so nothing is cut off */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <nav
-                    aria-label="Breadcrumb"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 7,
-                      minWidth: 0,
-                      flex: '1 1 240px',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <Icon name="folder" size={13} strokeWidth={1.8} style={{ color: '#9AA8A0' }} />
-                    <span style={crumb}>{projectName}</span>
-                    <Icon name="chevronRight" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB' }} />
-                    {page.path.map((p) => (
-                      <span key={p.id} style={{ display: 'contents' }}>
-                        <button
-                          type="button"
-                          onClick={() => onOpenPage(p.id)}
-                          style={{
-                            ...crumb,
-                            border: 'none',
-                            background: 'none',
-                            padding: 0,
-                            cursor: 'pointer',
-                            fontFamily: 'inherit',
-                          }}
-                        >
-                          {p.title}
-                        </button>
-                        <Icon name="chevronRight" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB' }} />
-                      </span>
-                    ))}
-                    <span
-                      style={{
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        color: '#1E2A22',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        minWidth: 0,
-                      }}
-                    >
-                      {page.title}
-                    </span>
-                  </nav>
-                  {narrow && headings.length > 0 && (
-                    <div data-popover style={{ position: 'relative', marginLeft: 'auto' }}>
-                      <button
-                        type="button"
-                        className="st-btn st-btn-sm"
-                        aria-expanded={toc}
-                        onClick={() => setToc((v) => !v)}
-                        data-testid="toc-button"
-                      >
-                        <Icon name="i42" size={14} strokeWidth={1.9} />
-                        On this page
-                        <Icon name="chevronDown" size={11} strokeWidth={2.3} style={{ color: '#9AA8A0' }} />
-                      </button>
-                      {toc && (
-                        <div
-                          className="dk-menu"
-                          style={{
-                            position: 'absolute',
-                            right: 0,
-                            top: 'calc(100% + 6px)',
-                            zIndex: 40,
-                            width: 220,
-                            padding: '10px 12px',
-                            // a long list scrolls inside the popover instead of running off the window
-                            maxHeight: 'min(60vh, 420px)',
-                            overflowY: 'auto',
-                          }}
-                        >
-                          <span
-                            style={{
-                              display: 'block',
-                              fontSize: 11,
-                              fontWeight: 700,
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.06em',
-                              color: '#5B6B60',
-                              marginBottom: 6,
-                            }}
-                          >
-                            On this page
-                          </span>
-                          {tocList}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
-                  <div style={{ flex: '1 1 320px', minWidth: 0 }}>
-                    <h1
-                      data-testid="page-title"
-                      style={{
-                        margin: 0,
-                        fontSize: 32,
-                        fontWeight: 800,
-                        lineHeight: 1.15,
-                        color: '#1E2A22',
-                        letterSpacing: '-0.01em',
-                      }}
-                    >
-                      {page.title}
-                    </h1>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        flexWrap: 'wrap',
-                        marginTop: 10,
-                      }}
-                    >
-                      {published ? (
-                        <span
-                          className="mc-chip"
-                          style={{ background: '#DCEEE1', color: '#1F5A31' }}
-                          data-testid="status-badge"
-                        >
-                          <span className="mc-dot" style={{ background: '#2E6F40' }} />
-                          Published · v{page.version}
-                        </span>
-                      ) : (
-                        <span
-                          className="mc-chip"
-                          style={{ background: '#FCEFD9', color: '#7A4F08' }}
-                          data-testid="status-badge"
-                        >
-                          <span className="mc-dot" style={{ background: '#B4791E' }} />
-                          Draft
-                        </span>
-                      )}
-                      {showDraft && published && (
-                        <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }}>
-                          <span className="mc-dot" style={{ background: '#2F6FB0' }} />
-                          Unpublished changes
-                        </span>
-                      )}
-                      {offline && (
-                        <span className="mc-chip" style={{ background: '#F1F3F1', color: '#3A4A3E' }}>
-                          Offline copy
-                        </span>
-                      )}
-                      <div
-                        data-popover
-                        style={{
-                          position: 'relative',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          fontSize: 12.5,
-                          color: '#5B6B60',
-                        }}
-                      >
-                        <span
-                          title={actorName(who)}
-                          style={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: '50%',
-                            ...av,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {initials(who)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setInfo((v) => !v)}
-                          aria-expanded={info}
-                          data-testid="page-info"
-                          style={{
-                            border: 'none',
-                            background: 'none',
-                            padding: 0,
-                            font: 'inherit',
-                            color: 'inherit',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                          }}
-                        >
-                          {lead} <b style={{ color: '#1E2A22', fontWeight: 600 }}>{actorName(who)}</b> ·{' '}
-                          <span
-                            onMouseEnter={() => setTimeTip(true)}
-                            onMouseLeave={() => setTimeTip(false)}
-                            style={{ borderBottom: '1px dotted #9AA8A0', cursor: 'default' }}
-                          >
-                            {relativeTime(whenIso)}
-                          </span>
-                        </button>
-                        {timeTip && !info && (
-                          <div
-                            className="dk-tt"
-                            role="tooltip"
-                            style={{ position: 'absolute', left: 150, top: 30, zIndex: 3, pointerEvents: 'none' }}
-                          >
-                            {pageFullTime(whenIso, actorName(who), published ? page.version : 0)}
-                          </div>
-                        )}
-                        {info && (
-                          <PageInfoPopover
-                            page={page}
-                            onClose={() => setInfo(false)}
-                            onOpenHistory={() => {
-                              setInfo(false);
-                              onAction('history');
-                            }}
-                            onOpenReferences={() =>
-                              scrollRef.current
-                                ?.querySelector('[data-testid="referenced-by"]')
-                                ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                            }
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      paddingTop: 2,
-                      flexWrap: 'wrap',
-                      justifyContent: 'flex-end',
-                      marginLeft: 'auto',
-                      maxWidth: '100%',
-                    }}
-                  >
-                    {!offline && (
-                      <PageAiMenu
-                        projectId={projectId}
-                        page={page}
-                        canEdit={!readOnly}
-                        view={aiView}
-                        onEdit={() => onAction('edit')}
-                        onOpenTicket={onOpenTicket}
-                      />
-                    )}
-                    {!offline && <FollowBell scope="page" scopeId={page.id} projectId={projectId} />}
-                    {!offline && (
-                      <button
-                        type="button"
-                        className="st-btn"
-                        aria-pressed={cc.open}
-                        data-testid="comments-button"
-                        onClick={() => cc.setOpen((v) => !v)}
-                      >
-                        <Icon name="comment" size={14} strokeWidth={1.9} />
-                        Comments
-                        <span className="dc-btn-count" data-testid="comments-count">
-                          {commentTotal}
-                        </span>
-                        {anyUnread && <span className="dc-btn-dot" data-testid="comments-unread" />}
-                      </button>
-                    )}
-                    <div data-popover style={{ position: 'relative' }}>
-                      <button
-                        type="button"
-                        className="st-btn"
-                        onClick={() => (canShare ? setShare((v) => !v) : onAction('copy-link'))}
-                        data-testid="share"
-                        aria-expanded={share}
-                      >
-                        <Icon name="link" size={14} strokeWidth={1.9} />
-                        {canShare ? 'Share' : 'Copy link'}
-                      </button>
-                      {share && <SharePopover page={page} onClose={() => setShare(false)} />}
-                    </div>
-                    <div
-                      style={{ position: 'relative' }}
-                      onMouseEnter={() => (offline || readOnly) && setEditTip(true)}
-                      onMouseLeave={() => setEditTip(false)}
-                    >
-                      <button
-                        type="button"
-                        className={offline || readOnly ? 'st-btn' : 'st-btn st-btn-primary'}
-                        disabled={!!offline || !!readOnly}
-                        onClick={() => onAction('edit')}
-                        data-testid="edit-page"
-                      >
-                        <Icon name="i15" size={14} strokeWidth={1.9} />
-                        {page.draft ? 'Continue editing' : 'Edit'}
-                      </button>
-                      {editTip && (
-                        <div
-                          className="dk-tt"
-                          role="tooltip"
-                          style={{ position: 'absolute', right: 0, top: 'calc(100% + 10px)', zIndex: 3 }}
-                        >
-                          {offline ? 'Reconnect to edit' : readOnly}
-                        </div>
-                      )}
-                    </div>
-                    <div data-popover style={{ position: 'relative' }}>
-                      <button
-                        type="button"
-                        className="dk-icobtn"
-                        aria-label="Page actions"
-                        aria-expanded={menu}
-                        data-testid="page-menu"
-                        onClick={() => setMenu((v) => !v)}
-                        style={{ border: '1px solid #E3E8E5', width: 34, height: 34, borderRadius: 8 }}
-                      >
-                        <Icon name="more" size={16} strokeWidth={1.8} />
-                      </button>
-                      {menu && (
-                        <PageMenu
-                          page={page}
-                          onAction={(a) => {
-                            setMenu(false);
-                            onAction(a);
-                          }}
-                          onClose={() => setMenu(false)}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div style={{ height: 1, background: '#E3E8E5', margin: '20px 0 4px' }} />
+              <PageHeader
+                look={look}
+                byline={byline}
+                fallbackEyebrow={page.path[page.path.length - 1]?.title}
+                title={
+                  <h1 data-testid="page-title" className={titleClass(look)}>
+                    {page.title}
+                  </h1>
+                }
+              />
+              <div className="dk-doc-rule" />
               {!offline && aiOn && (
                 <div style={{ marginTop: 16 }}>
                   <SummaryBlock view={aiView} />
@@ -722,23 +781,43 @@ export function DocsPageView({
                     style={{ display: 'contents' }}
                     data-idea-source={JSON.stringify({ source: 'doc', id: page.id, label: page.title })}
                   >
-                    <DocsMarkdown
-                      // keyed by what it shows: the comment numbers are placed inline in this DOM
-                      // (useCommentHighlights), so new text gets fresh nodes instead of edits to split ones
-                      key={contentKey(translated ?? (published ? page.markdown : page.draft!.markdown))}
-                      projectId={projectId}
-                      projectName={projectName}
-                      onOpenPage={onOpenPage}
-                      onOpenTicket={onOpenTicket}
-                      onCreatePage={onCreatePage}
-                      onRestorePage={onRestorePage}
-                      onReplaceSection={published && !translated ? onReplaceSection : undefined}
-                      changedIn={published && since.behind && since.marks && !translated ? since.changedIn : undefined}
-                      progressive={renderedKey !== page.id}
-                      onRendered={onRendered}
-                    >
-                      {translated ?? (published ? page.markdown : page.draft!.markdown)}
-                    </DocsMarkdown>
+                    {richDoc && !translated ? (
+                      <RichDocView
+                        // keyed by what it shows: the comment numbers are placed inline in this DOM
+                        // (useCommentHighlights), so new text gets fresh nodes instead of edits to split ones
+                        key={richKey}
+                        doc={richDoc}
+                        projectId={projectId}
+                        projectName={projectName}
+                        onOpenPage={onOpenPage}
+                        onOpenTicket={onOpenTicket}
+                        onCreatePage={onCreatePage}
+                        onRestorePage={onRestorePage}
+                        onReplaceSection={published ? onReplaceSection : undefined}
+                        changedIn={published && since.behind && since.marks ? since.changedIn : undefined}
+                        progressive={renderedKey !== page.id}
+                        onRendered={onRendered}
+                      />
+                    ) : (
+                      <DocsMarkdown
+                        // keyed by what it shows (see above)
+                        key={contentKey(translated ?? (published ? page.markdown : page.draft!.markdown))}
+                        projectId={projectId}
+                        projectName={projectName}
+                        onOpenPage={onOpenPage}
+                        onOpenTicket={onOpenTicket}
+                        onCreatePage={onCreatePage}
+                        onRestorePage={onRestorePage}
+                        onReplaceSection={published && !translated ? onReplaceSection : undefined}
+                        changedIn={
+                          published && since.behind && since.marks && !translated ? since.changedIn : undefined
+                        }
+                        progressive={renderedKey !== page.id}
+                        onRendered={onRendered}
+                      >
+                        {translated ?? (published ? page.markdown : page.draft!.markdown)}
+                      </DocsMarkdown>
+                    )}
                   </div>
                 )}
               </div>
@@ -746,7 +825,7 @@ export function DocsPageView({
               <ReferencedBy pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
             </div>
           </div>
-          {cc.open && !offline && (
+          {cc.open && !offline && !touch && (
             <CommentsPanel
               pageId={page.id}
               projectId={projectId}
@@ -765,7 +844,7 @@ export function DocsPageView({
               onClose={() => cc.setOpen(false)}
             />
           )}
-          {!narrow && !cc.open && headings.length > 0 && (
+          {inlineOutline && outlineOn && (
             <nav
               aria-label="On this page"
               className="dk-toc"
@@ -782,17 +861,7 @@ export function DocsPageView({
               }}
             >
               <div>
-                <span
-                  style={{
-                    display: 'block',
-                    fontSize: 11,
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    color: '#5B6B60',
-                    marginBottom: 10,
-                  }}
-                >
+                <span className="dk-toc-head" style={{ marginBottom: 10 }}>
                   On this page
                 </span>
                 {tocList}
@@ -800,6 +869,99 @@ export function DocsPageView({
             </nav>
           )}
         </div>
+        {cc.open && !offline && touch && (
+          <DocsDrawer
+            side="right"
+            width={420}
+            label="Comments"
+            onClose={() => cc.setOpen(false)}
+            testId="comments-drawer"
+          >
+            <CommentsPanel
+              pageId={page.id}
+              projectId={projectId}
+              version={page.version}
+              data={commentsData}
+              loading={cc.query.isLoading}
+              error={cc.query.isError}
+              onRetry={() => void cc.query.refetch()}
+              actions={cc.actions}
+              tab={cc.tab}
+              onTab={cc.setTab}
+              activeId={cc.activeId}
+              onActivate={cc.activate}
+              reattachId={cc.reattachId}
+              onReattach={cc.setReattachId}
+              onClose={() => cc.setOpen(false)}
+            />
+          </DocsDrawer>
+        )}
+        {phone && !offline && (
+          <button
+            type="button"
+            className="dk-fab"
+            disabled={!!editBlocked}
+            title={editBlocked ?? undefined}
+            onClick={() => onAction('edit')}
+            data-testid="edit-page"
+          >
+            <Icon name={lock ? 'lock' : 'i15'} size={18} strokeWidth={1.9} />
+            {editLabel}
+          </button>
+        )}
+        {phone && toc && (
+          <BottomSheet label="On this page" onClose={() => setToc(false)} testId="toc-sheet">
+            <div data-popover className="dk-toc-sheet">
+              {tocList}
+            </div>
+          </BottomSheet>
+        )}
+        {phone && menu && (
+          <BottomSheet label={page.title} onClose={() => setMenu(false)} testId="page-menu-sheet">
+            <div data-popover>
+              <div className="dk-menu-sheet">
+                <button
+                  type="button"
+                  className="dk-mi"
+                  data-testid="sheet-share"
+                  onClick={() => {
+                    setMenu(false);
+                    onAction(canShare ? 'share' : 'copy-link');
+                  }}
+                >
+                  <Icon name="link" size={15} strokeWidth={1.8} />
+                  <span>{canShare ? 'Share' : 'Copy link'}</span>
+                </button>
+                {!offline && (
+                  <button
+                    type="button"
+                    className="dk-mi"
+                    data-testid="sheet-comments"
+                    onClick={() => {
+                      setMenu(false);
+                      cc.setOpen(true);
+                    }}
+                  >
+                    <Icon name="comment" size={15} strokeWidth={1.8} />
+                    <span>Comments</span>
+                    <span className="dc-btn-count" style={{ marginLeft: 'auto' }}>
+                      {commentTotal}
+                    </span>
+                  </button>
+                )}
+              </div>
+              <PageMenu
+                variant="sheet"
+                page={page}
+                onAction={(a) => {
+                  setMenu(false);
+                  onAction(a);
+                }}
+                onClose={() => setMenu(false)}
+              />
+            </div>
+          </BottomSheet>
+        )}
         <SelectionToolbar
           root={bodyEl}
           label={cc.reattachId ? 'Attach here' : 'Comment'}
@@ -832,5 +994,23 @@ export function DocsPageView({
         )}
       </div>
     </PageSettledContext.Provider>
+  );
+}
+
+/** Three lines: the menu button that opens the project sidebar. */
+function MenuGlyph() {
+  return (
+    <svg
+      aria-hidden="true"
+      width={18}
+      height={18}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+    >
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
   );
 }

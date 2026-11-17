@@ -26,7 +26,7 @@ export const Shortcuts = Extension.create<ShortcutOptions>({
       'Mod-Shift-8': () => this.editor.commands.toggleBulletList(),
       'Mod-Shift-9': () => this.editor.commands.toggleTaskList(),
       'Mod-Shift-b': () => this.editor.commands.toggleBlockquote(),
-      'Mod-Alt-c': () => this.editor.commands.toggleCodeBlock(),
+      // Mod-Alt-c is Copy format now (ribbon/RichFormatting); a code block is ``` or the insert menu
     };
   },
 });

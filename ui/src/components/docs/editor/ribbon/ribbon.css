@@ -1,0 +1,963 @@
+/* Rich Docs editing (Editor boards A to N): the ribbon, the tablet strip, the phone bar and its sheets, the colour
+   picker, the status line, the format painter bar, the paste chip, the shortcut sheet, focus mode, and how the
+   paragraph attributes of format 1 are drawn in the editor. */
+
+/* ---------- ribbon ---------- */
+.dk-ribbon {
+  flex-shrink: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e3e8e5;
+  box-sizing: border-box;
+}
+.dk-rb-rows {
+  display: flex;
+  flex-direction: column;
+}
+.dk-rb-row1,
+.dk-rb-row2 {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 44px;
+  padding: 0 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.dk-rb-row2 {
+  border-top: 1px solid #eef3ef;
+}
+.dk-rb {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  color: #3a4a3e;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+.dk-rb:hover:not(:disabled) {
+  background: #f1f5f2;
+}
+.dk-rb:focus-visible,
+.dk-rb-select:focus-visible,
+.dk-rb-size button:focus-visible {
+  outline: 2px solid #68ba7f;
+  outline-offset: 1px;
+}
+.dk-rb.dk-rb-on {
+  background: #eaf0ec;
+  color: #1e2a22;
+}
+.dk-rb.dk-rb-mixed {
+  background: #f6faf7;
+  border: 1.5px dashed #9aa8a0;
+}
+.dk-rb:disabled,
+.dk-rb-select:disabled,
+.dk-rb-size button:disabled {
+  opacity: 0.36;
+  cursor: default;
+}
+.dk-rb-split {
+  display: inline-flex;
+  align-items: center;
+}
+.dk-rb.dk-rb-caret {
+  min-width: 16px;
+  width: 16px;
+  padding: 0;
+}
+.dk-rb-select {
+  height: 32px;
+  border: 1px solid #e3e8e5;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  box-sizing: border-box;
+  flex: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+  background: #ffffff;
+  cursor: pointer;
+  margin-right: 4px;
+}
+.dk-rb-select > span {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dk-rb-select > svg {
+  color: #7a8a80;
+}
+.dk-rb-size {
+  width: 88px;
+  height: 32px;
+  border: 1px solid #e3e8e5;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: stretch;
+  box-sizing: border-box;
+  flex: none;
+  background: #ffffff;
+  overflow: hidden;
+}
+.dk-rb-size button,
+.dk-rb-size .dk-rb-size-v {
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  color: #5b6b60;
+  cursor: pointer;
+  padding: 0;
+}
+.dk-rb-size .dk-rb-size-v {
+  flex: 1;
+  border-left: 1px solid #eef3ef;
+  border-right: 1px solid #eef3ef;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+.dk-rb-color {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  font-weight: 700;
+}
+.dk-rb-color-bar {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  margin-top: 2px;
+}
+.dk-rb-script {
+  font-size: 13px;
+  font-weight: 700;
+}
+.dk-rb-script sup,
+.dk-rb-script sub {
+  font-size: 8.5px;
+}
+.dk-rb.dk-rb-insert {
+  padding: 0 10px;
+  border: 1px solid #c7d2cb;
+  background: #f6faf7;
+  color: #1e2a22;
+  margin-left: 4px;
+}
+.dk-rb-insert .dk-kbd {
+  padding: 0 5px;
+}
+.dk-rb-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border: 1.5px solid #2e6f40;
+  border-radius: 8px;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e2a22;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dk-rb-group-inline {
+  display: inline-flex;
+  gap: 2px;
+}
+
+/* a page stored as Markdown (an idea) has no colours, fonts, sizes or paragraph attributes */
+.dk-rb-hide,
+.dk-rb-plain .dk-rb-rich,
+.dk-rb-plain [data-rich-only] {
+  display: none !important;
+}
+
+/* tablet: one strip that scrolls, Undo, Redo and Insert pinned at its right end */
+.dk-ribbon-strip {
+  height: 52px;
+}
+.dk-rb-stripwrap {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+.dk-rb-strip {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  padding: 0 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+.dk-rb-strip::-webkit-scrollbar,
+.dk-rb-row1::-webkit-scrollbar,
+.dk-rb-row2::-webkit-scrollbar {
+  display: none;
+}
+.dk-rb-pinned {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  border-left: 1px solid #e3e8e5;
+  height: 100%;
+  background: #ffffff;
+}
+.dk-ribbon-strip .dk-rb {
+  min-width: 44px;
+  height: 44px;
+}
+.dk-ribbon-strip .dk-rb.dk-rb-caret {
+  min-width: 20px;
+  width: 20px;
+}
+.dk-ribbon-strip .dk-rb-select,
+.dk-ribbon-strip .dk-rb-size {
+  height: 40px;
+}
+
+/* phone: the bar above the keyboard, 44 px targets, never scrolling */
+.dk-ribbon-bottom {
+  border-bottom: none;
+  padding: 4px 4px;
+}
+.dk-ph-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0;
+}
+.dk-ph-bar .dk-rb {
+  min-width: 44px;
+  height: 44px;
+  flex: 1;
+  max-width: 56px;
+}
+.dk-ph-format {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dk-ph-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 8px 6px;
+  scrollbar-width: none;
+}
+.dk-ph-chip {
+  flex: none;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 20px;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+.dk-ph-chip-on {
+  background: #eaf0ec;
+  border-color: #2e6f40;
+}
+.dk-ph-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  flex-wrap: wrap;
+}
+.dk-ph-line .dk-rb {
+  min-width: 44px;
+  height: 44px;
+}
+.dk-ph-line .dk-rb-select,
+.dk-ph-line .dk-rb-size {
+  height: 44px;
+}
+.dk-ph-line .dk-rb-size {
+  width: 132px;
+}
+.dk-ph-line .dk-rb-size button {
+  width: 44px;
+}
+
+/* ---------- popovers ---------- */
+.dk-rb-pop .dk-rb-row {
+  width: 100%;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  box-sizing: border-box;
+}
+.dk-rb-pop .dk-mi,
+.dk-sheet .dk-rb-row {
+  border: none;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+}
+.dk-rb-keys {
+  font-size: 11px;
+  color: #7a8a80;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.dk-rb-group {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+  padding: 8px 10px 4px;
+}
+.dk-rb-note {
+  font-size: 11.5px;
+  color: #5b6b60;
+  padding: 4px 10px 6px;
+  line-height: 1.45;
+}
+.dk-rb-search {
+  width: 100%;
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid #c7d2cb;
+  border-radius: 7px;
+  padding: 0 9px;
+  font-family: inherit;
+  font-size: 13px;
+  color: #1e2a22;
+  margin-bottom: 4px;
+}
+.dk-rb-sizes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+}
+.dk-rb-sizes .dk-mi {
+  justify-content: center;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+.dk-rb-px {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #3a4a3e;
+}
+.dk-rb-px input {
+  width: 52px;
+  height: 30px;
+  box-sizing: border-box;
+  border: 1px solid #c7d2cb;
+  border-radius: 6px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 13px;
+}
+.dk-rb-unit {
+  color: #7a8a80;
+}
+
+/* ---------- colour picker ---------- */
+.dk-cp {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+}
+.dk-cp-auto,
+.dk-cp-more,
+.dk-cp-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  padding: 6px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e2a22;
+  cursor: pointer;
+  text-align: left;
+}
+.dk-cp-auto:hover,
+.dk-cp-more:hover,
+.dk-cp-back:hover {
+  background: #f1f5f2;
+}
+.dk-cp-hint {
+  font-weight: 500;
+  color: #7a8a80;
+  font-size: 11.5px;
+}
+.dk-cp-head {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+  padding: 4px 6px 0;
+}
+.dk-cp-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  padding: 0 4px;
+}
+.dk-cp-touch .dk-cp-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+.dk-cp-sw {
+  border: none;
+  background: none;
+  padding: 3px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.dk-cp-touch .dk-cp-sw {
+  min-height: 52px;
+}
+.dk-cp-sw:hover {
+  background: #f1f5f2;
+}
+.dk-cp-sw-on .dk-cp-dot {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4px #2e6f40;
+}
+.dk-cp-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(30, 42, 34, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex: none;
+}
+.dk-cp-dot-text {
+  background: #ffffff;
+  font-weight: 800;
+  font-size: 14px;
+}
+.dk-cp-none {
+  background: linear-gradient(135deg, transparent 46%, #c4432a 46%, #c4432a 54%, transparent 54%), #ffffff;
+}
+.dk-cp-name {
+  font-size: 11px;
+  color: #5b6b60;
+}
+.dk-cp-custom {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 4px 6px;
+}
+.dk-cp-big {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  border: 1px solid #c7d2cb;
+  flex: none;
+}
+.dk-cp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #5b6b60;
+}
+.dk-cp-field input {
+  width: 82px;
+  height: 30px;
+  box-sizing: border-box;
+  border: 1px solid #c7d2cb;
+  border-radius: 6px;
+  padding: 0 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+.dk-cp-ch input {
+  width: 46px;
+}
+.dk-cp-contrast {
+  font-size: 11.5px;
+  color: #2e6f40;
+  padding: 4px 6px;
+  line-height: 1.45;
+}
+.dk-cp-warn {
+  color: #a5321e;
+}
+.dk-cp-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 4px 6px;
+}
+
+/* ---------- status line ---------- */
+.dk-status {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 30px;
+  padding: 0 16px;
+  border-top: 1px solid #e3e8e5;
+  background: #ffffff;
+  font-size: 11.5px;
+  color: #5b6b60;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.dk-status-btn {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #3a4a3e;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 6px;
+}
+.dk-status-btn:hover {
+  background: #f1f5f2;
+}
+
+/* ---------- format painter ---------- */
+.dk-painter {
+  position: absolute;
+  left: 50%;
+  bottom: 42px;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 6px 6px 6px 12px;
+  border-radius: 10px;
+  background: #1e2a22;
+  color: #e8f0ea;
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: 0 10px 24px rgba(30, 42, 34, 0.3);
+}
+.dk-painter-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #68ba7f;
+  flex: none;
+}
+.dk-painter button {
+  border: none;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 10px;
+  cursor: pointer;
+  flex: none;
+}
+.dk-painter-touch {
+  position: fixed;
+  bottom: calc(var(--dk-kb, 0px) + 64px);
+  min-height: 44px;
+}
+.dk-painter-touch button {
+  min-height: 36px;
+}
+.dk-painting .dk-pm {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%231e2a22' stroke-width='1.8'%3E%3Cpath d='M4 4h12v5H4zM16 6.5h3v6H11v3'/%3E%3Cpath d='M10 15.5h2V21h-2z'/%3E%3C/svg%3E")
+      4 4,
+    text;
+}
+
+/* ---------- paste chip ---------- */
+.dk-paste-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid #c7d2cb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(30, 42, 34, 0.14);
+  padding: 2px;
+}
+.dk-paste-chip > button {
+  border: none;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.dk-paste-chip > button:hover {
+  background: #f1f5f2;
+}
+.dk-paste-mode {
+  color: #5b6b60;
+  font-weight: 500;
+}
+.dk-paste-x {
+  font-size: 15px !important;
+  padding: 2px 6px !important;
+  color: #5b6b60 !important;
+}
+.dk-paste-pop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  width: 320px;
+}
+.dk-paste-head {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e2a22;
+  padding: 6px 10px 0;
+}
+.dk-paste-opt {
+  align-items: flex-start !important;
+  width: 100%;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+}
+.dk-paste-check {
+  width: 14px;
+  flex: none;
+  padding-top: 2px;
+  color: #2e6f40;
+}
+.dk-paste-next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #eef3ef;
+  margin-top: 4px;
+  padding: 8px 10px 4px;
+  font-size: 12px;
+  color: #3a4a3e;
+}
+.dk-paste-next button {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #2e6f40;
+  cursor: pointer;
+}
+.dk-paste-setting .dk-mi {
+  cursor: pointer;
+}
+
+/* ---------- shortcut sheet ---------- */
+.dk-keys-dialog {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(80vh, 680px);
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(30, 42, 34, 0.24);
+  overflow: hidden;
+}
+.dk-keys-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 4px 18px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dk-keys-head .dk-icobtn {
+  font-size: 20px;
+}
+.dk-keys {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 18px 14px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.dk-keys-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dk-keys-top .dk-rb-search {
+  margin: 0;
+  flex: 1;
+}
+.dk-seg {
+  display: inline-flex;
+  border: 1px solid #c7d2cb;
+  border-radius: 7px;
+  overflow: hidden;
+  flex: none;
+}
+.dk-seg button {
+  border: none;
+  background: #ffffff;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3a4a3e;
+  cursor: pointer;
+}
+.dk-seg button[aria-checked='true'] {
+  background: #eaf0ec;
+  color: #1e2a22;
+}
+.dk-keys-cols {
+  columns: 2 300px;
+  column-gap: 28px;
+}
+.dk-keys-cols section {
+  break-inside: avoid;
+  margin-bottom: 10px;
+}
+.dk-keys-cols h3 {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+  margin: 8px 0 4px;
+}
+.dk-keys-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid #f1f5f2;
+  font-size: 12.5px;
+  color: #1e2a22;
+}
+.dk-keys-k {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ---------- focus mode ---------- */
+.dk-editor-root.dk-focus-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  background: var(--dp-page, #ffffff);
+}
+.dk-focus-pill {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 31;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #c7d2cb;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 5px 6px 5px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3a4a3e;
+  cursor: pointer;
+}
+.dk-focus-edge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 10px;
+  z-index: 30;
+}
+.dk-focus-ribbon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 32;
+  box-shadow: 0 10px 24px rgba(30, 42, 34, 0.12);
+}
+.dk-focus-mode .dk-pm > * {
+  transition: opacity 0.2s;
+}
+.dk-focus-mode .dk-pm > *:not([data-caret-block]) {
+  opacity: 0.34;
+}
+
+/* ---------- the format 1 attributes in the editor ---------- */
+.dk-editor:not(.dk-paged .dk-editor) {
+  --rd-c-ink: #1e2a22;
+  --rd-c-slate: #5b6b60;
+  --rd-c-green: #2e6f40;
+  --rd-c-olive: #5c6b1e;
+  --rd-c-teal: #0f766e;
+  --rd-c-blue: #1f5a8e;
+  --rd-c-violet: #5b4bb5;
+  --rd-c-pink: #b02a6b;
+  --rd-c-red: #c4432a;
+  --rd-c-orange: #b4571f;
+  --rd-c-amber: #8a5a00;
+  --rd-c-brown: #6b4a2e;
+  --rd-hl-yellow: #ffe9a8;
+  --rd-hl-lime: #e6efb8;
+  --rd-hl-green: #cfe8d6;
+  --rd-hl-teal: #c8eae5;
+  --rd-hl-blue: #cfe3f5;
+  --rd-hl-violet: #e1daf6;
+  --rd-hl-pink: #f8d5e6;
+  --rd-hl-red: #f8d3cb;
+  --rd-hl-orange: #faddbf;
+  --rd-hl-sand: #efe3cc;
+  --rd-hl-grey: #e3e8e5;
+  --rd-hl-slate: #c9d3cc;
+}
+.dk-editor .dk-p-lead {
+  font-size: 1.17em;
+  line-height: 1.6;
+}
+.dk-editor .dk-p-small {
+  font-size: 0.86em;
+  color: var(--dp-muted, #5b6b60);
+}
+.dk-editor .dk-dropcap::first-letter {
+  float: left;
+  font-weight: 800;
+  line-height: 0.85;
+  margin: 4px 8px 0 0;
+}
+.dk-editor .dk-dropcap-3::first-letter {
+  font-size: 3.6em;
+}
+.dk-editor .dk-dropcap-5::first-letter {
+  font-size: 5.8em;
+}
+.dk-editor u {
+  text-underline-offset: 2px;
+}
+
+/* ---------- selection toolbar additions ---------- */
+.dk-bubble-btn.dk-rb-on {
+  background: rgba(255, 255, 255, 0.18);
+}
+.dk-bubble-btn.dk-rb-mixed {
+  outline: 1.5px dashed rgba(255, 255, 255, 0.55);
+  outline-offset: -3px;
+}
+.dk-bubble-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.dk-bubble-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 10px;
+  max-width: 280px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #9dd7ae;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-theme='dark'] .dk-ribbon,
+[data-theme='dark'] .dk-status {
+  background: #1b241e;
+  border-color: #2e3a32;
+}
+[data-theme='dark'] .dk-rb,
+[data-theme='dark'] .dk-status-btn {
+  color: #c9d6cd;
+}
+[data-theme='dark'] .dk-rb.dk-rb-on {
+  background: #2e3a32;
+  color: #ffffff;
+}
+[data-theme='dark'] .dk-rb-select,
+[data-theme='dark'] .dk-rb-size {
+  background: #17211a;
+  border-color: #2e3a32;
+  color: #e6eee8;
+}

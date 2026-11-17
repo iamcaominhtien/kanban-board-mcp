@@ -20,6 +20,7 @@ interface Opts {
 /** A Tiptap suggestion trigger whose menu is drawn by React (see MenuHost). */
 export function createSuggest(o: Opts) {
   const pluginKey = new PluginKey(o.name);
+  o.host.pluginKey = pluginKey;
   return Extension.create({
     name: o.name,
     addProseMirrorPlugins() {

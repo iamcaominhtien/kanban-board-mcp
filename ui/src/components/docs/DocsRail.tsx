@@ -10,6 +10,8 @@ interface Props {
   /** Omitted when the reader can't edit the space: no add buttons. */
   onNewPage?: (parentId: string | null) => void;
   onSelect: (id: string) => void;
+  /** Opens the project sidebar where the app hides it (tablet): a menu button at the top of the rail. */
+  onOpenSidebar?: () => void;
 }
 
 /**
@@ -20,8 +22,9 @@ interface Props {
  * @param props.onSearch - Called to open search.
  * @param props.onNewPage - Called with the parent page id, or `null` for a root page; omit to hide the add buttons.
  * @param props.onSelect - Called with the id of the selected page.
+ * @param props.onOpenSidebar - Opens the hidden project sidebar; omit to leave the menu button out.
  */
-export function DocsRail({ nodes, selectedId, onExpand, onSearch, onNewPage, onSelect }: Props) {
+export function DocsRail({ nodes, selectedId, onExpand, onSearch, onNewPage, onSelect, onOpenSidebar }: Props) {
   const roots = useMemo(
     () =>
       nodes
@@ -82,6 +85,29 @@ export function DocsRail({ nodes, selectedId, onExpand, onSearch, onNewPage, onS
         overflowY: 'auto',
       }}
     >
+      {onOpenSidebar && (
+        <button
+          type="button"
+          className="dk-rail-btn"
+          aria-label="Open the project sidebar"
+          title="Projects"
+          data-testid="open-sidebar"
+          onClick={onOpenSidebar}
+        >
+          <svg
+            aria-hidden="true"
+            width={18}
+            height={18}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.9}
+            strokeLinecap="round"
+          >
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+        </button>
+      )}
       <button
         type="button"
         className="dk-rail-btn"

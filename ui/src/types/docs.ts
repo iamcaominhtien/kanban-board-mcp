@@ -1,4 +1,18 @@
+import type { JSONContent } from '@tiptap/core';
+
 export type DocsStatus = 'draft' | 'published';
+
+/**
+ * How a page's text is stored: `rich` is the TipTap JSON of Rich Docs format 1 (server/contract/richdoc), `md` the
+ * Markdown of before (a page not converted yet, or one whose conversion failed).
+ */
+export type DocsFormat = 'rich' | 'md';
+
+/** Where the conversion of a Markdown page to the rich format stands (`null`: nothing to convert). */
+export type DocsConvertState = 'waiting' | 'working' | 'done' | 'failed';
+
+/** A rich page: a TipTap JSON document (`{type: 'doc', content: [...]}`) with a `blockId` on every block. */
+export type RichDoc = JSONContent;
 
 export interface DocsTreeNode {
   id: string;
@@ -12,6 +26,8 @@ export interface DocsTreeNode {
   updatedAt: string;
   /** `canvas` pages open the Canvas editor instead of the text editor (the layers icon in the tree) */
   kind?: 'page' | 'canvas';
+  /** Where the page's conversion to the rich format stands (null or missing: nothing to convert). */
+  convertState?: DocsConvertState | null;
 }
 
 export interface DocsHeading {
@@ -28,7 +44,12 @@ export interface DocsPathItem {
 
 export interface DocsDraft {
   title: string;
+  /** The plain-Markdown projection of `content` (a rich draft), or the draft itself (an `md` one). */
   markdown: string;
+  /** `rich` when `content` holds the draft (missing on a server or a saved copy from before Rich Docs: `md`). */
+  format?: DocsFormat;
+  /** The draft as rich JSON; null when `format` is `md`. */
+  content?: RichDoc | null;
   baseVersion: number;
   /** autosaves since the draft was started */
   saves: number;
@@ -60,7 +81,18 @@ export interface DocsPage {
   slugPath?: string | null;
   status: DocsStatus;
   version: number;
+  /** The plain-Markdown projection of `content` (a rich page), or the page itself (an `md` one). */
   markdown: string;
+  /** `rich` when `content` holds the published page (missing on a server or a saved copy from before Rich Docs). */
+  format?: DocsFormat;
+  /** The published page as rich JSON; null when `format` is `md`. */
+  content?: RichDoc | null;
+  /** Page settings (server/contract/richdoc/page-settings.json); a missing key is its default. */
+  settings?: Record<string, unknown>;
+  /** The conversion to the rich format: waiting / working (not editable yet), done, failed (kept read-only). */
+  convertState?: DocsConvertState | null;
+  /** Why the conversion failed, when `convertState` is `failed`. */
+  convertError?: string | null;
   headings: DocsHeading[];
   path: DocsPathItem[];
   createdBy: string;
@@ -93,6 +125,9 @@ export interface DocsVersionDetail {
   version: number;
   title: string;
   markdown: string;
+  /** `rich` for a version saved in the rich format; versions from before it stay `md` (content null). */
+  format?: DocsFormat;
+  content?: RichDoc | null;
   author: string;
   note: string | null;
   createdAt: string;

@@ -1,3 +1,5 @@
+import { docToMarkdown } from '../../richdoc';
+import { convertLock, convertLockTip, publishedDoc, replaceSectionRefs } from './richPage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   docsErrorDetail,
@@ -56,6 +58,10 @@ import { SearchResults } from './SearchResults';
 import { useDocsOffline } from './useDocsOffline';
 import './docs.css';
 import { useAppCommand } from '../../utils/appCommands';
+import { useDocsLayout, type DocsLayout } from '../../hooks/useDocsLayout';
+import { DocsDrawer } from './DocsSheets';
+import { PageSettingsPanel } from './PageSettingsPanel';
+import { isWidePage, readPageLook } from './pageSettings';
 import { sketchesAsImages } from '../sketch/sketchRefs';
 import { canvasesAsImages } from '../canvas/canvasRefs';
 
@@ -92,9 +98,18 @@ interface Props {
     | { kind: 'filter-tree'; q: string }
     | null;
   onIntentHandled?: () => void;
+  /** Opens the project sidebar where the app hides it (tablet and phone); no menu button without it. */
+  onOpenSidebar?: () => void;
+  /** Called with true while the app bar should hide (editing on a tablet or a phone), false after. */
+  onImmersiveChange?: (on: boolean) => void;
+  /** Called with the layout the Docs area has (desktop, tablet, phone) whenever it changes. */
+  onLayoutChange?: (layout: DocsLayout) => void;
 }
 
-const NARROW_PX = 1200;
+/** A touch that starts this close to the left edge of the Docs area (px) and moves right opens the tree. */
+const EDGE_PX = 24;
+/** How far it has to move (px). */
+const SWIPE_PX = 60;
 
 function download(name: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown' }));
@@ -192,6 +207,8 @@ function cachedToPage(
     status: c.status,
     version: c.version,
     markdown: c.markdown,
+    format: c.format,
+    content: c.content ?? null,
     headings: c.headings,
     path,
     createdBy: c.updatedBy,
@@ -220,6 +237,9 @@ function cachedToPage(
  * @param props.onCloseResults - Called to leave the full results.
  * @param props.intent - One-shot request from the search palette (create a page / filter the tree).
  * @param props.onIntentHandled - Called once `intent` has been acted on.
+ * @param props.onOpenSidebar - Opens the project sidebar the app hides on a tablet or a phone.
+ * @param props.onImmersiveChange - Called with true while the app bar should hide (editing on touch layouts).
+ * @param props.onLayoutChange - Called with the Docs area's layout when it changes.
  */
 export function DocsView({
   projectId,
@@ -240,6 +260,9 @@ export function DocsView({
   onCloseResults,
   intent,
   onIntentHandled,
+  onOpenSidebar,
+  onImmersiveChange,
+  onLayoutChange,
 }: Props) {
   const toast = useToast();
   const offlineApi = useDocsOffline(projectId);
@@ -268,8 +291,12 @@ export function DocsView({
   const [giveFor, setGiveFor] = useState<{ id: string; title: string } | null>(null);
   const [renameFor, setRenameFor] = useState<{ node: { id: string; title: string }; newTitle: string } | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [narrow, setNarrow] = useState(() => window.innerWidth < NARROW_PX);
+  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
+  const layout = useDocsLayout(rootEl);
+  const narrow = layout !== 'desktop';
   const [railOpen, setRailOpen] = useState(false);
+  // the page whose Page settings panel is open (it closes when another page opens)
+  const [settingsFor, setSettingsFor] = useState<string | null>(null);
   const [treeCollapsed, setTreeCollapsed] = useState(() => localStorage.getItem('docsTreeCollapsed') === '1');
   const [dragFiles, setDragFiles] = useState<number | null>(null);
   const [failedAt, setFailedAt] = useState(() => new Date());
@@ -280,11 +307,13 @@ export function DocsView({
   const renameApi = useRenameWithLinks(projectId);
   const recycle = useDocsRecycleBin(projectId);
 
+  const layoutRef = useRef(onLayoutChange);
+  layoutRef.current = onLayoutChange;
   useEffect(() => {
-    const onResize = () => setNarrow(window.innerWidth < NARROW_PX);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
+    layoutRef.current?.(layout);
+    // a drawer of the layout before is not one of this one
+    setRailOpen(false);
+  }, [layout]);
 
   // switching projects resets the selection to that project's last page
   useEffect(() => {
@@ -374,15 +403,43 @@ export function DocsView({
   );
   const [filterRequest, setFilterRequest] = useState<{ q: string; n: number } | null>(null);
 
-  const showRail = narrow || treeCollapsed || editing;
+  // Wide and Full pages fold the tree to its rail (design board "app frame", B)
+  const pageWide = !!page && page.kind !== 'canvas' && isWidePage(readPageLook(page.settings));
+  // a tablet shows the rail; a phone has no rail (the Pages button and the left edge open the tree)
+  const folded = layout === 'tablet' || (layout === 'desktop' && (editing || pageWide));
+  const showRail = layout === 'tablet' || (layout === 'desktop' && (treeCollapsed || editing || pageWide));
   function setCollapsed(v: boolean) {
     setTreeCollapsed(v);
     localStorage.setItem('docsTreeCollapsed', v ? '1' : '0');
   }
   function showTree() {
-    if (narrow) setRailOpen(true);
+    if (layout === 'phone' || folded) setRailOpen(true);
     else setCollapsed(false);
   }
+
+  // the app bar hides while editing on a tablet or a phone, so the page and the formatting get the screen
+  const immersive = editing && layout !== 'desktop';
+  const immersiveRef = useRef(onImmersiveChange);
+  immersiveRef.current = onImmersiveChange;
+  useEffect(() => {
+    immersiveRef.current?.(immersive);
+  }, [immersive]);
+  useEffect(() => () => immersiveRef.current?.(false), []);
+
+  // a swipe from the left edge opens the tree on touch screens (the Pages button and the rail do the same)
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    const left = rootEl?.getBoundingClientRect().left ?? 0;
+    swipe.current =
+      layout !== 'desktop' && !railOpen && t && t.clientX - left < EDGE_PX ? { x: t.clientX, y: t.clientY } : null;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const from = swipe.current;
+    swipe.current = null;
+    const t = e.changedTouches[0];
+    if (from && t && t.clientX - from.x > SWIPE_PX && Math.abs(t.clientY - from.y) < SWIPE_PX) setRailOpen(true);
+  };
 
   // palette hand-offs: "Create page “…”" and "Filter the tree instead"
   useEffect(() => {
@@ -393,7 +450,7 @@ export function DocsView({
       setNewPage({ parentId: null, title: intent.title });
     } else {
       onCloseResults?.();
-      if (narrow) setRailOpen(true);
+      if (narrow || folded) setRailOpen(true);
       else {
         setTreeCollapsed(false);
         localStorage.setItem('docsTreeCollapsed', '0');
@@ -430,10 +487,17 @@ export function DocsView({
 
   async function runAction(action: PageAction, target: { id: string; title: string }) {
     switch (action) {
-      case 'edit':
+      case 'edit': {
+        // a page converting to the rich format (or whose conversion failed) is not editable
+        const lock = page?.id === target.id ? convertLock(page) : null;
+        if (lock) {
+          toast.info(lock === 'converting' ? 'Not yet' : 'Read-only', convertLockTip(lock));
+          return;
+        }
         select(target.id);
         setEditing(true);
         return;
+      }
       case 'add-child':
         setNewPage({ parentId: target.id });
         return;
@@ -452,8 +516,12 @@ export function DocsView({
         setHistory({});
         return;
       case 'rename':
-        if (showRail) showTree();
+        if (showRail || layout === 'phone') showTree();
         setRenamingId(target.id);
+        return;
+      case 'settings':
+        if (page?.id !== target.id) select(target.id);
+        setSettingsFor(target.id);
         return;
       default:
     }
@@ -461,9 +529,13 @@ export function DocsView({
     if (!full) return;
     if (action === 'move') setMoveFor(full);
     else if (action === 'duplicate') setDupFor(full);
-    else if (action === 'copy-markdown') await copy(`# ${full.title}\n\n${full.markdown}`, 'Markdown copied');
-    else if (action === 'export')
-      download(`${full.slug}.md`, `# ${full.title}\n\n${canvasesAsImages(sketchesAsImages(full.markdown))}\n`);
+    else if (action === 'copy-markdown' || action === 'export') {
+      // a rich page's Markdown is written from its JSON, as the editor writes it (the server's projection otherwise)
+      const doc = publishedDoc(full);
+      const md = doc ? docToMarkdown(doc) : full.markdown;
+      if (action === 'copy-markdown') await copy(`# ${full.title}\n\n${md}`, 'Markdown copied');
+      else download(`${full.slug}.md`, `# ${full.title}\n\n${canvasesAsImages(sketchesAsImages(md))}\n`);
+    }
   }
 
   const anyDialog = !!(newPage || moveFor || dupFor || history || deleteFor || renameFor || giveFor);
@@ -490,6 +562,24 @@ export function DocsView({
 
   async function replaceSection(from: { title: string; anchor: string }, to: string) {
     if (!livePage || livePage.version < 1) return;
+    const doc = publishedDoc(livePage);
+    if (doc) {
+      // a rich page: the reference nodes themselves point at the new section
+      const next = replaceSectionRefs(doc, from, to);
+      if (!next) return;
+      try {
+        await publish.mutateAsync({
+          pageId: livePage.id,
+          baseVersion: livePage.version,
+          content: next,
+          note: `Link to ${from.title} › ${to} updated`,
+        });
+        toast.success(`Link now points to “${to}”`);
+      } catch (e) {
+        toast.error("Couldn't update the link", docsErrorDetail(e)?.message ?? extractError(e));
+      }
+      return;
+    }
     const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const md = livePage.markdown.replace(
       new RegExp(`\\[\\[${esc(from.title)}#${esc(from.anchor)}(?=[\\]|])`, 'g'),
@@ -613,7 +703,7 @@ export function DocsView({
           toast.error("Couldn't move the page", docsErrorDetail(e)?.message ?? extractError(e));
         })
       }
-      onCollapse={() => (narrow ? setRailOpen(false) : setCollapsed(true))}
+      onCollapse={() => (railOpen ? setRailOpen(false) : setCollapsed(true))}
       aiOn={aiOn}
       onAskDocs={onAskDocs}
       onHealth={() => setHealthOpen(true)}
@@ -795,7 +885,7 @@ export function DocsView({
         onOpenPage={select}
       />
     );
-  } else if (editing && !offlineCopy) {
+  } else if (editing && !offlineCopy && !(livePage && convertLock(livePage))) {
     content = (
       <DocsEditScreen
         key={page.id}
@@ -815,6 +905,8 @@ export function DocsView({
           setEditing(false);
           if (updated) setSelectedId(updated.id);
         }}
+        layout={layout}
+        onOpenSettings={() => setSettingsFor(page.id)}
       />
     );
   } else {
@@ -843,6 +935,11 @@ export function DocsView({
         onRestorePage={(id) => restore.mutate(id, { onSuccess: () => toast.success('Page restored') })}
         onReplaceSection={(f, t) => void replaceSection(f, t)}
         onBodyRef={onBodyRef}
+        layout={layout}
+        // on a tablet the rail has the menu button
+        onOpenSidebar={layout === 'phone' ? onOpenSidebar : undefined}
+        onOpenTree={() => setRailOpen(true)}
+        onSearch={onSearch ? () => onSearch() : undefined}
       />
     );
   }
@@ -864,48 +961,56 @@ export function DocsView({
     );
   }
 
+  const treeDrawer = railOpen && !leftOverride && (
+    <DocsDrawer
+      label="Pages"
+      width={layout === 'phone' ? 336 : 340}
+      onClose={() => setRailOpen(false)}
+      testId="tree-drawer"
+    >
+      {treeEl}
+    </DocsDrawer>
+  );
+  // a phone has no tree beside the page (it is a drawer); an empty space keeps the full tree for its New page
   const left =
     leftOverride ??
-    (empty ? (
-      treeEl
-    ) : showRail ? (
-      <>
-        <DocsRail
-          nodes={nodes}
-          selectedId={selectedId}
-          onExpand={showTree}
-          onSearch={() => onSearch?.()}
-          onNewPage={readOnly ? undefined : (p) => setNewPage({ parentId: p })}
-          onSelect={select}
-        />
-        {narrow && railOpen && (
-          <div
-            style={{
-              position: 'absolute',
-              left: 56,
-              top: 0,
-              bottom: 0,
-              zIndex: 25,
-              boxShadow: '8px 0 24px rgba(30,42,34,0.14)',
-              display: 'flex',
-            }}
-          >
-            {treeEl}
-          </div>
-        )}
-      </>
+    (layout === 'phone' ? null : showRail && !empty ? (
+      <DocsRail
+        nodes={nodes}
+        selectedId={selectedId}
+        onExpand={showTree}
+        onSearch={() => onSearch?.()}
+        onNewPage={readOnly ? undefined : (p) => setNewPage({ parentId: p })}
+        onSelect={select}
+        onOpenSidebar={layout === 'tablet' ? onOpenSidebar : undefined}
+      />
     ) : (
       treeEl
     ));
+  const settingsPage = page && settingsFor === page.id && page.kind !== 'canvas' && !leftOverride ? page : null;
+  const settingsPanel = settingsPage && (
+    <PageSettingsPanel
+      key={settingsPage.id}
+      page={settingsPage}
+      layout={layout}
+      readOnly={readOnly ?? (offlineCopy ? 'Reconnect to change the page settings.' : null)}
+      onClose={() => setSettingsFor(null)}
+    />
+  );
 
   return (
     <DocsPeekProvider value={peek}>
       <div
-        className="docs-root"
+        ref={setRootEl}
+        className={`docs-root dk-layout-${layout}${narrow ? ' dk-touch' : ''}`}
         data-testid="docs-view"
+        data-layout={layout}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
         style={{
           flex: 1,
           minHeight: 0,
+          minWidth: 0,
           display: 'flex',
           position: 'relative',
           overflow: 'hidden',
@@ -914,6 +1019,8 @@ export function DocsView({
       >
         {left}
         {content}
+        {settingsPanel}
+        {treeDrawer}
         {!editing && !empty && !docsDisabled && (
           <SinceViewedDigest projectId={projectId} nodes={nodes} onOpenPage={select} />
         )}

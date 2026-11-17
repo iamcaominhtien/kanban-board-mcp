@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type CSSProperties,
   type ReactNode,
 } from 'react';
 import { client } from '../../../api/client';
@@ -16,7 +17,8 @@ import { docsKeys } from '../../../api/docs';
 import { useProject } from '../../../api/projects';
 import { resolveOrigin } from '../../../api/resolveOrigin';
 import { uploadAnyFile, uploadDescriptionImage, useTickets } from '../../../api/tickets';
-import type { DocsPage, DocsTreeNode } from '../../../types/docs';
+import type { DocsPage, DocsTreeNode, RichDoc } from '../../../types/docs';
+import { ensureBlockIds } from '../../../richdoc/ids';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../Toast';
 import { filesIn, imagesIn, usePreview } from '../../preview/PreviewContext';
@@ -26,7 +28,7 @@ import './editor.css';
 import { BubbleToolbar } from './BubbleToolbar';
 import { EditorEnvContext, RefResolver, type EditorEnv, type TicketLite } from './context';
 import { EditorToc } from './EditorToc';
-import { EditorToolbar } from './EditorToolbar';
+import { EditorToolbar, type ToolbarVariant } from './EditorToolbar';
 import { buildExtensions } from './extensions';
 import { anchorFromState, commentHighlightKey, type HighlightThread } from './extensions/CommentHighlights';
 import { useCommentShortcut, type Pick } from '../comments/SelectionComment';
@@ -42,17 +44,29 @@ import { CANVAS_LINE } from '../../canvas/canvasRefs';
 import { useCanvasStarter } from '../../canvas/useCanvasStarter';
 import { firstDiagramFile } from '../../diagrams/diagramFile';
 import { DiagramDropZone, isDiagramDrag } from '../../diagrams/DiagramDropZone';
-import { MarkdownPane } from './MarkdownPane';
 import { MenuHost } from './menuHost';
 import { RefSuggester, type RefPayload } from './RefSuggester';
 import { SlashMenu } from './SlashMenu';
 import type { AiSlashId, SlashItem } from './slashItems';
 import { TableControls } from './TableControls';
+// Rich Docs phase 4: block views, the block handle's menu, the Insert image flow
+import { BlockKit } from './blocks/BlockKit';
+import { BlockLayer } from './blocks/BlockLayer';
+import { askBlockUi, blockKitOf } from './blocks/bus';
+import { dropPlacement, startImageUpload } from './blocks/imageUpload';
+import { withBlockViews } from './blocks/nodeViews';
+import type { Placement } from './blocks/commands';
 import { cleanEditorMarkdown } from '../../../utils/docsMarkdown';
 import { compactMarkdown } from './compactMarkdown';
 import { markdownToPaste } from './pasteMarkdown';
-
-export type EditorMode = 'visual' | 'markdown';
+import { openDocsFind } from '../FindInPage';
+import { openInsertMenu } from './ribbon/format';
+import { PainterBar } from './ribbon/PainterBar';
+import { PasteChip } from './ribbon/PasteChip';
+import { RichFormatting, richStorage } from './ribbon/RichFormatting';
+import { ShortcutSheet } from './ribbon/ShortcutSheet';
+import { StatusLine } from './ribbon/StatusLine';
+import { useStore } from './ribbon/store';
 
 /** Inline comments shown in the editor: highlights, a Comment button on the selection and the shortcut. */
 export interface EditorComments {
@@ -72,8 +86,13 @@ export interface InlineAi {
 }
 
 export interface DocsEditorHandle {
-  /** Push pending edits to onChange and return the current markdown. */
+  /** Push pending edits to onChange / onContentChange and return the current text as plain Markdown. */
   flush: () => string;
+  /**
+   * Push pending edits and return the current page JSON (block ids made valid): a rich page's `content`. In Markdown
+   * mode, the editor's JSON of the Markdown.
+   */
+  flushContent: () => RichDoc;
   focus: () => void;
   /** The ProseMirror element (data-testid="docs-editor-surface"). */
   getRoot: () => HTMLElement | null;
@@ -82,16 +101,19 @@ export interface DocsEditorHandle {
 
 interface Props {
   projectId: string;
-  markdown: string;
-  mode: EditorMode;
-  onChange: (markdown: string) => void;
+  /** Markdown mode (idea pages): the text to edit. Give either this or `content`. */
+  markdown?: string;
+  /** Markdown mode: called with the Markdown after edits (debounced). */
+  onChange?: (markdown: string) => void;
+  /** Rich mode (Docs pages): the page JSON to edit. */
+  content?: RichDoc;
+  /** Rich mode: called with the page JSON after edits (debounced), every block with a valid, unique `blockId`. */
+  onContentChange?: (doc: RichDoc) => void;
   nodes: DocsTreeNode[];
   currentPageId: string;
   /** Idea pages save their drawings as the idea's; everything else is a Docs page. */
   sketchOwnerKind?: 'doc' | 'idea';
   pageTitle: string;
-  /** File name shown in the Markdown view (e.g. "api.md"). */
-  filename: string;
   /** Title field etc., rendered at the top of the 640px column. */
   header?: ReactNode;
   /** Right rail: undefined = built-in "On this page", null = none, node = custom. */
@@ -114,6 +136,15 @@ interface Props {
   };
   /** AI in the text itself: the /ai command, Ctrl+J, a selection bar and drafts you accept. */
   inlineAi?: InlineAi;
+  /**
+   * The page's look (Page settings): class names and CSS variables put on the scrolling page, which then sets the
+   * column width (`--dp-col`), the page colours, fonts and palette. Without it the editor keeps its own look.
+   */
+  surface?: { className: string; style: CSSProperties };
+  /** Where the formatting bar sits (EditorToolbar `variant`). */
+  toolbarVariant?: ToolbarVariant;
+  /** Hides the editor (it stays mounted, with its undo history), e.g. while the page is previewed. */
+  hidden?: boolean;
 }
 
 const EMIT_MS = 180;
@@ -125,26 +156,22 @@ const isPicture = (file: File) => PICTURE_TYPES.has(file.type);
 // which tears down the "/" and "[[" suggestion views while they are open
 const DRAG_POSITION = { placement: 'left-start', strategy: 'absolute' } as const;
 
-/** Caption above each pane in the side-by-side Markdown view. */
-const PANE_LABEL: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'baseline',
-  gap: 8,
-  height: 32,
-  fontSize: 12,
-  color: '#5B6B60',
-};
+/** The editor's text as stored plain Markdown (what docToMarkdown writes for its JSON). */
+function markdownOf(ed: Editor): string {
+  return compactMarkdown(cleanEditorMarkdown(ed.getMarkdown()));
+}
 
 /**
- * Tiptap WYSIWYG editor that reads and writes Markdown.
+ * Tiptap WYSIWYG editor. A Docs page is edited as rich JSON (`content` / `onContentChange`, format 1); an idea page
+ * as Markdown (`markdown` / `onChange`).
  * @param props.projectId - Project used to resolve references.
- * @param props.markdown - Markdown to edit; external changes reload the editor.
- * @param props.mode - Visual (WYSIWYG) or Markdown source view.
- * @param props.onChange - Called with the Markdown after edits (debounced).
+ * @param props.markdown - Markdown mode: the Markdown to edit; external changes reload the editor.
+ * @param props.onChange - Markdown mode: called with the Markdown after edits (debounced).
+ * @param props.content - Rich mode: the page JSON to edit; external changes reload the editor.
+ * @param props.onContentChange - Rich mode: called with the page JSON after edits (debounced).
  * @param props.nodes - Page tree, used for `[[` suggestions.
  * @param props.currentPageId - Page being edited.
  * @param props.pageTitle - Title of the page being edited.
- * @param props.filename - File name shown in the Markdown view.
  * @param props.header - Rendered at the top of the content column (title field etc.).
  * @param props.toc - Right rail: undefined for the built-in "On this page", `null` for none, or a custom node.
  * @param props.onOpenPage - Called with page id and anchor when a page reference is opened.
@@ -155,19 +182,22 @@ const PANE_LABEL: React.CSSProperties = {
  * @param props.comments - Inline comments: highlights, Comment button and shortcut.
  * @param props.ai - Board AI entry points (toolbar Ask AI, selection actions).
  * @param props.inlineAi - AI in the text: `/ai`, Ctrl+J, the selection bar and drafts (a Docs page or an idea page).
- * @param ref - Imperative handle: `flush`, `focus`, `getRoot`, `getEditor`.
+ * @param props.surface - The page's look (Page settings): class names and CSS variables of the scrolling page.
+ * @param props.toolbarVariant - Where the formatting bar sits: top, a sideways strip, or the bottom of the screen.
+ * @param props.hidden - Hide the editor while keeping it mounted.
+ * @param ref - Imperative handle: `flush`, `flushContent`, `focus`, `getRoot`, `getEditor`.
  */
 export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEditor(
   {
     projectId,
     markdown,
-    mode,
     onChange,
+    content,
+    onContentChange,
     nodes,
     currentPageId,
     sketchOwnerKind = 'doc',
     pageTitle,
-    filename,
     header,
     toc,
     onOpenPage,
@@ -178,6 +208,9 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     comments,
     ai,
     inlineAi,
+    surface,
+    toolbarVariant,
+    hidden,
   },
   ref,
 ) {
@@ -202,18 +235,27 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   const fileRef = useRef<HTMLInputElement>(null);
   const attachRef = useRef<HTMLInputElement>(null);
   const [linkOpen, setLinkOpen] = useState(false);
+  // rich text editing (ribbon/): focus mode, the shortcut sheet, the ribbon peeking in focus mode
+  const [focusMode, setFocusMode] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [ribbonPeek, setRibbonPeek] = useState(false);
 
   const aiSlash = useMemo(
     () => (ai?.onSlash ? { run: ai.onSlash, docs: !!ai.docsAi } : undefined),
     [ai?.onSlash, ai?.docsAi],
   );
-  const lastMd = useRef(markdown);
+  // rich mode is chosen once, when the editor is made
+  const rich = useRef(content !== undefined).current;
+  const lastMd = useRef(markdown ?? '');
+  const lastDoc = useRef<RichDoc | undefined>(content);
+  const lastJson = useRef(content !== undefined ? JSON.stringify(content) : '');
   // No edit since the text was loaded: the editor's own Markdown of it may still differ from the stored text (it
   // normalises spacing, tables, escapes), and that difference alone must not be saved as an edit (ideas IP-15)
   const pristine = useRef(true);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const live = useRef<{
     onChange: Props['onChange'];
+    onContentChange: Props['onContentChange'];
     tickets: TicketLite[];
     nodes: DocsTreeNode[];
     currentPageId: string;
@@ -224,9 +266,12 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     onUserInput: Props['onUserInput'];
     onCommentSelect?: (id: string) => void;
     ai?: { run: (id: AiSlashId) => void; docs: boolean };
-  }>({ onChange, tickets, nodes, currentPageId, ticketPrefix, pageTitle, toast, onBlur, onUserInput });
+    toggleFocus?: () => void;
+    openShortcuts?: () => void;
+  }>({ onChange, onContentChange, tickets, nodes, currentPageId, ticketPrefix, pageTitle, toast, onBlur, onUserInput });
   live.current = {
     onChange,
+    onContentChange,
     tickets,
     nodes,
     currentPageId,
@@ -237,6 +282,8 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     onUserInput,
     onCommentSelect: comments?.onSelect,
     ai: aiSlash,
+    toggleFocus: () => setFocusMode((v) => !v),
+    openShortcuts: () => setShortcutsOpen(true),
   };
   const editorRef = useRef<Editor | null>(null);
   const pickImage = useCallback(() => fileRef.current?.click(), []);
@@ -304,12 +351,18 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   const [diagramDrag, setDiagramDrag] = useState(false);
   const dragDepth = useRef(0);
 
-  const uploadImage = useCallback(async (file: File, at?: number) => {
+  const uploadImage = useCallback(async (file: File, at?: number, placement?: Placement) => {
     const ed = editorRef.current;
     if (!ed) return;
     // Anything that is not a picture (an Excel sheet picked with "All files", a PDF) is attached as a file instead
     if (!isPicture(file)) {
       await uploadFileRef.current(file, at);
+      return;
+    }
+    // Rich Docs phase 4: the picture goes in at once with its upload state (progress, Cancel, failed, too large)
+    const kit = blockKitOf(ed);
+    if (kit) {
+      startImageUpload(ed, file, { at, placement, limitMb: kit.imageLimitMb });
       return;
     }
     try {
@@ -468,27 +521,44 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       },
     });
     return [
-      ...buildExtensions({
-        isTicket: (key) => live.current.tickets.some((t) => t.id === key),
-        onLink: () => setLinkOpen(true),
-        onCommentSelect: (id) => live.current.onCommentSelect?.(id),
-      }),
+      ...withBlockViews(
+        buildExtensions({
+          isTicket: (key) => live.current.tickets.some((t) => t.id === key),
+          onLink: () => setLinkOpen(true),
+          onCommentSelect: (id) => live.current.onCommentSelect?.(id),
+        }),
+      ),
+      BlockKit,
       slash,
       ref,
       bareKey,
+      RichFormatting.configure({
+        onFocusMode: () => live.current.toggleFocus?.(),
+        onShortcuts: () => live.current.openShortcuts?.(),
+      }),
     ];
   }, [slashHost, refHost, keyHost, pickImage, openAi, projectId, qc, resolver]);
 
+  // push the edits since the last call to the caller (nothing while the text is as it was loaded)
   const emit = useCallback(() => {
     const ed = editorRef.current;
-    if (!ed || ed.isDestroyed || pristine.current) return lastMd.current;
-    const md = compactMarkdown(cleanEditorMarkdown(ed.getMarkdown()));
+    if (!ed || ed.isDestroyed || pristine.current) return;
+    if (rich) {
+      const doc = ensureBlockIds(ed.getJSON());
+      const json = JSON.stringify(doc);
+      if (json !== lastJson.current) {
+        lastJson.current = json;
+        lastDoc.current = doc;
+        live.current.onContentChange?.(doc);
+      }
+      return;
+    }
+    const md = markdownOf(ed);
     if (md !== lastMd.current) {
       lastMd.current = md;
-      live.current.onChange(md);
+      live.current.onChange?.(md);
     }
-    return md;
-  }, []);
+  }, [rich]);
 
   const preview = usePreview();
   const previewRef = useRef(preview);
@@ -496,8 +566,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
 
   const editor = useEditor({
     extensions,
-    content: markdown,
-    contentType: 'markdown',
+    ...(rich ? { content } : { content: markdown ?? '', contentType: 'markdown' as const }),
     editable: !readOnly,
     editorProps: {
       attributes: {
@@ -579,9 +648,11 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
         if (!files.length) return false;
         event.preventDefault();
         const at = view.posAtCoords({ left: (event as DragEvent).clientX, top: (event as DragEvent).clientY })?.pos;
+        // dropped beside the text: the picture floats on that side
+        const place = dropPlacement((event as DragEvent).clientX, (view.dom as HTMLElement).getBoundingClientRect());
         void (async () => {
           // in reverse, so each one lands at the drop point ahead of the ones after it
-          for (const f of [...files].reverse()) await (isPicture(f) ? uploadImage(f, at) : uploadFile(f, at));
+          for (const f of [...files].reverse()) await (isPicture(f) ? uploadImage(f, at, place) : uploadFile(f, at));
         })();
         return true;
       },
@@ -599,20 +670,25 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   });
   editorRef.current = editor;
 
-  // outside changes (reload, offline re-sync, Markdown view edits) flow into the editor
+  // outside changes (reload, offline re-sync, an AI rewrite) flow into the editor
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
-    if (markdown !== lastMd.current) {
+    if (rich) {
+      if (!content || content === lastDoc.current) return;
+      const json = JSON.stringify(content);
+      lastDoc.current = content;
+      if (json === lastJson.current) return;
+      lastJson.current = json;
+      pristine.current = true;
+      editor.commands.setContent(content, { emitUpdate: false });
+      return;
+    }
+    if (markdown !== undefined && markdown !== lastMd.current) {
       lastMd.current = markdown;
       pristine.current = true;
       editor.commands.setContent(markdown, { contentType: 'markdown', emitUpdate: false });
     }
-  }, [markdown, editor]);
-
-  // leaving the visual view pushes pending edits first
-  useEffect(() => {
-    if (mode === 'markdown') emit();
-  }, [mode, emit]);
+  }, [markdown, content, editor, rich]);
 
   useEffect(
     () => () => {
@@ -658,15 +734,23 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     () => ({
       flush: () => {
         if (timer.current) clearTimeout(timer.current);
-        // beside the Markdown pane the visual pane can still hold edits that were not pushed yet
-        const visualFocused = mode === 'markdown' && !!editorRef.current?.isFocused;
-        return mode === 'visual' || visualFocused ? emit() : lastMd.current;
+        emit();
+        const ed = editorRef.current;
+        if (!rich) return lastMd.current;
+        return ed && !ed.isDestroyed ? markdownOf(ed) : '';
+      },
+      flushContent: () => {
+        if (timer.current) clearTimeout(timer.current);
+        emit();
+        const ed = editorRef.current;
+        if (rich && lastDoc.current) return lastDoc.current;
+        return ed && !ed.isDestroyed ? ensureBlockIds(ed.getJSON()) : { type: 'doc', content: [] };
       },
       focus: () => editorRef.current?.commands.focus(),
       getRoot: () => (editorRef.current?.view.dom as HTMLElement | undefined) ?? null,
       getEditor: () => editorRef.current,
     }),
-    [emit, mode],
+    [emit, rich],
   );
 
   const slashState = useSyncExternalStore(slashHost.subscribe, slashHost.getSnapshot);
@@ -722,6 +806,48 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     setLinkOpen(true);
   }, []);
 
+  // focus mode: Esc leaves; the line being typed stays near the middle of the screen
+  useEffect(() => {
+    if (!focusMode || !editor) return undefined;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.defaultPrevented && !slashHost.getSnapshot()) setFocusMode(false);
+    };
+    const center = () => {
+      const scroller = editor.view.dom.closest('[data-testid="editor-scroll"]');
+      if (!scroller || !editor.isFocused) return;
+      try {
+        const c = editor.view.coordsAtPos(editor.state.selection.head);
+        const box = scroller.getBoundingClientRect();
+        scroller.scrollTop += c.top - (box.top + box.height / 2);
+      } catch {
+        /* no layout */
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    editor.on('update', center);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      editor.off('update', center);
+    };
+  }, [focusMode, editor, slashHost]);
+  // ? outside the text opens the shortcut sheet
+  useEffect(() => {
+    if (readOnly) return undefined;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '?' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      e.preventDefault();
+      setShortcutsOpen(true);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [readOnly]);
+  const painting = useStore(richStorage(editor)?.painter, { format: null, mode: 'off' as const }).mode !== 'off';
+  const pageHex = (surface?.style as Record<string, string> | undefined)?.['--dp-page'] ?? '#FFFFFF';
+  const phoneBar = toolbarVariant === 'bottom';
+
   const dragNode = useRef<{ pos: number; size: number } | null>(null);
   const onDragNode = useCallback(({ node, pos }: { node: { nodeSize: number } | null; pos: number }) => {
     dragNode.current = node ? { pos, size: node.nodeSize } : null;
@@ -729,25 +855,62 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
 
   return (
     <EditorEnvContext.Provider value={env}>
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }} className="dk-editor-root">
-        {
-          <EditorToolbar
-            editor={editor}
-            disabled={readOnly}
-            onLink={openLink}
-            onPickImage={pickImage}
-            onPickFile={pickFile}
-            onSketch={sketchStarter.available ? () => void sketchStarter.start() : undefined}
-            onCanvas={canvasStarter.available ? () => void canvasStarter.start() : undefined}
-            ticketPrefix={ticketPrefix}
-            onAskAi={ai?.onAsk}
-          />
-        }
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: hidden ? 'none' : 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+          ...(focusMode ? surface?.style : null),
+        }}
+        className={`dk-editor-root${focusMode ? ' dk-focus-mode' : ''}${painting ? ' dk-painting' : ''}`}
+        data-focus-mode={focusMode || undefined}
+      >
+        {focusMode && !phoneBar && <div className="dk-focus-edge" onMouseEnter={() => setRibbonPeek(true)} />}
+        {(!focusMode || ribbonPeek || phoneBar) && (
+          <div
+            className={focusMode && !phoneBar ? 'dk-focus-ribbon' : undefined}
+            onMouseLeave={focusMode ? () => setRibbonPeek(false) : undefined}
+            style={focusMode && phoneBar ? { display: 'none' } : undefined}
+          >
+            <EditorToolbar
+              variant={toolbarVariant}
+              editor={editor}
+              disabled={readOnly}
+              onLink={openLink}
+              onPickImage={pickImage}
+              onPickFile={pickFile}
+              onSketch={sketchStarter.available ? () => void sketchStarter.start() : undefined}
+              onCanvas={canvasStarter.available ? () => void canvasStarter.start() : undefined}
+              ticketPrefix={ticketPrefix}
+              onAskAi={ai?.onAsk}
+              onInsert={() => editor && openInsertMenu(editor)}
+              onFind={rich ? openDocsFind : undefined}
+              onFocusMode={() => setFocusMode((v) => !v)}
+              onShortcuts={() => setShortcutsOpen(true)}
+              pageHex={pageHex}
+              markdownOnly={!rich}
+            />
+          </div>
+        )}
+        {focusMode && (
+          <button
+            type="button"
+            className="dk-focus-pill"
+            data-testid="leave-focus"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setFocusMode(false)}
+          >
+            Leave Focus mode <span className="dk-kbd">Esc</span>
+          </button>
+        )}
+        {!readOnly && <PainterBar editor={editor} touch={phoneBar} />}
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
           <div
             data-testid="editor-scroll"
             onDragEnter={(e) => {
-              if (!readOnly && mode === 'visual' && isDiagramDrag(e.dataTransfer)) {
+              if (!readOnly && isDiagramDrag(e.dataTransfer)) {
                 dragDepth.current += 1;
                 setDiagramDrag(true);
               }
@@ -761,23 +924,26 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
               dragDepth.current = 0;
               setDiagramDrag(false);
             }}
+            className={surface?.className}
             style={{
               flex: 1,
               minWidth: 0,
               overflowY: 'auto',
-              padding: '30px 0 40px',
+              padding: toolbarVariant === 'bottom' ? '20px 0 96px' : '30px 0 40px',
               position: 'relative',
-              background: '#FFFFFF',
+              background: surface ? 'var(--dp-page)' : '#FFFFFF',
+              ...surface?.style,
             }}
           >
             <div
               ref={hostRef}
               style={{
-                width: mode === 'markdown' ? '100%' : 'clamp(640px, 62vw, 1120px)',
-                maxWidth: 'calc(100% - 48px)',
+                width: surface ? 'var(--dp-col)' : 'clamp(640px, 62vw, 1120px)',
+                maxWidth: surface ? 'calc(100% - var(--dp-gutter, 48px))' : 'calc(100% - 48px)',
                 margin: '0 auto',
                 position: 'relative',
               }}
+              className={surface ? 'dk-doc-col-edit' : undefined}
             >
               {header}
               {diagramDrag && (
@@ -790,73 +956,76 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
                   }}
                 />
               )}
-              <div
-                data-testid="editor-panes"
-                style={mode === 'markdown' ? { display: 'flex', gap: 16, alignItems: 'flex-start' } : undefined}
-              >
-                <div style={mode === 'markdown' ? { flex: 1, minWidth: 0 } : undefined}>
-                  {mode === 'markdown' && (
-                    <div style={PANE_LABEL}>
-                      <b style={{ color: '#1E2A22' }}>Visual</b> Rich text, what readers see
-                    </div>
+              <div data-testid="editor-panes">
+                <div className="dk-md dk-editor">
+                  <EditorContent editor={editor} />
+                  {editor && !readOnly && (
+                    <>
+                      <DragHandle editor={editor} computePositionConfig={DRAG_POSITION} onNodeChange={onDragNode}>
+                        <div className="dk-handle">
+                          <button
+                            type="button"
+                            title="Add block"
+                            aria-label="Add block"
+                            onClick={() => {
+                              const n = dragNode.current;
+                              if (!n) return;
+                              editor
+                                .chain()
+                                .focus()
+                                .insertContentAt(n.pos + n.size, {
+                                  type: 'paragraph',
+                                  content: [{ type: 'text', text: '/' }],
+                                })
+                                .run();
+                            }}
+                          >
+                            <Icon name="i01" size={15} strokeWidth={2} />
+                          </button>
+                          <button
+                            type="button"
+                            className="dk-grip"
+                            title="Drag to move. Click for the menu."
+                            aria-label="Drag to move"
+                            onClick={(e) => {
+                              const n = dragNode.current;
+                              if (!n) return;
+                              askBlockUi(
+                                editor,
+                                e.shiftKey
+                                  ? { type: 'chooseBlock', pos: n.pos }
+                                  : { type: 'blockMenu', pos: n.pos, anchor: e.currentTarget.getBoundingClientRect() },
+                              );
+                            }}
+                          >
+                            <Icon name="i03" size={15} strokeWidth={1.8} />
+                          </button>
+                        </div>
+                      </DragHandle>
+                      <TableControls editor={editor} hostRef={hostRef} />
+                      <BlockLayer
+                        editor={editor}
+                        hostRef={hostRef}
+                        projectId={projectId}
+                        onComment={comments ? startComment : undefined}
+                      />
+                    </>
                   )}
-                  <div className="dk-md dk-editor">
-                    <EditorContent editor={editor} />
-                    {editor && !readOnly && (
-                      <>
-                        <DragHandle editor={editor} computePositionConfig={DRAG_POSITION} onNodeChange={onDragNode}>
-                          <div className="dk-handle">
-                            <button
-                              type="button"
-                              title="Add block"
-                              aria-label="Add block"
-                              onClick={() => {
-                                const n = dragNode.current;
-                                if (!n) return;
-                                editor
-                                  .chain()
-                                  .focus()
-                                  .insertContentAt(n.pos + n.size, {
-                                    type: 'paragraph',
-                                    content: [{ type: 'text', text: '/' }],
-                                  })
-                                  .run();
-                              }}
-                            >
-                              <Icon name="i01" size={15} strokeWidth={2} />
-                            </button>
-                            <button type="button" className="dk-grip" title="Drag to move" aria-label="Drag to move">
-                              <Icon name="i03" size={15} strokeWidth={1.8} />
-                            </button>
-                          </div>
-                        </DragHandle>
-                        <TableControls editor={editor} hostRef={hostRef} />
-                      </>
-                    )}
-                  </div>
                 </div>
-                {mode === 'markdown' && (
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={PANE_LABEL}>
-                      <b style={{ color: '#1E2A22' }}>Markdown</b> Source. Editing either pane updates the other
-                    </div>
-                    <MarkdownPane value={markdown} filename={filename} onChange={onChange} readOnly={readOnly} />
-                  </div>
-                )}
               </div>
             </div>
           </div>
-          {toc === null ? null : (
+          {toc === null || focusMode ? null : (
             <div
               style={{
                 width: 200,
                 flexShrink: 0,
                 padding: '30px 20px 0 8px',
                 boxSizing: 'border-box',
-                background: '#FFFFFF',
+                background: surface ? (surface.style as Record<string, string>)['--dp-page'] : '#FFFFFF',
               }}
             >
-              {toc === undefined ? <EditorToc editor={editor} markdown={markdown} /> : toc}
+              {toc === undefined ? <EditorToc editor={editor} markdown={markdown ?? ''} /> : toc}
             </div>
           )}
         </div>
@@ -871,8 +1040,20 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             // it opens from the bar's "AI" item, so one bar shows at a time
             onAi={hasTextAi ? undefined : ai?.onSelection}
             onAiBar={inlineAi && hasTextAi ? () => setAiBarOpen(true) : undefined}
+            pageHex={pageHex}
+            plain={!rich}
           />
         )}
+        {editor && !readOnly && !phoneBar && (
+          <StatusLine
+            editor={editor}
+            quiet={focusMode}
+            onFocusMode={() => setFocusMode((v) => !v)}
+            onShortcuts={() => setShortcutsOpen(true)}
+          />
+        )}
+        {!readOnly && <PasteChip editor={editor} sheet={phoneBar} />}
+        {shortcutsOpen && <ShortcutSheet sheet={phoneBar} onClose={() => setShortcutsOpen(false)} />}
         {inlineAi && (
           <>
             {textAi.layer}
@@ -907,7 +1088,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             onClose={() => undefined}
           />
         )}
-        {keyState && mode === 'visual' && !refState && (
+        {keyState && !refState && (
           <RefSuggester
             bare
             host={keyHost}

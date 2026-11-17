@@ -61,6 +61,8 @@ interface BoardProps {
   /** Docs view: a page to open (from a ticket's linked docs or a ?docs= link). */
   docsRequestedPageId?: string | null;
   onDocsRequestHandled?: () => void;
+  /** Docs view: opens the project sidebar where the app hides it (narrow windows); no menu button without it. */
+  onOpenSidebar?: () => void;
   /** Docs view: opens Settings (Docs turned off). */
   onOpenSettings?: () => void;
   members?: Member[];
@@ -141,6 +143,7 @@ export function Board({
   onViewModeChange,
   docsRequestedPageId,
   onDocsRequestHandled,
+  onOpenSidebar,
   onOpenSettings,
   onOpenAiMember,
   onOpenDocsPage,
@@ -195,6 +198,9 @@ export function Board({
       onDocsRequestHandled?.();
     }
   }, [docsPopped, docsRequestedPageId, showInDocsWindow, onDocsRequestHandled]);
+  // editing a page on a tablet or a phone: the app bar and the view tabs hide so the page gets the screen
+  const [docsImmersive, setDocsImmersive] = useState(false);
+  const hideBar = viewMode === 'docs' && docsImmersive;
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   // The lifted card keeps the footprint of the card it was picked from (Drag & Drop 1, comp-1 DD-1)
   const [activeWidth, setActiveWidth] = useState<number | null>(null);
@@ -282,8 +288,10 @@ export function Board({
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className={styles.board} aria-busy={loadState ? true : undefined}>
-        <div className={styles.statusRow}>{statusSlot}</div>
-        <div className={styles.topBar}>
+        <div className={styles.statusRow} style={hideBar ? { display: 'none' } : undefined}>
+          {statusSlot}
+        </div>
+        <div className={styles.topBar} style={hideBar ? { display: 'none' } : undefined}>
           {loadState === 'projects' ? (
             <h1 className={styles.title} aria-label="Loading project">
               <span
@@ -480,6 +488,8 @@ export function Board({
             onOpenSettings={onOpenSettings}
             onBack={() => onViewModeChange('board')}
             onOpenTicket={openTicketById}
+            onOpenSidebar={onOpenSidebar}
+            onImmersiveChange={setDocsImmersive}
             onPopOut={(pageId) => {
               if (!docsWindow.popOut(pageId)) {
                 toast.error('The window was blocked', 'Allow pop-ups for the board, then try again.');

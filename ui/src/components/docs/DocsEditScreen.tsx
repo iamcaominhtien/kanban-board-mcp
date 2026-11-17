@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { docsErrorDetail, useDiscardDraft, useMarkDocsSeen, usePublishPage, useSaveDraft } from '../../api/docs';
 import { extractError } from '../../api/extractError';
-import type { DocsPage, DocsTreeNode } from '../../types/docs';
+import type { DocsPage, DocsTreeNode, RichDoc } from '../../types/docs';
+import { docToMarkdown, markdownToDoc } from '../../richdoc';
+import { clearLocalDraft, editableDoc, readLocalDraft, writeLocalDraft } from './richPage';
 import { useToast } from '../Toast';
 import { ConflictBanner } from './ConflictBanner';
 import { HeadingRenameNote } from './HeadingRenameNote';
@@ -14,11 +16,10 @@ import { ComposePopover, type Pick } from './comments/SelectionComment';
 import { personOf } from './comments/people';
 import { useCommentsController } from './comments/useCommentsController';
 import './comments/comments.css';
-import { DocsEditor, type DocsEditorHandle, type EditorMode } from './editor/DocsEditor';
+import { DocsEditor, type DocsEditorHandle } from './editor/DocsEditor';
 import { EditorErrorBoundary } from './editor/EditorErrorBoundary';
 import { createEditorReplaceAdapter, setActiveReplaceAdapter } from './editorReplace';
 import { Icon } from './Icon';
-import { LineIcon } from '../ui/LineIcon';
 import { BackOnlineBanner, OfflineBanner, useOnline } from './OfflineBanners';
 import { PublishDialog } from './PublishDialog';
 import { lineDiffCounts } from '../../utils/lineDiff';
@@ -32,6 +33,11 @@ import { AiDraftChip, AiDraftPanel, goToText } from './ai/NeedsInput';
 import { stripCitations } from '../../utils/writeRules';
 import { consumeAiOnEdit } from './ai/editIntent';
 import type { AiSlashId } from './editor/slashItems';
+import { useKeyboardInset, type DocsLayout } from '../../hooks/useDocsLayout';
+import { PageHeader, titleClass } from './PageHeader';
+import { RichDocView } from './RichDocView';
+import { BottomSheet, DocsDrawer } from './DocsSheets';
+import { isWidePage, lookClass, lookVars, readPageLook } from './pageSettings';
 
 interface Props {
   projectId: string;
@@ -46,11 +52,14 @@ interface Props {
   rail?: ReactNode;
   /** Ref to the ProseMirror root (for find-in-page). */
   onEditorRoot?: (el: HTMLElement | null) => void;
+  /** Desktop, tablet or phone: where the formatting bar sits and how much the header holds. */
+  layout?: DocsLayout;
+  /** Opens the Page settings panel; no Page settings button without it. */
+  onOpenSettings?: () => void;
 }
 
 type SaveState = 'saved' | 'saving' | 'error' | 'dirty';
 const AUTOSAVE_MS = 3000;
-const offlineKey = (pageId: string) => `docsOfflineDraft:${pageId}`;
 
 /**
  * Full-screen page editor with Publish, Discard and conflict handling.
@@ -63,6 +72,9 @@ const offlineKey = (pageId: string) => `docsOfflineDraft:${pageId}`;
  * @param props.onOpenTicket - Called with a ticket id when a ticket reference is opened.
  * @param props.rail - Collapsed tree rail shown at the left while editing.
  * @param props.onEditorRoot - Receives the ProseMirror root element (for find-in-page).
+ * @param props.layout - Desktop (bar on top), tablet (a strip that scrolls sideways) or phone (a compact header, the
+ *   bar at the bottom above the on-screen keyboard, Discard and the rest in a "…" menu).
+ * @param props.onOpenSettings - Opens the Page settings panel.
  */
 export function DocsEditScreen({
   projectId,
@@ -74,6 +86,8 @@ export function DocsEditScreen({
   onOpenTicket,
   rail,
   onEditorRoot,
+  layout = 'desktop',
+  onOpenSettings,
 }: Props) {
   const toast = useToast();
   const assist = useAssist();
@@ -94,19 +108,13 @@ export function DocsEditScreen({
   const { online, setOnline, justBack, clearJustBack } = useOnline();
 
   const baseMarkdown = page.markdown;
-  // a draft typed offline and never synced wins over the server copy
-  const localDraft = (() => {
-    try {
-      const raw = localStorage.getItem(offlineKey(page.id));
-      return raw ? (JSON.parse(raw) as { markdown: string; title: string; at: string }) : null;
-    } catch {
-      return null;
-    }
-  })();
-  const [markdown, setMarkdown] = useState(localDraft?.markdown ?? page.draft?.markdown ?? page.markdown);
-  const [title, setTitle] = useState(localDraft?.title ?? page.draft?.title ?? page.title);
+  // a draft typed offline and never synced wins over the server copy (read once, when the editor opens)
+  const [localDraft] = useState(() => readLocalDraft(page.id));
+  // the page is edited as rich JSON; its plain Markdown is kept beside it for the diffs, the heading note and the AI
+  const [content, setContent] = useState<RichDoc>(() => localDraft?.content ?? editableDoc(page));
+  const [markdown, setMarkdown] = useState(() => docToMarkdown(content));
+  const [title, setTitle] = useState(localDraft ? localDraft.title : (page.draft?.title ?? page.title));
   const [baseVersion] = useState(page.draft?.baseVersion ?? page.version);
-  const [mode, setMode] = useState<EditorMode>('visual');
   const [saveState, setSaveState] = useState<SaveState>(localDraft ? 'dirty' : 'saved');
   const [savedAt, setSavedAt] = useState<Date | null>(page.draft ? new Date(page.draft.updatedAt) : null);
   const [publishOpen, setPublishOpen] = useState(false);
@@ -152,6 +160,18 @@ export function DocsEditScreen({
     setCompose(p);
   }
   const [error, setError] = useState<string | null>(null);
+  // the page as readers will see it (Preview): the text at the moment Preview was turned on
+  const [preview, setPreview] = useState<RichDoc | null>(null);
+  const [more, setMore] = useState(false);
+  const phone = layout === 'phone';
+  const look = readPageLook(page.settings);
+  const settingsKey = JSON.stringify(page.settings ?? {});
+  const surface = useMemo(
+    () => ({ className: lookClass(readPageLook(page.settings)), style: lookVars(readPageLook(page.settings), layout) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [settingsKey, layout],
+  );
+  const keyboard = useKeyboardInset(phone);
   const [conflict, setConflict] = useState<{
     latestVersion: number;
     latestAuthor?: string | null;
@@ -161,44 +181,39 @@ export function DocsEditScreen({
   const editor = useRef<DocsEditorHandle>(null);
   const mountedAt = useRef(Date.now());
   const userInput = useRef(false);
-  const latest = useRef({ markdown, title, baseVersion });
-  latest.current = { markdown, title, baseVersion };
+  const latest = useRef({ content, markdown, title, baseVersion });
+  latest.current = { content, markdown, title, baseVersion };
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirty = useRef(Boolean(localDraft));
 
   const keepLocal = useCallback(() => {
-    try {
-      localStorage.setItem(
-        offlineKey(page.id),
-        JSON.stringify({
-          markdown: latest.current.markdown,
-          title: latest.current.title,
-          at: new Date().toISOString(),
-        }),
-      );
-    } catch {
-      /* storage full or blocked: the in-memory copy still exists */
-    }
+    writeLocalDraft(page.id, { content: latest.current.content, title: latest.current.title });
   }, [page.id]);
+
+  /** Take the editor's text as it is now (the editor reports edits after a short debounce). */
+  const settle = useCallback((doc: RichDoc) => {
+    if (JSON.stringify(doc) === JSON.stringify(latest.current.content)) return false;
+    const md = docToMarkdown(doc);
+    latest.current = { ...latest.current, content: doc, markdown: md };
+    setContent(doc);
+    setMarkdown(md);
+    return true;
+  }, []);
 
   const flush = useCallback(async () => {
     if (timer.current) clearTimeout(timer.current);
-    editor.current?.flush();
+    editor.current?.flushContent();
     if (!dirty.current) return true;
     setSaveState('saving');
     try {
       await saveDraft.mutateAsync({
         pageId: page.id,
-        markdown: latest.current.markdown,
+        content: latest.current.content,
         title: latest.current.title,
         baseVersion: latest.current.baseVersion,
       });
       dirty.current = false;
-      try {
-        localStorage.removeItem(offlineKey(page.id));
-      } catch {
-        /* ignore */
-      }
+      clearLocalDraft(page.id);
       setSavedAt(new Date());
       setSaveState('saved');
       setOnline(true);
@@ -227,13 +242,25 @@ export function DocsEditScreen({
     [],
   );
 
+  // the AI (or "Remove citations") rewrites the whole page as Markdown: it goes through the editor, as an edit
+  const replaceWithMarkdown = (md: string) => {
+    userInput.current = true;
+    const ed = editor.current?.getEditor();
+    if (ed && !ed.isDestroyed) {
+      ed.commands.setContent(md, { contentType: 'markdown', emitUpdate: true } as never);
+      const doc = editor.current?.flushContent();
+      if (doc) settle(doc);
+    } else settle(markdownToDoc(md));
+    touch();
+  };
+
   // a pending draft is saved when the screen goes away (e.g. another page is opened)
   useEffect(
     () => () => {
       if (dirty.current) {
         saveDraft.mutate({
           pageId: page.id,
-          markdown: latest.current.markdown,
+          content: latest.current.content,
           title: latest.current.title,
           baseVersion: latest.current.baseVersion,
         });
@@ -268,22 +295,18 @@ export function DocsEditScreen({
       setError('Give the page a title before publishing.');
       return;
     }
-    const md = editor.current?.flush() ?? markdown;
+    const doc = editor.current?.flushContent() ?? latest.current.content;
     try {
       const updated = await publish.mutateAsync({
         pageId: page.id,
         baseVersion: base,
         note: note.trim() || undefined,
-        markdown: md,
+        content: doc,
         title: title.trim(),
         notify,
       });
       dirty.current = false;
-      try {
-        localStorage.removeItem(offlineKey(page.id));
-      } catch {
-        /* ignore */
-      }
+      clearLocalDraft(page.id);
       setPublishOpen(false);
       setConflict(null);
       markSeen(page.id, updated.version);
@@ -305,11 +328,7 @@ export function DocsEditScreen({
     try {
       await discard.mutateAsync(page.id);
       dirty.current = false;
-      try {
-        localStorage.removeItem(offlineKey(page.id));
-      } catch {
-        /* ignore */
-      }
+      clearLocalDraft(page.id);
       setDiscardOpen(false);
       onExit();
     } catch (err) {
@@ -353,41 +372,34 @@ export function DocsEditScreen({
     return () => clearTimeout(t);
   }, [saveState]);
 
-  // Cmd/Ctrl+S saves the draft now, Cmd/Ctrl+Enter opens Publish, Cmd/Ctrl+Shift+M flips Visual/Markdown.
+  // Cmd/Ctrl+S saves the draft now, Cmd/Ctrl+Enter opens Publish.
   // Captured before the editor sees the key (Mod-Enter would otherwise leave a code block or add a break).
-  const keys = useRef({ openPublish, flush, mode, blocked: false });
+  const keys = useRef({ openPublish, flush, blocked: false });
   keys.current = {
     openPublish,
     flush,
-    mode,
     blocked: publishOpen || discardOpen || Boolean(orphans) || Boolean(compose),
   };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.isComposing) return;
       const k = e.key.toLowerCase();
-      const act =
-        k === 's' && !e.shiftKey
-          ? 'save'
-          : k === 'enter' && !e.shiftKey
-            ? 'publish'
-            : k === 'm' && e.shiftKey
-              ? 'mode'
-              : null;
+      const act = k === 's' && !e.shiftKey ? 'save' : k === 'enter' && !e.shiftKey ? 'publish' : null;
       if (!act) return;
       e.preventDefault();
       if (keys.current.blocked) return;
       e.stopPropagation();
       if (act === 'save') void keys.current.flush();
-      else if (act === 'publish') keys.current.openPublish();
-      else {
-        editor.current?.flush();
-        setMode(keys.current.mode === 'visual' ? 'markdown' : 'visual');
-      }
+      else keys.current.openPublish();
     };
     document.addEventListener('keydown', onKey, true);
     return () => document.removeEventListener('keydown', onKey, true);
   }, []);
+
+  function togglePreview() {
+    setMore(false);
+    setPreview((cur) => (cur ? null : (editor.current?.flushContent() ?? latest.current.content)));
+  }
 
   const saveLabel =
     saveState === 'saving' || saveState === 'dirty'
@@ -396,175 +408,209 @@ export function DocsEditScreen({
         ? 'Not saved — will retry'
         : 'Saved';
 
+  const saveStatus = !online ? (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        height: 26,
+        padding: '0 10px',
+        borderRadius: 999,
+        background: '#FCEFD9',
+        fontSize: 12,
+        fontWeight: 700,
+        color: '#7A4F08',
+        whiteSpace: 'nowrap',
+      }}
+      data-testid="save-state"
+    >
+      <Icon name="i37" size={13} />
+      Offline — changes kept locally
+    </span>
+  ) : (
+    <span
+      role="status"
+      data-testid="save-state"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        fontSize: 12.5,
+        fontWeight: 600,
+        whiteSpace: 'nowrap',
+        color: saveState === 'error' ? '#C4432A' : saveState === 'saved' ? '#2E6F40' : '#5B6B60',
+      }}
+    >
+      {saveState === 'saving' || saveState === 'dirty' ? (
+        <span className="mc-spin" />
+      ) : saveState === 'saved' ? (
+        <Icon name="i17" size={14} />
+      ) : null}
+      {saveLabel}
+      {saveState === 'saved' && savedAt && (
+        <span style={{ fontWeight: 500, color: '#9AA8A0' }}>
+          {savedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+        </span>
+      )}
+    </span>
+  );
+
   return (
     <div
-      className="docs-root"
+      className={`docs-root dk-edit-${layout}`}
       data-testid="docs-edit-screen"
-      style={{ flex: 1, minWidth: 0, display: 'flex', minHeight: 0, background: '#FFFFFF' }}
+      data-layout={layout}
+      style={
+        {
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          minHeight: 0,
+          background: '#FFFFFF',
+          '--dk-kb': `${keyboard}px`,
+        } as CSSProperties
+      }
     >
       {rail}
       <div
         className="dk-find-push"
         style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}
       >
-        <header
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            height: 56,
-            padding: '0 24px',
-            borderBottom: '1px solid #E3E8E5',
-            background: '#FFFFFF',
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
-            {projectName && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
-                <span style={{ fontSize: 12.5, fontWeight: 500, color: '#5B6B60' }}>{projectName}</span>
-                <Icon name="i05" size={12} style={{ color: '#9AA8A0' }} />
+        {phone ? (
+          <header className="dk-edit-head dk-edit-head-phone" data-testid="edit-header">
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span className="dk-edit-title">{title || 'Untitled'}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#7A4F08' }}>
+                <span>Draft</span>
+                <span aria-hidden="true">·</span>
+                {saveStatus}
               </span>
-            )}
-            {page.path.map((p) => (
-              <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
-                <span style={{ fontSize: 12.5, fontWeight: 500, color: '#5B6B60' }}>{p.title}</span>
-                <Icon name="i05" size={12} style={{ color: '#9AA8A0' }} />
-              </span>
-            ))}
-            <span
-              style={{
-                fontSize: 12.5,
-                fontWeight: 700,
-                color: '#1E2A22',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
+            </div>
+            <button
+              type="button"
+              className="st-btn st-btn-primary"
+              disabled={Boolean(conflict) || !online}
+              onClick={openPublish}
+              data-testid="publish"
             >
-              {title || 'Untitled'}
-            </span>
-          </div>
-          <span className="mc-chip" style={{ background: '#FCEFD9', color: '#7A4F08' }}>
-            <span className="mc-dot" style={{ background: '#B4791E' }} />
-            {page.version === 0 ? 'Draft' : `Draft · based on v${baseVersion}`}
-          </span>
-          <div style={{ flex: 1 }} />
-          {!online ? (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                height: 26,
-                padding: '0 10px',
-                borderRadius: 999,
-                background: '#FCEFD9',
-                fontSize: 12,
-                fontWeight: 700,
-                color: '#7A4F08',
-                whiteSpace: 'nowrap',
-              }}
-              data-testid="save-state"
+              Publish
+            </button>
+            <button
+              type="button"
+              className="dk-icobtn dk-bar-ico"
+              aria-label="More"
+              aria-expanded={more}
+              data-testid="edit-more"
+              onClick={() => setMore(true)}
             >
-              <Icon name="i37" size={13} />
-              Offline — changes kept locally
-            </span>
-          ) : (
-            <span
-              role="status"
-              data-testid="save-state"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 12.5,
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                color: saveState === 'error' ? '#C4432A' : saveState === 'saved' ? '#2E6F40' : '#5B6B60',
-              }}
-            >
-              {saveState === 'saving' || saveState === 'dirty' ? (
-                <span className="mc-spin" />
-              ) : saveState === 'saved' ? (
-                <Icon name="i17" size={14} />
-              ) : null}
-              {saveLabel}
-              {saveState === 'saved' && savedAt && (
-                <span style={{ fontWeight: 500, color: '#9AA8A0' }}>
-                  {savedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+              <Icon name="more" size={18} strokeWidth={1.8} />
+            </button>
+          </header>
+        ) : (
+          <header
+            className="dk-edit-head"
+            data-layout={layout}
+            data-testid="edit-header"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              height: 56,
+              padding: '0 24px',
+              borderBottom: '1px solid #E3E8E5',
+              background: '#FFFFFF',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+              {projectName && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 500, color: '#5B6B60' }}>{projectName}</span>
+                  <Icon name="i05" size={12} style={{ color: '#9AA8A0' }} />
                 </span>
               )}
-            </span>
-          )}
-          <div
-            role="group"
-            aria-label="Editor mode"
-            style={{ display: 'flex', padding: 3, borderRadius: 8, background: '#EEF3EF', gap: 2 }}
-          >
-            {(['visual', 'markdown'] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={`mb-view-btn ${mode === m ? 'mb-view-btn-active' : ''}`}
-                data-testid={m === 'markdown' ? 'mode-markdown' : 'mode-visual'}
-                onClick={() => {
-                  editor.current?.flush();
-                  setMode(m);
-                }}
+              {page.path.map((p) => (
+                <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 500, color: '#5B6B60' }}>{p.title}</span>
+                  <Icon name="i05" size={12} style={{ color: '#9AA8A0' }} />
+                </span>
+              ))}
+              <span
                 style={{
-                  padding: '5px 11px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: mode === m ? '#FFFFFF' : 'none',
-                  boxShadow: mode === m ? '0 1px 2px rgba(30,42,34,0.10)' : 'none',
-                  color: mode === m ? '#1E2A22' : '#5B6B60',
                   fontSize: 12.5,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
+                  fontWeight: 700,
+                  color: '#1E2A22',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               >
-                <LineIcon name={m === 'visual' ? 'eye' : 'page'} size={14} />
-                {m === 'visual' ? 'Visual' : 'Markdown'}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="st-btn"
-            aria-pressed={cc.open}
-            data-testid="comments-button"
-            title={`${commentsData?.counts.all ?? 0} inline · ${commentsData?.counts.page ?? 0} on the page`}
-            onClick={() => cc.setOpen((v) => !v)}
-          >
-            <Icon name="comment" size={13} strokeWidth={1.9} />
-            Comments
-            <span className="dc-btn-count" data-testid="comments-count">
-              {commentTotal}
+                {title || 'Untitled'}
+              </span>
+            </div>
+            <span className="mc-chip" style={{ background: '#FCEFD9', color: '#7A4F08' }}>
+              <span className="mc-dot" style={{ background: '#B4791E' }} />
+              {page.version === 0 ? 'Draft' : `Draft · based on v${baseVersion}`}
             </span>
-          </button>
-          <button
-            type="button"
-            className="st-btn st-btn-danger-outline"
-            onClick={() => setDiscardOpen(true)}
-            data-testid="discard"
-          >
-            Discard
-          </button>
-          <button
-            type="button"
-            className="st-btn st-btn-primary"
-            disabled={Boolean(conflict) || !online}
-            onClick={openPublish}
-            data-testid="publish"
-          >
-            <Icon name="i46" size={13} />
-            Publish
-          </button>
-        </header>
+            <div style={{ flex: 1 }} />
+            {saveStatus}
+            <button
+              type="button"
+              className="st-btn"
+              aria-pressed={cc.open}
+              data-testid="comments-button"
+              title={`${commentsData?.counts.all ?? 0} inline · ${commentsData?.counts.page ?? 0} on the page`}
+              onClick={() => cc.setOpen((v) => !v)}
+            >
+              <Icon name="comment" size={13} strokeWidth={1.9} />
+              Comments
+              <span className="dc-btn-count" data-testid="comments-count">
+                {commentTotal}
+              </span>
+            </button>
+            {onOpenSettings && (
+              <button
+                type="button"
+                className="dk-icobtn dk-bar-ico"
+                aria-label="Page settings"
+                title="Page settings"
+                data-testid="edit-page-settings"
+                onClick={onOpenSettings}
+              >
+                <Icon name="i42" size={16} strokeWidth={1.8} />
+              </button>
+            )}
+            <button
+              type="button"
+              className="st-btn"
+              aria-pressed={!!preview}
+              data-testid="preview-toggle"
+              onClick={togglePreview}
+            >
+              <Icon name="eye" size={13} strokeWidth={1.9} />
+              Preview
+            </button>
+            <button
+              type="button"
+              className="st-btn st-btn-danger-outline"
+              onClick={() => setDiscardOpen(true)}
+              data-testid="discard"
+            >
+              Discard
+            </button>
+            <button
+              type="button"
+              className="st-btn st-btn-primary"
+              disabled={Boolean(conflict) || !online}
+              onClick={openPublish}
+              data-testid="publish"
+            >
+              <Icon name="i46" size={13} />
+              Publish
+            </button>
+          </header>
+        )}
 
         {conflict && (
           <ConflictBanner
@@ -599,18 +645,15 @@ export function DocsEditScreen({
               <DocsEditor
                 ref={editor}
                 projectId={projectId}
-                markdown={markdown}
-                mode={mode}
+                content={content}
                 nodes={nodes}
                 currentPageId={page.id}
                 pageTitle={title}
-                filename={`${page.slug}.md`}
                 onOpenPage={onOpenPage}
                 onOpenTicket={onOpenTicket}
-                onChange={(md) => {
-                  if (md === latest.current.markdown) return;
-                  setMarkdown(md);
-                  // the editor re-serialises the markdown right after loading: that is not an edit
+                onContentChange={(doc) => {
+                  if (!settle(doc)) return;
+                  // a change the editor makes on its own right after loading (block ids) is not an edit
                   if (!userInput.current && Date.now() - mountedAt.current < 2500 && !dirty.current) return;
                   touch();
                 }}
@@ -634,29 +677,28 @@ export function DocsEditScreen({
                     assist?.ask({ scope: 'doc', docId: page.id, text: docPrompt(action, text) });
                   },
                 }}
+                surface={surface}
+                toolbarVariant={phone ? 'bottom' : layout === 'tablet' ? 'strip' : 'top'}
+                hidden={!!preview}
+                // "On this page" beside the text only on a desktop, for a page that has it and is not Wide or Full
+                toc={layout !== 'desktop' || isWidePage(look) || !look.showOutline ? null : undefined}
                 header={
-                  <div style={{ paddingBottom: 12, marginBottom: 6, borderBottom: '1px solid #E3E8E5' }}>
-                    <input
-                      aria-label="Page title"
-                      placeholder="Page title"
-                      value={title}
-                      onChange={(e) => {
-                        setTitle(e.target.value);
-                        touch();
-                      }}
-                      style={{
-                        width: '100%',
-                        border: 'none',
-                        outline: 'none',
-                        background: 'transparent',
-                        fontFamily: 'inherit',
-                        fontSize: 32,
-                        fontWeight: 800,
-                        lineHeight: 1.15,
-                        letterSpacing: '-0.01em',
-                        color: '#1E2A22',
-                        padding: 0,
-                      }}
+                  <div className="dk-edit-titlebox">
+                    <PageHeader
+                      look={look}
+                      fallbackEyebrow={page.path[page.path.length - 1]?.title}
+                      title={
+                        <input
+                          aria-label="Page title"
+                          placeholder="Page title"
+                          value={title}
+                          className={`${titleClass(look)} dk-title-input`}
+                          onChange={(e) => {
+                            setTitle(e.target.value);
+                            touch();
+                          }}
+                        />
+                      }
                     />
                     <DocsAi
                       projectId={projectId}
@@ -669,38 +711,53 @@ export function DocsEditScreen({
                       ed={{
                         getEditor: () => editor.current?.getEditor() ?? null,
                         getMarkdown: () => editor.current?.flush() ?? latest.current.markdown,
-                        setMarkdown: (md) => {
-                          editor.current
-                            ?.getEditor()
-                            ?.commands.setContent(md, { contentType: 'markdown', emitUpdate: true } as never);
-                          userInput.current = true;
-                          setMarkdown(md);
-                          touch();
-                        },
+                        setMarkdown: replaceWithMarkdown,
                       }}
                     />
                   </div>
                 }
               />
             </EditorErrorBoundary>
+            {preview && (
+              <div
+                className={`dk-page-scroll ${surface.className}`}
+                style={{ flex: 1, minHeight: 0, overflowY: 'auto', ...surface.style }}
+                data-testid="editor-preview"
+              >
+                <div className="dk-preview-note" role="status">
+                  <Icon name="eye" size={14} strokeWidth={1.9} />
+                  Preview: the page as readers will see it once it is published.
+                  <button type="button" className="st-btn st-btn-sm" onClick={togglePreview}>
+                    Back to editing
+                  </button>
+                </div>
+                <div className="dk-doc-col">
+                  <PageHeader
+                    look={look}
+                    fallbackEyebrow={page.path[page.path.length - 1]?.title}
+                    title={<h1 className={titleClass(look)}>{title || 'Untitled'}</h1>}
+                  />
+                  <div className="dk-doc-rule" />
+                  <RichDocView
+                    doc={preview}
+                    projectId={projectId}
+                    projectName={projectName}
+                    onOpenPage={onOpenPage}
+                    onOpenTicket={onOpenTicket}
+                  />
+                </div>
+              </div>
+            )}
           </div>
           {docsAiOn && page.draft?.aiSource && (
             <AiDraftPanel
               source={page.draft.aiSource}
               markdown={markdown}
               onGoTo={(text) => goToText(editor.current?.getEditor() ?? null, text)}
-              onStripCitations={() => {
-                const next = stripCitations(editor.current?.flush() ?? markdown);
-                editor.current
-                  ?.getEditor()
-                  ?.commands.setContent(next, { contentType: 'markdown', emitUpdate: true } as never);
-                userInput.current = true;
-                setMarkdown(next);
-                touch();
-              }}
+              onStripCitations={() => replaceWithMarkdown(stripCitations(editor.current?.flush() ?? markdown))}
             />
           )}
-          {cc.open && (
+          {cc.open && layout === 'desktop' && (
             <CommentsPanel
               pageId={page.id}
               projectId={projectId}
@@ -719,10 +776,97 @@ export function DocsEditScreen({
               onClose={() => cc.setOpen(false)}
             />
           )}
+          {cc.open && layout !== 'desktop' && (
+            <DocsDrawer
+              side="right"
+              width={420}
+              label="Comments"
+              onClose={() => cc.setOpen(false)}
+              testId="comments-drawer"
+            >
+              <CommentsPanel
+                pageId={page.id}
+                projectId={projectId}
+                version={page.version}
+                data={commentsData}
+                loading={cc.query.isLoading}
+                error={cc.query.isError}
+                onRetry={() => void cc.query.refetch()}
+                actions={cc.actions}
+                tab={cc.tab}
+                onTab={cc.setTab}
+                activeId={cc.activeId}
+                onActivate={cc.activate}
+                reattachId={cc.reattachId}
+                onReattach={cc.setReattachId}
+                onClose={() => cc.setOpen(false)}
+              />
+            </DocsDrawer>
+          )}
         </div>
-        <EditorRootBridge editor={editor} onEditorRoot={onEditorRoot} mode={mode} />
+        <EditorRootBridge editor={editor} onEditorRoot={onEditorRoot} />
       </div>
 
+      {more && (
+        <BottomSheet label="Page" onClose={() => setMore(false)} testId="edit-more-sheet">
+          <div className="dk-menu-sheet" role="menu" aria-label="Page">
+            <button
+              type="button"
+              role="menuitem"
+              className="dk-mi"
+              onClick={togglePreview}
+              data-testid="preview-toggle"
+            >
+              <Icon name="eye" size={15} strokeWidth={1.8} />
+              <span>{preview ? 'Back to editing' : 'Preview'}</span>
+            </button>
+            {onOpenSettings && (
+              <button
+                type="button"
+                role="menuitem"
+                className="dk-mi"
+                onClick={() => {
+                  setMore(false);
+                  onOpenSettings();
+                }}
+              >
+                <Icon name="i42" size={15} strokeWidth={1.8} />
+                <span>Page settings…</span>
+              </button>
+            )}
+            <button
+              type="button"
+              role="menuitem"
+              className="dk-mi"
+              data-testid="comments-button"
+              onClick={() => {
+                setMore(false);
+                cc.setOpen(true);
+              }}
+            >
+              <Icon name="comment" size={15} strokeWidth={1.8} />
+              <span>Comments</span>
+              <span className="dc-btn-count" style={{ marginLeft: 'auto' }}>
+                {commentTotal}
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="dk-mi"
+              style={{ color: '#C4432A' }}
+              data-testid="discard"
+              onClick={() => {
+                setMore(false);
+                setDiscardOpen(true);
+              }}
+            >
+              <Icon name="i12" size={15} strokeWidth={1.8} />
+              <span>Discard draft</span>
+            </button>
+          </div>
+        </BottomSheet>
+      )}
       {ticketsFrom !== null && (
         <CreateTicketsDialog
           projectId={projectId}
@@ -803,15 +947,13 @@ export function DocsEditScreen({
 function EditorRootBridge({
   editor,
   onEditorRoot,
-  mode,
 }: {
   editor: React.RefObject<DocsEditorHandle>;
   onEditorRoot?: (el: HTMLElement | null) => void;
-  mode: EditorMode;
 }) {
   useEffect(() => {
-    onEditorRoot?.(mode === 'visual' ? (editor.current?.getRoot() ?? null) : null);
+    onEditorRoot?.(editor.current?.getRoot() ?? null);
     return () => onEditorRoot?.(null);
-  }, [editor, onEditorRoot, mode]);
+  }, [editor, onEditorRoot]);
   return null;
 }

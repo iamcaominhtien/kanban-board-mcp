@@ -119,6 +119,8 @@ export interface SearchPaletteProps {
   mode?: 'ask';
   /** "Draft a page from this question" in Ask. Left out, the button is hidden. */
   onWritePage?: (question: string) => void;
+  /** A screen of its own (phone): the whole window, no rounded box, results filling the height. */
+  fullScreen?: boolean;
 }
 
 type Row =
@@ -185,6 +187,7 @@ const hint = (keys: ReactNode, label: string) => (
  * @param props.onCreatePage - Called with a title; adds a "Create page" row when nothing was found.
  * @param props.onFilterTree - Called with the query; adds "Filter the tree instead" in the error state.
  * @param props.initialQuery - Query typed when the palette opens.
+ * @param props.fullScreen - Fill the window (the phone layout: search is its own screen).
  */
 export function SearchPalette({
   projectId,
@@ -199,6 +202,7 @@ export function SearchPalette({
   initialQuery = '',
   mode: initialMode,
   onWritePage,
+  fullScreen = false,
 }: SearchPaletteProps) {
   const toast = useToast();
   const online = useDocsOnline();
@@ -604,7 +608,19 @@ export function SearchPalette({
         borderBottom: '1px solid #E3E8E5',
       }}
     >
-      <Icon name="i09" size={18} strokeWidth={2} style={{ color: '#2E6F40' }} />
+      {fullScreen ? (
+        <button
+          type="button"
+          className="dk-icobtn dk-bar-ico"
+          aria-label="Back to the page"
+          onClick={onClose}
+          style={{ transform: 'rotate(180deg)' }}
+        >
+          <Icon name="chevronRight" size={18} strokeWidth={2} />
+        </button>
+      ) : (
+        <Icon name="i09" size={18} strokeWidth={2} style={{ color: '#2E6F40' }} />
+      )}
       <div className="fx-qwrap">
         <div className="fx-qback" ref={backRef} aria-hidden="true">
           {q === '' ? (
@@ -1724,21 +1740,29 @@ export function SearchPalette({
         position: 'fixed',
         inset: 0,
         zIndex: 1000,
-        background: 'rgba(37,61,44,0.5)',
+        background: fullScreen ? '#FFFFFF' : 'rgba(37,61,44,0.5)',
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
-        paddingTop: '10vh',
+        paddingTop: fullScreen ? 0 : '10vh',
         boxSizing: 'border-box',
       }}
+      data-full-screen={fullScreen || undefined}
     >
-      <div style={{ position: 'relative', width: 620, maxWidth: 'calc(100vw - 32px)' }}>
+      <div
+        style={
+          fullScreen
+            ? { position: 'relative', width: '100%', height: '100%' }
+            : { position: 'relative', width: 620, maxWidth: 'calc(100vw - 32px)' }
+        }
+      >
         <div
           style={{
             width: '100%',
-            borderRadius: 14,
-            border: '1px solid #E3E8E5',
-            boxShadow: '0 24px 64px rgba(30,42,34,0.22)',
+            height: fullScreen ? '100%' : undefined,
+            borderRadius: fullScreen ? 0 : 14,
+            border: fullScreen ? 'none' : '1px solid #E3E8E5',
+            boxShadow: fullScreen ? 'none' : '0 24px 64px rgba(30,42,34,0.22)',
             background: '#FFFFFF',
             overflow: 'hidden',
             boxSizing: 'border-box',
@@ -1751,7 +1775,11 @@ export function SearchPalette({
           <div
             ref={listRef}
             className="fx-scroll"
-            style={{ maxHeight: 'min(460px, 60vh)', overflowY: 'auto', minHeight: 0 }}
+            style={
+              fullScreen
+                ? { flex: 1, overflowY: 'auto', minHeight: 0 }
+                : { maxHeight: 'min(460px, 60vh)', overflowY: 'auto', minHeight: 0 }
+            }
           >
             {body}
           </div>

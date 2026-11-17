@@ -1,4 +1,5 @@
 import type { Editor, Range } from '@tiptap/core';
+import type { PluginKey } from '@tiptap/pm/state';
 
 export interface MenuState {
   editor: Editor;
@@ -14,6 +15,8 @@ export interface MenuState {
 export class MenuHost {
   state: MenuState | null = null;
   keyHandler: ((e: KeyboardEvent) => boolean) | null = null;
+  /** The suggestion plugin's key (set by createSuggest), so a menu can close itself (exitSuggestion). */
+  pluginKey: PluginKey | null = null;
   private listeners = new Set<() => void>();
 
   subscribe = (fn: () => void) => {

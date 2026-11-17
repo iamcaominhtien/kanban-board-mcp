@@ -8,6 +8,8 @@ import { actorInitials, actorName, relativeTime } from '../../utils/relativeTime
 import { useToast } from '../Toast';
 import { avatarColors } from './docsUi';
 import { DocsMarkdown } from './DocsMarkdown';
+import { RichDocView } from './RichDocView';
+import { publishedDoc } from './richPage';
 import { closestHeading, RefChip } from './RefChip';
 import { Icon } from './Icon';
 import type { PeekHint } from './DocsRefsContext';
@@ -371,13 +373,22 @@ export function DocPeekPanel({ target, projectId, ticketId, onSwitch, onClose, o
                 </div>
               )}
               <div className="dk-md" style={{ fontSize: 13.5 }}>
-                <DocsMarkdown
-                  projectId={projectId}
-                  onOpenPage={(id, a) => onSwitch({ pageId: id, anchor: a ?? null })}
-                  onOpenTicket={onOpenTicket}
-                >
-                  {page.markdown}
-                </DocsMarkdown>
+                {publishedDoc(page) ? (
+                  <RichDocView
+                    doc={publishedDoc(page)!}
+                    projectId={projectId}
+                    onOpenPage={(id, a) => onSwitch({ pageId: id, anchor: a ?? null })}
+                    onOpenTicket={onOpenTicket}
+                  />
+                ) : (
+                  <DocsMarkdown
+                    projectId={projectId}
+                    onOpenPage={(id, a) => onSwitch({ pageId: id, anchor: a ?? null })}
+                    onOpenTicket={onOpenTicket}
+                  >
+                    {page.markdown}
+                  </DocsMarkdown>
+                )}
               </div>
             </>
           )}

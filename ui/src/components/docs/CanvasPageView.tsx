@@ -17,6 +17,9 @@ interface Props {
 
 const crumb = { fontSize: 12.5, color: '#5B6B60', whiteSpace: 'nowrap' } as const;
 
+/** A canvas page has no page settings. */
+const CANVAS_HIDDEN = ['settings'] as const;
+
 /**
  * A Docs page of kind canvas: it opens right in Docs with the same editor as an inline canvas, without Done (changes
  * save as they are made) and with Share. The page header keeps the page tree path and the page menu; page history,
@@ -78,6 +81,7 @@ export function CanvasPageView({ page, projectId, projectName, onAction, onOpenP
           </button>
           {menu && (
             <PageMenu
+              hidden={CANVAS_HIDDEN}
               page={page}
               onClose={() => setMenu(false)}
               onAction={(a) => {
