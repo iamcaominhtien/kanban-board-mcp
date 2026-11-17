@@ -74,8 +74,10 @@ async fn test_edit_one_section_keeps_what_another_person_changed() {
     )
     .await;
     assert!(out["version"] == 3 && out["changed"] == json!(["section 'Limits'"]));
-    assert!(out["now"].as_str().expect("text").starts_with("## Limits\n\nRate limits: 100"));
-    let text = read(&mcp, "get", json!({"page_id": made["id"]})).await["markdown"].as_str().expect("text").to_string();
+    assert!(common::without_markers(out["now"].as_str().expect("text")).starts_with("## Limits\n\nRate limits: 100"));
+    let text = common::without_markers(
+        read(&mcp, "get", json!({"page_id": made["id"]})).await["markdown"].as_str().expect("text"),
+    );
     assert!(text.contains("REST and MCP") && text.contains("100 requests"));
     assert_eq!(read(&mcp, "versions", json!({"page_id": made["id"]})).await[0]["note"], "Edited section 'Limits'");
     // the same section changed since v1: refused, nothing published
@@ -87,7 +89,7 @@ async fn test_edit_one_section_keeps_what_another_person_changed() {
         "{refused}"
     );
     let part = read(&mcp, "get", json!({"page_id": made["id"], "section": "Endpoints"})).await;
-    let markdown = part["markdown"].as_str().expect("text");
+    let markdown = common::without_markers(part["markdown"].as_str().expect("text"));
     assert!(markdown.starts_with("## Endpoints") && markdown.contains("### Errors"));
     assert!(part["version"] == 3 && part.get("referenced_by").is_none());
 }
@@ -118,7 +120,9 @@ async fn test_edit_a_passage_and_several_edits_in_one_version() {
     )
     .await;
     assert!(out["version"] == 3 && out["changed"].as_array().expect("changed").len() == 3);
-    let text = read(&mcp, "get", json!({"page_id": made["id"]})).await["markdown"].as_str().expect("text").to_string();
+    let text = common::without_markers(
+        read(&mcp, "get", json!({"page_id": made["id"]})).await["markdown"].as_str().expect("text"),
+    );
     assert!(text.contains("| GET | /tickets |\n| POST | /tickets |"));
     assert!(text.trim_end().ends_with("## Changelog\n\n- v2"));
     // one bad edit: nothing is published
@@ -153,7 +157,9 @@ async fn test_upload_a_picture_to_a_page_and_a_file_to_a_ticket() {
     assert!(out["type"] == "image/png" && out["page"]["version"] == 2);
     let stored = s.uploads_dir().join(out["url"].as_str().expect("a url").trim_start_matches("/uploads/"));
     assert_eq!(std::fs::read(stored).expect("the copy"), PNG);
-    let text = read(&mcp, "get", json!({"page_id": made["id"]})).await["markdown"].as_str().expect("text").to_string();
+    let text = common::without_markers(
+        read(&mcp, "get", json!({"page_id": made["id"]})).await["markdown"].as_str().expect("text"),
+    );
     assert!(text.contains(&format!("The API is REST.\n\n{}\n\n## Endpoints", out["markdown"].as_str().expect("text"))));
     // bytes from an agent whose files are elsewhere, posted on a ticket
     let log = write(
@@ -174,7 +180,9 @@ async fn test_upload_a_picture_to_a_page_and_a_file_to_a_ticket() {
         json!({"data": STANDARD.encode(PNG), "name": "limits.png", "page_id": made["id"], "find": "Rate limits are not enforced yet."}),
     )
     .await;
-    let text = read(&mcp, "get", json!({"page_id": made["id"]})).await["markdown"].as_str().expect("text").to_string();
+    let text = common::without_markers(
+        read(&mcp, "get", json!({"page_id": made["id"]})).await["markdown"].as_str().expect("text"),
+    );
     assert!(text.contains(&format!("not enforced yet.\n\n{}", out["markdown"].as_str().expect("text"))));
     assert!(fail(&mcp, "upload", json!({"data": "eA==", "name": ".env.json"})).await.contains("never stored"));
     assert!(fail(&mcp, "upload", json!({"data": "eA==", "name": "tool.exe"})).await.contains("not a type"));

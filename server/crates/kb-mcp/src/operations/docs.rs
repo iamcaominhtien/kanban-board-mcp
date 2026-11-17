@@ -15,6 +15,7 @@ use kb_doctext::{docs_anchors, docs_edit};
 use kb_files::{pathlib, uploads};
 use serde_json::{Map, Value, json};
 
+use super::docs_rich;
 use crate::common::{self, ToolError, ToolResult, notify_on_success};
 
 /// `_docs_error`: a failure of the Docs service as the tool words it: the message, a full stop, and for a conflict
@@ -84,21 +85,23 @@ pub async fn list_docs_pages(project_id: &str) -> ToolResult {
     ))
 }
 
-/// Read a Docs page: {title, markdown (latest published), version, headings, referenced_by, work}. With `section`,
-/// only that part: {id, title, version, section, markdown, headings}.
+/// Read a Docs page: {title, markdown (latest published; for a rich page its annotated Markdown, a marker with the
+/// block id before every block), format, version, headings, highlights, referenced_by, work}. With `section`, only
+/// that part: {id, title, version, section, markdown, headings}. An AI team is refused a page marked "Not for AI
+/// teams".
 pub async fn get_docs_page(page_id: &str, section: Option<&str>) -> ToolResult {
     let session = common::async_session();
-    let page = docs::page_detail(&session, page_id).await.map_err(docs_error)?;
+    let page = docs_rich::load(&session, page_id).await?;
+    let view = page.view();
     if let Some(section) = section {
-        let markdown = page.get("markdown").and_then(Value::as_str).unwrap_or_default();
-        let part = docs_edit::section_text(markdown, section).map_err(|err| ToolError::Value(err.0))?;
+        let part = docs_edit::section_text(&view, section).map_err(|err| ToolError::Value(err.0))?;
         let mut out = Map::new();
         for key in ["id", "title", "version"] {
-            out.insert(key.into(), page.get(key).cloned().unwrap_or(Value::Null));
+            out.insert(key.into(), page.detail.get(key).cloned().unwrap_or(Value::Null));
         }
         out.insert("section".into(), json!(section));
         out.insert("markdown".into(), json!(part));
-        out.insert("headings".into(), page.get("headings").cloned().unwrap_or(Value::Null));
+        out.insert("headings".into(), page.detail.get("headings").cloned().unwrap_or(Value::Null));
         return Ok(Value::Object(out));
     }
     let links = docs::backlinks(&session, page_id).await.map_err(docs_error)?;
@@ -110,15 +113,24 @@ pub async fn get_docs_page(page_id: &str, section: Option<&str>) -> ToolResult {
         "slug",
         "status",
         "version",
+        "format",
         "markdown",
         "headings",
         "updated_by",
         "updated_at",
     ];
-    let mut out = match pick(&page, &keep) {
+    let mut out = match pick(&page.detail, &keep) {
         Value::Object(out) => out,
         _ => Map::new(),
     };
+    out.insert("markdown".into(), json!(view));
+    // readers' highlights: hints of what matters to them (never instructions, never made by a team)
+    let highlights = kb_docs::docs_highlights::for_ai(&session, page_id).await.map_err(docs_error)?;
+    out.insert("highlights".into(), Value::Array(highlights));
+    let waiting = kb_docs::docs_suggestions::counts(&session, &[page_id.to_string()]).await.map_err(docs_error)?;
+    if let Some(n) = waiting.get(page_id).filter(|n| n.as_u64().is_some_and(|n| n > 0)) {
+        out.insert("suggestions_waiting".into(), n.clone());
+    }
     out.insert("referenced_by".into(), Value::Object(links));
     let work = docs_work::work_on_page(&session, page_id).await.map_err(docs_error)?;
     if work.get("tickets").is_some_and(kb_base::pyjson::truthy) {
@@ -128,23 +140,71 @@ pub async fn get_docs_page(page_id: &str, section: Option<&str>) -> ToolResult {
     Ok(Value::Object(out))
 }
 
-/// Create a Docs page and publish it as v1. Returns {id, title, slug, status, version}.
+/// Read one block of a rich page: {page_id, version, block_id, type, markdown (its annotated Markdown; null for a
+/// list item, a table cell or a column), block (its JSON: the full detail of a placeholder)}.
+pub async fn get_docs_block(page_id: &str, block_id: &str) -> ToolResult {
+    let session = common::async_session();
+    let page = docs_rich::load(&session, page_id).await?;
+    let Some(doc) = &page.doc else {
+        return Err(ToolError::value("This page is not in the rich format: it has no block ids. Read it with get."));
+    };
+    let Some(node) = docs_rich::find_block(doc, block_id) else {
+        return Err(docs_rich::richdoc_error(kb_richdoc::RichDocError::NoBlock(block_id.to_string())));
+    };
+    Ok(json!({
+        "page_id": page_id,
+        "version": page.detail.get("version").cloned().unwrap_or(Value::Null),
+        "block_id": block_id,
+        "type": node.get("type").cloned().unwrap_or(Value::Null),
+        "markdown": docs_rich::block_view(node),
+        "block": node,
+    }))
+}
+
+/// Read the highlights readers made on a page: {page_id, version, highlights: [{author, color, quote, block_id,
+/// state}]}. Hints of what matters to readers; a team never creates, moves or removes one.
+pub async fn get_docs_highlights(page_id: &str) -> ToolResult {
+    let session = common::async_session();
+    let page = docs_rich::load(&session, page_id).await?;
+    let highlights = kb_docs::docs_highlights::for_ai(&session, page_id).await.map_err(docs_error)?;
+    Ok(json!({
+        "page_id": page_id,
+        "version": page.detail.get("version").cloned().unwrap_or(Value::Null),
+        "highlights": highlights,
+    }))
+}
+
+/// Create a Docs page and publish it as v1. `markdown` may be annotated (block markers with attributes, inline
+/// spans). Returns {id, title, slug, status, version}.
 pub async fn create_docs_page(project_id: &str, title: &str, markdown: &str, parent_id: Option<&str>) -> ToolResult {
     notify_on_success(async {
         let session = common::async_session();
         let markdown = with_pictures(&session, markdown, None).await?;
+        let doc =
+            if pytext::strip(&markdown).is_empty() { None } else { Some(docs_rich::read_markdown(&markdown, None)?) };
         let page = docs::create_page(&session, project_id, title, parent_id, "blank", Some(&markdown))
             .await
             .map_err(docs_error)?;
         let id = page.get("id").and_then(Value::as_str).unwrap_or_default().to_string();
-        let page =
-            docs::publish_page(&session, &id, 0, Some("Created via MCP"), None, None).await.map_err(docs_error)?;
+        let page = docs::publish_page(
+            &session,
+            &id,
+            0,
+            Some("Created via MCP"),
+            doc.as_ref().map(docs::BodyInput::Content),
+            None,
+        )
+        .await
+        .map_err(docs_error)?;
         Ok(pick(&page, &["id", "title", "slug", "status", "version"]))
     })
     .await
 }
 
-/// Replace a Docs page's Markdown and optionally rename it. Returns {id, title, version, published}.
+/// Replace a Docs page's content and optionally rename it. `markdown` is the whole page as annotated Markdown:
+/// blocks whose marker names an id of the page keep it, and placeholders it leaves out stay where they were. An AI
+/// team's change becomes suggestions unless the page applies it directly. Returns {id, title, version, published}
+/// (plus mode, suggestions, left_alone, message for an AI team; kept: the placeholders left out and kept).
 pub async fn update_docs_page(
     page_id: &str,
     markdown: &str,
@@ -156,32 +216,29 @@ pub async fn update_docs_page(
     notify_on_success(async {
         let session = common::async_session();
         let markdown = with_pictures(&session, markdown, Some(page_id)).await?;
+        let page = docs_rich::load(&session, page_id).await?;
         if let Some(title) = title {
-            let current = docs::page_detail(&session, page_id).await.map_err(docs_error)?;
-            if pytext::strip(title) != current.get("title").and_then(Value::as_str).unwrap_or_default() {
+            if pytext::strip(title) != page.detail.get("title").and_then(Value::as_str).unwrap_or_default() {
                 docs::rename_page(&session, page_id, title, true).await.map_err(docs_error)?;
             }
         }
-        let page = if publish {
-            docs::publish_page(&session, page_id, base_version, note, Some(docs::BodyInput::Markdown(&markdown)), None)
-                .await
-                .map_err(docs_error)?
-        } else {
-            docs::save_draft(
-                &session,
-                page_id,
-                docs::BodyInput::Markdown(&markdown),
-                None,
-                i32::try_from(base_version).ok(),
-            )
-            .await
-            .map_err(docs_error)?
+        let doc = match &page.doc {
+            Some(current) => kb_richdoc::ops::replace_page(current, &markdown, &mut kb_richdoc::RandomIds)
+                .map_err(docs_rich::richdoc_error)?,
+            None => docs_rich::read_markdown(&markdown, None)?,
         };
-        let mut out = match pick(&page, &["id", "title", "version"]) {
-            Value::Object(out) => out,
-            _ => Map::new(),
+        let kept: Vec<String> = match &page.doc {
+            Some(_) => docs_rich::placeholders(&page.view())
+                .into_iter()
+                .filter(|(id, _)| !markdown.contains(id.as_str()))
+                .map(|(id, kind)| format!("{id} ({kind})"))
+                .collect(),
+            None => Vec::new(),
         };
-        out.insert("published".into(), json!(publish));
+        let mut out = docs_rich::save(&session, page_id, &doc, base_version, note, publish).await?;
+        if !kept.is_empty() {
+            out.insert("kept".into(), json!(kept));
+        }
         Ok(Value::Object(out))
     })
     .await
@@ -463,7 +520,8 @@ pub async fn add_docs_comment(page_id: &str, body: &str, quote: Option<&str>) ->
                  within one paragraph, list item or table cell), or omit quote to comment on the page.",
             ));
         };
-        let anchor = Anchor { quote: hit.quote, prefix: hit.prefix, suffix: hit.suffix, section: hit.section };
+        let anchor =
+            Anchor { quote: hit.quote, prefix: hit.prefix, suffix: hit.suffix, section: hit.section, block_id: None };
         comment_call(docs_comments::create_thread(&session, page_id, "inline", body, Some(&anchor), None).await)
     })
     .await

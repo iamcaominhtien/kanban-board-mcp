@@ -44,6 +44,14 @@ fn allowed(key: &str, value: &Value) -> bool {
             o.iter().all(|(k, v)| matches!(k.as_str(), "isBook" | "numberChapters") && v.is_boolean())
         }),
         "icon" | "eyebrow" | "reviewedAt" => short_text(value),
+        "lockedBlocks" => value.as_array().is_some_and(|a| {
+            a.len() <= 500
+                && a.iter().all(|b| {
+                    b.as_str().is_some_and(|s| {
+                        s.len() == 8 && s.starts_with("b-") && s[2..].bytes().all(|c| c.is_ascii_hexdigit())
+                    })
+                })
+        }),
         _ => false,
     }
 }
@@ -103,6 +111,8 @@ mod tests {
         assert!(allowed("book", &json!({"isBook": true})));
         assert!(allowed("eyebrow", &json!("ENGINEERING NOTES")));
         assert!(!allowed("nope", &json!(1)));
+        assert!(allowed("lockedBlocks", &json!(["b-3f2a9c"])));
+        assert!(!allowed("lockedBlocks", &json!(["nope"])));
     }
 
     #[test]

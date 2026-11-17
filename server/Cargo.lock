@@ -2399,6 +2399,7 @@ dependencies = [
  "kb-ideas",
  "kb-log",
  "kb-notify",
+ "kb-richdoc",
  "kb-skills",
  "regex",
  "reqwest",

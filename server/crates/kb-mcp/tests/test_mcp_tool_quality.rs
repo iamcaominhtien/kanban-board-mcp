@@ -182,10 +182,12 @@ async fn test_the_tool_list_stays_compact() {
     let (plain, full) = (common::start().await, full_mcp().await);
     let (default, full) = (size(&tools(&plain.mcp()).await), size(&tools(&full.mcp()).await));
     // AI v2 removed the ai_team tool and the permission, handoff, workflow and Story actions; ai_run is seven actions
-    // (ask, message, reply, team, runs, report). Measured after that: 49,074 / 51,904 characters. The bounds
-    // leave about 3 % of room; raise them on purpose, with what was added, never by reflex.
-    assert!(default < 50_500, "default tool list is {default} characters (about {} tokens)", default / 4);
-    assert!(full < 53_400, "full tool list is {full} characters (about {} tokens)", full / 4);
+    // (ask, message, reply, team, runs, report). Measured after that: 49,074 / 51,904 characters. Rich Docs added
+    // the annotated view, the block and highlights reads, block edits (block_id, attrs) and the suggestions an AI
+    // team's change becomes: about 1,600 characters (52,030 / 54,860 measured). The bounds leave about 1.5 % of
+    // room; raise them on purpose, with what was added, never by reflex.
+    assert!(default < 52_800, "default tool list is {default} characters (about {} tokens)", default / 4);
+    assert!(full < 55_700, "full tool list is {full} characters (about {} tokens)", full / 4);
     if target() == Target::Python {
         assert!(default < full);
         // the measure is the Python test's: the numbers of its comment, within the bounds
@@ -562,6 +564,35 @@ async fn test_sketches_are_actions_of_the_docs_tools_not_tools_of_their_own() {
     assert!(props["source_path"]["description"].as_str().expect("text").contains("10 layers"));
     assert!(props["path"]["description"].as_str().expect("text").contains("4096"));
     assert!(properties(read).contains_key("sketch_id"));
+}
+
+/// Rich Docs: an agent reads a page with its block ids and writes it block by block, and is told that a team's change
+/// waits as suggestions (contract/richdoc/README.md "Annotated").
+#[tokio::test]
+async fn test_the_docs_tools_describe_rich_pages_and_block_edits() {
+    let full = full_mcp().await;
+    let listed = tools(&full.mcp()).await;
+    let (Some(read), Some(write)) = (listed.get("docs_read"), listed.get("docs_write")) else { return };
+    let (read_text, write_text) =
+        (read["description"].as_str().expect("text"), write["description"].as_str().expect("text"));
+    for action in ["block", "highlights"] {
+        assert!(kb_mcp::tools::docs::DOCS_READ_OPS.iter().any(|(a, _)| *a == action), "{action}");
+        assert!(read_text.contains(&format!("- {action}:")), "{action}");
+    }
+    for must in ["<!-- #b-xxxxxx", "[embed: …]", "highlights", "spans"] {
+        assert!(read_text.contains(must), "docs_read: {must}");
+    }
+    assert!(properties(read).contains_key("block_id"));
+    for must in ["block_id", "replace, after, delete or attrs", "suggestions", "locked for teams", "placeholders"] {
+        assert!(write_text.contains(must), "docs_write: {must}");
+    }
+    let props = properties(write);
+    let modes = enum_of(&props["mode"]).expect("an enum");
+    for mode in ["replace", "after", "delete", "attrs"] {
+        assert!(modes.contains(&json!(mode)), "{mode}");
+    }
+    assert!(props.contains_key("block_id") && props.contains_key("attrs"));
+    assert!(props["attrs"]["description"].as_str().expect("text").contains("align"));
 }
 
 // Not ported:

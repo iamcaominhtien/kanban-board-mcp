@@ -31,6 +31,9 @@ pub struct Anchor {
     /// The slug of the section it is in.
     #[serde(default)]
     pub section: Option<String>,
+    /// The block it is in (format 1): an image, a table or an embed can be commented on as a whole.
+    #[serde(default)]
+    pub block_id: Option<String>,
 }
 
 /// Start a thread: an inline comment on selected text, or a page comment.
@@ -79,6 +82,7 @@ pub async fn create_thread(
         row.anchor_suffix = Set(suffix);
         row.anchor_section = Set(section);
         row.anchor_pos = Set(hit.map(|h| h.pos as i32));
+        row.anchor_block_id = Set(anchor.and_then(|a| a.block_id.clone()).filter(|b| !b.is_empty()));
     }
     let created = row.insert(session).await?;
     let comment = insert_comment(session, &created.id, &actor, &text, &members, ai).await?;

@@ -16,7 +16,7 @@ use kb_docs::Error;
 use kb_docs::docs_comments::Anchor;
 
 fn anchor_on(quote: &str) -> Anchor {
-    Anchor { quote: quote.to_string(), prefix: String::new(), suffix: String::new(), section: None }
+    Anchor { quote: quote.to_string(), prefix: String::new(), suffix: String::new(), section: None, block_id: None }
 }
 
 #[tokio::test]

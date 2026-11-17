@@ -1080,7 +1080,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Design\",\n  \"slug\": \"design\",\n  \"status\": \"published\",\n  \"version\": 2,\n  \"markdown\": \"## Flow\\n\\n[Request flow](diagram:$dg1)\\n\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Flow\",\n      \"slug\": \"flow\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Design\",\n  \"slug\": \"design\",\n  \"status\": \"published\",\n  \"version\": 2,\n  \"format\": \"rich\",\n  \"markdown\": \"<!-- #<bid:1> -->\\n## Flow\\n\\n<!-- #<bid:2> -->\\n[Request flow](diagram:$dg1)\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Flow\",\n      \"slug\": \"flow\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"highlights\": [],\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
       }
     ],
     "structuredContent": {
@@ -1092,7 +1092,8 @@
         "slug": "design",
         "status": "published",
         "version": 2,
-        "markdown": "## Flow\n\n[Request flow](diagram:$dg1)\n",
+        "format": "rich",
+        "markdown": "<!-- #<bid:1> -->\n## Flow\n\n<!-- #<bid:2> -->\n[Request flow](diagram:$dg1)",
         "headings": [
           {
             "level": 2,
@@ -1102,6 +1103,7 @@
         ],
         "updated_by": "agent",
         "updated_at": "<time>",
+        "highlights": [],
         "referenced_by": {
           "pages": [],
           "tickets": []

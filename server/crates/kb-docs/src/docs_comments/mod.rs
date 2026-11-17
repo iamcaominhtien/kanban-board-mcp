@@ -317,6 +317,7 @@ async fn serialize(
                 "section": t.anchor_section,
                 "state": t.anchor_state,
                 "pos": t.anchor_pos,
+                "block_id": t.anchor_block_id,
             })
         } else {
             Value::Null

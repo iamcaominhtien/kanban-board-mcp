@@ -2043,7 +2043,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Screens\",\n  \"slug\": \"screens\",\n  \"status\": \"published\",\n  \"version\": 2,\n  \"markdown\": \"## Home\\n\\n![Mockups](canvas:$cv1)\\n\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Home\",\n      \"slug\": \"home\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
+        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Screens\",\n  \"slug\": \"screens\",\n  \"status\": \"published\",\n  \"version\": 2,\n  \"format\": \"rich\",\n  \"markdown\": \"<!-- #<bid:1> -->\\n## Home\\n\\n<!-- #<bid:2> -->\\n![Mockups](canvas:$cv1)\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Home\",\n      \"slug\": \"home\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"highlights\": [],\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
       }
     ],
     "structuredContent": {
@@ -2055,7 +2055,8 @@
         "slug": "screens",
         "status": "published",
         "version": 2,
-        "markdown": "## Home\n\n![Mockups](canvas:$cv1)\n",
+        "format": "rich",
+        "markdown": "<!-- #<bid:1> -->\n## Home\n\n<!-- #<bid:2> -->\n![Mockups](canvas:$cv1)",
         "headings": [
           {
             "level": 2,
@@ -2065,6 +2066,7 @@
         ],
         "updated_by": "agent",
         "updated_at": "<time>",
+        "highlights": [],
         "referenced_by": {
           "pages": [],
           "tickets": []

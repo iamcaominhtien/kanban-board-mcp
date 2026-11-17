@@ -1353,7 +1353,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:3>\",\n  \"title\": \"Runbook\",\n  \"version\": 2,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Steps'\"\n  ],\n  \"now\": \"## Steps\\n\\nRestart nothing.\"\n}"
+        "text": "{\n  \"id\": \"<uuid:3>\",\n  \"title\": \"Runbook\",\n  \"version\": 2,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Steps'\"\n  ],\n  \"now\": \"<!-- #<bid:1> -->\\n## Steps\\n\\n<!-- #<bid:2> -->\\nRestart nothing.\"\n}"
       }
     ],
     "isError": false
@@ -1658,7 +1658,8 @@
             "suffix": "",
             "section": "rollback",
             "state": "attached",
-            "pos": 23
+            "pos": 23,
+            "block_id": null
           },
           "created_by": "agent",
           "created_at": "<time>",
@@ -1696,7 +1697,8 @@
             "suffix": " Drain it Name Role Ana Owner Ro",
             "section": "steps",
             "state": "orphaned",
-            "pos": null
+            "pos": null,
+            "block_id": null
           },
           "created_by": "agent",
           "created_at": "<time>",
@@ -1734,7 +1736,8 @@
             "suffix": " before deploying.",
             "section": "steps",
             "state": "orphaned",
-            "pos": null
+            "pos": null,
+            "block_id": null
           },
           "created_by": "agent",
           "created_at": "<time>",
@@ -1796,7 +1799,8 @@
             "suffix": "",
             "section": "steps",
             "state": "orphaned",
-            "pos": null
+            "pos": null,
+            "block_id": null
           },
           "created_by": "agent",
           "created_at": "<time>",

@@ -570,7 +570,9 @@ async fn test_docs_read_and_write() {
     titles.sort_unstable();
     assert_eq!(titles, ["Child", "Guide"]);
     let got = call(&mcp, "docs_read", json!({"action": "get", "page_id": page["id"]})).await;
-    assert!(got["markdown"].as_str().expect("text").starts_with("## Intro") && got["version"] == 1);
+    assert!(
+        common::without_markers(got["markdown"].as_str().expect("text")).starts_with("## Intro") && got["version"] == 1
+    );
 
     let updated = call(
         &mcp,

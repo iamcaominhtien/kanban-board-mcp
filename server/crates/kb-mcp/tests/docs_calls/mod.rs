@@ -51,21 +51,28 @@ fn with_action(action: &str, rest: Value) -> Value {
 }
 
 /// The ids of the drawings and canvases (`dg_`, `sk_`, `cv_`, `b_`... and eight hex digits) are numbered by first
-/// appearance, as the normalizer numbers UUIDs: they differ from one run to the next.
+/// appearance, as the normalizer numbers UUIDs: they differ from one run to the next. So are the block ids of rich
+/// pages (`b-` and six hex digits), also where a text holds them (the markers of the annotated Markdown).
 pub fn number_short_ids(value: &Value) -> Value {
     static SHORT: std::sync::LazyLock<regex::Regex> =
         std::sync::LazyLock::new(|| regex::Regex::new(r"\b(dg|sk|cv|b|n|a|t|p)_[0-9a-f]{8}\b").expect("a pattern"));
-    fn walk(value: &Value, seen: &mut Vec<String>) -> Value {
-        let number = |text: &str, seen: &mut Vec<String>| {
-            SHORT
-                .replace_all(text, |c: &regex::Captures| {
-                    let id = c[0].to_string();
-                    let at = seen.iter().position(|s| *s == id).unwrap_or_else(|| {
-                        seen.push(id.clone());
-                        seen.len() - 1
-                    });
-                    format!("<{}:{}>", &c[1], at + 1)
-                })
+    static BLOCK: std::sync::LazyLock<regex::Regex> =
+        std::sync::LazyLock::new(|| regex::Regex::new(r"\bb-[0-9a-f]{6}\b").expect("a pattern"));
+    /// The ids seen so far: the short ones, the block ids (numbered apart).
+    type Seen = (Vec<String>, Vec<String>);
+    fn at_of(list: &mut Vec<String>, id: String) -> usize {
+        list.iter().position(|s| *s == id).unwrap_or_else(|| {
+            list.push(id);
+            list.len() - 1
+        }) + 1
+    }
+    fn walk(value: &Value, seen: &mut Seen) -> Value {
+        let number = |text: &str, seen: &mut Seen| {
+            let text = SHORT.replace_all(text, |c: &regex::Captures| {
+                format!("<{}:{}>", &c[1], at_of(&mut seen.0, c[0].to_string()))
+            });
+            BLOCK
+                .replace_all(&text, |c: &regex::Captures| format!("<bid:{}>", at_of(&mut seen.1, c[0].to_string())))
                 .into_owned()
         };
         match value {
@@ -75,7 +82,7 @@ pub fn number_short_ids(value: &Value) -> Value {
             other => other.clone(),
         }
     }
-    walk(value, &mut Vec::new())
+    walk(value, &mut (Vec::new(), Vec::new()))
 }
 
 /// The hex SHA-256 of a file, or null when there is none.

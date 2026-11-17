@@ -393,7 +393,9 @@ pub async fn docs_write(args: Map<String, Value>) -> ToolResult {
         "assign" => return composite::assign(given).await,
         _ => {}
     }
-    for key in ["section", "find", "mode", "data", "name", "ticket_id", "author", "member_id", "kind"] {
+    for key in
+        ["section", "find", "block_id", "attrs", "mode", "data", "name", "ticket_id", "author", "member_id", "kind"]
+    {
         if given.get(key).is_some_and(|v| !v.is_null()) {
             return Err(ToolError::Value(format!("docs_write(action='{action}') does not use: {key}.")));
         }

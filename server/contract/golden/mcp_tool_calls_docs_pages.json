@@ -39,7 +39,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\naction\n  Input should be 'list', 'get', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value='nope', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\naction\n  Input should be 'list', 'get', 'block', 'highlights', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value='nope', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
       }
     ],
     "isError": true
@@ -48,7 +48,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\naction\n  Input should be 'list', 'get', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\naction\n  Input should be 'list', 'get', 'block', 'highlights', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
       }
     ],
     "isError": true
@@ -57,7 +57,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\naction\n  Input should be 'list', 'get', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\naction\n  Input should be 'list', 'get', 'block', 'highlights', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
       }
     ],
     "isError": true
@@ -66,7 +66,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\naction\n  Input should be 'list', 'get', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value='List', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+        "text": "Error executing tool docs_read: 1 validation error for docs_readArguments\naction\n  Input should be 'list', 'get', 'block', 'highlights', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value='List', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
       }
     ],
     "isError": true
@@ -84,7 +84,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_read: 3 validation errors for docs_readArguments\naction\n  Input should be 'list', 'get', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value='nope', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error\nlimit\n  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='many', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/int_parsing\nrefs\n  Input should be a valid list [type=list_type, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/list_type"
+        "text": "Error executing tool docs_read: 3 validation errors for docs_readArguments\naction\n  Input should be 'list', 'get', 'block', 'highlights', 'search', 'versions', 'version', 'recycle_bin', 'check_links', 'comments', 'diagrams', 'diagram', 'sketches', 'sketch', 'canvases', 'canvas', 'design_guide', 'diagram_guide', 'picture', 'guides', 'role_guide', 'ticket_guide' or 'docs_guide' [type=literal_error, input_value='nope', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error\nlimit\n  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='many', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/int_parsing\nrefs\n  Input should be a valid list [type=list_type, input_value=5, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.12/v/list_type"
       }
     ],
     "isError": true
@@ -666,7 +666,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: docs_write(action='edit') does not use: title, kind. It takes page_id, markdown, section | find [, mode, base_version, note, publish] or items."
+        "text": "Error executing tool docs_write: docs_write(action='edit') does not use: title, kind. It takes page_id, markdown, section | find | block_id [, mode, attrs, base_version, note, publish] or items."
       }
     ],
     "isError": true
@@ -675,7 +675,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: edit: give items, or one edit (section | find, markdown), not both."
+        "text": "Error executing tool docs_write: edit: give items, or one edit (section | find | block_id, markdown), not both."
       }
     ],
     "isError": true
@@ -747,7 +747,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: docs_write(action='upload') does not use: title. It takes path | data+name [, page_id, section, find, mode, ticket_id, body, author]."
+        "text": "Error executing tool docs_write: docs_write(action='upload') does not use: title. It takes path | data+name [, page_id, section, find, block_id, mode, ticket_id, body, author]."
       }
     ],
     "isError": true
@@ -756,7 +756,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: upload: section, find and mode place the file on a page: give page_id."
+        "text": "Error executing tool docs_write: upload: section, find, block_id and mode place the file on a page: give page_id."
       }
     ],
     "isError": true
@@ -1076,7 +1076,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 1,\n  \"markdown\": \"## Overview\\n\\nThe API is REST.\\n\\n## Endpoints\\n\\n| Method | Path |\\n|---|---|\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n## Limits\\n\\nRate limits are not enforced yet.\\n\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [\n      {\n        \"page_id\": \"<uuid:9>\",\n        \"title\": \"Limits \\\"v2\\\" & more\",\n        \"in\": null,\n        \"snippet\": \"See Runbook and Ghost and $t1.\",\n        \"origin\": \"page\",\n        \"context\": \"See Runbook and Ghost and $t1.\",\n        \"excerpt\": \"See [[Runbook#Limits]] and Ghost and $t1.\",\n        \"target_anchor\": \"Limits\"\n      }\n    ],\n    \"tickets\": []\n  }\n}"
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 1,\n  \"format\": \"rich\",\n  \"markdown\": \"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\\n\\n<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:7> -->\\n## Limits\\n\\n<!-- #<bid:8> -->\\nRate limits are not enforced yet.\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"highlights\": [],\n  \"referenced_by\": {\n    \"pages\": [\n      {\n        \"page_id\": \"<uuid:9>\",\n        \"title\": \"Limits \\\"v2\\\" & more\",\n        \"in\": null,\n        \"snippet\": \"See Runbook and Ghost and $t1.\",\n        \"origin\": \"page\",\n        \"context\": \"See Runbook and Ghost and $t1.\",\n        \"excerpt\": \"See [[Runbook#Limits]] and Ghost and $t1.\",\n        \"target_anchor\": \"Limits\"\n      }\n    ],\n    \"tickets\": []\n  }\n}"
       }
     ],
     "structuredContent": {
@@ -1088,7 +1088,8 @@
         "slug": "runbook",
         "status": "published",
         "version": 1,
-        "markdown": "## Overview\n\nThe API is REST.\n\n## Endpoints\n\n| Method | Path |\n|---|---|\n| GET | /tickets |\n\n### Errors\n\n401 when the token is missing.\n\n## Limits\n\nRate limits are not enforced yet.\n",
+        "format": "rich",
+        "markdown": "<!-- #<bid:1> -->\n## Overview\n\n<!-- #<bid:2> -->\nThe API is REST.\n\n<!-- #<bid:3> -->\n## Endpoints\n\n<!-- #<bid:4> -->\n| Method | Path |\n| --- | --- |\n| GET | /tickets |\n\n<!-- #<bid:5> -->\n### Errors\n\n<!-- #<bid:6> -->\n401 when the token is missing.\n\n<!-- #<bid:7> -->\n## Limits\n\n<!-- #<bid:8> -->\nRate limits are not enforced yet.",
         "headings": [
           {
             "level": 2,
@@ -1113,6 +1114,7 @@
         ],
         "updated_by": "agent",
         "updated_at": "<time>",
+        "highlights": [],
         "referenced_by": {
           "pages": [
             {
@@ -1136,7 +1138,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 1,\n  \"section\": \"Endpoints\",\n  \"markdown\": \"## Endpoints\\n\\n| Method | Path |\\n|---|---|\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ]\n}"
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 1,\n  \"section\": \"Endpoints\",\n  \"markdown\": \"<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ]\n}"
       }
     ],
     "structuredContent": {
@@ -1145,7 +1147,7 @@
         "title": "Runbook",
         "version": 1,
         "section": "Endpoints",
-        "markdown": "## Endpoints\n\n| Method | Path |\n|---|---|\n| GET | /tickets |\n\n### Errors\n\n401 when the token is missing.",
+        "markdown": "<!-- #<bid:3> -->\n## Endpoints\n\n<!-- #<bid:4> -->\n| Method | Path |\n| --- | --- |\n| GET | /tickets |\n\n<!-- #<bid:5> -->\n### Errors\n\n<!-- #<bid:6> -->\n401 when the token is missing.",
         "headings": [
           {
             "level": 2,
@@ -1176,7 +1178,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 1,\n  \"section\": \"errors\",\n  \"markdown\": \"### Errors\\n\\n401 when the token is missing.\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ]\n}"
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 1,\n  \"section\": \"errors\",\n  \"markdown\": \"<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ]\n}"
       }
     ],
     "structuredContent": {
@@ -1185,7 +1187,7 @@
         "title": "Runbook",
         "version": 1,
         "section": "errors",
-        "markdown": "### Errors\n\n401 when the token is missing.",
+        "markdown": "<!-- #<bid:5> -->\n### Errors\n\n<!-- #<bid:6> -->\n401 when the token is missing.",
         "headings": [
           {
             "level": 2,
@@ -1225,7 +1227,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:9>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Limits \\\"v2\\\" & more\",\n  \"slug\": \"limits-v2-more\",\n  \"status\": \"published\",\n  \"version\": 1,\n  \"markdown\": \"See [[Runbook#Limits]] and [[Ghost]] and $t1.\",\n  \"headings\": [],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
+        "text": "{\n  \"id\": \"<uuid:9>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Limits \\\"v2\\\" & more\",\n  \"slug\": \"limits-v2-more\",\n  \"status\": \"published\",\n  \"version\": 1,\n  \"format\": \"rich\",\n  \"markdown\": \"<!-- #<bid:9> -->\\nSee [[Runbook#Limits]] and [[Ghost]] and $t1.\",\n  \"headings\": [],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"highlights\": [],\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
       }
     ],
     "structuredContent": {
@@ -1237,10 +1239,12 @@
         "slug": "limits-v2-more",
         "status": "published",
         "version": 1,
-        "markdown": "See [[Runbook#Limits]] and [[Ghost]] and $t1.",
+        "format": "rich",
+        "markdown": "<!-- #<bid:9> -->\nSee [[Runbook#Limits]] and [[Ghost]] and $t1.",
         "headings": [],
         "updated_by": "agent",
         "updated_at": "<time>",
+        "highlights": [],
         "referenced_by": {
           "pages": [],
           "tickets": []
@@ -1253,7 +1257,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:10>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Pictures\",\n  \"slug\": \"pictures\",\n  \"status\": \"published\",\n  \"version\": 1,\n  \"markdown\": \"![shot](/uploads/pic-<random>.png)\\n\\nand [notes](/uploads/notes-<random>.txt)\",\n  \"headings\": [],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
+        "text": "{\n  \"id\": \"<uuid:10>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Pictures\",\n  \"slug\": \"pictures\",\n  \"status\": \"published\",\n  \"version\": 1,\n  \"format\": \"rich\",\n  \"markdown\": \"<!-- #<bid:10> -->\\n![shot](/uploads/pic-<random>.png)\\n\\n<!-- #<bid:11> -->\\nand [notes](/uploads/notes-<random>.txt)\",\n  \"headings\": [],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"highlights\": [],\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
       }
     ],
     "structuredContent": {
@@ -1265,10 +1269,12 @@
         "slug": "pictures",
         "status": "published",
         "version": 1,
-        "markdown": "![shot](/uploads/pic-<random>.png)\n\nand [notes](/uploads/notes-<random>.txt)",
+        "format": "rich",
+        "markdown": "<!-- #<bid:10> -->\n![shot](/uploads/pic-<random>.png)\n\n<!-- #<bid:11> -->\nand [notes](/uploads/notes-<random>.txt)",
         "headings": [],
         "updated_by": "agent",
         "updated_at": "<time>",
+        "highlights": [],
         "referenced_by": {
           "pages": [],
           "tickets": []
@@ -1281,7 +1287,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 1,\n  \"markdown\": \"## Overview\\n\\nThe API is REST.\\n\\n## Endpoints\\n\\n| Method | Path |\\n|---|---|\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n## Limits\\n\\nRate limits are not enforced yet.\\n\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [\n      {\n        \"page_id\": \"<uuid:9>\",\n        \"title\": \"Limits \\\"v2\\\" & more\",\n        \"in\": null,\n        \"snippet\": \"See Runbook and Ghost and $t1.\",\n        \"origin\": \"page\",\n        \"context\": \"See Runbook and Ghost and $t1.\",\n        \"excerpt\": \"See [[Runbook#Limits]] and Ghost and $t1.\",\n        \"target_anchor\": \"Limits\"\n      }\n    ],\n    \"tickets\": []\n  }\n}"
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 1,\n  \"format\": \"rich\",\n  \"markdown\": \"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\\n\\n<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:7> -->\\n## Limits\\n\\n<!-- #<bid:8> -->\\nRate limits are not enforced yet.\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"highlights\": [],\n  \"referenced_by\": {\n    \"pages\": [\n      {\n        \"page_id\": \"<uuid:9>\",\n        \"title\": \"Limits \\\"v2\\\" & more\",\n        \"in\": null,\n        \"snippet\": \"See Runbook and Ghost and $t1.\",\n        \"origin\": \"page\",\n        \"context\": \"See Runbook and Ghost and $t1.\",\n        \"excerpt\": \"See [[Runbook#Limits]] and Ghost and $t1.\",\n        \"target_anchor\": \"Limits\"\n      }\n    ],\n    \"tickets\": []\n  }\n}"
       }
     ],
     "structuredContent": {
@@ -1293,7 +1299,8 @@
         "slug": "runbook",
         "status": "published",
         "version": 1,
-        "markdown": "## Overview\n\nThe API is REST.\n\n## Endpoints\n\n| Method | Path |\n|---|---|\n| GET | /tickets |\n\n### Errors\n\n401 when the token is missing.\n\n## Limits\n\nRate limits are not enforced yet.\n",
+        "format": "rich",
+        "markdown": "<!-- #<bid:1> -->\n## Overview\n\n<!-- #<bid:2> -->\nThe API is REST.\n\n<!-- #<bid:3> -->\n## Endpoints\n\n<!-- #<bid:4> -->\n| Method | Path |\n| --- | --- |\n| GET | /tickets |\n\n<!-- #<bid:5> -->\n### Errors\n\n<!-- #<bid:6> -->\n401 when the token is missing.\n\n<!-- #<bid:7> -->\n## Limits\n\n<!-- #<bid:8> -->\nRate limits are not enforced yet.",
         "headings": [
           {
             "level": 2,
@@ -1318,6 +1325,7 @@
         ],
         "updated_by": "agent",
         "updated_at": "<time>",
+        "highlights": [],
         "referenced_by": {
           "pages": [
             {
@@ -1422,7 +1430,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 2,\n  \"markdown\": \"## Overview\\n\\nThe API is REST.\\n\\n## Endpoints\\n\\n| Method | Path |\\n|---|---|\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n## Limits\\n\\nRate limits are 100 per minute.\\n\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [\n      {\n        \"page_id\": \"<uuid:9>\",\n        \"title\": \"Limits \\\"v2\\\" & more\",\n        \"in\": null,\n        \"snippet\": \"See Runbook and Ghost and $t1.\",\n        \"origin\": \"page\",\n        \"context\": \"See Runbook and Ghost and $t1.\",\n        \"excerpt\": \"See [[Runbook#Limits]] and Ghost and $t1.\",\n        \"target_anchor\": \"Limits\"\n      }\n    ],\n    \"tickets\": []\n  }\n}"
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 2,\n  \"format\": \"rich\",\n  \"markdown\": \"<!-- #<bid:12> -->\\n## Overview\\n\\n<!-- #<bid:13> -->\\nThe API is REST.\\n\\n<!-- #<bid:14> -->\\n## Endpoints\\n\\n<!-- #<bid:15> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:16> -->\\n### Errors\\n\\n<!-- #<bid:17> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:18> -->\\n## Limits\\n\\n<!-- #<bid:19> -->\\nRate limits are 100 per minute.\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits\",\n      \"slug\": \"limits\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"highlights\": [],\n  \"referenced_by\": {\n    \"pages\": [\n      {\n        \"page_id\": \"<uuid:9>\",\n        \"title\": \"Limits \\\"v2\\\" & more\",\n        \"in\": null,\n        \"snippet\": \"See Runbook and Ghost and $t1.\",\n        \"origin\": \"page\",\n        \"context\": \"See Runbook and Ghost and $t1.\",\n        \"excerpt\": \"See [[Runbook#Limits]] and Ghost and $t1.\",\n        \"target_anchor\": \"Limits\"\n      }\n    ],\n    \"tickets\": []\n  }\n}"
       }
     ],
     "structuredContent": {
@@ -1434,7 +1442,8 @@
         "slug": "runbook",
         "status": "published",
         "version": 2,
-        "markdown": "## Overview\n\nThe API is REST.\n\n## Endpoints\n\n| Method | Path |\n|---|---|\n| GET | /tickets |\n\n### Errors\n\n401 when the token is missing.\n\n## Limits\n\nRate limits are 100 per minute.\n",
+        "format": "rich",
+        "markdown": "<!-- #<bid:12> -->\n## Overview\n\n<!-- #<bid:13> -->\nThe API is REST.\n\n<!-- #<bid:14> -->\n## Endpoints\n\n<!-- #<bid:15> -->\n| Method | Path |\n| --- | --- |\n| GET | /tickets |\n\n<!-- #<bid:16> -->\n### Errors\n\n<!-- #<bid:17> -->\n401 when the token is missing.\n\n<!-- #<bid:18> -->\n## Limits\n\n<!-- #<bid:19> -->\nRate limits are 100 per minute.",
         "headings": [
           {
             "level": 2,
@@ -1459,6 +1468,7 @@
         ],
         "updated_by": "agent",
         "updated_at": "<time>",
+        "highlights": [],
         "referenced_by": {
           "pages": [
             {
@@ -1482,7 +1492,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"empty-page\",\n  \"status\": \"published\",\n  \"version\": 4,\n  \"markdown\": \"x\",\n  \"headings\": [],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
+        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"empty-page\",\n  \"status\": \"published\",\n  \"version\": 4,\n  \"format\": \"rich\",\n  \"markdown\": \"<!-- #<bid:20> -->\\nx\",\n  \"headings\": [],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"highlights\": [],\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
       }
     ],
     "structuredContent": {
@@ -1494,10 +1504,12 @@
         "slug": "empty-page",
         "status": "published",
         "version": 4,
-        "markdown": "x",
+        "format": "rich",
+        "markdown": "<!-- #<bid:20> -->\nx",
         "headings": [],
         "updated_by": "agent",
         "updated_at": "<time>",
+        "highlights": [],
         "referenced_by": {
           "pages": [],
           "tickets": []
@@ -1528,11 +1540,11 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"version\": 2,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Rate limits\",\n  \"created_at\": \"<time>\",\n  \"words\": 35,\n  \"with_ai\": false\n}"
+        "text": "{\n  \"version\": 2,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Rate limits\",\n  \"created_at\": \"<time>\",\n  \"words\": 39,\n  \"with_ai\": false\n}"
       },
       {
         "type": "text",
-        "text": "{\n  \"version\": 1,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Created via MCP\",\n  \"created_at\": \"<time>\",\n  \"words\": 35,\n  \"with_ai\": false\n}"
+        "text": "{\n  \"version\": 1,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Created via MCP\",\n  \"created_at\": \"<time>\",\n  \"words\": 39,\n  \"with_ai\": false\n}"
       }
     ],
     "structuredContent": {
@@ -1543,7 +1555,7 @@
           "author": "agent",
           "note": "Rate limits",
           "created_at": "<time>",
-          "words": 35,
+          "words": 39,
           "with_ai": false
         },
         {
@@ -1552,7 +1564,7 @@
           "author": "agent",
           "note": "Created via MCP",
           "created_at": "<time>",
-          "words": 35,
+          "words": 39,
           "with_ai": false
         }
       ]
@@ -1585,14 +1597,212 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"version\": 1,\n  \"title\": \"Runbook\",\n  \"markdown\": \"## Overview\\n\\nThe API is REST.\\n\\n## Endpoints\\n\\n| Method | Path |\\n|---|---|\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n## Limits\\n\\nRate limits are not enforced yet.\\n\",\n  \"author\": \"agent\",\n  \"note\": \"Created via MCP\",\n  \"created_at\": \"<time>\",\n  \"diagram_versions\": {},\n  \"with_ai\": false\n}"
+        "text": "{\n  \"version\": 1,\n  \"title\": \"Runbook\",\n  \"markdown\": \"## Overview\\n\\nThe API is REST.\\n\\n## Endpoints\\n\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n## Limits\\n\\nRate limits are not enforced yet.\",\n  \"format\": \"rich\",\n  \"content\": {\n    \"type\": \"doc\",\n    \"content\": [\n      {\n        \"type\": \"heading\",\n        \"attrs\": {\n          \"blockId\": \"<bid:1>\",\n          \"level\": 2\n        },\n        \"content\": [\n          {\n            \"type\": \"text\",\n            \"text\": \"Overview\"\n          }\n        ]\n      },\n      {\n        \"type\": \"paragraph\",\n        \"attrs\": {\n          \"blockId\": \"<bid:2>\"\n        },\n        \"content\": [\n          {\n            \"type\": \"text\",\n            \"text\": \"The API is REST.\"\n          }\n        ]\n      },\n      {\n        \"type\": \"heading\",\n        \"attrs\": {\n          \"blockId\": \"<bid:3>\",\n          \"level\": 2\n        },\n        \"content\": [\n          {\n            \"type\": \"text\",\n            \"text\": \"Endpoints\"\n          }\n        ]\n      },\n      {\n        \"type\": \"table\",\n        \"attrs\": {\n          \"blockId\": \"<bid:4>\"\n        },\n        \"content\": [\n          {\n            \"type\": \"tableRow\",\n            \"attrs\": {\n              \"blockId\": \"<bid:21>\"\n            },\n            \"content\": [\n              {\n                \"type\": \"tableHeader\",\n                \"attrs\": {\n                  \"blockId\": \"<bid:22>\"\n                },\n                \"content\": [\n                  {\n                    \"type\": \"paragraph\",\n                    \"attrs\": {\n                      \"blockId\": \"<bid:23>\"\n                    },\n                    \"content\": [\n                      {\n                        \"type\": \"text\",\n                        \"text\": \"Method\"\n                      }\n                    ]\n                  }\n                ]\n              },\n              {\n                \"type\": \"tableHeader\",\n                \"attrs\": {\n                  \"blockId\": \"<bid:24>\"\n                },\n                \"content\": [\n                  {\n                    \"type\": \"paragraph\",\n                    \"attrs\": {\n                      \"blockId\": \"<bid:25>\"\n                    },\n                    \"content\": [\n                      {\n                        \"type\": \"text\",\n                        \"text\": \"Path\"\n                      }\n                    ]\n                  }\n                ]\n              }\n            ]\n          },\n          {\n            \"type\": \"tableRow\",\n            \"attrs\": {\n              \"blockId\": \"<bid:26>\"\n            },\n            \"content\": [\n              {\n                \"type\": \"tableCell\",\n                \"attrs\": {\n                  \"blockId\": \"<bid:27>\"\n                },\n                \"content\": [\n                  {\n                    \"type\": \"paragraph\",\n                    \"attrs\": {\n                      \"blockId\": \"<bid:28>\"\n                    },\n                    \"content\": [\n                      {\n                        \"type\": \"text\",\n                        \"text\": \"GET\"\n                      }\n                    ]\n                  }\n                ]\n              },\n              {\n                \"type\": \"tableCell\",\n                \"attrs\": {\n                  \"blockId\": \"<bid:29>\"\n                },\n                \"content\": [\n                  {\n                    \"type\": \"paragraph\",\n                    \"attrs\": {\n                      \"blockId\": \"<bid:30>\"\n                    },\n                    \"content\": [\n                      {\n                        \"type\": \"text\",\n                        \"text\": \"/tickets\"\n                      }\n                    ]\n                  }\n                ]\n              }\n            ]\n          }\n        ]\n      },\n      {\n        \"type\": \"heading\",\n        \"attrs\": {\n          \"blockId\": \"<bid:5>\",\n          \"level\": 3\n        },\n        \"content\": [\n          {\n            \"type\": \"text\",\n            \"text\": \"Errors\"\n          }\n        ]\n      },\n      {\n        \"type\": \"paragraph\",\n        \"attrs\": {\n          \"blockId\": \"<bid:6>\"\n        },\n        \"content\": [\n          {\n            \"type\": \"text\",\n            \"text\": \"401 when the token is missing.\"\n          }\n        ]\n      },\n      {\n        \"type\": \"heading\",\n        \"attrs\": {\n          \"blockId\": \"<bid:7>\",\n          \"level\": 2\n        },\n        \"content\": [\n          {\n            \"type\": \"text\",\n            \"text\": \"Limits\"\n          }\n        ]\n      },\n      {\n        \"type\": \"paragraph\",\n        \"attrs\": {\n          \"blockId\": \"<bid:8>\"\n        },\n        \"content\": [\n          {\n            \"type\": \"text\",\n            \"text\": \"Rate limits are not enforced yet.\"\n          }\n        ]\n      }\n    ]\n  },\n  \"author\": \"agent\",\n  \"note\": \"Created via MCP\",\n  \"created_at\": \"<time>\",\n  \"diagram_versions\": {},\n  \"with_ai\": false\n}"
       }
     ],
     "structuredContent": {
       "result": {
         "version": 1,
         "title": "Runbook",
-        "markdown": "## Overview\n\nThe API is REST.\n\n## Endpoints\n\n| Method | Path |\n|---|---|\n| GET | /tickets |\n\n### Errors\n\n401 when the token is missing.\n\n## Limits\n\nRate limits are not enforced yet.\n",
+        "markdown": "## Overview\n\nThe API is REST.\n\n## Endpoints\n\n| Method | Path |\n| --- | --- |\n| GET | /tickets |\n\n### Errors\n\n401 when the token is missing.\n\n## Limits\n\nRate limits are not enforced yet.",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "heading",
+              "attrs": {
+                "blockId": "<bid:1>",
+                "level": 2
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Overview"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:2>"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "The API is REST."
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "attrs": {
+                "blockId": "<bid:3>",
+                "level": 2
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Endpoints"
+                }
+              ]
+            },
+            {
+              "type": "table",
+              "attrs": {
+                "blockId": "<bid:4>"
+              },
+              "content": [
+                {
+                  "type": "tableRow",
+                  "attrs": {
+                    "blockId": "<bid:21>"
+                  },
+                  "content": [
+                    {
+                      "type": "tableHeader",
+                      "attrs": {
+                        "blockId": "<bid:22>"
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "blockId": "<bid:23>"
+                          },
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Method"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "tableHeader",
+                      "attrs": {
+                        "blockId": "<bid:24>"
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "blockId": "<bid:25>"
+                          },
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Path"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "tableRow",
+                  "attrs": {
+                    "blockId": "<bid:26>"
+                  },
+                  "content": [
+                    {
+                      "type": "tableCell",
+                      "attrs": {
+                        "blockId": "<bid:27>"
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "blockId": "<bid:28>"
+                          },
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "GET"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "tableCell",
+                      "attrs": {
+                        "blockId": "<bid:29>"
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "blockId": "<bid:30>"
+                          },
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "/tickets"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "attrs": {
+                "blockId": "<bid:5>",
+                "level": 3
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Errors"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:6>"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "401 when the token is missing."
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "attrs": {
+                "blockId": "<bid:7>",
+                "level": 2
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Limits"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:8>"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Rate limits are not enforced yet."
+                }
+              ]
+            }
+          ]
+        },
         "author": "agent",
         "note": "Created via MCP",
         "created_at": "<time>",
@@ -1606,7 +1816,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"from\": 1,\n  \"to\": 2,\n  \"rows\": [\n    {\n      \"type\": \"same\",\n      \"text\": \"## Overview\",\n      \"old_no\": 1,\n      \"new_no\": 1\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 2,\n      \"new_no\": 2\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"The API is REST.\",\n      \"old_no\": 3,\n      \"new_no\": 3\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 4,\n      \"new_no\": 4\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"## Endpoints\",\n      \"old_no\": 5,\n      \"new_no\": 5\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 6,\n      \"new_no\": 6\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"| Method | Path |\",\n      \"old_no\": 7,\n      \"new_no\": 7\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"|---|---|\",\n      \"old_no\": 8,\n      \"new_no\": 8\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"| GET | /tickets |\",\n      \"old_no\": 9,\n      \"new_no\": 9\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 10,\n      \"new_no\": 10\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"### Errors\",\n      \"old_no\": 11,\n      \"new_no\": 11\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 12,\n      \"new_no\": 12\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"401 when the token is missing.\",\n      \"old_no\": 13,\n      \"new_no\": 13\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 14,\n      \"new_no\": 14\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"## Limits\",\n      \"old_no\": 15,\n      \"new_no\": 15\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 16,\n      \"new_no\": 16\n    },\n    {\n      \"type\": \"del\",\n      \"text\": \"Rate limits are not enforced yet.\",\n      \"old_no\": 17,\n      \"new_no\": null,\n      \"words\": [\n        {\n          \"text\": \"Rate\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"limits\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"are\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"not\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"enforced\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"yet.\",\n          \"changed\": true\n        }\n      ]\n    },\n    {\n      \"type\": \"add\",\n      \"text\": \"Rate limits are 100 per minute.\",\n      \"old_no\": null,\n      \"new_no\": 17,\n      \"words\": [\n        {\n          \"text\": \"Rate\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"limits\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"are\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"100\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"per\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"minute.\",\n          \"changed\": true\n        }\n      ]\n    }\n  ],\n  \"added\": 1,\n  \"removed\": 1,\n  \"sections\": [\n    {\n      \"heading\": \"Limits\",\n      \"added\": 1,\n      \"removed\": 1\n    }\n  ]\n}"
+        "text": "{\n  \"from\": 1,\n  \"to\": 2,\n  \"rows\": [\n    {\n      \"type\": \"same\",\n      \"text\": \"## Overview\",\n      \"old_no\": 1,\n      \"new_no\": 1\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 2,\n      \"new_no\": 2\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"The API is REST.\",\n      \"old_no\": 3,\n      \"new_no\": 3\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 4,\n      \"new_no\": 4\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"## Endpoints\",\n      \"old_no\": 5,\n      \"new_no\": 5\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 6,\n      \"new_no\": 6\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"| Method | Path |\",\n      \"old_no\": 7,\n      \"new_no\": 7\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"| --- | --- |\",\n      \"old_no\": 8,\n      \"new_no\": 8\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"| GET | /tickets |\",\n      \"old_no\": 9,\n      \"new_no\": 9\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 10,\n      \"new_no\": 10\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"### Errors\",\n      \"old_no\": 11,\n      \"new_no\": 11\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 12,\n      \"new_no\": 12\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"401 when the token is missing.\",\n      \"old_no\": 13,\n      \"new_no\": 13\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 14,\n      \"new_no\": 14\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"## Limits\",\n      \"old_no\": 15,\n      \"new_no\": 15\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 16,\n      \"new_no\": 16\n    },\n    {\n      \"type\": \"del\",\n      \"text\": \"Rate limits are not enforced yet.\",\n      \"old_no\": 17,\n      \"new_no\": null,\n      \"words\": [\n        {\n          \"text\": \"Rate\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"limits\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"are\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"not\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"enforced\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"yet.\",\n          \"changed\": true\n        }\n      ]\n    },\n    {\n      \"type\": \"add\",\n      \"text\": \"Rate limits are 100 per minute.\",\n      \"old_no\": null,\n      \"new_no\": 17,\n      \"words\": [\n        {\n          \"text\": \"Rate\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"limits\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"are\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"100\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"per\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"minute.\",\n          \"changed\": true\n        }\n      ]\n    }\n  ],\n  \"added\": 1,\n  \"removed\": 1,\n  \"sections\": [\n    {\n      \"heading\": \"Limits\",\n      \"added\": 1,\n      \"removed\": 1\n    }\n  ]\n}"
       }
     ],
     "structuredContent": {
@@ -1658,7 +1868,7 @@
           },
           {
             "type": "same",
-            "text": "|---|---|",
+            "text": "| --- | --- |",
             "old_no": 8,
             "new_no": 8
           },
@@ -1832,7 +2042,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"from\": 2,\n  \"to\": 1,\n  \"rows\": [\n    {\n      \"type\": \"same\",\n      \"text\": \"## Overview\",\n      \"old_no\": 1,\n      \"new_no\": 1\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 2,\n      \"new_no\": 2\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"The API is REST.\",\n      \"old_no\": 3,\n      \"new_no\": 3\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 4,\n      \"new_no\": 4\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"## Endpoints\",\n      \"old_no\": 5,\n      \"new_no\": 5\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 6,\n      \"new_no\": 6\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"| Method | Path |\",\n      \"old_no\": 7,\n      \"new_no\": 7\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"|---|---|\",\n      \"old_no\": 8,\n      \"new_no\": 8\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"| GET | /tickets |\",\n      \"old_no\": 9,\n      \"new_no\": 9\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 10,\n      \"new_no\": 10\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"### Errors\",\n      \"old_no\": 11,\n      \"new_no\": 11\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 12,\n      \"new_no\": 12\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"401 when the token is missing.\",\n      \"old_no\": 13,\n      \"new_no\": 13\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 14,\n      \"new_no\": 14\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"## Limits\",\n      \"old_no\": 15,\n      \"new_no\": 15\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 16,\n      \"new_no\": 16\n    },\n    {\n      \"type\": \"del\",\n      \"text\": \"Rate limits are 100 per minute.\",\n      \"old_no\": 17,\n      \"new_no\": null,\n      \"words\": [\n        {\n          \"text\": \"Rate\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"limits\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"are\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"100\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"per\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"minute.\",\n          \"changed\": true\n        }\n      ]\n    },\n    {\n      \"type\": \"add\",\n      \"text\": \"Rate limits are not enforced yet.\",\n      \"old_no\": null,\n      \"new_no\": 17,\n      \"words\": [\n        {\n          \"text\": \"Rate\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"limits\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"are\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"not\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"enforced\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"yet.\",\n          \"changed\": true\n        }\n      ]\n    }\n  ],\n  \"added\": 1,\n  \"removed\": 1,\n  \"sections\": [\n    {\n      \"heading\": \"Limits\",\n      \"added\": 1,\n      \"removed\": 1\n    }\n  ]\n}"
+        "text": "{\n  \"from\": 2,\n  \"to\": 1,\n  \"rows\": [\n    {\n      \"type\": \"same\",\n      \"text\": \"## Overview\",\n      \"old_no\": 1,\n      \"new_no\": 1\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 2,\n      \"new_no\": 2\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"The API is REST.\",\n      \"old_no\": 3,\n      \"new_no\": 3\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 4,\n      \"new_no\": 4\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"## Endpoints\",\n      \"old_no\": 5,\n      \"new_no\": 5\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 6,\n      \"new_no\": 6\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"| Method | Path |\",\n      \"old_no\": 7,\n      \"new_no\": 7\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"| --- | --- |\",\n      \"old_no\": 8,\n      \"new_no\": 8\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"| GET | /tickets |\",\n      \"old_no\": 9,\n      \"new_no\": 9\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 10,\n      \"new_no\": 10\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"### Errors\",\n      \"old_no\": 11,\n      \"new_no\": 11\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 12,\n      \"new_no\": 12\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"401 when the token is missing.\",\n      \"old_no\": 13,\n      \"new_no\": 13\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 14,\n      \"new_no\": 14\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"## Limits\",\n      \"old_no\": 15,\n      \"new_no\": 15\n    },\n    {\n      \"type\": \"same\",\n      \"text\": \"\",\n      \"old_no\": 16,\n      \"new_no\": 16\n    },\n    {\n      \"type\": \"del\",\n      \"text\": \"Rate limits are 100 per minute.\",\n      \"old_no\": 17,\n      \"new_no\": null,\n      \"words\": [\n        {\n          \"text\": \"Rate\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"limits\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"are\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"100\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"per\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"minute.\",\n          \"changed\": true\n        }\n      ]\n    },\n    {\n      \"type\": \"add\",\n      \"text\": \"Rate limits are not enforced yet.\",\n      \"old_no\": null,\n      \"new_no\": 17,\n      \"words\": [\n        {\n          \"text\": \"Rate\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"limits\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"are\",\n          \"changed\": false\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"not\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"enforced\",\n          \"changed\": true\n        },\n        {\n          \"text\": \" \",\n          \"changed\": false\n        },\n        {\n          \"text\": \"yet.\",\n          \"changed\": true\n        }\n      ]\n    }\n  ],\n  \"added\": 1,\n  \"removed\": 1,\n  \"sections\": [\n    {\n      \"heading\": \"Limits\",\n      \"added\": 1,\n      \"removed\": 1\n    }\n  ]\n}"
       }
     ],
     "structuredContent": {
@@ -1884,7 +2094,7 @@
           },
           {
             "type": "same",
-            "text": "|---|---|",
+            "text": "| --- | --- |",
             "old_no": 8,
             "new_no": 8
           },
@@ -2094,15 +2304,15 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"version\": 3,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Restored from v1\",\n  \"created_at\": \"<time>\",\n  \"words\": 35,\n  \"with_ai\": false\n}"
+        "text": "{\n  \"version\": 3,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Restored from v1\",\n  \"created_at\": \"<time>\",\n  \"words\": 39,\n  \"with_ai\": false\n}"
       },
       {
         "type": "text",
-        "text": "{\n  \"version\": 2,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Rate limits\",\n  \"created_at\": \"<time>\",\n  \"words\": 35,\n  \"with_ai\": false\n}"
+        "text": "{\n  \"version\": 2,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Rate limits\",\n  \"created_at\": \"<time>\",\n  \"words\": 39,\n  \"with_ai\": false\n}"
       },
       {
         "type": "text",
-        "text": "{\n  \"version\": 1,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Created via MCP\",\n  \"created_at\": \"<time>\",\n  \"words\": 35,\n  \"with_ai\": false\n}"
+        "text": "{\n  \"version\": 1,\n  \"title\": \"Runbook\",\n  \"author\": \"agent\",\n  \"note\": \"Created via MCP\",\n  \"created_at\": \"<time>\",\n  \"words\": 39,\n  \"with_ai\": false\n}"
       }
     ],
     "structuredContent": {
@@ -2113,7 +2323,7 @@
           "author": "agent",
           "note": "Restored from v1",
           "created_at": "<time>",
-          "words": 35,
+          "words": 39,
           "with_ai": false
         },
         {
@@ -2122,7 +2332,7 @@
           "author": "agent",
           "note": "Rate limits",
           "created_at": "<time>",
-          "words": 35,
+          "words": 39,
           "with_ai": false
         },
         {
@@ -2131,7 +2341,7 @@
           "author": "agent",
           "note": "Created via MCP",
           "created_at": "<time>",
-          "words": 35,
+          "words": 39,
           "with_ai": false
         }
       ]
@@ -2142,7 +2352,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 4,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Limits'\"\n  ],\n  \"now\": \"## Limits\\n\\nRate limits are 100 per minute.\"\n}"
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 4,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Limits'\"\n  ],\n  \"now\": \"<!-- #<bid:7> -->\\n## Limits\\n\\n<!-- #<bid:31> -->\\nRate limits are 100 per minute.\"\n}"
       }
     ],
     "isError": false
@@ -2151,7 +2361,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 5,\n  \"published\": true,\n  \"changed\": [\n    \"section 'limits'\"\n  ],\n  \"now\": \"## Limits and quotas\\n\\nSee the plan.\"\n}"
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 5,\n  \"published\": true,\n  \"changed\": [\n    \"section 'limits'\"\n  ],\n  \"now\": \"<!-- #<bid:7> -->\\n## Limits and quotas\\n\\n<!-- #<bid:32> -->\\nSee the plan.\"\n}"
       }
     ],
     "isError": false
@@ -2160,7 +2370,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 6,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Endpoints'\"\n  ],\n  \"now\": \"## Endpoints\\n\\n| Method | Path |\\n|---|---|\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n| POST | /tickets |\"\n}"
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 6,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Endpoints'\"\n  ],\n  \"now\": \"<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:33> -->\\n| POST | /tickets |\"\n}"
       }
     ],
     "isError": false
@@ -2169,7 +2379,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 7,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Overview'\"\n  ],\n  \"now\": \"## Overview\\n\\n> [!NOTE]\\n> Draft.\\n\\nThe API is REST.\"\n}"
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 7,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Overview'\"\n  ],\n  \"now\": \"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:34> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\"\n}"
       }
     ],
     "isError": false
@@ -2178,7 +2388,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 8,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Overview'\"\n  ],\n  \"now\": \"## Overview\\n\\n> [!NOTE]\\n> Draft.\\n\\nThe API is REST.\"\n}"
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 8,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Overview'\"\n  ],\n  \"now\": \"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:34> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\"\n}"
       }
     ],
     "isError": false
@@ -2187,7 +2397,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 9,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Auth'\"\n  ],\n  \"now\": \"## Auth\\n\\nTokens.\"\n}"
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 9,\n  \"published\": true,\n  \"changed\": [\n    \"section 'Auth'\"\n  ],\n  \"now\": \"<!-- #<bid:35> -->\\n## Auth\\n\\n<!-- #<bid:36> -->\\nTokens.\"\n}"
       }
     ],
     "isError": false
@@ -2259,7 +2469,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\nmode\n  Input should be 'replace', 'append', 'prepend', 'before' or 'after' [type=literal_error, input_value='swap', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\nmode\n  Input should be 'replace', 'append', 'prepend', 'before', 'after', 'delete' or 'attrs' [type=literal_error, input_value='swap', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
       }
     ],
     "isError": true
@@ -2349,7 +2559,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: conflict: section 'Appendix' was changed since the version you read. It now reads:\n\n## Appendix\n\nLast.\n\nFinal words!\n\nApply your change to this text and retry with the page's current version as base_version. Nothing was changed."
+        "text": "Error executing tool docs_write: conflict: section 'Appendix' was changed since the version you read. It now reads:\n\n<!-- #<bid:37> -->\n## Appendix\n\n<!-- #<bid:38> -->\nLast.\n\n<!-- #<bid:39> -->\nFinal words!\n\nApply your change to this text and retry with the page's current version as base_version. Nothing was changed."
       }
     ],
     "isError": true
@@ -2358,7 +2568,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: conflict: section 'Limits and quotas' was changed since the version you read. It now reads:\n\n## Limits and quotas\n\nSee the plan.\n\nApply your change to this text and retry with the page's current version as base_version. Nothing was changed."
+        "text": "Error executing tool docs_write: conflict: section 'Limits and quotas' was changed since the version you read. It now reads:\n\n<!-- #<bid:7> -->\n## Limits and quotas\n\n<!-- #<bid:32> -->\nSee the plan.\n\nApply your change to this text and retry with the page's current version as base_version. Nothing was changed."
       }
     ],
     "isError": true
@@ -2376,7 +2586,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 12,\n  \"markdown\": \"## Overview\\n\\n> [!NOTE]\\n> Draft.\\n\\nThe API is REST.\\n\\n## Intro\\n\\nHi.\\n\\n## Auth\\n\\nTokens.More tokens.\\n\\n## Endpoints\\n\\n| Method | Path |\\n|---|---|\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n| POST | /tickets |\\n\\n## Limits and quotas\\n\\nSee the plan.\\n\\n## Appendix\\n\\nLast.\\n\\nFinal words!\\n\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Intro\",\n      \"slug\": \"intro\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Auth\",\n      \"slug\": \"auth\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits and quotas\",\n      \"slug\": \"limits-and-quotas\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Appendix\",\n      \"slug\": \"appendix\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [\n      {\n        \"page_id\": \"<uuid:9>\",\n        \"title\": \"Limits \\\"v2\\\" & more\",\n        \"in\": null,\n        \"snippet\": \"See Runbook and Ghost and $t1.\",\n        \"origin\": \"page\",\n        \"context\": \"See Runbook and Ghost and $t1.\",\n        \"excerpt\": \"See [[Runbook#Limits]] and Ghost and $t1.\",\n        \"target_anchor\": \"Limits\"\n      }\n    ],\n    \"tickets\": []\n  }\n}"
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Runbook\",\n  \"slug\": \"runbook\",\n  \"status\": \"published\",\n  \"version\": 12,\n  \"format\": \"rich\",\n  \"markdown\": \"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:34> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\\n\\n<!-- #<bid:40> -->\\n## Intro\\n\\n<!-- #<bid:41> -->\\nHi.\\n\\n<!-- #<bid:35> -->\\n## Auth\\n\\n<!-- #<bid:36> -->\\nTokens.More tokens.\\n\\n<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:33> -->\\n| POST | /tickets |\\n\\n<!-- #<bid:7> -->\\n## Limits and quotas\\n\\n<!-- #<bid:32> -->\\nSee the plan.\\n\\n<!-- #<bid:37> -->\\n## Appendix\\n\\n<!-- #<bid:38> -->\\nLast.\\n\\n<!-- #<bid:39> -->\\nFinal words!\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Intro\",\n      \"slug\": \"intro\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Auth\",\n      \"slug\": \"auth\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits and quotas\",\n      \"slug\": \"limits-and-quotas\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Appendix\",\n      \"slug\": \"appendix\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"highlights\": [],\n  \"referenced_by\": {\n    \"pages\": [\n      {\n        \"page_id\": \"<uuid:9>\",\n        \"title\": \"Limits \\\"v2\\\" & more\",\n        \"in\": null,\n        \"snippet\": \"See Runbook and Ghost and $t1.\",\n        \"origin\": \"page\",\n        \"context\": \"See Runbook and Ghost and $t1.\",\n        \"excerpt\": \"See [[Runbook#Limits]] and Ghost and $t1.\",\n        \"target_anchor\": \"Limits\"\n      }\n    ],\n    \"tickets\": []\n  }\n}"
       }
     ],
     "structuredContent": {
@@ -2388,7 +2598,8 @@
         "slug": "runbook",
         "status": "published",
         "version": 12,
-        "markdown": "## Overview\n\n> [!NOTE]\n> Draft.\n\nThe API is REST.\n\n## Intro\n\nHi.\n\n## Auth\n\nTokens.More tokens.\n\n## Endpoints\n\n| Method | Path |\n|---|---|\n| GET | /tickets |\n\n### Errors\n\n401 when the token is missing.\n\n| POST | /tickets |\n\n## Limits and quotas\n\nSee the plan.\n\n## Appendix\n\nLast.\n\nFinal words!\n",
+        "format": "rich",
+        "markdown": "<!-- #<bid:1> -->\n## Overview\n\n<!-- #<bid:34> -->\n> [!NOTE]\n> Draft.\n\n<!-- #<bid:2> -->\nThe API is REST.\n\n<!-- #<bid:40> -->\n## Intro\n\n<!-- #<bid:41> -->\nHi.\n\n<!-- #<bid:35> -->\n## Auth\n\n<!-- #<bid:36> -->\nTokens.More tokens.\n\n<!-- #<bid:3> -->\n## Endpoints\n\n<!-- #<bid:4> -->\n| Method | Path |\n| --- | --- |\n| GET | /tickets |\n\n<!-- #<bid:5> -->\n### Errors\n\n<!-- #<bid:6> -->\n401 when the token is missing.\n\n<!-- #<bid:33> -->\n| POST | /tickets |\n\n<!-- #<bid:7> -->\n## Limits and quotas\n\n<!-- #<bid:32> -->\nSee the plan.\n\n<!-- #<bid:37> -->\n## Appendix\n\n<!-- #<bid:38> -->\nLast.\n\n<!-- #<bid:39> -->\nFinal words!",
         "headings": [
           {
             "level": 2,
@@ -2428,6 +2639,7 @@
         ],
         "updated_by": "agent",
         "updated_at": "<time>",
+        "highlights": [],
         "referenced_by": {
           "pages": [
             {
@@ -3559,7 +3771,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: You have an unpublished draft of this page (307 characters, published text 293). An edit works on the published text and would drop the draft. Publish the whole text first with docs_write(action='update', markdown, base_version=12), then edit."
+        "text": "Error executing tool docs_write: You have an unpublished draft of this page (310 characters, published text 296). An edit works on the published text and would drop the draft. Publish the whole text first with docs_write(action='update', markdown, base_version=12), then edit."
       }
     ],
     "isError": true
@@ -3568,7 +3780,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: You have an unpublished draft of this page (307 characters, published text 293). An edit works on the published text and would drop the draft. Publish the whole text first with docs_write(action='update', markdown, base_version=12), then edit."
+        "text": "Error executing tool docs_write: You have an unpublished draft of this page (310 characters, published text 296). An edit works on the published text and would drop the draft. Publish the whole text first with docs_write(action='update', markdown, base_version=12), then edit."
       }
     ],
     "isError": true
@@ -3577,7 +3789,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: You have an unpublished draft of this page (307 characters, published text 293). An edit works on the published text and would drop the draft. Publish the whole text first with docs_write(action='update', markdown, base_version=12), then edit."
+        "text": "Error executing tool docs_write: You have an unpublished draft of this page (310 characters, published text 296). An edit works on the published text and would drop the draft. Publish the whole text first with docs_write(action='update', markdown, base_version=12), then edit."
       }
     ],
     "isError": true
@@ -3595,7 +3807,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: You have an unpublished draft of this page (307 characters, published text 293). An edit works on the published text and would drop the draft. Publish the whole text first with docs_write(action='update', markdown, base_version=12), then edit."
+        "text": "Error executing tool docs_write: You have an unpublished draft of this page (310 characters, published text 296). An edit works on the published text and would drop the draft. Publish the whole text first with docs_write(action='update', markdown, base_version=12), then edit."
       }
     ],
     "isError": true
@@ -3649,7 +3861,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:5>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": \"<uuid:4>\",\n  \"title\": \"Child\",\n  \"slug\": \"child\",\n  \"status\": \"published\",\n  \"version\": 3,\n  \"markdown\": \"Body\\n\\n![end.png](/uploads/end-<random>.png)\\n\\n![both.png](/uploads/both-<random>.png)\\n\",\n  \"headings\": [],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
+        "text": "{\n  \"id\": \"<uuid:5>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": \"<uuid:4>\",\n  \"title\": \"Child\",\n  \"slug\": \"child\",\n  \"status\": \"published\",\n  \"version\": 3,\n  \"format\": \"rich\",\n  \"markdown\": \"<!-- #<bid:42> -->\\nBody\\n\\n<!-- #<bid:43> -->\\n![end.png](/uploads/end-<random>.png)\\n\\n<!-- #<bid:44> -->\\n![both.png](/uploads/both-<random>.png)\",\n  \"headings\": [],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"highlights\": [],\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": []\n  }\n}"
       }
     ],
     "structuredContent": {
@@ -3661,10 +3873,12 @@
         "slug": "child",
         "status": "published",
         "version": 3,
-        "markdown": "Body\n\n![end.png](/uploads/end-<random>.png)\n\n![both.png](/uploads/both-<random>.png)\n",
+        "format": "rich",
+        "markdown": "<!-- #<bid:42> -->\nBody\n\n<!-- #<bid:43> -->\n![end.png](/uploads/end-<random>.png)\n\n<!-- #<bid:44> -->\n![both.png](/uploads/both-<random>.png)",
         "headings": [],
         "updated_by": "agent",
         "updated_at": "<time>",
+        "highlights": [],
         "referenced_by": {
           "pages": [],
           "tickets": []
@@ -3677,7 +3891,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 12,\n  \"section\": \"Overview\",\n  \"markdown\": \"## Overview\\n\\n> [!NOTE]\\n> Draft.\\n\\nThe API is REST.\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Intro\",\n      \"slug\": \"intro\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Auth\",\n      \"slug\": \"auth\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits and quotas\",\n      \"slug\": \"limits-and-quotas\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Appendix\",\n      \"slug\": \"appendix\"\n    }\n  ]\n}"
+        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"title\": \"Runbook\",\n  \"version\": 12,\n  \"section\": \"Overview\",\n  \"markdown\": \"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:34> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Overview\",\n      \"slug\": \"overview\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Intro\",\n      \"slug\": \"intro\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Auth\",\n      \"slug\": \"auth\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Endpoints\",\n      \"slug\": \"endpoints\"\n    },\n    {\n      \"level\": 3,\n      \"text\": \"Errors\",\n      \"slug\": \"errors\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Limits and quotas\",\n      \"slug\": \"limits-and-quotas\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Appendix\",\n      \"slug\": \"appendix\"\n    }\n  ]\n}"
       }
     ],
     "structuredContent": {
@@ -3686,7 +3900,7 @@
         "title": "Runbook",
         "version": 12,
         "section": "Overview",
-        "markdown": "## Overview\n\n> [!NOTE]\n> Draft.\n\nThe API is REST.",
+        "markdown": "<!-- #<bid:1> -->\n## Overview\n\n<!-- #<bid:34> -->\n> [!NOTE]\n> Draft.\n\n<!-- #<bid:2> -->\nThe API is REST.",
         "headings": [
           {
             "level": 2,
@@ -4117,7 +4331,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"tickets\": [\n    {\n      \"id\": \"DOC-2\",\n      \"title\": \"Write the spec\",\n      \"status\": \"backlog\"\n    },\n    {\n      \"id\": \"DOC-3\",\n      \"title\": \"Review the spec\",\n      \"status\": \"backlog\"\n    },\n    {\n      \"id\": \"DOC-4\",\n      \"title\": \"Ask the owner\",\n      \"status\": \"backlog\"\n    }\n  ],\n  \"skipped\": [\n    {\n      \"text\": \"Done already\",\n      \"reason\": \"ticked\",\n      \"line\": 4\n    },\n    {\n      \"text\": \"Has a ticket DOC-1\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-1\",\n      \"line\": 6\n    }\n  ],\n  \"page\": {\n    \"id\": \"<uuid:30>\",\n    \"title\": \"Plan\",\n    \"version\": 2,\n    \"published\": true,\n    \"changed\": [\n      \"a passage\",\n      \"a passage\",\n      \"a passage\"\n    ]\n  }\n}"
+        "text": "{\n  \"tickets\": [\n    {\n      \"id\": \"DOC-2\",\n      \"title\": \"Write the spec\",\n      \"status\": \"backlog\"\n    },\n    {\n      \"id\": \"DOC-3\",\n      \"title\": \"Review the spec\",\n      \"status\": \"backlog\"\n    },\n    {\n      \"id\": \"DOC-4\",\n      \"title\": \"Ask the owner\",\n      \"status\": \"backlog\"\n    }\n  ],\n  \"skipped\": [\n    {\n      \"text\": \"Done already\",\n      \"reason\": \"ticked\",\n      \"line\": 6\n    },\n    {\n      \"text\": \"Has a ticket DOC-1\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-1\",\n      \"line\": 12\n    }\n  ],\n  \"page\": {\n    \"id\": \"<uuid:30>\",\n    \"title\": \"Plan\",\n    \"version\": 2,\n    \"published\": true,\n    \"changed\": [\n      \"a passage\",\n      \"a passage\",\n      \"a passage\"\n    ]\n  }\n}"
       }
     ],
     "isError": false
@@ -4126,7 +4340,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:30>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Plan\",\n  \"slug\": \"plan\",\n  \"status\": \"published\",\n  \"version\": 2,\n  \"markdown\": \"## Todo\\n\\n- [ ] Write the spec DOC-2\\n- [ ] Review the spec DOC-3\\n- [x] Done already\\n- Action: Ask the owner DOC-4\\n- [ ] Has a ticket DOC-1\\n\\n## Notes\\n\\nNothing here.\\n\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Todo\",\n      \"slug\": \"todo\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Notes\",\n      \"slug\": \"notes\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": [\n      {\n        \"ticket_id\": \"DOC-2\",\n        \"title\": \"Write the spec\",\n        \"status\": \"backlog\",\n        \"origin\": \"description\",\n        \"detail\": \"\",\n        \"context\": \"From the page Plan:\",\n        \"excerpt\": \"From the page [[Plan]]:\",\n        \"target_anchor\": null\n      },\n      {\n        \"ticket_id\": \"DOC-3\",\n        \"title\": \"Review the spec\",\n        \"status\": \"backlog\",\n        \"origin\": \"description\",\n        \"detail\": \"\",\n        \"context\": \"From the page Plan:\",\n        \"excerpt\": \"From the page [[Plan]]:\",\n        \"target_anchor\": null\n      },\n      {\n        \"ticket_id\": \"DOC-4\",\n        \"title\": \"Ask the owner\",\n        \"status\": \"backlog\",\n        \"origin\": \"description\",\n        \"detail\": \"\",\n        \"context\": \"From the page Plan:\",\n        \"excerpt\": \"From the page [[Plan]]:\",\n        \"target_anchor\": null\n      }\n    ]\n  },\n  \"work\": {\n    \"tickets\": [\n      {\n        \"id\": \"DOC-2\",\n        \"title\": \"Write the spec\",\n        \"status\": \"backlog\",\n        \"assignee\": null,\n        \"run\": null\n      },\n      {\n        \"id\": \"DOC-3\",\n        \"title\": \"Review the spec\",\n        \"status\": \"backlog\",\n        \"assignee\": null,\n        \"run\": null\n      },\n      {\n        \"id\": \"DOC-4\",\n        \"title\": \"Ask the owner\",\n        \"status\": \"backlog\",\n        \"assignee\": null,\n        \"run\": null\n      },\n      {\n        \"id\": \"DOC-1\",\n        \"title\": \"Rate limit\",\n        \"status\": \"backlog\",\n        \"assignee\": null,\n        \"run\": null\n      }\n    ],\n    \"active\": 0\n  }\n}"
+        "text": "{\n  \"id\": \"<uuid:30>\",\n  \"project_id\": \"<uuid:1>\",\n  \"parent_id\": null,\n  \"title\": \"Plan\",\n  \"slug\": \"plan\",\n  \"status\": \"published\",\n  \"version\": 2,\n  \"format\": \"rich\",\n  \"markdown\": \"<!-- #<bid:45> -->\\n## Todo\\n\\n<!-- #<bid:46> -->\\n- [ ] Write the spec DOC-2\\n- [ ] Review the spec DOC-3\\n- [x] Done already\\n\\n<!-- #<bid:47> -->\\n- Action: Ask the owner DOC-4\\n\\n<!-- #<bid:48> -->\\n- [ ] Has a ticket DOC-1\\n\\n<!-- #<bid:49> -->\\n## Notes\\n\\n<!-- #<bid:50> -->\\nNothing here.\",\n  \"headings\": [\n    {\n      \"level\": 2,\n      \"text\": \"Todo\",\n      \"slug\": \"todo\"\n    },\n    {\n      \"level\": 2,\n      \"text\": \"Notes\",\n      \"slug\": \"notes\"\n    }\n  ],\n  \"updated_by\": \"agent\",\n  \"updated_at\": \"<time>\",\n  \"highlights\": [],\n  \"referenced_by\": {\n    \"pages\": [],\n    \"tickets\": [\n      {\n        \"ticket_id\": \"DOC-2\",\n        \"title\": \"Write the spec\",\n        \"status\": \"backlog\",\n        \"origin\": \"description\",\n        \"detail\": \"\",\n        \"context\": \"From the page Plan:\",\n        \"excerpt\": \"From the page [[Plan]]:\",\n        \"target_anchor\": null\n      },\n      {\n        \"ticket_id\": \"DOC-3\",\n        \"title\": \"Review the spec\",\n        \"status\": \"backlog\",\n        \"origin\": \"description\",\n        \"detail\": \"\",\n        \"context\": \"From the page Plan:\",\n        \"excerpt\": \"From the page [[Plan]]:\",\n        \"target_anchor\": null\n      },\n      {\n        \"ticket_id\": \"DOC-4\",\n        \"title\": \"Ask the owner\",\n        \"status\": \"backlog\",\n        \"origin\": \"description\",\n        \"detail\": \"\",\n        \"context\": \"From the page Plan:\",\n        \"excerpt\": \"From the page [[Plan]]:\",\n        \"target_anchor\": null\n      }\n    ]\n  },\n  \"work\": {\n    \"tickets\": [\n      {\n        \"id\": \"DOC-2\",\n        \"title\": \"Write the spec\",\n        \"status\": \"backlog\",\n        \"assignee\": null,\n        \"run\": null\n      },\n      {\n        \"id\": \"DOC-3\",\n        \"title\": \"Review the spec\",\n        \"status\": \"backlog\",\n        \"assignee\": null,\n        \"run\": null\n      },\n      {\n        \"id\": \"DOC-4\",\n        \"title\": \"Ask the owner\",\n        \"status\": \"backlog\",\n        \"assignee\": null,\n        \"run\": null\n      },\n      {\n        \"id\": \"DOC-1\",\n        \"title\": \"Rate limit\",\n        \"status\": \"backlog\",\n        \"assignee\": null,\n        \"run\": null\n      }\n    ],\n    \"active\": 0\n  }\n}"
       }
     ],
     "structuredContent": {
@@ -4138,7 +4352,8 @@
         "slug": "plan",
         "status": "published",
         "version": 2,
-        "markdown": "## Todo\n\n- [ ] Write the spec DOC-2\n- [ ] Review the spec DOC-3\n- [x] Done already\n- Action: Ask the owner DOC-4\n- [ ] Has a ticket DOC-1\n\n## Notes\n\nNothing here.\n",
+        "format": "rich",
+        "markdown": "<!-- #<bid:45> -->\n## Todo\n\n<!-- #<bid:46> -->\n- [ ] Write the spec DOC-2\n- [ ] Review the spec DOC-3\n- [x] Done already\n\n<!-- #<bid:47> -->\n- Action: Ask the owner DOC-4\n\n<!-- #<bid:48> -->\n- [ ] Has a ticket DOC-1\n\n<!-- #<bid:49> -->\n## Notes\n\n<!-- #<bid:50> -->\nNothing here.",
         "headings": [
           {
             "level": 2,
@@ -4153,6 +4368,7 @@
         ],
         "updated_by": "agent",
         "updated_at": "<time>",
+        "highlights": [],
         "referenced_by": {
           "pages": [],
           "tickets": [
@@ -4229,7 +4445,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"tickets\": [],\n  \"skipped\": [\n    {\n      \"text\": \"Write the spec DOC-2\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-2\",\n      \"line\": 2\n    },\n    {\n      \"text\": \"Review the spec DOC-3\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-3\",\n      \"line\": 3\n    },\n    {\n      \"text\": \"Done already\",\n      \"reason\": \"ticked\",\n      \"line\": 4\n    },\n    {\n      \"text\": \"Action: Ask the owner DOC-4\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-4\",\n      \"line\": 5\n    },\n    {\n      \"text\": \"Has a ticket DOC-1\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-1\",\n      \"line\": 6\n    }\n  ],\n  \"message\": \"No unchecked task or action item without a ticket on the page.\"\n}"
+        "text": "{\n  \"tickets\": [],\n  \"skipped\": [\n    {\n      \"text\": \"Write the spec DOC-2\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-2\",\n      \"line\": 4\n    },\n    {\n      \"text\": \"Review the spec DOC-3\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-3\",\n      \"line\": 5\n    },\n    {\n      \"text\": \"Done already\",\n      \"reason\": \"ticked\",\n      \"line\": 6\n    },\n    {\n      \"text\": \"Action: Ask the owner DOC-4\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-4\",\n      \"line\": 9\n    },\n    {\n      \"text\": \"Has a ticket DOC-1\",\n      \"reason\": \"has_ticket\",\n      \"key\": \"DOC-1\",\n      \"line\": 12\n    }\n  ],\n  \"message\": \"No unchecked task or action item without a ticket on the page.\"\n}"
       }
     ],
     "isError": false

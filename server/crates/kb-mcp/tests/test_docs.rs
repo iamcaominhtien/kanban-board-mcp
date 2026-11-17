@@ -20,7 +20,8 @@ async fn test_mcp_docs_tools_round_trip_and_conflict() {
     .await;
     assert!(created["version"] == 1 && created["status"] == "published");
     let page = call(&mcp, "docs_read", json!({"action": "get", "page_id": created["id"]})).await;
-    assert!(page["markdown"].as_str().expect("text").starts_with("## Steps") && page["headings"][0]["slug"] == "steps");
+    let text = common::without_markers(page["markdown"].as_str().expect("text"));
+    assert!(text.starts_with("## Steps") && page["headings"][0]["slug"] == "steps");
     let updated = call(
         &mcp,
         "docs_write",

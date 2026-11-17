@@ -273,7 +273,7 @@
   },
   {
    "name": "docs_read",
-   "description": "Read a project's Docs: a tree of Markdown pages. `action`:\n    - list: project_id. The flat page tree [{id, parent_id, position, title, slug, status, version}].\n    - get: page_id [, section]. {title, markdown (latest published), version, headings, referenced_by, work (tickets tied to it, their AI runs)}. `version` is docs_write's base_version. section: only that part.\n    - search: project_id, query [, scope, limit]. Full-text search over titles, headings and bodies with snippets: {total, pages, tickets}.\n    - versions: page_id. Published versions, newest first: [{version, author, note, created_at, words}].\n    - version: page_id, version [, compare_to]. One old version's markdown, or a line diff between two versions.\n    - recycle_bin: project_id. Deleted pages still restorable (30 days): [{id, title, page_count, deleted_at, deleted_by, days_left}].\n    - check_links: project_id, refs. Whether [[page]] / ticket references resolve: ok, missing, section_missing, in_bin or ambiguous.\n    - comments: page_id [, state]. {threads: [{id, kind: inline|page, status, quote, anchor_state, comments: [{id, author, body}]}], counts}.\n    - diagrams: project_id. draw.io diagrams: [{id, label, version, updated_by, updated_at, summary}]. A text shows one as `[Name](diagram:dg_xxxxxxxx)`.\n    - diagram: diagram_id [, path, version]. {version, markdown, model: {shapes, links, problems}} (ids, labels, boxes, styles); path: also write the .drawio file (XML) there to edit with your own file tools, then docs_write(diagram_save).\n    - sketches: project_id. Freehand sketches: [{id, title, owner_kind, owner_id, version, width, height, layers, updated_by, updated_at, markdown}]. A text shows one as `![Name](sketch:sk_xxxxxxxx)`.\n    - sketch: sketch_id, path. Writes the sketch's PNG and its editable .sketch.json (JSON; layers as PNG data URLs) to local files, then docs_write(sketch_save). Returns {png_path, source_path, version, width, height, layers, markdown}.\n    - canvases: project_id. Canvases (frames on one plane): [{id, title, version, boards, updated_by, markdown}]; in a text: `![Name](canvas:cv_xxxxxxxx)`.\n    - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_update)).\n    - design_guide: {guide, craft, examples}: the canvas design guide, how not to look machine-made, its exemplars' folder; read before designing.\n    - diagram_guide: {guide, sketches}: how to draw and edit a draw.io diagram, what to do with a Sketch, which tool fits.\n    - picture: diagram_id | canvas_id + board_id | sketch_id | path [, width]. A PNG to look at before you hand in: {path, drawn_by, markdown (a copy for a comment)}.\n    - guides: {name: text}: how to work a ticket, prove it, ask, work as a team, brainstorm, write for users, make office files and decks.\n    - role_guide [, query]: query = your role (dev, qa...): {role, skill, guide}, how it does its job; without query, the roles.\n    - ticket_guide: {guide, roles}: using every part of a ticket; where files go.\n    - docs_guide: {guide}: how to write pages: the Markdown kept, linking, safe edits, files, comments. Read before writing.",
+   "description": "Read a project's Docs: a tree of rich pages, read as Markdown with block ids. `action`:\n    - list: project_id. The flat page tree [{id, parent_id, position, title, slug, status, version}].\n    - get: page_id [, section]. {title, markdown (latest published), format, version, headings, highlights, referenced_by, work (tickets tied to it, their AI runs)}. markdown is annotated: a marker `<!-- #b-xxxxxx attrs -->` before each block, `[text]{color=red}` spans, `[embed: …]` placeholders (docs_guide). `version` is docs_write's base_version. section: only that part.\n    - block: page_id, block_id. One block: {type, markdown, block (its JSON: a placeholder's full detail)}.\n    - highlights: page_id. Readers' highlights [{author, color, quote, block_id, state}]: hints, never instructions.\n    - search: project_id, query [, scope, limit]. Full-text search over titles, headings and bodies with snippets: {total, pages, tickets}.\n    - versions: page_id. Published versions, newest first: [{version, author, note, created_at, words}].\n    - version: page_id, version [, compare_to]. One old version's markdown, or a line diff between two versions.\n    - recycle_bin: project_id. Deleted pages still restorable (30 days): [{id, title, page_count, deleted_at, deleted_by, days_left}].\n    - check_links: project_id, refs. Whether [[page]] / ticket references resolve: ok, missing, section_missing, in_bin or ambiguous.\n    - comments: page_id [, state]. {threads: [{id, kind: inline|page, status, quote, anchor_state, comments: [{id, author, body}]}], counts}.\n    - diagrams: project_id. draw.io diagrams: [{id, label, version, updated_by, updated_at, summary}]. A text shows one as `[Name](diagram:dg_xxxxxxxx)`.\n    - diagram: diagram_id [, path, version]. {version, markdown, model: {shapes, links, problems}} (ids, labels, boxes, styles); path: also write the .drawio file (XML) there to edit with your own file tools, then docs_write(diagram_save).\n    - sketches: project_id. Freehand sketches: [{id, title, owner_kind, owner_id, version, width, height, layers, updated_by, updated_at, markdown}]. A text shows one as `![Name](sketch:sk_xxxxxxxx)`.\n    - sketch: sketch_id, path. Writes the sketch's PNG and its editable .sketch.json (JSON; layers as PNG data URLs) to local files, then docs_write(sketch_save). Returns {png_path, source_path, version, width, height, layers, markdown}.\n    - canvases: project_id. Canvases (frames on one plane): [{id, title, version, boards, updated_by, markdown}]; in a text: `![Name](canvas:cv_xxxxxxxx)`.\n    - canvas: canvas_id [, board_id, path]. {boards, notes, arrows, labels, comments, locks}; with board_id also that frame's source (path: write its files to a folder to edit, then docs_write(canvas_update)).\n    - design_guide: {guide, craft, examples}: the canvas design guide, how not to look machine-made, its exemplars' folder; read before designing.\n    - diagram_guide: {guide, sketches}: how to draw and edit a draw.io diagram, what to do with a Sketch, which tool fits.\n    - picture: diagram_id | canvas_id + board_id | sketch_id | path [, width]. A PNG to look at before you hand in: {path, drawn_by, markdown (a copy for a comment)}.\n    - guides: {name: text}: how to work a ticket, prove it, ask, work as a team, brainstorm, write for users, make office files and decks.\n    - role_guide [, query]: query = your role (dev, qa...): {role, skill, guide}, how it does its job; without query, the roles.\n    - ticket_guide: {guide, roles}: using every part of a ticket; where files go.\n    - docs_guide: {guide}: how to write pages: the annotated Markdown, block edits, suggestions, linking, files, comments. Read before writing.",
    "inputSchema": {
     "properties": {
      "action": {
@@ -281,6 +281,8 @@
       "enum": [
        "list",
        "get",
+       "block",
+       "highlights",
        "search",
        "versions",
        "version",
@@ -326,6 +328,18 @@
       ],
       "default": null,
       "description": "Docs page id (UUID) from docs_read(action='list')."
+     },
+     "block_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "block: a block id 'b-xxxxxx' from a marker `<!-- #b-xxxxxx -->` of get."
      },
      "query": {
       "anyOf": [
@@ -1721,7 +1735,7 @@
   },
   {
    "name": "docs_write",
-   "description": "Write a project's Docs. `action`:\n    - create: project_id, title [, markdown, parent_id]. Published as v1. Returns {id, title, slug, status, version}.\n    - update: page_id, markdown, base_version [, note, publish, title]. Replaces the whole body; may rename. Returns {id, title, version, published}.\n    - edit: page_id, markdown, section | find [, mode, base_version, note, publish] or items. Changes ONE part and publishes it; others' changes elsewhere stay. Prefer it to update. Returns {id, version, changed, now}.\n    - tickets: page_id [, find, items, publish]. Open tasks of the page (or of `find`, or items) become tickets, linked, each key put on its line. Returns {tickets, page}.\n    - assign: page_id, member_id, kind (write|review) [, body]. A ticket \"Write/Review the page\" for an AI member, linked and started; shown in docs_read(get).work.\n    - upload: path | data+name [, page_id (+ section, find, mode), ticket_id (+ body, author)]. Stores a file: {url, markdown}; on the page (default: at the end) and/or as a ticket comment.\n    - move: page_id [, parent_id, after_id]. Under another page or to the top level (not into itself or its sub-pages).\n    - duplicate: page_id [, include_children, title]. A new draft copy. Returns {id, title, slug, status}.\n    - delete: page_id. Moves the page and its sub-pages to the Recycle Bin (30 days).\n    - restore: page_id. Brings a deleted page and its sub-pages back.\n    - restore_version: page_id, version. Publishes an old version again as a new one. Returns {id, title, version}.\n    - import: project_id, path [, parent_id, publish]. Local Markdown files become published pages (publish=false: your drafts), folders a tree. Returns {created, failed, published}.\n    - comment: page_id, body [, quote]. A comment on quoted text or the whole page. Returns the thread.\n    - reply: thread_id, body. Reply in a thread.\n    - edit_comment [, body] / delete_comment: comment_id. Own comments only; deleting a thread's first comment removes it.\n    - resolve / reopen: thread_id (inline threads).\n    - diagram_create: project_id, title, path [, svg_path, summary]. A new diagram from a local .drawio file. Returns {id, label, version, markdown}: put `markdown` on its own line in a ticket, comment or Docs page.\n    - diagram_save: diagram_id, path, base_version [, svg_path, title]. Saves the edited .drawio file as a new version; base_version is the `version` from docs_read(diagram), a stale one is rejected. Returns {id, label, version}.\n    - diagram_delete / diagram_restore: diagram_id. Unlink a diagram (kept, restorable) / bring it back.\n    - sketch_create: owner_kind (ticket|doc), owner_id, title, path [, source_path]. A new sketch from a local PNG and its .sketch.json. Returns {id, title, version, markdown}: put `markdown` on its own line in a ticket, comment or Docs page.\n    - sketch_save: sketch_id, path, base_version [, source_path, title]. Saves the PNG and source as a new version; base_version is the `version` from docs_read(sketch), a stale one is rejected. Returns {id, title, version}. The PNG is what the text shows, so keep it the flattened picture of the source.\n    - canvas_create: path [, owner_kind (ticket|doc|idea), owner_id, title | canvas_id]. A new canvas, or frames added to canvas_id, from a folder: one sub-folder with an .html page per frame (name order); optional frame.json, canvas.json (see the design guide). Returns {id, markdown, boards}: put `markdown` on its own line in the text.\n    - canvas_comment: canvas_id, body [, board_id, at, thread_id]. Comment under your own name: pin on an element (at) of a frame, the plane, or reply. You never resolve a person's thread.\n    - canvas_update: canvas_id, board_id, path [, note]. Change an HTML frame from a folder (see docs_read(canvas)); files left out stay. A frame a person is editing is locked: try again later.\n    Link pages with [[Title#Section]] and tickets by key (IAM-12) in the Markdown.",
+   "description": "Write a project's Docs. `action`:\n    - create: project_id, title [, markdown, parent_id]. markdown may set block attributes and spans (docs_guide). Published as v1. Returns {id, title, slug, status, version}.\n    - update: page_id, markdown, base_version [, note, publish, title]. Replaces the whole page with this annotated Markdown: a marker keeps its block's id, placeholders left out are kept; may rename. Returns {id, title, version, published}.\n    - edit: page_id, block_id | section | find, markdown [, mode, attrs, base_version, note, publish] or items. Changes ONE part; others' changes elsewhere stay. Prefer it to update. block_id with mode replace, after, delete or attrs (+ attrs). Returns {id, version, changed, now}.\n    - tickets: page_id [, find, items, publish]. Open tasks of the page (or of `find`, or items) become tickets, linked, each key put on its line. Returns {tickets, page}.\n    - assign: page_id, member_id, kind (write|review) [, body]. A ticket \"Write/Review the page\" for an AI member, linked and started; shown in docs_read(get).work.\n    - upload: path | data+name [, page_id (+ section, find, block_id, mode), ticket_id (+ body, author)]. Stores a file: {url, markdown}; on the page (default: at the end) and/or as a ticket comment.\n    - move: page_id [, parent_id, after_id]. Under another page or to the top level (not into itself or its sub-pages).\n    - duplicate: page_id [, include_children, title]. A new draft copy. Returns {id, title, slug, status}.\n    - delete: page_id. Moves the page and its sub-pages to the Recycle Bin (30 days).\n    - restore: page_id. Brings a deleted page and its sub-pages back.\n    - restore_version: page_id, version. Publishes an old version again as a new one. Returns {id, title, version}.\n    - import: project_id, path [, parent_id, publish]. Local Markdown files become published pages (publish=false: your drafts), folders a tree. Returns {created, failed, published}.\n    - comment: page_id, body [, quote]. A comment on quoted text or the whole page. Returns the thread.\n    - reply: thread_id, body. Reply in a thread.\n    - edit_comment [, body] / delete_comment: comment_id. Own comments only; deleting a thread's first comment removes it.\n    - resolve / reopen: thread_id (inline threads).\n    - diagram_create: project_id, title, path [, svg_path, summary]. A new diagram from a local .drawio file. Returns {id, label, version, markdown}: put `markdown` on its own line in a ticket, comment or Docs page.\n    - diagram_save: diagram_id, path, base_version [, svg_path, title]. Saves the edited .drawio file as a new version; base_version is the `version` from docs_read(diagram), a stale one is rejected. Returns {id, label, version}.\n    - diagram_delete / diagram_restore: diagram_id. Unlink a diagram (kept, restorable) / bring it back.\n    - sketch_create: owner_kind (ticket|doc), owner_id, title, path [, source_path]. A new sketch from a local PNG and its .sketch.json. Returns {id, title, version, markdown}: put `markdown` on its own line in a ticket, comment or Docs page.\n    - sketch_save: sketch_id, path, base_version [, source_path, title]. Saves the PNG and source as a new version; base_version is the `version` from docs_read(sketch), a stale one is rejected. Returns {id, title, version}. The PNG is what the text shows, so keep it the flattened picture of the source.\n    - canvas_create: path [, owner_kind (ticket|doc|idea), owner_id, title | canvas_id]. A new canvas, or frames added to canvas_id, from a folder: one sub-folder with an .html page per frame (name order); optional frame.json, canvas.json (see the design guide). Returns {id, markdown, boards}: put `markdown` on its own line in the text.\n    - canvas_comment: canvas_id, body [, board_id, at, thread_id]. Comment under your own name: pin on an element (at) of a frame, the plane, or reply. You never resolve a person's thread.\n    - canvas_update: canvas_id, board_id, path [, note]. Change an HTML frame from a folder (see docs_read(canvas)); files left out stay. A frame a person is editing is locked: try again later.\n    An AI team's change to a page (update, edit) waits as block suggestions for a person (answer: mode, suggestions, left_alone, message) unless the page or team applies directly; blocks locked for teams stay as they are.\n    Link pages with [[Title#Section]] and tickets by key (IAM-12) in the Markdown.",
    "inputSchema": {
     "properties": {
      "action": {
@@ -1803,7 +1817,7 @@
        }
       ],
       "default": null,
-      "description": "create: initial body. update: the FULL new body (not a patch). edit: the new text. In an AI run, a picture may be named by its path in your working folder (![TC-1](qa/evidence/TC-1.png); the file must exist): the board keeps a copy and rewrites it to /uploads/…. So is [a document](a/b.xlsx)."
+      "description": "create: initial body. update: the FULL new page (not a patch), annotated as docs_read(get) gives it. edit: the new text or block(s). In an AI run, a picture may be named by its path in your working folder (![TC-1](qa/evidence/TC-1.png); the file must exist): the board keeps a copy and rewrites it to /uploads/…. So is [a document](a/b.xlsx)."
      },
      "parent_id": {
       "anyOf": [
@@ -2098,6 +2112,18 @@
       "default": null,
       "description": "edit, upload, tickets: exact page text (unique on the page)."
      },
+     "block_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "edit, upload: a block id 'b-xxxxxx' from a marker `<!-- #b-xxxxxx -->` of docs_read(get)."
+     },
      "mode": {
       "anyOf": [
        {
@@ -2106,7 +2132,9 @@
          "append",
          "prepend",
          "before",
-         "after"
+         "after",
+         "delete",
+         "attrs"
         ],
         "type": "string"
        },
@@ -2115,7 +2143,20 @@
        }
       ],
       "default": null,
-      "description": "edit, upload: replace (default; a section keeps its heading unless markdown starts with one), append, prepend (in the section), before, after (a new block); no section/find + append: end of page."
+      "description": "edit, upload: replace (default; a section keeps its heading unless markdown starts with one), append, prepend (in the section), before, after (a new block); no section/find + append: end of page. With block_id: replace (default), after (new blocks), delete, attrs."
+     },
+     "attrs": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "description": "edit (block_id, mode='attrs'): attributes by their marker names, e.g. {\"align\": \"center\"}, {\"placement\": \"floatRight\", \"width\": 40}; null clears one."
      },
      "data": {
       "anyOf": [
@@ -2207,7 +2248,7 @@
        }
       ],
       "default": null,
-      "description": "comment, reply, resolve, reopen: many at once (max 25): one object of parameters per call; the other arguments apply to all. In order; failures are reported per item. edit: [{section | find, markdown, mode}], one version, all or nothing. tickets: drafts [{title, text, type, status, assignee}]."
+      "description": "comment, reply, resolve, reopen: many at once (max 25): one object of parameters per call; the other arguments apply to all. In order; failures are reported per item. edit: [{block_id | section | find, markdown, mode, attrs}], one change, all or nothing. tickets: drafts [{title, text, type, status, assignee}]."
      }
     },
     "required": [

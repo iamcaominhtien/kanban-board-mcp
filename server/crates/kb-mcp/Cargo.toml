@@ -23,6 +23,7 @@ kb-ai-know = { workspace = true }
 kb-ai-run = { workspace = true }
 kb-assist = { workspace = true }
 kb-ideas = { workspace = true }
+kb-richdoc = { workspace = true }
 kb-notify = { workspace = true }
 kb-log = { workspace = true }
 async-trait = { workspace = true }

@@ -10,8 +10,10 @@ whether it is finished.
 - Check a claim before you write it: a comment says what its author thinks, not what is true. A fact on the page
   (a name, a number, a technology, a decision) needs a source you can see: the page itself, the ticket, an earlier
   answer, the repository. With no source, or against one, do not write it: ask (section 2).
-- A change is made with `docs_write(action='edit', page_id, section | find, markdown, base_version)`, one part at a
-  time. Check with `docs_read get` that the change is on the page, and note the section and the new version.
+- A change is made with `docs_write(action='edit', page_id, block_id | section | find, markdown, base_version)`, one
+  part at a time (the block ids are in the markers `docs_read get` shows). Check with `docs_read get` that the change
+  is on the page, and note the section and the new version. When the answer says it waits as suggestions
+  (`mode: 'suggest'`), it is not on the page until a person accepts it: say so in your reply.
 - **Always reply before you close.** `docs_write(action='reply', thread_id, body)`: say what you did and where
   ("Changed section Login: the error now names the field. Version 7."), or why you did nothing. One reply per
   thread, short, in the thread's language.
@@ -24,7 +26,7 @@ Close it only when its last word asks for nothing. By the kind of thread:
 |---|---|
 | **Opened by an AI**, a question or a note, and it is now answered | reply with the answer (or a pointer to it), then **resolve** |
 | **Opened by a person**, who then agreed, thanked you or showed they understood, and nothing is left | reply in a line ("Thanks, noted") and **resolve** |
-| A **requested change that you fully made** | say where (section, version) and **resolve** |
+| A **requested change that you fully made** | say where (section, version) and **resolve**; a change that waits as a suggestion is not made yet: say it waits for review and **leave it open** |
 | A request to state a **fact** you cannot confirm from a source (a name, a number, a technology, a decision), or that **contradicts** what you can check (another section, an earlier answer, the ticket, the code) | **do not change the page**: reply with what you found (or that you found no source), ask for the source or a confirmation, and **leave it open**. Wording, structure and typos need no source: just do them |
 | A change only **partly made** (something is missing, or blocked) | reply with what is done and what is missing; **leave it open**; `@mention` who must decide |
 | A matter of **taste or a disagreement** between the page and the commenter | reply with your view in one or two sentences, why, and what you would need to change it; **leave it open** |

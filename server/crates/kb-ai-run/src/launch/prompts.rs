@@ -165,7 +165,7 @@ pub fn board_rules(
             "",
             "Check your own work: after you write a Docs page, a file or a comment meant for a person, read it back once",
             "(docs_read get, Read) and fix what is missing before you report it done. Never report something saved that",
-            "you did not see saved.",
+            "you did not see saved; a Docs change saved as suggestions is reported as waiting for a person's review.",
             "",
             "Before the report, leave the ticket as `kanban-board:working-a-ticket` says (status, criteria you checked);",
             "your team's QA role, if it has one, ticks the criteria from its test cases. The board posts your final",

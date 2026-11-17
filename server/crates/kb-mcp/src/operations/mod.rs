@@ -8,6 +8,7 @@ pub mod checklists;
 pub mod comments;
 pub mod diagrams;
 pub mod docs;
+pub mod docs_rich;
 pub mod ideas;
 pub mod members;
 pub mod memory;
@@ -34,10 +35,10 @@ pub use diagrams::{
 };
 pub use docs::{
     add_docs_comment, create_docs_page, delete_docs_comment, delete_docs_page, duplicate_docs_page, edit_docs_comment,
-    get_docs_page, get_docs_version, import_docs, link_ticket_doc, list_docs_comments, list_docs_pages,
-    list_docs_recycle_bin, list_docs_versions, move_docs_page, reopen_docs_comment, reply_docs_comment,
-    resolve_docs_comment, resolve_docs_links, restore_docs_page, restore_docs_version, search_docs, unlink_ticket_doc,
-    update_docs_page, upload_file,
+    get_docs_block, get_docs_highlights, get_docs_page, get_docs_version, import_docs, link_ticket_doc,
+    list_docs_comments, list_docs_pages, list_docs_recycle_bin, list_docs_versions, move_docs_page,
+    reopen_docs_comment, reply_docs_comment, resolve_docs_comment, resolve_docs_links, restore_docs_page,
+    restore_docs_version, search_docs, unlink_ticket_doc, update_docs_page, upload_file,
 };
 pub use ideas::{
     create_idea_ticket, get_idea_activity_trail, get_idea_ticket, list_idea_assumptions, list_idea_tickets,

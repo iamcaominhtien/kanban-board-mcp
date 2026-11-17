@@ -19,7 +19,7 @@ use std::path::Path;
 use common::call;
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
-use testkit::{Mcp, Target, normalize, target};
+use testkit::{Mcp, normalize};
 
 const GOLDEN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../contract/golden/mcp_docs_scenario.json");
 
@@ -348,6 +348,19 @@ fn tables(dump: &Value, uploads: Vec<Value>, folders: &[(String, &str)]) -> Map<
             format!("<{}:{}>", &c[1], at + 1)
         })
         .into_owned();
+    // the block ids of the rich pages (`b-` and six hex digits, random), also inside the stored JSON and Markdown
+    let block = regex::Regex::new(r"\bb-[0-9a-f]{6}\b").expect("a pattern");
+    let mut blocks: Vec<String> = Vec::new();
+    let text = block
+        .replace_all(&text, |c: &regex::Captures| {
+            let id = c[0].to_string();
+            let at = blocks.iter().position(|s| *s == id).unwrap_or_else(|| {
+                blocks.push(id.clone());
+                blocks.len() - 1
+            });
+            format!("<bid:{}>", at + 1)
+        })
+        .into_owned();
     normalize(&serde_json::from_str::<Value>(&text).expect("json")).as_object().expect("an object").clone()
 }
 
@@ -382,7 +395,8 @@ async fn docs_worked_through_mcp_leave_the_same_rows_as_python_does() {
     let got = tables(&dump, uploads, &folders);
 
     if std::env::var("KANBAN_WRITE_GOLDEN").is_ok_and(|v| v == "1") {
-        assert_eq!(target(), Target::Python, "the golden file is what the Python server stores");
+        // Since 5.0 the Rust server is the contract (the Python one is gone): a deliberate change is recorded from it,
+        // and the diff of the golden file is reviewed like code.
         std::fs::write(GOLDEN, serde_json::to_string_pretty(&got).expect("json") + "\n")
             .expect("write the golden file");
     }

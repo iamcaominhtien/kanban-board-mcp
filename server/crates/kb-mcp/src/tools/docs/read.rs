@@ -32,6 +32,22 @@ pub const DOCS_READ_OPS: &[(&str, Op)] = &[
         ),
     ),
     (
+        "block",
+        Op::new(
+            |a| Box::pin(async move { ops::get_docs_block(&arg_text(&a, "page_id"), &arg_text(&a, "block_id")).await }),
+            &["page_id", "block_id"],
+            &[],
+        ),
+    ),
+    (
+        "highlights",
+        Op::new(
+            |a| Box::pin(async move { ops::get_docs_highlights(&arg_text(&a, "page_id")).await }),
+            &["page_id"],
+            &[],
+        ),
+    ),
+    (
         "search",
         Op::new(
             |a| {
@@ -208,9 +224,10 @@ pub const DOCS_READ_OPS: &[(&str, Op)] = &[
     ("docs_guide", Op::new(|_| Box::pin(async move { ops::docs_guide().await }), &[], &[])),
 ];
 
-/// Read a project's Docs: a tree of Markdown pages. `action`: list, get, search, versions, version, recycle_bin,
-/// check_links, comments, diagrams, diagram, sketches, sketch, canvases, canvas, design_guide, diagram_guide,
-/// picture, guides, role_guide, ticket_guide, docs_guide (the tool's description says what each takes).
+/// Read a project's Docs: a tree of rich pages, read as Markdown with a block id before each block. `action`: list,
+/// get, block, highlights, search, versions, version, recycle_bin, check_links, comments, diagrams, diagram,
+/// sketches, sketch, canvases, canvas, design_guide, diagram_guide, picture, guides, role_guide, ticket_guide,
+/// docs_guide (the tool's description says what each takes).
 pub async fn docs_read(args: Map<String, Value>) -> ToolResult {
     super::super::checked_read("docs_read", args, |a| {
         Box::pin(async move {
