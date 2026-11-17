@@ -284,14 +284,17 @@ export default {
       if (r.status >= 300) throw new Error(`DELETE of the last project answered ${r.status}`);
       // The page still holds the deleted project as the active one (localStorage). It used to ask for its data after
       // the reload (members, AI teams, Docs tree… all 404); now nothing asks for a project that is not in the list.
+      // Only what the reloaded page asks for counts: the open page may still refetch once when the delete event
+      // arrives (the page was showing that project), so let that settle before listening.
+      await s.settle();
       const gone = [];
-      const onResponse = (res) => { if (res.url().includes(`/projects/${pid}`)) gone.push(`${res.status()} ${new URL(res.url()).pathname}`); };
-      p.on('response', onResponse);
+      const onRequest = (req) => { if (req.url().includes(`/projects/${pid}`)) gone.push(new URL(req.url()).pathname); };
+      p.on('request', onRequest);
       await p.reload();
       await p.getByRole('heading', { name: 'Create your first project' }).waitFor({ timeout: 15000 });
       await s.settle();
-      p.off('response', onResponse);
-      if (gone.length) throw new Error(`the page asked for the deleted project: ${gone.join(', ')}`);
+      p.off('request', onRequest);
+      if (gone.length) throw new Error(`the reloaded page asked for the deleted project: ${gone.join(', ')}`);
       if ((await api('GET', '/projects')).body.length !== 0) throw new Error('no project should be left');
     });
   },
