@@ -19,6 +19,8 @@ import { PlainRefsCtx } from './readerParts';
 import { applyReaderLook, readerClass, readerThemeCss, readerVars, useReaderPrefs } from './readerPrefs';
 import { AaGlyph, ReaderSettingsPanel, ReaderSettingsPopover } from './ReaderSettings';
 import { RichDocView } from './RichDocView';
+import { useScrollProgress } from './headerActions';
+import { useWideBlocks } from './wideBlocks';
 import './docs.css';
 import './reader.css';
 
@@ -114,6 +116,11 @@ export function PublicPageApp({ token }: { token: string }) {
 
 function PublicPageView({ page }: { page: PublicPage }) {
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
+  const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
+  const readPct = useScrollProgress(scrollEl);
+  // a table wider than the column scrolls in its own box and says so (Reader boards, I)
+  const [bodyEl, setBodyEl] = useState<HTMLElement | null>(null);
+  useWideBlocks(bodyEl, page);
   const layout = useDocsLayout(rootEl);
   const [prefs, setPrefs] = useReaderPrefs();
   const [readerOpen, setReaderOpen] = useState(false);
@@ -145,19 +152,36 @@ function PublicPageView({ page }: { page: PublicPage }) {
       <style>{readerThemeCss()}</style>
       <header className="dk-public-bar">
         {!phone && (
-          <span className="dk-public-brand">
-            {page.project ?? 'Kanban'}
-            <span>· Docs</span>
-          </span>
+          <>
+            <PublicMark />
+            <span className="dk-public-brand">
+              {page.project ?? 'Kanban'}
+              <span>· Docs</span>
+            </span>
+          </>
         )}
         <span className="dk-public-pill" data-testid="public-pill">
+          <svg
+            aria-hidden="true"
+            width={11}
+            height={11}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.4}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+          </svg>
           Public page
         </span>
         {!phone && date && <span className="dk-public-date">Published {date}</span>}
         <span style={{ marginLeft: 'auto', position: 'relative' }} data-popover>
           <button
             type="button"
-            className="dk-icobtn dk-bar-ico"
+            className="dk-icobtn dk-public-ico"
             aria-label="Reading settings"
             title="Reading settings"
             aria-expanded={readerOpen}
@@ -176,13 +200,24 @@ function PublicPageView({ page }: { page: PublicPage }) {
           )}
         </span>
       </header>
+      <div
+        className="dk-progress dk-public-progress"
+        role="progressbar"
+        aria-label="Reading progress"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(readPct)}
+      >
+        <i style={{ width: `${readPct}%` }} />
+      </div>
       <div className="dk-public-row">
         <div
+          ref={setScrollEl}
           className={`dk-page-scroll ${lookClass(look)} ${readerClass(prefs)}`}
           style={{ ...lookVars(look, layout), ...readerVars(prefs) }}
           data-testid="public-scroll"
         >
-          <article className="dk-doc-col">
+          <article className="dk-doc-col" ref={setBodyEl}>
             <PageHeader
               look={look}
               byline={
@@ -213,12 +248,24 @@ function PublicPageView({ page }: { page: PublicPage }) {
                 )}
               </div>
             )}
-            <div className="dk-doc-rule" />
+            <div style={{ height: 8 }} />
             <PlainRefsCtx.Provider value>
               <RichDocView doc={doc} projectId="" />
             </PlainRefsCtx.Provider>
             <footer className="dk-public-foot" data-testid="public-footer">
-              <span>{page.project ? `Public page from ${page.project}` : 'Public page'} · read only</span>
+              <span className="dk-public-from">
+                <PublicMark />
+                <span>
+                  {page.project ? (
+                    <>
+                      Public page from <b>{page.project}</b>
+                    </>
+                  ) : (
+                    'Public page'
+                  )}{' '}
+                  · read only
+                </span>
+              </span>
               <button type="button" className="dk-public-link" onClick={() => void copyLink()}>
                 {note === 'copied' ? 'Link copied' : 'Copy link'}
               </button>
@@ -237,20 +284,45 @@ function PublicPageView({ page }: { page: PublicPage }) {
         {outline && (
           <nav aria-label="On this page" className="dk-toc dk-public-toc">
             <span className="dk-toc-head">On this page</span>
-            {headings.map((h) => (
-              <a
-                key={h.id}
-                href={`#${h.id}`}
-                className="dk-toc-link"
-                style={{ paddingLeft: 12 + (h.level - 2) * 12 }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
+            <div className="dk-toc-list">
+              {headings.map((h) => (
+                <a
+                  key={h.id}
+                  href={`#${h.id}`}
+                  className="dk-toc-link"
+                  style={{ paddingLeft: 14 + (h.level - 2) * 12 }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                >
+                  {h.text}
+                </a>
+              ))}
+            </div>
+            <div className="dk-toc-foot">
+              <span>{Math.max(1, Math.round(minutes * (1 - readPct / 100)))} min left</span>
+              <button
+                type="button"
+                className="dk-toc-top"
+                onClick={() => scrollEl?.scrollTo({ top: 0, behavior: 'smooth' })}
               >
-                {h.text}
-              </a>
-            ))}
+                <svg
+                  aria-hidden="true"
+                  width={12}
+                  height={12}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2.2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 19V5M6 11l6-6 6 6" />
+                </svg>
+                Back to top
+              </button>
+            </div>
           </nav>
         )}
       </div>
@@ -260,5 +332,17 @@ function PublicPageView({ page }: { page: PublicPage }) {
         </BottomSheet>
       )}
     </div>
+  );
+}
+
+/** The board's mark: a 22 px green square with a small white board in it. */
+function PublicMark() {
+  return (
+    <span className="dk-public-mark" aria-hidden="true">
+      <span>
+        <i style={{ width: '60%' }} />
+        <i style={{ width: '85%' }} />
+      </span>
+    </span>
   );
 }

@@ -55,7 +55,7 @@ export function SelectionBar({
       <div className="tr-selbar-actions">
         {!readOnly && (
           <button type="button" className="tr-selbtn" disabled={none} onClick={onMove} data-testid="bulk-move">
-            <Icon name="i35" size={14} strokeWidth={1.9} />
+            <Icon name="i35" size={17} strokeWidth={1.9} />
             Move
           </button>
         )}
@@ -67,7 +67,7 @@ export function SelectionBar({
             onClick={onDuplicate}
             data-testid="bulk-duplicate"
           >
-            <Icon name="i24" size={14} strokeWidth={1.9} />
+            <Icon name="i24" size={17} strokeWidth={1.9} />
             Duplicate
           </button>
         )}
@@ -79,7 +79,7 @@ export function SelectionBar({
           title="Export as a book"
           data-testid="bulk-export"
         >
-          <Icon name="i43" size={14} strokeWidth={1.9} />
+          <Icon name="i43" size={17} strokeWidth={1.9} />
           Export
         </button>
         {!readOnly && (
@@ -90,7 +90,7 @@ export function SelectionBar({
             onClick={onDelete}
             data-testid="bulk-delete"
           >
-            <Icon name="i12" size={14} strokeWidth={1.9} />
+            <Icon name="i12" size={17} strokeWidth={1.9} />
             Delete
           </button>
         )}

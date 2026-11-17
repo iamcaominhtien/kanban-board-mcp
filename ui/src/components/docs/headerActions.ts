@@ -59,3 +59,32 @@ export function useElementWidth(el: HTMLElement | null): number {
   }, [el]);
   return width;
 }
+
+/**
+ * How far an element is scrolled, 0 to 100, kept up to date (the reading progress bar under a page's bar).
+ * @param el - The scrolling element, or `null` while it is not mounted.
+ * @param resetKey - A value whose change measures again (the page shown).
+ * @returns 0 while the element does not scroll.
+ */
+export function useScrollProgress(el: HTMLElement | null, resetKey?: unknown): number {
+  const [pct, setPct] = useState(0);
+  useEffect(() => {
+    if (!el) return;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const room = el.scrollHeight - el.clientHeight;
+      setPct(room > 0 ? Math.min(100, Math.max(0, (el.scrollTop / room) * 100)) : 0);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    measure();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [el, resetKey]);
+  return pct;
+}

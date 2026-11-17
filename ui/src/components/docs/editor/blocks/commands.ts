@@ -342,7 +342,7 @@ export const RULE_STYLES = [
   { value: 'thick', label: 'Thick line', hint: 'A strong break' },
   { value: 'double', label: 'Double line', hint: 'A formal break' },
   { value: 'short', label: 'Short rule', hint: 'Under a title or between paragraphs' },
-  { value: 'wave', label: 'Dashed', hint: 'A light break' },
+  { value: 'wave', label: 'Dotted', hint: 'A light break' },
   { value: 'stars', label: 'Three stars', hint: 'Scene break in a story' },
   { value: 'dots', label: 'Three dots', hint: 'A quiet scene break' },
   { value: 'fleuron', label: 'Ornament', hint: 'Chapter end in a book' },

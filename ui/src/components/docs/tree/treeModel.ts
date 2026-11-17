@@ -256,17 +256,35 @@ export type RowStatusKey = 'published' | 'draft' | 'changed' | 'outdated' | 'rev
 export interface RowStatus {
   key: RowStatusKey;
   label: string;
+  /** The dot's colour (for "may be outdated", the colour of its ring). */
   color: string;
 }
 
+/** The colours of a status pill (hover card, recent list): background, text and border. */
+export interface StatusTone {
+  bg: string;
+  fg: string;
+  border: string;
+}
+
+/** The status pills of the boards (organising pages, A 5 and B 12): green, blue, amber, purple. */
+export const STATUS_TONE: Record<RowStatusKey, StatusTone> = {
+  published: { bg: '#E6F2EA', fg: '#1F5A31', border: '#CFE6D6' },
+  final: { bg: '#E6F2EA', fg: '#1F5A31', border: '#CFE6D6' },
+  changed: { bg: '#E8F1FA', fg: '#244E78', border: '#C9DDF0' },
+  draft: { bg: '#FDF3E3', fg: '#8A5A00', border: '#EBD3A4' },
+  outdated: { bg: '#FDF3E3', fg: '#8A5A00', border: '#EBD3A4' },
+  review: { bg: '#EFE9FB', fg: '#5B3FA8', border: '#DCD0F4' },
+};
+
 /** The status of a row: draft, unpublished changes, may be outdated or in review stand out; published is quiet. */
 export function rowStatus(n: DocsTreeNode, now: Date): RowStatus {
-  if (n.status === 'draft' || n.version < 1) return { key: 'draft', label: 'Draft', color: '#B4791E' };
+  if (n.status === 'draft' || n.version < 1) return { key: 'draft', label: 'Draft', color: '#C98A1B' };
   if (n.hasDraft) return { key: 'changed', label: 'Unpublished changes', color: '#2F6FB0' };
-  if (isOutdated(n, now)) return { key: 'outdated', label: 'May be outdated', color: '#C2410C' };
+  if (isOutdated(n, now)) return { key: 'outdated', label: 'May be outdated', color: '#C98A1B' };
   if (n.pageStatus === 'in-review') return { key: 'review', label: 'In review', color: '#7A5AB8' };
   if (n.pageStatus === 'final') return { key: 'final', label: 'Final', color: '#2E6F40' };
-  return { key: 'published', label: 'Published', color: '#8DC09C' };
+  return { key: 'published', label: 'Published', color: '#2E6F40' };
 }
 
 /** A page icon: an emoji, one of the app's line icons (`icon:<name>`) or an uploaded picture. */

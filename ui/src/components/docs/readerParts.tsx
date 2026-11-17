@@ -189,7 +189,7 @@ export function Checkbox({ checked }: { checked: boolean }) {
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        marginTop: 3,
+        marginTop: 5,
         color: '#FFFFFF',
       }}
     >
@@ -203,11 +203,11 @@ export function Checkbox({ checked }: { checked: boolean }) {
         width: 16,
         height: 16,
         borderRadius: 4,
-        border: '1.5px solid #C7D2CB',
+        border: '1.5px solid #9AA8A0',
         background: '#FFFFFF',
         boxSizing: 'border-box',
         flexShrink: 0,
-        marginTop: 3,
+        marginTop: 5,
       }}
     />
   );

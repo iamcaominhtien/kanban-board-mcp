@@ -449,11 +449,11 @@ export function DocsEditScreen({
       {saveState === 'saving' || saveState === 'dirty' ? (
         <span className="mc-spin" />
       ) : saveState === 'saved' ? (
-        <Icon name="i17" size={14} />
+        <Icon name="check" size={13} strokeWidth={2.4} />
       ) : null}
       {saveLabel}
       {saveState === 'saved' && savedAt && (
-        <span style={{ fontWeight: 500, color: '#9AA8A0' }}>
+        <span style={{ fontWeight: 500, color: '#5B6B60' }}>
           {savedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
         </span>
       )}
@@ -483,17 +483,21 @@ export function DocsEditScreen({
       >
         {phone ? (
           <header className="dk-edit-head dk-edit-head-phone" data-testid="edit-header">
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1, paddingLeft: 2 }}>
               <span className="dk-edit-title">{title || 'Untitled'}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#7A4F08' }}>
+              <span className="dk-edit-sub">
+                <span className="dk-edit-sub-dot" aria-hidden="true" />
                 <span>Draft</span>
-                <span aria-hidden="true">·</span>
+                <span aria-hidden="true" style={{ color: '#C7D2CB' }}>
+                  ·
+                </span>
                 {saveStatus}
               </span>
             </div>
             <button
               type="button"
               className="st-btn st-btn-primary"
+              style={{ height: 40, boxSizing: 'border-box', margin: '0 2px' }}
               disabled={Boolean(conflict) || !online}
               onClick={openPublish}
               data-testid="publish"
@@ -521,28 +525,29 @@ export function DocsEditScreen({
               alignItems: 'center',
               gap: 12,
               height: 56,
-              padding: '0 24px',
-              borderBottom: '1px solid #E3E8E5',
+              padding: '0 20px',
+              borderBottom: '1px solid #F0F3F1',
               background: '#FFFFFF',
               flexShrink: 0,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, overflow: 'hidden' }}>
+              <Icon name="folder" size={14} strokeWidth={1.7} style={{ color: '#7A8A80', flexShrink: 0 }} />
               {projectName && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 500, color: '#5B6B60' }}>{projectName}</span>
-                  <Icon name="i05" size={12} style={{ color: '#9AA8A0' }} />
+                  <span style={{ fontSize: 13, color: '#5B6B60' }}>{projectName}</span>
+                  <Icon name="i05" size={11} strokeWidth={2} style={{ color: '#9AA8A0' }} />
                 </span>
               )}
               {page.path.map((p) => (
                 <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 500, color: '#5B6B60' }}>{p.title}</span>
-                  <Icon name="i05" size={12} style={{ color: '#9AA8A0' }} />
+                  <span style={{ fontSize: 13, color: '#5B6B60' }}>{p.title}</span>
+                  <Icon name="i05" size={11} strokeWidth={2} style={{ color: '#9AA8A0' }} />
                 </span>
               ))}
               <span
                 style={{
-                  fontSize: 12.5,
+                  fontSize: 13,
                   fontWeight: 700,
                   color: '#1E2A22',
                   whiteSpace: 'nowrap',
@@ -553,8 +558,11 @@ export function DocsEditScreen({
                 {title || 'Untitled'}
               </span>
             </div>
-            <span className="mc-chip" style={{ background: '#FCEFD9', color: '#7A4F08' }}>
-              <span className="mc-dot" style={{ background: '#B4791E' }} />
+            <span
+              className="mc-chip"
+              style={{ height: 24, padding: '0 10px', fontSize: 11.5, background: '#FDF3E3', color: '#8A5A00' }}
+            >
+              <span className="mc-dot" style={{ width: 6, height: 6, background: '#8A5A00' }} />
               {page.version === 0 ? 'Draft' : `Draft · based on v${baseVersion}`}
             </span>
             <div style={{ flex: 1 }} />

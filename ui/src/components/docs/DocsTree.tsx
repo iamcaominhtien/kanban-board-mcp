@@ -6,7 +6,8 @@ import { Icon } from './Icon';
 import { TreeEmpty } from './DocsStates';
 import { NoMatch } from './tree/PageViews';
 import { SelectionBar } from './tree/SelectionBar';
-import { FilterButton, FilterChips, ViewMenu } from './tree/TreeToolbar';
+import { FilterButton, FilterChips, ViewSwitch } from './tree/TreeToolbar';
+import { BoardIcon } from './tree/boardIcons';
 import {
   activeFilterCount,
   affectedPages,
@@ -26,8 +27,7 @@ import {
   type TreeSort,
   type TreeView,
 } from './tree/treeModel';
-import { ConvertMark, HoverCard, PageIcon, StatusDot, useHoverCard } from './tree/treeParts';
-import { SuggestionMarker } from './suggestions/extras';
+import { BookTag, ConvertMark, HoverCard, PageIcon, StatusDot, SuggestionCount, useHoverCard } from './tree/treeParts';
 
 interface Props {
   projectId: string;
@@ -75,7 +75,8 @@ interface Props {
   healthCount?: number;
   /** The Docs area's layout: hover cards on a desktop; long-press drag and the reorder mode on touch. */
   layout?: DocsLayout;
-  /** Tree, Gallery or Recent (the switch in the header) and the sort of the last two; no switch when absent. */
+  /** Tree, Gallery or Recent (the switch in the header); no switch when absent. The sort of the last two is kept
+   * here for the views beside the tree (their own Sort menu), the tree itself does not read it. */
   view?: TreeView;
   onViewChange?: (v: TreeView) => void;
   sort?: TreeSort;
@@ -104,11 +105,12 @@ interface Drop {
   nestReady: boolean;
 }
 
-const INDENT = 20;
+/** Indent per level, in px (organising pages: rows at 6, 24, 42 …). */
+const INDENT = 18;
 const WIDTH_KEY = 'docsTreeWidth';
 const WIDTH_MIN = 220;
 const WIDTH_MAX = 520;
-const WIDTH_DEFAULT = 280;
+const WIDTH_DEFAULT = 272;
 
 function maxWidth() {
   return Math.max(WIDTH_MIN, Math.min(WIDTH_MAX, window.innerWidth - 80));
@@ -189,7 +191,18 @@ function ResizeHandle({ width, onChange }: { width: number; onChange: (w: number
 }
 
 /** Page title that ends in an ellipsis; shows the full title in a tooltip right away, only when it is cut off. */
-function TitleTip({ title, suppressed, children }: { title: string; suppressed: boolean; children: ReactNode }) {
+function TitleTip({
+  title,
+  suppressed,
+  book,
+  children,
+}: {
+  title: string;
+  suppressed: boolean;
+  /** A book's title is drawn a little stronger (600, the ink colour). */
+  book?: boolean;
+  children: ReactNode;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
 
@@ -203,7 +216,7 @@ function TitleTip({ title, suppressed, children }: { title: string; suppressed: 
   return (
     <span
       ref={ref}
-      style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+      className={`tr-title${book ? ' tr-row-book' : ''}`}
       onMouseEnter={show}
       onMouseLeave={() => setPos(null)}
       onPointerDown={() => setPos(null)}
@@ -298,8 +311,6 @@ export function DocsTree({
   layout = 'desktop',
   view = 'tree',
   onViewChange,
-  sort = 'edited',
-  onSortChange,
   filters = NO_FILTERS,
   onFiltersChange,
   me = '',
@@ -733,34 +744,36 @@ export function DocsTree({
   }
 
   function indicator(depth: number) {
+    // a 3 px line where the page lands, starting at that level's icon, with a ring at its start (C 18)
     return (
       <div
         aria-hidden="true"
         data-testid="drop-line"
-        style={{ position: 'relative', height: 0, margin: `0 4px 0 ${16 + depth * INDENT}px`, zIndex: 3 }}
+        style={{ position: 'relative', height: 0, margin: `0 8px 0 ${30 + depth * INDENT}px`, zIndex: 6 }}
       >
         <div
           style={{
             position: 'absolute',
             left: 0,
             right: 0,
-            top: -1,
-            height: 2,
-            borderRadius: 1,
+            top: -1.5,
+            height: 3,
+            borderRadius: 2,
             background: '#2E6F40',
           }}
         />
         <div
           style={{
             position: 'absolute',
-            left: -3,
-            top: -4,
-            width: 8,
-            height: 8,
+            left: -6,
+            top: -4.5,
+            width: 9,
+            height: 9,
             borderRadius: '50%',
             background: '#FFFFFF',
-            border: '2px solid #2E6F40',
+            border: '2.5px solid #2E6F40',
             boxSizing: 'border-box',
+            zIndex: 7,
           }}
         />
       </div>
@@ -788,9 +801,10 @@ export function DocsTree({
             if (el) rowEls.current.set(n.id, el);
             else rowEls.current.delete(n.id);
           }}
-          className={`dk-tree-row${active ? ' dk-tree-active' : ''}${isDrag ? ' dk-row-dim' : ''}${nesting ? ' dk-row-nest' : ''}${menu?.id === n.id ? ' dk-tree-hover' : ''}${pickedHere || follows ? ' tr-row-picked' : ''}${lifted ? ' tr-row-lifted' : ''}`}
+          className={`dk-tree-row${active ? ' dk-tree-active' : ''}${isDrag ? ' dk-row-dim' : ''}${nesting ? ' dk-row-nest' : ''}${menu?.id === n.id ? ' dk-tree-hover' : ''}${pickedHere || follows ? ' tr-row-picked' : ''}${lifted ? ' tr-row-lifted' : ''}${chapter ? ' tr-row-chapter' : ''}`}
           style={{
-            opacity: r.dim && !isDrag ? 0.6 : undefined,
+            paddingLeft: 6 + r.depth * INDENT,
+            opacity: r.dim && !isDrag ? 0.5 : undefined,
             // touch scrolls the tree; a long press lifts the row (then the finger moves it)
             touchAction: touch ? 'pan-y' : 'none',
             userSelect: 'none',
@@ -905,35 +919,20 @@ export function DocsTree({
           >
             <Icon name="grip" size={14} strokeWidth={1.8} />
           </span>
-          {Array.from({ length: r.depth }).map((_, i) => (
-            <span key={i} style={{ width: 16, flexShrink: 0 }} />
-          ))}
           {r.hasChildren ? (
             <button
               type="button"
+              className="tr-chev"
               aria-label={r.open ? 'Collapse' : 'Expand'}
               onClick={(e) => {
                 e.stopPropagation();
                 toggle(n.id);
               }}
-              style={{
-                width: 16,
-                height: 16,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#5B6B60',
-                flexShrink: 0,
-                border: 'none',
-                background: 'none',
-                padding: 0,
-                cursor: 'pointer',
-              }}
             >
-              <Icon name={r.open ? 'chevronDown' : 'chevronRight'} size={12} strokeWidth={2.3} />
+              <BoardIcon name={r.open ? 'chevronDown' : 'chevronRight'} size={13} strokeWidth={2.2} />
             </button>
           ) : (
-            <span style={{ width: 16, flexShrink: 0 }} />
+            <span className="tr-chev" aria-hidden="true" />
           )}
           {selectMode && (
             <span
@@ -944,10 +943,10 @@ export function DocsTree({
               aria-label={follows ? `${n.title} comes with its parent` : `Select ${n.title}`}
               data-testid={`tree-check-${n.slug}`}
             >
-              {(pickedHere || follows) && <Icon name="check" size={11} strokeWidth={3} />}
+              {(pickedHere || follows) && <BoardIcon name="check" size={12} strokeWidth={3.2} />}
             </span>
           )}
-          <PageIcon icon={n.icon} kind={n.kind} active={active} />
+          <PageIcon icon={n.icon} kind={n.kind} active={active} size={touch ? 18 : 16} />
           {renaming ? (
             <RenameInput
               initial={n.title}
@@ -959,6 +958,7 @@ export function DocsTree({
             />
           ) : (
             <TitleTip
+              book={book}
               title={chapter ? `${chapter}. ${n.title}` : n.title}
               suppressed={!!drag || menu?.id === n.id || hover.shown?.id === n.id}
             >
@@ -967,16 +967,10 @@ export function DocsTree({
             </TitleTip>
           )}
           {!renaming && <ConvertMark state={n.convertState} />}
+          {!renaming && <SuggestionCount count={n.suggestions} />}
+          {!renaming && book && <BookTag />}
           {!renaming && <StatusDot status={status} />}
-          {!renaming && book && (
-            <span className="tr-tag tr-tag-book" aria-hidden="true">
-              Book
-            </span>
-          )}
-          {!renaming && <SuggestionMarker count={n.suggestions} />}
-          {!renaming && r.hasChildren && !r.open && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9AA8A0' }}>{r.childCount}</span>
-          )}
+          {!renaming && r.hasChildren && !r.open && <span className="tr-kids">{r.childCount}</span>}
           {!renaming && (movingId === n.id || loadingId === n.id) && (
             <span
               className="mc-spin"
@@ -992,14 +986,14 @@ export function DocsTree({
                   type="button"
                   title="Add child page"
                   aria-label={`Add child page under ${n.title}`}
+                  data-add-child=""
                   onClick={(e) => {
                     e.stopPropagation();
                     onNewPage(n.id);
                   }}
                   className="dk-icobtn"
-                  style={{ width: 22, height: 22, borderRadius: 5 }}
                 >
-                  <Icon name="plus" size={14} strokeWidth={2} />
+                  <BoardIcon name="plus" size={14} strokeWidth={1.9} />
                 </button>
               )}
               <button
@@ -1007,6 +1001,8 @@ export function DocsTree({
                 title="More"
                 aria-label={`Page actions for ${n.title}`}
                 data-testid={`tree-more-${n.slug}`}
+                aria-haspopup="menu"
+                aria-expanded={menu?.id === n.id}
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1014,9 +1010,8 @@ export function DocsTree({
                   setMenu((m) => (m?.id === n.id ? null : { id: n.id, left: rect.right, top: rect.bottom - 6 }));
                 }}
                 className="dk-icobtn"
-                style={{ width: 22, height: 22, borderRadius: 5 }}
               >
-                <Icon name="more" size={14} strokeWidth={1.8} />
+                <BoardIcon name="more" size={touch ? 18 : 15} strokeWidth={2} />
               </button>
             </span>
           )}
@@ -1110,59 +1105,27 @@ export function DocsTree({
       }}
     >
       <ResizeHandle width={width} onChange={setWidth} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 12px 8px 14px' }}>
+      <div className="tr-head">
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: '#5B6B60',
-            }}
-          >
-            Docs space
-          </span>
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: 700,
-              color: '#1E2A22',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <span style={{ fontWeight: 500, color: '#5B6B60' }}>Space:</span> {projectName}
+          <span className="tr-head-eyebrow">Docs space</span>
+          <span className="tr-head-name">
+            <span>Space:</span> {projectName}
           </span>
         </div>
         {headerActions}
         {headerExtra}
         <button
           type="button"
-          className="dk-icobtn"
+          className="tr-headbtn"
           aria-label="Collapse page tree"
           title="Collapse tree"
           onClick={onCollapse}
         >
-          <Icon name="i16" size={16} strokeWidth={1.9} />
+          <BoardIcon name="collapse" size={touch ? 18 : 16} strokeWidth={1.9} />
         </button>
       </div>
-      <div
-        style={{
-          margin: q ? '0 10px 6px' : '0 10px 8px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 7,
-          padding: '6px 10px',
-          borderRadius: 8,
-          border: '1px solid #E3E8E5',
-          background: '#FFFFFF',
-          ...(filterFocus ? { borderColor: '#2E6F40', boxShadow: '0 0 0 3px rgba(46,111,64,0.18)' } : null),
-        }}
-        onClick={() => filterRef.current?.focus()}
-      >
-        <Icon name="search" size={13} strokeWidth={2} style={{ color: filterFocus ? '#2E6F40' : '#9AA8A0' }} />
+      <div className={`tr-search${filterFocus ? ' tr-search-on' : ''}`} onClick={() => filterRef.current?.focus()}>
+        <BoardIcon name="search" size={14} strokeWidth={2} color={filterFocus ? '#2E6F40' : '#5B6B60'} />
         <input
           ref={filterRef}
           value={filter}
@@ -1177,74 +1140,27 @@ export function DocsTree({
           }}
           placeholder="Search pages…"
           aria-label="Filter pages"
-          style={{
-            flex: 1,
-            minWidth: 0,
-            border: 'none',
-            outline: 'none',
-            background: 'none',
-            padding: 0,
-            font: 'inherit',
-            fontSize: 12.5,
-            color: '#1E2A22',
-          }}
         />
         {q ? (
           <button
             type="button"
+            className="tr-search-clear"
             title="Clear filter"
             aria-label="Clear filter"
             onClick={() => {
               setFilter('');
               filterRef.current?.focus();
             }}
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: '50%',
-              background: '#E3E8E5',
-              color: '#5B6B60',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-            }}
           >
-            <Icon name="close" size={11} strokeWidth={2.4} />
+            <BoardIcon name="close" size={11} strokeWidth={2.4} />
           </button>
         ) : (
-          <span className="dk-kbd">/</span>
+          !touch && <span className="dk-kbd">/</span>
         )}
       </div>
-      {(onViewChange || onFiltersChange) && (
+      {(onViewChange || onFiltersChange || onBulk) && (
         <div className="tr-toolbar">
-          {onViewChange && (
-            <ViewMenu
-              view={view}
-              sort={sort}
-              onView={onViewChange}
-              onSort={(v) => onSortChange?.(v)}
-              onSelectMode={
-                onBulk
-                  ? () => {
-                      setReorder(false);
-                      setSelectMode(true);
-                    }
-                  : undefined
-              }
-              onReorderMode={
-                !readOnly
-                  ? () => {
-                      endSelect();
-                      setReorder(true);
-                    }
-                  : undefined
-              }
-            />
-          )}
+          {onViewChange && <ViewSwitch view={view} onView={onViewChange} />}
           {onFiltersChange && (
             <FilterButton
               layout={layout}
@@ -1253,6 +1169,47 @@ export function DocsTree({
               shown={filterShown}
               onChange={onFiltersChange}
             />
+          )}
+          <span className="tr-toolbar-gap" />
+          {touch && !readOnly && (
+            <button
+              type="button"
+              className={`tr-tool tr-tool-sq${reorder ? ' tr-tool-on' : ''}`}
+              aria-label="Reorder pages"
+              aria-pressed={reorder}
+              title="Reorder pages"
+              data-testid="tree-reorder-mode"
+              onClick={() => {
+                if (reorder) {
+                  setReorder(false);
+                  setReorderId(null);
+                } else {
+                  endSelect();
+                  setReorder(true);
+                }
+              }}
+            >
+              <BoardIcon name="grip" size={16} strokeWidth={1.9} />
+            </button>
+          )}
+          {onBulk && (
+            <button
+              type="button"
+              className={`tr-tool tr-tool-sq${selectMode ? ' tr-tool-on' : ''}`}
+              aria-label="Select pages"
+              aria-pressed={selectMode}
+              title="Select pages"
+              data-testid="tree-select-mode"
+              onClick={() => {
+                if (selectMode) endSelect();
+                else {
+                  setReorder(false);
+                  setSelectMode(true);
+                }
+              }}
+            >
+              <BoardIcon name="select" size={16} strokeWidth={1.9} />
+            </button>
           )}
         </div>
       )}
@@ -1285,28 +1242,26 @@ export function DocsTree({
         </div>
       )}
       {aiOn && (
-        <div
-          style={{ padding: '0 10px 6px', display: 'flex', flexDirection: 'column', gap: 4 }}
-          data-testid="docs-ai-rows"
-        >
-          <button type="button" className="dk-tree-airow is-ask" onClick={onAskDocs} data-testid="tree-ask-docs">
-            <Icon name="comment" size={14} strokeWidth={1.9} />
-            <span style={{ flex: 1, textAlign: 'left' }}>Ask the docs</span>
+        <div className="tr-airows" data-testid="docs-ai-rows">
+          <button type="button" className="tr-airow" onClick={onAskDocs} data-testid="tree-ask-docs">
+            <BoardIcon name="spark" size={15} strokeWidth={2} color="#5B3FA8" />
+            <span style={{ flex: 1 }}>Ask the docs</span>
           </button>
           <button
             type="button"
-            className="dk-tree-airow"
+            className="tr-airow"
             aria-current={healthActive ? 'page' : undefined}
             onClick={onHealth}
             data-testid="tree-docs-health"
           >
-            <Icon name="check" size={14} strokeWidth={1.9} />
-            <span style={{ flex: 1, textAlign: 'left' }}>Docs health</span>
-            {!!healthCount && <span className="dk-tree-count">{healthCount}</span>}
+            <BoardIcon name="shield" size={15} strokeWidth={2} color="#2E6F40" />
+            <span style={{ flex: 1 }}>Docs health</span>
+            {!!healthCount && <span className="tr-airow-count">{healthCount}</span>}
           </button>
+          <div className="tr-airows-rule" />
         </div>
       )}
-      <div ref={bodyRef} role="tree" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+      <div ref={bodyRef} role="tree" className="tr-body">
         {nodes.length === 0 ? (
           <TreeEmpty />
         ) : filtering && rows.length === 0 ? (
@@ -1318,64 +1273,24 @@ export function DocsTree({
             }}
           />
         ) : q && rows.length === 0 ? (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 8,
-              padding: '34px 22px 0',
-              textAlign: 'center',
-            }}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                background: '#F1F3F1',
-                color: '#7A8A80',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Icon name="search" size={20} strokeWidth={1.8} />
-            </div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: '#1E2A22' }}>No pages match “{q}”</div>
-            <div style={{ fontSize: 12, lineHeight: 1.5, color: '#5B6B60' }}>
+          <div className="tr-nomatch" role="status">
+            <span className="tr-nomatch-ico">
+              <BoardIcon name="search" size={18} strokeWidth={1.8} />
+            </span>
+            <div className="tr-nomatch-title">No pages match “{q}”</div>
+            <div className="tr-nomatch-text">
               Only page titles are filtered here. Search the text inside pages instead.
             </div>
-            <button
-              type="button"
-              className="st-btn st-btn-sm"
-              style={{ marginTop: 4 }}
-              onClick={() => onOpenSearch?.(q)}
-            >
-              <Icon name="search" size={13} strokeWidth={2} />
+            <button type="button" className="st-btn" onClick={() => onOpenSearch?.(q)}>
+              <BoardIcon name="search" size={14} strokeWidth={2} />
               Search page content
             </button>
-            <button
-              type="button"
-              onClick={() => setFilter('')}
-              style={{
-                border: 'none',
-                background: 'none',
-                fontSize: 12,
-                fontWeight: 600,
-                color: '#2E6F40',
-                cursor: 'pointer',
-                padding: 4,
-              }}
-            >
+            <button type="button" className="tr-link" style={{ padding: 4 }} onClick={() => setFilter('')}>
               Clear filter
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, padding: '2px 10px' }}>
-            {rows.map(renderRow)}
-          </div>
+          <div className="tr-rows">{rows.map(renderRow)}</div>
         )}
       </div>
       {selectMode && (
@@ -1394,38 +1309,10 @@ export function DocsTree({
           onDone={endSelect}
         />
       )}
-      {onOpenBin && !selectMode && (
-        <button type="button" className="tr-binrow" onClick={onOpenBin} data-testid="tree-recycle-bin">
-          <Icon name="i12" size={14} strokeWidth={1.8} />
-          <span style={{ flex: 1, textAlign: 'left' }}>Recycle Bin</span>
-          {!!binCount && <span className="dk-tree-count">{binCount}</span>}
-        </button>
-      )}
       {!readOnly && !selectMode && (
-        <div style={{ padding: '8px 10px 14px', display: 'flex', gap: 4, position: 'relative' }}>
-          <button
-            type="button"
-            onClick={() => onNewPage(null)}
-            data-testid="tree-new-page"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              flex: 1,
-              minWidth: 0,
-              padding: '7px 10px',
-              borderRadius: 8,
-              border: '1px dashed #C7D2CB',
-              background: 'none',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: 12.5,
-              fontWeight: 600,
-              color: '#2E6F40',
-              textAlign: 'left',
-            }}
-          >
-            <Icon name="plus" size={12} strokeWidth={2.6} />
+        <div className="tr-newpage">
+          <button type="button" onClick={() => onNewPage(null)} data-testid="tree-new-page">
+            <BoardIcon name="plus" size={12} strokeWidth={2.4} />
             New page
           </button>
           {renderNewPageMenu && (
@@ -1438,24 +1325,19 @@ export function DocsTree({
               // the open menu closes on a mousedown outside it: this button toggles it instead
               onMouseDown={(e) => newMenu && e.stopPropagation()}
               onClick={() => setNewMenu((v) => !v)}
-              style={{
-                width: 32,
-                flexShrink: 0,
-                borderRadius: 8,
-                border: '1px dashed #C7D2CB',
-                background: 'none',
-                cursor: 'pointer',
-                color: '#2E6F40',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
             >
-              <Icon name="chevronDown" size={12} strokeWidth={2.4} />
+              <BoardIcon name="chevronDown" size={12} strokeWidth={2.4} />
             </button>
           )}
           {newMenu && renderNewPageMenu?.(() => setNewMenu(false))}
         </div>
+      )}
+      {onOpenBin && !selectMode && (
+        <button type="button" className="tr-binrow" onClick={onOpenBin} data-testid="tree-recycle-bin">
+          <BoardIcon name="bin" size={13} strokeWidth={1.9} />
+          <span>Recycle Bin</span>
+          {!!binCount && <span className="tr-binrow-count">{binCount}</span>}
+        </button>
       )}
 
       {menu && byId.get(menu.id) && (

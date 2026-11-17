@@ -9,6 +9,7 @@ import { useToast } from '../Toast';
 import { Icon } from './Icon';
 import { agoText, displayName, plural } from './docsShared';
 import { daysLeftText, daysLeftTone, pagesToEmpty, type EmptyScope, type RestoreWhere } from './tree/RecycleBinParts';
+import { EditorAvatar } from './tree/treeParts';
 
 const errMsg = (err: unknown) => docsErrorDetail(err)?.message ?? extractError(err);
 
@@ -166,6 +167,8 @@ export function BinRow({
   last,
   pinned,
   check,
+  icon,
+  badge,
 }: {
   kind: 'page' | 'ticket';
   title: string;
@@ -181,8 +184,13 @@ export function BinRow({
   pinned?: boolean;
   /** A checkbox before the row (several pages picked). */
   check?: ReactNode;
+  /** The page's emoji for the 44 px tile; the plain page or ticket mark when absent. */
+  icon?: string | null;
+  /** Above the actions, on the right (the days left). */
+  badge?: ReactNode;
 }) {
   const isPage = kind === 'page';
+  const emoji = icon && !icon.startsWith('icon:') && !icon.startsWith('/') && !/^(https?:|data:)/.test(icon);
   return (
     <div
       className="bin-row"
@@ -190,8 +198,8 @@ export function BinRow({
       style={{
         display: 'flex',
         alignItems: 'flex-start',
-        gap: 12,
-        padding: '12px 16px',
+        gap: 14,
+        padding: '14px 18px',
         borderBottom: last ? undefined : '1px solid #EEF3EF',
       }}
       data-first={first ? '1' : undefined}
@@ -199,53 +207,132 @@ export function BinRow({
     >
       {check}
       <div
+        aria-hidden="true"
         style={{
-          width: 32,
-          height: 32,
-          borderRadius: 8,
-          background: isPage ? '#DCEEE1' : '#EEF3EF',
-          color: isPage ? '#2E6F40' : '#5B6B60',
+          width: 44,
+          height: 44,
+          borderRadius: 11,
+          background: '#F1F6F2',
+          color: '#5B6B60',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
+          fontSize: 22,
+          filter: emoji ? 'grayscale(.35)' : undefined,
         }}
       >
-        <Icon name={isPage ? 'i00' : 'i13'} size={16} strokeWidth={1.8} />
+        {emoji ? icon : <Icon name={isPage ? 'i00' : 'i13'} size={20} strokeWidth={1.8} />}
       </div>
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span
-            className="mc-chip"
-            style={
-              isPage
-                ? { background: '#DCEEE1', color: '#1F5A31', height: 20 }
-                : { background: '#F1F3F1', color: '#3A4A3E', height: 20 }
-            }
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              height: 22,
+              boxSizing: 'border-box',
+              padding: '0 9px',
+              borderRadius: 999,
+              fontSize: 10.5,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              flex: 'none',
+              ...(isPage
+                ? { background: '#F1F8F3', color: '#2E6F40', border: '1px solid #CFE6D6' }
+                : { background: '#F1F6F2', color: '#3A4A3E', border: '1px solid #DCE6DF' }),
+            }}
           >
             {isPage ? 'Page' : 'Ticket'}
           </span>
-          <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1E2A22' }}>{title}</span>
+          <span style={{ fontSize: 14.5, fontWeight: 700, color: '#1E2A22' }}>{title}</span>
         </div>
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#5B6B60', flexWrap: 'wrap' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 12.5,
+            color: '#5B6B60',
+            flexWrap: 'wrap',
+            marginTop: 2,
+          }}
         >
           {meta}
         </div>
         {lines.map((l, i) => (
-          <div key={i} style={{ fontSize: 11.5, color: '#9AA8A0' }}>
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 12,
+              color: '#5B6B60',
+              marginTop: 3,
+              flexWrap: 'wrap',
+            }}
+          >
             {l}
           </div>
         ))}
         {footer}
       </div>
-      <div
-        className="bin-actions"
-        style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, paddingTop: 2 }}
-      >
-        {actions}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+        {badge}
+        <div className="bin-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {actions}
+        </div>
       </div>
     </div>
+  );
+}
+
+/** The colours of the days left: grey, amber in the last week, red in the last three days (organising pages, E 40). */
+const DAYS_PILL = {
+  grey: { background: '#F1F6F2', color: '#3A4A3E', border: '1px solid #DCE6DF' },
+  amber: { background: '#FDF3E3', color: '#8A5A00', border: '1px solid #EBD3A4' },
+  red: { background: '#FDF1EE', color: '#C4432A', border: '1px solid #F0C4B8' },
+} as const;
+
+/** "27 days left" as a pill with a clock, in its colour. */
+export function DaysLeftPill({ days }: { days: number }) {
+  const tone = daysLeftTone(days);
+  return (
+    <span
+      className="tr-days"
+      data-testid="bin-days-left"
+      data-tone={tone.tone}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        height: 22,
+        boxSizing: 'border-box',
+        padding: '0 9px',
+        borderRadius: 999,
+        fontSize: 11,
+        fontWeight: 700,
+        whiteSpace: 'nowrap',
+        ...DAYS_PILL[tone.tone],
+      }}
+    >
+      <svg
+        aria-hidden="true"
+        width={11}
+        height={11}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="8.5" />
+        <path d="M12 7.5V12l3 2" />
+      </svg>
+      {daysLeftText(days)}
+    </span>
   );
 }
 
@@ -298,7 +385,6 @@ export function PageBinRow({
   onPurge: () => void;
 }) {
   const extra = entry.pageCount - 1;
-  const tone = daysLeftTone(entry.daysLeft);
   let note: ReactNode = null;
   if (entry.parentDeleted && entry.parentTitle) {
     note = (
@@ -306,35 +392,31 @@ export function PageBinRow({
         style={{
           display: 'flex',
           alignItems: 'flex-start',
-          gap: 10,
-          padding: '9px 12px',
-          borderRadius: 10,
-          background: '#E8F1FB',
-          border: '1px solid #B9D3EE',
-          fontSize: 12.5,
-          lineHeight: 1.5,
-          color: '#1E2A22',
-          marginTop: 4,
+          gap: 6,
+          fontSize: 12,
+          lineHeight: 1.45,
+          color: '#8A5A00',
+          marginTop: 5,
         }}
       >
-        <span style={{ color: '#2F6FB0', display: 'flex', marginTop: 1 }}>
-          <Icon name="i28" size={16} strokeWidth={1.9} />
+        <span style={{ display: 'flex', marginTop: 2 }}>
+          <Icon name="i28" size={13} strokeWidth={2} />
         </span>
         <span>
-          <b style={{ fontWeight: 700 }}>“{entry.title}” will return at the top level.</b> Its parent,{' '}
-          {entry.parentTitle}, is still in the Recycle Bin. Restore {entry.parentTitle} first to put it back in place.
+          “{entry.title}” will return at the top level. Its parent, {entry.parentTitle}, is still in the Recycle Bin.
+          Restore {entry.parentTitle} first to put it back in place.
         </span>
       </div>
     );
   } else if (extra > 0) {
     note = (
-      <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', marginTop: 2 }}>
+      <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', marginTop: 5 }}>
         Restoring brings back all {entry.pageCount} pages in the same order.
       </div>
     );
   } else if (entry.parentTitle) {
     note = (
-      <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', marginTop: 2 }}>
+      <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', marginTop: 5 }}>
         Restores under {entry.parentTitle}.
       </div>
     );
@@ -347,9 +429,9 @@ export function PageBinRow({
       first={first}
       last={last}
       pinned={confirming || busy}
+      badge={<DaysLeftPill days={entry.daysLeft} />}
       meta={
         <>
-          <Icon name="i00" size={12} strokeWidth={1.8} />
           <span style={{ minWidth: 0 }}>
             {entry.parentTitle ?? 'Top level'}
             {extra > 0 &&
@@ -359,14 +441,9 @@ export function PageBinRow({
       }
       lines={[
         <>
-          {displayName(entry.deletedBy)} · {agoText(entry.deletedAt)} ·{' '}
-          <span
-            className="tr-days"
-            style={{ color: tone.color, fontWeight: tone.tone === 'grey' ? 500 : 700 }}
-            data-testid="bin-days-left"
-            data-tone={tone.tone}
-          >
-            {daysLeftText(entry.daysLeft)}
+          <EditorAvatar name={entry.deletedBy} size={18} />
+          <span>
+            {displayName(entry.deletedBy)} · {agoText(entry.deletedAt)}
           </span>
         </>,
       ]}
@@ -409,17 +486,23 @@ export function PageBinRow({
           </>
         ) : (
           <>
-            <button type="button" className="st-btn st-btn-sm" disabled={busy} onClick={onRestore}>
+            <button
+              type="button"
+              className="st-btn"
+              style={{ minHeight: 32, background: '#F1F8F3', borderColor: '#2E6F40', color: '#1F5A31' }}
+              disabled={busy}
+              onClick={onRestore}
+            >
               <Icon name="i19" size={13} strokeWidth={2} />
               {busy ? 'Restoring…' : 'Restore'}
             </button>
             <button
               type="button"
-              className="st-btn st-btn-sm st-btn-danger-outline"
+              className="st-btn st-btn-danger-outline"
+              style={{ minHeight: 32 }}
               disabled={busy}
               onClick={onAskPurge}
             >
-              <Icon name="i12" size={13} />
               Delete forever
             </button>
           </>

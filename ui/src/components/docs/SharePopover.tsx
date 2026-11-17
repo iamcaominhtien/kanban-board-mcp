@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { DocsPage } from '../../types/docs';
 import { Icon } from './Icon';
 import { PublicLinkSection } from './PublicLinkSection';
+import { usePublicLink } from '../../api/docsPublic';
 
 interface SharePopoverProps {
   page: DocsPage;
@@ -63,6 +64,34 @@ async function writeClipboard(text: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * "Anyone with project access can view", drawn as the first of the two ways to share (Reader boards, E).
+ * @param props.chosen - It is the way in use (the page has no public link).
+ */
+function ProjectAccess({ chosen }: { chosen: boolean }) {
+  return (
+    <div className="dk-pl-option dk-pl-static" aria-pressed={chosen} data-testid="share-project-access">
+      <span className="dk-pl-radio" aria-hidden="true" />
+      <span className="dk-pl-ico" aria-hidden="true">
+        <Icon name="i36" size={16} />
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column' }}>
+        <b>Anyone with project access can view</b>
+        <span>Drafts and unpublished changes stay private to their authors.</span>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * {@link ProjectAccess}, chosen until the page has a public link.
+ * @param props.pageId - The page shared.
+ */
+function ProjectAccessLive({ pageId }: { pageId: string }) {
+  const q = usePublicLink(pageId);
+  return <ProjectAccess chosen={!q.data?.link} />;
 }
 
 /**
@@ -128,7 +157,7 @@ export function SharePopover({ page, onClose, variant = 'popover', publicLinks }
               position: 'absolute',
               right: 0,
               top: 'calc(100% + 6px)',
-              width: 430,
+              width: 500,
               maxHeight: 'min(80vh, 720px)',
               overflowY: 'auto',
               zIndex: 60,
@@ -141,24 +170,11 @@ export function SharePopover({ page, onClose, variant = 'popover', publicLinks }
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22', flex: 1 }}>Share page</span>
-        <span style={{ fontSize: 12, color: '#9AA8A0' }}>{crumbs.join(' › ')}</span>
+        <span style={{ fontSize: 12, color: '#5B6B60' }}>{crumbs.join(' › ')}</span>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <div
-          className="st-input"
-          data-testid="share-url"
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 12,
-            color: '#3A4A3E',
-            background: '#F6FAF7',
-            display: 'flex',
-            alignItems: 'center',
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {shown}
+        <div className="dk-share-field" data-testid="share-url">
+          <span>{shown}</span>
         </div>
         <button
           type="button"
@@ -166,8 +182,8 @@ export function SharePopover({ page, onClose, variant = 'popover', publicLinks }
           onClick={() => void copy('link')}
           style={
             copied === 'link'
-              ? { flexShrink: 0, color: '#2E6F40', borderColor: '#B7D9C0', background: '#F1F8F3' }
-              : { flexShrink: 0 }
+              ? { flexShrink: 0, minHeight: 36, color: '#2E6F40', borderColor: '#B7D9C0', background: '#F1F8F3' }
+              : { flexShrink: 0, minHeight: 36 }
           }
         >
           <Icon name={copied === 'link' ? 'i10' : 'i24'} size={14} strokeWidth={copied === 'link' ? 2.4 : 1.9} />
@@ -195,52 +211,13 @@ export function SharePopover({ page, onClose, variant = 'popover', publicLinks }
           {copied === 'id' ? 'Copied the link by page id' : 'Copy the link by page id'}
         </button>
       )}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 10,
-          padding: '10px 12px',
-          borderRadius: 8,
-          background: '#F6FAF7',
-          border: '1px solid #E3E8E5',
-        }}
-      >
-        <span style={{ display: 'flex', color: '#2E6F40', marginTop: 1 }}>
-          <Icon name="i36" size={16} />
-        </span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22' }}>Anyone with project access can view</div>
-          <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60' }}>
-            Drafts and unpublished changes stay private to their authors.
-          </div>
-        </div>
-      </div>
+      {publicLinks ? <ProjectAccessLive pageId={page.id} /> : <ProjectAccess chosen />}
       {publicLinks && <PublicLinkSection page={page} canEdit={publicLinks.canEdit} />}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            color: '#5B6B60',
-          }}
-        >
-          Reference in another page
-        </div>
+        <div className="dk-share-label">Reference in another page</div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <div
-            className="st-input"
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 12.5,
-              color: '#2E6F40',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            {ref}
+          <div className="dk-share-field">
+            <span>{ref}</span>
           </div>
           <button
             type="button"
@@ -249,6 +226,7 @@ export function SharePopover({ page, onClose, variant = 'popover', publicLinks }
             onClick={() => void copy('ref')}
             style={{
               flexShrink: 0,
+              minHeight: 36,
               padding: '8px 10px',
               ...(copied === 'ref' ? { color: '#2E6F40', background: '#F1F8F3' } : {}),
             }}
@@ -256,7 +234,7 @@ export function SharePopover({ page, onClose, variant = 'popover', publicLinks }
             <Icon name={copied === 'ref' ? 'i10' : 'i24'} size={14} />
           </button>
         </div>
-        <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60' }}>
+        <div style={{ fontSize: 12, color: '#5B6B60' }}>
           Paste into a page to link here. Add <span className="st-code">#Section</span> to link a heading.
         </div>
       </div>

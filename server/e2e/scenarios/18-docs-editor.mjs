@@ -207,7 +207,17 @@ export default {
     });
     await s.step('ribbon: a text colour by name, a highlight colour and the alignment of a paragraph', async () => {
       // the start of the line: the middle of it is the formula's node view, which takes the click
-      await content().locator('p', { hasText: /Euler said/ }).first().click({ position: { x: 4, y: 8 } });
+      // the click must leave the caret in that paragraph (a click that lands while the page still scrolls can leave it
+      // in the code block above): click again until it is there
+      const euler = content().locator('p', { hasText: /Euler said/ }).first();
+      const inEuler = () =>
+        p.evaluate(() => {
+          const n = document.getSelection()?.anchorNode;
+          const el = n && (n.nodeType === 1 ? n : n.parentElement);
+          return !!el?.closest('p') && /Euler said/.test(el.closest('p').textContent);
+        });
+      for (let i = 0; i < 4 && !(await inEuler()); i++) await euler.click({ position: { x: 4, y: 8 } });
+      if (!(await inEuler())) throw new Error('the caret is not in the Euler paragraph');
       await p.keyboard.press('End');
       await p.keyboard.press('Enter');
       await p.keyboard.type('Colour line');

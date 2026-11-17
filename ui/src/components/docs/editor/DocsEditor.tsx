@@ -1032,7 +1032,14 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
                               );
                             }}
                           >
-                            <Icon name="i03" size={15} strokeWidth={1.8} />
+                            <svg aria-hidden="true" width={15} height={15} viewBox="0 0 24 24" fill="currentColor">
+                              {[6, 12, 18].map((y) => (
+                                <g key={y}>
+                                  <circle cx="9" cy={y} r="1.5" />
+                                  <circle cx="15" cy={y} r="1.5" />
+                                </g>
+                              ))}
+                            </svg>
                           </button>
                         </div>
                       </DragHandle>
@@ -1052,9 +1059,9 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           {toc === null || focusMode ? null : (
             <div
               style={{
-                width: 200,
+                width: 160,
                 flexShrink: 0,
-                padding: '30px 20px 0 8px',
+                padding: '76px 0 0 8px',
                 boxSizing: 'border-box',
                 background: surface ? (surface.style as Record<string, string>)['--dp-page'] : '#FFFFFF',
               }}

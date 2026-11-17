@@ -67,7 +67,7 @@ describe('reader preferences', () => {
     const css = readerThemeCss();
     expect(css.startsWith('@media screen{')).toBe(true);
     expect(css).toContain('.dk-rt-sepia{--dp-page:#F4ECD8 !important;');
-    expect(css).toContain('.dk-rt-night{--dp-page:#17211A !important;');
+    expect(css).toContain('.dk-rt-night{--dp-page:#171D19 !important;');
     expect(css).toContain('--rd-c-green:#7FCB95 !important;');
   });
 });

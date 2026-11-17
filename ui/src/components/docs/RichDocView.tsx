@@ -561,7 +561,7 @@ const ORDERED_STYLES: Record<string, string> = {
   'upper-roman': 'upper-roman',
 };
 
-const RULE_GLYPHS: Record<string, string> = { dots: '•  •  •', stars: '*  *  *', fleuron: '❦' };
+const RULE_GLYPHS: Record<string, string> = { dots: '···', stars: '* * *', fleuron: '❦' };
 
 /** One block and what it holds. */
 function block(node: Node, r: Render, key: string): ReactNode {
@@ -662,9 +662,7 @@ function block(node: Node, r: Render, key: string): ReactNode {
           <Checkbox checked={checked} />
           <div
             className="dk-task-body"
-            style={
-              checked ? { color: '#9AA8A0', textDecoration: 'line-through', textDecorationColor: '#C7D2CB' } : undefined
-            }
+            style={checked ? { color: '#5B6B60', textDecoration: 'line-through' } : undefined}
           >
             {children(node, r, key)}
           </div>
@@ -727,9 +725,9 @@ function block(node: Node, r: Render, key: string): ReactNode {
       const look = str(a.style) || 'soft';
       const style: CSSProperties =
         look === 'bar'
-          ? { background: bg, border: 'none', borderLeft: `3px solid ${fg}`, borderRadius: 4 }
+          ? { background: bg, border: 'none', borderLeft: `4px solid ${fg}`, borderRadius: '4px 8px 8px 4px' }
           : look === 'outline'
-            ? { background: 'transparent', border: `1px solid ${colorOf('c', a.color) ?? pal.border}` }
+            ? { background: '#FFFFFF', border: `1.5px solid ${fg}` }
             : { background: bg, border: `1px solid ${a.color ? 'transparent' : pal.border}` };
       const icon = str(a.icon);
       const emoji = icon && !/^[\w:-]+$/.test(icon) ? icon : null;
@@ -737,12 +735,12 @@ function block(node: Node, r: Render, key: string): ReactNode {
       return (
         <div key={key} {...own} role="note" data-callout={kind} data-callout-style={look}>
           <span style={{ color: fg, marginTop: 2, display: 'flex' }}>
-            {emoji ? <span aria-hidden="true">{emoji}</span> : <Icon name={pal.icon} size={17} strokeWidth={1.9} />}
+            {emoji ? <span aria-hidden="true">{emoji}</span> : <Icon name={pal.icon} size={16} strokeWidth={2.2} />}
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             {str(a.title) && (
               <p className="dk-callout-title">
-                <strong>{str(a.title)}</strong>
+                <strong style={{ color: fg }}>{str(a.title)}</strong>
               </p>
             )}
             {children(node, r, key)}
@@ -798,7 +796,9 @@ function block(node: Node, r: Render, key: string): ReactNode {
           {...blockAttrs(node, r, a.line ? 'dk-columns dk-columns-line' : 'dk-columns', {
             gridTemplateColumns: template,
             columnGap: num(a.gap) ?? 24,
-          })}
+            // the rule of a lined block sits as far from the next column's text as the gap
+            ['--dk-gap' as string]: `${num(a.gap) ?? 24}px`,
+          } as CSSProperties)}
         >
           {cols.map((col, i) => (
             <div key={i} {...blockAttrs(col, r, 'dk-column')}>

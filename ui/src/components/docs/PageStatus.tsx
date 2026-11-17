@@ -51,25 +51,28 @@ export function VersionBadge({
     <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }} data-popover>
       <button
         type="button"
-        className="mc-chip dk-status-badge"
-        style={{ background: '#DCEEE1', color: '#1F5A31' }}
+        className="mc-chip dk-schip dk-schip-green dk-status-badge"
         data-testid="status-badge"
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((v) => !v)}
       >
-        <span className="mc-dot" style={{ background: '#2E6F40' }} />
+        <span className="mc-dot" />
         Published · v{version}
       </button>
       {open && (
         <div className="dk-menu docs-root dk-version-pop" role="dialog" aria-label={`Version ${version}`}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <b style={{ fontSize: 13.5, color: '#1E2A22' }}>Version {version}</b>
+            <b style={{ flex: 1, fontSize: 14, color: '#1E2A22' }}>Version {version}</b>
+            <span className="mc-chip dk-schip dk-schip-green">
+              <span className="mc-dot" />
+              Published · v{version}
+            </span>
           </div>
-          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.5, color: '#3A4A3E' }}>
+          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: '#3A4A3E' }}>
             Published {longDateTime(publishedAt)} by {actorName(by)}. Readers see this version.
           </p>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button
               type="button"
               className="st-btn st-btn-sm"
@@ -122,17 +125,11 @@ export function OutdatedNote({
   return (
     <div className="dk-note dk-note-amber" role="note" data-testid="outdated-note">
       <span className="dk-note-icon" aria-hidden="true">
-        <Icon name="i39" size={15} strokeWidth={2} />
+        <Icon name="i39" size={16} strokeWidth={2} />
       </span>
       <span className="dk-note-text">{outdatedText(outdated)}</span>
       {canEdit && (
-        <button
-          type="button"
-          className="st-btn st-btn-sm"
-          disabled={busy}
-          onClick={onReviewed}
-          data-testid="mark-reviewed"
-        >
+        <button type="button" className="st-btn" disabled={busy} onClick={onReviewed} data-testid="mark-reviewed">
           {busy ? 'Saving…' : 'Mark as reviewed'}
         </button>
       )}
@@ -168,7 +165,7 @@ export function OlderVersionBar({
   return (
     <div className="dk-note dk-note-blue" role="status" data-testid="older-version-bar">
       <span className="dk-note-icon" aria-hidden="true">
-        <Icon name="i39" size={15} strokeWidth={2} />
+        <Icon name="i39" size={16} strokeWidth={2} />
       </span>
       <span className="dk-note-text">
         {confirming ? (
@@ -177,19 +174,19 @@ export function OlderVersionBar({
           </>
         ) : (
           <>
-            You are reading v{version}. The current page is v{current}, published {shortDate(currentAt)}. Edit is off
-            while you read an older version.
+            <b>You are reading v{version}.</b> The current page is v{current}, published {shortDate(currentAt)}. Edit is
+            off while you read an older version.
           </>
         )}
       </span>
       {confirming ? (
         <>
-          <button type="button" className="st-btn st-btn-sm" onClick={() => setConfirming(false)}>
+          <button type="button" className="st-btn" onClick={() => setConfirming(false)}>
             Cancel
           </button>
           <button
             type="button"
-            className="st-btn st-btn-sm st-btn-primary"
+            className="st-btn st-btn-primary"
             disabled={restoring}
             onClick={onRestore}
             data-testid="older-restore-yes"
@@ -199,11 +196,12 @@ export function OlderVersionBar({
         </>
       ) : (
         <>
-          <button type="button" className="st-btn st-btn-sm st-btn-primary" onClick={onBack} data-testid="older-back">
+          <button type="button" className="st-btn st-btn-primary" onClick={onBack} data-testid="older-back">
             Back to the latest
           </button>
           {onRestore && (
-            <button type="button" className="st-btn st-btn-sm" onClick={() => setConfirming(true)}>
+            <button type="button" className="st-btn" onClick={() => setConfirming(true)}>
+              <Icon name="i40" size={14} strokeWidth={1.9} />
               Restore this version
             </button>
           )}

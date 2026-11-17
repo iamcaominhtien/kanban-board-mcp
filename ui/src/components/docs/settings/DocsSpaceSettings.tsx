@@ -171,6 +171,71 @@ interface CardProps {
 const ALIGN_LABEL = { left: 'Left', center: 'Centred' } as const;
 const SIZE_LABEL = { s: 'Small', m: 'Medium', l: 'Large' } as const;
 
+/**
+ * A segmented choice of the Docs settings (organising pages, F 49): the options side by side on a grey track, the
+ * one in use raised in white.
+ * @param props.label - The radio group's accessible name.
+ * @param props.options - Value and text of each option.
+ */
+function Seg<T extends string>({
+  options,
+  value,
+  onChange,
+  label,
+}: {
+  options: readonly (readonly [T, string])[];
+  value: T;
+  onChange: (v: T) => void;
+  label: string;
+}) {
+  return (
+    <div className="ds-seg" role="radiogroup" aria-label={label}>
+      {options.map(([v, text]) => (
+        <button key={v} type="button" role="radio" aria-checked={value === v} onClick={() => onChange(v)}>
+          {text}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** The page colours as 34 px swatches with their names (organising pages, F 49); the one in use has a tick. */
+function Swatches({ value, onChange }: { value: PageBackground; onChange: (v: PageBackground) => void }) {
+  return (
+    <div className="ds-swatches" role="radiogroup" aria-label="Page colour">
+      {BACKGROUNDS.map((b) => (
+        <button
+          key={b}
+          type="button"
+          role="radio"
+          aria-checked={value === b}
+          aria-label={BACKGROUND_LABEL[b]}
+          onClick={() => onChange(b)}
+        >
+          <span style={{ background: PALETTE[b].page, color: PALETTE[b].ink }}>
+            {value === b && (
+              <svg
+                aria-hidden="true"
+                width={14}
+                height={14}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={b === 'night' ? '#FFFFFF' : '#2E6F40'}
+                strokeWidth={3}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 12.5L10 17.5L19 7" />
+              </svg>
+            )}
+          </span>
+          {BACKGROUND_LABEL[b]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /** "New pages": how a page looks before anyone styles it, with a live preview. */
 function NewPagesCard({ s, locked, status, error, save }: CardProps & { s: NewPageStyle }) {
   const set = <K extends keyof NewPageStyle>(k: K, v: NewPageStyle[K], label: string, old: string) =>
@@ -188,7 +253,7 @@ function NewPagesCard({ s, locked, status, error, save }: CardProps & { s: NewPa
       <div className="ds-split">
         <fieldset disabled={locked} className="ds-fields">
           <Labelled label="Page width">
-            <Pills
+            <Seg
               label="Page width"
               options={WIDTHS.map((w) => [w, WIDTH_LABEL[w]] as const)}
               value={s.width}
@@ -213,7 +278,7 @@ function NewPagesCard({ s, locked, status, error, save }: CardProps & { s: NewPa
             </select>
           </Labelled>
           <Labelled label="Text size">
-            <Pills
+            <Seg
               label="Text size"
               options={(['s', 'm', 'l'] as const).map((k) => [k, SIZE_LABEL[k]] as const)}
               value={s.textSize}
@@ -221,15 +286,13 @@ function NewPagesCard({ s, locked, status, error, save }: CardProps & { s: NewPa
             />
           </Labelled>
           <Labelled label="Page colour">
-            <Pills
-              label="Page colour"
-              options={BACKGROUNDS.map((b) => [b, BACKGROUND_LABEL[b]] as const)}
+            <Swatches
               value={bg}
               onChange={(v) => set('background', v, `Page colour: ${BACKGROUND_LABEL[v]}`, BACKGROUND_LABEL[bg])}
             />
           </Labelled>
           <Labelled label="Title">
-            <Pills
+            <Seg
               label="Title alignment"
               options={(['left', 'center'] as const).map((k) => [k, ALIGN_LABEL[k]] as const)}
               value={s.titleAlign}

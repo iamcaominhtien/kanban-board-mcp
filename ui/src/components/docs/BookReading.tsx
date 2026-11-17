@@ -29,10 +29,18 @@ export function ChapterList({
           {book.title}
         </button>
         <span className="dk-chapters-count">
-          {book.index >= 0
-            ? `Chapter ${book.index + 1} of ${book.chapters.length}`
-            : `${book.chapters.length} ${book.chapters.length === 1 ? 'chapter' : 'chapters'}`}
+          {`${book.chapters.length} ${book.chapters.length === 1 ? 'chapter' : 'chapters'}`}
         </span>
+        {book.index >= 0 && (
+          <div className="dk-chapters-at">
+            <div className="dk-progress dk-chapters-prog" aria-hidden="true">
+              <i style={{ width: `${((book.index + 1) / book.chapters.length) * 100}%` }} />
+            </div>
+            <span>
+              Chapter {book.index + 1} of {book.chapters.length}
+            </span>
+          </div>
+        )}
       </div>
       <ol className="dk-chapters-list">
         {book.chapters.map((c) => {
@@ -48,13 +56,35 @@ export function ChapterList({
                 }}
               >
                 {book.numberChapters && <span className="dk-chapters-n">{c.number}</span>}
-                <span>{c.title}</span>
+                <span style={{ flex: 1 }}>{c.title}</span>
+                <span className="dk-chapters-mark" aria-hidden="true">
+                  {on && <i />}
+                </span>
               </a>
             </li>
           );
         })}
       </ol>
     </div>
+  );
+}
+
+/** The 15 px arrow of a footer card. */
+function Arrow({ d }: { d: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      width={15}
+      height={15}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={d} />
+    </svg>
   );
 }
 
@@ -79,7 +109,11 @@ function FooterCard({
         onOpen(link.id);
       }}
     >
-      <span className="dk-readnext-dir">{side === 'prev' ? '← Previous' : 'Next →'}</span>
+      <span className="dk-readnext-dir">
+        {side === 'prev' && <Arrow d="M19 12H5M11 6l-6 6 6 6" />}
+        {side === 'prev' ? 'Previous' : 'Next'}
+        {side === 'next' && <Arrow d="M5 12h14M13 6l6 6-6 6" />}
+      </span>
       <span className="dk-readnext-title">{label}</span>
     </a>
   );

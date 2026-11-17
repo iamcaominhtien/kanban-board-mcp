@@ -39,7 +39,7 @@ interface Props {
   plain?: boolean;
 }
 
-const SEP = <span style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.22)', margin: '0 4px' }} />;
+const SEP = <span className="dk-bubble-sep" />;
 
 function normalizeUrl(raw: string): string {
   const v = raw.trim();
@@ -50,7 +50,7 @@ function normalizeUrl(raw: string): string {
 }
 
 const BLOCKS: { label: string; run: (e: Editor) => void; on: (e: Editor) => boolean }[] = [
-  { label: 'Text', run: (e) => e.chain().focus().setParagraph().run(), on: (e) => e.isActive('paragraph') },
+  { label: 'Body', run: (e) => e.chain().focus().setParagraph().run(), on: (e) => e.isActive('paragraph') },
   {
     label: 'Heading 1',
     run: (e) => e.chain().focus().setHeading({ level: 1 }).run(),
@@ -132,7 +132,7 @@ export function BubbleToolbar({
         href: (e?.getAttributes('link').href as string | undefined) ?? '',
         // a caret on a link: the bar turns into the link's actions
         caretOnLink: !!e && e.state.selection.empty && e.isActive('link'),
-        block: BLOCKS.find((b) => e && b.on(e))?.label ?? 'Text',
+        block: BLOCKS.find((b) => e && b.on(e))?.label ?? 'Body',
       };
     },
   });
@@ -177,6 +177,7 @@ export function BubbleToolbar({
     children,
     wide,
     expanded,
+    className,
   }: {
     label: string;
     /** On, mixed (drawn dashed) or off. */
@@ -185,18 +186,19 @@ export function BubbleToolbar({
     children: React.ReactNode;
     wide?: boolean;
     expanded?: boolean;
+    className?: string;
   }) => {
     const tri = on === true ? 'on' : on === false || on === undefined ? 'off' : on;
     return (
       <button
         type="button"
-        className={`dk-bubble-btn${tri === 'on' ? ' dk-rb-on' : tri === 'mixed' ? ' dk-rb-mixed' : ''}`}
+        className={`dk-bubble-btn${tri === 'on' ? ' dk-rb-on' : tri === 'mixed' ? ' dk-rb-mixed' : ''}${className ? ` ${className}` : ''}`}
         aria-label={label}
         title={label}
         aria-pressed={on === undefined ? undefined : tri === 'mixed' ? 'mixed' : tri === 'on'}
         aria-haspopup={expanded === undefined ? undefined : true}
         aria-expanded={expanded}
-        style={wide ? { width: 'auto', padding: '0 7px', gap: 4, display: 'flex' } : undefined}
+        style={wide ? { width: 'auto', padding: '0 9px', gap: 6, display: 'flex' } : undefined}
         onMouseDown={(e) => e.preventDefault()}
         onClick={onClick}
       >
@@ -242,17 +244,19 @@ export function BubbleToolbar({
     >
       <div
         data-testid="bubble-toolbar"
+        className="dk-bubble"
         style={{
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
           gap: 1,
-          padding: '4px 6px',
-          minHeight: 36,
+          padding: 4,
+          minHeight: 38,
           boxSizing: 'border-box',
-          borderRadius: 9,
+          borderRadius: 10,
           background: '#1E2A22',
-          boxShadow: '0 10px 24px rgba(30,42,34,0.3)',
+          color: '#E8F0EA',
+          boxShadow: '0 10px 28px rgba(20,32,24,.32)',
           zIndex: 30,
           whiteSpace: 'nowrap',
         }}
@@ -347,54 +351,13 @@ export function BubbleToolbar({
           </div>
         ) : (
           <>
-            <Btn label="Bold" on={st?.bold} onClick={() => toggleMark(editor, 'bold')}>
-              <span style={{ fontWeight: 800, fontSize: 14 }}>B</span>
-            </Btn>
-            <Btn label="Italic" on={st?.italic} onClick={() => toggleMark(editor, 'italic')}>
-              <span style={{ fontStyle: 'italic', fontFamily: 'Georgia,serif', fontSize: 14 }}>i</span>
-            </Btn>
-            {!plain && (
-              <Btn label="Underline" on={st?.underline} onClick={() => toggleMark(editor, 'underline')}>
-                <span style={{ fontWeight: 700, fontSize: 13.5, textDecoration: 'underline' }}>U</span>
-              </Btn>
-            )}
-            <Btn label="Strikethrough" on={st?.strike} onClick={() => toggleMark(editor, 'strike')}>
-              <Icon name="i47" size={15} />
-            </Btn>
-            <Btn label="Inline code" on={st?.code} onClick={() => toggleMark(editor, 'code')}>
-              <Icon name="i33" size={15} />
-            </Btn>
-            {!plain && (
-              <Btn
-                label="Text colour"
-                on={st?.color === 'mixed' ? 'mixed' : undefined}
-                expanded={pop?.id === 'color'}
-                onClick={togglePop('color')}
-              >
-                <ColorGlyph
-                  size={15}
-                  color={st?.color && st.color !== 'mixed' ? cssColor('text', st.color) : '#E8F0EA'}
-                />
-              </Btn>
-            )}
-            <Btn label="Highlight" on={st?.highlight} onClick={() => toggleMark(editor, 'highlight')}>
-              <HighlightGlyph
-                color={typeof hlValue === 'string' && hlValue !== 'mixed' ? cssColor('highlight', hlValue) : undefined}
-              />
-            </Btn>
-            {!plain && (
-              <Btn label="Highlight colours" expanded={pop?.id === 'hl'} onClick={togglePop('hl')}>
-                <Glyph name="chevron" size={10} strokeWidth={2.4} />
-              </Btn>
-            )}
-            {SEP}
             <div style={{ position: 'relative' }}>
               <Btn label="Block type" wide onClick={() => setBlockOpen((o) => !o)}>
-                <span style={{ fontSize: 12 }}>{st?.block === 'Text' || !st?.block ? 'Text' : st.block}</span>
-                <Icon name="i06" size={11} />
+                <span style={{ fontSize: 12.5, fontWeight: 600 }}>{st?.block ?? 'Body'}</span>
+                <Glyph name="chevron" size={10} strokeWidth={2.4} className="dk-bubble-chev" />
               </Btn>
               {blockOpen && (
-                <div className="dk-menu" style={{ position: 'absolute', left: 0, top: 34, width: 170, zIndex: 5 }}>
+                <div className="dk-menu" style={{ position: 'absolute', left: 0, top: 38, width: 170, zIndex: 5 }}>
                   {BLOCKS.map((b) => (
                     <div
                       key={b.label}
@@ -414,9 +377,82 @@ export function BubbleToolbar({
               )}
             </div>
             {SEP}
-            <Btn label="Link" on={st?.link} onClick={() => setLinkOpen(true)}>
-              <Icon name="i11" size={15} />
+            <Btn label="Bold" on={st?.bold} onClick={() => toggleMark(editor, 'bold')}>
+              <span style={{ fontWeight: 800, fontSize: 15 }}>B</span>
             </Btn>
+            <Btn label="Italic" on={st?.italic} onClick={() => toggleMark(editor, 'italic')}>
+              <span
+                style={{ fontStyle: 'italic', fontWeight: 600, fontFamily: "'Lora', Georgia, serif", fontSize: 16 }}
+              >
+                I
+              </span>
+            </Btn>
+            {!plain && (
+              <Btn label="Underline" on={st?.underline} onClick={() => toggleMark(editor, 'underline')}>
+                <span style={{ fontWeight: 700, fontSize: 14, textDecoration: 'underline' }}>U</span>
+              </Btn>
+            )}
+            <Btn label="Strikethrough" on={st?.strike} onClick={() => toggleMark(editor, 'strike')}>
+              <span style={{ fontWeight: 700, fontSize: 14, textDecoration: 'line-through' }}>S</span>
+            </Btn>
+            <Btn label="Inline code" on={st?.code} onClick={() => toggleMark(editor, 'code')}>
+              <Icon name="i33" size={15} />
+            </Btn>
+            {SEP}
+            {!plain && (
+              <Btn
+                label="Text colour"
+                className="dk-bubble-w40"
+                on={st?.color === 'mixed' ? 'mixed' : undefined}
+                expanded={pop?.id === 'color'}
+                onClick={togglePop('color')}
+              >
+                <ColorGlyph color={st?.color && st.color !== 'mixed' ? cssColor('text', st.color) : '#68BA7F'} />
+              </Btn>
+            )}
+            <Btn
+              label="Highlight"
+              className={plain ? 'dk-bubble-w40' : 'dk-bubble-hl'}
+              on={st?.highlight}
+              onClick={() => toggleMark(editor, 'highlight')}
+            >
+              <HighlightGlyph
+                size={15}
+                color={typeof hlValue === 'string' && hlValue !== 'mixed' ? cssColor('highlight', hlValue) : undefined}
+              />
+            </Btn>
+            {!plain && (
+              <Btn
+                label="Highlight colours"
+                className="dk-bubble-caret"
+                expanded={pop?.id === 'hl'}
+                onClick={togglePop('hl')}
+              >
+                <Glyph name="chevron" size={9} strokeWidth={2.4} />
+              </Btn>
+            )}
+            {SEP}
+            <Btn label="Link" on={st?.link} onClick={() => setLinkOpen(true)}>
+              <Glyph name="link" size={16} strokeWidth={1.9} />
+            </Btn>
+            {onComment && (
+              <Btn label="Comment" onClick={onComment}>
+                <svg
+                  aria-hidden="true"
+                  width={16}
+                  height={16}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.9}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  data-testid="bubble-comment"
+                >
+                  <path d="M4 5h16v11H9l-5 4z" />
+                </svg>
+              </Btn>
+            )}
             <Btn
               label="Reference a page or section"
               onClick={() => {
@@ -434,7 +470,7 @@ export function BubbleToolbar({
               <Icon name="i13" size={15} />
             </Btn>
             <Btn label="More formatting" expanded={pop?.id === 'more'} onClick={togglePop('more')}>
-              <Glyph name="more" size={15} strokeWidth={2.4} />
+              <Glyph name="more" size={16} strokeWidth={2.6} />
             </Btn>
             {onAi && (
               <>
@@ -480,17 +516,6 @@ export function BubbleToolbar({
                 {askTeam}
               </>
             )}
-            {onComment && (
-              <>
-                {SEP}
-                <Btn label="Comment" wide onClick={onComment}>
-                  <Icon name="comment" size={15} />
-                  <span style={{ fontSize: 12 }} data-testid="bubble-comment">
-                    Comment
-                  </span>
-                </Btn>
-              </>
-            )}
           </>
         )}
         <div
@@ -509,7 +534,7 @@ export function BubbleToolbar({
           <Popover
             anchor={pop.anchor}
             label={pop.id === 'color' ? 'Text colour' : 'Highlight'}
-            width={256}
+            width={340}
             onClose={() => setPop(null)}
             testId={`bubble-pop-${pop.id}`}
           >

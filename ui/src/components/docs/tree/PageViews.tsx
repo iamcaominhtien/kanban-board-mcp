@@ -30,7 +30,9 @@ import {
   type TreeFilters,
   type TreeSort,
 } from './treeModel';
-import { PageIcon, pageTint, StatusDot } from './treeParts';
+import { BoardIcon } from './boardIcons';
+import { FilterMark, SortMenu } from './TreeToolbar';
+import { BookTag, EditorAvatar, PageIcon, pageTint, StatusDot, StatusPill } from './treeParts';
 import './tree.css';
 
 interface ViewProps {
@@ -83,6 +85,7 @@ function QuickFilters({
                 });
             }}
           >
+            {q.key && q.key !== 'mine' && <FilterMark k={q.key} />}
             {q.label}
             <span className="tr-count">{q.key ? counts[q.key] : nodes.length}</span>
           </button>
@@ -93,18 +96,7 @@ function QuickFilters({
 }
 
 function SortSelect({ sort, onSortChange }: Pick<ViewProps, 'sort' | 'onSortChange'>) {
-  return (
-    <label className="tr-sort">
-      <span>Sort</span>
-      <select value={sort} aria-label="Sort" onChange={(e) => onSortChange(e.target.value as TreeSort)}>
-        {(Object.keys(SORT_LABEL) as TreeSort[]).map((s) => (
-          <option key={s} value={s}>
-            {SORT_LABEL[s]}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+  return <SortMenu sort={sort} onSort={onSortChange} />;
 }
 
 /**
@@ -115,12 +107,13 @@ function SortSelect({ sort, onSortChange }: Pick<ViewProps, 'sort' | 'onSortChan
 export function NoMatch({ filters, onClear }: { filters: TreeFilters; onClear: () => void }) {
   return (
     <div className="tr-nomatch" role="status" data-testid="tree-no-match">
-      <div className="tr-nomatch-ico">
-        <Icon name="filter" size={20} strokeWidth={1.8} />
-      </div>
+      <span className="tr-nomatch-ico">
+        <BoardIcon name="filter" size={18} strokeWidth={1.8} />
+      </span>
       <div className="tr-nomatch-title">No pages match</div>
       <div className="tr-nomatch-text">{noMatchText(filters)}</div>
-      <button type="button" className="st-btn st-btn-sm" onClick={onClear}>
+      <button type="button" className="st-btn" onClick={onClear}>
+        <BoardIcon name="close" size={14} strokeWidth={2} />
         Clear filters
       </button>
     </div>
@@ -139,7 +132,7 @@ function MoreButton({ node, onMenu }: { node: DocsTreeNode; onMenu?: ViewProps['
         onMenu(node, e.currentTarget.getBoundingClientRect());
       }}
     >
-      <Icon name="more" size={14} strokeWidth={1.8} />
+      <BoardIcon name="more" size={16} strokeWidth={2} />
     </button>
   );
 }
@@ -165,10 +158,12 @@ function Card({
   const icon = parseIcon(node.icon);
   const status = rowStatus(node, new Date());
   const book = isBook(node);
+  // a cover keeps the page's icon in a white badge over its lower edge; no cover shows the colour and the emoji
+  const badge = !!node.cover && !chapter && icon?.kind === 'emoji';
   return (
     <div
       role="listitem"
-      className={`tr-card${drag?.over ? ' tr-card-over' : ''}`}
+      className={`tr-card${drag?.over ? ' tr-card-over' : ''}${badge ? ' tr-card-badged' : ''}`}
       data-testid={`gallery-card-${node.slug}`}
       draggable={!!drag}
       onDragStart={(e) => {
@@ -201,29 +196,32 @@ function Card({
         >
           {chapter ? (
             <span className="tr-card-num">{chapter}</span>
+          ) : node.cover ? null : icon?.kind === 'emoji' ? (
+            <span className="tr-card-emoji">{icon.value}</span>
           ) : (
-            !node.cover && icon?.kind === 'emoji' && <span className="tr-card-emoji">{icon.value}</span>
-          )}
-          {kids > 0 && !chapter && (
-            <span className="tr-card-kids" title={`${kids} pages inside`}>
-              <Icon name="folder" size={11} strokeWidth={2} />
-              {kids}
-            </span>
+            <PageIcon icon={node.icon} kind={node.kind} size={30} />
           )}
         </div>
+        {badge && <span className="tr-card-badge">{icon.value}</span>}
         <div className="tr-card-body">
-          <div className="tr-card-title">
-            {!chapter && <PageIcon icon={node.icon} kind={node.kind} size={13} />}
-            <span>{chapter ? `${chapter}. ${node.title}` : node.title}</span>
-          </div>
+          <div className="tr-card-title">{chapter ? `${chapter}. ${node.title}` : node.title}</div>
           <div className="tr-card-meta">
-            <StatusDot status={status} />
-            {book && <span className="tr-tag tr-tag-book">Book · {kids} ch.</span>}
+            {book && <BookTag>Book · {kids} ch.</BookTag>}
+            {node.updatedBy && <EditorAvatar name={node.updatedBy} size={20} />}
             <span className="tr-card-by">
               {node.updatedBy ? `${displayName(node.updatedBy).split(' ')[0]} · ` : ''}
               {agoText(node.updatedAt)}
             </span>
-            {renderSuggestions?.(node)}
+            <span className="tr-card-marks">
+              {renderSuggestions?.(node)}
+              {kids > 0 && !chapter && !book && (
+                <span className="tr-card-kids" title={`${kids} pages inside`}>
+                  <BoardIcon name="page" size={12} strokeWidth={1.9} />
+                  {kids}
+                </span>
+              )}
+              <StatusDot status={status} slot={false} />
+            </span>
           </div>
         </div>
       </button>
@@ -290,7 +288,7 @@ export function GalleryView(
           <PageIcon icon={folderNode.icon} kind={folderNode.kind} size={22} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2>{folderNode.title}</h2>
-            <div className="st-hint">
+            <div className="tr-view-sub">
               {inBook
                 ? `Book · ${cards.length} ${cards.length === 1 ? 'chapter' : 'chapters'} · ${cards.filter((c) => c.version > 0).length} published`
                 : `${cards.length} ${cards.length === 1 ? 'page' : 'pages'} inside`}
@@ -304,7 +302,7 @@ export function GalleryView(
         <header className="tr-view-head">
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2>{filtering ? 'Matching pages' : 'All pages'}</h2>
-            <div className="st-hint">
+            <div className="tr-view-sub">
               {filtering
                 ? `${cards.length} of ${nodes.length} pages`
                 : `${top} top-level ${top === 1 ? 'page' : 'pages'} · ${nodes.length} in total`}
@@ -407,8 +405,9 @@ export function RecentView(props: ViewProps) {
       <header className="tr-view-head">
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2>Recent</h2>
-          <div className="st-hint">
-            {SORT_LABEL[sort]} · {kept.length} {kept.length === 1 ? 'page' : 'pages'}
+          <div className="tr-view-sub">
+            {sort === 'edited' ? 'Newest edit first' : SORT_LABEL[sort]} · {kept.length}{' '}
+            {kept.length === 1 ? 'page' : 'pages'}
           </div>
         </div>
         {layout !== 'phone' && <SortSelect sort={sort} onSortChange={props.onSortChange} />}
@@ -420,10 +419,12 @@ export function RecentView(props: ViewProps) {
         <div className="tr-recent" role="list">
           {!touch && (
             <div className="tr-recent-head" aria-hidden="true">
-              <span>Page</span>
-              <span>Status</span>
-              <span>Edited by</span>
-              <span>Edited</span>
+              <span className="tr-col-ico" />
+              <span className="tr-col-page">Page</span>
+              <span className="tr-col-status">Status</span>
+              <span className="tr-col-by">Edited by</span>
+              <span className="tr-col-at">Edited</span>
+              <span className="tr-col-more" />
             </div>
           )}
           {groups.map((g) => (
@@ -434,8 +435,10 @@ export function RecentView(props: ViewProps) {
                 return (
                   <div key={n.id} role="listitem" className={`tr-recent-row${touch ? ' tr-recent-touch' : ''}`}>
                     <button type="button" className="tr-recent-main" onClick={() => onOpen(n.id)}>
-                      <PageIcon icon={n.icon} kind={n.kind} size={15} />
-                      <span className="tr-recent-title">
+                      <span className="tr-recent-ico">
+                        <PageIcon icon={n.icon} kind={n.kind} size={18} />
+                      </span>
+                      <span className="tr-recent-title tr-col-page">
                         <span>{n.title}</span>
                         <small>
                           {parentTitle(nodes, n)}
@@ -444,13 +447,23 @@ export function RecentView(props: ViewProps) {
                       </span>
                       {!touch && (
                         <>
-                          <span className="tr-recent-status">
-                            <StatusDot status={status} />
-                            {status.label}
+                          <span className="tr-recent-status tr-col-status">
+                            <StatusPill status={status} />
                             {renderSuggestions?.(n)}
                           </span>
-                          <span className="tr-recent-by">{n.updatedBy ? displayName(n.updatedBy) : '—'}</span>
-                          <span className="tr-recent-at">{agoText(n.updatedAt)}</span>
+                          <span className="tr-recent-by tr-col-by">
+                            {n.updatedBy ? (
+                              <>
+                                <EditorAvatar name={n.updatedBy} size={22} />
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {displayName(n.updatedBy)}
+                                </span>
+                              </>
+                            ) : (
+                              '—'
+                            )}
+                          </span>
+                          <span className="tr-recent-at tr-col-at">{agoText(n.updatedAt)}</span>
                         </>
                       )}
                     </button>

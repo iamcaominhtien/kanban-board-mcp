@@ -8,7 +8,7 @@ import { useEditorState } from '@tiptap/react';
 import { useEffect, useState } from 'react';
 import { readingMinutes } from '../../pageSettings';
 import { countWords } from './format';
-import { keyLabel } from './parts';
+import { Glyph, keyLabel } from './parts';
 
 interface Props {
   editor: Editor | null;
@@ -67,7 +67,7 @@ export function StatusLine({ editor, onFocusMode, onShortcuts, quiet }: Props) {
       </span>
       <span>{minutes} min read</span>
       {!!selected && (
-        <span data-testid="status-selected">
+        <span className="dk-status-sel" data-testid="status-selected">
           Selected: {selected} {selected === 1 ? 'word' : 'words'}
         </span>
       )}
@@ -84,6 +84,7 @@ export function StatusLine({ editor, onFocusMode, onShortcuts, quiet }: Props) {
       )}
       {!quiet && onFocusMode && (
         <button type="button" className="dk-status-btn" onClick={onFocusMode} data-testid="status-focus">
+          <Glyph name="focus" size={14} />
           Focus <span className="dk-kbd">{keyLabel('Mod+Shift+F')}</span>
         </button>
       )}

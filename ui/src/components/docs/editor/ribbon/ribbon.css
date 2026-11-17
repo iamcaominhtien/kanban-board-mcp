@@ -12,6 +12,8 @@
 .dk-rb-rows {
   display: flex;
   flex-direction: column;
+  /* the rule between the two rows stops 16 px short of each side (Editor board, frame 1) */
+  background: linear-gradient(#f0f3f1, #f0f3f1) 16px 44px / calc(100% - 32px) 1px no-repeat;
 }
 .dk-rb-row1,
 .dk-rb-row2 {
@@ -25,7 +27,21 @@
   scrollbar-width: none;
 }
 .dk-rb-row2 {
-  border-top: 1px solid #eef3ef;
+  margin-top: 1px;
+}
+/* a group rule: 1 × 20, 6 px each side (the 2 px row gap plus 4 px) */
+.dk-ribbon .dk-sep {
+  width: 1px;
+  height: 20px;
+  background: #e3e8e5;
+  margin: 0 4px;
+}
+.dk-rb.dk-rb-w46 {
+  width: 46px;
+  padding: 0;
+}
+.dk-rb-chev {
+  color: #7a8a80;
 }
 .dk-rb {
   min-width: 32px;
@@ -72,6 +88,11 @@
 .dk-rb-split {
   display: inline-flex;
   align-items: center;
+}
+/* a button with its menu caret beside it is 46 px wide in all, as one button with a caret on the board */
+.dk-rb-split > .dk-rb:first-child {
+  min-width: 30px;
+  padding: 0 0 0 6px;
 }
 .dk-rb.dk-rb-caret {
   min-width: 16px;
@@ -144,14 +165,15 @@
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  line-height: 1;
-  font-weight: 700;
+  gap: 1px;
+  font-size: 14px;
+  line-height: 15px;
+  font-weight: 800;
 }
 .dk-rb-color-bar {
-  width: 14px;
-  height: 3px;
-  border-radius: 2px;
-  margin-top: 2px;
+  width: 15px;
+  height: 3.5px;
+  border-radius: 1px;
 }
 .dk-rb-script {
   font-size: 13px;
@@ -159,17 +181,18 @@
 }
 .dk-rb-script sup,
 .dk-rb-script sub {
-  font-size: 8.5px;
+  font-size: 9px;
 }
 .dk-rb.dk-rb-insert {
+  gap: 5px;
   padding: 0 10px;
-  border: 1px solid #c7d2cb;
-  background: #f6faf7;
-  color: #1e2a22;
+  border: 1px solid #bfdcc7;
+  background: #f1f8f3;
+  color: #2e6f40;
   margin-left: 4px;
 }
-.dk-rb-insert .dk-kbd {
-  padding: 0 5px;
+.dk-rb.dk-rb-insert:hover:not(:disabled) {
+  background: #e6f2ea;
 }
 .dk-rb-ai {
   display: inline-flex;
@@ -219,26 +242,48 @@
   overflow-y: hidden;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  /* the strip fades out over its last 48 px (Editor board, frame 6) */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 calc(100% - 48px),
+    rgba(0, 0, 0, 0.15) calc(100% - 7px),
+    transparent
+  );
+  mask-image: linear-gradient(to right, #000 calc(100% - 48px), rgba(0, 0, 0, 0.15) calc(100% - 7px), transparent);
 }
 .dk-rb-strip::-webkit-scrollbar,
 .dk-rb-row1::-webkit-scrollbar,
 .dk-rb-row2::-webkit-scrollbar {
   display: none;
 }
+/* Undo and Redo pinned at the start, with a soft shadow over the strip; Insert pinned at the end (frame 7) */
 .dk-rb-pinned {
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 0 8px;
-  border-left: 1px solid #e3e8e5;
+  padding: 0 8px 0 2px;
   height: 100%;
   background: #ffffff;
+  z-index: 2;
+}
+.dk-rb-pinned.dk-rb-pinned-start {
+  padding: 0 4px 0 8px;
+  box-shadow: 6px 0 8px -6px rgba(30, 42, 34, 0.18);
 }
 .dk-ribbon-strip .dk-rb {
   min-width: 44px;
   height: 44px;
+}
+.dk-ribbon-strip .dk-rb svg {
+  width: 19px;
+  height: 19px;
+}
+.dk-ribbon-strip .dk-rb .dk-rb-chev {
+  width: 9px;
+  height: 9px;
+}
+.dk-ribbon-strip .dk-rb.dk-rb-w46 {
+  width: 56px;
 }
 .dk-ribbon-strip .dk-rb.dk-rb-caret {
   min-width: 20px;
@@ -248,23 +293,44 @@
 .dk-ribbon-strip .dk-rb-size {
   height: 40px;
 }
+.dk-ribbon-strip .dk-rb-select {
+  width: 96px !important;
+}
+.dk-ribbon-strip .dk-rb-size {
+  width: 108px;
+}
+.dk-ribbon-strip .dk-sep {
+  height: 26px;
+}
+.dk-rb.dk-rb-insert.dk-rb-insert-icon {
+  width: 44px;
+  padding: 0;
+  margin: 0;
+}
 
 /* phone: the bar above the keyboard, 44 px targets, never scrolling */
 .dk-ribbon-bottom {
   border-bottom: none;
-  padding: 4px 4px;
+  padding: 0 4px;
 }
+/* the phone bar (Editor board, frame 8): 52 px, eight 44 px targets spread evenly, Insert tinted green */
 .dk-ph-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-around;
+  height: 52px;
   gap: 0;
 }
 .dk-ph-bar .dk-rb {
+  width: 44px;
   min-width: 44px;
   height: 44px;
-  flex: 1;
-  max-width: 56px;
+  padding: 0;
+  flex: none;
+}
+.dk-ph-bar .dk-rb.dk-ph-insert {
+  background: #f1f8f3;
+  color: #2e6f40;
 }
 .dk-ph-format {
   display: flex;
@@ -397,151 +463,261 @@
   color: #7a8a80;
 }
 
-/* ---------- colour picker ---------- */
+/* ---------- colour picker (Editor board D, frames 11 to 14) ---------- */
+.dk-rb-pop:has(> .dk-cp) {
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.18);
+}
 .dk-cp {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 4px;
+}
+.dk-cp-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dk-cp-title-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: #5b6b60;
 }
 .dk-cp-auto,
-.dk-cp-more,
 .dk-cp-back {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  height: 34px;
   border: none;
   background: none;
-  padding: 6px;
-  border-radius: 6px;
+  padding: 0 10px;
+  border-radius: 7px;
   font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   color: #1e2a22;
   cursor: pointer;
   text-align: left;
+  box-sizing: border-box;
 }
 .dk-cp-auto:hover,
-.dk-cp-more:hover,
-.dk-cp-back:hover {
+.dk-cp-back:hover,
+.dk-cp-auto-on {
   background: #f1f5f2;
 }
+.dk-cp-autobox {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid #c7d2cb;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex: none;
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e2a22;
+}
+.dk-cp-autolabel {
+  flex: 1;
+}
 .dk-cp-hint {
-  font-weight: 500;
-  color: #7a8a80;
+  font-weight: 400;
+  color: #5b6b60;
   font-size: 11.5px;
+}
+.dk-cp-rule {
+  height: 1px;
+  background: #eef3ef;
+  margin: 6px 0 10px;
+}
+.dk-cp-sec {
+  margin-top: 12px;
 }
 .dk-cp-head {
   font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: #5b6b60;
-  padding: 4px 6px 0;
+  margin-bottom: 7px;
 }
+/* six named swatches a row, each 46 px wide with its name under it */
 .dk-cp-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
-  padding: 0 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 0;
 }
-.dk-cp-touch .dk-cp-grid {
-  grid-template-columns: repeat(4, 1fr);
+.dk-cp-recent {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .dk-cp-sw {
   border: none;
   background: none;
-  padding: 3px;
-  border-radius: 8px;
+  padding: 0;
+  width: 46px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   cursor: pointer;
   font-family: inherit;
 }
-.dk-cp-touch .dk-cp-sw {
-  min-height: 52px;
-}
-.dk-cp-sw:hover {
-  background: #f1f5f2;
-}
-.dk-cp-sw-on .dk-cp-dot {
-  box-shadow:
-    0 0 0 2px #ffffff,
-    0 0 0 4px #2e6f40;
+.dk-cp-sw-recent {
+  width: 28px;
 }
 .dk-cp-dot {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 1px solid rgba(30, 42, 34, 0.14);
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
   flex: none;
 }
-.dk-cp-dot-text {
-  background: #ffffff;
-  font-weight: 800;
-  font-size: 14px;
+.dk-cp-dot-hl,
+.dk-cp-sw-recent .dk-cp-dot {
+  border: 1px solid #c7d2cb;
 }
-.dk-cp-none {
-  background: linear-gradient(135deg, transparent 46%, #c4432a 46%, #c4432a 54%, transparent 54%), #ffffff;
+.dk-cp-sw-recent .dk-cp-dot {
+  border-color: rgba(0, 0, 0, 0.12);
+}
+.dk-cp-sw:hover .dk-cp-dot {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 3.5px #c7d2cb;
 }
 .dk-cp-name {
-  font-size: 11px;
+  font-size: 10.5px;
+  font-weight: 500;
   color: #5b6b60;
+  white-space: nowrap;
+}
+.dk-cp-sw-on .dk-cp-name {
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dk-cp-customrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dk-cp-plus {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px dashed #9aa8a0;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5b6b60;
+  cursor: pointer;
+  flex: none;
+  padding: 0;
+}
+.dk-cp-hexbox {
+  flex: 1;
+  height: 32px;
+  border: 1px solid #e3e8e5;
+  border-radius: 7px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  color: #1e2a22;
+  cursor: pointer;
+  text-align: left;
+}
+.dk-cp-chip {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  flex: none;
+}
+.dk-cp-touch .dk-cp-sw {
+  min-height: 52px;
+}
+.dk-cp-backlink {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2e6f40;
+  cursor: pointer;
+}
+/* the chosen colour, where the board draws its colour field */
+.dk-cp-preview {
+  height: 40px;
+  border-radius: 9px;
+  border: 1px solid #e3e8e5;
 }
 .dk-cp-custom {
   display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  padding: 4px 6px;
-}
-.dk-cp-big {
-  width: 32px;
-  height: 32px;
-  border-radius: 7px;
-  border: 1px solid #c7d2cb;
-  flex: none;
+  gap: 8px;
+  margin-top: 12px;
 }
 .dk-cp-field {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   font-size: 10px;
   font-weight: 700;
+  letter-spacing: 0.06em;
   color: #5b6b60;
 }
-.dk-cp-field input {
-  width: 82px;
-  height: 30px;
-  box-sizing: border-box;
-  border: 1px solid #c7d2cb;
-  border-radius: 6px;
-  padding: 0 6px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+.dk-cp-field.dk-cp-hex {
+  flex: 2.2;
 }
-.dk-cp-ch input {
-  width: 46px;
+.dk-cp-field input {
+  width: 100%;
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid #e3e8e5;
+  border-radius: 7px;
+  padding: 0 9px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  color: #1e2a22;
 }
 .dk-cp-contrast {
-  font-size: 11.5px;
+  margin-top: 10px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: #f1f8f3;
+  border: 1px solid #bfdcc7;
+  font-size: 12.5px;
   color: #2e6f40;
-  padding: 4px 6px;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 .dk-cp-warn {
-  color: #a5321e;
+  background: #fdf3e3;
+  border-color: #ebd3a4;
+  color: #8a5a00;
 }
 .dk-cp-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
-  padding: 4px 6px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 /* ---------- status line ---------- */
@@ -549,28 +725,35 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  height: 30px;
-  padding: 0 16px;
+  height: 34px;
+  padding: 0 20px;
+  box-sizing: border-box;
   border-top: 1px solid #e3e8e5;
-  background: #ffffff;
-  font-size: 11.5px;
+  background: #fbfcfb;
+  font-size: 12px;
   color: #5b6b60;
   flex-shrink: 0;
   white-space: nowrap;
   overflow: hidden;
 }
+.dk-status-sel {
+  color: #2e6f40;
+  font-weight: 700;
+}
 .dk-status-btn {
   border: none;
   background: none;
   font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #3a4a3e;
+  font-size: 12px;
+  font-weight: 400;
+  color: #5b6b60;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  /* the hover fill reaches 6 px past the words, which stay where the board puts them */
   padding: 3px 6px;
+  margin: 0 -6px;
   border-radius: 6px;
 }
 .dk-status-btn:hover {
@@ -915,7 +1098,43 @@
   text-underline-offset: 2px;
 }
 
-/* ---------- selection toolbar additions ---------- */
+/* ---------- selection toolbar (Editor boards, frames 1 and 34 to 38) ---------- */
+.dk-bubble .dk-bubble-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  color: #e8f0ea;
+  flex: none;
+}
+.dk-bubble .dk-bubble-btn.dk-bubble-w40 {
+  width: 40px;
+}
+/* the highlight and its colours caret: 40 px in all, as the one button of the board */
+.dk-bubble .dk-bubble-btn.dk-bubble-hl {
+  width: 26px;
+}
+.dk-bubble .dk-bubble-btn.dk-bubble-caret {
+  width: 14px;
+  color: #9db0a3;
+}
+.dk-bubble .dk-rb-color {
+  font-size: 13px;
+  line-height: 13px;
+}
+.dk-bubble .dk-rb-color-bar {
+  width: 14px;
+  height: 3px;
+}
+.dk-bubble-chev {
+  color: #9db0a3;
+}
+.dk-bubble-sep {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 4px;
+  flex: none;
+}
 .dk-bubble-btn.dk-rb-on {
   background: rgba(255, 255, 255, 0.18);
 }

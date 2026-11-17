@@ -33,6 +33,7 @@ import { cssColor, rememberColor } from './palette';
 import { ColorGlyph, Glyph, HighlightGlyph, Popover, RBtn } from './parts';
 import { richStorage, startPainter, stopPainter } from './RichFormatting';
 import { useStore } from './store';
+import { insertColumns } from '../blocks/commands';
 
 /** What the ribbon's buttons call outside the editor. */
 export interface RibbonActions {
@@ -150,7 +151,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
       className="dk-rb-insert"
       testId="ribbon-insert"
     >
-      <Glyph name="insert" size={15} strokeWidth={2.2} />
+      <Glyph name="insert" size={12} strokeWidth={2.4} />
       <span>Insert</span>
       <span className="dk-kbd">/</span>
     </RBtn>
@@ -279,7 +280,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
         disabled={textOff}
         onClick={run(() => toggleMark(editor, 'underline'))}
       >
-        <span style={{ fontSize: 14.5, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>U</span>
+        <span style={{ fontSize: 14.5, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 2 }}>U</span>
       </RBtn>
       <RBtn
         label="Strikethrough"
@@ -288,7 +289,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
         disabled={textOff}
         onClick={run(() => toggleMark(editor, 'strike'))}
       >
-        <Icon name="i47" size={16} />
+        <span style={{ fontSize: 14.5, fontWeight: 700, textDecoration: 'line-through' }}>S</span>
       </RBtn>
       <RBtn
         label="Inline code"
@@ -306,7 +307,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
     <>
       <RBtn
         label="Text colour"
-        className="dk-rb-rich"
+        className="dk-rb-rich dk-rb-w46"
         state={st.color === 'mixed' ? 'mixed' : undefined}
         expanded={menu?.id === 'color'}
         disabled={textOff}
@@ -314,7 +315,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
         onClick={toggle('color')}
       >
         <ColorGlyph color={st.color && st.color !== 'mixed' ? cssColor('text', st.color) : undefined} />
-        <Glyph name="chevron" size={9} strokeWidth={2.4} />
+        <Glyph name="chevron" size={9} strokeWidth={2.4} className="dk-rb-chev" />
       </RBtn>
       {pop(
         'color',
@@ -330,7 +331,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
             close();
           }}
         />,
-        256,
+        340,
       )}
       <span className="dk-rb-split">
         <RBtn
@@ -352,7 +353,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
           testId="ribbon-highlight-colour"
           onClick={toggle('hl')}
         >
-          <Glyph name="chevron" size={9} strokeWidth={2.4} />
+          <Glyph name="chevron" size={9} strokeWidth={2.4} className="dk-rb-chev" />
         </RBtn>
       </span>
       {pop(
@@ -369,8 +370,9 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
             close();
           }}
         />,
-        256,
+        340,
       )}
+      {sep}
       <RBtn
         label="Superscript"
         className="dk-rb-rich"
@@ -395,6 +397,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
           x<sub>2</sub>
         </span>
       </RBtn>
+      {sep}
       <RBtn label="Clear formatting" expanded={menu?.id === 'clear'} disabled={off} onClick={toggle('clear')}>
         <Glyph name="clear" />
       </RBtn>
@@ -406,7 +409,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
         disabled={off}
         onClick={actions.onLink}
       >
-        <Icon name="i11" size={16} />
+        <Glyph name="link" />
       </RBtn>
     </>
   );
@@ -435,7 +438,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
         disabled={off}
         onClick={run(() => editor.commands.toggleBulletList())}
       >
-        <Icon name="i48" size={16} />
+        <Glyph name="bullets" />
       </RBtn>
       <span className="dk-rb-split">
         <RBtn
@@ -445,7 +448,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
           disabled={off}
           onClick={run(() => editor.commands.toggleOrderedList())}
         >
-          <Icon name="i49" size={16} />
+          <Glyph name="numbers" />
         </RBtn>
         <RBtn
           label="Numbered list options"
@@ -454,7 +457,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
           className="dk-rb-caret"
           onClick={toggle('olist')}
         >
-          <Glyph name="chevron" size={9} strokeWidth={2.4} />
+          <Glyph name="chevron" size={9} strokeWidth={2.4} className="dk-rb-chev" />
         </RBtn>
       </span>
       {pop('olist', 'Numbered list', <ListStartMenu editor={editor} st={st} onDone={close} />, 200)}
@@ -465,7 +468,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
         disabled={off}
         onClick={run(() => editor.commands.toggleTaskList())}
       >
-        <Icon name="i50" size={16} />
+        <Glyph name="tasks" />
       </RBtn>
       {sep}
       <RBtn label="Outdent" keys="Shift+Tab" disabled={off || st.inCode} onClick={run(() => changeIndent(editor, -1))}>
@@ -477,12 +480,13 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
       {sep}
       <RBtn
         label="Line and paragraph spacing"
-        className="dk-rb-rich"
+        className="dk-rb-rich dk-rb-w46"
         expanded={menu?.id === 'spacing'}
         disabled={off || st.inCode}
         onClick={toggle('spacing')}
       >
         <Glyph name="spacing" />
+        <Glyph name="chevron" size={9} strokeWidth={2.4} className="dk-rb-chev" />
       </RBtn>
       {pop('spacing', 'Line and paragraph spacing', <SpacingMenu editor={editor} st={st} onDone={close} />, 240)}
       <RBtn
@@ -503,7 +507,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
   const inserts = (
     <>
       <RBtn label="Image" disabled={off} onClick={actions.onPickImage}>
-        <Icon name="i54" size={16} />
+        <Glyph name="image" />
       </RBtn>
       <RBtn
         label="Table"
@@ -511,10 +515,13 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
         disabled={off || st.inTable}
         onClick={() => c().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
       >
-        <Icon name="i52" size={16} />
+        <Glyph name="table" />
+      </RBtn>
+      <RBtn label="Columns" disabled={off || st.inTable} onClick={() => insertColumns(editor, 2)}>
+        <Glyph name="columns" />
       </RBtn>
       <RBtn label="Callout" state={st.inCallout} disabled={off} onClick={() => c().toggleCallout('info').run()}>
-        <Icon name="i31" size={16} />
+        <Glyph name="callout" />
       </RBtn>
       <RBtn
         label="Quote"
@@ -523,7 +530,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
         disabled={off}
         onClick={() => c().toggleBlockquote().run()}
       >
-        <Icon name="i51" size={16} />
+        <span style={{ fontSize: 15, fontWeight: 800 }}>“</span>
       </RBtn>
       <RBtn label="Divider" disabled={off || st.inCode} onClick={() => c().setHorizontalRule().run()}>
         <Glyph name="divider" />
@@ -584,6 +591,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
   if (variant === 'strip')
     return (
       <div className={`dk-rb-stripwrap${plain ? ' dk-rb-plain' : ''}`}>
+        <div className="dk-rb-pinned dk-rb-pinned-start">{history}</div>
         <div className="dk-rb-strip">
           {painterBtn}
           {sep}
@@ -601,8 +609,16 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
           {askAi}
         </div>
         <div className="dk-rb-pinned">
-          {history}
-          {insert}
+          <RBtn
+            label="Insert"
+            keys="/"
+            disabled={off}
+            onClick={actions.onInsert}
+            className="dk-rb-insert dk-rb-insert-icon"
+            testId="ribbon-insert"
+          >
+            <Glyph name="insert" size={19} strokeWidth={2} />
+          </RBtn>
         </div>
       </div>
     );

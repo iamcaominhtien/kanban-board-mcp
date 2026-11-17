@@ -119,7 +119,7 @@ describe('filters', () => {
       filters: { only: ['outdated'], edited: 'any' },
     });
     expect(shownRows()).toEqual(['Overview', 'Architecture', 'API']);
-    expect(row('architecture').style.opacity).toBe('0.6');
+    expect(row('architecture').style.opacity).toBe('0.5');
     expect(row('api').style.opacity).toBe('');
   });
 
@@ -134,7 +134,7 @@ describe('filters', () => {
 describe('view switching', () => {
   it('switches between Tree, Gallery and Recent from the header', () => {
     const p = renderTree();
-    fireEvent.click(screen.getByTestId('tree-view-menu'));
+    expect(within(screen.getByTestId('tree-view-menu')).getAllByRole('radio')).toHaveLength(3);
     fireEvent.click(screen.getByTestId('tree-view-gallery'));
     expect(p.onViewChange).toHaveBeenCalledWith('gallery');
   });

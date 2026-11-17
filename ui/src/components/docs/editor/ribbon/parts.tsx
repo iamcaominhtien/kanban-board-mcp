@@ -213,27 +213,80 @@ const GLYPHS: Record<string, ReactNode> = {
   alignCenter: <path d="M4 6h16M7 10h10M4 14h16M7 18h10" />,
   alignRight: <path d="M4 6h16M10 10h10M4 14h16M10 18h10" />,
   alignJustify: <path d="M4 6h16M4 10h16M4 14h16M4 18h16" />,
-  indent: <path d="M4 5h16M11 10h9M11 14h9M4 19h16M4 9l3 3-3 3" />,
-  outdent: <path d="M4 5h16M11 10h9M11 14h9M4 19h16M7 9l-3 3 3 3" />,
-  spacing: <path d="M11 6h9M11 12h9M11 18h9M5 4v16M3 6l2-2 2 2M3 18l2 2 2-2" />,
+  indent: <path d="M4 6h16M12 12h8M12 18h8M4 9.5l3 2.5-3 2.5" />,
+  outdent: <path d="M4 6h16M12 12h8M12 18h8M7 9.5L4 12l3 2.5" />,
+  spacing: <path d="M10 6h10M10 12h10M10 18h10M5 5v14M3 7l2-2 2 2M3 17l2 2 2-2" />,
   dropCap: (
     <>
-      <path d="M4 4h6v7H4z" />
-      <path d="M13 6h7M13 10h7M4 15h16M4 19h16" />
+      <rect x="3.5" y="4" width="8" height="8.5" rx="1" />
+      <text x="5.2" y="11" fontSize="8.5" fontWeight="800" fill="currentColor" stroke="none">
+        A
+      </text>
+      <path d="M14.5 5.5H21M14.5 9.5H21M3.5 16h17.5M3.5 20h17.5" />
     </>
   ),
-  clear: <path d="M6 5h12M12 5l-3 14M14 14l6 6M20 14l-6 6" />,
+  clear: <path d="M5 5h11M10.5 5l-3 14M14 14l6 6M20 14l-6 6" />,
+  link: <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />,
+  bullets: (
+    <>
+      <path d="M9 6h11M9 12h11M9 18h11" />
+      <circle cx="4.5" cy="6" r="1.1" />
+      <circle cx="4.5" cy="12" r="1.1" />
+      <circle cx="4.5" cy="18" r="1.1" />
+    </>
+  ),
+  numbers: (
+    <>
+      <path d="M10 6h10M10 12h10M10 18h10" />
+      {['1', '2', '3'].map((n, i) => (
+        <text key={n} x="2.5" y={8 + i * 6} fontSize="7" fontWeight="700" fill="currentColor" stroke="none">
+          {n}
+        </text>
+      ))}
+    </>
+  ),
+  tasks: (
+    <>
+      <rect x="3" y="4" width="4.5" height="4.5" rx="1" />
+      <path d="M3.5 15.5l1.6 1.6 2.4-3.3M10.5 6.3H21M10.5 16H21" />
+    </>
+  ),
+  image: (
+    <>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="M4 17l5-5 4 4 3-3 4 4" />
+    </>
+  ),
+  table: (
+    <>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <path d="M3.5 10h17M3.5 14.5h17M9.5 5v14" />
+    </>
+  ),
+  columns: (
+    <>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <path d="M12 5v14" />
+    </>
+  ),
+  callout: (
+    <>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <path d="M12 9.5v4.5M12 16.3v.01" />
+    </>
+  ),
   find: (
     <>
       <circle cx="11" cy="11" r="6" />
-      <path d="M20 20l-4.5-4.5" />
+      <path d="M20 20l-4-4" />
     </>
   ),
   focus: <path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4" />,
   keyboard: (
     <>
-      <rect x="3" y="6" width="18" height="12" rx="2" />
-      <path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10" />
+      <rect x="2.5" y="6" width="19" height="12" rx="2" />
+      <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7.5 14h9" />
     </>
   ),
   insert: <path d="M12 5v14M5 12h14" />,
@@ -264,7 +317,7 @@ const GLYPHS: Record<string, ReactNode> = {
     </>
   ),
   check: <path d="M5 12l5 5 9-10" />,
-  divider: <path d="M4 12h16M4 6h7M4 18h7" />,
+  divider: <path d="M3 12h18M7 7h4M13 7h4M7 17h4M13 17h4" />,
 };
 
 /**
@@ -272,10 +325,21 @@ const GLYPHS: Record<string, ReactNode> = {
  * @param props.name - The glyph name.
  * @param props.size - Size in px.
  */
-export function Glyph({ name, size = 17, strokeWidth = 1.8 }: { name: string; size?: number; strokeWidth?: number }) {
+export function Glyph({
+  name,
+  size = 17,
+  strokeWidth = 1.8,
+  className,
+}: {
+  name: string;
+  size?: number;
+  strokeWidth?: number;
+  className?: string;
+}) {
   return (
     <svg
       aria-hidden="true"
+      className={className}
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -292,9 +356,9 @@ export function Glyph({ name, size = 17, strokeWidth = 1.8 }: { name: string; si
 }
 
 /** "A" over a colour bar: the text colour button. */
-export function ColorGlyph({ color, size = 17 }: { color?: string; size?: number }) {
+export function ColorGlyph({ color, size }: { color?: string; size?: number }) {
   return (
-    <span className="dk-rb-color" style={{ fontSize: size - 2 }}>
+    <span className="dk-rb-color" style={size ? { fontSize: size - 2, lineHeight: 1 } : undefined}>
       <span>A</span>
       <span className="dk-rb-color-bar" style={{ background: color ?? 'currentColor' }} />
     </span>
@@ -302,18 +366,18 @@ export function ColorGlyph({ color, size = 17 }: { color?: string; size?: number
 }
 
 /** A marker pen over a stroke of the highlight colour: the Highlight button. */
-export function HighlightGlyph({ color = '#E8B93A' }: { color?: string }) {
+export function HighlightGlyph({ color = '#E8B93A', size = 16 }: { color?: string; size?: number }) {
   return (
     <svg
       aria-hidden="true"
-      width={16}
-      height={16}
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M4 21h16" stroke={color} strokeWidth={3} />
+      <path d="M4 21h16" stroke={color} strokeWidth={3.2} />
       <path d="M14.5 4.5l4 4L11 16H7v-4z" stroke="currentColor" strokeWidth={1.9} />
       <path d="M12.5 6.5l4 4" stroke="currentColor" strokeWidth={1.9} />
     </svg>

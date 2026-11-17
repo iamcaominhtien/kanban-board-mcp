@@ -6,7 +6,7 @@
  */
 
 import { exitSuggestion } from '@tiptap/suggestion';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Icon } from '../../Icon';
 import type { MenuHost, MenuState } from '../menuHost';
 import {
@@ -31,7 +31,7 @@ const POPULAR = ['image', 'table', 'task', 'callout-info', 'columns', 'code', 'f
  * An item's tile: its text (H1…) or its icon.
  * @param props.size - The tile's side in px.
  */
-export function ItemTile({ item, size = 30 }: { item: SlashItem; size?: number }) {
+export function ItemTile({ item, size = 32 }: { item: SlashItem; size?: number }) {
   const text = 'text' in item.tile ? item.tile.text : null;
   return (
     <span
@@ -39,12 +39,25 @@ export function ItemTile({ item, size = 30 }: { item: SlashItem; size?: number }
       style={{
         width: size,
         height: size,
-        color: text ? '#1E2A22' : 'color' in item.tile ? (item.tile.color ?? '#5B6B60') : '#5B6B60',
-        fontSize: text && text.length > 2 ? 10.5 : 12,
+        color: 'color' in item.tile && item.tile.color ? item.tile.color : '#2E6F40',
+        fontSize: text && text.length > 2 ? 10.5 : 11.5,
       }}
     >
       {text ?? ('icon' in item.tile ? <Icon name={item.tile.icon} size={Math.round(size * 0.53)} /> : null)}
     </span>
+  );
+}
+
+/** The label with the first match of the typed words marked (Blocks board, frame 57). */
+function marked(label: string, q: string): ReactNode {
+  const i = q ? label.toLowerCase().indexOf(q.toLowerCase()) : -1;
+  if (i < 0) return label;
+  return (
+    <>
+      {label.slice(0, i)}
+      <b className="dk-cat-hit">{label.slice(i, i + q.length)}</b>
+      {label.slice(i + q.length)}
+    </>
   );
 }
 
@@ -107,7 +120,7 @@ export function InsertCatalog({ host, state, ctx, usePosition }: Props) {
     fullWidth: false,
   });
   const listRef = useRef<HTMLDivElement>(null);
-  const width = desktop ? (filtering || step ? 380 : 620) : 0;
+  const width = desktop ? (filtering || step ? 380 : 900) : 0;
   const { ref, pos } = usePosition(desktop ? state.rect : null, width || 380);
 
   useEffect(() => setActive(0), [query, group]);
@@ -213,7 +226,7 @@ export function InsertCatalog({ host, state, ctx, usePosition }: Props) {
       const head = !filtering && group === 'All' && it.group !== last ? it.group : null;
       last = it.group;
       return (
-        <div key={it.id}>
+        <Fragment key={it.id}>
           {head && <div className="dk-cat-head">{head}</div>}
           <div
             role="option"
@@ -223,14 +236,14 @@ export function InsertCatalog({ host, state, ctx, usePosition }: Props) {
             onMouseEnter={() => setActive(i)}
             onClick={() => choose(it)}
           >
-            <ItemTile item={it} />
+            <ItemTile item={it} size={32} />
             <span className="dk-cat-text">
-              <span className="dk-cat-label">{it.label}</span>
+              <span className="dk-cat-label">{filtering ? marked(it.label, query.trim()) : it.label}</span>
               <span className="dk-cat-desc">{it.desc}</span>
             </span>
-            {it.kbd && <span className="dk-kbd dk-cat-kbd">{it.kbd}</span>}
+            {it.kbd && <span className="dk-cat-kbd">{it.kbd}</span>}
           </div>
-        </div>
+        </Fragment>
       );
     });
   };
@@ -265,7 +278,7 @@ export function InsertCatalog({ host, state, ctx, usePosition }: Props) {
 
   const search = (
     <div className="dk-cat-search">
-      <Icon name="search" size={15} />
+      <Icon name="search" size={16} strokeWidth={2} />
       {desktop ? (
         <span className={query ? 'dk-cat-q' : 'dk-cat-ph'}>{query || 'Search blocks'}</span>
       ) : (
@@ -391,10 +404,11 @@ export function InsertCatalog({ host, state, ctx, usePosition }: Props) {
           tableStep
         ) : filtering ? (
           <>
-            {visible.length > 0 && <div className="dk-cat-head">Blocks matching &quot;{query}&quot;</div>}
+            {visible.length > 0 && <div className="dk-cat-match">Blocks matching &quot;{query}&quot;</div>}
             <div ref={listRef} className="dk-cat-list" style={{ maxHeight: 360 }}>
               {visible.length === 0 ? empty : rows(false)}
             </div>
+            {visible.length > 0 && <div className="dk-cat-rule" />}
             {visible.length > 0 && footer}
           </>
         ) : (
@@ -415,7 +429,7 @@ export function InsertCatalog({ host, state, ctx, usePosition }: Props) {
                   </button>
                 ))}
               </div>
-              <div ref={listRef} className="dk-cat-list">
+              <div ref={listRef} className="dk-cat-list dk-cat-two">
                 {recent.length > 0 && group === 'All' && (
                   <>
                     <div className="dk-cat-head">Recent</div>

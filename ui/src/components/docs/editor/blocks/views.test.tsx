@@ -113,7 +113,7 @@ describe('block views in the editor', () => {
     expect(callout.getAttribute('data-callout-style')).toBe('bar');
     expect(callout.textContent).toContain('💡');
     expect((callout.querySelector('input[aria-label="Callout title"]') as HTMLInputElement).value).toBe('Idea');
-    expect(surface.querySelector('.dk-rule-stars')?.textContent).toBe('*  *  *');
+    expect(surface.querySelector('.dk-rule-stars')?.textContent).toBe('* * *');
     expect(surface.querySelector('blockquote.dk-quote-serif')).toBeTruthy();
     expect((surface.querySelector('input[aria-label="Source"]') as HTMLInputElement).value).toBe('Hoa Mai');
     expect((surface.querySelector('.dk-pullquote') as HTMLElement).style.textAlign).toBe('left');

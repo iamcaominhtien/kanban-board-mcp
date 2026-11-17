@@ -34,7 +34,9 @@ export function useMenuPosition(rect: DOMRect | null, width: number) {
     if (rTop == null || rBottom == null || rLeft == null) return;
     const h = height ?? 300;
     const below = rBottom + 6;
-    const top = below + h > window.innerHeight - 8 && rTop - 6 - h > 8 ? rTop - 6 - h : below;
+    const vh = window.innerHeight;
+    // below the caret, else above it, else as low as it fits (the full palette is taller than either side)
+    const top = below + h <= vh - 8 ? below : rTop - 6 - h > 8 ? rTop - 6 - h : Math.max(8, vh - 8 - h);
     const left = Math.max(8, Math.min(rLeft, window.innerWidth - width - 8));
     setPos((p) => (p && p.top === top && p.left === left ? p : { top, left }));
   }, [rTop, rBottom, rLeft, width, height]);

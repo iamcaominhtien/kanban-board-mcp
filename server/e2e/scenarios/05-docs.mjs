@@ -100,6 +100,28 @@ export default {
       await p.getByText('Published · v3').waitFor();
       await p.getByText('step three').waitFor({ state: 'detached' });
     });
+    await s.step('the read view: a 60 px bar of 32 px actions, a progress bar under it, the status under the title', async () => {
+      const bar = p.getByTestId('page-bar');
+      await bar.waitFor();
+      await p.getByTestId('read-progress').waitFor({ state: 'attached' });
+      const m = await p.evaluate(() => {
+        const box = (sel) => document.querySelector(sel)?.getBoundingClientRect();
+        const title = document.querySelector('[data-testid="page-title"]');
+        const status = document.querySelector('[data-testid="status-badge"]');
+        return {
+          bar: box('[data-testid="page-bar"]')?.height,
+          edit: box('[data-testid="edit-page"]')?.height,
+          more: box('[data-testid="page-menu"]')?.height,
+          progress: box('[data-testid="read-progress"]')?.height,
+          // the status line follows the title (Reader boards, D)
+          statusAfterTitle: !!(title && status && title.compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING),
+        };
+      });
+      s.note('read view', JSON.stringify(m));
+      if (Math.round(m.bar) !== 60 || Math.round(m.edit) !== 32 || Math.round(m.more) !== 32 || Math.round(m.progress) !== 3)
+        throw new Error('the page bar does not match the Reader boards: ' + JSON.stringify(m));
+      if (!m.statusAfterTitle) throw new Error('the status line must sit under the title');
+    });
     await s.step('reader settings: Aa changes the page for this reader only, and stays on this device', async () => {
       await p.getByRole('button', { name: 'Reading settings' }).click();
       const panel = p.getByRole('dialog', { name: 'Reading settings' });
@@ -284,7 +306,6 @@ export default {
       await p.getByTestId('tree-row-release-notes').getByText('📖').waitFor();
     });
     await s.step('Gallery: top-level pages as cards; a card with pages inside opens as a folder', async () => {
-      await p.getByTestId('tree-view-menu').click();
       await p.getByTestId('tree-view-gallery').click();
       const g = p.getByTestId('docs-gallery');
       await g.getByTestId('gallery-card-handbook').getByRole('button', { name: 'Handbook', exact: true }).click();
@@ -294,7 +315,6 @@ export default {
       await p.getByTestId('page-title').getByText('Handbook', { exact: true }).waitFor();
     });
     await s.step('Recent: the newest edits grouped by day', async () => {
-      await p.getByTestId('tree-view-menu').click();
       await p.getByTestId('tree-view-recent').click();
       const r = p.getByTestId('docs-recent');
       await r.getByRole('group', { name: 'Today' }).waitFor();

@@ -3,7 +3,7 @@
  * a bottom sheet on a phone. Changes apply at once and stay on this device (readerPrefs.ts).
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type CSSProperties } from 'react';
 import { Switch } from '../settings/settingsUi';
 import {
   READER_SIZE_MAX,
@@ -56,7 +56,7 @@ function Segmented<T extends string>({
   return (
     <div className="dk-rs-row">
       <span className="dk-rs-label">{label}</span>
-      <div className="dk-seg" role="group" aria-label={label}>
+      <div className="dk-rseg" role="group" aria-label={label}>
         {choices.map((c) => (
           <button key={c.value} type="button" aria-pressed={value === c.value} onClick={() => onPick(c.value)}>
             {c.label}
@@ -75,6 +75,11 @@ function Segmented<T extends string>({
  */
 export function ReaderSettingsPanel({ prefs, onChange, pagePx }: PanelProps) {
   const size = prefs.size ?? pagePx;
+  const at = Math.round(size);
+  // − and + move to the step below or above (15, 17, 19, 22), then by a pixel to the ends of the slider
+  const smaller = [...READER_SIZE_STEPS].reverse().find((s) => s.px < at)?.px ?? Math.max(READER_SIZE_MIN, at - 1);
+  const larger = READER_SIZE_STEPS.find((s) => s.px > at)?.px ?? Math.min(READER_SIZE_MAX, at + 1);
+  const fill = `${((at - READER_SIZE_MIN) / (READER_SIZE_MAX - READER_SIZE_MIN)) * 100}%`;
   return (
     <div className="dk-rs" data-testid="reader-settings">
       <div className="dk-rs-head">
@@ -87,31 +92,40 @@ export function ReaderSettingsPanel({ prefs, onChange, pagePx }: PanelProps) {
         <span className="dk-rs-label">
           Text size <span className="dk-rs-value">{readerSizeLabel(prefs, Math.round(pagePx))}</span>
         </span>
-        <div className="dk-seg" role="group" aria-label="Text size">
-          {READER_SIZE_STEPS.map((s, i) => (
-            <button
-              key={s.px}
-              type="button"
-              aria-pressed={prefs.size === s.px}
-              aria-label={`${s.label} · ${s.px} px`}
-              title={`${s.label} · ${s.px} px`}
-              onClick={() => onChange({ size: s.px })}
-              style={{ fontSize: 11 + i * 2 }}
-            >
-              A
-            </button>
-          ))}
+        <div className="dk-rs-size">
+          <button
+            type="button"
+            className="dk-rs-step"
+            aria-label="Smaller text"
+            title="Smaller text"
+            disabled={at <= READER_SIZE_MIN}
+            onClick={() => onChange({ size: smaller })}
+          >
+            <StepGlyph d="M5 12h14" />
+          </button>
+          <input
+            type="range"
+            className="dk-rs-slider"
+            aria-label="Text size in pixels"
+            aria-valuetext={`${at} px${READER_SIZE_STEPS.find((s) => s.px === at) ? `, ${READER_SIZE_STEPS.find((s) => s.px === at)!.label}` : ''}`}
+            min={READER_SIZE_MIN}
+            max={READER_SIZE_MAX}
+            step={1}
+            value={at}
+            style={{ '--fill': fill } as CSSProperties}
+            onChange={(e) => onChange({ size: Number(e.target.value) })}
+          />
+          <button
+            type="button"
+            className="dk-rs-step"
+            aria-label="Larger text"
+            title="Larger text"
+            disabled={at >= READER_SIZE_MAX}
+            onClick={() => onChange({ size: larger })}
+          >
+            <StepGlyph d="M12 5v14M5 12h14" />
+          </button>
         </div>
-        <input
-          type="range"
-          className="dk-rs-slider"
-          aria-label="Text size in pixels"
-          min={READER_SIZE_MIN}
-          max={READER_SIZE_MAX}
-          step={1}
-          value={Math.round(size)}
-          onChange={(e) => onChange({ size: Number(e.target.value) })}
-        />
       </div>
       <Segmented label="Font" value={prefs.font} choices={FONT_CHOICES} onPick={(font) => onChange({ font })} />
       <Segmented
@@ -187,6 +201,25 @@ export function ReaderSettingsPopover({ onClose, ...panel }: PanelProps & { onCl
     <div ref={ref} className="dk-menu docs-root dk-rs-pop" role="dialog" aria-label="Reading settings" data-popover>
       <ReaderSettingsPanel {...panel} />
     </div>
+  );
+}
+
+/** The − and + of the text size (14 px strokes). */
+function StepGlyph({ d }: { d: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      width={14}
+      height={14}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={d} />
+    </svg>
   );
 }
 

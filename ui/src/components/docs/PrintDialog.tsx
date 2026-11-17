@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { Switch } from '../settings/settingsUi';
 import { DOCS_SCRIM, useEscape } from './docsShared';
+import { Icon } from './Icon';
 import { DEFAULT_PRINT, type PrintOptions } from './printPage';
 import './reader.css';
 
@@ -62,7 +63,12 @@ export function PrintDialog({
       }}
     >
       <div role="dialog" aria-modal="true" aria-label="Print" className="dk-print-dialog" data-testid="print-dialog">
-        <div className="dk-print-dialog-title">Print</div>
+        <div className="dk-print-dialog-head">
+          <span className="dk-print-dialog-title">Print</span>
+          <button type="button" className="dk-icobtn dk-print-close" aria-label="Close" onClick={onClose}>
+            <Icon name="close" size={16} strokeWidth={1.9} />
+          </button>
+        </div>
         {rows.map((r) => (
           <div key={r.key} className="dk-rs-switch">
             <span>
@@ -79,7 +85,7 @@ export function PrintDialog({
         ))}
         <div className="dk-rs-row">
           <span className="dk-rs-label">Paper</span>
-          <div className="dk-seg" role="group" aria-label="Paper">
+          <div className="dk-rseg" role="group" aria-label="Paper">
             {(['a4', 'letter'] as const).map((p) => (
               <button
                 key={p}
@@ -94,7 +100,7 @@ export function PrintDialog({
         </div>
         <div className="dk-rs-row">
           <span className="dk-rs-label">Margins</span>
-          <div className="dk-seg" role="group" aria-label="Margins">
+          <div className="dk-rseg" role="group" aria-label="Margins">
             {(['narrow', 'normal', 'wide'] as const).map((m) => (
               <button
                 key={m}
@@ -110,11 +116,13 @@ export function PrintDialog({
         <p className="dk-rs-note">
           Only the page prints: no sidebar, tree or buttons. Sepia and Night reading themes never print.
         </p>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, paddingTop: 2 }}>
           <button type="button" className="st-btn" onClick={onClose}>
             Cancel
           </button>
+          <span style={{ flex: 1 }} />
           <button type="button" className="st-btn st-btn-primary" onClick={() => onPrint(opts)} data-testid="print-go">
+            <Icon name="page" size={14} strokeWidth={1.9} />
             Print
           </button>
         </div>

@@ -7,7 +7,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { DocsLayout } from '../../../hooks/useDocsLayout';
 import { BottomSheet } from '../DocsSheets';
-import { Icon } from '../Icon';
 import {
   activeFilterCount,
   EDITED_LABEL,
@@ -21,12 +20,13 @@ import {
   type TreeSort,
   type TreeView,
 } from './treeModel';
+import { BoardIcon, type BoardIconName } from './boardIcons';
 import './tree.css';
 
-const VIEWS: { id: TreeView; label: string; sub: string; icon: string }[] = [
-  { id: 'tree', label: 'Tree', sub: 'Pages in the order you set', icon: 'i48' },
-  { id: 'gallery', label: 'Gallery', sub: 'Cards with covers', icon: 'i54' },
-  { id: 'recent', label: 'Recent', sub: 'Flat list, newest first', icon: 'i39' },
+const VIEWS: { id: TreeView; label: string; sub: string; icon: BoardIconName }[] = [
+  { id: 'tree', label: 'Tree', sub: 'Pages in the order you set', icon: 'viewTree' },
+  { id: 'gallery', label: 'Gallery', sub: 'Cards with covers', icon: 'viewGallery' },
+  { id: 'recent', label: 'Recent', sub: 'Flat list, newest first', icon: 'viewRecent' },
 ];
 
 /** Closes a popover on a mousedown outside it or Esc. */
@@ -52,112 +52,92 @@ function useDismiss(open: boolean, ref: React.RefObject<HTMLElement>, close: () 
 }
 
 /**
- * The view switch: Tree, Gallery or Recent, the sort of the gallery and the recent list, and "Select pages" /
- * "Reorder pages".
- * @param props.onSelectMode - Starts selecting several pages; absent for a reader who can't edit.
- * @param props.onReorderMode - Starts the reorder mode (touch); absent where dragging is the way.
+ * The view switch of the tree header (organising pages, B 7-12): Tree, Gallery and Recent as a three-icon segmented
+ * control, each with its name as the tooltip.
  */
-export function ViewMenu({
-  view,
-  sort,
-  onView,
-  onSort,
-  onSelectMode,
-  onReorderMode,
-}: {
-  view: TreeView;
-  sort: TreeSort;
-  onView: (v: TreeView) => void;
-  onSort: (s: TreeSort) => void;
-  onSelectMode?: () => void;
-  onReorderMode?: () => void;
-}) {
+export function ViewSwitch({ view, onView }: { view: TreeView; onView: (v: TreeView) => void }) {
+  return (
+    <span className="tr-seg" role="radiogroup" aria-label="View" data-testid="tree-view-menu">
+      {VIEWS.map((v) => (
+        <button
+          key={v.id}
+          type="button"
+          role="radio"
+          aria-checked={view === v.id}
+          aria-label={`${v.label}: ${v.sub}`}
+          title={`${v.label} · ${v.sub}`}
+          data-testid={`tree-view-${v.id}`}
+          onClick={() => onView(v.id)}
+        >
+          <BoardIcon name={v.icon} size={16} strokeWidth={1.9} />
+        </button>
+      ))}
+    </span>
+  );
+}
+
+/**
+ * The sort of the gallery and the recent list (organising pages, B 11): "Sort Recently edited ▾" and its menu.
+ * @param props.sort - The sort in use.
+ * @param props.onSort - Called with the sort picked.
+ */
+export function SortMenu({ sort, onSort }: { sort: TreeSort; onSort: (s: TreeSort) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useDismiss(open, ref, () => setOpen(false));
-  const current = VIEWS.find((v) => v.id === view) ?? VIEWS[0];
-  const pick = (fn: () => void) => () => {
-    setOpen(false);
-    fn();
-  };
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={ref} className="tr-sort">
       <button
         type="button"
-        className="tr-tool"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`View: ${current.label}`}
-        data-testid="tree-view-menu"
+        aria-label={`Sort: ${SORT_LABEL[sort]}`}
+        data-testid="tree-sort"
         onClick={() => setOpen((v) => !v)}
       >
-        <Icon name={current.icon} size={13} strokeWidth={1.9} />
-        {current.label}
-        <Icon name="chevronDown" size={11} strokeWidth={2.4} />
+        <BoardIcon name="sort" size={13} strokeWidth={2} />
+        <span>Sort</span>
+        {SORT_LABEL[sort]}
+        <BoardIcon name="chevronDown" size={12} strokeWidth={2.2} color="#5B6B60" />
       </button>
       {open && (
-        <div className="dk-menu tr-pop" role="menu" aria-label="View and sort">
-          <div className="tr-pop-head">View</div>
-          {VIEWS.map((v) => (
+        <div className="dk-menu" role="menu" aria-label="Sort">
+          {(Object.keys(SORT_LABEL) as TreeSort[]).map((s) => (
             <button
-              key={v.id}
+              key={s}
               type="button"
               role="menuitemradio"
-              aria-checked={view === v.id}
+              aria-checked={sort === s}
               className="dk-mi tr-mi"
-              data-testid={`tree-view-${v.id}`}
-              onClick={pick(() => onView(v.id))}
+              data-testid={`tree-sort-${s}`}
+              onClick={() => {
+                setOpen(false);
+                onSort(s);
+              }}
             >
-              <Icon name={v.icon} size={15} strokeWidth={1.8} />
-              <span className="tr-mi-text">
-                <span>{v.label}</span>
-                <small>{v.sub}</small>
+              <span style={{ width: 14, display: 'inline-flex', flex: 'none' }}>
+                {sort === s && <BoardIcon name="check" size={14} strokeWidth={1.9} />}
               </span>
-              {view === v.id && <Icon name="check" size={14} strokeWidth={2.2} style={{ marginLeft: 'auto' }} />}
+              <span>{SORT_LABEL[s]}</span>
             </button>
           ))}
-          {view !== 'tree' && (
-            <>
-              <div className="tr-pop-head">Sort</div>
-              {(Object.keys(SORT_LABEL) as TreeSort[]).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={sort === s}
-                  className="dk-mi tr-mi"
-                  data-testid={`tree-sort-${s}`}
-                  onClick={pick(() => onSort(s))}
-                >
-                  <span className="tr-mi-text">{SORT_LABEL[s]}</span>
-                  {sort === s && <Icon name="check" size={14} strokeWidth={2.2} style={{ marginLeft: 'auto' }} />}
-                </button>
-              ))}
-            </>
-          )}
-          {(onSelectMode || onReorderMode) && <div className="tr-pop-sep" />}
-          {onSelectMode && (
-            <button type="button" role="menuitem" className="dk-mi tr-mi" onClick={pick(onSelectMode)}>
-              <Icon name="check" size={15} strokeWidth={1.8} />
-              <span className="tr-mi-text">Select pages</span>
-            </button>
-          )}
-          {onReorderMode && (
-            <button
-              type="button"
-              role="menuitem"
-              className="dk-mi tr-mi"
-              data-testid="tree-reorder-mode"
-              onClick={pick(onReorderMode)}
-            >
-              <Icon name="grip" size={15} strokeWidth={1.8} />
-              <span className="tr-mi-text">Reorder pages</span>
-            </button>
-          )}
         </div>
       )}
     </div>
   );
+}
+
+/**
+ * The mark a filter choice carries before its name (organising pages, B 15): the status dot of drafts, unpublished
+ * changes and may be outdated, the ✦ of suggestions, the book of books; `null` for "My pages".
+ */
+export function FilterMark({ k }: { k: FilterKey }) {
+  if (k === 'drafts') return <span className="tr-dot" style={{ background: '#C98A1B' }} />;
+  if (k === 'unpublished') return <span className="tr-dot" style={{ background: '#2F6FB0' }} />;
+  if (k === 'outdated') return <span className="tr-dot" style={{ border: '2px solid #C98A1B' }} />;
+  if (k === 'suggestions') return <BoardIcon name="spark" size={13} strokeWidth={2.2} color="#5B3FA8" />;
+  if (k === 'books') return <BoardIcon name="book" size={13} strokeWidth={2.2} color="#1F5A31" />;
+  return null;
 }
 
 /**
@@ -195,15 +175,16 @@ export function FilterChoices({
             type="button"
             role="menuitemcheckbox"
             aria-checked={on}
-            className="dk-mi tr-mi"
+            className="tr-fopt"
             data-testid={`tree-filter-${k}`}
             onClick={() => toggle(k)}
           >
             <span className={`tr-check${on ? ' tr-check-on' : ''}`} aria-hidden="true">
-              {on && <Icon name="check" size={11} strokeWidth={3} />}
+              {on && <BoardIcon name="check" size={12} strokeWidth={3.2} />}
             </span>
-            <span className="tr-mi-text">{FILTER_LABEL[k]}</span>
-            <span className="tr-count">{counts[k]}</span>
+            <FilterMark k={k} />
+            <span>{FILTER_LABEL[k]}</span>
+            <span className="tr-fopt-count">{counts[k]}</span>
           </button>
         );
       })}
@@ -225,18 +206,14 @@ export function FilterChoices({
       <div className="tr-filter-foot">
         <button
           type="button"
-          className="st-btn st-btn-sm"
+          className="tr-link"
           disabled={activeFilterCount(filters) === 0}
           onClick={() => onChange(NO_FILTERS)}
         >
           Clear all
         </button>
-        <button
-          type="button"
-          className="st-btn st-btn-sm st-btn-primary"
-          data-testid="tree-filter-show"
-          onClick={onDone}
-        >
+        <span />
+        <button type="button" className="st-btn st-btn-primary" data-testid="tree-filter-show" onClick={onDone}>
           Show {shown} {shown === 1 ? 'page' : 'pages'}
         </button>
       </div>
@@ -245,7 +222,8 @@ export function FilterChoices({
 }
 
 /**
- * The Filter button with the number of choices on, and its panel: a popover, or a bottom sheet on a phone.
+ * The Filter button with the number of choices on, and its panel: on a desktop a popover beside the tree with its
+ * arrow at the button (organising pages, B 15), a bottom sheet on a phone.
  * @param props.layout - The Docs area's layout.
  */
 export function FilterButton({
@@ -262,6 +240,7 @@ export function FilterButton({
   onChange: (f: TreeFilters) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [at, setAt] = useState<{ left: number; top: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const phone = layout === 'phone';
   useDismiss(open && !phone, ref, () => setOpen(false));
@@ -269,6 +248,15 @@ export function FilterButton({
   const choices = (
     <FilterChoices filters={filters} counts={counts} shown={shown} onChange={onChange} onDone={() => setOpen(false)} />
   );
+  function toggle(btn: HTMLElement) {
+    if (open) return setOpen(false);
+    const b = btn.getBoundingClientRect();
+    // beside the tree panel, the arrow (26 px down the popover) level with the middle of the button
+    const panel = btn.closest('aside')?.getBoundingClientRect();
+    const left = Math.min((panel?.right ?? b.right) + 4, window.innerWidth - 334);
+    setAt({ left, top: Math.max(8, b.top + b.height / 2 - 26) });
+    setOpen(true);
+  }
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button
@@ -278,9 +266,9 @@ export function FilterButton({
         aria-expanded={open}
         aria-label={n ? `Filter, ${n} on` : 'Filter'}
         data-testid="tree-filter"
-        onClick={() => setOpen((v) => !v)}
+        onClick={(e) => toggle(e.currentTarget)}
       >
-        <Icon name="filter" size={13} strokeWidth={1.9} />
+        <BoardIcon name="filter" size={13} strokeWidth={2} />
         Filter
         {n > 0 && <span className="tr-badge">{n}</span>}
       </button>
@@ -293,32 +281,38 @@ export function FilterButton({
             {choices}
           </BottomSheet>
         ) : (
-          <div className="dk-menu tr-pop tr-pop-wide" role="dialog" aria-label="Filter pages">
-            {choices}
+          <div className="tr-filterpop" style={at ?? undefined}>
+            <span className="tr-hc-arrow" />
+            <div className="dk-menu" role="dialog" aria-label="Filter pages">
+              {choices}
+            </div>
           </div>
         ))}
     </div>
   );
 }
 
-/** The chips of the filters that are on, each with ×, under the search box. */
+/** The chips of the filters that are on, each with ×, under the toolbar. */
 export function FilterChips({ filters, onChange }: { filters: TreeFilters; onChange: (f: TreeFilters) => void }) {
   if (activeFilterCount(filters) === 0) return null;
-  const chip = (key: string, label: ReactNode, off: () => void) => (
+  const chip = (key: string, label: string, mark: ReactNode, off: () => void) => (
     <span key={key} className="tr-chip">
+      {mark}
       {label}
-      <button type="button" aria-label={`Remove filter ${String(label)}`} onClick={off}>
-        <Icon name="close" size={10} strokeWidth={2.6} />
+      <button type="button" aria-label={`Remove filter ${label}`} onClick={off}>
+        <BoardIcon name="close" size={11} strokeWidth={2.6} />
       </button>
     </span>
   );
   return (
     <div className="tr-chips" data-testid="tree-filter-chips">
       {filters.only.map((k) =>
-        chip(k, FILTER_LABEL[k], () => onChange({ ...filters, only: filters.only.filter((x) => x !== k) })),
+        chip(k, FILTER_LABEL[k], k === 'suggestions' || k === 'books' ? null : <FilterMark k={k} />, () =>
+          onChange({ ...filters, only: filters.only.filter((x) => x !== k) }),
+        ),
       )}
       {filters.edited !== 'any' &&
-        chip('edited', `Edited ${EDITED_LABEL[filters.edited].toLowerCase()}`, () =>
+        chip('edited', `Edited ${EDITED_LABEL[filters.edited].toLowerCase()}`, null, () =>
           onChange({ ...filters, edited: 'any' }),
         )}
     </div>

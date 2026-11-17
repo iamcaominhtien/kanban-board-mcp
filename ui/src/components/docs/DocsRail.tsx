@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DocsTreeNode } from '../../types/docs';
 import { Icon } from './Icon';
+import { BoardIcon } from './tree/boardIcons';
 
 interface Props {
   nodes: DocsTreeNode[];
@@ -15,7 +16,7 @@ interface Props {
 }
 
 /**
- * The 56px icon rail used below 1200 px or when the tree is collapsed: one icon per root page, hover flyout per folder.
+ * The 56px icon rail (app frame, A 2 and G 24: 36 px buttons on a desktop, 44 on touch) used on a tablet or when the tree is collapsed: one icon per root page, hover flyout per folder.
  * @param props.nodes - Page tree; root pages become icons.
  * @param props.selectedId - Currently open page id.
  * @param props.onExpand - Called to expand the full tree.
@@ -73,12 +74,12 @@ export function DocsRail({ nodes, selectedId, onExpand, onSearch, onNewPage, onS
       style={{
         width: 56,
         flexShrink: 0,
-        background: '#F6FAF7',
+        background: '#F4F8F5',
         borderRight: '1px solid #E3E8E5',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 4,
+        gap: 8,
         padding: '14px 0',
         boxSizing: 'border-box',
         position: 'relative',
@@ -94,18 +95,7 @@ export function DocsRail({ nodes, selectedId, onExpand, onSearch, onNewPage, onS
           data-testid="open-sidebar"
           onClick={onOpenSidebar}
         >
-          <svg
-            aria-hidden="true"
-            width={18}
-            height={18}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.9}
-            strokeLinecap="round"
-          >
-            <path d="M4 7h16M4 12h16M4 17h16" />
-          </svg>
+          <BoardIcon name="menu" size={17} strokeWidth={1.8} />
         </button>
       )}
       <button
@@ -115,10 +105,10 @@ export function DocsRail({ nodes, selectedId, onExpand, onSearch, onNewPage, onS
         title="Expand page tree"
         onClick={onExpand}
       >
-        <Icon name="i45" size={18} strokeWidth={1.8} />
+        <BoardIcon name="expand" size={17} strokeWidth={1.8} />
       </button>
       <button type="button" className="dk-rail-btn" aria-label="Search pages" title="Search pages" onClick={onSearch}>
-        <Icon name="search" size={18} strokeWidth={1.8} />
+        <BoardIcon name="search" size={17} strokeWidth={1.8} />
       </button>
       {onNewPage && (
         <button
@@ -128,10 +118,10 @@ export function DocsRail({ nodes, selectedId, onExpand, onSearch, onNewPage, onS
           title="New page"
           onClick={() => onNewPage(null)}
         >
-          <Icon name="i23" size={18} strokeWidth={1.8} />
+          <BoardIcon name="plus" size={17} strokeWidth={1.8} />
         </button>
       )}
-      <div style={{ width: 24, height: 1, background: '#DCE6DF', margin: '6px 0', flexShrink: 0 }} />
+      <div style={{ width: 28, height: 1, background: '#E3E8E5', margin: '2px 0', flexShrink: 0 }} />
       {roots.map((n) => {
         const folder = (kids.get(n.id)?.length ?? 0) > 0;
         return (
@@ -147,7 +137,7 @@ export function DocsRail({ nodes, selectedId, onExpand, onSearch, onNewPage, onS
             onMouseLeave={closeFly}
             onFocus={(e) => folder && openFly(n.id, e.currentTarget)}
           >
-            <Icon name={folder ? 'folder' : 'page'} size={18} strokeWidth={1.8} />
+            <BoardIcon name={folder ? 'folder' : 'page'} size={17} strokeWidth={1.8} />
           </button>
         );
       })}

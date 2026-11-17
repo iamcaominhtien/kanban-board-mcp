@@ -193,6 +193,51 @@ function pageImages(page: DocsPage): string[] {
   return out.slice(0, 12);
 }
 
+/** The thumbnail text column of each width (app frame, B 5): 16, 22, 29 and 36 px wide in a 46 × 30 page. */
+const WIDTH_THUMB: Record<(typeof WIDTHS)[number], number> = { narrow: 16, normal: 22, wide: 29, full: 36 };
+
+/**
+ * The four page widths as cards with a small page drawn in each (app frame, B 5): Narrow 560, Normal 680, Wide 880,
+ * Full 100 %.
+ * @param props.value - The width in use.
+ * @param props.onChange - Called with the width picked.
+ */
+function WidthCards({
+  value,
+  onChange,
+}: {
+  value: (typeof WIDTHS)[number];
+  onChange: (v: (typeof WIDTHS)[number]) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label="Page width" className="dk-ps-widths">
+      {WIDTHS.map((w) => {
+        const on = w === value;
+        return (
+          <button
+            key={w}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            className={`dk-ps-width${on ? ' dk-ps-width-on' : ''}`}
+            data-testid={`ps-width-${w}`}
+            onClick={() => onChange(w)}
+          >
+            <span className="dk-ps-width-page" aria-hidden="true">
+              <span style={{ width: WIDTH_THUMB[w] }}>
+                <span />
+                <span style={{ width: '70%' }} />
+              </span>
+            </span>
+            <span className="dk-ps-width-name">{WIDTH_LABEL[w]}</span>
+            <span className="dk-ps-width-px">{WIDTH_PX[w] ? String(WIDTH_PX[w]) : '100%'}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function LayoutTab({ look, set, layout, onMore }: TabProps & { layout: DocsLayout; onMore: () => void }) {
   return (
     <>
@@ -204,17 +249,7 @@ function LayoutTab({ look, set, layout, onMore }: TabProps & { layout: DocsLayou
             : 'Sets the text column. Wide pictures, tables and code can still break out of it.'
         }
       >
-        <Segmented
-          label="Page width"
-          testId="ps-width"
-          value={look.width}
-          onChange={(v) => set({ width: v === 'normal' ? null : v })}
-          options={WIDTHS.map((w) => ({
-            value: w,
-            label: WIDTH_LABEL[w],
-            sub: WIDTH_PX[w] ? String(WIDTH_PX[w]) : '100%',
-          }))}
-        />
+        <WidthCards value={look.width} onChange={(v) => set({ width: v === 'normal' ? null : v })} />
       </Field>
       <Field label="Body font">
         <FontSelect

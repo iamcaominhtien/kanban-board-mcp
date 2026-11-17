@@ -57,10 +57,11 @@ import { useToast } from '../Toast';
 import { bookOf, readingNeighbours } from './book';
 import { ChapterList, ReadingFooter } from './BookReading';
 import { ExportMenu, type ExportFormat } from './docsExport';
-import { headerPlan, useElementWidth } from './headerActions';
+import { headerPlan, useElementWidth, useScrollProgress } from './headerActions';
 import { OlderVersionBar, OutdatedNote, VersionBadge } from './PageStatus';
 import { outdatedOf, shortDate } from './pageStatus';
 import { PrintDialog } from './PrintDialog';
+import { openDocsFind } from './FindInPage';
 import { DEFAULT_PRINT, isPrinting, mountPrintSheet, printPage, type PrintOptions, type PrintParts } from './printPage';
 import { applyReaderLook, readerClass, readerThemeCss, readerVars, useReaderPrefs } from './readerPrefs';
 import { AaGlyph, ReaderSettingsPanel, ReaderSettingsPopover } from './ReaderSettings';
@@ -144,7 +145,16 @@ function contentKey(md: string): string {
   return `${md.length}:${h >>> 0}`;
 }
 
-const crumb = { fontSize: 12.5, fontWeight: 500, color: '#5B6B60', whiteSpace: 'nowrap' } as const;
+const crumb = { fontSize: 12.5, fontWeight: 400, color: 'var(--dp-muted, #5B6B60)', whiteSpace: 'nowrap' } as const;
+
+/** The "›" between the parts of the path (Reader boards: a muted character, not an icon). */
+function CrumbSep() {
+  return (
+    <span aria-hidden="true" className="dk-crumb-sep">
+      ›
+    </span>
+  );
+}
 
 /**
  * Read view of a page: header, content, "On this page" and "Referenced by".
@@ -209,6 +219,8 @@ export function DocsPageView({
   const [reviewing, setReviewing] = useState(false);
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
   const paneWidth = useElementWidth(scrollEl);
+  // how far down the page the reader is, 0-100 (the progress bar under the page bar, "N min left")
+  const readPct = useScrollProgress(scrollEl, page.id);
   const { data: members = [] } = useMembers(projectId);
   const [menu, setMenu] = useState(false);
   const [share, setShare] = useState(false);
@@ -484,7 +496,7 @@ export function DocsPageView({
   useWideBlocks(bodyEl, `${richKey}:${renderedKey}:${older?.version ?? ''}`);
 
   const tocList = (
-    <div style={{ borderLeft: '1px solid #E3E8E5', marginLeft: 1 }}>
+    <div className="dk-toc-list">
       {headings.map((h) => {
         const on = activeSlug === h.slug;
         return (
@@ -497,18 +509,7 @@ export function DocsPageView({
               e.preventDefault();
               jump(h.slug);
             }}
-            style={{
-              display: 'block',
-              padding: `5px 0 5px ${12 + (h.level - 2) * 12}px`,
-              marginLeft: -1,
-              borderLeft: `2px solid ${on ? '#2E6F40' : 'transparent'}`,
-              fontSize: 12.5,
-              fontWeight: on ? 700 : 500,
-              color: on ? '#1E2A22' : '#5B6B60',
-              lineHeight: 1.35,
-              cursor: 'pointer',
-              textDecoration: 'none',
-            }}
+            style={{ paddingLeft: 14 + (h.level - 2) * 12 }}
           >
             {h.text}
           </a>
@@ -521,11 +522,11 @@ export function DocsPageView({
     <>
       {older ? (
         <>
-          <span className="mc-chip" style={{ background: '#DCEEE1', color: '#1F5A31' }} data-testid="status-badge">
-            <span className="mc-dot" style={{ background: '#2E6F40' }} />
+          <span className="mc-chip dk-schip dk-schip-green" data-testid="status-badge">
+            <span className="mc-dot" />
             Published · v{older.version}
           </span>
-          <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }} data-testid="older-chip">
+          <span className="mc-chip dk-schip dk-schip-blue" data-testid="older-chip">
             Older version
           </span>
         </>
@@ -538,44 +539,29 @@ export function DocsPageView({
           onCompare={onCompare}
         />
       ) : (
-        <span className="mc-chip" style={{ background: '#FCEFD9', color: '#7A4F08' }} data-testid="status-badge">
-          <span className="mc-dot" style={{ background: '#B4791E' }} />
+        <span className="mc-chip dk-schip dk-schip-amber" data-testid="status-badge">
+          <span className="mc-dot" />
           Draft
         </span>
       )}
       {showDraft && published && (
-        <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }}>
-          <span className="mc-dot" style={{ background: '#2F6FB0' }} />
+        <span className="mc-chip dk-schip dk-schip-blue">
+          <span className="mc-dot" />
           Unpublished changes
         </span>
       )}
       {outdated && (
-        <span className="mc-chip" style={{ background: '#FCEFD9', color: '#7A4F08' }} data-testid="outdated-chip">
-          <span className="mc-dot" style={{ background: '#B4791E' }} />
+        <span className="mc-chip dk-schip dk-schip-amber" data-testid="outdated-chip">
+          <Icon name="i39" size={11} strokeWidth={2.2} />
           May be outdated
         </span>
       )}
-      {offline && (
-        <span className="mc-chip" style={{ background: '#F1F3F1', color: '#3A4A3E' }}>
-          Offline copy
-        </span>
-      )}
+      {offline && <span className="mc-chip dk-schip dk-schip-grey">Offline copy</span>}
     </>
   );
 
   const pageInfo = (
-    <div
-      data-popover
-      style={{
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        fontSize: 12.5,
-        color: 'var(--dp-muted, #5B6B60)',
-        minWidth: 0,
-      }}
-    >
+    <div data-popover className="dk-page-line">
       <span
         title={aiTeam ? `${aiTeam.name}, an AI team` : actorName(who)}
         className={aiTeam ? 'dk-ai-avatar' : undefined}
@@ -585,7 +571,7 @@ export function DocsPageView({
           height: 22,
           borderRadius: '50%',
           ...av,
-          fontSize: 11,
+          fontSize: 9,
           fontWeight: 700,
           display: 'inline-flex',
           alignItems: 'center',
@@ -602,7 +588,7 @@ export function DocsPageView({
         data-testid="page-info"
         className="dk-page-info"
       >
-        {lead} <b style={{ color: 'var(--dp-ink, #1E2A22)', fontWeight: 600 }}>{actorName(who)}</b> ·{' '}
+        {lead} <b style={{ color: 'var(--dp-ink, #1E2A22)', fontWeight: 700 }}>{actorName(who)}</b> ·{' '}
         <span
           onMouseEnter={() => setTimeTip(true)}
           onMouseLeave={() => setTimeTip(false)}
@@ -638,27 +624,28 @@ export function DocsPageView({
     </div>
   );
 
+  // on a phone the outline is in the bottom bar; on a tablet it is a pill over the page (Reader boards, A)
   const outlineButton =
-    outlineOn && !inlineOutline ? (
-      <div data-popover style={{ position: 'relative' }}>
+    outlineOn && !inlineOutline && !phone ? (
+      <div data-popover style={{ position: 'relative' }} className={touch ? 'dk-outline-float' : undefined}>
         <button
           type="button"
-          className={phone ? 'dk-icobtn dk-bar-ico' : 'st-btn st-btn-sm'}
+          className="st-btn dk-hbtn"
           aria-expanded={toc}
-          aria-label={phone ? 'On this page' : undefined}
-          title={phone ? 'On this page' : undefined}
           onClick={() => setToc((v) => !v)}
           data-testid="toc-button"
         >
-          <Icon name="i42" size={phone ? 18 : 14} strokeWidth={1.9} />
-          {!phone && (
+          <Icon name="i42" size={14} strokeWidth={1.9} />
+          {touch ? (
+            'Outline'
+          ) : (
             <>
               On this page
-              <Icon name="chevronDown" size={11} strokeWidth={2.3} style={{ color: '#9AA8A0' }} />
+              <Icon name="chevronDown" size={11} strokeWidth={2.3} style={{ color: 'var(--dp-muted, #9AA8A0)' }} />
             </>
           )}
         </button>
-        {toc && !phone && (
+        {toc && (
           <div
             className="dk-menu"
             style={{
@@ -680,6 +667,47 @@ export function DocsPageView({
       </div>
     ) : null;
 
+  // the phone's bottom bar: the four things a reader reaches for (Reader boards, A: Outline, Find, Text, Share)
+  const readBar = phone ? (
+    <nav className="dk-readbar" aria-label="Reading" data-testid="read-bar">
+      {outlineOn && (
+        <button
+          type="button"
+          className="dk-readbar-btn"
+          aria-expanded={toc}
+          onClick={() => setToc((v) => !v)}
+          data-testid="toc-button"
+        >
+          <Icon name="i42" size={20} strokeWidth={1.8} />
+          Outline
+        </button>
+      )}
+      <button type="button" className="dk-readbar-btn" onClick={() => openDocsFind(false)} data-testid="read-find">
+        <Icon name="search" size={20} strokeWidth={1.8} />
+        Find
+      </button>
+      <button
+        type="button"
+        className="dk-readbar-btn"
+        aria-expanded={readerOpen}
+        onClick={() => setReaderOpen(true)}
+        data-testid="read-text"
+      >
+        <AaGlyph />
+        Text
+      </button>
+      <button
+        type="button"
+        className="dk-readbar-btn"
+        onClick={() => (canShare ? setShareSheet(true) : onAction('copy-link'))}
+        data-testid="read-share"
+      >
+        <Icon name="link" size={20} strokeWidth={1.8} />
+        {canShare ? 'Share' : 'Copy link'}
+      </button>
+    </nav>
+  ) : null;
+
   // Export and Print sit in More when the header has no room for them (headerActions.ts)
   const moreHidden: PageMenuAction[] = plan.export === 'open' ? ['export'] : [];
   const moreExtra: PageMenuAction[] = plan.print === 'open' ? [] : ['print'];
@@ -699,7 +727,7 @@ export function DocsPageView({
     <div data-popover style={{ position: 'relative' }}>
       <button
         type="button"
-        className="dk-icobtn dk-bar-more"
+        className="dk-icobtn dk-bar-more dk-hico"
         aria-label="Page actions"
         aria-expanded={menu}
         data-testid="page-menu"
@@ -808,9 +836,14 @@ export function DocsPageView({
               <nav aria-label="Breadcrumb" className="dk-crumbs">
                 {!phone && (
                   <>
-                    <Icon name="folder" size={13} strokeWidth={1.8} style={{ color: '#9AA8A0', flexShrink: 0 }} />
+                    <Icon
+                      name="folder"
+                      size={13}
+                      strokeWidth={1.8}
+                      style={{ color: 'var(--dp-muted, #9AA8A0)', flexShrink: 0 }}
+                    />
                     <span style={crumb}>{projectName}</span>
-                    <Icon name="chevronRight" size={10} strokeWidth={2.4} style={{ color: '#C7D2CB', flexShrink: 0 }} />
+                    <CrumbSep />
                   </>
                 )}
                 {shownPath.map((p, i) =>
@@ -819,12 +852,7 @@ export function DocsPageView({
                       <button type="button" className="dk-crumb" onClick={() => onOpenPage(p.id)} style={crumb}>
                         {p.title}
                       </button>
-                      <Icon
-                        name="chevronRight"
-                        size={10}
-                        strokeWidth={2.4}
-                        style={{ color: '#C7D2CB', flexShrink: 0 }}
-                      />
+                      <CrumbSep />
                     </span>
                   ) : (
                     <span key={`fold-${i}`} style={{ display: 'contents' }}>
@@ -839,12 +867,7 @@ export function DocsPageView({
                       >
                         …
                       </button>
-                      <Icon
-                        name="chevronRight"
-                        size={10}
-                        strokeWidth={2.4}
-                        style={{ color: '#C7D2CB', flexShrink: 0 }}
-                      />
+                      <CrumbSep />
                     </span>
                   ),
                 )}
@@ -854,7 +877,7 @@ export function DocsPageView({
                 {book && !chapterSide && book.chapters.length > 0 && (
                   <button
                     type="button"
-                    className={phone ? 'dk-icobtn dk-bar-ico' : 'st-btn st-btn-sm'}
+                    className={phone ? 'dk-icobtn dk-bar-ico' : 'st-btn dk-hbtn'}
                     aria-label="Chapters"
                     title="Chapters"
                     aria-expanded={chaptersOpen}
@@ -865,7 +888,7 @@ export function DocsPageView({
                     {!phone && 'Chapters'}
                   </button>
                 )}
-                {outlineButton}
+                {!touch && outlineButton}
                 {phone && onSearch && (
                   <button
                     type="button"
@@ -890,7 +913,7 @@ export function DocsPageView({
                 {!phone && !offline && plan.comments !== 'more' && (
                   <button
                     type="button"
-                    className="st-btn"
+                    className={plan.comments === 'icon' ? 'st-btn dk-hbtn dk-hico' : 'st-btn dk-hbtn'}
                     aria-pressed={cc.open}
                     aria-label={plan.comments === 'icon' ? `Comments, ${commentTotal}` : undefined}
                     title={plan.comments === 'icon' ? 'Comments' : undefined}
@@ -909,7 +932,7 @@ export function DocsPageView({
                   <div data-popover style={{ position: 'relative' }}>
                     <button
                       type="button"
-                      className="dk-icobtn dk-bar-ico"
+                      className="dk-icobtn dk-hico"
                       aria-label="Reading settings"
                       title="Reading settings"
                       aria-expanded={readerOpen}
@@ -928,12 +951,14 @@ export function DocsPageView({
                     )}
                   </div>
                 )}
-                {!phone && !offline && <FollowBell scope="page" scopeId={page.id} projectId={projectId} />}
+                {!phone && !offline && (
+                  <FollowBell scope="page" scopeId={page.id} projectId={projectId} className="dk-hico" />
+                )}
                 {!phone && (
                   <div data-popover style={{ position: 'relative' }}>
                     <button
                       type="button"
-                      className="st-btn"
+                      className={plan.share === 'icon' ? 'st-btn dk-hbtn dk-hico' : 'st-btn dk-hbtn'}
                       onClick={() => (canShare ? setShare((v) => !v) : onAction('copy-link'))}
                       data-testid="share"
                       aria-expanded={share}
@@ -952,7 +977,7 @@ export function DocsPageView({
                   <div data-popover style={{ position: 'relative' }}>
                     <button
                       type="button"
-                      className="st-btn"
+                      className="st-btn dk-hbtn"
                       aria-haspopup="menu"
                       aria-expanded={exportOpen}
                       data-testid="export-button"
@@ -960,6 +985,7 @@ export function DocsPageView({
                     >
                       <Icon name="i43" size={14} strokeWidth={1.9} />
                       Export
+                      <Icon name="chevronDown" size={11} strokeWidth={2.3} />
                     </button>
                     {exportOpen && (
                       <ExportMenu
@@ -972,15 +998,16 @@ export function DocsPageView({
                 {!phone && plan.print === 'open' && (
                   <button
                     type="button"
-                    className="st-btn"
+                    className="dk-icobtn dk-hico"
+                    aria-label="Print"
+                    title="Print"
                     data-testid="print-button"
                     onClick={() => setPrintOpen(true)}
                   >
-                    <Icon name="page" size={14} strokeWidth={1.9} />
-                    Print
+                    <Icon name="page" size={15} strokeWidth={1.9} />
                   </button>
                 )}
-                {!phone && (
+                {(!phone || !offline) && (
                   <div
                     style={{ position: 'relative' }}
                     onMouseEnter={() => editBlocked && setEditTip(true)}
@@ -988,14 +1015,16 @@ export function DocsPageView({
                   >
                     <button
                       type="button"
-                      className={editBlocked ? 'st-btn' : 'st-btn st-btn-primary'}
+                      // a reader who cannot edit sees it greyed, still green (Reader boards, J: frame 66)
+                      className="st-btn st-btn-primary dk-hbtn dk-hbtn-primary"
                       disabled={!!editBlocked}
                       aria-description={editBlocked ?? undefined}
                       onClick={() => onAction('edit')}
                       data-testid="edit-page"
                     >
-                      <Icon name={lock ? 'lock' : 'i15'} size={14} strokeWidth={1.9} />
-                      {editLabel}
+                      {/* a phone's bar has room for the word only (Reader boards, C: "Edit", "Continue") */}
+                      {!phone && <Icon name={lock ? 'lock' : 'i15'} size={14} strokeWidth={1.9} />}
+                      {phone && page.draft ? 'Continue' : editLabel}
                     </button>
                     {editTip && editBlocked && (
                       <div
@@ -1010,12 +1039,20 @@ export function DocsPageView({
                 )}
                 {menuButton}
               </div>
+              {/* how far the page is read: 3 px under the bar, the only thing that sticks (Reader boards, A) */}
+              <div
+                className="dk-progress"
+                role="progressbar"
+                aria-label="Reading progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(readPct)}
+                data-testid="read-progress"
+              >
+                <i style={{ width: `${readPct}%` }} />
+              </div>
             </div>
-            <div className="dk-statusrow">
-              {statusChips}
-              {pageInfo}
-              <SuggestionChip />
-            </div>
+            {touch && outlineButton}
             <div className="dk-doc-col" data-testid="page-column">
               {older && (
                 <OlderVersionBar
@@ -1070,7 +1107,12 @@ export function DocsPageView({
                   </h1>
                 }
               />
-              <div className="dk-doc-rule" />
+              {/* the status: a quiet line under the title (Reader boards, D) */}
+              <div className="dk-statusrow">
+                {statusChips}
+                {pageInfo}
+                <SuggestionChip />
+              </div>
               {!offline && !older && aiOn && (
                 <div style={{ marginTop: 16 }}>
                   <SummaryBlock view={aiView} />
@@ -1239,21 +1281,35 @@ export function DocsPageView({
               className="dk-toc"
               ref={tocNavRef}
               // as tall as the pane (a flex child of it): a list taller than that scrolls here, so its end can be reached
-              style={{
-                width: 200,
-                flexShrink: 0,
-                padding: '30px 20px 24px 8px',
-                boxSizing: 'border-box',
-                maxHeight: '100%',
-                overflowY: 'auto',
-                overscrollBehavior: 'contain',
-              }}
             >
               <div>
-                <span className="dk-toc-head" style={{ marginBottom: 10 }}>
-                  On this page
-                </span>
+                <span className="dk-toc-head">On this page</span>
                 {tocList}
+                <div className="dk-toc-foot">
+                  <span data-testid="minutes-left">
+                    {Math.max(1, Math.round(minutes * (1 - readPct / 100)))} min left
+                  </span>
+                  <button
+                    type="button"
+                    className="dk-toc-top"
+                    onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                  >
+                    <svg
+                      aria-hidden="true"
+                      width={12}
+                      height={12}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2.2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 19V5M6 11l6-6 6 6" />
+                    </svg>
+                    Back to top
+                  </button>
+                </div>
               </div>
             </nav>
           )}
@@ -1303,19 +1359,7 @@ export function DocsPageView({
             />
           </DocsDrawer>
         )}
-        {phone && !offline && (
-          <button
-            type="button"
-            className="dk-fab"
-            disabled={!!editBlocked}
-            title={editBlocked ?? undefined}
-            onClick={() => onAction('edit')}
-            data-testid="edit-page"
-          >
-            <Icon name={lock ? 'lock' : 'i15'} size={18} strokeWidth={1.9} />
-            {editLabel}
-          </button>
-        )}
+        {readBar}
         {phone && toc && (
           <BottomSheet label="On this page" onClose={() => setToc(false)} testId="toc-sheet">
             <div data-popover className="dk-toc-sheet">

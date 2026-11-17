@@ -311,8 +311,8 @@ export function PhoneBar({ editor, disabled, pageHex, actions, plain }: Props) {
   return (
     <>
       <div className="dk-ph-bar" data-testid="phone-bar">
-        <RBtn label="Insert" disabled={off} onClick={actions.onInsert}>
-          <Glyph name="insert" size={19} strokeWidth={2.1} />
+        <RBtn label="Insert" className="dk-ph-insert" disabled={off} onClick={actions.onInsert}>
+          <Glyph name="insert" size={21} strokeWidth={2.2} />
         </RBtn>
         <RBtn
           label="Format"
@@ -324,10 +324,12 @@ export function PhoneBar({ editor, disabled, pageHex, actions, plain }: Props) {
           <span style={{ fontSize: 15, fontWeight: 700 }}>Aa</span>
         </RBtn>
         <RBtn label="Bold" state={st.marks.bold} disabled={textOff} onClick={() => toggleMark(editor, 'bold')}>
-          <span style={{ fontSize: 16, fontWeight: 800 }}>B</span>
+          <span style={{ fontSize: 15, fontWeight: 800 }}>B</span>
         </RBtn>
         <RBtn label="Italic" state={st.marks.italic} disabled={textOff} onClick={() => toggleMark(editor, 'italic')}>
-          <span style={{ fontSize: 17, fontStyle: 'italic', fontFamily: "'Lora', Georgia, serif" }}>I</span>
+          <span style={{ fontSize: 16, fontStyle: 'italic', fontWeight: 600, fontFamily: "'Lora', Georgia, serif" }}>
+            I
+          </span>
         </RBtn>
         <RBtn
           label="Text colour"
@@ -336,7 +338,7 @@ export function PhoneBar({ editor, disabled, pageHex, actions, plain }: Props) {
           disabled={textOff}
           onClick={() => setSheet('color')}
         >
-          <ColorGlyph size={19} color={st.color && st.color !== 'mixed' ? cssColor('text', st.color) : undefined} />
+          <ColorGlyph color={st.color && st.color !== 'mixed' ? cssColor('text', st.color) : undefined} />
         </RBtn>
         <RBtn
           label="Bulleted list"
@@ -344,7 +346,7 @@ export function PhoneBar({ editor, disabled, pageHex, actions, plain }: Props) {
           disabled={off}
           onClick={() => editor.commands.toggleBulletList()}
         >
-          <Icon name="i48" size={18} />
+          <Glyph name="bullets" size={21} />
         </RBtn>
         <RBtn
           label="Alignment"
@@ -353,7 +355,7 @@ export function PhoneBar({ editor, disabled, pageHex, actions, plain }: Props) {
           disabled={off || st.inCode}
           onClick={() => setSheet('align')}
         >
-          <Glyph name={ALIGN_GLYPH[alignNow]} size={19} />
+          <Glyph name={ALIGN_GLYPH[alignNow]} size={21} />
         </RBtn>
         <RBtn
           label="More"
@@ -362,7 +364,7 @@ export function PhoneBar({ editor, disabled, pageHex, actions, plain }: Props) {
           onClick={() => setSheet('more')}
           testId="phone-more"
         >
-          <Glyph name="more" size={19} strokeWidth={2.4} />
+          <Glyph name="more" size={21} strokeWidth={2.6} />
         </RBtn>
       </div>
       {sheet && (

@@ -139,7 +139,7 @@ export function PullQuoteView({ node, editor, getPos, updateAttributes }: NodeVi
 }
 
 /** What a divider style draws: glyphs for the scene breaks, a rule for the rest. */
-export const RULE_GLYPHS: Record<string, string> = { dots: '•  •  •', stars: '*  *  *', fleuron: '❦' };
+export const RULE_GLYPHS: Record<string, string> = { dots: '···', stars: '* * *', fleuron: '❦' };
 
 /** The divider node view: the rule in its style and, when selected, the eight styles. */
 export function RuleView({ node, selected, editor, updateAttributes }: NodeViewProps) {
@@ -162,6 +162,7 @@ export function RuleView({ node, selected, editor, updateAttributes }: NodeViewP
           contentEditable={false}
           data-block-ui=""
         >
+          <div className="dk-rule-menu-head">Divider style</div>
           {RULE_STYLES.map((r) => (
             <button
               key={r.value}

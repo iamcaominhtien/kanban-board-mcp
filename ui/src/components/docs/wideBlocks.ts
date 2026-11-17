@@ -24,6 +24,8 @@ export function useWideBlocks(body: HTMLElement | null, revision: unknown): void
         const wide = !!table && col > 0 && table.offsetWidth > col + 1;
         w.toggleAttribute('data-wide', wide);
         w.toggleAttribute('data-more-right', w.scrollWidth - w.clientWidth - w.scrollLeft > 1);
+        // the "Scroll sideways" pill stays in view while the table scrolls under it
+        w.style.setProperty('--dk-sx', `${w.scrollLeft}px`);
       }
     };
     mark();

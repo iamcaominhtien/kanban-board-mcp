@@ -17,7 +17,6 @@ import {
   rgbToHex,
   type ColorKind,
 } from './palette';
-import { Glyph } from './parts';
 
 interface Props {
   kind: ColorKind;
@@ -58,12 +57,15 @@ export function ColorPicker({ kind, value, pageHex, onPick, touch }: Props) {
     };
     return (
       <div className="dk-cp" data-testid={`color-custom-${kind}`}>
-        <button type="button" className="dk-cp-back" onClick={() => setCustom(null)}>
-          <Glyph name="back" size={14} /> Back to palette
-        </button>
+        <div className="dk-cp-title">
+          <span>Custom colour</span>
+          <button type="button" className="dk-cp-backlink" onClick={() => setCustom(null)}>
+            Back to palette
+          </button>
+        </div>
+        <div className="dk-cp-preview" style={{ background: hex ?? 'transparent' }} aria-hidden="true" />
         <div className="dk-cp-custom">
-          <span className="dk-cp-big" style={{ background: hex ?? 'transparent' }} aria-hidden="true" />
-          <label className="dk-cp-field">
+          <label className="dk-cp-field dk-cp-hex">
             <span>HEX</span>
             <input
               aria-label="Hex colour"
@@ -114,26 +116,49 @@ export function ColorPicker({ kind, value, pageHex, onPick, touch }: Props) {
     );
   }
 
-  const Swatch = ({ v, label }: { v: string; label?: string }) => (
-    <button
-      type="button"
-      role="menuitemradio"
-      aria-checked={cur === v}
-      aria-label={label ?? colorLabel(v)}
-      title={label ?? colorLabel(v)}
-      className={`dk-cp-sw${cur === v ? ' dk-cp-sw-on' : ''}`}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={() => onPick(v)}
-    >
-      <span
-        className={kind === 'text' ? 'dk-cp-dot dk-cp-dot-text' : 'dk-cp-dot'}
-        style={kind === 'text' ? { color: swatch(v) } : { background: swatch(v) }}
+  const Swatch = ({ v, label, named }: { v: string; label?: string; named?: boolean }) => {
+    const on = cur === v;
+    const name = label ?? colorLabel(v);
+    return (
+      <button
+        type="button"
+        role="menuitemradio"
+        aria-checked={on}
+        aria-label={name}
+        title={name}
+        className={`dk-cp-sw${on ? ' dk-cp-sw-on' : ''}${named ? '' : ' dk-cp-sw-recent'}`}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => onPick(v)}
       >
-        {kind === 'text' ? 'A' : null}
-      </span>
-      {touch && <span className="dk-cp-name">{label ?? colorLabel(v)}</span>}
-    </button>
-  );
+        <span
+          className={`dk-cp-dot${kind === 'highlight' ? ' dk-cp-dot-hl' : ''}`}
+          style={{
+            background: swatch(v),
+            boxShadow: on ? `0 0 0 2px #FFFFFF, 0 0 0 3.5px ${kind === 'text' ? swatch(v) : '#2E6F40'}` : undefined,
+          }}
+        >
+          {on && (
+            <svg
+              aria-hidden="true"
+              width={14}
+              height={14}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={kind === 'text' ? '#FFFFFF' : '#1E2A22'}
+              strokeWidth={2.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12.5L10 17.5L19 7" />
+            </svg>
+          )}
+        </span>
+        {named && <span className="dk-cp-name">{name}</span>}
+      </button>
+    );
+  };
+  const currentHex = typeof value === 'string' && value !== 'mixed' ? swatch(value) : null;
+  const openCustom = () => setCustom(currentHex ?? '#2e6f40');
 
   return (
     <div
@@ -141,51 +166,97 @@ export function ColorPicker({ kind, value, pageHex, onPick, touch }: Props) {
       role="menu"
       aria-label={kind === 'text' ? 'Text colour' : 'Highlight'}
     >
+      <div className="dk-cp-title">
+        <span>{kind === 'text' ? 'Text colour' : 'Highlight'}</span>
+        <span className="dk-cp-title-hint">Named colours</span>
+      </div>
       <button
         type="button"
         role="menuitemradio"
         aria-checked={value === null}
-        className={`dk-cp-auto${value === null ? ' dk-cp-sw-on' : ''}`}
+        className={`dk-cp-auto${value === null ? ' dk-cp-auto-on' : ''}`}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => onPick(null)}
       >
         {kind === 'text' ? (
           <>
-            <span className="dk-cp-dot dk-cp-dot-text">A</span>
-            <span>Automatic</span>
+            <span className="dk-cp-autobox">A</span>
+            <span className="dk-cp-autolabel">Automatic</span>
             <span className="dk-cp-hint">follows the page</span>
           </>
         ) : (
           <>
-            <span className="dk-cp-dot dk-cp-none" />
-            <span>No highlight</span>
+            <span className="dk-cp-autobox">
+              <svg
+                aria-hidden="true"
+                width={14}
+                height={14}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#9AA8A0"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+              >
+                <circle cx="12" cy="12" r="8" />
+                <path d="M6.5 17.5l11-11" />
+              </svg>
+            </span>
+            <span className="dk-cp-autolabel">No highlight</span>
           </>
         )}
       </button>
-      <div className="dk-cp-head">Named colours</div>
+      <div className="dk-cp-rule" />
       <div className="dk-cp-grid">
         {names.map((n) => (
-          <Swatch key={n} v={n} />
+          <Swatch key={n} v={n} named />
         ))}
       </div>
       {recent.length > 0 && (
-        <>
+        <div className="dk-cp-sec">
           <div className="dk-cp-head">Recent</div>
-          <div className="dk-cp-grid">
+          <div className="dk-cp-recent">
             {recent.map((v) => (
               <Swatch key={v} v={v} />
             ))}
           </div>
-        </>
+        </div>
       )}
-      <button
-        type="button"
-        className="dk-cp-more"
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => setCustom(typeof value === 'string' && value.startsWith('#') ? value : '#2e6f40')}
-      >
-        Custom…
-      </button>
+      <div className="dk-cp-sec">
+        <div className="dk-cp-head">Custom</div>
+        <div className="dk-cp-customrow">
+          <button
+            type="button"
+            className="dk-cp-plus"
+            aria-label="Custom…"
+            title="Custom colour"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={openCustom}
+          >
+            <svg
+              aria-hidden="true"
+              width={15}
+              height={15}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="dk-cp-hexbox"
+            aria-label="Edit the custom colour"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={openCustom}
+          >
+            <span className="dk-cp-chip" style={{ background: currentHex ?? '#2E6F40' }} />
+            {(currentHex ?? '#2E6F40').toUpperCase()}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

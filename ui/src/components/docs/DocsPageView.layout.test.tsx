@@ -150,15 +150,23 @@ describe('DocsPageView on a desktop', () => {
 });
 
 describe('DocsPageView on a phone', () => {
-  it('floats Edit, folds the path and opens the tree, the outline and the menu as sheets', () => {
+  it('keeps Edit in the top bar, folds the path and opens the tree, the outline and the menu as sheets', () => {
     const onOpenTree = vi.fn();
     const { onAction } = show('phone', { settings: { width: 'wide' } }, { onOpenTree });
     // the column is the screen, whatever the page width
     const scroll = screen.getByTestId('page-column').parentElement as HTMLElement;
     expect(scroll.style.getPropertyValue('--dp-col')).toBe('100%');
-    // Edit floats in thumb reach; Share and Comments are not in the bar
+    // Edit stays in the top bar (Reader boards, A and C); Share and Comments are not in it
     const edit = screen.getByTestId('edit-page');
-    expect(edit.className).toBe('dk-fab');
+    expect(edit.closest('[data-testid="page-bar"]')).toBeTruthy();
+    expect(edit.textContent).toBe('Edit');
+    // the bottom bar: Outline, Find, Text, Share
+    expect(Array.from(screen.getByTestId('read-bar').querySelectorAll('button')).map((b) => b.textContent)).toEqual([
+      'Outline',
+      'Find',
+      'AaText',
+      'Share',
+    ]);
     fireEvent.click(edit);
     expect(onAction).toHaveBeenCalledWith('edit');
     expect(screen.queryByTestId('share')).toBeNull();

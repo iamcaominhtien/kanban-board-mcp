@@ -374,7 +374,7 @@ export function BlockMenu({
       </div>
     );
   }
-  const width = sub === 'list' ? 300 : 240;
+  const width = sub === 'list' ? 330 : 240;
   const left = Math.max(8, Math.min(anchor.right + 6, window.innerWidth - width - 8));
   const top = Math.max(8, Math.min(anchor.top, window.innerHeight - 420));
   return (

@@ -395,9 +395,10 @@ export function FindInPage({
       aria-label="Find in page"
     >
       <div
-        className="dk-menu"
+        // reading (Reader boards, F: frame 47): a 430 px card, 12 px corners, a 36 px field and 36 px buttons
+        className={editable ? 'dk-menu' : 'dk-menu fx-find-read'}
         style={{
-          width: 460,
+          width: editable ? 460 : 430,
           maxWidth: 'calc(100vw - 32px)',
           padding: 8,
           display: 'flex',
@@ -412,16 +413,19 @@ export function FindInPage({
               minWidth: 0,
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              padding: '0 9px',
-              height: 30,
-              borderRadius: 7,
+              gap: editable ? 6 : 7,
+              padding: editable ? '0 9px' : '0 10px',
+              height: editable ? 30 : 36,
+              borderRadius: editable ? 7 : 8,
               border: `1px solid ${none ? '#C4432A' : '#2E6F40'}`,
               background: '#FFFFFF',
               boxSizing: 'border-box',
-              boxShadow: none ? '0 0 0 3px rgba(196,67,42,0.14)' : '0 0 0 3px rgba(46,111,64,0.18)',
+              boxShadow: none
+                ? '0 0 0 3px rgba(196,67,42,0.14)'
+                : `0 0 0 3px rgba(46,111,64,${editable ? 0.18 : 0.14})`,
             }}
           >
+            {!editable && <Icon name="search" size={14} strokeWidth={1.9} style={{ color: '#5B6B60' }} />}
             <input
               ref={inputRef}
               value={q}
@@ -436,7 +440,7 @@ export function FindInPage({
                 border: 'none',
                 outline: 'none',
                 background: 'transparent',
-                fontSize: 13,
+                fontSize: editable ? 13 : 13.5,
                 fontWeight: 500,
                 color: '#1E2A22',
                 fontFamily: 'inherit',

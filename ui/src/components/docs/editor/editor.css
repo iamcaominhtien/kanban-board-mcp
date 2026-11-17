@@ -55,13 +55,20 @@
 .dk-editor ul,
 .dk-editor ol {
   margin: 0 0 12px;
-  padding-left: 22px;
+  padding-left: 24px;
+}
+.dk-editor ol {
+  padding-left: 28px;
+}
+.dk-editor ul ul,
+.dk-editor ol ol {
+  margin: 0;
 }
 .dk-editor li > p {
   margin: 0;
 }
 .dk-editor li {
-  margin: 2px 0;
+  margin: 0;
 }
 .dk-editor ul[data-type='taskList'] {
   list-style: none;
@@ -71,13 +78,13 @@
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  padding: 2px 0;
+  padding: 0;
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 .dk-editor ul[data-type='taskList'] li > label {
   flex-shrink: 0;
-  margin-top: 3px;
+  margin-top: 5px;
   display: flex;
   user-select: none;
 }
@@ -92,7 +99,7 @@
   width: 16px;
   height: 16px;
   border-radius: 4px;
-  border: 1.5px solid #c7d2cb;
+  border: 1.5px solid #9aa8a0;
   background: #ffffff;
   cursor: pointer;
   box-sizing: border-box;
@@ -114,20 +121,21 @@
   transform: rotate(45deg);
 }
 .dk-editor ul[data-type='taskList'] li[data-checked='true'] > div {
-  color: #9aa8a0;
+  color: #5b6b60;
   text-decoration: line-through;
-  text-decoration-color: #c7d2cb;
 }
 .dk-editor blockquote {
   margin: 0 0 14px;
-  padding: 2px 0 2px 14px;
+  padding: 2px 0 2px 16px;
   border-left: 3px solid #c7d2cb;
-  color: #5b6b60;
+  font-size: 1.0345em;
+  line-height: 1.65;
+  color: #3a4a3e;
 }
 .dk-editor hr {
   border: none;
-  border-top: 1px solid #e3e8e5;
-  margin: 22px 0;
+  border-top: 1px solid #c7d2cb;
+  margin: 20px 0;
 }
 .dk-editor a {
   color: #2e6f40;
@@ -268,42 +276,30 @@
 }
 .dk-editor table {
   width: 100%;
-  border-collapse: separate;
+  border-collapse: collapse;
   border-spacing: 0;
-  font-size: 13.5px;
-  line-height: 1.45;
-  border: 1px solid #e3e8e5;
-  border-radius: 8px;
-  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.4;
   table-layout: fixed;
   margin: 0;
 }
 .dk-editor th {
   text-align: left;
-  font-size: 12px;
   font-weight: 700;
   color: #1e2a22;
-  background: #f6faf7;
-  padding: 8px 12px;
-  border-bottom: 1px solid #e3e8e5;
-  vertical-align: top;
+  background: #f1f5f2;
+}
+.dk-editor th,
+.dk-editor td {
+  height: 38px;
+  box-sizing: border-box;
+  padding: 4px 10px;
+  border: 1px solid #d5ddd8;
+  vertical-align: middle;
   position: relative;
 }
 .dk-editor td {
-  padding: 8px 12px;
-  border-bottom: 1px solid #eef3ef;
   color: #3a4a3e;
-  vertical-align: top;
-  position: relative;
-}
-.dk-editor tr:last-child td {
-  border-bottom: none;
-}
-.dk-editor td + td,
-.dk-editor th + th,
-.dk-editor td + th,
-.dk-editor th + td {
-  border-left: 1px solid #eef3ef;
 }
 .dk-editor th p,
 .dk-editor td p {
@@ -335,12 +331,15 @@
 .dk-handle {
   display: flex;
   align-items: center;
-  color: #9aa8a0;
+  color: #5b6b60;
+  /* 4 px clear of the text, as on the board (frame 1: 48 px of handle at left -52) */
+  position: relative;
+  left: -4px;
 }
 .dk-handle button {
   width: 24px;
   height: 24px;
-  border-radius: 5px;
+  border-radius: 7px;
   border: none;
   background: none;
   display: flex;
@@ -351,8 +350,8 @@
   padding: 0;
 }
 .dk-handle button:hover {
-  background: #eaf0ec;
-  color: #5b6b60;
+  background: #e6f2ea;
+  color: #2e6f40;
 }
 .dk-handle .dk-grip {
   cursor: grab;
@@ -380,7 +379,7 @@
   color: #2e6f40;
 }
 .dk-editor td.dk-method-patch {
-  color: #b4791e;
+  color: #b4571f;
 }
 .dk-editor td.dk-method-delete {
   color: #c4432a;

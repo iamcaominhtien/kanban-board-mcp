@@ -108,7 +108,9 @@ describe('reader settings on the page', () => {
     fireEvent.click(screen.getByTestId('reader-button'));
     const panel = screen.getByTestId('reader-settings');
     fireEvent.click(within(panel).getByTestId('reader-theme-sepia'));
-    fireEvent.click(within(panel).getByRole('button', { name: 'Extra large · 22 px' }));
+    // − and + step through 15, 17, 19 and 22 px (Reader boards, B: a slider between them)
+    fireEvent.change(within(panel).getByRole('slider', { name: 'Text size in pixels' }), { target: { value: '19' } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Larger text' }));
     fireEvent.click(within(panel).getByRole('button', { name: 'Sans' }));
     expect(scroll().className).toContain('dk-rt-sepia');
     expect(scroll().style.getPropertyValue('--dp-size')).toBe('22px');

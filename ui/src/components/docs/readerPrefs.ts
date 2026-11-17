@@ -157,12 +157,41 @@ export function readerClass(prefs: ReaderPrefs): string {
 const COLOR_VAR = /^--(dp-(page|ink|text|muted|rule|surface|link)|rd-(c|hl)-)/;
 
 /**
- * The style sheet of the reading themes: the page colours of Sepia and Night (palette.json, the named colours
- * mapped too) over the author's, for the screen only — a reading theme never prints.
+ * The page colours of the reading themes, from the Reader boards (`.rd-sepia`, `.rd-dark`): page, text, muted
+ * text, rules, tinted surfaces and links. The named colours stay those of palette.json for the same background.
+ */
+const THEME_COLORS: Record<'sepia' | 'night', Record<string, string>> = {
+  sepia: {
+    '--dp-page': '#F4ECD8',
+    '--dp-ink': '#3B3024',
+    '--dp-text': '#3B3024',
+    '--dp-muted': '#66543E',
+    '--dp-rule': '#E0D2B4',
+    '--dp-surface': '#EBE0C6',
+    '--dp-link': '#8A4B1F',
+  },
+  night: {
+    '--dp-page': '#171D19',
+    '--dp-ink': '#D9E2DB',
+    '--dp-text': '#D9E2DB',
+    '--dp-muted': '#93A398',
+    '--dp-rule': '#2C372F',
+    '--dp-surface': '#202922',
+    '--dp-link': '#7FD196',
+  },
+};
+
+/**
+ * The style sheet of the reading themes: the page colours of Sepia and Night (the Reader boards' theme colours,
+ * the named colours of palette.json mapped too) over the author's, for the screen only — a reading theme never
+ * prints.
  */
 export function readerThemeCss(): string {
   const rules = (['sepia', 'night'] as const).map((bg) => {
-    const vars = lookVars({ ...readPageLook({}), background: bg }) as Record<string, string>;
+    const vars = {
+      ...(lookVars({ ...readPageLook({}), background: bg }) as Record<string, string>),
+      ...THEME_COLORS[bg],
+    };
     const decl = Object.entries(vars)
       .filter(([k]) => COLOR_VAR.test(k))
       .map(([k, v]) => `${k}:${v} !important;`)

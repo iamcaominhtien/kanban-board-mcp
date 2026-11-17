@@ -18,7 +18,7 @@
   max-height: min(80vh, 640px);
   overflow-y: auto;
   z-index: 60;
-  padding: 14px;
+  padding: 16px;
 }
 .dk-rs {
   display: flex;
@@ -32,7 +32,7 @@
 }
 .dk-rs-title {
   flex: 1;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
 }
 .dk-rs-reset {
@@ -42,7 +42,7 @@
   font: inherit;
   font-size: 12.5px;
   font-weight: 600;
-  color: #2e6f40;
+  color: #5b6b60;
   cursor: pointer;
   border-radius: 6px;
 }
@@ -54,7 +54,7 @@
 .dk-rs-label {
   display: flex;
   align-items: center;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -62,28 +62,97 @@
 }
 .dk-rs-value {
   margin-left: auto;
-  font-size: 12px;
-  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
   color: #1e2a22;
 }
-.dk-rs-slider {
-  width: 100%;
-  accent-color: #2e6f40;
-}
-.dk-seg {
+.dk-rs-size {
   display: flex;
-  padding: 3px;
-  gap: 3px;
-  border-radius: 9px;
+  align-items: center;
+  gap: 6px;
+}
+.dk-rs-step {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.dk-rs-step:hover {
+  background: #eaf0ec;
+}
+.dk-rs-step:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+/* the slider: a 4 px track filled in green, a 16 px white thumb ringed in green */
+.dk-rs-slider {
+  flex: 1;
+  min-width: 0;
+  height: 16px;
+  margin: 0 4px;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.dk-rs-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 3px;
+  background: linear-gradient(to right, #2e6f40 var(--fill, 50%), #dce6df var(--fill, 50%));
+}
+.dk-rs-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 3px;
+  background: #dce6df;
+}
+.dk-rs-slider::-moz-range-progress {
+  height: 4px;
+  border-radius: 3px;
+  background: #2e6f40;
+}
+.dk-rs-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #2e6f40;
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.25);
+  box-sizing: border-box;
+}
+.dk-rs-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #2e6f40;
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.25);
+  box-sizing: border-box;
+}
+.dk-rseg {
+  display: flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 8px;
   background: #eef3ef;
 }
-.dk-seg button {
+.dk-rseg button {
   flex: 1;
   min-height: 30px;
   border: none;
-  border-radius: 7px;
+  border-radius: 6px;
   background: none;
   font: inherit;
   font-size: 12.5px;
@@ -91,10 +160,10 @@
   color: #5b6b60;
   cursor: pointer;
 }
-.dk-seg button[aria-pressed='true'] {
+.dk-rseg button[aria-pressed='true'] {
   background: #ffffff;
   color: #1e2a22;
-  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.12);
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.14);
 }
 .dk-rs-themes {
   display: flex;
@@ -105,75 +174,84 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 6px 4px;
-  border: 1px solid #e3e8e5;
-  border-radius: 9px;
-  background: #ffffff;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: none;
   font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  color: #3a4a3e;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #1e2a22;
   cursor: pointer;
 }
 .dk-rs-theme[aria-pressed='true'] {
-  border-color: #2e6f40;
-  box-shadow: 0 0 0 1px #2e6f40;
+  font-weight: 700;
 }
 .dk-rs-swatch {
   width: 100%;
-  height: 34px;
-  border-radius: 6px;
+  height: 46px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 15px;
-  border: 1px solid #e3e8e5;
+  font-family: 'Source Serif 4', 'Lora', Georgia, serif;
+  font-size: 18px;
+  font-weight: 600;
+  border: 1px solid #dce3de;
+  box-sizing: border-box;
+}
+.dk-rs-theme[aria-pressed='true'] .dk-rs-swatch {
+  border: 2px solid #2e6f40;
 }
 .dk-rs-theme-white .dk-rs-swatch {
   background: #ffffff;
-  color: #1e2a22;
+  color: #27322b;
 }
 .dk-rs-theme-sepia .dk-rs-swatch {
   background: #f4ecd8;
-  color: #2b2418;
+  color: #3b3024;
 }
 .dk-rs-theme-night .dk-rs-swatch {
-  background: #17211a;
-  color: #e6eee8;
+  background: #171d19;
+  color: #d9e2db;
 }
 .dk-rs-switch {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: 32px;
 }
 .dk-rs-switch > span:first-child {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  font-size: 12.5px;
+  font-size: 11.5px;
   color: #5b6b60;
   line-height: 1.4;
 }
 .dk-rs-switch b {
   font-size: 13px;
+  font-weight: 600;
   color: #1e2a22;
 }
 .dk-rs-note {
   margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
+  padding-top: 10px;
+  border-top: 1px solid #e3e8e5;
+  font-size: 11.5px;
+  line-height: 1.5;
   color: #5b6b60;
 }
 .dk-menu-sheet .dk-rs,
 .dk-overlay .dk-rs {
   padding: 4px 4px 12px;
 }
-.dk-overlay .dk-seg button,
-.dk-overlay .dk-rs-theme {
+.dk-overlay .dk-rseg button,
+.dk-overlay .dk-rs-step {
   min-height: 44px;
+}
+.dk-overlay .dk-rs-step {
+  width: 44px;
 }
 
 /* justified text, and the reading themes' surfaces (their colours come from readerThemeCss(), screen only) */
@@ -248,12 +326,12 @@
   position: absolute;
   left: 0;
   top: calc(100% + 6px);
-  width: 300px;
+  width: 340px;
   z-index: 60;
-  padding: 12px 14px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 .dk-ai-avatar {
   background: #efe8fb !important;
@@ -263,35 +341,30 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px 12px;
+  gap: 12px;
   padding: 10px 14px;
   margin-bottom: 16px;
   border-radius: 10px;
   font-size: 13px;
   line-height: 1.5;
-  color: #1e2a22;
 }
 .dk-note-icon {
   display: flex;
   flex-shrink: 0;
 }
 .dk-note-text {
-  flex: 1 1 260px;
-  min-width: 0;
+  flex: 1;
+  min-width: 200px;
 }
 .dk-note-amber {
-  background: #fcefd9;
-  border: 1px solid #f0d6a8;
-}
-.dk-note-amber .dk-note-icon {
-  color: #b4791e;
+  background: #fdf3e3;
+  border: 1px solid #ebd3a4;
+  color: #8a5a00;
 }
 .dk-note-blue {
-  background: #e8f1fb;
-  border: 1px solid #b9d3ee;
-}
-.dk-note-blue .dk-note-icon {
-  color: #2f6fb0;
+  background: #e8f1fa;
+  border: 1px solid #c9ddf0;
+  color: #244e78;
 }
 [data-layout='phone'] .dk-note-text {
   flex-basis: 100%;
@@ -306,10 +379,10 @@
 .dk-pl-option {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 11px;
   padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  border: 1px solid #dce3de;
   background: #ffffff;
   font: inherit;
   font-size: 12px;
@@ -326,20 +399,30 @@
   opacity: 0.8;
 }
 .dk-pl-option[aria-pressed='true'] {
-  border-color: #b7d9c0;
+  padding: 9px 11px;
+  border: 2px solid #2e6f40;
   background: #f1f8f3;
 }
 .dk-pl-radio {
-  width: 14px;
-  height: 14px;
-  margin-top: 2px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  border: 1.5px solid #9aa8a0;
+  border: 2px solid #5b6b60;
   flex-shrink: 0;
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .dk-pl-option[aria-pressed='true'] .dk-pl-radio {
-  border: 4px solid #2e6f40;
+  border-color: #2e6f40;
+}
+.dk-pl-option[aria-pressed='true'] .dk-pl-radio::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2e6f40;
 }
 .dk-pl-why {
   color: #8a5a00;
@@ -382,22 +465,36 @@
 .dk-pl-confirm {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border-radius: 10px;
+  border-radius: 16px;
   border: 1px solid #e3e8e5;
-  background: #fbfcfb;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(30, 42, 34, 0.22);
+  overflow: hidden;
 }
 .dk-pl-title {
-  font-size: 14px;
+  display: block;
+  font-size: 16px;
   color: #1e2a22;
 }
 .dk-pl-points {
   margin: 0;
-  padding-left: 18px;
-  font-size: 12.5px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
   line-height: 1.5;
-  color: #3a4a3e;
+  color: #1e2a22;
+}
+.dk-pl-points li {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+}
+.dk-pl-points li svg {
+  color: #2e6f40;
+  margin-top: 2px;
 }
 
 /* a reference drawn as plain text (the public view) */
@@ -420,35 +517,89 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 52px;
-  padding: 8px 18px;
-  border-bottom: 1px solid #eef3ef;
+  min-height: 56px;
+  padding: 0 28px;
+  border-bottom: 1px solid #e3e8e5;
   box-sizing: border-box;
   flex-shrink: 0;
 }
+[data-layout='phone'] .dk-public-bar {
+  padding: 0 4px 0 16px;
+}
 .dk-public-brand {
-  font-size: 13.5px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 .dk-public-brand span {
   margin-left: 4px;
-  font-weight: 500;
-  color: #5b6b60;
+  font-size: 13px;
+  font-weight: 400;
+  color: #66756b;
 }
 .dk-public-pill {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   height: 22px;
   padding: 0 9px;
   border-radius: 999px;
-  background: #dceee1;
-  color: #1f5a31;
+  border: 1px solid #c9ddf0;
+  background: #e8f1fa;
+  color: #244e78;
   font-size: 11.5px;
   font-weight: 700;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+.dk-public-ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  color: #27322b;
+}
+.dk-progress.dk-public-progress {
+  position: relative;
+  top: auto;
+  flex: none;
+}
+.dk-public-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #2e6f40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.dk-public-mark > span {
+  width: 10px;
+  height: 7px;
+  border-radius: 1.5px;
+  background: #f3f8f4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  padding: 0 1.2px;
+  box-sizing: border-box;
+}
+.dk-public-mark i {
+  height: 1px;
+  background: #b7d9c0;
+}
+.dk-public-from {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.dk-public-from b {
+  color: var(--dp-ink, #1e2a22);
 }
 .dk-public-date {
   font-size: 12.5px;
-  color: #5b6b60;
+  color: #66756b;
 }
 .dk-public-row {
   flex: 1;
@@ -460,10 +611,10 @@
   min-width: 0;
   overflow-y: auto;
 }
-.dk-public-toc {
-  width: 210px;
+.dk-toc.dk-public-toc {
+  width: 226px;
   flex-shrink: 0;
-  padding: 30px 20px 24px 8px;
+  padding: 60px 36px 24px 0;
   box-sizing: border-box;
   overflow-y: auto;
 }
@@ -471,10 +622,11 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 14px;
-  margin-top: 40px;
-  padding-top: 14px;
+  gap: 6px 20px;
+  margin-top: 48px;
+  padding: 20px 0 40px;
   border-top: 1px solid var(--dp-rule, #e3e8e5);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12.5px;
   color: var(--dp-muted, #5b6b60);
 }
@@ -485,14 +637,16 @@
   flex-direction: column;
   align-items: flex-start;
 }
+[data-layout='phone'] .dk-public-foot > span {
+  flex: none;
+}
 .dk-public-link {
   border: none;
   background: none;
   padding: 6px 0;
   min-height: 32px;
   font: inherit;
-  font-weight: 600;
-  color: var(--dp-link, #2e6f40);
+  color: inherit;
   cursor: pointer;
 }
 .dk-public-note {
@@ -528,40 +682,60 @@
   color: #5b6b60;
 }
 
-/* books: the chapter list beside the page, and the footer to the previous and the next page */
+/* books: the chapter list beside the page, and the footer to the previous and the next page (Reader boards, A) */
 .dk-chapters-side {
-  width: 220px;
+  width: 270px;
   flex-shrink: 0;
-  padding: 24px 8px 24px 20px;
+  padding: 18px 10px;
   box-sizing: border-box;
   overflow-y: auto;
-  border-right: 1px solid #eef3ef;
+  border-right: 1px solid #e3e8e5;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 .dk-chapters {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 .dk-chapters-book {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  padding: 4px 12px 14px;
+}
+.dk-chapters-book .dk-toc-head {
+  margin-bottom: 0;
 }
 .dk-chapters-title {
+  margin-top: 3px;
   border: none;
   background: none;
   padding: 0;
   text-align: left;
   font: inherit;
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 16px;
+  font-family: 'Source Serif 4', 'Lora', Georgia, serif;
+  font-size: 19px;
   font-weight: 700;
+  line-height: 1.2;
   color: #1e2a22;
   cursor: pointer;
 }
 .dk-chapters-count {
+  margin-top: 4px;
   font-size: 12px;
   color: #5b6b60;
+}
+.dk-chapters-at {
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+.dk-chapters-at > span {
+  display: block;
+  margin-top: 5px;
+}
+.dk-progress.dk-chapters-prog {
+  position: relative;
+  top: auto;
+  height: 4px;
 }
 .dk-chapters-list {
   list-style: none;
@@ -572,31 +746,47 @@
 }
 .dk-chapters-list a {
   display: flex;
+  align-items: center;
   gap: 10px;
-  padding: 7px 8px;
-  border-radius: 7px;
+  padding: 9px 12px;
+  border-radius: 8px;
   font-size: 13px;
+  font-weight: 500;
   line-height: 1.35;
-  color: #3a4a3e;
+  color: #5b6b60;
   text-decoration: none;
 }
 .dk-overlay .dk-chapters-list a {
   min-height: 52px;
-  align-items: center;
   box-sizing: border-box;
 }
 .dk-chapters-list a:hover {
   background: #f6faf7;
 }
 .dk-chapters-list a[aria-current='page'] {
-  background: #dceee1;
+  background: #f6faf7;
   color: #1e2a22;
   font-weight: 700;
 }
 .dk-chapters-n {
-  min-width: 14px;
-  color: #9aa8a0;
-  font-variant-numeric: tabular-nums;
+  width: 18px;
+  flex: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 400;
+  color: #5b6b60;
+}
+.dk-chapters-mark {
+  width: 14px;
+  flex: none;
+  display: inline-flex;
+  justify-content: center;
+}
+.dk-chapters-mark i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2e6f40;
 }
 .dk-chapter-line {
   margin-bottom: 6px;
@@ -609,15 +799,16 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-top: 36px;
+  margin-top: 32px;
 }
 .dk-readnext {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
-  border-radius: 10px;
+  gap: 3px;
+  padding: 14px 16px;
+  border-radius: 12px;
   border: 1px solid var(--dp-rule, #e3e8e5);
+  background: var(--dp-page, #ffffff);
   text-decoration: none;
   color: var(--dp-ink, #1e2a22);
 }
@@ -629,13 +820,24 @@
   grid-column: 2;
 }
 .dk-readnext-dir {
-  font-size: 11.5px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--dp-muted, #5b6b60);
 }
+.dk-readnext-next .dk-readnext-dir {
+  justify-content: flex-end;
+}
 .dk-readnext-title {
-  font-size: 14px;
+  font-family: var(--dp-heading-font, inherit);
+  font-size: 17px;
   font-weight: 700;
+  line-height: 1.3;
 }
 [data-layout='phone'] .dk-readfoot {
   grid-template-columns: 1fr;
@@ -673,17 +875,25 @@
 /* wide content: a table wider than the column scrolls in its own box, fades at the right edge and says so; long
    code scrolls; on a tablet a wide table may use the pane's width past the text column */
 .dk-table-wrap[data-more-right] {
-  -webkit-mask-image: linear-gradient(to left, transparent 0, #000 36px);
-  mask-image: linear-gradient(to left, transparent 0, #000 36px);
+  -webkit-mask-image: linear-gradient(to left, transparent 0, #000 30px);
+  mask-image: linear-gradient(to left, transparent 0, #000 30px);
 }
+/* a dark pill under the table, centred in the box (Reader boards, I: frame 61) */
 .dk-table-wrap[data-wide]::after {
-  content: 'Scroll sideways for more';
-  position: sticky;
-  left: 0;
+  content: 'Scroll sideways for more  →';
   display: block;
-  padding-top: 6px;
-  font-size: 11.5px;
-  color: var(--dp-muted, #5b6b60);
+  width: max-content;
+  margin: 8px auto 0;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: #1e2a22;
+  color: #ffffff;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: pre;
+  transform: translateX(var(--dk-sx, 0px));
 }
 .dk-md .dk-code,
 .dk-md pre {
@@ -829,4 +1039,475 @@
   .dk-print-sheet tr {
     break-inside: avoid;
   }
+}
+
+/* ---------- the read page's chrome (Reader boards 1-4: header and its actions, status, outline, phone bar) ---------- */
+/* the page bar's buttons: 32 px, a 1 px rule, 8 px corners; Edit is the filled one */
+.dk-pagebar .dk-hbtn,
+.dk-pagebar .pai-btn {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 12px;
+  gap: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--dp-rule, #e3e8e5);
+  background: transparent;
+  color: var(--dp-ink, #1e2a22);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  flex: none;
+  box-sizing: border-box;
+}
+.dk-pagebar .dk-hbtn:hover,
+.dk-pagebar .pai-btn:hover {
+  background: var(--dp-surface, #f6faf7);
+}
+.dk-pagebar .dk-hbtn-primary,
+.dk-pagebar .dk-hbtn-primary:hover {
+  background: var(--dp-link, #2e6f40);
+  border-color: var(--dp-link, #2e6f40);
+  color: var(--dp-page, #ffffff);
+}
+.dk-pagebar .dk-hbtn-primary:hover {
+  filter: brightness(0.92);
+}
+.dk-pagebar .dk-hico {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--dp-rule, #e3e8e5);
+  background: transparent;
+  color: var(--dp-ink, #1e2a22);
+  flex: none;
+  box-sizing: border-box;
+}
+.dk-pagebar .dk-hico:hover {
+  background: var(--dp-surface, #f6faf7);
+}
+.dk-pagebar .dk-hico .dk-aa {
+  font-size: 15px;
+}
+/* a count on an icon button sits on its corner */
+.dk-pagebar .dk-hico .dc-btn-count {
+  position: absolute;
+  right: -2px;
+  top: -5px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--dp-link, #2e6f40);
+  color: var(--dp-page, #ffffff);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.dk-pagebar .dk-hbtn .dc-btn-count {
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--dp-link, #2e6f40);
+  color: var(--dp-page, #ffffff);
+  font-size: 10.5px;
+}
+/* tablet: 44 px targets without a frame; phone: the same, Edit and More only */
+.dk-touch .dk-pagebar-actions {
+  gap: 0;
+}
+.dk-touch .dk-pagebar .dk-hico,
+.dk-touch .dk-pagebar .dk-bar-ico {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+}
+.dk-touch .dk-pagebar .dk-hico svg {
+  width: 19px;
+  height: 19px;
+}
+.dk-touch .dk-pagebar .dk-hico .dc-btn-count {
+  right: 2px;
+  top: 3px;
+}
+.dk-touch .dk-pagebar .dk-hbtn,
+.dk-touch .dk-pagebar .pai-btn {
+  height: 44px;
+  min-height: 44px;
+}
+.dk-touch .dk-pagebar .dk-hbtn.dk-hico {
+  padding: 0;
+}
+
+/* how far the page is read: a 3 px bar under the page bar */
+.dk-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 3px;
+  background: var(--dp-rule, #e3e8e5);
+  pointer-events: none;
+}
+.dk-progress i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 0 3px 3px 0;
+  background: #2e6f40;
+}
+.dk-touch .dk-progress {
+  top: calc(100% + 1px);
+}
+.dk-rt-night .dk-progress i {
+  background: #7fd196;
+}
+
+/* status chips under the title: 22 px, 12 px bold, a hairline of their own colour */
+.mc-chip.dk-schip {
+  height: 22px;
+  padding: 0 9px;
+  gap: 5px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  box-sizing: border-box;
+}
+.dk-schip .mc-dot {
+  flex: none;
+}
+.dk-schip-green {
+  background: #e6f2ea;
+  color: #1f5a31;
+  border-color: #cfe6d6 !important;
+}
+.dk-schip-green .mc-dot {
+  background: #2e6f40;
+}
+.dk-schip-amber {
+  background: #fdf3e3;
+  color: #8a5a00;
+  border-color: #ebd3a4 !important;
+}
+.dk-schip-amber .mc-dot {
+  background: #c98a1b;
+}
+.dk-schip-blue {
+  background: #e8f1fa;
+  color: #244e78;
+  border-color: #c9ddf0 !important;
+}
+.dk-schip-blue .mc-dot {
+  background: #2f6fb0;
+}
+.dk-schip-grey {
+  background: #f1f3f1;
+  color: #3a4a3e;
+  border-color: #e3e8e5 !important;
+}
+.dk-page-line {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--dp-muted, #5b6b60);
+}
+
+/* "On this page" beside the page: 190 px, a 2 px rule per entry, the one in view in green */
+.dk-toc {
+  width: 226px;
+  flex-shrink: 0;
+  /* level with the page's first line: under the 60 px bar and its 3 px progress, then 26 px */
+  padding: 89px 36px 24px 0;
+  box-sizing: border-box;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.dk-toc-list .dk-toc-link {
+  display: block;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  border-left: 2px solid var(--dp-rule, #e3e8e5);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--dp-muted, #5b6b60);
+  text-decoration: none;
+  cursor: pointer;
+}
+.dk-toc-list .dk-toc-link[aria-current] {
+  border-left-color: var(--dp-link, #2e6f40);
+  color: var(--dp-ink, #1e2a22);
+  font-weight: 700;
+}
+.dk-toc-list .dk-toc-link:hover {
+  color: var(--dp-ink, #1e2a22);
+}
+.dk-toc-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 11.5px;
+  color: var(--dp-muted, #5b6b60);
+}
+.dk-toc-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--dp-link, #2e6f40);
+  cursor: pointer;
+}
+
+/* a tablet's outline: a pill over the top right of the page */
+.dk-outline-float {
+  position: sticky !important;
+  top: 71px;
+  z-index: 15;
+  height: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 14px;
+}
+.dk-outline-float > .st-btn {
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  gap: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--dp-rule, #e3e8e5);
+  background: var(--dp-page, #ffffff);
+  color: var(--dp-ink, #1e2a22);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.dk-outline-float > .dk-menu {
+  right: 14px !important;
+  top: 50px !important;
+}
+
+/* a phone's bottom bar: Outline, Find, Text, Share */
+.dk-readbar {
+  flex: none;
+  display: flex;
+  border-top: 1px solid var(--dp-rule, #e3e8e5);
+  background: var(--dp-page, #ffffff);
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+}
+.dk-readbar-btn {
+  flex: 1;
+  height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--dp-muted, #5b6b60);
+  cursor: pointer;
+}
+.dk-readbar-btn .dk-aa {
+  font-size: 19px;
+  line-height: 20px;
+}
+.dk-ph-center + .dk-statusrow {
+  justify-content: center;
+}
+
+/* the Share popover (Reader boards, E): 36 px fields, the two ways in as option cards */
+.dk-share-field {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 0 11px;
+  border: 1px solid #c7d2cb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1e2a22;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.dk-share-field > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dk-share-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5b6b60;
+}
+.dk-pl-static {
+  cursor: default;
+}
+.dk-pl-ico {
+  display: flex;
+  color: #2e6f40;
+}
+.dk-pl-text-amber,
+.dk-pl-text-blue {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 11px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.dk-pl-text-amber {
+  background: #fdf3e3;
+  color: #8a5a00;
+  border: 1px solid #ebd3a4;
+}
+.dk-pl-text-blue {
+  background: #e8f1fa;
+  color: #244e78;
+  border: 1px solid #c9ddf0;
+}
+.dk-pl .dk-rs-switch {
+  min-height: 44px;
+}
+.dk-pl-confirm-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 22px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.dk-pl-confirm-ico {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e6f2ea;
+  color: #2e6f40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.dk-pl-sub {
+  display: block;
+  margin-top: 1px;
+  font-size: 12.5px;
+  color: #5b6b60;
+}
+.dk-pl-confirm-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 22px;
+}
+.dk-pl-lead {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #3a4a3e;
+}
+.dk-pl-confirm-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid #e3e8e5;
+  background: #fbfcfb;
+}
+
+/* the Print panel (Reader boards, G: frame 54): 320 px, rows of switches, then paper and margins */
+.dk-print-dialog {
+  width: 320px;
+  max-width: 100%;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(30, 42, 34, 0.16);
+  color: #1e2a22;
+}
+.dk-print-dialog-head {
+  display: flex;
+  align-items: center;
+}
+.dk-print-dialog-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+}
+.dk-print-close {
+  width: 30px;
+  height: 30px;
+}
+.dk-print-dialog .dk-rs-switch {
+  min-height: 36px;
+}
+.dk-print-dialog .dk-rs-row {
+  gap: 5px;
+}
+.dk-print-dialog .dk-rseg button {
+  min-height: 28px;
+}
+
+/* find in page while reading (Reader boards, F: frame 47) */
+.fx-find-read {
+  border-radius: 12px !important;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.18) !important;
+}
+.fx-find-read .fx-findbtn {
+  width: 36px;
+  height: 36px;
+  color: #5b6b60;
+}
+/* matches are marked, not filled like a highlight; the current one is red */
+[data-testid='docs-page'] ::highlight(docs-find),
+.dk-public ::highlight(docs-find) {
+  background-color: rgba(201, 138, 27, 0.12);
+  text-decoration: underline 1.5px #c98a1b;
+}
+[data-testid='docs-page'] ::highlight(docs-find-current),
+.dk-public ::highlight(docs-find-current) {
+  background-color: rgba(196, 67, 42, 0.12);
+  color: inherit;
+  text-decoration: underline 2px #c4432a;
+}
+.dk-pagebar .dk-hbtn:disabled,
+.dk-pagebar .dk-hbtn-primary:disabled:hover {
+  opacity: 0.5;
+  filter: none;
+  cursor: default;
 }

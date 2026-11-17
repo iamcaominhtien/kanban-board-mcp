@@ -32,9 +32,9 @@ export function calloutLook(attrs: Record<string, unknown>) {
   const look = str(attrs.style) || 'soft';
   const box: CSSProperties =
     look === 'bar'
-      ? { background: bg, border: 'none', borderLeft: `3px solid ${fg}`, borderRadius: 4 }
+      ? { background: bg, border: 'none', borderLeft: `4px solid ${fg}`, borderRadius: '4px 8px 8px 4px' }
       : look === 'outline'
-        ? { background: 'transparent', border: `1px solid ${colorCss('c', attrs.color) ?? pal.border}` }
+        ? { background: '#FFFFFF', border: `1.5px solid ${fg}` }
         : { background: bg, border: `1px solid ${attrs.color ? 'transparent' : pal.border}` };
   const icon = str(attrs.icon);
   return { kind, pal, fg, box, look, emoji: icon && !/^[\w:-]+$/.test(icon) ? icon : null };
@@ -211,13 +211,14 @@ export function CalloutView({ node, decorations, updateAttributes, editor }: Nod
         }}
       >
         <span contentEditable={false} style={{ color: fg, marginTop: 2, display: 'flex' }}>
-          {emoji ? <span aria-hidden="true">{emoji}</span> : <Icon name={pal.icon} size={17} />}
+          {emoji ? <span aria-hidden="true">{emoji}</span> : <Icon name={pal.icon} size={16} strokeWidth={2.2} />}
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           {title !== null && title !== undefined && (
             <input
               ref={titleRef}
               className="dk-callout-title-input"
+              style={{ color: fg }}
               aria-label="Callout title"
               placeholder="Title"
               value={str(title)}

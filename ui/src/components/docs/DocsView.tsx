@@ -78,7 +78,7 @@ import { BulkDeleteDialog } from './tree/SelectionBar';
 import { affectedPages } from './tree/treeModel';
 import { useTreeActions } from './tree/useTreeActions';
 import { useTreeViewState } from './tree/useTreeViewState';
-import { SuggestionMarker } from './suggestions/extras';
+import { SuggestionCount } from './tree/treeParts';
 
 /** The event that opens the app's Recycle Bin (the row under the page tree). */
 export const OPEN_RECYCLE_BIN_EVENT = 'kb:open-recycle-bin';
@@ -1191,7 +1191,7 @@ export function DocsView({
         select(id);
       },
       onMenu: (node: DocsTreeNode, at: DOMRect) => setViewMenu({ node, at }),
-      renderSuggestions: (n: DocsTreeNode) => <SuggestionMarker count={n.suggestions} />,
+      renderSuggestions: (n: DocsTreeNode) => <SuggestionCount count={n.suggestions} />,
     };
     content =
       treeView.view === 'gallery' ? (

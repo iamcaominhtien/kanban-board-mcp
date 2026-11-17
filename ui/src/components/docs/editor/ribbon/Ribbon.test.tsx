@@ -138,10 +138,12 @@ describe('the ribbon', () => {
     const ed = make(PAGE);
     const onInsert = vi.fn();
     const tb = bar(ed, 'strip', { onInsert });
-    const pinned = tb.querySelector('.dk-rb-pinned') as HTMLElement;
-    expect(within(pinned).getByRole('button', { name: 'Undo' })).toBeTruthy();
-    expect(within(pinned).getByRole('button', { name: 'Redo' })).toBeTruthy();
-    fireEvent.click(within(pinned).getByRole('button', { name: 'Insert' }));
+    // Undo and Redo pinned at the start of the strip, Insert at its end (Editor board, frame 7)
+    const start = tb.querySelector('.dk-rb-pinned-start') as HTMLElement;
+    const end = tb.querySelector('.dk-rb-pinned:not(.dk-rb-pinned-start)') as HTMLElement;
+    expect(within(start).getByRole('button', { name: 'Undo' })).toBeTruthy();
+    expect(within(start).getByRole('button', { name: 'Redo' })).toBeTruthy();
+    fireEvent.click(within(end).getByRole('button', { name: 'Insert' }));
     expect(onInsert).toHaveBeenCalled();
   });
 
