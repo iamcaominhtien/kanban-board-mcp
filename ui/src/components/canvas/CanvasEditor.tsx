@@ -867,6 +867,11 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
+      // Esc in the comment box of a new pin closes it, as its hint says (fields keep every other key)
+      if (e.key === 'Escape' && pinDraft && t.closest('[data-testid="canvas-pin-draft"]')) {
+        setPinDraft(null);
+        return;
+      }
       if (t.closest('input, textarea, select, [contenteditable=true]')) return;
       // another canvas layer (the source editor, a dialog) is on top: its keys are its own
       if (Array.from(document.querySelectorAll('[data-canvas-layer]')).some((el) => el !== rootRef.current)) return;
@@ -1388,7 +1393,13 @@ export function CanvasEditor({ canvasId, request, variant = 'overlay', me, onClo
             onPointerCancel={onPointerUp}
             onPointerLeave={() => !drag.current && setHover(null)}
             onDoubleClick={(e) => {
-              const hit = hitOf(e.target as HTMLElement);
+              // the plane captures the pointer on pointer-down, so the double click comes to the plane itself: the item is
+              // the one under the pointer
+              let hit = hitOf(e.target as HTMLElement);
+              for (const el of hit ? [] : document.elementsFromPoint(e.clientX, e.clientY)) {
+                hit = hitOf(el as HTMLElement);
+                if (hit) break;
+              }
               if (!hit || !canEdit) return;
               if (hit.kind === 'note') setEditNote(hit.id);
               else if (hit.kind === 'label') setEditLabel(hit.id);

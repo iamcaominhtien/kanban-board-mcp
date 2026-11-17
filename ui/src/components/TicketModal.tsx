@@ -720,6 +720,11 @@ function TicketModalInner({
       if (isReopenOpen || isPendingOpen || isResumeOpen || isWontDoOpen) {
         return;
       }
+      // an editor or viewer opened from this ticket (canvas, sketch, draw.io, AI) is on top: its keys are its own
+      // (P is Present on a canvas)
+      if (document.querySelector('[data-canvas-layer], [data-sketch-layer], [data-diagram-layer], [data-ai-layer]')) {
+        return;
+      }
       if (e.key === 'r' || e.key === 'R') {
         if (status === 'done' || status === 'wont_do') {
           e.preventDefault();
