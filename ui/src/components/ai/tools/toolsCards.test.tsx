@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { ROLES } from './pluginLogic';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CatalogueEntry, Plugin } from '../../../types/aiPlugins';
@@ -114,13 +114,35 @@ describe('CatalogueTab', () => {
 
 describe('InstalledTab actions', () => {
   const renderIt = (plugins: Plugin[]) => render(wrap(<InstalledTab projectId="pr" plugins={plugins} />));
+  // each GET gets data of its own shape: the tab also shows the board's skills, which read the teams and settings
+  const wireGet = (plugins: Record<string, unknown> = {}) =>
+    http.get.mockImplementation((url: string) => {
+      if (url in plugins) return Promise.resolve({ data: plugins[url] });
+      if (url === '/ai/board-skills') return Promise.resolve({ data: [] });
+      if (url === '/projects/pr/ai/teams') return Promise.resolve({ data: [] });
+      if (url === '/projects/pr/ai/settings') return Promise.resolve({ data: { ops: { boardSkills: [] } } });
+      return Promise.reject(new Error(`unexpected GET ${url}`));
+    });
+  beforeEach(() => {
+    wireGet();
+  });
+  // the actions of a plugin from git or a marketplace are in its "⋯" menu
+  const fromMenu = async (item: string) => {
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'More actions for design' }) as HTMLButtonElement).disabled).toBe(
+        false,
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for design' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: item }));
+  };
 
   it('says nothing is installed, and when a filter matches nothing', () => {
     renderIt([]);
     expect(screen.getByTestId('installed-empty').textContent).toMatch(/Nothing installed yet/);
     cleanup();
     renderIt([plugin()]);
-    fireEvent.click(screen.getByRole('button', { name: /^Skills/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Never used/ }));
     expect(screen.getByTestId('installed-empty').textContent).toBe('Nothing matches this filter.');
   });
 
@@ -136,40 +158,53 @@ describe('InstalledTab actions', () => {
   it('reloads, resets, pins and rolls back through the action endpoint', async () => {
     http.post.mockResolvedValue({ data: plugin() });
     renderIt([plugin({ hasPrevious: true })]);
+    await fromMenu('Reload');
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/plugins/p1/reload'));
+    await fromMenu('Reset');
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/plugins/p1/reset'));
+    await fromMenu('Pin v2.4.0');
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/plugins/p1/pin'));
+    await fromMenu('Roll back');
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/plugins/p1/rollback'));
+    expect(screen.queryByRole('menu')).toBeNull(); // a pick closes the menu
+  });
+
+  it('keeps Reload and Check for update as buttons for a plugin imported from a folder', async () => {
+    http.post.mockResolvedValue({ data: plugin() });
+    wireGet({ '/ai/plugins/p1/update': { update: false } });
+    renderIt([plugin({ sourceKind: 'folder' })]);
     fireEvent.click(screen.getByRole('button', { name: 'Reload' }));
     await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/plugins/p1/reload'));
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
-    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/plugins/p1/reset'));
-    fireEvent.click(screen.getByRole('button', { name: 'Pin v2.4.0' }));
-    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/plugins/p1/pin'));
-    fireEvent.click(screen.getByRole('button', { name: 'Roll back' }));
-    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/plugins/p1/rollback'));
+    fireEvent.click(screen.getByRole('button', { name: 'Check for update' }));
+    expect(await screen.findByText('Up to date.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for design' }));
+    expect(screen.queryByRole('menuitem', { name: 'Reload' })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: 'Check for update' })).toBeNull();
   });
 
   it('shows the error of a failed action', async () => {
     http.post.mockRejectedValue({ response: { data: { detail: 'git said no' } } });
     renderIt([plugin()]);
-    fireEvent.click(screen.getByRole('button', { name: 'Reload' }));
+    await fromMenu('Reload');
     expect((await screen.findByTestId('plugin-error')).textContent).toBe('git said no');
   });
 
   it('checks for an update: up to date', async () => {
-    http.get.mockResolvedValue({ data: { update: false } });
+    wireGet({ '/ai/plugins/p1/update': { update: false } });
     renderIt([plugin()]);
-    fireEvent.click(screen.getByRole('button', { name: 'Check for update' }));
+    await fromMenu('Check for update');
     expect(await screen.findByText('Up to date.')).toBeTruthy();
     expect(http.get).toHaveBeenCalledWith('/ai/plugins/p1/update');
   });
 
   it('checks for an update: shows the new version, what changed, and updates', async () => {
-    http.get.mockImplementation((url: string) =>
-      url.endsWith('/update')
-        ? Promise.resolve({ data: { update: true, latest: 'v2.5.0' } })
-        : Promise.resolve({ data: { commit: '1234567890', added: ['a.md'], removed: ['b.md'], changed: ['c.md'] } }),
-    );
+    wireGet({
+      '/ai/plugins/p1/update': { update: true, latest: 'v2.5.0' },
+      '/ai/plugins/p1/changes': { commit: '1234567890', added: ['a.md'], removed: ['b.md'], changed: ['c.md'] },
+    });
     http.post.mockResolvedValue({ data: plugin() });
     renderIt([plugin()]);
-    fireEvent.click(screen.getByRole('button', { name: 'Check for update' }));
+    await fromMenu('Check for update');
     fireEvent.click(await screen.findByRole('button', { name: 'See what changed' }));
     const box = await screen.findByTestId('plugin-changes');
     expect(box.textContent).toContain('Changes in 12345678');
@@ -183,13 +218,12 @@ describe('InstalledTab actions', () => {
   });
 
   it('says no file changed for an empty change list', async () => {
-    http.get.mockImplementation((url: string) =>
-      url.endsWith('/update')
-        ? Promise.resolve({ data: { update: true, latest: 'v3' } })
-        : Promise.resolve({ data: { commit: null, added: [], removed: [], changed: [] } }),
-    );
+    wireGet({
+      '/ai/plugins/p1/update': { update: true, latest: 'v3' },
+      '/ai/plugins/p1/changes': { commit: null, added: [], removed: [], changed: [] },
+    });
     renderIt([plugin()]);
-    fireEvent.click(screen.getByRole('button', { name: 'Check for update' }));
+    await fromMenu('Check for update');
     fireEvent.click(await screen.findByRole('button', { name: 'See what changed' }));
     expect(await screen.findByText('No file changed.')).toBeTruthy();
   });
@@ -197,16 +231,17 @@ describe('InstalledTab actions', () => {
   it('asks before removing, can keep, and removes with DELETE', async () => {
     http.delete.mockResolvedValue({});
     renderIt([plugin()]);
-    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    await fromMenu('Remove');
     expect(screen.getByText('Remove design?')).toBeTruthy();
+    expect(http.delete).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Keep' }));
     expect(screen.queryByText('Remove design?')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    await fromMenu('Remove');
     fireEvent.click(screen.getByTestId('confirm-remove'));
     await waitFor(() => expect(http.delete).toHaveBeenCalledWith('/ai/plugins/p1'));
   });
 
-  it('opens the detail: switch for every member and role checkboxes', async () => {
+  it('opens the detail: switch for every team and the suggested roles', async () => {
     http.patch.mockResolvedValue({ data: plugin() });
     renderIt([
       plugin({
@@ -224,12 +259,16 @@ describe('InstalledTab actions', () => {
     const detail = screen.getByTestId('plugin-detail');
     expect(detail.textContent).toContain('2 skills: a, b');
     expect(detail.textContent).toContain('0 hooks');
-    expect(detail.textContent).toContain('Used by 2 members.');
-    fireEvent.click(screen.getByRole('switch', { name: 'On for every member' }));
+    expect(detail.textContent).toContain('Used by 2 teams.');
+    fireEvent.click(screen.getByRole('switch', { name: 'On for every team' }));
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/ai/plugins/p1', { defaultOn: true }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Dev' }));
+    const dev = within(detail).getByRole('button', { name: 'Dev' });
+    expect(dev.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(dev);
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/ai/plugins/p1', { roles: ['designer', 'dev'] }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Designer' }));
+    const designer = within(detail).getByRole('button', { name: 'Designer' });
+    expect(designer.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(designer);
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/ai/plugins/p1', { roles: [] }));
   });
 });

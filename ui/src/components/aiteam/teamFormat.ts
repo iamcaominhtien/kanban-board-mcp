@@ -1,6 +1,6 @@
 import type { TeamUsage } from '../../types/aiTeam';
 
-/** "41 min", "2 h 05", "3 d": how long something has been going. */
+/** "41 min", "2 h 05 min", "3 d": how long something has been going. */
 export function fmtDuration(seconds: number | null | undefined): string {
   const s = Math.max(0, seconds ?? 0);
   if (s < 60) return 'under a minute';

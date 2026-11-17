@@ -73,6 +73,31 @@ function mount() {
         },
       });
     if (url === '/projects/p1/ai/knowledge') return Promise.resolve({ data: null });
+    // the view counts the touches of the last 7 days on its tab, and the team cards read the RAM snapshot
+    if (url === '/projects/p1/ai/team/touches')
+      return Promise.resolve({
+        data: {
+          range: '7d',
+          since: '2026-10-29T10:00:00Z',
+          totals: { touches: 0, needed: 0, avoidable: 0, unmarked: 0, tickets: 0, runs: 0, perTicket: null },
+          kinds: [],
+          allKinds: [],
+          teams: [],
+          items: [],
+          truncated: false,
+        },
+      });
+    if (url === '/projects/p1/ai/resources')
+      return Promise.resolve({
+        data: {
+          at: '2026-11-05T10:01:00Z',
+          machine: { ramTotalMb: 16384, ramFreeMb: 8192, load1: null, cores: 8, aiRssMb: 0, cliCount: 0 },
+          limits: { runMemoryLimitMb: 4096, autoRestarts: 1, boardMaxParallel: 3 },
+          runs: [],
+        },
+      });
+    if (url === '/projects/p1/ai/team/activity') return Promise.resolve({ data: { teams: {} } });
+    if (url === '/projects/p1/ai/settings') return Promise.resolve({ data: null });
     return Promise.resolve({ data: [] });
   });
   render(

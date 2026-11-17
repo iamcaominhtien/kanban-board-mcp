@@ -104,7 +104,10 @@ describe('proposal actions', () => {
   it('keeps, drops and edits-and-keeps with the right patch', async () => {
     mount();
     fireEvent.click(await screen.findByRole('tab', { name: /Memory/ }));
-    expect(screen.getByText(/Proposed by a light model reading the run/)).toBeTruthy();
+    // v2: a lesson comes from the lead's report, not from a light model reading the run
+    expect(
+      screen.getByText(/Proposed while the team worked\. It is not in any prompt until you keep it\./),
+    ).toBeTruthy();
     fireEvent.click(screen.getByTestId('proposal-keep'));
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/ai/lessons/p9', { state: 'kept' }));
     fireEvent.click(screen.getByTestId('proposal-no'));

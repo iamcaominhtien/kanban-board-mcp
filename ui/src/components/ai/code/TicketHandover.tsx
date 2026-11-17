@@ -123,7 +123,7 @@ export function TicketHandover({ ticket }: { ticket: Ticket }) {
                 disabled={handover.isPending}
                 className={`ai-option ${eff === r ? 'ai-option-active' : ''}`}
                 style={{ alignItems: 'flex-start', textAlign: 'left' }}
-                data-testid={`handover-${r}`}
+                data-testid={`handover-route-${r}`}
                 onClick={() => eff !== r && void run(() => handover.mutateAsync(r))}
               >
                 <span className={`ai-radio ${eff === r ? 'ai-radio-on' : ''}`} />

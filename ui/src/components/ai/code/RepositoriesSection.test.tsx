@@ -68,54 +68,43 @@ beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
 describe('RepositoriesSection settings', () => {
-  it('sets the Checks commands without the scan wizard', async () => {
+  it('types the commands and keeps them with Save these commands, not on blur', async () => {
     setup({ ops: { commands: { test: 'npm test', lint: '', build: '' } } });
     renderIt();
     const test = (await screen.findByTestId('cmd-test')) as HTMLInputElement;
     expect(test.value).toBe('npm test');
+    expect(screen.queryByTestId('rc-save')).toBeNull(); // nothing typed: nothing to save
     fireEvent.change(screen.getByTestId('cmd-lint'), { target: { value: ' npm run lint ' } });
     fireEvent.blur(screen.getByTestId('cmd-lint'));
-    await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', {
-        ops: { commands: { lint: 'npm run lint' } },
-      }),
-    );
     fireEvent.change(screen.getByTestId('cmd-build'), { target: { value: 'npm run build' } });
     fireEvent.blur(screen.getByTestId('cmd-build'));
+    expect(http.patch).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('rc-save'));
     await waitFor(() =>
       expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', {
-        ops: { commands: { build: 'npm run build' } },
+        ops: {
+          commands: { test: 'npm test', lint: 'npm run lint', build: 'npm run build' },
+          worktrees: { prepare: '' },
+          envPath: [],
+        },
       }),
     );
   });
 
-  it('turns a command off as a check, and back on, without losing the command', async () => {
-    const ops = { commands: { test: 'npm test', lint: '', build: 'npm run build' }, checksOff: ['build'] };
-    setup({ ops });
-    http.patch.mockImplementation((_u: string, body: unknown) =>
-      Promise.resolve({ data: { hangAfterMin: 5, ...ops, ...(body as object) } }),
-    );
+  it('discards what was typed without saving', async () => {
+    setup({ ops: { commands: { test: 'npm test', lint: '', build: '' } } });
     renderIt();
-    const test = (await screen.findByTestId('check-test')) as HTMLInputElement;
-    const lint = screen.getByTestId('check-lint') as HTMLInputElement;
-    const build = screen.getByTestId('check-build') as HTMLInputElement;
-    expect([test.checked, build.checked]).toEqual([true, false]);
-    expect(lint.disabled).toBe(true); // no lint command: nothing to switch
-    fireEvent.click(test);
-    await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', { ops: { checksOff: ['build', 'test'] } }),
-    );
-    fireEvent.click(build);
-    await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', { ops: { checksOff: ['test'] } }),
-    );
+    const test = (await screen.findByTestId('cmd-test')) as HTMLInputElement;
+    fireEvent.change(test, { target: { value: 'pnpm test' } });
+    expect(test.value).toBe('pnpm test');
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect((screen.getByTestId('cmd-test') as HTMLInputElement).value).toBe('npm test');
+    expect(screen.queryByTestId('rc-save')).toBeNull();
+    expect(http.patch).not.toHaveBeenCalled();
   });
 
-  it('edits the folders put in front of the PATH', async () => {
+  it('edits the folders put in front of the PATH, saved with the commands', async () => {
     setup({ ops: { envPath: ['/opt/homebrew/bin'] } });
-    http.patch.mockImplementation((_u: string, body: unknown) =>
-      Promise.resolve({ data: { hangAfterMin: 5, envPath: ['/opt/homebrew/bin'], ...(body as object) } }),
-    );
     renderIt();
     const toggle = await screen.findByTestId('env-toggle');
     expect(screen.getByTestId('env-summary').textContent).toContain('/opt/homebrew/bin');
@@ -124,17 +113,14 @@ describe('RepositoriesSection settings', () => {
     const add = screen.getByLabelText('New folder');
     fireEvent.change(add, { target: { value: '/Users/me/.nvm/versions/node/v22/bin' } });
     fireEvent.blur(add);
-    await waitFor(() =>
-      expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', {
-        ops: {
-          envPath: ['/opt/homebrew/bin', '/Users/me/.nvm/versions/node/v22/bin'],
-        },
-      }),
-    );
     fireEvent.click(screen.getByRole('button', { name: 'Remove /opt/homebrew/bin' }));
+    expect(http.patch).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('rc-save'));
     await waitFor(() =>
       expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', {
         ops: {
+          commands: { test: '', lint: '', build: '' },
+          worktrees: { prepare: '' },
           envPath: ['/Users/me/.nvm/versions/node/v22/bin'],
         },
       }),
@@ -148,7 +134,7 @@ describe('RepositoriesSection settings', () => {
     expect(screen.getByLabelText('Loading')).toBeTruthy();
     expect(await screen.findByTestId('wt-off-note')).toBeTruthy();
     expect(
-      screen.getByText(/Worktrees are off: every member of the project shares the member’s working folder/),
+      screen.getByText(/Worktrees are off: every team of the project shares the team’s working folder/),
     ).toBeTruthy();
     expect(screen.queryByTestId('worktree-list')).toBeNull();
   });
@@ -205,12 +191,15 @@ describe('RepositoriesSection settings', () => {
         ops: { worktrees: { baseBranch: 'develop' } },
       }),
     );
+    // the prepare command is one of the project's commands: it is kept with Save these commands
     const prep = screen.getByTestId('wt-prepare');
     fireEvent.change(prep, { target: { value: 'make setup' } });
     fireEvent.blur(prep);
+    expect(http.patch).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByTestId('rc-save'));
     await waitFor(() =>
       expect(http.patch).toHaveBeenCalledWith('/projects/p/ai/settings', {
-        ops: { worktrees: { prepare: 'make setup' } },
+        ops: { commands: { test: '', lint: '', build: '' }, worktrees: { prepare: 'make setup' }, envPath: [] },
       }),
     );
   });
@@ -218,8 +207,8 @@ describe('RepositoriesSection settings', () => {
   it('validates the first port, then saves a good one', async () => {
     setup({ ops: { worktrees: { on: false, basePort: 5200 } } });
     renderIt();
-    expect(await screen.findByText('5200-5219')).toBeTruthy();
-    const port = screen.getByTestId('wt-base-port');
+    const port = (await screen.findByTestId('wt-base-port')) as HTMLInputElement;
+    expect(port.value).toBe('5200');
     fireEvent.change(port, { target: { value: '80' } });
     fireEvent.blur(port);
     expect(await screen.findByText('The first port must be between 1024 and 65515.')).toBeTruthy();

@@ -73,34 +73,45 @@ describe('TicketHandover', () => {
     expect(second.container.textContent).toBe('');
   });
 
-  it('by default hands over by pull request and offers Merge here instead', async () => {
+  it('by default hands over by pull request and offers Merge on this machine instead', async () => {
     setup(wt({ prUrl: 'https://x/pr/7', prNumber: 7 }, ['a.ts', 'b.ts']));
     http.patch.mockResolvedValue({ data: wt() });
     renderIt();
     expect(await screen.findByTestId('ready-to-hand-over')).toBeTruthy();
-    expect(screen.getByText('open a pull request')).toBeTruthy();
+    expect(screen.getByRole('radio', { name: /Open a pull request/ }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: /Merge on this machine/ }).getAttribute('aria-checked')).toBe('false');
     expect(screen.getByText(/2 files changed, not committed/)).toBeTruthy();
     expect(screen.getByTestId('handover-pr').textContent).toBe('Pull request #7');
     expect(screen.queryByTestId('merge-btn')).toBeNull();
-    fireEvent.click(screen.getByTestId('merge-here'));
+    // the route already chosen sends nothing
+    fireEvent.click(screen.getByTestId('handover-route-pr'));
+    expect(http.patch).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('handover-route-local'));
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/tickets/KAN-1/ai/handover', { route: 'local' }));
   });
 
-  it('shows the branch route text and still offers Merge here', async () => {
+  it('shows the branch route text and still offers Merge on this machine', async () => {
     setup(wt({ route: 'branch' } as never));
     renderIt();
-    expect(await screen.findByText('leave the branch')).toBeTruthy();
-    expect(screen.getByTestId('merge-here')).toBeTruthy();
+    const branch = await screen.findByRole('radio', { name: /Leave the branch/ });
+    expect(branch.getAttribute('aria-checked')).toBe('true');
+    expect(branch.textContent).toContain('The branch is pushed and you open whatever your host calls a merge request.');
+    expect(screen.getByTestId('handover-route-local').getAttribute('aria-checked')).toBe('false');
+    expect(screen.queryByTestId('merge-btn')).toBeNull();
   });
 
   it('merges on this machine, and reports success and a PR link', async () => {
     setup(wt({ route: 'local' } as never));
-    http.post.mockResolvedValue({ data: { merged: true, prUrl: 'https://x/pr/9' } });
+    http.post.mockImplementation(() => {
+      // the server marks the worktree merged; the card reads it again after the merge
+      setup(wt({ route: 'local', state: 'merged' } as never));
+      return Promise.resolve({ data: { merged: true, prUrl: 'https://x/pr/9' } });
+    });
     renderIt();
     const btn = await screen.findByTestId('merge-btn');
     expect(screen.getByText(/Merging also removes the worktree/)).toBeTruthy();
     fireEvent.click(btn);
-    expect(await screen.findByText('Merged.')).toBeTruthy();
+    expect(await screen.findByText(/Merged\. The worktree is removed and its port is given back\./)).toBeTruthy();
     expect(http.post).toHaveBeenCalledWith('/tickets/KAN-1/ai/merge');
     expect(screen.getByText('Pull request').getAttribute('href')).toBe('https://x/pr/9');
   });
