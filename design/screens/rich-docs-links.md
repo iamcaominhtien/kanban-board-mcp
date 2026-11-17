@@ -1,6 +1,6 @@
 # Rich Docs — search, links & backlinks
 
-> New screen (Rich Docs) · canvas `1794929703-2a72` · the board is split into 5 boards on the canvas because a browser cannot paint one board taller than about 8000 px; frame numbers run on across the parts. Sources: [`RichDocsLinks1.dc.html`](../source/RichDocsLinks1.dc.html) (sha256 `2bbf0d57a765…`, full value in `MANIFEST.json`), [`RichDocsLinks2.dc.html`](../source/RichDocsLinks2.dc.html) (sha256 `a0818a0c2406…`, full value in `MANIFEST.json`), [`RichDocsLinks3.dc.html`](../source/RichDocsLinks3.dc.html) (sha256 `08a261f3ed36…`, full value in `MANIFEST.json`), [`RichDocsLinks4.dc.html`](../source/RichDocsLinks4.dc.html) (sha256 `5ac631c9bed8…`, full value in `MANIFEST.json`), [`RichDocsLinks5.dc.html`](../source/RichDocsLinks5.dc.html) (sha256 `b0718f7b8568…`, full value in `MANIFEST.json`)
+> New screen (Rich Docs) · canvas `1794931846-a41d` · the board is split into 5 boards on the canvas because a browser cannot paint one board taller than about 8000 px; frame numbers run on across the parts. Sources: [`RichDocsLinks1.dc.html`](../source/RichDocsLinks1.dc.html) (sha256 `2bbf0d57a765…`, full value in `MANIFEST.json`), [`RichDocsLinks2.dc.html`](../source/RichDocsLinks2.dc.html) (sha256 `a0818a0c2406…`, full value in `MANIFEST.json`), [`RichDocsLinks3.dc.html`](../source/RichDocsLinks3.dc.html) (sha256 `08a261f3ed36…`, full value in `MANIFEST.json`), [`RichDocsLinks4.dc.html`](../source/RichDocsLinks4.dc.html) (sha256 `5ac631c9bed8…`, full value in `MANIFEST.json`), [`RichDocsLinks5.dc.html`](../source/RichDocsLinks5.dc.html) (sha256 `b0718f7b8568…`, full value in `MANIFEST.json`)
 
 > A new board that lives next to the older Docs boards (it does not replace them). Where a screen already exists in the code, the words follow the code (`ui/src/components/docs/`); the rich-format parts (colours, float images, merged cells, embeds, suggestions, export, public links, highlights) are a design proposal and need the code changes listed at the end. Names, ids, costs and times in the mock-ups are sample data. Frames are numbered on the canvas; desktop is 1360 wide, tablet 820, phone 390.
 
@@ -108,10 +108,10 @@
 
 ## Frames, code that must change, and decisions for the owner
 
-RichDocsTree 2730 wide, finalH 23782, 66 frames. RichDocsLinks 2730 wide, finalH 26601, 68 frames. A facts sheet (`c/rd6_tree/FACTS.md`: page tree, link graph, counts, sample book, people) drives every count in both boards.
+RichDocsTree 2730 wide, finalH 24855, 67 frames. RichDocsLinks 2730 wide, finalH 26601, 68 frames. A facts sheet (`c/rd6_tree/FACTS.md`: page tree, link graph, counts, sample book, people) drives every count in both boards.
 
 ## RichDocsTree (1-66)
-A 1-6 tree on three sizes, row states, hover cards, book and chapters. B 7-17 gallery, inside a book, view and sort, recent, filters, no match. C 18-26 drag, drop cues, after-move toasts and keys, reorder mode, multi-select. D 27-39 row menu, rename, icon picker, move to, duplicate, delete, toasts. E 40-48 Recycle Bin. F 49-60 Docs space settings. G 61-66 empty views, rename problems, move states, save failed, Access tab.
+A 1-6 tree on three sizes, row states, hover cards, book and chapters. B 7-17 gallery, inside a book, view and sort, recent, filters, no match. C 18-26 drag, drop cues, after-move toasts and keys, reorder mode, multi-select. D 27-39 row menu, rename, icon picker, move to, duplicate, delete, toasts. E 40-48 Recycle Bin. F 49-60 Docs space settings. G 61-67 empty views, rename problems, move states, save failed, Access tab (with the Highlights row), Highlights off for a page.
 
 ## RichDocsLinks (1-68)
 A 1-6 quick open. B 7-15 search. C 16-20 `[[` and `#` suggesters. D 21-26 heading and block links. E 27-30 hover cards and peek. F 31-36 Referenced by. G 37-43 broken links. H 44-46 rename. I 47-57 ticket side. J 58-62 Docs health. K 63-68 peek states, empty-page card, tap cards.
@@ -125,6 +125,7 @@ A 1-6 quick open. B 7-15 search. C 16-20 `[[` and `#` suggesters. D 21-26 headin
 - Search and quick open find tables, captions, alt text, code, draw.io labels and file names with a kind marker; Go to page with headings and tickets.
 - Links: chips store page, heading or block ids; "#" ticket trigger; "Copy link to this block"; Referenced by with block anchors and the "6 references" button wording; link checker for headings and blocks; peek states (loading, error, in the bin); tap cards on touch.
 - Ticket Docs cards become a card grid; board cards show a page count; "Write a page for KAN-12".
+- Highlights switches: per project ("Highlights on pages", default On) and per page (Access tab: "People who can comment can highlight" / "Off for this page"); admins can clear all highlights on a page. Delete removes a page's highlights and comments with it and restore brings them back; Duplicate does not copy highlights.
 - Docs health reasons point at a block; "Docs health" and "Ask the docs" stay in the tree header.
 
 ## Decisions for the owner

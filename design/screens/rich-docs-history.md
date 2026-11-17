@@ -1,6 +1,6 @@
 # Rich Docs — history & comments
 
-> New screen (Rich Docs) · canvas `1794929703-2a72` · the board is split into 3 boards on the canvas because a browser cannot paint one board taller than about 8000 px; frame numbers run on across the parts. Sources: [`RichDocsHistory1.dc.html`](../source/RichDocsHistory1.dc.html) (sha256 `a374c467275a…`, full value in `MANIFEST.json`), [`RichDocsHistory2.dc.html`](../source/RichDocsHistory2.dc.html) (sha256 `98d3c960a65e…`, full value in `MANIFEST.json`), [`RichDocsHistory3.dc.html`](../source/RichDocsHistory3.dc.html) (sha256 `84e7a39e3ef6…`, full value in `MANIFEST.json`)
+> New screen (Rich Docs) · canvas `1794931846-a41d` · the board is split into 3 boards on the canvas because a browser cannot paint one board taller than about 8000 px; frame numbers run on across the parts. Sources: [`RichDocsHistory1.dc.html`](../source/RichDocsHistory1.dc.html) (sha256 `a374c467275a…`, full value in `MANIFEST.json`), [`RichDocsHistory2.dc.html`](../source/RichDocsHistory2.dc.html) (sha256 `98d3c960a65e…`, full value in `MANIFEST.json`), [`RichDocsHistory3.dc.html`](../source/RichDocsHistory3.dc.html) (sha256 `84e7a39e3ef6…`, full value in `MANIFEST.json`)
 
 > A new board that lives next to the older Docs boards (it does not replace them). Where a screen already exists in the code, the words follow the code (`ui/src/components/docs/`); the rich-format parts (colours, float images, merged cells, embeds, suggestions, export, public links, highlights) are a design proposal and need the code changes listed at the end. Names, ids, costs and times in the mock-ups are sample data. Frames are numbered on the canvas; desktop is 1360 wide, tablet 820, phone 390.
 
@@ -54,7 +54,7 @@
 
 Folder `scratchpad/c/rd4_ai/`. Both boards are 1900 wide.
 
-## RichDocsAi.dc.html (finalH 16010, 55 frames)
+## RichDocsAi.dc.html (finalH 20500, 71 frames)
 - A. Header chip: 1 Suggestions waiting, 2 Edited directly, 3 Tablet, 4 Phone, 5 Phone: the list.
 - B. Suggestions: 6 A rich page with four suggestions (one stale), 7 How each kind of change reads, 8 Accepted, rejected, accept all, 9 Apply directly: on the page, 10 Apply directly: for a team.
 - C. Tablet and phone: 11 Tablet, 12 Phone: the page, 13 Phone: a text suggestion, 14 Phone: a layout change.
@@ -64,6 +64,7 @@ Folder `scratchpad/c/rd4_ai/`. Both boards are 1900 wide.
 - G. Limits and run states: 35 Locked block, 36 "Left this block as it is", 37 Person and team on the same block, 38 A team is working, 39 When the run ends, 40 Tablet, 41 Phone: a team at work, 42 Phone: a conflict.
 - H. Since viewed, care, palette: 43 On the page: the same four blocks, 44 In the space: the digest, 45 Phone: on the page, 46 AI care: banner points at blocks, 47 Docs health: broken links and embeds, 48 Phone: the digest, 49 The named palette, 50 Phone: the picker.
 - I. More states of the review: 51 Reject all asks first, 52 All suggestions settled, 53 Accept does not go through, 54 Phone: Accept failed, 55 Phone: a stale block.
+- J. Highlights made while reading: 56 A team reads the page's highlights (run context, hint callout), 57 What it was given, in its Report, 58 Phone: the run context, 59 The header chip and the banner list highlights, 60 In the space: the digest, 61 Phone: on the page, 62 Phone: the digest, 63 Send these highlights to Docs team, 64 The ticket it becomes, 65 Phone: choose highlights, 66 Phone: Send to Docs team, 67 Phone: a suggestion on a highlighted block, 68 A highlight on a block a team changed, 69 The highlighter is told in the digest, 70 Highlights off for teams, 71 A viewer cannot send highlights.
 
 ## RichDocsHistory.dc.html (finalH 14441, 27 frames)
 - A. Version history: 1 The history drawer, 2 One version row in its variants, 3 The first version of a converted page, 4 Viewing an old version, 5 Phone: the list, 6 Tablet.
@@ -89,6 +90,8 @@ Folder `scratchpad/c/rd4_ai/`. Both boards are 1900 wide.
 - Comments anchored to a block id plus a quote, including images, tables and embeds, with "quote edited" and "block deleted" states.
 - The since-viewed banner names blocks instead of sections.
 - Min target is 44 px on tablet and phone.
+
+- Highlights (shared annotations, not page text, no version): the Docs read tool returns `highlights` (author, colour, quote, block id); the run context and Report show "Page highlights"; the digest and page banner gain "{person} highlighted N passages"; "Send to {team}" accepts selected highlights as quoted context; the pending-suggestion sheet notes how each highlight is affected and the highlighter is told ("Passage changed") in the digest. A team reads highlights as hints, never creates, moves or removes one.
 
 ## Decisions for the owner
 - Suggest first is the default.

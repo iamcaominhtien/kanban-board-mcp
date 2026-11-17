@@ -12,6 +12,7 @@ Docs today stores a page as one Markdown string, so what it can show leans to wh
 - Embeds: HTML (sandboxed), video, draw.io, code, files, sketches, canvases, page and ticket references.
 - Page settings: width (Narrow 560, Normal 680, Wide 880, Full), fonts, page background (White, Paper, Sepia, Mist, Night), cover, title style.
 - Responsive: every main screen is drawn at desktop 1360, tablet 820 and phone 390 (touch targets 44 px, no hover-only actions).
+- Highlight while reading: anyone who may comment can highlight in the reading (non-edit) mode; highlights are **shared** with everyone who can read the page, are an annotation layer (not page text, no version), and can become real page highlights ("Add to the page").
 - Export to Word, PDF, HTML and Markdown (simple dialog, no "what will be lost" preview); import from Markdown, Word and HTML.
 - AI teams keep reading and writing Docs through MCP (`docs_read`, `docs_write`).
 
@@ -54,6 +55,10 @@ Chosen model: the page is stored as rich JSON with block ids; the AI **reads Mar
 - What people see: AI writes arrive as **suggestions at block level** by default (a page or team setting "Apply directly" exists), with Accept and Reject per block, Accept all, a header chip "Docs team edited 3 blocks", rendered block diffs in History, comments anchored to a block id plus a quote.
 - The design does not draw, because it cannot work: live AI typing or an AI cursor; an AI that chooses pixel positions, wrap distance, page breaks or print layout; edits inside a draw.io diagram, sketch or HTML embed (a team replaces, adds or removes the whole block); a promise of a lossless round trip to Word or Markdown; an AI that "sees" the page.
 - The MCP contract change (read view with ids, block edits, `update` semantics) also changes the tool descriptions, the Docs guide that `docs_read(docs_guide)` returns, the AI team's role and skill text about Docs, and the tests of the MCP tool list (`test_mcp_tool_quality`).
+
+### Highlights while reading (shared annotation layer)
+
+A highlight is a record of its own: id, page id, block id plus offsets and quote (so it follows the block through edits), colour, author, created at, and an optional comment thread id. It is not page text and creates no page version. Everyone in the project who can read the page sees it with who and when; people who may comment (not Viewers) add; the author or a page editor or admin removes; admins can clear all; the public page shows none. Delete and restore carry a page's highlights with it; Duplicate does not copy them. Export and print have an "Include highlights" option (off by default). AI teams can read highlights through MCP as hints and never create them; "Send these highlights to {team}" is an explicit job. Switches: reader setting "Show highlights", page setting (Access) and project default "Highlights on pages". Limits 200 per person per page, 500 per page. Live sync shows "N new highlights" without moving the page.
 
 ### Other things that are new on the server
 

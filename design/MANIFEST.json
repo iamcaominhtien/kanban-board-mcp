@@ -1,6 +1,6 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1794929703-2a72",
+  "canvas_version": "1794931846-a41d",
   "exported": "2026-11-17",
   "files": {
     "AccountMenu.dc.html": {
@@ -501,27 +501,27 @@
     },
     "RichDocsAi1.dc.html": {
       "bytes": 241900,
-      "sha256": "d15ef9ab6cf5e8861998a5c98ab3057dddda2c823f873a55cc425dda38bc8a18",
+      "sha256": "c0c9f79a29a460c92a6802785812382ca8a3103c1bf8f2e8687d101181fa022c",
       "title": "Rich Docs — AI teams on rich pages (1/3)",
       "page": "screens_docs_rich",
       "w": 1900,
-      "h": 7098
+      "h": 7148
     },
     "RichDocsAi2.dc.html": {
       "bytes": 202627,
-      "sha256": "06326e92bf5c915e29cb7a4cdf90e58bf88357d95bbed6b5788051a5bde6191b",
+      "sha256": "9e135f45220b41a28894f905f062e976ca13a551b812c5d741bd97bbc9ac397f",
       "title": "Rich Docs — AI teams on rich pages (2/3)",
       "page": "screens_docs_rich",
       "w": 1900,
       "h": 7153
     },
     "RichDocsAi3.dc.html": {
-      "bytes": 49176,
-      "sha256": "264eb000774882d72f73ff2a3c818c1049f9e066b135af77609fda79b03875a8",
+      "bytes": 189992,
+      "sha256": "78752434ec3ffad35152a44c975e5ed85abdbb93047495b5600a546380ff14cb",
       "title": "Rich Docs — AI teams on rich pages (3/3)",
       "page": "screens_docs_rich",
       "w": 1900,
-      "h": 2027
+      "h": 6467
     },
     "RichDocsBlocks1.dc.html": {
       "bytes": 179059,
@@ -684,36 +684,68 @@
       "h": 5062
     },
     "RichDocsReader1.dc.html": {
-      "bytes": 243619,
-      "sha256": "ecc80830dade22c796fa4a2dc78249ef416257adb98e3c0a09bee0772f496e33",
-      "title": "Rich Docs — reading, sharing & print (1/4)",
+      "bytes": 260813,
+      "sha256": "cbd13a6130b54d685e9fa075cb887842202abaa8134085c862fbee91a892bf2d",
+      "title": "Rich Docs — reading, sharing & print (1/8)",
       "page": "screens_docs_rich",
       "w": 2730,
-      "h": 6087
+      "h": 6109
     },
     "RichDocsReader2.dc.html": {
-      "bytes": 209928,
-      "sha256": "35aa69e2ebb34f8d3c3b16683fb568df743eb4ac735c3237992c4b09024f560b",
-      "title": "Rich Docs — reading, sharing & print (2/4)",
+      "bytes": 225311,
+      "sha256": "0c86c1c5159cda3f2aefc3d436d584fc5ff6a7762f632124617b49d32a4c82da",
+      "title": "Rich Docs — reading, sharing & print (2/8)",
       "page": "screens_docs_rich",
       "w": 2730,
-      "h": 5672
+      "h": 5693
     },
     "RichDocsReader3.dc.html": {
-      "bytes": 181122,
-      "sha256": "ecddba4af130b94bf02e91189ce90bb848f6f940c20ac3e4273524de6f3c43b1",
-      "title": "Rich Docs — reading, sharing & print (3/4)",
+      "bytes": 186741,
+      "sha256": "d0d07d763f4404d07c90254bca4b86169e8275d961bfab093d8df08e882e972d",
+      "title": "Rich Docs — reading, sharing & print (3/8)",
       "page": "screens_docs_rich",
       "w": 2730,
       "h": 6163
     },
     "RichDocsReader4.dc.html": {
-      "bytes": 100590,
-      "sha256": "d8f01e0dbbdbbde3c4d88214a0e0eebb8259352ae4a302e90607ad751db2b4a6",
-      "title": "Rich Docs — reading, sharing & print (4/4)",
+      "bytes": 111027,
+      "sha256": "37a41a7f3b5a9a3fae42aee4746c6896b6f984b6d4e022a878b7171b3f4c89aa",
+      "title": "Rich Docs — reading, sharing & print (4/8)",
       "page": "screens_docs_rich",
       "w": 2730,
       "h": 3696
+    },
+    "RichDocsReader5.dc.html": {
+      "bytes": 393116,
+      "sha256": "fa3f298bf09eda3b41dfb1c4397474cf53c1e05c6ec4375ddc787db3c7c7f57b",
+      "title": "Rich Docs — reading, sharing & print (5/8)",
+      "page": "screens_docs_rich",
+      "w": 2730,
+      "h": 6744
+    },
+    "RichDocsReader6.dc.html": {
+      "bytes": 331398,
+      "sha256": "667bf3d1bb4cd1e01e65acbc580a57a8c7382c76dc69e742657747b4fc51740f",
+      "title": "Rich Docs — reading, sharing & print (6/8)",
+      "page": "screens_docs_rich",
+      "w": 2730,
+      "h": 6236
+    },
+    "RichDocsReader7.dc.html": {
+      "bytes": 375680,
+      "sha256": "6bc2baa2969504bfbaafaf2c9dfd06543bf11253eb6579881a3a934e074bd077",
+      "title": "Rich Docs — reading, sharing & print (7/8)",
+      "page": "screens_docs_rich",
+      "w": 2730,
+      "h": 7174
+    },
+    "RichDocsReader8.dc.html": {
+      "bytes": 56282,
+      "sha256": "dfd41478fd49def9fd90271797db6322f891b73aee50345e2a2016ac03151cdb",
+      "title": "Rich Docs — reading, sharing & print (8/8)",
+      "page": "screens_docs_rich",
+      "w": 2730,
+      "h": 1394
     },
     "RichDocsShell1.dc.html": {
       "bytes": 401962,
@@ -796,36 +828,44 @@
       "h": 6214
     },
     "RichDocsTree1.dc.html": {
-      "bytes": 490103,
-      "sha256": "8dfb5acd68ef8c527876b5b9962ab0b2e38e66c5ce17818ef6d66241eed00b89",
-      "title": "Rich Docs — page tree, gallery & Recycle Bin (1/4)",
+      "bytes": 490102,
+      "sha256": "d8439e8768cc876026826b3fc4eb32aae419bfe89db04762a0d0f9cabea1d56b",
+      "title": "Rich Docs — page tree, gallery & Recycle Bin (1/5)",
       "page": "screens_docs_rich",
       "w": 2730,
       "h": 6934
     },
     "RichDocsTree2.dc.html": {
-      "bytes": 259351,
-      "sha256": "1e36892dfe7240863a0d40b06f971fa5033ee9eb6217992234cc106ffe5ced79",
-      "title": "Rich Docs — page tree, gallery & Recycle Bin (2/4)",
+      "bytes": 259350,
+      "sha256": "27ca74a0281c7ed8dc4b8916f2e2a9c3dfa2e43d7d2aa5d94809805c40ff2c21",
+      "title": "Rich Docs — page tree, gallery & Recycle Bin (2/5)",
       "page": "screens_docs_rich",
       "w": 2730,
       "h": 3688
     },
     "RichDocsTree3.dc.html": {
-      "bytes": 439862,
-      "sha256": "786d2a85d0a08b3c665f95f79c110b8664b192b44796766c33ef6a241553d975",
-      "title": "Rich Docs — page tree, gallery & Recycle Bin (3/4)",
+      "bytes": 440293,
+      "sha256": "1e4c077fa05a3ac79efbee3303269eb6f9ba2b53f4f4ef5af907b8d6d7b06b0a",
+      "title": "Rich Docs — page tree, gallery & Recycle Bin (3/5)",
       "page": "screens_docs_rich",
       "w": 2730,
       "h": 6991
     },
     "RichDocsTree4.dc.html": {
-      "bytes": 225839,
-      "sha256": "93a1271bcd25651ce2398e6226284ee9e8b3e7b1e9b369fe0a8c6727c93d23e0",
-      "title": "Rich Docs — page tree, gallery & Recycle Bin (4/4)",
+      "bytes": 198416,
+      "sha256": "09a123f4179b299b3d267b1febc22e7df09487eb8f76af3625f39d9d05b06bd9",
+      "title": "Rich Docs — page tree, gallery & Recycle Bin (4/5)",
       "page": "screens_docs_rich",
       "w": 2730,
-      "h": 7006
+      "h": 5567
+    },
+    "RichDocsTree5.dc.html": {
+      "bytes": 61511,
+      "sha256": "2c3f6ae21ffad66ee2594830fba50f110c59ca0308594f9aba53bdfa924259ac",
+      "title": "Rich Docs — page tree, gallery & Recycle Bin (5/5)",
+      "page": "screens_docs_rich",
+      "w": 2730,
+      "h": 2210
     },
     "SettingsMcp.dc.html": {
       "bytes": 107403,

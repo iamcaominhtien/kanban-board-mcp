@@ -1,6 +1,6 @@
 # Rich Docs — app frame & responsive
 
-> New screen (Rich Docs) · canvas `1794929703-2a72` · the board is split into 2 boards on the canvas because a browser cannot paint one board taller than about 8000 px; frame numbers run on across the parts. Sources: [`RichDocsShell1.dc.html`](../source/RichDocsShell1.dc.html) (sha256 `ec7f6183fe3c…`, full value in `MANIFEST.json`), [`RichDocsShell2.dc.html`](../source/RichDocsShell2.dc.html) (sha256 `9502f2b49fa8…`, full value in `MANIFEST.json`)
+> New screen (Rich Docs) · canvas `1794931846-a41d` · the board is split into 2 boards on the canvas because a browser cannot paint one board taller than about 8000 px; frame numbers run on across the parts. Sources: [`RichDocsShell1.dc.html`](../source/RichDocsShell1.dc.html) (sha256 `ec7f6183fe3c…`, full value in `MANIFEST.json`), [`RichDocsShell2.dc.html`](../source/RichDocsShell2.dc.html) (sha256 `9502f2b49fa8…`, full value in `MANIFEST.json`)
 
 > A new board that lives next to the older Docs boards (it does not replace them). Where a screen already exists in the code, the words follow the code (`ui/src/components/docs/`); the rich-format parts (colours, float images, merged cells, embeds, suggestions, export, public links, highlights) are a design proposal and need the code changes listed at the end. Names, ids, costs and times in the mock-ups are sample data. Frames are numbered on the canvas; desktop is 1360 wide, tablet 820, phone 390.
 
