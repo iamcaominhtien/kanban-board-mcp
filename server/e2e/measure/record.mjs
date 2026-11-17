@@ -36,8 +36,11 @@ const PAGE_SCRIPT = `(() => {
   }, true);
 })()`;
 
-/** Labels visible on a page: every aria-label and placeholder in the DOM. */
-const SEEN_SCRIPT = `[...document.querySelectorAll('[aria-label],[placeholder]')].flatMap((n) => [n.getAttribute('aria-label'), n.getAttribute('placeholder')]).filter(Boolean)`;
+/** Labels on a page: every aria-label and placeholder, and the text of the buttons, links, tabs and menu items. */
+const SEEN_SCRIPT = `[
+  ...[...document.querySelectorAll('[aria-label],[placeholder]')].flatMap((n) => [n.getAttribute('aria-label'), n.getAttribute('placeholder')]),
+  ...[...document.querySelectorAll('button,a,summary,option,[role=tab],[role=menuitem],[role=button]')].map((n) => (n.innerText || n.textContent || '').trim().replace(/\\s+/g, ' ')).filter((t) => t.length <= 60),
+].filter(Boolean)`;
 
 /** Collects one scenario's recording; one per Session. */
 export class Recorder {

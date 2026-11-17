@@ -46,7 +46,7 @@ const failedSteps = results.flatMap((r) => r.steps.filter((s) => s.error).map((s
 
 // ---- api
 const api = apiInventory(UI_SRC);
-const recorded = exchanges.map((e) => ({ ...e, bare: e.path.split('?')[0] }));
+const recorded = exchanges.map((e) => ({ ...e, bare: e.path.split('?')[0] })).filter((e) => e.bare !== '/' && e.type !== 'text/html');
 const matchedRecorded = new Set();
 for (const c of api.calls) {
   const re = templateRegex(c.template);

@@ -100,8 +100,20 @@ export function apiInventory(uiSrc) {
       if (!byKey.has(key)) byKey.set(key, { method, template, sites: [] });
       byKey.get(key).sites.push(site);
     };
-    for (const m of src.matchAll(/\bclient\.(get|post|put|patch|delete)\s*(?:<(?:[^<>]|<[^<>]*>)*>)?\s*\(/g)) {
-      const lit = literalAt(src, m.index + m[0].length);
+    for (const m of src.matchAll(/\bclient\.(get|post|put|patch|delete)\s*([<(])/g)) {
+      let i = m.index + m[0].length - 1;
+      if (m[2] === '<') {
+        // skip the type arguments, however deeply nested (`=>` inside them is not a closing bracket)
+        let depth = 0;
+        for (; i < src.length; i++) {
+          if (src[i] === '<') depth++;
+          else if (src[i] === '>' && src[i - 1] !== '=') { depth--; if (!depth) break; }
+        }
+        i++;
+        while (/\s/.test(src[i])) i++;
+        if (src[i] !== '(') continue;
+      }
+      const lit = literalAt(src, i + 1);
       add(m[1].toUpperCase(), lit ? lit.text : null, m.index);
     }
     for (const m of src.matchAll(/\bfetch\s*\(/g)) {
@@ -127,8 +139,8 @@ export function templateRegex(template) {
 }
 
 /**
- * Returns every labelled control in the components: { label, kind, file, line } where kind is aria-label or
- * placeholder and label may hold `\0` for a ${…} part; `dynamic` counts the labels that are a plain expression.
+ * Returns every labelled control in the components: { label, kind, file, line } where kind is aria-label,
+ * placeholder or text (the visible text of a button, link, tab or menu item) and label may hold `\0` for a ${…} part; `dynamic` counts the labels that are a plain expression.
  */
 export function uiInventory(uiSrc) {
   const items = [];
@@ -155,6 +167,12 @@ export function uiInventory(uiSrc) {
       }
       if (!lit || !lit.text.replace(/\0[^\0]*\0/g, '').trim()) { dynamic++; continue; }
       items.push({ label: lit.text.replace(/\0[^\0]*\0/g, '\0'), kind: m[1], file: rel, line: lineOf(src, m.index) });
+    }
+    // the visible text of buttons, links, tabs and menu items: <button …>Save</button>
+    for (const m of src.matchAll(/<(button|Button|a|MenuItem|Tab|summary|option)\b(?:[^>{]|\{(?:[^{}]|\{[^{}]*\})*\})*>\s*([^<>{}]*[A-Za-z][^<>{}]*?)\s*</g)) {
+      const text = m[2].replace(/\s+/g, ' ').replace(/&apos;|&#39;/g, "'").replace(/&amp;/g, '&').trim();
+      if (text.length < 2 || text.length > 60) continue;
+      items.push({ label: text, kind: 'text', file: rel, line: lineOf(src, m.index) });
     }
   }
   return { items, dynamic };
