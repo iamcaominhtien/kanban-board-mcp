@@ -95,6 +95,8 @@ describe('the ribbon', () => {
     });
     fireEvent.click(within(tb).getByRole('button', { name: 'Text colour' }));
     const pop = screen.getByTestId('ribbon-pop-color');
+    // placed under its button, not left off screen (the button must be read before the click event is gone)
+    expect(pop.style.left).not.toBe('-9999px');
     fireEvent.click(within(pop).getByRole('menuitemradio', { name: 'Green' }));
     expect(JSON.stringify(ed.getJSON())).toContain('"color":"green"');
     fireEvent.click(within(tb).getByRole('button', { name: 'Highlight colours' }));
