@@ -170,11 +170,19 @@ export async function createDiagram(projectId: string, body: DiagramPayload): Pr
 /**
  * Save a new version of a diagram.
  * @param id - Diagram id.
- * @param body - The new content plus the version the edit started from.
+ * @param body - The new content plus the version the edit started from, and an optional note on what changed.
  */
 export async function updateDiagram(
   id: string,
-  body: { baseVersion: number; source: string; svg: string; label?: string; summary?: string },
+  body: {
+    baseVersion: number;
+    source: string;
+    svg: string;
+    label?: string;
+    summary?: string;
+    /** What changed, kept with the new version (shown in its versions list). */
+    note?: string;
+  },
 ): Promise<Diagram> {
   return (await client.put<Diagram>(`/diagrams/${id}`, body)).data;
 }

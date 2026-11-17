@@ -1,10 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DocsPage } from '../../types/docs';
 import { Icon } from './Icon';
+import { PublicLinkSection } from './PublicLinkSection';
 
 interface SharePopoverProps {
   page: DocsPage;
   onClose: () => void;
+  /** `sheet`: drawn in place (a phone's bottom sheet) instead of as a popover under its button. */
+  variant?: 'popover' | 'sheet';
+  /**
+   * Offer "Anyone with the link can read" (the public link); `canEdit` says whether this reader may turn it on.
+   * Left out, the popover shows the project link only.
+   */
+  publicLinks?: { canEdit: boolean } | null;
 }
 
 /** Return the shareable URL of a page. */
@@ -58,11 +66,14 @@ async function writeClipboard(text: string): Promise<boolean> {
 }
 
 /**
- * Popover to copy a page link.
+ * Popover to copy a page link, and to share the published page publicly.
  * @param props.page - Page whose link is copied.
  * @param props.onClose - Called to dismiss the popover.
+ * @param props.variant - `sheet` draws it in place, full width (a phone's bottom sheet).
+ * @param props.publicLinks - Show the public link option; `canEdit` lets the reader turn it on.
  */
-export function SharePopover({ page, onClose }: SharePopoverProps) {
+export function SharePopover({ page, onClose, variant = 'popover', publicLinks }: SharePopoverProps) {
+  const sheet = variant === 'sheet';
   const rootRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState<'link' | 'ref' | 'id' | null>(null);
   const timer = useRef<number>();
@@ -84,7 +95,8 @@ export function SharePopover({ page, onClose }: SharePopoverProps) {
   useEffect(() => {
     void copy('link');
     const onDown = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) onClose();
+      // the sheet closes itself (its scrim); a popover closes on a click outside it
+      if (!sheet && !rootRef.current?.contains(e.target as Node)) onClose();
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -108,12 +120,19 @@ export function SharePopover({ page, onClose }: SharePopoverProps) {
       className="dk-menu docs-root"
       role="dialog"
       aria-label="Share page"
+      data-popover
       style={{
-        position: 'absolute',
-        right: 0,
-        top: 'calc(100% + 6px)',
-        width: 430,
-        zIndex: 60,
+        ...(sheet
+          ? { position: 'relative', boxShadow: 'none', border: 'none', width: '100%', boxSizing: 'border-box' }
+          : {
+              position: 'absolute',
+              right: 0,
+              top: 'calc(100% + 6px)',
+              width: 430,
+              maxHeight: 'min(80vh, 720px)',
+              overflowY: 'auto',
+              zIndex: 60,
+            }),
         padding: 14,
         display: 'flex',
         flexDirection: 'column',
@@ -197,6 +216,7 @@ export function SharePopover({ page, onClose }: SharePopoverProps) {
           </div>
         </div>
       </div>
+      {publicLinks && <PublicLinkSection page={page} canEdit={publicLinks.canEdit} />}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div
           style={{

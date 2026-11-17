@@ -418,3 +418,28 @@
   min-width: 160px;
   resize: none;
 }
+/* the formula editing panel (Rich Docs, Embeds frames 68-69): LaTeX on top, the result under it */
+.dk-math-edit {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  vertical-align: top;
+  max-width: 100%;
+}
+.dk-math-block .dk-math-edit {
+  display: flex;
+}
+.dk-math-live {
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #f6f8f7;
+  overflow-x: auto;
+}
+.dk-math-err {
+  font-size: 12px;
+  color: #c4432a;
+}
+.dk-math-hint {
+  font-size: 11px;
+  color: #7a8a80;
+}

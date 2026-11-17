@@ -54,9 +54,22 @@ export interface ChipContext {
 /** The reference chips' context (see {@link ChipContext}). */
 export const ChipCtx = createContext<ChipContext | null>(null);
 
+/**
+ * True where references are drawn as plain text instead of chips: the public view of a page, which shows people
+ * outside the project no page or ticket of it and asks the server nothing about them.
+ */
+export const PlainRefsCtx = createContext(false);
+
+/** A reference as plain text (see {@link PlainRefsCtx}). */
+function PlainRef({ label }: { label: string }) {
+  return <span className="dk-ref-plain">{label}</span>;
+}
+
 /** A ticket key drawn as a chip, resolved through {@link ChipCtx}. */
 export function TicketRefChip({ ticketKey }: { ticketKey: string }) {
   const c = useContext(ChipCtx)!;
+  const plain = useContext(PlainRefsCtx);
+  if (plain) return <PlainRef label={ticketKey} />;
   return (
     <RefChip
       kind="ticket"
@@ -83,6 +96,8 @@ export function PageRefChip({
   refKey: string | null;
 }) {
   const c = useContext(ChipCtx)!;
+  const plain = useContext(PlainRefsCtx);
+  if (plain) return <PlainRef label={label} />;
   return (
     <RefChip
       kind="page"
@@ -199,28 +214,63 @@ export function Checkbox({ checked }: { checked: boolean }) {
 }
 
 /**
- * An image in a page: click (or Enter / Space) to open it in the viewer with the other images on the page.
+ * An image in a page: click (or Enter / Space) to open it in the viewer with the other images on the page. Until the
+ * file arrives it keeps a grey box of its width (16:9, or a small square when it has no width), so the text around it
+ * does not jump far; when it fails it says so, keeps its alt text and offers Try again.
  * @param props.src - Its address (`/uploads/…` is served by the board).
  * @param props.alt - Its alt text.
  * @param props.style - Extra style (a rich page's width, border, radius…).
  */
 export function DocsImage({ src, alt, style }: { src: string; alt: string; style?: CSSProperties }) {
   const preview = usePreview();
+  const [state, setState] = useState<'loading' | 'loaded' | 'failed'>('loading');
+  const [tries, setTries] = useState(0);
   const name = alt || src.split('/').pop() || 'image';
   function open(el: HTMLElement) {
     const { items, index } = galleryAround(el);
     preview.open(items, index);
   }
+  const base = src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src;
+  // a retry asks again past the browser's cache of the failure
+  const url = tries ? `${base}${base.includes('?') ? '&' : '?'}retry=${tries}` : base;
+  if (state === 'failed') {
+    return (
+      <span className="dk-img-failed" role="img" aria-label={alt || 'Picture'} data-testid="image-failed">
+        <span className="dk-img-failed-title">This picture did not load</span>
+        {alt && <span className="dk-img-failed-alt">{alt}</span>}
+        <button
+          type="button"
+          className="st-btn st-btn-sm"
+          onClick={() => {
+            setTries((n) => n + 1);
+            setState('loading');
+          }}
+        >
+          Try again
+        </button>
+      </span>
+    );
+  }
+  const waiting: CSSProperties =
+    state === 'loading'
+      ? style?.width
+        ? { aspectRatio: '16 / 9', background: 'var(--dp-surface, #EEF3EF)', maxWidth: '100%' }
+        : { minWidth: 96, minHeight: 96, background: 'var(--dp-surface, #EEF3EF)' }
+      : {};
   return (
     <img
-      src={src.startsWith('/uploads/') ? `${resolveOrigin()}${src}` : src}
+      src={url}
       alt={alt}
       loading="lazy"
+      decoding="async"
       {...previewAttrs(src, name)}
       tabIndex={0}
       role="button"
       aria-label={`Open ${name}`}
-      style={{ cursor: 'zoom-in', ...style }}
+      data-state={state === 'loading' ? 'loading' : undefined}
+      style={{ cursor: 'zoom-in', ...waiting, ...style }}
+      onLoad={() => setState('loaded')}
+      onError={() => setState('failed')}
       onClick={(e) => open(e.currentTarget)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {

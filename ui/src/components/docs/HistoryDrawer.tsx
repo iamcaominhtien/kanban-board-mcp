@@ -31,6 +31,8 @@ interface HistoryDrawerProps {
   initialCompare?: { from: number; to: number };
   /** If given, the restore toast offers "View history" and the drawer closes after a restore. */
   onReopen?: () => void;
+  /** Opens an older version to read in place of the page (read-only, with a way back). */
+  onRead?: (version: number) => void;
 }
 
 const MONO = "'JetBrains Mono', monospace";
@@ -98,10 +100,19 @@ const hdrCell: CSSProperties = {
  * @param props.page - Page whose versions are listed.
  * @param props.onClose - Called to close the drawer.
  * @param props.onRestored - Called with the page after a version is restored.
+ * @param props.onRead - Opens an older version to read on the page (the Read button).
  * @param props.initialCompare - Open straight into comparing these two versions.
  * @param props.onReopen - When given, the restore toast offers "View history" and the drawer closes after a restore.
  */
-export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCompare, onReopen }: HistoryDrawerProps) {
+export function HistoryDrawer({
+  projectId,
+  page,
+  onClose,
+  onRestored,
+  initialCompare,
+  onReopen,
+  onRead,
+}: HistoryDrawerProps) {
   const toast = useToast();
   const versionsQ = useDocsVersions(page.id);
   const restore = useRestoreVersion(projectId);
@@ -681,6 +692,17 @@ export function HistoryDrawer({ projectId, page, onClose, onRestored, initialCom
               <button type="button" className="st-btn st-btn-sm" onClick={() => viewVersion(v.version)}>
                 <Icon name="i36" size={13} strokeWidth={2} />
                 View
+              </button>
+            )}
+            {!isCurrent && onRead && (
+              <button
+                type="button"
+                className="st-btn st-btn-sm"
+                onClick={() => onRead(v.version)}
+                data-testid={`read-version-${v.version}`}
+              >
+                <Icon name="page" size={13} strokeWidth={2} />
+                Read
               </button>
             )}
             {!isCurrent && (

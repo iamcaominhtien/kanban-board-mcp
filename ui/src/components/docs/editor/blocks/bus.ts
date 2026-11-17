@@ -22,7 +22,18 @@ export type BlockUiRequest =
   /** Start choosing several blocks (the phone's checkboxes), with the block at `pos` chosen. */
   | { type: 'selectBlocks'; pos: number }
   /** Shift+click on a handle: choose the blocks from the last chosen one (or the cursor's) to the block at `pos`. */
-  | { type: 'chooseBlock'; pos: number };
+  | { type: 'chooseBlock'; pos: number }
+  /** The Insert video dialog; with `replacePos`, it replaces that video's file and keeps its place and settings. */
+  | { type: 'insertVideo'; replacePos?: number }
+  /** The Embed from link dialog (an address typed or pasted, then a card or a player). */
+  | { type: 'embedLink' }
+  /** A bare address was pasted on the empty line at `pos`: the small menu asks what it becomes. */
+  | { type: 'pasteLink'; pos: number; url: string }
+  /**
+   * The Insert diagram dialog: a new drawing (`onNew`), one of the project's diagrams, or an imported file
+   * (`onImport`); with `replacePos`, the diagram picked takes the place of that one.
+   */
+  | { type: 'insertDiagram'; replacePos?: number; onNew?: () => void; onImport?: () => void };
 
 type Listener = (req: BlockUiRequest) => void;
 
@@ -49,6 +60,12 @@ export interface BlockKitStorage {
   bus: BlockBus;
   /** The project's image upload limit in MB (Docs settings `uploads.imageMb`). */
   imageLimitMb: number;
+  /** The project's video upload limit in MB (`uploads.videoMb`). */
+  videoLimitMb: number;
+  /** The project's file upload limit in MB (`uploads.fileMb`). */
+  fileLimitMb: number;
+  /** The project the page belongs to (uploads go to its Docs uploads); null until the block layer says. */
+  projectId: string | null;
 }
 
 /** The block layer's storage of an editor, or null when the editor has no BlockKit (a headless converter). */

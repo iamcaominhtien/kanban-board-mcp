@@ -25,6 +25,7 @@ import {
   turnInto,
   type TurnIntoKind,
 } from './commands';
+import { cardToChip, chipToCard, chipsIn } from './refCards';
 import { Row, Seg, useBlockLayout, useCoarsePointer } from './ui';
 import { useEditorTick } from './useInside';
 
@@ -286,6 +287,19 @@ export function BlockMenu({
           {!many && isList && <Item label="List style ›" onClick={() => setSub('list')} />}
           {!many && props && (
             <Item label={node.type.name === 'image' ? 'Image properties…' : 'Properties…'} onClick={done(props)} />
+          )}
+          {!many &&
+            chipsIn(node)
+              .slice(0, 3)
+              .map((c, i, list) => (
+                <Item
+                  key={`card-${i}`}
+                  label={list.length === 1 ? 'Show as card' : `Show ${c.label} as card`}
+                  onClick={done(() => chipToCard(editor, pos, i))}
+                />
+              ))}
+          {!many && (node.type.name === 'pageCard' || node.type.name === 'ticketCard') && (
+            <Item label="Show as chip" onClick={done(() => cardToChip(editor, pos))} />
           )}
           <span className="dk-bm-sep" />
           <Item label="Duplicate" kbd="Ctrl D" onClick={done(() => duplicateBlocks(editor, all))} />

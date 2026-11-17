@@ -67,6 +67,77 @@ export default {
       await p.getByText('Published · v3').waitFor();
       await p.getByText('step three').waitFor({ state: 'detached' });
     });
+    await s.step('reader settings: Aa changes the page for this reader only, and stays on this device', async () => {
+      await p.getByRole('button', { name: 'Reading settings' }).click();
+      const panel = p.getByRole('dialog', { name: 'Reading settings' });
+      await panel.getByRole('button', { name: /Sepia/ }).click();
+      await p.locator('.dk-page-scroll.dk-rt-sepia').waitFor();
+      const stored = await p.evaluate(() => localStorage.getItem('docsReaderPrefs'));
+      if (!stored || !stored.includes('sepia')) throw new Error('the reader settings were not stored: ' + stored);
+      await panel.getByRole('button', { name: 'Reset' }).click();
+      await p.locator('.dk-page-scroll.dk-rt-sepia').waitFor({ state: 'detached' });
+      await p.keyboard.press('Escape');
+    });
+    await s.step('the Published badge opens its version, and History reads an older version read-only', async () => {
+      await p.getByTestId('status-badge').click();
+      await p.getByRole('dialog', { name: 'Version 3' }).getByRole('button', { name: /Page history/ }).click();
+      // a row's buttons show on hover
+      await p.locator('.hd-row', { has: p.getByTestId('read-version-2') }).hover();
+      await p.getByTestId('read-version-2').click();
+      await p.getByText('You are reading v2.').waitFor();
+      if (!(await p.getByTestId('edit-page').isDisabled())) throw new Error('Edit must be off on an older version');
+      await p.getByRole('button', { name: 'Back to the latest' }).click();
+      await p.getByTestId('older-version-bar').waitFor({ state: 'detached' });
+    });
+    await s.step('print: a short options panel, then only the page goes to the printer', async () => {
+      await p.evaluate(() => {
+        window.print = () => {
+          window.__printed = {
+            sheet: document.querySelector('.dk-print-sheet')?.textContent ?? '',
+            hidden: document.body.classList.contains('dk-printing'),
+          };
+          window.dispatchEvent(new Event('afterprint'));
+        };
+      });
+      const direct = p.getByTestId('print-button');
+      if (await direct.count()) await direct.click();
+      else {
+        await p.getByRole('button', { name: 'Page actions' }).click();
+        await p.getByRole('menuitem', { name: /^Print/ }).click();
+      }
+      const dialog = p.getByRole('dialog', { name: 'Print' });
+      if ((await dialog.getByRole('switch', { name: 'Include highlights' }).getAttribute('aria-checked')) !== 'false')
+        throw new Error('highlights must be off by default');
+      await dialog.getByRole('button', { name: 'Print', exact: true }).click();
+      const printed = await p.evaluate(() => window.__printed);
+      s.note('printed', JSON.stringify(printed));
+      if (!printed?.hidden || !printed.sheet.includes('Handbook') || !printed.sheet.includes('step one'))
+        throw new Error('the print sheet lacks the page: ' + JSON.stringify(printed));
+      if (await p.locator('.dk-print-sheet').count()) throw new Error('the print sheet stayed after printing');
+    });
+    await s.step('share publicly: asked first, the link opens a public page with no app, and stops at once', async () => {
+      await p.getByTestId('share').click();
+      await p.getByTestId('public-link-toggle').click();
+      await p.getByText('Make this page public?').waitFor();
+      await p.getByRole('button', { name: 'Make public' }).click();
+      const shown = (await p.getByTestId('public-url').textContent()).trim();
+      const url = new URL('http://' + shown).href;
+      s.note('public link', url);
+      const reader = await p.context().newPage();
+      await reader.goto(url);
+      await reader.getByRole('heading', { name: 'Handbook', level: 1 }).waitFor();
+      await reader.getByText('Public page', { exact: true }).waitFor();
+      if (await reader.getByRole('button', { name: /Edit|Comments|Share/ }).count())
+        throw new Error('the public page must not offer Edit, Comments or Share');
+      const robots = await reader.locator('meta[name="robots"]').getAttribute('content');
+      if (robots !== 'noindex') throw new Error('the public page must not be indexed: ' + robots);
+      await p.getByTestId('public-stop').click();
+      await p.getByTestId('public-url').waitFor({ state: 'detached' });
+      await reader.reload();
+      await reader.getByRole('heading', { name: 'This link is no longer public.' }).waitFor();
+      await reader.close();
+      await p.keyboard.press('Escape');
+    });
     await s.step('filter the page tree', async () => {
       await p.getByRole('textbox', { name: 'Filter pages' }).fill('Release');
       await item('Release notes').waitFor();

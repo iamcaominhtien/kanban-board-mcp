@@ -19,12 +19,20 @@ import { CanvasEmbed } from '../canvas/CanvasEmbed';
 import { DiagramEmbed } from '../diagrams/DiagramEmbed';
 import { SketchEmbed } from '../sketch/SketchEmbed';
 import { useDocsPeek } from './DocsRefsContext';
+import {
+  ReaderCode,
+  ReaderFile,
+  ReaderHtmlEmbed,
+  ReaderLinkEmbed,
+  ReaderPageCard,
+  ReaderTicketCard,
+  ReaderVideo,
+} from './embeds/readerEmbeds';
 import { CALLOUT_STYLE, type CalloutKind } from './editor/constants';
 import { Icon } from './Icon';
 import {
   ChipCtx,
   Checkbox,
-  CodeBlock,
   DocsImage,
   METHOD_COLORS,
   PageRefChip,
@@ -485,62 +493,6 @@ function RichImage({ node, attrs, inline: isInline }: { node: Node; attrs?: Bloc
   );
 }
 
-function youtubeId(src: string): string | null {
-  return /(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{6,})/.exec(src)?.[1] ?? null;
-}
-
-/** A video: its poster (or a plain frame) with a play button; nothing plays until it is pressed. */
-function RichVideo({ node, attrs }: { node: Node; attrs: BlockAttrs }) {
-  const a = node.attrs ?? {};
-  const [playing, setPlaying] = useState(false);
-  const src = str(a.src).replace(/\/api\/uploads\//, '/uploads/');
-  const provider = str(a.provider) || 'file';
-  const title = str(a.title) || str(a.caption);
-  const yt = provider === 'youtube' ? youtubeId(src) : null;
-  const poster = str(a.poster) || (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : '');
-  const widthPct = num(a.widthPct) ?? 100;
-  const play = () => {
-    if (provider === 'file') setPlaying(true);
-    else window.open(src, '_blank', 'noopener,noreferrer');
-  };
-  return (
-    <figure
-      {...attrs}
-      className={['dk-video', attrs.className].filter(Boolean).join(' ')}
-      style={{ width: `${widthPct}%` }}
-    >
-      {playing ? (
-        <video src={src} poster={poster || undefined} controls loop={!!a.loop} muted={!!a.muted} />
-      ) : (
-        <div className="dk-video-frame" style={poster ? { backgroundImage: `url("${poster}")` } : undefined}>
-          <button type="button" className="dk-video-play" aria-label={`Play ${title || 'video'}`} onClick={play}>
-            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M8 5v14l11-7z" fill="currentColor" />
-            </svg>
-          </button>
-          {provider !== 'file' && (
-            <span className="dk-video-provider">{provider === 'youtube' ? 'YouTube' : 'Vimeo'}</span>
-          )}
-        </div>
-      )}
-      {(title || str(a.description)) && (
-        <figcaption>
-          {title && <strong>{title}</strong>}
-          {str(a.description) && <span>{str(a.description)}</span>}
-        </figcaption>
-      )}
-    </figure>
-  );
-}
-
-function siteOf(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '');
-  } catch {
-    return url;
-  }
-}
-
 /* ---------- blocks ---------- */
 
 function children(node: Node, r: Render, key: string): ReactNode[] {
@@ -710,27 +662,8 @@ function block(node: Node, r: Render, key: string): ReactNode {
         </li>
       );
     }
-    case 'codeBlock': {
-      const own = blockAttrs(node, r);
-      const code = (
-        <CodeBlock
-          key={key}
-          code={inlineText(node)}
-          lang={str(a.language) || undefined}
-          blockId={own['data-block-id']}
-          className={own.className}
-          changedIn={own['data-changed-in']}
-        />
-      );
-      return str(a.filename) ? (
-        <div key={key} className="dk-code-file">
-          <div className="dk-code-filename">{str(a.filename)}</div>
-          {code}
-        </div>
-      ) : (
-        code
-      );
-    }
+    case 'codeBlock':
+      return <ReaderCode key={key} attrs={a} block={blockAttrs(node, r)} code={inlineText(node)} />;
     case 'horizontalRule': {
       const style = str(a.style) || 'line';
       const glyphs = RULE_GLYPHS[style];
@@ -867,81 +800,17 @@ function block(node: Node, r: Render, key: string): ReactNode {
       );
     }
     case 'video':
-      return <RichVideo key={key} node={node} attrs={blockAttrs(node, r)} />;
+      return <ReaderVideo key={key} attrs={a} block={blockAttrs(node, r)} />;
     case 'htmlEmbed':
-      return (
-        <div key={key} {...blockAttrs(node, r, 'dk-embed-card dk-html-embed')}>
-          <span className="dk-embed-icon" aria-hidden="true">
-            {'</>'}
-          </span>
-          <span className="dk-embed-text">
-            <strong>HTML embed</strong>
-            {str(a.title) && <span>{str(a.title)}</span>}
-          </span>
-        </div>
-      );
-    case 'linkEmbed': {
-      const url = str(a.url);
-      const title = str(a.title) || url;
-      return (
-        <a
-          key={key}
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          {...blockAttrs(node, r, 'dk-embed-card dk-link-embed')}
-        >
-          {str(a.image) && <img src={str(a.image)} alt="" loading="lazy" />}
-          <span className="dk-embed-text">
-            <strong>{title}</strong>
-            {str(a.description) && <span>{str(a.description)}</span>}
-            <span className="dk-embed-site">{str(a.site) || siteOf(url)}</span>
-          </span>
-        </a>
-      );
-    }
-    case 'fileCard': {
-      const src = str(a.src).replace(/\/api\/uploads\//, '/uploads/');
-      return (
-        <div key={key} {...blockAttrs(node, r, 'dk-file-block')}>
-          {src && <FileAttachmentCard url={src} fileName={str(a.name) || src} fileSize={num(a.size) ?? undefined} />}
-        </div>
-      );
-    }
-    case 'pageCard': {
-      const page = str(a.page);
-      return (
-        <div key={key} {...blockAttrs(node, r, 'dk-embed-card dk-page-card')}>
-          <span className="dk-embed-icon" aria-hidden="true">
-            <Icon name="page" size={16} strokeWidth={1.8} />
-          </span>
-          <span className="dk-embed-text">
-            {page ? (
-              <PageRefChip
-                label={page}
-                pageTitle={page}
-                anchor={null}
-                custom={false}
-                refKey={pageRefKey({ title: page })}
-              />
-            ) : (
-              <span>No page chosen</span>
-            )}
-          </span>
-        </div>
-      );
-    }
+      return <ReaderHtmlEmbed key={key} attrs={a} block={blockAttrs(node, r)} />;
+    case 'linkEmbed':
+      return <ReaderLinkEmbed key={key} attrs={a} block={blockAttrs(node, r)} />;
+    case 'fileCard':
+      return <ReaderFile key={key} attrs={a} block={blockAttrs(node, r)} />;
+    case 'pageCard':
+      return <ReaderPageCard key={key} attrs={a} block={blockAttrs(node, r)} />;
     case 'ticketCard':
-      return (
-        <div key={key} {...blockAttrs(node, r, 'dk-embed-card dk-ticket-card')}>
-          <span className="dk-embed-icon" aria-hidden="true">
-            <Icon name="hash" size={16} strokeWidth={1.8} />
-          </span>
-          <span className="dk-embed-text">
-            {str(a.key) ? <TicketRefChip ticketKey={str(a.key)} /> : <span>No ticket chosen</span>}
-          </span>
-        </div>
-      );
+      return <ReaderTicketCard key={key} attrs={a} block={blockAttrs(node, r)} />;
     default:
       // a node this reader does not know: its blocks, or its text
       if (!node.content?.length) return null;

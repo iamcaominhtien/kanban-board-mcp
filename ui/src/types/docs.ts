@@ -28,6 +28,12 @@ export interface DocsTreeNode {
   kind?: 'page' | 'canvas';
   /** Where the page's conversion to the rich format stands (null or missing: nothing to convert). */
   convertState?: DocsConvertState | null;
+  /** The page's `book` setting: a book holds its chapters (its child pages). */
+  book?: { isBook?: boolean; numberChapters?: boolean } | null;
+  /** The page's `status` setting (`outdated`, `in-review`…), when it has one. */
+  pageStatus?: string | null;
+  /** The address of the page's cover picture, when it has one. */
+  cover?: string | null;
 }
 
 export interface DocsHeading {

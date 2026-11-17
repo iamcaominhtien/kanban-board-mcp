@@ -21,6 +21,19 @@ function MathView({ node, selected, updateAttributes }: NodeViewProps) {
     [latex, block],
   );
 
+  // the editing panel (design "Embeds", frames 68-69): the result under the LaTeX as it is typed, or why it cannot be read
+  const live = useMemo(() => {
+    if (!editing) return null;
+    try {
+      return {
+        html: katex.renderToString(draft || '\\square', { displayMode: block, throwOnError: true, strict: 'ignore' }),
+        error: null,
+      };
+    } catch (e) {
+      return { html: null, error: e instanceof Error ? e.message.replace(/^KaTeX parse error:\s*/, '') : 'unknown' };
+    }
+  }, [editing, draft, block]);
+
   function commit() {
     setEditing(false);
     if (draft !== latex) updateAttributes({ latex: draft.trim() });
@@ -34,22 +47,40 @@ function MathView({ node, selected, updateAttributes }: NodeViewProps) {
       contentEditable={false}
     >
       {editing ? (
-        <textarea
-          ref={input}
-          className="dk-math-input"
-          value={draft}
-          rows={block ? 3 : 1}
-          spellCheck={false}
-          aria-label="LaTeX formula"
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape' || (e.key === 'Enter' && (!block || e.metaKey || e.ctrlKey))) {
-              e.preventDefault();
-              commit();
-            }
-          }}
-        />
+        <span className="dk-math-edit">
+          <textarea
+            ref={input}
+            className="dk-math-input"
+            value={draft}
+            rows={block ? 3 : 1}
+            spellCheck={false}
+            aria-label="LaTeX formula"
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' || (e.key === 'Enter' && (!block || e.metaKey || e.ctrlKey))) {
+                e.preventDefault();
+                commit();
+              }
+            }}
+          />
+          {live?.html && (
+            <span
+              className="dk-math-live"
+              aria-label="Result"
+              contentEditable={false}
+              dangerouslySetInnerHTML={{ __html: live.html }}
+            />
+          )}
+          {live?.error && (
+            <span className="dk-math-err" role="alert">
+              The formula cannot be read: {live.error}
+            </span>
+          )}
+          <span className="dk-math-hint">
+            {block ? 'Ctrl Enter to apply, Esc to close' : 'Enter to apply, Esc to close'}
+          </span>
+        </span>
       ) : (
         <span
           role="button"

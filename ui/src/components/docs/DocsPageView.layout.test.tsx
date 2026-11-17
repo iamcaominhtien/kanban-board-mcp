@@ -36,17 +36,24 @@ const PAGE: DocsPage = {
   slug: 'weekly-releases',
   status: 'published',
   version: 14,
-  markdown: '## Smaller batches\n\nA monthly release carried about sixty tickets.',
+  markdown:
+    '## Smaller batches\n\nA monthly release carried about sixty tickets.\n\n## Fewer surprises\n\nA week is short.',
   format: 'rich',
   content: {
     type: 'doc',
     content: [
       { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Smaller batches' }] },
       para('A monthly release carried about sixty tickets.'),
+      { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Fewer surprises' }] },
+      para('A week is short.'),
     ],
   },
   settings: {},
-  headings: [{ level: 2, text: 'Smaller batches', slug: 'smaller-batches' }],
+  // two headings: a page with fewer has no outline
+  headings: [
+    { level: 2, text: 'Smaller batches', slug: 'smaller-batches' },
+    { level: 2, text: 'Fewer surprises', slug: 'fewer-surprises' },
+  ],
   path: [
     { id: 'a', title: 'Handbook', slug: 'handbook' },
     { id: 'b', title: 'Engineering', slug: 'engineering' },

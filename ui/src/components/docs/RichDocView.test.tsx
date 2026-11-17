@@ -319,11 +319,16 @@ describe('RichDocView: format 1 attributes', () => {
     const video = container.querySelector('video')!;
     expect(video.getAttribute('src')).toBe('/uploads/demo.mp4');
     expect(video.autoplay).toBe(false);
+    // Rich Docs phase 5: the HTML runs in a sandboxed frame, never in the page itself
     const html = container.querySelector('[data-block-id="b-000002"]')!;
-    expect(html.textContent).toContain('HTML embed');
+    expect(html.textContent).toContain('HTML');
     expect(html.textContent).toContain('Widget');
-    expect(html.innerHTML).not.toContain('<b>x</b>');
-    expect(container.querySelector('a[data-block-id="b-000003"]')?.getAttribute('href')).toBe('https://example.com/a');
+    expect(html.textContent).toContain('Runs in a sandbox: no access to this board.');
+    const frame = html.querySelector('iframe')!;
+    expect(frame.getAttribute('sandbox')).toBe('');
+    expect(frame.getAttribute('srcdoc')).toContain('<b>x</b>');
+    expect(html.querySelector('b')).toBeNull();
+    expect(container.querySelector('[data-block-id="b-000003"] a')?.getAttribute('href')).toBe('https://example.com/a');
   });
 
   it('marks the top-level blocks a later version changed', () => {

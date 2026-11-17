@@ -1,5 +1,6 @@
 import type { Editor, JSONContent, Range } from '@tiptap/core';
 import type { CalloutKind } from './constants';
+import { askBlockUi } from './blocks/bus';
 import { insertColumns, insertDivider, insertPullQuote, insertTableSized, type TableSize } from './blocks/commands';
 
 /** The AI rows of `/ai` (design/screens/docs-ai.md F1). `docs` marks the rows of the "Docs only" group. */
@@ -24,6 +25,8 @@ export interface SlashCtx {
   insertImage?: () => void;
   /** The size picked in the catalog's Insert table step; 3 × 3 with a header row when unset. */
   table?: TableSize;
+  /** False in an editor of plain Markdown (an idea page): the embeds only a rich page holds are left out. */
+  rich?: boolean;
 }
 
 /** The groups of the Insert catalog, in the order of its rail. */
@@ -46,6 +49,8 @@ export interface SlashItem {
   step?: 'table';
   /** Extra words that find the row (the AI rows answer to `ai`). */
   keywords?: string;
+  /** Only a rich page can hold it (HTML embed, video, link embeds). */
+  richOnly?: boolean;
   label: string;
   desc: string;
   kbd?: string;
@@ -315,6 +320,58 @@ export const SLASH_ITEMS: SlashItem[] = [
     },
   },
   {
+    id: 'video',
+    group: 'Media',
+    label: 'Video',
+    desc: 'Upload a file or use its address',
+    keywords: 'movie mp4 webm mov film recording',
+    richOnly: true,
+    tile: { text: '▶' },
+    run: (e, r) => {
+      chain(e, r).run();
+      askBlockUi(e, { type: 'insertVideo' });
+    },
+  },
+  {
+    id: 'html',
+    group: 'Embeds',
+    label: 'HTML embed',
+    desc: 'A small web page that runs in a sandbox',
+    keywords: 'html widget iframe css script sandbox',
+    richOnly: true,
+    tile: { text: '</>' },
+    run: (e, r) =>
+      chain(e, r)
+        .insertContent({ type: 'htmlEmbed', attrs: { html: '', runScripts: false } })
+        .run(),
+  },
+  {
+    id: 'embed-link',
+    group: 'Embeds',
+    label: 'Embed from link',
+    desc: 'YouTube, Vimeo, Loom, or a link card',
+    keywords: 'link url bookmark card youtube vimeo loom website',
+    richOnly: true,
+    tile: { icon: 'link' },
+    run: (e, r) => {
+      chain(e, r).run();
+      askBlockUi(e, { type: 'embedLink' });
+    },
+  },
+  {
+    id: 'diagram-insert',
+    group: 'Embeds',
+    label: 'Insert diagram',
+    desc: 'New, from this project, or a .drawio file',
+    keywords: 'drawio existing project diagram',
+    richOnly: true,
+    tile: { icon: 'i33' },
+    run: (e, r, ctx) => {
+      chain(e, r).run();
+      askBlockUi(e, { type: 'insertDiagram', onNew: ctx.newDiagram, onImport: ctx.importDiagram });
+    },
+  },
+  {
     id: 'sketch',
     group: 'Embeds',
     label: 'Sketch',
@@ -469,11 +526,16 @@ function score(item: SlashItem, q: string): number {
  * @param query - What was typed after "/".
  * @param opts.ai - Set while the Docs AI rows are offered (adds them).
  * @param opts.withAi - False leaves out the editor's own "Ask AI…" row (the editor has no AI menu). Default true.
+ * @param opts.rich - False leaves out what only a rich page holds (an idea page's Markdown editor). Default true.
  */
-export function filterSlash(query: string, opts: { ai?: SlashCtx['ai']; withAi?: boolean } = {}): SlashItem[] {
+export function filterSlash(
+  query: string,
+  opts: { ai?: SlashCtx['ai']; withAi?: boolean; rich?: boolean } = {},
+): SlashItem[] {
   const q = query.trim().toLowerCase();
   const withAi = opts.withAi ?? true;
-  const base = withAi ? SLASH_ITEMS : SLASH_ITEMS.filter((i) => i.id !== 'ai');
+  const rich = opts.rich ?? true;
+  const base = SLASH_ITEMS.filter((i) => (withAi || i.id !== 'ai') && (rich || !i.richOnly));
   const all = (opts.ai ? [...base, ...aiSlashItems(opts.ai.docs, withAi)] : base)
     .map((item, i) => ({ item, i }))
     .sort((a, b) => groupRank(a.item.group) - groupRank(b.item.group) || a.i - b.i)

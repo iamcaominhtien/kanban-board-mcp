@@ -3,12 +3,14 @@
  * address) and draws its local preview with the progress and Cancel; when the upload is done its address takes the
  * place of the placeholder. A failed upload keeps the picture in this browser with Try again; a file over the
  * project's limit is not sent and says by how much (Shrink and insert makes a smaller copy). Uploads go to the
- * endpoint images already used (`POST /uploads/images`).
+ * project's Docs uploads (`POST /projects/{id}/docs/uploads`, kind `image`), which hold the project's limit and scan
+ * the file; an editor without a project (no block layer yet) uses `POST /uploads/images`.
  */
 
 import type { Editor } from '@tiptap/core';
 import { client } from '../../../../api/client';
 import { resolveOrigin } from '../../../../api/resolveOrigin';
+import { blockKitOf } from './bus';
 import type { Placement } from './commands';
 
 /** Where one upload is. */
@@ -135,28 +137,37 @@ async function send(editor: Editor, id: string) {
   if (!u) return;
   const abort = new AbortController();
   update(id, { status: 'uploading', loaded: 0, abort });
+  const projectId = blockKitOf(editor)?.projectId;
   const form = new FormData();
+  if (projectId) form.append('kind', 'image');
   form.append('file', u.file);
   try {
-    const res = await client.post<{ url: string }>('/uploads/images', form, {
-      signal: abort.signal,
-      onUploadProgress: (e) => update(id, { loaded: e.loaded }),
-    });
+    const res = await client.post<{ src?: string; url?: string }>(
+      projectId ? `/projects/${projectId}/docs/uploads` : '/uploads/images',
+      form,
+      {
+        signal: abort.signal,
+        onUploadProgress: (e) => update(id, { loaded: e.loaded }),
+      },
+    );
+    const stored = res.data.src ?? res.data.url ?? '';
     const pos = editor.isDestroyed ? null : findImage(editor, `uploading:${id}`);
     if (pos !== null) {
       const node = editor.state.doc.nodeAt(pos);
       if (node)
         editor.view.dispatch(
-          editor.state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, src: uploadedSrc(res.data.url) }),
+          editor.state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, src: uploadedSrc(stored) }),
         );
     }
     URL.revokeObjectURL(u.preview);
     pending.delete(id);
     version += 1;
     notify();
-  } catch {
+  } catch (err) {
     if (abort.signal.aborted) return;
-    update(id, { status: 'failed', abort: undefined });
+    // the server's own limit (it may be lower than the one this page knew)
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    update(id, { status: status === 413 ? 'tooLarge' : 'failed', abort: undefined });
   }
 }
 

@@ -7,9 +7,13 @@ import {
   useDocsRecycleBin,
   useDocsTree,
   useMovePage,
+  useDocsVersion,
   usePublishPage,
   useRestorePage,
+  useRestoreVersion,
 } from '../../api/docs';
+import { bookOf } from './book';
+import { openExport, type ExportFormat } from './docsExport';
 import { useRenameWithLinks } from '../../api/docsActions';
 import { fetchRenameLinkCount } from '../../api/docsPage';
 import { client } from '../../api/client';
@@ -286,6 +290,8 @@ export function DocsView({
   const [moveFor, setMoveFor] = useState<DocsPage | null>(null);
   const [dupFor, setDupFor] = useState<DocsPage | null>(null);
   const [history, setHistory] = useState<{ compare?: { from: number; to: number } } | null>(null);
+  // an older version opened from History to read (read-only), for the page it belongs to
+  const [reading, setReading] = useState<{ pageId: string; version: number } | null>(null);
   const [deleteFor, setDeleteFor] = useState<{ id: string; title: string } | null>(null);
   // a page given to an AI member to write or review (#268)
   const [giveFor, setGiveFor] = useState<{ id: string; title: string } | null>(null);
@@ -363,6 +369,9 @@ export function DocsView({
   }, [selectedId, projectId]);
 
   const pageQuery = useDocsPage(selectedId);
+  const readingVersion = reading && reading.pageId === selectedId ? reading.version : null;
+  const versionQuery = useDocsVersion(readingVersion ? selectedId : null, readingVersion);
+  const restoreVersion = useRestoreVersion(projectId);
   const livePage = pageQuery.data;
   const pageError = pageQuery.error ? docsErrorDetail(pageQuery.error) : null;
   const treeError = tree.error ? docsErrorDetail(tree.error) : null;
@@ -403,8 +412,9 @@ export function DocsView({
   );
   const [filterRequest, setFilterRequest] = useState<{ q: string; n: number } | null>(null);
 
-  // Wide and Full pages fold the tree to its rail (design board "app frame", B)
-  const pageWide = !!page && page.kind !== 'canvas' && isWidePage(readPageLook(page.settings));
+  // Wide and Full pages fold the tree to its rail (design board "app frame", B), and a book's pages read in focus
+  const pageWide =
+    !!page && page.kind !== 'canvas' && (isWidePage(readPageLook(page.settings)) || !!bookOf(page, nodes));
   // a tablet shows the rail; a phone has no rail (the Pages button and the left edge open the tree)
   const folded = layout === 'tablet' || (layout === 'desktop' && (editing || pageWide));
   const showRail = layout === 'tablet' || (layout === 'desktop' && (treeCollapsed || editing || pageWide));
@@ -485,6 +495,32 @@ export function DocsView({
     }
   }
 
+  /**
+   * Asks for the export dialog with a format; until there is one, Markdown downloads as before and the other
+   * formats say they are not here yet.
+   */
+  function exportPage(full: DocsPage, format: ExportFormat | null) {
+    if (openExport(full.id, format)) return;
+    const chosen = format ?? 'md';
+    if (chosen !== 'md') {
+      toast.info('Not yet', 'This format comes with the export dialog. Markdown works now.');
+      return;
+    }
+    const doc = publishedDoc(full);
+    const md = doc ? docToMarkdown(doc) : full.markdown;
+    download(`${full.slug}.md`, `# ${full.title}\n\n${canvasesAsImages(sketchesAsImages(md))}\n`);
+  }
+
+  async function restoreRead(pageId: string, version: number) {
+    try {
+      const updated = await restoreVersion.mutateAsync({ pageId, version, note: `Restored from v${version}` });
+      setReading(null);
+      toast.success(`Restored v${version} as v${updated.version}`);
+    } catch (e) {
+      toast.error("Couldn't restore the version", docsErrorDetail(e)?.message ?? extractError(e));
+    }
+  }
+
   async function runAction(action: PageAction, target: { id: string; title: string }) {
     switch (action) {
       case 'edit': {
@@ -529,12 +565,12 @@ export function DocsView({
     if (!full) return;
     if (action === 'move') setMoveFor(full);
     else if (action === 'duplicate') setDupFor(full);
-    else if (action === 'copy-markdown' || action === 'export') {
+    else if (action === 'export') exportPage(full, null);
+    else if (action === 'copy-markdown') {
       // a rich page's Markdown is written from its JSON, as the editor writes it (the server's projection otherwise)
       const doc = publishedDoc(full);
       const md = doc ? docToMarkdown(doc) : full.markdown;
-      if (action === 'copy-markdown') await copy(`# ${full.title}\n\n${md}`, 'Markdown copied');
-      else download(`${full.slug}.md`, `# ${full.title}\n\n${canvasesAsImages(sketchesAsImages(md))}\n`);
+      await copy(`# ${full.title}\n\n${md}`, 'Markdown copied');
     }
   }
 
@@ -830,6 +866,7 @@ export function DocsView({
         ) : (
           <PageSkeleton
             title={selNode?.title}
+            cover={!!selNode?.cover}
             crumbs={selNode ? crumbsFor(selNode) : undefined}
             note={pageLoadingStage === 1 ? <SlowLoadNote onRetry={() => void pageQuery.refetch()} /> : undefined}
           />
@@ -940,6 +977,19 @@ export function DocsView({
         onOpenSidebar={layout === 'phone' ? onOpenSidebar : undefined}
         onOpenTree={() => setRailOpen(true)}
         onSearch={onSearch ? () => onSearch() : undefined}
+        nodes={nodes}
+        onExport={(f) => exportPage(page, f)}
+        olderVersion={
+          readingVersion
+            ? {
+                version: readingVersion,
+                detail: versionQuery.data ?? null,
+                onBack: () => setReading(null),
+                onRestore: () => void restoreRead(page.id, readingVersion),
+                restoring: restoreVersion.isPending,
+              }
+            : null
+        }
       />
     );
   }
@@ -1108,6 +1158,10 @@ export function DocsView({
             initialCompare={history.compare}
             onClose={() => setHistory(null)}
             onReopen={() => setHistory({})}
+            onRead={(v) => {
+              setReading({ pageId: page.id, version: v });
+              setHistory(null);
+            }}
           />
         )}
         {deleteFor && (

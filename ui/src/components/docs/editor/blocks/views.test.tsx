@@ -145,9 +145,12 @@ describe('block views in the editor', () => {
     startImageUpload(editor, new File(['x'], 'login-error.png', { type: 'image/png' }), { limitMb: 10 });
     expect(await screen.findByText('Upload failed')).toBeTruthy();
     expect(screen.getByText('login-error.png did not reach the server. It is kept in this browser.')).toBeTruthy();
-    api.post.mockResolvedValueOnce({ data: { url: '/uploads/login.png' } });
+    api.post.mockResolvedValueOnce({ data: { src: '/uploads/login.png', name: 'login.png', kind: 'image' } });
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(JSON.stringify(editor.getJSON())).toContain('/uploads/login.png'));
+    // Rich Docs phase 5: pictures go to the project's Docs uploads (its limit, a virus scan), as kind "image"
+    expect(api.post.mock.lastCall?.[0]).toBe('/projects/p1/docs/uploads');
+    expect((api.post.mock.lastCall?.[1] as FormData).get('kind')).toBe('image');
   });
 
   it('opens the Insert image dialog with its three tabs', async () => {

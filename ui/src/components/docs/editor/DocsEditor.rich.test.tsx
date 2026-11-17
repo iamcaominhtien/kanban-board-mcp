@@ -12,7 +12,14 @@ const uploads = vi.hoisted(() => ({
 vi.mock('../../../api/tickets', () => ({
   ...uploads,
   useTickets: () => ({ data: [] }),
+  uploadUrl: (u: string) => u,
 }));
+
+const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
+vi.mock('../../../api/client', async (orig) => {
+  const real = (await orig()) as Record<string, unknown>;
+  return { ...real, client: { ...(real.client as object), get: api.get, post: api.post } };
+});
 
 import { BLOCK_ID_RE } from '../../../richdoc';
 import type { RichDoc } from '../../../types/docs';
@@ -104,26 +111,39 @@ describe('DocsEditor on a rich page', () => {
   });
 
   it('emits the page JSON after an edit, every block with a valid, unique block id', async () => {
-    uploads.uploadAnyFile.mockResolvedValue({
-      id: 'abc',
-      url: '/uploads/report_abc.xlsx',
-      name: 'report.xlsx',
-      size: 3,
-      type: 'application/vnd.ms-excel',
-      markdown: '[report.xlsx](/uploads/report_abc.xlsx)',
+    // Rich Docs phase 5: a file attached to a rich page is a file card, uploaded to the project's Docs uploads
+    api.get.mockResolvedValue({ data: {} });
+    api.post.mockResolvedValue({
+      data: {
+        src: '/uploads/report_abc.xlsx',
+        name: 'report.xlsx',
+        size: 3,
+        mime: 'application/vnd.ms-excel',
+        kind: 'file',
+      },
     });
     const { onContentChange } = renderEditor();
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/projects/p1/docs/settings'));
     const input = screen.getByTestId('docs-attach-input');
     Object.defineProperty(input, 'files', {
       value: [new File(['a,b'], 'report.xlsx', { type: 'application/vnd.ms-excel' })],
       configurable: true,
     });
     fireEvent.change(input);
-    await waitFor(() => expect(onContentChange).toHaveBeenCalled(), { timeout: 3000 });
+    await waitFor(
+      () => expect(JSON.stringify(onContentChange.mock.lastCall?.[0])).toContain('/uploads/report_abc.xlsx'),
+      { timeout: 3000 },
+    );
     const doc = onContentChange.mock.lastCall?.[0] as RichDoc;
     expect(doc.type).toBe('doc');
-    expect(doc.content?.[0]).toMatchObject({ type: 'heading', attrs: { blockId: 'b-0000a1', textAlign: 'center' } });
-    expect(JSON.stringify(doc)).toContain('/uploads/report_abc.xlsx');
+    expect(doc.content?.find((b) => b.type === 'heading')).toMatchObject({
+      attrs: { blockId: 'b-0000a1', textAlign: 'center' },
+    });
+    expect(doc.content?.find((b) => b.type === 'fileCard')).toMatchObject({
+      attrs: { src: '/uploads/report_abc.xlsx', name: 'report.xlsx', size: 3 },
+    });
+    expect(api.post).toHaveBeenCalledWith('/projects/p1/docs/uploads', expect.any(FormData), expect.anything());
+    expect(uploads.uploadAnyFile).not.toHaveBeenCalled();
     const ids = blockIds(doc);
     expect(ids.length).toBeGreaterThanOrEqual(2);
     expect(ids.every((id) => BLOCK_ID_RE.test(id))).toBe(true);

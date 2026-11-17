@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { DocsPage } from '../../types/docs';
+import { useQueryClient } from '@tanstack/react-query';
+import type { DocsPage, DocsTreeNode, DocsVersionDetail } from '../../types/docs';
+import { docsErrorDetail, docsKeys, patchPageSettings } from '../../api/docs';
+import { extractError } from '../../api/extractError';
+import { resolveOrigin } from '../../api/resolveOrigin';
+import { useFollow, useSetFollow } from '../../api/notificationSettings';
 import { useDocsAiState } from '../../api/docsAi';
 import { aiGate } from '../../utils/docsAiRules';
 import { actorInitials, actorName, relativeTime } from '../../utils/relativeTime';
@@ -33,13 +38,35 @@ import { PageMenu, type PageMenuAction } from './PageMenu';
 import { PageWork } from './PageWork';
 import { ReferencedBy } from './ReferencedBy';
 import { SharePopover } from './SharePopover';
-import { AiChangedBar } from './AiChangedBar';
+import { AiChangedBar, aiWriter } from './AiChangedBar';
+import { useToast } from '../Toast';
+import { bookOf, readingNeighbours } from './book';
+import { ChapterList, ReadingFooter } from './BookReading';
+import { ExportMenu, type ExportFormat } from './docsExport';
+import { headerPlan, useElementWidth } from './headerActions';
+import { OlderVersionBar, OutdatedNote, VersionBadge } from './PageStatus';
+import { outdatedOf, shortDate } from './pageStatus';
+import { PrintDialog } from './PrintDialog';
+import { DEFAULT_PRINT, isPrinting, mountPrintSheet, printPage, type PrintOptions, type PrintParts } from './printPage';
+import { applyReaderLook, readerClass, readerThemeCss, readerVars, useReaderPrefs } from './readerPrefs';
+import { AaGlyph, ReaderSettingsPanel, ReaderSettingsPopover } from './ReaderSettings';
+import { useWideBlocks } from './wideBlocks';
+import './reader.css';
 import { SinceViewedBanner, useSinceViewed } from './SinceViewedBanner';
 import { useCommentSuggest } from './comments/commentAi';
 import type { DocsLayout } from '../../hooks/useDocsLayout';
 import { BottomSheet, DocsDrawer } from './DocsSheets';
 import { PageHeader, titleClass } from './PageHeader';
-import { foldCrumbs, isWidePage, lookClass, lookVars, readPageLook, readingMinutes } from './pageSettings';
+import {
+  coverUrl,
+  foldCrumbs,
+  isWidePage,
+  lookClass,
+  lookVars,
+  readPageLook,
+  readingMinutes,
+  TEXT_SIZE_PX,
+} from './pageSettings';
 
 export type PageAction = PageMenuAction | 'edit' | 'share';
 
@@ -70,6 +97,24 @@ interface Props {
   onOpenTree?: () => void;
   /** Opens search (phone: the search button in the page bar). */
   onSearch?: () => void;
+  /** The space's tree: the book the page is in, and the next page to read. */
+  nodes?: DocsTreeNode[];
+  /** An older version opened from History: shown read-only instead of the current page. */
+  olderVersion?: OlderVersion | null;
+  /** Asks for the export dialog with a format chosen (`null`: the last one used). */
+  onExport?: (format: ExportFormat | null) => void;
+}
+
+/** An older version of the page, read from History. */
+export interface OlderVersion {
+  version: number;
+  /** The version's text; null while it loads. */
+  detail: DocsVersionDetail | null;
+  /** Back to the current page. */
+  onBack: () => void;
+  /** Restores it as a new version (editors only). */
+  onRestore?: () => void;
+  restoring?: boolean;
 }
 
 function initials(actor: string): string {
@@ -109,6 +154,9 @@ const crumb = { fontSize: 12.5, fontWeight: 500, color: '#5B6B60', whiteSpace: '
  * @param props.onOpenSidebar - Opens the hidden project sidebar (menu button).
  * @param props.onOpenTree - Opens the page tree (phone Pages button).
  * @param props.onSearch - Opens search (phone search button).
+ * @param props.nodes - The space's tree (book chapters, the next page).
+ * @param props.olderVersion - An older version opened from History, shown read-only with a way back.
+ * @param props.onExport - Asks for the export dialog with a format.
  */
 export function DocsPageView({
   page,
@@ -130,8 +178,23 @@ export function DocsPageView({
   onOpenSidebar,
   onOpenTree,
   onSearch,
+  nodes,
+  olderVersion,
+  onExport,
 }: Props) {
   const since = useSinceViewed(page, !offline);
+  const qc = useQueryClient();
+  const toast = useToast();
+  const older = olderVersion ?? null;
+  const [prefs, setPrefs] = useReaderPrefs();
+  const [readerOpen, setReaderOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
+  const [shareSheet, setShareSheet] = useState(false);
+  const [chaptersOpen, setChaptersOpen] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
+  const paneWidth = useElementWidth(scrollEl);
   const { data: members = [] } = useMembers(projectId);
   const [menu, setMenu] = useState(false);
   const [share, setShare] = useState(false);
@@ -147,7 +210,7 @@ export function DocsPageView({
   const [renderedKey, setRenderedKey] = useState<string | null>(null);
   const onRendered = useCallback(() => setRenderedKey(page.id), [page.id]);
   const tocNavRef = useRef<HTMLElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const [bodyEl, setBodyEl] = useState<HTMLDivElement | null>(null);
   const [compose, setCompose] = useState<Pick | null>(null);
@@ -162,12 +225,20 @@ export function DocsPageView({
   const suggest = useCommentSuggest(commentsData);
   const commentTotal = commentsData ? commentsData.counts.all + commentsData.counts.page : 0;
   const anyUnread = !!commentsData?.threads.some((t) => t.unread);
-  const canComment = !offline && commentsData?.role !== 'viewer' && page.version > 0;
+  const canComment = !offline && !older && commentsData?.role !== 'viewer' && page.version > 0;
   const headings = page.headings.filter((h) => h.level <= 3);
   // a page converting to the rich format cannot be edited yet; one whose conversion failed stays read-only
   const lock = offline ? null : convertLock(page);
-  const editBlocked = offline ? 'Reconnect to edit' : readOnly || (lock ? convertLockTip(lock) : null);
+  const editBlocked = offline
+    ? 'Reconnect to edit'
+    : older
+      ? 'Edit is off while you read an older version'
+      : readOnly || (lock ? convertLockTip(lock) : null);
 
+  const setScroll = useCallback((el: HTMLDivElement | null) => {
+    scrollRef.current = el;
+    setScrollEl(el);
+  }, []);
   const setBody = useCallback(
     (el: HTMLDivElement | null) => {
       bodyRef.current = el;
@@ -268,25 +339,50 @@ export function DocsPageView({
   }, [page.id]);
 
   const published = page.version > 0;
-  // the published page, or an unpublished draft's preview, when it is stored in the rich format
-  const richDoc = published ? publishedDoc(page) : draftDoc(page.draft);
+  // the published page, or an unpublished draft's preview, when it is stored in the rich format; an older version
+  // opened from History instead of either (versions from before the rich format are Markdown)
+  const olderDetail = older?.detail ?? null;
+  const richDoc = older
+    ? olderDetail?.format === 'rich'
+      ? (olderDetail.content ?? null)
+      : null
+    : published
+      ? publishedDoc(page)
+      : draftDoc(page.draft);
   const richKey = useMemo(() => (richDoc ? contentKey(JSON.stringify(richDoc)) : ''), [richDoc]);
   const settled = !(published || page.draft) || renderedKey === page.id;
-  const showDraft = page.hasUnpublishedChanges && !!page.draft;
-  const who = showDraft ? page.draft!.author : page.updatedBy;
-  const whenIso = showDraft ? page.draft!.updatedAt : page.updatedAt;
+  const showDraft = !older && page.hasUnpublishedChanges && !!page.draft;
+  const who = older ? (olderDetail?.author ?? page.updatedBy) : showDraft ? page.draft!.author : page.updatedBy;
+  const whenIso = older
+    ? (olderDetail?.createdAt ?? page.updatedAt)
+    : showDraft
+      ? page.draft!.updatedAt
+      : page.updatedAt;
   const lead = showDraft ? 'Draft edited by' : published ? 'Edited by' : 'Created by';
   // a member's own colour, as their comments and the rest of the board show them; a hashed one for anyone else
   const member = members.find((m) => m.name.toLowerCase() === actorName(who).toLowerCase());
   const mc = member?.color ? getAvatarColors(member.color) : null;
   const av = mc ? { background: mc.bg, color: mc.color } : avatarColors(actorName(who));
+  // the latest version was written by an AI team of the project: its line says so (AiChangedBar's rule)
+  const aiTeam = !older && published && !showDraft ? aiWriter(page, members) : null;
   const canShare = published && !offline;
   const phone = layout === 'phone';
   const touch = layout !== 'desktop';
   const look = readPageLook(page.settings);
+  // the reader's own font and width over the page's (their theme and size are a class and a variable)
+  const readerLook = applyReaderLook(look, prefs);
+  const plan = headerPlan(paneWidth, layout);
+  const outdated = older || offline ? null : outdatedOf(page);
+  const book = useMemo(() => (nodes ? bookOf(page, nodes) : null), [page, nodes]);
+  const around = useMemo(
+    () => (nodes ? readingNeighbours(page, nodes, book) : { prev: null, next: null }),
+    [page, nodes, book],
+  );
+  const chapterSide = !!book && book.chapters.length > 0 && layout === 'desktop' && !narrow;
   // Wide and Full pages fold "On this page" to a button, as a tablet or a phone does
-  const inlineOutline = layout === 'desktop' && !narrow && !isWidePage(look) && !cc.open;
-  const outlineOn = look.showOutline && headings.length > 0;
+  const inlineOutline = layout === 'desktop' && !narrow && !isWidePage(readerLook) && !cc.open;
+  // with fewer than two headings a page has no outline at all
+  const outlineOn = look.showOutline && headings.length >= 2;
   const minutes = useMemo(
     () => readingMinutes(published ? page.markdown : (page.draft?.markdown ?? '')),
     [published, page.markdown, page.draft?.markdown],
@@ -307,6 +403,58 @@ export function DocsPageView({
   // the path folds its middle to "…" when there is little room (tablet, phone) or it is long
   const [crumbsOpen, setCrumbsOpen] = useState(false);
   const shownPath = crumbsOpen ? page.path : foldCrumbs(page.path, phone ? 1 : touch ? 2 : 3);
+
+  async function markReviewed() {
+    setReviewing(true);
+    try {
+      // the review starts the 6-month clock again, and clears an Outdated status
+      const saved = await patchPageSettings(page.id, { reviewedAt: new Date().toISOString(), status: null });
+      qc.setQueryData<DocsPage>(docsKeys.page(page.id), (old) => (old ? { ...old, ...saved } : saved));
+      toast.success('Marked as reviewed', 'The page no longer shows as outdated.');
+    } catch (e) {
+      toast.error("Couldn't mark the page as reviewed", docsErrorDetail(e)?.message ?? extractError(e));
+    } finally {
+      setReviewing(false);
+    }
+  }
+
+  // what a print is made of: the page as its author set it (a reading theme never prints) and the shown text
+  const printParts = useRef<() => PrintParts>(() => ({ title: page.title, meta: null, footer: '', body: null }));
+  printParts.current = () => ({
+    title: page.title,
+    meta: [actorName(who), `Updated ${shortDate(whenIso)}`, published ? `v${older?.version ?? page.version}` : 'Draft']
+      .filter(Boolean)
+      .join(' · '),
+    eyebrow: book && book.index >= 0 ? book.title : look.eyebrow,
+    footer: `${projectName} · ${page.title} · Printed ${shortDate(new Date().toISOString())}`,
+    body: bodyRef.current,
+    coverSrc: look.cover ? coverUrl(look.cover.src, resolveOrigin()) : null,
+    vars: lookVars(look, 'desktop') as Record<string, string>,
+    className: lookClass(look),
+    chapter: !!book && book.index >= 0,
+  });
+
+  // Ctrl/Cmd+P opens the print panel; a print started from the browser's own menu still prints only the page
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'p') return;
+      const t = e.target as HTMLElement | null;
+      if (t?.isContentEditable) return;
+      e.preventDefault();
+      setPrintOpen(true);
+    };
+    const onBefore = () => {
+      if (!isPrinting()) mountPrintSheet(DEFAULT_PRINT as PrintOptions, printParts.current());
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('beforeprint', onBefore);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('beforeprint', onBefore);
+    };
+  }, []);
+
+  useWideBlocks(bodyEl, `${richKey}:${renderedKey}:${older?.version ?? ''}`);
 
   const tocList = (
     <div style={{ borderLeft: '1px solid #E3E8E5', marginLeft: 1 }}>
@@ -344,11 +492,24 @@ export function DocsPageView({
 
   const statusChips = (
     <>
-      {published ? (
-        <span className="mc-chip" style={{ background: '#DCEEE1', color: '#1F5A31' }} data-testid="status-badge">
-          <span className="mc-dot" style={{ background: '#2E6F40' }} />
-          Published · v{page.version}
-        </span>
+      {older ? (
+        <>
+          <span className="mc-chip" style={{ background: '#DCEEE1', color: '#1F5A31' }} data-testid="status-badge">
+            <span className="mc-dot" style={{ background: '#2E6F40' }} />
+            Published · v{older.version}
+          </span>
+          <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }} data-testid="older-chip">
+            Older version
+          </span>
+        </>
+      ) : published ? (
+        <VersionBadge
+          version={page.version}
+          publishedAt={page.updatedAt}
+          by={page.updatedBy}
+          onHistory={() => onAction('history')}
+          onCompare={onCompare}
+        />
       ) : (
         <span className="mc-chip" style={{ background: '#FCEFD9', color: '#7A4F08' }} data-testid="status-badge">
           <span className="mc-dot" style={{ background: '#B4791E' }} />
@@ -359,6 +520,12 @@ export function DocsPageView({
         <span className="mc-chip" style={{ background: '#E1EEFB', color: '#1F5A8E' }}>
           <span className="mc-dot" style={{ background: '#2F6FB0' }} />
           Unpublished changes
+        </span>
+      )}
+      {outdated && (
+        <span className="mc-chip" style={{ background: '#FCEFD9', color: '#7A4F08' }} data-testid="outdated-chip">
+          <span className="mc-dot" style={{ background: '#B4791E' }} />
+          May be outdated
         </span>
       )}
       {offline && (
@@ -383,7 +550,9 @@ export function DocsPageView({
       }}
     >
       <span
-        title={actorName(who)}
+        title={aiTeam ? `${aiTeam.name}, an AI team` : actorName(who)}
+        className={aiTeam ? 'dk-ai-avatar' : undefined}
+        data-testid={aiTeam ? 'ai-edited' : undefined}
         style={{
           width: 22,
           height: 22,
@@ -397,7 +566,7 @@ export function DocsPageView({
           flexShrink: 0,
         }}
       >
-        {initials(who)}
+        {aiTeam ? 'AI' : initials(who)}
       </span>
       <button
         type="button"
@@ -484,6 +653,16 @@ export function DocsPageView({
       </div>
     ) : null;
 
+  // Export and Print sit in More when the header has no room for them (headerActions.ts)
+  const moreHidden: PageMenuAction[] = plan.export === 'open' ? ['export'] : [];
+  const moreExtra: PageMenuAction[] = plan.print === 'open' ? [] : ['print'];
+  function menuAction(a: PageMenuAction) {
+    setMenu(false);
+    if (a === 'print') setPrintOpen(true);
+    else if (a === 'export' && onExport) onExport(null);
+    else onAction(a);
+  }
+
   const menuButton = (
     <div data-popover style={{ position: 'relative' }}>
       <button
@@ -499,10 +678,9 @@ export function DocsPageView({
       {menu && !phone && (
         <PageMenu
           page={page}
-          onAction={(a) => {
-            setMenu(false);
-            onAction(a);
-          }}
+          hidden={moreHidden}
+          extra={moreExtra}
+          onAction={menuAction}
           onClose={() => setMenu(false)}
         />
       )}
@@ -535,20 +713,29 @@ export function DocsPageView({
             onTryAgain={onTryAgain}
           />
         )}
+        {prefs.theme !== 'white' && <style>{readerThemeCss()}</style>}
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+          {chapterSide && book && (
+            <nav aria-label="Chapters" className="dk-chapters-side">
+              <ChapterList book={book} currentId={page.id} onOpen={(id) => onOpenPage(id)} />
+            </nav>
+          )}
           <div
-            ref={scrollRef}
-            className={`dk-page-scroll ${lookClass(look)}`}
+            ref={setScroll}
+            className={`dk-page-scroll ${lookClass(readerLook)} ${readerClass(prefs)}`.trim()}
             style={{
               flex: 1,
               minWidth: 0,
               overflowY: 'auto',
               boxSizing: 'border-box',
               position: 'relative',
-              ...lookVars(look, layout),
+              ...lookVars(readerLook, layout),
+              ...readerVars(prefs),
+              ...(paneWidth ? { '--dp-pane-w': `${Math.max(0, paneWidth - 32)}px` } : {}),
             }}
             data-page-width={look.width}
             data-page-bg={look.background}
+            data-reader-theme={prefs.theme}
           >
             {/* The page bar: where you are, the status and the page actions; it stays while the page scrolls */}
             <div className="dk-pagebar" data-testid="page-bar">
@@ -622,6 +809,20 @@ export function DocsPageView({
                 <span className="dk-crumb-here">{page.title}</span>
               </nav>
               <div className="dk-pagebar-actions">
+                {book && !chapterSide && book.chapters.length > 0 && (
+                  <button
+                    type="button"
+                    className={phone ? 'dk-icobtn dk-bar-ico' : 'st-btn st-btn-sm'}
+                    aria-label="Chapters"
+                    title="Chapters"
+                    aria-expanded={chaptersOpen}
+                    data-testid="chapters-button"
+                    onClick={() => setChaptersOpen(true)}
+                  >
+                    <Icon name="page" size={phone ? 18 : 14} strokeWidth={1.9} />
+                    {!phone && 'Chapters'}
+                  </button>
+                )}
                 {outlineButton}
                 {phone && onSearch && (
                   <button
@@ -634,7 +835,7 @@ export function DocsPageView({
                     <Icon name="search" size={18} strokeWidth={1.8} />
                   </button>
                 )}
-                {!phone && !offline && (
+                {!phone && !offline && !older && (
                   <PageAiMenu
                     projectId={projectId}
                     page={page}
@@ -644,23 +845,48 @@ export function DocsPageView({
                     onOpenTicket={onOpenTicket}
                   />
                 )}
-                {!phone && !offline && <FollowBell scope="page" scopeId={page.id} projectId={projectId} />}
-                {!phone && !offline && (
+                {!phone && !offline && plan.comments !== 'more' && (
                   <button
                     type="button"
                     className="st-btn"
                     aria-pressed={cc.open}
+                    aria-label={plan.comments === 'icon' ? `Comments, ${commentTotal}` : undefined}
+                    title={plan.comments === 'icon' ? 'Comments' : undefined}
                     data-testid="comments-button"
                     onClick={() => cc.setOpen((v) => !v)}
                   >
                     <Icon name="comment" size={14} strokeWidth={1.9} />
-                    Comments
+                    {plan.comments === 'open' && 'Comments'}
                     <span className="dc-btn-count" data-testid="comments-count">
                       {commentTotal}
                     </span>
                     {anyUnread && <span className="dc-btn-dot" data-testid="comments-unread" />}
                   </button>
                 )}
+                {!phone && plan.reader !== 'more' && (
+                  <div data-popover style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      className="dk-icobtn dk-bar-ico"
+                      aria-label="Reading settings"
+                      title="Reading settings"
+                      aria-expanded={readerOpen}
+                      data-testid="reader-button"
+                      onClick={() => setReaderOpen((v) => !v)}
+                    >
+                      <AaGlyph />
+                    </button>
+                    {readerOpen && (
+                      <ReaderSettingsPopover
+                        prefs={prefs}
+                        onChange={setPrefs}
+                        pagePx={TEXT_SIZE_PX[look.textSize]}
+                        onClose={() => setReaderOpen(false)}
+                      />
+                    )}
+                  </div>
+                )}
+                {!phone && !offline && <FollowBell scope="page" scopeId={page.id} projectId={projectId} />}
                 {!phone && (
                   <div data-popover style={{ position: 'relative' }}>
                     <button
@@ -669,12 +895,48 @@ export function DocsPageView({
                       onClick={() => (canShare ? setShare((v) => !v) : onAction('copy-link'))}
                       data-testid="share"
                       aria-expanded={share}
+                      aria-label={plan.share === 'icon' ? (canShare ? 'Share' : 'Copy link') : undefined}
+                      title={plan.share === 'icon' ? (canShare ? 'Share' : 'Copy link') : undefined}
                     >
                       <Icon name="link" size={14} strokeWidth={1.9} />
-                      {canShare ? 'Share' : 'Copy link'}
+                      {plan.share === 'open' && (canShare ? 'Share' : 'Copy link')}
                     </button>
-                    {share && <SharePopover page={page} onClose={() => setShare(false)} />}
+                    {share && (
+                      <SharePopover page={page} onClose={() => setShare(false)} publicLinks={{ canEdit: !readOnly }} />
+                    )}
                   </div>
+                )}
+                {!phone && plan.export === 'open' && (
+                  <div data-popover style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      className="st-btn"
+                      aria-haspopup="menu"
+                      aria-expanded={exportOpen}
+                      data-testid="export-button"
+                      onClick={() => setExportOpen((v) => !v)}
+                    >
+                      <Icon name="i43" size={14} strokeWidth={1.9} />
+                      Export
+                    </button>
+                    {exportOpen && (
+                      <ExportMenu
+                        onPick={(f) => (onExport ? onExport(f) : onAction('export'))}
+                        onClose={() => setExportOpen(false)}
+                      />
+                    )}
+                  </div>
+                )}
+                {!phone && plan.print === 'open' && (
+                  <button
+                    type="button"
+                    className="st-btn"
+                    data-testid="print-button"
+                    onClick={() => setPrintOpen(true)}
+                  >
+                    <Icon name="page" size={14} strokeWidth={1.9} />
+                    Print
+                  </button>
                 )}
                 {!phone && (
                   <div
@@ -686,6 +948,7 @@ export function DocsPageView({
                       type="button"
                       className={editBlocked ? 'st-btn' : 'st-btn st-btn-primary'}
                       disabled={!!editBlocked}
+                      aria-description={editBlocked ?? undefined}
                       onClick={() => onAction('edit')}
                       data-testid="edit-page"
                     >
@@ -711,9 +974,27 @@ export function DocsPageView({
               {pageInfo}
             </div>
             <div className="dk-doc-col" data-testid="page-column">
+              {older && (
+                <OlderVersionBar
+                  version={older.version}
+                  current={page.version}
+                  currentAt={page.updatedAt}
+                  onBack={older.onBack}
+                  onRestore={readOnly ? undefined : older.onRestore}
+                  restoring={older.restoring}
+                />
+              )}
+              {outdated && (
+                <OutdatedNote
+                  outdated={outdated}
+                  canEdit={!readOnly}
+                  busy={reviewing}
+                  onReviewed={() => void markReviewed()}
+                />
+              )}
               {lock && <ConvertBar lock={lock} />}
-              {!offline && <ConvertedNotice page={page} onViewOriginal={() => onAction('history')} />}
-              {!offline && (
+              {!offline && !older && <ConvertedNotice page={page} onViewOriginal={() => onAction('history')} />}
+              {!offline && !older && (
                 <AiChangedBar
                   page={page}
                   projectId={projectId}
@@ -722,13 +1003,18 @@ export function DocsPageView({
                   onCompare={onCompare}
                 />
               )}
-              {!offline && (
+              {!offline && !older && (
                 <div style={{ marginBottom: 16 }}>
                   <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />
                 </div>
               )}
-              {!offline && (
+              {!offline && !older && (
                 <DocsAiBanners projectId={projectId} page={page} canEdit={!readOnly} onOpenTicket={onOpenTicket} />
+              )}
+              {book && book.index >= 0 && (
+                <div className="dk-chapter-line" data-testid="chapter-line">
+                  {book.title} · Chapter {book.index + 1} of {book.chapters.length}
+                </div>
               )}
               <PageHeader
                 look={look}
@@ -741,19 +1027,19 @@ export function DocsPageView({
                 }
               />
               <div className="dk-doc-rule" />
-              {!offline && aiOn && (
+              {!offline && !older && aiOn && (
                 <div style={{ marginTop: 16 }}>
                   <SummaryBlock view={aiView} />
                   <TranslateBanner view={aiView} markdown={published ? page.markdown : (page.draft?.markdown ?? '')} />
                 </div>
               )}
-              {!offline && published && (
+              {!offline && !older && published && (
                 <div style={{ marginTop: 16 }}>
                   <PageWork pageId={page.id} onOpenTicket={onOpenTicket} />
                 </div>
               )}
               <div ref={setBody} data-testid="page-body" style={{ position: 'relative' }}>
-                {!published && (
+                {!published && !older && (
                   <div
                     style={{
                       margin: '24px 0',
@@ -776,7 +1062,39 @@ export function DocsPageView({
                     </span>
                   </div>
                 )}
-                {(published || page.draft) && (
+                {older && !olderDetail && (
+                  <div aria-busy="true" aria-label="Loading the version" style={{ display: 'grid', gap: 10 }}>
+                    <div className="skel" style={{ width: '100%', height: 11 }} />
+                    <div className="skel" style={{ width: '92%', height: 11 }} />
+                    <div className="skel" style={{ width: '64%', height: 11 }} />
+                  </div>
+                )}
+                {older && olderDetail && !richDoc && (
+                  <DocsMarkdown
+                    key={contentKey(olderDetail.markdown)}
+                    projectId={projectId}
+                    projectName={projectName}
+                    onOpenPage={onOpenPage}
+                    onOpenTicket={onOpenTicket}
+                    progressive={renderedKey !== page.id}
+                    onRendered={onRendered}
+                  >
+                    {olderDetail.markdown}
+                  </DocsMarkdown>
+                )}
+                {older && richDoc && (
+                  <RichDocView
+                    key={richKey}
+                    doc={richDoc}
+                    projectId={projectId}
+                    projectName={projectName}
+                    onOpenPage={onOpenPage}
+                    onOpenTicket={onOpenTicket}
+                    progressive={renderedKey !== page.id}
+                    onRendered={onRendered}
+                  />
+                )}
+                {!older && (published || page.draft) && (
                   <div
                     style={{ display: 'contents' }}
                     data-idea-source={JSON.stringify({ source: 'doc', id: page.id, label: page.title })}
@@ -821,7 +1139,10 @@ export function DocsPageView({
                   </div>
                 )}
               </div>
-              {!offline && <PageComments projectId={projectId} data={commentsData} actions={cc.actions} />}
+              {!older && (
+                <ReadingFooter prev={around.prev} next={around.next} book={book} onOpen={(id) => onOpenPage(id)} />
+              )}
+              {!offline && !older && <PageComments projectId={projectId} data={commentsData} actions={cc.actions} />}
               <ReferencedBy pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
             </div>
           </div>
@@ -926,11 +1247,25 @@ export function DocsPageView({
                   data-testid="sheet-share"
                   onClick={() => {
                     setMenu(false);
-                    onAction(canShare ? 'share' : 'copy-link');
+                    if (canShare) setShareSheet(true);
+                    else onAction('copy-link');
                   }}
                 >
                   <Icon name="link" size={15} strokeWidth={1.8} />
                   <span>{canShare ? 'Share' : 'Copy link'}</span>
+                </button>
+                {!offline && <FollowMenuItem pageId={page.id} projectId={projectId} />}
+                <button
+                  type="button"
+                  className="dk-mi"
+                  data-testid="sheet-reader"
+                  onClick={() => {
+                    setMenu(false);
+                    setReaderOpen(true);
+                  }}
+                >
+                  <AaGlyph />
+                  <span>Text and theme</span>
                 </button>
                 {!offline && (
                   <button
@@ -953,14 +1288,74 @@ export function DocsPageView({
               <PageMenu
                 variant="sheet"
                 page={page}
-                onAction={(a) => {
-                  setMenu(false);
-                  onAction(a);
-                }}
+                hidden={moreHidden}
+                extra={moreExtra}
+                onAction={menuAction}
                 onClose={() => setMenu(false)}
               />
             </div>
           </BottomSheet>
+        )}
+        {phone && readerOpen && (
+          <BottomSheet label="Reading" onClose={() => setReaderOpen(false)} testId="reader-sheet" hideTitle>
+            <div data-popover>
+              <ReaderSettingsPanel prefs={prefs} onChange={setPrefs} pagePx={TEXT_SIZE_PX[look.textSize]} />
+            </div>
+          </BottomSheet>
+        )}
+        {phone && shareSheet && (
+          <BottomSheet label="Share page" onClose={() => setShareSheet(false)} testId="share-sheet" hideTitle>
+            <SharePopover
+              page={page}
+              variant="sheet"
+              onClose={() => setShareSheet(false)}
+              publicLinks={{ canEdit: !readOnly }}
+            />
+          </BottomSheet>
+        )}
+        {chaptersOpen &&
+          book &&
+          (phone ? (
+            <BottomSheet label="Chapters" onClose={() => setChaptersOpen(false)} testId="chapters-sheet">
+              <ChapterList
+                book={book}
+                currentId={page.id}
+                onOpen={(id) => {
+                  setChaptersOpen(false);
+                  onOpenPage(id);
+                }}
+              />
+            </BottomSheet>
+          ) : (
+            <DocsDrawer
+              side="left"
+              width={320}
+              label="Chapters"
+              onClose={() => setChaptersOpen(false)}
+              testId="chapters-drawer"
+            >
+              <div style={{ padding: 16 }}>
+                <ChapterList
+                  book={book}
+                  currentId={page.id}
+                  onOpen={(id) => {
+                    setChaptersOpen(false);
+                    onOpenPage(id);
+                  }}
+                />
+              </div>
+            </DocsDrawer>
+          ))}
+        {printOpen && (
+          <PrintDialog
+            hasCover={!!look.cover}
+            inBook={!!book && book.index >= 0}
+            onPrint={(opts) => {
+              setPrintOpen(false);
+              printPage(opts, printParts.current());
+            }}
+            onClose={() => setPrintOpen(false)}
+          />
         )}
         <SelectionToolbar
           root={bodyEl}
@@ -994,6 +1389,31 @@ export function DocsPageView({
         )}
       </div>
     </PageSettledContext.Provider>
+  );
+}
+
+/**
+ * "Follow this page" in a phone's More sheet, where the bell does not fit: follows, or stops following or muting.
+ * @param props.pageId - The page.
+ * @param props.projectId - Its project.
+ */
+function FollowMenuItem({ pageId, projectId }: { pageId: string; projectId: string }) {
+  const q = useFollow('page', pageId);
+  const set = useSetFollow('page', pageId);
+  const level = q.data?.level ?? null;
+  const label = level === 'mute' ? 'Muted · Unmute' : level ? 'Following · Stop following' : 'Follow this page';
+  return (
+    <button
+      type="button"
+      className="dk-mi"
+      data-testid="sheet-follow"
+      aria-pressed={!!level && level !== 'mute'}
+      disabled={set.isPending}
+      onClick={() => set.mutate({ level: level ? null : 'follow', projectId })}
+    >
+      <Icon name="i44" size={15} strokeWidth={1.8} />
+      <span>{label}</span>
+    </button>
   );
 }
 

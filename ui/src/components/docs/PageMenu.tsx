@@ -12,6 +12,7 @@ export type PageMenuAction =
   | 'history'
   | 'settings'
   | 'export'
+  | 'print'
   | 'give-ai'
   | 'delete';
 
@@ -23,7 +24,12 @@ interface PageMenuProps {
   variant?: 'popover' | 'sheet';
   /** Entries left out (a canvas page has no Page settings). */
   hidden?: readonly PageMenuAction[];
+  /** Entries drawn only when asked for: Print (the read view, where the header has no room for it). */
+  extra?: readonly PageMenuAction[];
 }
+
+/** Entries a menu shows only when its `extra` names them. */
+const OPTIONAL: readonly PageMenuAction[] = ['print'];
 
 interface Item {
   action: PageMenuAction;
@@ -45,7 +51,8 @@ const GROUPS: Item[][] = [
   [
     { action: 'settings', label: 'Page settings…', icon: 'i42' },
     { action: 'history', label: 'Page history', icon: 'i39', kbd: 'H' },
-    { action: 'export', label: 'Export as Markdown', icon: 'i43' },
+    { action: 'export', label: 'Export…', icon: 'i43' },
+    { action: 'print', label: 'Print', icon: 'page', kbd: 'Ctrl P' },
   ],
   [{ action: 'give-ai', label: 'Give to an AI team…', icon: 'i28' }],
   [{ action: 'delete', label: 'Delete page', icon: 'i12', kbd: 'Del', danger: true }],
@@ -95,8 +102,9 @@ export function usePageShortcuts(onAction: (a: PageMenuAction) => void, enabled 
  * @param props.onClose - Called to dismiss the menu.
  * @param props.variant - `sheet` draws it in place, full width, with 44 px rows (a phone's bottom sheet).
  * @param props.hidden - Entries to leave out.
+ * @param props.extra - Optional entries to draw (Print).
  */
-export function PageMenu({ onAction, onClose, variant = 'popover', hidden }: PageMenuProps) {
+export function PageMenu({ onAction, onClose, variant = 'popover', hidden, extra }: PageMenuProps) {
   const sheet = variant === 'sheet';
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -138,7 +146,9 @@ export function PageMenu({ onAction, onClose, variant = 'popover', hidden }: Pag
       style={sheet ? undefined : { position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 290, zIndex: 60 }}
     >
       {GROUPS.map((all, gi) => ({ all, gi })).map(({ all, gi }) => {
-        const group = hidden ? all.filter((it) => !hidden.includes(it.action)) : all;
+        const group = all.filter(
+          (it) => !hidden?.includes(it.action) && (!OPTIONAL.includes(it.action) || !!extra?.includes(it.action)),
+        );
         return (
           <div key={gi}>
             {gi > 0 && <div style={{ height: 1, background: '#EEF3EF', margin: '4px 6px' }} />}

@@ -2,13 +2,14 @@
  * The block layer of the editor: draws what the blocks ask for (the Insert image dialog, image properties, crop, the
  * block menu), the bar for several chosen blocks (board J 52, 55), the 44 px handle beside the block with the cursor
  * on a touch screen, the long press that opens the block menu on a phone, and the checkboxes for choosing blocks one
- * by one. It also reads the project's image limit (Docs settings `uploads.imageMb`, 10 MB when unknown).
+ * by one, and the embeds' dialogs (Insert video, Embed from link, the menu of a pasted link, Insert diagram). It also
+ * reads the project's upload limits (Docs settings `uploads`, 10 / 200 / 100 MB when unknown) and tells the editor's
+ * storage the project, so uploads go to its Docs uploads.
  */
 
 import type { Editor } from '@tiptap/core';
-import { useQuery } from '@tanstack/react-query';
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
-import { client } from '../../../../api/client';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { uploadLimitMb, useDocsSpaceSettings } from '../../embeds/embedApi';
 import { Icon } from '../../Icon';
 import { blockKitOf, type BlockUiRequest, type ImageTab } from './bus';
 import { blockRange, chosenBlocks, clearChosenBlocks, setChosenBlocks, toggleChosenBlock } from './BlockKit';
@@ -16,26 +17,32 @@ import { BlockMenu } from './BlockMenu';
 import { currentBlock, deleteBlocks, duplicateBlocks, moveBlock } from './commands';
 import { CropDialog } from './CropDialog';
 import { ImageProps } from './ImageProps';
+import { InsertDiagramDialog } from './InsertDiagramDialog';
 import { InsertImageDialog } from './InsertImageDialog';
+import { InsertVideoDialog } from './InsertVideoDialog';
+import { EmbedLinkDialog, PasteLinkMenu } from './LinkDialogs';
 import { useBlockLayout, useCoarsePointer } from './ui';
 import { useEditorTick } from './useInside';
 import './blocks.css';
 
-/** The project's image limit in MB (Docs settings), kept in the editor's BlockKit storage. */
-function useImageLimit(editor: Editor, projectId: string): number {
-  const q = useQuery({
-    queryKey: ['docs', 'space-settings', projectId],
-    queryFn: async () =>
-      (await client.get<{ uploads?: { imageMb?: number } }>(`/projects/${projectId}/docs/settings`)).data,
-    staleTime: 60_000,
-    retry: false,
-  });
-  const mb = typeof q.data?.uploads?.imageMb === 'number' && q.data.uploads.imageMb > 0 ? q.data.uploads.imageMb : 10;
+/**
+ * The project's upload limits in MB (Docs settings), kept in the editor's BlockKit storage with the project id.
+ * @returns The image limit (the Insert image dialog says it).
+ */
+function useUploadLimits(editor: Editor, projectId: string): { image: number; video: number } {
+  const q = useDocsSpaceSettings(projectId);
+  const image = uploadLimitMb(q.data, 'image');
+  const video = uploadLimitMb(q.data, 'video');
+  const file = uploadLimitMb(q.data, 'file');
   useEffect(() => {
     const kit = blockKitOf(editor);
-    if (kit) kit.imageLimitMb = mb;
-  }, [editor, mb]);
-  return mb;
+    if (!kit) return;
+    kit.imageLimitMb = image;
+    kit.videoLimitMb = video;
+    kit.fileLimitMb = file;
+    kit.projectId = projectId || null;
+  }, [editor, image, video, file, projectId]);
+  return { image, video };
 }
 
 /** The top-level block (a child of the document) at a point of the screen, or null. */
@@ -71,17 +78,23 @@ export function BlockLayer({
 }) {
   const layout = useBlockLayout();
   const coarse = useCoarsePointer();
-  const limitMb = useImageLimit(editor, projectId);
+  const limits = useUploadLimits(editor, projectId);
+  const limitMb = limits.image;
   const tick = useEditorTick(editor);
   const [imageDialog, setImageDialog] = useState<{ replacePos?: number } | null>(null);
   const [props, setProps] = useState<{ pos: number; tab?: ImageTab } | null>(null);
   const [crop, setCrop] = useState<number | null>(null);
   const [menu, setMenu] = useState<{ pos: number; anchor: DOMRect | null } | null>(null);
+  const [videoDialog, setVideoDialog] = useState<{ replacePos?: number } | null>(null);
+  const [linkDialog, setLinkDialog] = useState(false);
+  const [pasted, setPasted] = useState<{ pos: number; url: string } | null>(null);
+  const [diagramDialog, setDiagramDialog] = useState<Extract<BlockUiRequest, { type: 'insertDiagram' }> | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const layerRef = useRef<HTMLDivElement>(null);
   const [rects, setRects] = useState<Rect[]>([]);
   const editable = editor.isEditable;
   const chosen = chosenBlocks(editor.state);
+  const closePaste = useCallback(() => setPasted(null), []);
 
   useEffect(() => {
     const kit = blockKitOf(editor);
@@ -99,6 +112,18 @@ export function BlockLayer({
           break;
         case 'blockMenu':
           setMenu({ pos: req.pos, anchor: req.anchor });
+          break;
+        case 'insertVideo':
+          setVideoDialog({ replacePos: req.replacePos });
+          break;
+        case 'embedLink':
+          setLinkDialog(true);
+          break;
+        case 'pasteLink':
+          setPasted({ pos: req.pos, url: req.url });
+          break;
+        case 'insertDiagram':
+          setDiagramDialog(req);
           break;
         case 'selectBlocks':
           setSelectMode(true);
@@ -335,6 +360,29 @@ export function BlockLayer({
           replacePos={imageDialog.replacePos}
           limitMb={limitMb}
           onClose={() => setImageDialog(null)}
+        />
+      )}
+      {videoDialog && (
+        <InsertVideoDialog
+          editor={editor}
+          projectId={projectId}
+          replacePos={videoDialog.replacePos}
+          limitMb={limits.video}
+          onClose={() => setVideoDialog(null)}
+        />
+      )}
+      {linkDialog && <EmbedLinkDialog editor={editor} projectId={projectId} onClose={() => setLinkDialog(false)} />}
+      {pasted && (
+        <PasteLinkMenu editor={editor} projectId={projectId} pos={pasted.pos} url={pasted.url} onClose={closePaste} />
+      )}
+      {diagramDialog && (
+        <InsertDiagramDialog
+          editor={editor}
+          projectId={projectId}
+          replacePos={diagramDialog.replacePos}
+          onNew={diagramDialog.onNew}
+          onImport={diagramDialog.onImport}
+          onClose={() => setDiagramDialog(null)}
         />
       )}
       {props && <ImageProps editor={editor} pos={props.pos} tab={props.tab} onClose={() => setProps(null)} />}

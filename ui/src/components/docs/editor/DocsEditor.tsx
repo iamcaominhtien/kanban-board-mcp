@@ -54,6 +54,8 @@ import { BlockKit } from './blocks/BlockKit';
 import { BlockLayer } from './blocks/BlockLayer';
 import { askBlockUi, blockKitOf } from './blocks/bus';
 import { dropPlacement, startImageUpload } from './blocks/imageUpload';
+import { startDocUpload } from './blocks/docUpload';
+import { isVideoFile } from './blocks/InsertVideoDialog';
 import { withBlockViews } from './blocks/nodeViews';
 import type { Placement } from './blocks/commands';
 import { cleanEditorMarkdown } from '../../../utils/docsMarkdown';
@@ -379,23 +381,32 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     }
   }, []);
 
-  // Any other file (Excel, Word, PDF, zip…): stored like a ticket attachment and inserted as a link to it, which
-  // the page shows as a file card (DocsMarkdown) and opens in the viewer on double-click.
-  const uploadFile = useCallback(async (file: File, at?: number) => {
-    const ed = editorRef.current;
-    if (!ed) return;
-    try {
-      const res = await uploadAnyFile(file);
-      const nodes = [
-        { type: 'text', text: res.name || file.name, marks: [{ type: 'link', attrs: { href: res.url } }] },
-        { type: 'text', text: ' ' },
-      ];
-      const chain = ed.chain().focus();
-      (at != null ? chain.insertContentAt(at, nodes) : chain.insertContent(nodes)).run();
-    } catch {
-      live.current.toast.error('Could not attach the file', 'Files up to 100 MB can be attached.');
-    }
-  }, []);
+  // Any other file (Excel, Word, PDF, zip…). A rich page puts it in as a file card (or a video block) that uploads to
+  // the project's Docs uploads with its progress and the server's refusals (Rich Docs phase 5); a Markdown page stores
+  // it like a ticket attachment and inserts a link to it, which the page shows as a file card (DocsMarkdown) and opens
+  // in the viewer on double-click.
+  const uploadFile = useCallback(
+    async (file: File, at?: number) => {
+      const ed = editorRef.current;
+      if (!ed) return;
+      if (rich && blockKitOf(ed)?.projectId) {
+        startDocUpload(ed, file, { kind: isVideoFile(file) ? 'video' : 'file', at });
+        return;
+      }
+      try {
+        const res = await uploadAnyFile(file);
+        const nodes = [
+          { type: 'text', text: res.name || file.name, marks: [{ type: 'link', attrs: { href: res.url } }] },
+          { type: 'text', text: ' ' },
+        ];
+        const chain = ed.chain().focus();
+        (at != null ? chain.insertContentAt(at, nodes) : chain.insertContent(nodes)).run();
+      } catch {
+        live.current.toast.error('Could not attach the file', 'Files up to 100 MB can be attached.');
+      }
+    },
+    [rich],
+  );
   const uploadFileRef = useRef(uploadFile);
   uploadFileRef.current = uploadFile;
 
@@ -624,6 +635,28 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           void (async () => {
             for (const f of files) await uploadFile(f);
           })();
+          return true;
+        }
+        // a bare address pasted on an empty line: it goes in as a link, and a small menu asks whether it becomes a
+        // card or a player (Rich Docs phase 5, "Embed from a link")
+        const pastedText = (event.clipboardData?.getData('text/plain') ?? '').trim();
+        const { $from: at, empty } = view.state.selection;
+        if (
+          rich &&
+          editorRef.current &&
+          blockKitOf(editorRef.current) &&
+          empty &&
+          /^https?:\/\/[^\s<>"]+$/i.test(pastedText) &&
+          at.parent.type.name === 'paragraph' &&
+          at.parent.content.size === 0 &&
+          at.depth >= 1
+        ) {
+          const ed = editorRef.current;
+          const pos = at.before();
+          ed.chain()
+            .insertContent({ type: 'text', text: pastedText, marks: [{ type: 'link', attrs: { href: pastedText } }] })
+            .run();
+          askBlockUi(ed, { type: 'pasteLink', pos, url: pastedText });
           return true;
         }
         // Markdown from a plain-text source becomes blocks (not "## Title" as text); never inside a code block
@@ -1075,6 +1108,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
               importDiagram: diagramStarter.pickFile,
               ticketPrefix,
               pageTitle,
+              rich,
             }}
           />
         )}

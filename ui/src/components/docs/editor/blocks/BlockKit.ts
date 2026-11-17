@@ -92,7 +92,7 @@ export const BlockKit = Extension.create<Record<string, never>, BlockKitStorage>
   name: 'blockKit',
 
   addStorage() {
-    return { bus: new BlockBus(), imageLimitMb: 10 };
+    return { bus: new BlockBus(), imageLimitMb: 10, videoLimitMb: 200, fileLimitMb: 100, projectId: null };
   },
 
   addCommands() {

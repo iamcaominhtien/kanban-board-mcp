@@ -71,12 +71,24 @@ export function TreeSkeleton({ width = 248 }: { width?: number }) {
 }
 
 /**
- * Loading placeholder for a page.
+ * Loading placeholder for a page: the shapes of its header, cover, title and paragraphs, so the page does not jump
+ * when it arrives.
  * @param props.title - Real page title to show instead of a placeholder bar.
  * @param props.note - Content shown above the skeleton, e.g. a slow-load note.
  * @param props.crumbs - Breadcrumb segments to show instead of a placeholder.
+ * @param props.cover - The page has a cover picture (a grey band where it will be).
  */
-export function PageSkeleton({ title, note, crumbs }: { title?: string; note?: ReactNode; crumbs?: string[] }) {
+export function PageSkeleton({
+  title,
+  note,
+  crumbs,
+  cover,
+}: {
+  title?: string;
+  note?: ReactNode;
+  crumbs?: string[];
+  cover?: boolean;
+}) {
   return (
     <div
       aria-busy="true"
@@ -111,6 +123,7 @@ export function PageSkeleton({ title, note, crumbs }: { title?: string; note?: R
             <div className="skel" style={{ width: 90, height: 10, flexShrink: 0 }} />
           </div>
         )}
+        {cover && <div className="skel" data-testid="skeleton-cover" style={{ height: 140, borderRadius: 10 }} />}
         {title ? (
           <h1
             style={{

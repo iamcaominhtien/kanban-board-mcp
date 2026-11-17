@@ -1,5 +1,6 @@
 /**
- * Gives the editor's blocks their editing views (images, columns, quotes, pull quotes, dividers) without changing
+ * Gives the editor's blocks their editing views (images, columns, quotes, pull quotes, dividers, and the embeds: HTML,
+ * video, files, links, page and ticket cards, draw.io diagrams) without changing
  * their schema: the same extensions, extended with `addNodeView`. The headless converter (richdoc) keeps the plain
  * ones; only the mounted editor (DocsEditor) uses these.
  */
@@ -8,11 +9,31 @@ import { flattenExtensions, type AnyExtension, type Node as TiptapNode } from '@
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { ColumnsView } from './ColumnsView';
+import { HtmlEmbedView } from './HtmlEmbedView';
+import { DiagramBlockView, LinkEmbedView, PageCardNodeView, TicketCardNodeView } from './LinkViews';
+import { FileCardView, VideoView } from './MediaViews';
 import { ImageView, imageOuterAttrs } from './ImageView';
 import { BlockquoteView, PullQuoteView, RuleView } from './QuoteViews';
 import './blocks.css';
 
+/** A node extended with a React view (no other change). */
+const withView =
+  (view: Parameters<typeof ReactNodeViewRenderer>[0]) =>
+  (ext: TiptapNode): AnyExtension =>
+    ext.extend({
+      addNodeView() {
+        return ReactNodeViewRenderer(view);
+      },
+    });
+
 const VIEWS: Record<string, (ext: TiptapNode) => AnyExtension> = {
+  htmlEmbed: withView(HtmlEmbedView),
+  video: withView(VideoView),
+  fileCard: withView(FileCardView),
+  linkEmbed: withView(LinkEmbedView),
+  pageCard: withView(PageCardNodeView),
+  ticketCard: withView(TicketCardNodeView),
+  diagram: withView(DiagramBlockView),
   image: (ext) =>
     ext.extend({
       addNodeView() {

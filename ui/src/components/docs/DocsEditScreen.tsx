@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import { docsErrorDetail, useDiscardDraft, useMarkDocsSeen, usePublishPage, useSaveDraft } from '../../api/docs';
 import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsTreeNode, RichDoc } from '../../types/docs';
+import { reportSavedEmbeds } from './embeds/cleanedHtml';
 import { docToMarkdown, markdownToDoc } from '../../richdoc';
 import { clearLocalDraft, editableDoc, readLocalDraft, writeLocalDraft } from './richPage';
 import { useToast } from '../Toast';
@@ -206,12 +207,15 @@ export function DocsEditScreen({
     if (!dirty.current) return true;
     setSaveState('saving');
     try {
-      await saveDraft.mutateAsync({
+      const sent = latest.current.content;
+      const saved = await saveDraft.mutateAsync({
         pageId: page.id,
-        content: latest.current.content,
+        content: sent,
         title: latest.current.title,
         baseVersion: latest.current.baseVersion,
       });
+      // what the server cleaned out of HTML embeds is said on each embed ("Saved. N things were removed…")
+      reportSavedEmbeds(sent, (saved as DocsPage | undefined)?.draft?.content);
       dirty.current = false;
       clearLocalDraft(page.id);
       setSavedAt(new Date());

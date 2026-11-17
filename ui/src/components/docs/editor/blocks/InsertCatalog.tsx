@@ -69,7 +69,10 @@ export function InsertCatalog({ host, state, ctx, usePosition }: Props) {
   const [typed, setTyped] = useState<string | null>(null);
   const query = desktop || typed === null ? state.query : typed;
   const filtering = query.trim().length > 0;
-  const opts = useMemo(() => ({ ai: ctx.ai, withAi: !!ctx.openAi }), [ctx.ai, ctx.openAi]);
+  const opts = useMemo(
+    () => ({ ai: ctx.ai, withAi: !!ctx.openAi, rich: ctx.rich !== false }),
+    [ctx.ai, ctx.openAi, ctx.rich],
+  );
   const everything = useMemo(() => filterSlash('', opts), [opts]);
   const matches = useMemo(() => filterSlash(query, opts), [query, opts]);
   const groups = useMemo(() => SLASH_GROUPS.filter((g) => everything.some((i) => i.group === g)), [everything]);

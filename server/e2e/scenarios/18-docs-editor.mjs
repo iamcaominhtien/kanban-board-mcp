@@ -11,7 +11,7 @@ export default {
     const content = () => p.getByRole('textbox', { name: 'Page content' });
     const toolbar = () => p.getByRole('toolbar', { name: 'Formatting' });
     const tb = (name) => toolbar().getByRole('button', { name, exact: true });
-    const saved = async () => { await p.getByText(/^Saved/).waitFor(); await s.settle(); };
+    const saved = async () => { await p.getByTestId('save-state').getByText(/^Saved/).waitFor(); await s.settle(); };
     // Types "/" and the filter, and picks the first block of the menu
     const slash = async (filter, optionName) => {
       await p.keyboard.type('/' + filter);
@@ -306,8 +306,17 @@ export default {
       await bar.waitFor({ state: 'detached' });
     });
     await s.step('export the page as Markdown and compare the file', async () => {
-      await p.getByRole('button', { name: 'Page actions' }).click();
-      const [dl] = await Promise.all([p.waitForEvent('download'), p.getByRole('menuitem', { name: /Export as Markdown/ }).click()]);
+      // the header's Export menu where there is room, "Export…" in More (the last format, Markdown at first) otherwise
+      const exportButton = p.getByTestId('export-button');
+      let pick;
+      if (await exportButton.count()) {
+        await exportButton.click();
+        pick = p.getByRole('menuitem', { name: /Markdown/ });
+      } else {
+        await p.getByRole('button', { name: 'Page actions' }).click();
+        pick = p.getByRole('menuitem', { name: /Export…/ });
+      }
+      const [dl] = await Promise.all([p.waitForEvent('download'), pick.click()]);
       s.note('export file name', dl.suggestedFilename());
       const text = fs.readFileSync(await dl.path(), 'utf8');
       s.note('export content', text);
@@ -335,7 +344,7 @@ export default {
       await panel.getByRole('radio', { name: /^Wide/ }).click();
       await p.locator('[data-page-width="wide"]').waitFor();
       await p.getByRole('complementary', { name: 'Docs space (collapsed)' }).waitFor();
-      await p.getByTestId('toc-button').waitFor();
+      // (the outline folds to a button too, but only a page with two headings or more has an outline: this one has one)
       if ((await saved).status() !== 200) throw new Error('saving the width failed');
       await panel.getByRole('tab', { name: 'Colour' }).click();
       saved = patched();
@@ -366,6 +375,12 @@ export default {
 
     // Rich Docs phase 4: blocks and their properties (images, tables, columns, callouts), on a page of their own
     const fx = makeFixtures();
+    // the caret at the end of the page, in its last paragraph: a click in the middle of the page can land on an
+    // embed, and typing over a selected embed replaces it
+    const atEnd = async () => {
+      await content().locator(':scope > p').last().click();
+      await p.keyboard.press('Control+End');
+    };
     const insert = async (filter) => {
       await p.keyboard.type('/' + filter);
       const menu = p.getByRole('listbox', { name: 'Insert block' });
@@ -482,6 +497,144 @@ export default {
       await toggle.click();
       await preview.waitFor({ state: 'detached' });
       cleanFixtures(fx);
+    });
+
+    // Rich Docs phase 5: embeds and attachments (HTML in a sandbox, code options, files, video, links, references)
+    const fx5 = makeFixtures();
+    /** Every frame of an HTML embed: never the board's origin, top navigation or pop-ups. */
+    const checkSandbox = async (root) => {
+      for (const f of await root.locator('.dk-html-embed iframe').all()) {
+        const sb = await f.getAttribute('sandbox');
+        if (sb === null || /allow-same-origin|allow-top-navigation|allow-popups/.test(sb)) throw new Error(`unsafe sandbox: ${sb}`);
+      }
+    };
+    await s.step('embeds: a new page Embeds tour; an HTML embed opens on its Code tab and previews in a sandbox', async () => {
+      await newDocPage(s, 'Embeds tour');
+      await content().click();
+      await insert('html');
+      const code = p.getByRole('textbox', { name: 'HTML code' });
+      await code.waitFor();
+      await code.fill('<div class="plans"><h3>Team</h3><p>$8 /user</p></div>');
+      const embed = content().locator('.dk-html-embed').first();
+      await embed.getByText('Runs in a sandbox: no access to this board.').waitFor();
+      await p.waitForFunction(() => document.querySelector('.dk-html-embed iframe')?.getAttribute('srcdoc')?.includes('$8 /user'));
+      if ((await embed.locator('iframe').getAttribute('sandbox')) !== '') throw new Error('a frame without scripts must allow nothing');
+      await checkSandbox(content());
+      await embed.getByRole('button', { name: 'What is blocked?' }).click();
+      const sheet = p.getByTestId('sandbox-sheet');
+      await sheet.getByText('Network requests from scripts').waitFor();
+      await sheet.getByRole('button', { name: 'Done' }).click();
+      await sheet.waitFor({ state: 'detached' });
+      await saved();
+    });
+    await s.step('HTML embed: scripts run only after Run it, and saving says what was cleaned out', async () => {
+      const embed = content().locator('.dk-html-embed').first();
+      await embed.getByRole('switch', { name: 'Run scripts' }).check();
+      await p.getByRole('textbox', { name: 'HTML code' }).fill('<div onclick="track()" id="t">Team</div>\n<script>document.getElementById("t").textContent = "Ran"</script>');
+      const run = embed.getByRole('button', { name: 'Run it' });
+      await run.waitFor();
+      if ((await embed.locator('iframe').getAttribute('sandbox')) !== '') throw new Error('scripts ran before Run it');
+      await run.click();
+      await p.waitForFunction(() => document.querySelector('.dk-html-embed iframe')?.getAttribute('sandbox') === 'allow-scripts');
+      await checkSandbox(content());
+      await saved();
+      // the server removes the onclick attribute on save; the author is told, and the line is crossed out
+      const note = embed.getByTestId('html-embed-removed');
+      await note.getByText(/Saved\. 1 thing was removed/).waitFor();
+      await note.getByText(/an onclick attribute/).waitFor();
+      await embed.locator('.dk-ca-gutter .dk-ca-x').first().waitFor();
+      await p.keyboard.press('Control+End');
+    });
+    await s.step('code block: file name, line numbers, a highlighted line and the light theme from its settings', async () => {
+      await atEnd();
+      await p.keyboard.press('Enter');
+      await insert('code');
+      await p.keyboard.type('def rotate_token(user, old):\n    return issue_token(user)');
+      const block = content().locator('.dk-code-wrap').last();
+      await block.getByRole('textbox', { name: 'File name' }).fill('tokens.py');
+      await block.getByRole('button', { name: 'Code block settings' }).click();
+      const panel = p.getByTestId('code-settings');
+      await panel.getByRole('switch', { name: /Line numbers/ }).check();
+      await panel.getByRole('textbox', { name: 'Highlight lines' }).fill('2');
+      await panel.getByRole('radiogroup', { name: 'Theme' }).getByRole('radio', { name: 'Light' }).click();
+      await panel.getByRole('button', { name: 'Done' }).click();
+      await content().locator('.dk-code-wrap.dk-cv-light .dk-cv-edit-gutter').waitFor();
+      await content().locator('.dk-code-wrap .dk-cv-edit-back .dk-cv-hl').waitFor();
+      await saved();
+    });
+    await s.step('file: a CSV attached as a file card, shown as a preview with its rows', async () => {
+      await p.keyboard.press('Control+End');
+      await p.keyboard.press('ArrowDown');
+      await p.getByTestId('docs-attach-input').setInputFiles(fx5.previews.csv);
+      const card = content().getByTestId('file-block').filter({ hasText: 'people.csv' });
+      await card.locator('.dk-fc-name').waitFor();
+      await card.getByRole('button', { name: 'More' }).click();
+      await p.getByRole('menuitem', { name: 'Show as preview' }).click();
+      const sheet = card.getByTestId('file-sheet-preview');
+      await sheet.getByText('Ada').waitFor();
+      await saved();
+    });
+    await s.step('video: by address; a poster and Play, and no player before Play', async () => {
+      await atEnd();
+      await p.keyboard.press('Enter');
+      await insert('video');
+      const dlg = p.getByRole('dialog', { name: 'Insert video' });
+      await dlg.getByText('Video is never played automatically.').waitFor();
+      await dlg.getByRole('tab', { name: 'Link' }).click();
+      await dlg.getByLabel('Video address').fill('https://cdn.example.com/demo.mp4');
+      await dlg.getByText('demo.mp4').waitFor();
+      await dlg.getByRole('button', { name: 'Insert video' }).click();
+      const video = content().getByTestId('video-block').last();
+      await video.getByRole('button', { name: /^Play/ }).waitFor();
+      if (await video.locator('video').count()) throw new Error('the video loaded before Play');
+      await saved();
+    });
+    await s.step('link: a pasted address on an empty line asks what it becomes; Link card makes a card', async () => {
+      await atEnd();
+      await p.keyboard.press('Enter');
+      await p.evaluate(() => {
+        const dt = new DataTransfer();
+        dt.setData('text/plain', 'https://intranet.example.invalid/plans/q4');
+        document.querySelector('[aria-label="Page content"]').dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+      });
+      const menu = p.getByTestId('paste-link-menu');
+      await menu.getByText('Esc keeps the plain link').waitFor();
+      await menu.getByRole('menuitem', { name: /Link card/ }).click();
+      // the server cannot read this address: the card keeps the address and says so
+      await content().getByTestId('link-embed').getByText('Could not read this link. It may need a login.').waitFor();
+      await saved();
+    });
+    await s.step('references: a page chip on its own line shown as a card, then back as a chip', async () => {
+      await atEnd();
+      await p.keyboard.press('Enter');
+      await p.keyboard.type('[[Editor tour]]');
+      await content().locator('.dk-chip-page').last().waitFor();
+      const line = content().locator('p').filter({ has: p.locator('.dk-chip-page') }).last();
+      await line.hover();
+      await p.getByRole('button', { name: 'Drag to move' }).click();
+      await p.getByTestId('block-menu').getByRole('menuitem', { name: 'Show as card' }).click();
+      const card = content().getByTestId('page-card');
+      await card.getByText('Editor tour').first().waitFor();
+      await card.getByRole('button', { name: 'Show as chip' }).click();
+      await card.waitFor({ state: 'detached' });
+      await saved();
+    });
+    await s.step('Preview: the embeds read as readers will see them (sandboxed frame, poster, card, preview)', async () => {
+      const toggle = p.getByTestId('preview-toggle');
+      await toggle.click();
+      const preview = p.getByTestId('editor-preview');
+      await preview.waitFor();
+      await preview.getByTestId('html-embed').getByRole('button', { name: 'View source' }).waitFor();
+      await checkSandbox(preview);
+      await preview.getByRole('button', { name: 'Run it' }).waitFor();
+      await preview.locator('[data-testid="code-view"].dk-cv-light').getByText('tokens.py').waitFor();
+      await preview.getByTestId('video-poster').waitFor();
+      if (await preview.locator('video').count()) throw new Error('the reader loaded the video before Play');
+      await preview.getByTestId('link-unread').waitFor();
+      await preview.getByTestId('file-sheet-preview').getByText('Ada').waitFor();
+      await toggle.click();
+      await preview.waitFor({ state: 'detached' });
+      cleanFixtures(fx5);
     });
   },
 };

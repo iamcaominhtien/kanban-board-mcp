@@ -116,6 +116,8 @@ export function DiagramEditor({ request, onClose }: Props) {
   const [existing, setExisting] = useState<Diagram | null>(null);
   const [modified, setModified] = useState(false);
   const [saving, setSaving] = useState(false);
+  // what changed in this version (optional), kept with it in the diagram's history
+  const [note, setNote] = useState('');
   const [problem, setProblem] = useState<Problem>(null);
   const [confirmClose, setConfirmClose] = useState(false);
   const [exportMenu, setExportMenu] = useState(false);
@@ -303,7 +305,13 @@ export function DiagramEditor({ request, onClose }: Props) {
       pending.current = { xml, svg };
       const clean = label.trim() || 'Untitled diagram';
       const saved = request.diagramId
-        ? await updateDiagram(request.diagramId, { baseVersion: baseVersion.current, source: xml, svg, label: clean })
+        ? await updateDiagram(request.diagramId, {
+            baseVersion: baseVersion.current,
+            source: xml,
+            svg,
+            label: clean,
+            ...(note.trim() ? { note: note.trim() } : {}),
+          })
         : await createDiagram(request.projectId, {
             label: clean,
             source: xml,
@@ -482,6 +490,16 @@ export function DiagramEditor({ request, onClose }: Props) {
               </div>
             )}
           </span>
+          {request.diagramId && (
+            <input
+              className={styles.noteInput}
+              aria-label="What changed? (optional)"
+              placeholder="What changed? (optional)"
+              maxLength={200}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          )}
           <button type="button" className={styles.btn} onClick={cancel}>
             Cancel
           </button>
