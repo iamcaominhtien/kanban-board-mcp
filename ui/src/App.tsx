@@ -14,7 +14,7 @@ import { OPEN_RUN_EVENT } from './components/aiteam/runLink';
 import { OPEN_TIMELINE_EVENT } from './components/aiteam/timelineLink';
 import { OPEN_SETTINGS_EVENT } from './components/aiteam/settingsLink';
 import { RecycleBin } from './components/RecycleBin';
-import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
+import { useProjects, useCreateProject, useDeleteProject, useUpdateProject } from './api/projects';
 import { useMembers } from './api/members';
 import {
   useTickets,
@@ -149,6 +149,7 @@ export default function App() {
   const { data: apiProjects = EMPTY_PROJECTS, isLoading: projectsLoading } = projectsQuery;
   const createProjectMutation = useCreateProject();
   const deleteProjectMutation = useDeleteProject();
+  const updateProjectMutation = useUpdateProject();
 
   const { theme, toggleTheme } = useTheme();
   const [selectedProjectId, setCurrentProjectId] = useState<string>(
@@ -754,6 +755,11 @@ export default function App() {
     }
   }
 
+  /** Saves a project's name and colour; an error goes back to the sidebar's form. */
+  async function handleUpdateProject(id: string, data: { name: string; color: string }) {
+    await updateProjectMutation.mutateAsync({ id, ...data });
+  }
+
   async function handleDeleteProject(id: string) {
     try {
       await deleteProjectMutation.mutateAsync(id);
@@ -962,6 +968,7 @@ export default function App() {
                 onSelectProject={handleSelectProject}
                 onCreateProject={handleCreateProject}
                 onDeleteProject={handleDeleteProject}
+                onUpdateProject={handleUpdateProject}
                 onOpenRecycleBin={() => setRecycleBinOpen(true)}
                 onOpenMembers={() => setMembersPanelOpen(true)}
                 memberCounts={{ humans: humanMembers.length, ai: aiMemberCount }}

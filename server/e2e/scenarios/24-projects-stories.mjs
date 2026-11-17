@@ -22,10 +22,11 @@ export default {
     const subs = ['Pay with card', 'Print receipt', 'Send email'];
 
     // ---- projects
-    await s.step('set up: first project Alpha, sidebar lists it without a delete control', async () => {
+    await s.step('set up: first project Alpha, its row offers Edit and Delete (even as the only, open project)', async () => {
       await ensureProject(s);
       await nav().getByRole('button', { name: 'Alpha ALP' }).waitFor();
-      await nav().locator('[aria-label^="Delete "]').waitFor({ state: 'detached' });
+      await nav().locator('[aria-label="Edit Alpha"]').waitFor({ state: 'attached' });
+      await del('Alpha').waitFor({ state: 'attached' });
     });
     await s.step('create Beta with a ticket in it', async () => {
       await nav().getByRole('button', { name: 'New Project' }).click();
@@ -38,12 +39,9 @@ export default {
       await createTicket(s, { title: 'Beta only ticket' });
       await card(p, 'BET-1').waitFor();
     });
-    await s.step('the project being viewed has no delete control; the other one has', async () => {
-      await del('Beta Project').waitFor({ state: 'detached' });
-      await del('Alpha').waitFor({ state: 'attached' });
-      await nav().getByRole('button', { name: 'Alpha ALP' }).click();
-      await p.getByRole('heading', { name: 'Alpha', level: 1 }).waitFor();
+    await s.step('both projects offer Delete, the one being viewed too', async () => {
       await del('Beta Project').waitFor({ state: 'attached' });
+      await del('Alpha').waitFor({ state: 'attached' });
     });
     await s.step('declining the confirmation keeps the project with its tickets', async () => {
       let msg = '';
@@ -55,10 +53,11 @@ export default {
       const projects = (await api('GET', '/projects')).body;
       if (projects.length !== 2) throw new Error(`2 projects expected, got ${projects.length}`);
     });
-    await s.step('confirming deletes Beta and its ticket, a reload keeps it gone', async () => {
+    await s.step('deleting the project being viewed (Beta) takes its ticket and moves the board to Alpha; a reload keeps it gone', async () => {
       const betaId = (await api('GET', '/projects')).body.find((x) => x.prefix === 'BET').id;
       p.once('dialog', (d) => d.accept());
       const gone = p.waitForResponse((r) => r.request().method() === 'DELETE' && r.url().endsWith(`/projects/${betaId}`));
+      await p.getByRole('heading', { name: 'Beta Project', level: 1 }).waitFor();
       await nav().getByTitle('Beta Project (BET)').hover();
       await del('Beta Project').click();
       if ((await gone).status() >= 300) throw new Error('DELETE /projects/:id failed');
@@ -69,24 +68,16 @@ export default {
       await nav().getByRole('button', { name: 'Beta Project BET' }).waitFor({ state: 'detached' });
       const r = await api('GET', `/projects/${betaId}`);
       if (r.status !== 404) throw new Error(`deleted project should answer 404, got ${r.status}`);
-      await nav().locator('[aria-label^="Delete "]').waitFor({ state: 'detached' });
+      await del('Alpha').waitFor({ state: 'attached' }); // the last project can be deleted too (at the end)
       // the 404 of the check above is logged by the browser
     }, { expectConsole: true });
 
     // ---- a Story through the UI
-    await s.step('make a Story (the UI has no way to make one: New Ticket cannot pick Story, so the API does)', async () => {
-      // The New Ticket dialog offers Bug, Feature, Task and Chore; the ticket view's Story option is disabled for
-      // other types, and the PM flow that made Stories was removed from the UI.
-      const pid = (await api('GET', '/projects')).body[0].id;
-      const r = await api('POST', `/projects/${pid}/tickets`, { title: story, type: 'story' });
-      if (r.status !== 201) throw new Error(`story create answered ${r.status}`);
-      if (r.body.id !== 'ALP-1') throw new Error(`Story key should be ALP-1, got ${r.body.id}`);
-      await p.reload();
-      await card(p, 'ALP-1').waitFor({ timeout: 15000 });
-      await p.getByRole('button', { name: 'New Ticket' }).click();
-      await p.getByRole('button', { name: /^Story Story$/ }).waitFor({ state: 'detached' });
-      await p.getByRole('button', { name: 'Cancel', exact: true }).click();
-      await p.getByPlaceholder('Ticket title…').waitFor({ state: 'detached' });
+    await s.step('make a Story from New Ticket (the type it used to leave out)', async () => {
+      await createTicket(s, { title: story, type: 'Story' });
+      await card(p, 'ALP-1').waitFor();
+      const t = (await api('GET', '/tickets/ALP-1')).body;
+      if (t.type !== 'story') throw new Error(`ALP-1 should be a Story, got ${t.type}`);
     });
     await s.step('the Story card opens the Story page with no sub-tickets yet', async () => {
       await card(p, 'ALP-1').click();
@@ -276,14 +267,30 @@ export default {
     });
 
     // ---- the last project
-    await s.step('with one project left there is no delete control; the API deletes it and the app starts over', async () => {
-      await nav().locator('[aria-label^="Delete "]').waitFor({ state: 'detached' });
-      // The UI never offers to delete the last project (the control needs 2 or more), so this goes through the API.
+    await s.step('Edit a project: a new name and colour, the prefix stays, a reload keeps them', async () => {
+      await nav().getByTitle('Alpha (ALP)').hover();
+      await nav().locator('[aria-label="Edit Alpha"]').click();
+      await p.getByText('Edit Project').waitFor();
+      if (!(await p.getByPlaceholder('Prefix (e.g. PROJ)').isDisabled())) throw new Error('the prefix should not be editable');
+      await p.getByPlaceholder('Project name').fill('Alpha Prime');
+      await p.getByRole('button', { name: 'Color #5BB8F5' }).click();
+      await p.getByRole('button', { name: 'Save', exact: true }).click();
+      await p.getByText('Edit Project').waitFor({ state: 'detached' });
+      await p.getByRole('heading', { name: 'Alpha Prime', level: 1 }).waitFor();
+      const pr = (await api('GET', '/projects')).body[0];
+      if (pr.name !== 'Alpha Prime' || pr.color !== '#5BB8F5' || pr.prefix !== 'ALP') throw new Error(`project not saved: ${JSON.stringify(pr)}`);
+      await p.reload();
+      await nav().getByRole('button', { name: 'Alpha Prime ALP' }).waitFor({ timeout: 15000 });
+      await card(p, 'ALP-1').waitFor();
+    });
+    await s.step('delete the last project from the sidebar: the app starts over with "Create your first project"', async () => {
       const pid = (await api('GET', '/projects')).body[0].id;
-      const r = await api('DELETE', `/projects/${pid}`);
-      if (r.status >= 300) throw new Error(`DELETE of the last project answered ${r.status}`);
-      // The page still holds the deleted project as the active one (localStorage). It used to ask for its data after
-      // the reload (members, AI teams, Docs tree… all 404); now nothing asks for a project that is not in the list.
+      p.once('dialog', (d) => d.accept());
+      await nav().getByTitle('Alpha Prime (ALP)').hover();
+      await del('Alpha Prime').click();
+      await p.getByRole('heading', { name: 'Create your first project' }).waitFor({ timeout: 15000 });
+      // After a reload the page must not ask for the deleted project (it used to keep it as the active one in
+      // localStorage and ask for its members, AI teams, Docs tree… all 404).
       // Only what the reloaded page asks for counts: the open page may still refetch once when the delete event
       // arrives (the page was showing that project), so let that settle before listening.
       await s.settle();

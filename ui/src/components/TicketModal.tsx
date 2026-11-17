@@ -920,7 +920,7 @@ function TicketModalInner({
               <div className={styles.ntField}>
                 <span className={styles.ntLabel}>Type</span>
                 <div className={styles.typeButtonsGrid}>
-                  {(['task', 'bug', 'feature', 'chore'] as IssueType[]).map((t) => (
+                  {(['task', 'bug', 'feature', 'chore', 'story'] as IssueType[]).map((t) => (
                     <button
                       key={t}
                       type="button"

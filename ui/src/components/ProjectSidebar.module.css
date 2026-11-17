@@ -222,9 +222,19 @@
   display: flex;
 }
 
+/* Edit and Delete share the row's hover button; only Delete turns red */
 .deleteBtn:hover {
-  color: #f87171;
+  color: #e9f1ec;
   background: rgba(255, 255, 255, 0.1);
+}
+
+.deleteBtnDanger:hover {
+  color: #f87171;
+}
+
+.formInput:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .newProjectBtn {
