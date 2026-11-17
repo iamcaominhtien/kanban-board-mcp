@@ -77,7 +77,20 @@ ghi vào danh sách loại trừ kèm lý do. Hết đợt thì đo lại và c�
 Đợt 1 làm luôn mấy việc hạ tầng nhỏ: helper chung trong `lib/ui.mjs`, cho Session nhận `viewport` / `colorScheme`, và
 quyết định số phận 8 call code chết.
 
-## 5. Những gì đo được đến giờ
+## 5. Tiến độ
+
+| Sau | Scenario / step | Server call | Control được thao tác | Function | Branch |
+|---|---|---:|---:|---:|---:|
+| Số gốc | 21 / 375 | 57.1 % | 26.0 % | 47.6 % | 42.8 % |
+| Đợt 1 (23, 24, 25) | 24 / 449 | 59.7 % | 29.8 % | 48.8 % | 43.4 % |
+
+Đợt 1: `api/tickets.ts` còn 1 call chưa phủ (từ 10), call duy nhất còn lại thuộc Docs / Idea (đợt 2, 4). Các component
+gốc (board, ticket) tăng từ 60.4 % lên 67.2 % function. Bug đã sửa: trang vẫn gọi API của project đã xoá (`App.tsx`);
+"Open ticket" trong menu card không làm gì, "Copy link" của card không báo (`TicketCard.tsx`,
+`DraggableTicketCard.tsx`). Giới hạn đo: chọn một `<option>` bằng `selectOption` không được ghi là thao tác lên
+option đó, nên 7 loại link trong `RelationsSection` vẫn hiện là chưa phủ dù scenario 23 có dùng đủ.
+
+## 6. Những gì đo được đến giờ
 
 - `03-tickets / log a debug-space entry`: test chập chờn. Danh sách hiện entry mới trước khi form kịp đóng nên cùng
   một dòng chữ xuất hiện hai chỗ. Đã sửa: test chờ form đóng rồi mới đọc.
@@ -94,7 +107,7 @@ quyết định số phận 8 call code chết.
 - Những thứ người dùng thấy nhưng chưa từng được test: Docs mở ở cửa sổ riêng, đổi tên / nhân bản / chuyển trang, so
   sánh version, comment / history / source của canvas, discussion của idea, AI trong sketch.
 
-## 6. Quy ước khi viết
+## 7. Quy ước khi viết
 
 - Chờ trạng thái (role, text, request xong), không dùng `sleep`. Step chỉ fail trên máy nhanh thường là đọc toast hoặc
   danh sách quá sớm.

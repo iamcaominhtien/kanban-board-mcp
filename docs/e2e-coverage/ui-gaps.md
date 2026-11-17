@@ -4,13 +4,8 @@
 
 ## src/App.tsx (2)
 
-- shown: `Blocked ticket` (src/App.tsx:1331)
-- shown: `Move Anyway` (src/App.tsx:1348)
-
-## src/components/AcceptanceCriteriaSection.tsx (2)
-
-- never shown: `Save criterion` (src/components/AcceptanceCriteriaSection.tsx:195)
-- shown: `Mark incomplete` (src/components/AcceptanceCriteriaSection.tsx:220, src/components/SubTasksSection.tsx:67)
+- shown: `Blocked ticket` (src/App.tsx:1336)
+- shown: `Move Anyway` (src/App.tsx:1353)
 
 ## src/components/ActivitySection.tsx (1)
 
@@ -20,21 +15,19 @@
 
 - never shown: `Loading project` (src/components/Board.tsx:288)
 
-## src/components/BranchGraph.tsx (5)
+## src/components/BranchGraph.tsx (4)
 
 - shown: `Graph detail` (src/components/BranchGraph.tsx:172)
 - shown: `Branches of this ticket` (src/components/BranchGraph.tsx:202)
 - shown: `Commit graph` (src/components/BranchGraph.tsx:254)
 - never shown: `Commit details` (src/components/BranchGraph.tsx:375)
-- never shown: `Load older commits` (src/components/BranchGraph.tsx:195)
 
 ## src/components/Column.tsx (1)
 
 - shown: `… active tickets` (src/components/Column.tsx:121, src/components/Column.tsx:133)
 
-## src/components/CommentsSection.tsx (3)
+## src/components/CommentsSection.tsx (2)
 
-- shown: `Undo` (src/components/CommentsSection.tsx:635, src/components/MarkdownEditor.tsx:957, src/components/ai/AiProfile.tsx:189, src/components/docs/AiChangedBar.tsx:119, src/components/sketch/SketchEditor.tsx:565)
 - never shown: `Cancel send` (src/components/CommentsSection.tsx:894, src/components/CommentsSection.tsx:1035)
 - never shown: `Retry` (src/components/CommentsSection.tsx:941, src/components/CommentsSection.tsx:1082, src/components/LoadingPill.tsx:49, src/components/ProjectSidebar.tsx:143, src/components/ai/RunPanel.tsx:410, src/components/ai/activity/design/designBlocks.tsx:2032, src/components/diagrams/DiagramEditor.tsx:521, src/components/diagrams/DiagramEditor.tsx:594, src/components/docs/comments/CommentBox.tsx:246, src/components/docs/comments/CommentsPanel.tsx:141, src/components/docs/comments/SendToAi.tsx:363, src/components/preview/TextReader.tsx:369)
 
@@ -42,24 +35,13 @@
 
 - never shown: `View ticket` (src/components/ConflictNotice.tsx:31)
 
-## src/components/CreateBranchModal.tsx (1)
+## src/components/DebugSpaceSection.tsx (5)
 
-- never shown: `Reset to template` (src/components/CreateBranchModal.tsx:297)
-
-## src/components/DebugSpaceSection.tsx (8)
-
-- shown: `Role` (src/components/DebugSpaceSection.tsx:298)
 - shown: `Formatting` (src/components/DebugSpaceSection.tsx:313, src/components/docs/editor/EditorToolbar.tsx:140)
 - shown: `Code` (src/components/DebugSpaceSection.tsx:337, src/components/MarkdownEditor.tsx:1136, src/components/ideas/IdeaDiscussion.tsx:350)
 - shown: `Link` (src/components/DebugSpaceSection.tsx:359, src/components/MarkdownEditor.tsx:1187, src/components/docs/ai/DocsHealthView.tsx:199, src/components/ideas/IdeaDiscussion.tsx:353)
 - never shown: `Linked branch` (src/components/DebugSpaceSection.tsx:396)
-- never shown: `Linked test case` (src/components/DebugSpaceSection.tsx:410)
-- shown: `Unpin entry` (src/components/DebugSpaceSection.tsx:754)
 - never shown: `Confirm delete` (src/components/DebugSpaceSection.tsx:949, src/components/WorkspaceSection.tsx:621)
-
-## src/components/FilterBar.tsx (1)
-
-- shown: `Clear` (src/components/FilterBar.tsx:562, src/components/FilterBar.tsx:624, src/components/docs/HistoryDrawer.tsx:889, src/components/docs/SearchPalette.tsx:1439, src/components/notifications/NotificationRow.tsx:658, src/components/schedules/ScheduleEditor.tsx:490)
 
 ## src/components/LoadError.tsx (1)
 
@@ -107,10 +89,6 @@
 
 - shown: `Project navigation` (src/components/ProjectSidebar.tsx:116)
 
-## src/components/RecycleBin.tsx (1)
-
-- shown: `Empty bin` (src/components/RecycleBin.tsx:114)
-
 ## src/components/RelationsSection.tsx (7)
 
 - never shown: `Blocks` (src/components/RelationsSection.tsx:325)
@@ -120,10 +98,6 @@
 - never shown: `Caused by` (src/components/RelationsSection.tsx:329)
 - never shown: `Duplicates` (src/components/RelationsSection.tsx:330)
 - never shown: `Duplicated by` (src/components/RelationsSection.tsx:331)
-
-## src/components/ReopenDropPopover.tsx (1)
-
-- never shown: `More options` (src/components/ReopenDropPopover.tsx:134)
 
 ## src/components/ResumeDialog.tsx (1)
 
@@ -146,54 +120,36 @@
 ## src/components/StoryPage.tsx (2)
 
 - shown: `Where you are` (src/components/StoryPage.tsx:128)
-- never shown: `Sub-tickets` (src/components/StoryPage.tsx:293)
+- shown: `Sub-tickets` (src/components/StoryPage.tsx:293)
 
-## src/components/SubTasksSection.tsx (1)
+## src/components/SubTicketsSection.tsx (1)
 
-- never shown: `Save sub-task` (src/components/SubTasksSection.tsx:144)
-
-## src/components/SubTicketsSection.tsx (4)
-
-- shown: `Execution wave … of …, change` (src/components/SubTicketsSection.tsx:144)
 - never shown: `Wave of …` (src/components/SubTicketsSection.tsx:157)
-- never shown: `Earlier wave` (src/components/SubTicketsSection.tsx:190)
-- never shown: `Later wave` (src/components/SubTicketsSection.tsx:212)
 
 ## src/components/TagPicker.tsx (1)
 
 - never shown: `Tags` (src/components/TagPicker.tsx:179)
 
-## src/components/TicketCard.tsx (3)
+## src/components/TicketCard.tsx (1)
 
-- shown: `Blocked` (src/components/TicketCard.tsx:238, src/components/icons/StatusMarks.tsx:67)
-- shown: `Card options` (src/components/TicketCard.tsx:253)
-- never shown: `Keep pending` (src/components/TicketCard.tsx:697, src/components/TicketModal.tsx:1675)
+- shown: `Blocked` (src/components/TicketCard.tsx:243, src/components/icons/StatusMarks.tsx:67)
 
-## src/components/TicketModal.tsx (23)
+## src/components/TicketModal.tsx (14)
 
-- never shown: `No estimate` (src/components/TicketModal.tsx:1038)
-- never shown: `Exit fullscreen` (src/components/TicketModal.tsx:1483)
-- shown: `Fullscreen` (src/components/TicketModal.tsx:1483)
 - shown: `Ticket or AI activity` (src/components/TicketModal.tsx:1907)
 - shown: `Reopen History` (src/components/TicketModal.tsx:2088)
 - never shown: `Uploading …` (src/components/TicketModal.tsx:2558)
 - shown: `Add attachment` (src/components/TicketModal.tsx:2574)
-- never shown: `/absolute/path/to/local/git-repo` (src/components/TicketModal.tsx:3056)
-- never shown: `Review by` (src/components/TicketModal.tsx:3188)
 - shown: `Story` (src/components/TicketModal.tsx:1196, src/components/icons/TicketTypeIcons.tsx:214)
-- shown: `Restore to Backlog` (src/components/TicketModal.tsx:1621)
 - shown: `Ticket` (src/components/TicketModal.tsx:1908)
 - shown: `Open in Flow` (src/components/TicketModal.tsx:1954, src/components/ai/activity/AiActivityDesign.tsx:47)
-- never shown: `Reset to project` (src/components/TicketModal.tsx:3063)
 - never shown: `Nobody` (src/components/TicketModal.tsx:3192)
-- shown: `Medium` (src/components/TicketModal.tsx:3218)
 - shown: `1 pt` (src/components/TicketModal.tsx:3299)
 - shown: `2 pt` (src/components/TicketModal.tsx:3300)
 - shown: `3 pt` (src/components/TicketModal.tsx:3301)
 - shown: `5 pt` (src/components/TicketModal.tsx:3302)
 - shown: `8 pt` (src/components/TicketModal.tsx:3303)
 - shown: `13 pt` (src/components/TicketModal.tsx:3304)
-- never shown: `Open Settings` (src/components/TicketModal.tsx:3707)
 
 ## src/components/UpdateNotice.tsx (4)
 
@@ -206,16 +162,6 @@
 
 - never shown: `Your name...` (src/components/WorkLogSection.tsx:105)
 - never shown: `Log Work` (src/components/WorkLogSection.tsx:138)
-
-## src/components/WorkspaceSection.tsx (7)
-
-- shown: `Copy path` (src/components/WorkspaceSection.tsx:271, src/components/ai/code/worktreeUi.tsx:143)
-- never shown: `ticket ID, e.g. KAN-12` (src/components/WorkspaceSection.tsx:448)
-- never shown: `Ticket to move the workspace to` (src/components/WorkspaceSection.tsx:449)
-- never shown: `folder name` (src/components/WorkspaceSection.tsx:486)
-- never shown: `New folder name` (src/components/WorkspaceSection.tsx:487)
-- shown: `Download …` (src/components/WorkspaceSection.tsx:592)
-- never shown: `Move` (src/components/WorkspaceSection.tsx:453)
 
 ## src/components/ai/AddTeamModal.tsx (3)
 
@@ -367,10 +313,6 @@
 - never shown: `Pull request` (src/components/ai/code/TicketHandover.tsx:167)
 - never shown: `Commit the code` (src/components/ai/code/TicketHandover.tsx:229)
 
-## src/components/ai/code/worktreeUi.tsx (1)
-
-- shown: `Open folder` (src/components/ai/code/worktreeUi.tsx:139)
-
 ## src/components/ai/editor/useEditorAi.tsx (17)
 
 - never shown: `Translate into` (src/components/ai/editor/useEditorAi.tsx:1032)
@@ -420,10 +362,9 @@
 - never shown: `This project` (src/components/ai/knowledge/kbParts.tsx:307)
 - never shown: `The shared store` (src/components/ai/knowledge/kbParts.tsx:308)
 
-## src/components/ai/packs/EnvBlock.tsx (4)
+## src/components/ai/packs/EnvBlock.tsx (3)
 
 - never shown: `Folder …` (src/components/ai/packs/EnvBlock.tsx:40)
-- shown: `New folder` (src/components/ai/packs/EnvBlock.tsx:149)
 - never shown: `/opt/homebrew/bin` (src/components/ai/packs/EnvBlock.tsx:150)
 - never shown: `The app’s own PATH` (src/components/ai/packs/EnvBlock.tsx:161)
 
@@ -514,14 +455,13 @@
 - never shown: `Map of the teams, you and the tickets` (src/components/aiteam/FlowMap.tsx:284)
 - never shown: `Widen the range` (src/components/aiteam/FlowMap.tsx:366, src/components/aiteam/SteppedInTab.tsx:495)
 
-## src/components/aiteam/FlowScopeBar.tsx (7)
+## src/components/aiteam/FlowScopeBar.tsx (6)
 
 - shown: `What Flow looks at` (src/components/aiteam/FlowScopeBar.tsx:167)
 - never shown: `Go to a team, Story or ticket` (src/components/aiteam/FlowScopeBar.tsx:207, src/components/aiteam/FlowScopeBar.tsx:191)
 - never shown: `code or words` (src/components/aiteam/FlowScopeBar.tsx:214)
 - never shown: `Search teams, Stories and tickets` (src/components/aiteam/FlowScopeBar.tsx:215)
 - shown: `View` (src/components/aiteam/FlowScopeBar.tsx:290, src/components/ideas/IdeaSpace.tsx:312, src/components/schedules/SchedulesTab.tsx:438)
-- shown: `Copy link` (src/components/aiteam/FlowScopeBar.tsx:287, src/components/diagrams/DiagramEmbed.tsx:188, src/components/docs/DocPeekPanel.tsx:191, src/components/preview/PreviewViewer.tsx:507)
 - shown: `Map` (src/components/aiteam/FlowScopeBar.tsx:291, src/components/canvas/CanvasEditor.tsx:2179)
 
 ## src/components/aiteam/FlowTab.tsx (2)
@@ -931,10 +871,6 @@
 - never shown: `Open in side panel` (src/components/docs/RefChip.tsx:764)
 - shown: `Open page` (src/components/docs/RefChip.tsx:1035)
 
-## src/components/docs/ReferencedBy.tsx (1)
-
-- shown: `Open ticket` (src/components/docs/ReferencedBy.tsx:313)
-
 ## src/components/docs/RenameDialog.tsx (1)
 
 - never shown: `Rename only` (src/components/docs/RenameDialog.tsx:113)
@@ -1000,13 +936,11 @@
 - shown: `Style guide page` (src/components/docs/ai/DocsAiSettings.tsx:98)
 - shown: `First AI team (default)` (src/components/docs/ai/DocsAiSettings.tsx:83)
 
-## src/components/docs/ai/DocsHealthView.tsx (5)
+## src/components/docs/ai/DocsHealthView.tsx (3)
 
 - never shown: `Page to link … to` (src/components/docs/ai/DocsHealthView.tsx:178)
 - never shown: `Add to a page` (src/components/docs/ai/DocsHealthView.tsx:170)
 - never shown: `Pick a page…` (src/components/docs/ai/DocsHealthView.tsx:190)
-- never shown: `Review` (src/components/docs/ai/DocsHealthView.tsx:267, src/components/docs/ai/DocsHealthView.tsx:343, src/components/ideas/IdeaAiExtras.tsx:691)
-- never shown: `Not needed` (src/components/docs/ai/DocsHealthView.tsx:310)
 
 ## src/components/docs/ai/DrawDiagram.tsx (2)
 
@@ -1238,10 +1172,9 @@
 - shown: `Sort: title` (src/components/ideas/IdeaSpace.tsx:426)
 - shown: `New idea` (src/components/ideas/IdeaSpace.tsx:448)
 
-## src/components/ideas/IdeaSpaceSettings.tsx (2)
+## src/components/ideas/IdeaSpaceSettings.tsx (1)
 
 - shown: `Use the web` (src/components/ideas/IdeaSpaceSettings.tsx:134)
-- shown: `Change` (src/components/ideas/IdeaSpaceSettings.tsx:102)
 
 ## src/components/ideas/PromoteDialog.tsx (7)
 
@@ -1448,10 +1381,9 @@
 - never shown: `Confirm import` (src/components/settings/StoragePage.tsx:220)
 - never shown: `Replace my data` (src/components/settings/StoragePage.tsx:233)
 
-## src/components/settings/WorkspaceSettingsSection.tsx (2)
+## src/components/settings/WorkspaceSettingsSection.tsx (1)
 
 - shown: `Workspace root path` (src/components/settings/WorkspaceSettingsSection.tsx:105)
-- never shown: `Delete them` (src/components/settings/WorkspaceSettingsSection.tsx:160)
 
 ## src/components/settings/database/ConnectionForm.tsx (3)
 
@@ -1523,9 +1455,8 @@
 - shown: `Sketch actions` (src/components/sketch/SketchEmbed.tsx:115)
 - shown: `View large` (src/components/sketch/SketchEmbed.tsx:132)
 
-## src/components/sketch/SketchPanels.tsx (19)
+## src/components/sketch/SketchPanels.tsx (18)
 
-- shown: `… options` (src/components/sketch/SketchPanels.tsx:186)
 - never shown: `Width` (src/components/sketch/SketchPanels.tsx:337)
 - never shown: `Height` (src/components/sketch/SketchPanels.tsx:346)
 - shown: `Colour picker` (src/components/sketch/SketchPanels.tsx:406)
@@ -1547,5 +1478,5 @@
 
 ## Keys pressed outside text fields
 
-/, Alt+Alt, Alt+n, ArrowRight, Ctrl+A, Ctrl+Control, Ctrl+End, Ctrl+Enter, Ctrl+a, Ctrl+f, Ctrl+j, Ctrl+k, Enter, Escape, p
+/, Alt+Alt, Alt+n, ArrowRight, Ctrl+A, Ctrl+Control, Ctrl+End, Ctrl+Enter, Ctrl+a, Ctrl+f, Ctrl+j, Ctrl+k, Enter, Escape, P, p
 
