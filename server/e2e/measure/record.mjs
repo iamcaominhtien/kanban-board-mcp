@@ -27,7 +27,13 @@ const PAGE_SCRIPT = `(() => {
   };
   const send = (kind, el, extra) => { try { window.__e2eRec({ kind, ...labels(el), ...extra }); } catch {} };
   addEventListener('click', (e) => send('click', e.target), true);
-  addEventListener('change', (e) => send('change', e.target), true);
+  addEventListener('change', (e) => {
+    // choosing an option of a <select> (selectOption) acts on that option too
+    const t = e.target;
+    const opts = t && t.tagName === 'SELECT' ? [...t.selectedOptions].map((o) => o.textContent.trim()).filter(Boolean) : [];
+    const rec = labels(t);
+    try { window.__e2eRec({ kind: 'change', role: rec.role, labels: [...new Set([...rec.labels, ...opts])] }); } catch {}
+  }, true);
   let last = null;
   addEventListener('input', (e) => { if (e.target !== last) { last = e.target; send('input', e.target); } }, true);
   addEventListener('keydown', (e) => {
