@@ -59,7 +59,16 @@ for (const c of api.calls) {
 }
 const notInSource = new Map();
 recorded.forEach((e, i) => { if (!matchedRecorded.has(i)) { const k = `${e.method} ${e.bare}`; notInSource.set(k, (notInSource.get(k) || 0) + 1); } });
-const apiTestable = api.calls.filter((c) => c.method !== 'WS');
+// a call whose function nothing else names is dead code: listed apart, not counted as a gap
+const allSrc = sourceFiles(UI_SRC).map((f) => fs.readFileSync(f, 'utf8')).join('\n');
+const uses = new Map();
+const usedName = (fn) => {
+  if (!fn) return true;
+  if (!uses.has(fn)) uses.set(fn, (allSrc.match(new RegExp(`\\b${fn.replace(/\$/g, '\\$')}\\b`, 'g')) || []).length);
+  return uses.get(fn) > 1;
+};
+for (const c of api.calls) c.unused = c.sites.every((st) => !usedName(st.fn));
+const apiTestable = api.calls.filter((c) => c.method !== 'WS' && !c.unused);
 const apiHit = apiTestable.filter((c) => c.hits);
 
 // ---- ui labels
@@ -160,7 +169,8 @@ if (code.total) for (const m of ['lines', 'statements', 'branches', 'functions',
 md.push('');
 md.push('Not counted: ' + [
   `${api.dynamic.length} call sites whose URL is not a literal (listed in api-gaps.md)`,
-  `${api.calls.length - apiTestable.length} WebSocket call(s)`,
+  `${api.calls.filter((c) => c.method === 'WS').length} WebSocket call(s)`,
+  `${api.calls.filter((c) => c.unused).length} calls in functions nothing uses (dead code, listed in api-gaps.md)`,
   `${ui.dynamic} labels that are a plain expression`,
 ].join('; ') + '.', '');
 if (code.error) md.push('Code coverage failed: ```' + code.error + '```', '');
@@ -183,6 +193,7 @@ for (const [f, cs] of [...byFile.entries()].sort()) {
   for (const c of cs) am.push(`- \`${c.method} ${c.template}\` — ${c.sites.map((s) => `${s.fn || '?'} (${s.file}:${s.line})`).join(', ')}`);
   am.push('');
 }
+am.push('## Calls in functions nothing in ui/src uses (dead code?)', '', ...api.calls.filter((c) => c.unused).map((c) => `- \`${c.method} ${c.template}\` — ${c.sites.map((st) => `${st.fn} (${st.file}:${st.line})`).join(', ')}${c.hits ? ' (yet a step made it)' : ''}`), '');
 am.push('## Call sites with a URL that is not a literal (check by hand)', '', ...api.dynamic.map((d) => `- ${d.method} ${d.file}:${d.line} ${d.fn || ''}`), '');
 am.push('## Requests recorded that match no call in ui/src', '', 'Usually a URL built in a way the inventory cannot read; worth a look.', '', ...[...notInSource.entries()].sort().map(([k, n]) => `- \`${k}\` ×${n}`), '');
 fs.writeFileSync(path.join(outDir, 'api-gaps.md'), am.join('\n') + '\n');

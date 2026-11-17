@@ -159,6 +159,17 @@ node run.mjs --target rust --group core    # or ai
 Screenshots and the report go to `e2e/report/` (`--report <folder>` elsewhere). `E2E_SOFT=1` keeps a scenario going
 after a failed step.
 
+How much of the UI the run covers: `E2E_MEASURE=1` records the controls each step acted on, the labels it showed and
+the V8 coverage of the pages; `measure/report.mjs` matches them against the server calls and labels read from
+`ui/src` and writes `report/measure/` (a summary, the lists of what is not covered, code coverage per file and in
+HTML). Build the UI unminified for it, or the lines map badly. The baseline and the plan are in `docs/e2e-test-plan.md`.
+
+```bash
+cd ui && npx vite build --sourcemap --minify false && cd ../server/e2e
+npm ci                                     # the coverage converter (monocart-coverage-reports)
+E2E_MEASURE=1 node run.mjs --target rust && node measure/report.mjs
+```
+
 The scenarios were written against the Python server of 4.0.3 first. To compare again, check out its last commit
 (`36352ea`) in a worktree, run `uv sync` in its `server/`, and run both: `report/diff.md` lists every step whose
 answers or screen differ.
