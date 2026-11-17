@@ -110,8 +110,11 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
   const textOff = off || st.inCode;
   const look = blockLook(editor);
   const size = typeof st.fontSize === 'number' ? st.fontSize : st.fontSize === 'mixed' ? null : look.size;
-  const toggle = (id: string) => (e: React.MouseEvent<HTMLElement>) =>
-    setMenu((m) => (m?.id === id ? null : { id, anchor: e.currentTarget }));
+  const toggle = (id: string) => (e: React.MouseEvent<HTMLElement>) => {
+    // read the button now: React clears currentTarget once the handler returns, before the updater runs
+    const anchor = e.currentTarget;
+    setMenu((m) => (m?.id === id ? null : { id, anchor }));
+  };
   const close = () => setMenu(null);
   const run = (fn: () => unknown) => () => {
     fn();

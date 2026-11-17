@@ -206,7 +206,8 @@ export default {
       await saved();
     });
     await s.step('ribbon: a text colour by name, a highlight colour and the alignment of a paragraph', async () => {
-      await content().getByText(/Euler said/).click();
+      // the start of the line: the middle of it is the formula's node view, which takes the click
+      await content().locator('p', { hasText: /Euler said/ }).first().click({ position: { x: 4, y: 8 } });
       await p.keyboard.press('End');
       await p.keyboard.press('Enter');
       await p.keyboard.type('Colour line');
@@ -394,7 +395,8 @@ export default {
       await dlg.waitFor({ state: 'detached' });
       const img = content().getByTestId('docs-image').first();
       await img.locator('img[src*="/uploads/"]').waitFor({ timeout: 15000 });
-      await img.locator('img').click();
+      // a new picture is selected already; the size label covers a small one, so the click is forced
+      await img.locator('img').click({ force: true });
       const bar = p.getByRole('toolbar', { name: 'Image' });
       await bar.waitFor();
       await bar.getByRole('button', { name: 'Float right' }).click();
@@ -410,6 +412,8 @@ export default {
       await saved();
     });
     await s.step('table: inserted with the size picker, two cells merged, then split again', async () => {
+      // the focus is in the image properties that just closed: back into the text first
+      await content().locator('p').last().click();
       await p.keyboard.press('Control+End');
       await p.keyboard.press('Enter');
       await insert('table');
