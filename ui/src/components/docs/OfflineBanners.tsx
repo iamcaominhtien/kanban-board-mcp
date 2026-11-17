@@ -11,8 +11,12 @@ const bar = {
   flexShrink: 0,
 } as const;
 
-/** "You are offline" banner of the editor (DocsEditor board F). */
-export function OfflineBanner({ onRetry }: { onRetry: () => void }) {
+/**
+ * "You are offline" banner of the editor (DocsEditor board F).
+ * @param props.onRetry - "Retry now": checks the connection.
+ * @param props.checking - A check is running: the button says so and waits.
+ */
+export function OfflineBanner({ onRetry, checking = false }: { onRetry: () => void; checking?: boolean }) {
   return (
     <div
       role="status"
@@ -28,8 +32,8 @@ export function OfflineBanner({ onRetry }: { onRetry: () => void }) {
           Your edits are kept in this browser and sync when the connection returns. Publishing needs a connection.
         </div>
       </div>
-      <button type="button" className="st-btn st-btn-sm" onClick={onRetry}>
-        Retry now
+      <button type="button" className="st-btn st-btn-sm" onClick={onRetry} disabled={checking} aria-busy={checking}>
+        {checking ? 'Checking…' : 'Retry now'}
       </button>
     </div>
   );
