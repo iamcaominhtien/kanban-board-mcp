@@ -179,6 +179,10 @@ pub async fn list_tree(session: &Session, project_id: &str) -> Result<Vec<Value>
                 "cover": settings.get("cover").and_then(|c| c.get("src")),
                 "page_status": settings.get("status"),
                 "book": settings.get("book"),
+                "not_for_ai": settings.get("notForAi").and_then(Value::as_bool).unwrap_or(false),
+                "created_by": p.created_by,
+                "updated_by": p.updated_by,
+                "created_at": p.created_at,
             })
         })
         .collect())

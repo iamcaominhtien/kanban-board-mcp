@@ -56,9 +56,42 @@ export default {
       await p.getByText('First version').first().waitFor();
       await p.getByText('Added step three').first().waitFor();
     });
+    await s.step('history: each row counts the blocks it changed, and Compare shows them block by block', async () => {
+      await p.getByTestId('version-count-2').getByText(/\d+ blocks? (edited|added|removed)/).waitFor();
+      await p.getByLabel('Select version 1').check({ force: true });
+      await p.getByLabel('Select version 2').check({ force: true });
+      await p.getByRole('button', { name: 'Compare', exact: true }).click();
+      const cmp = p.getByTestId('history-compare');
+      await cmp.getByTestId('hx-label').filter({ hasText: 'Text edited' }).first().waitFor();
+      await cmp.getByRole('navigation', { name: 'Jump to a change' }).waitFor();
+      // any two versions: swapping them compares the other way round
+      await cmp.getByTestId('hx-swap').click();
+      await cmp.getByLabel('From version').locator('option:checked').filter({ hasText: 'v2' }).waitFor({ state: 'attached' });
+      await cmp.getByRole('button', { name: 'Back to page' }).click();
+      await p.getByTestId('history-drawer').waitFor();
+      await p.getByLabel('Select version 1').uncheck({ force: true });
+      await p.getByLabel('Select version 2').uncheck({ force: true });
+    });
+    await s.step('history: Copy as new page makes a draft from version 1', async () => {
+      // on desktop a row's actions show on hover; the rows keep their height, so a click is not moved onto another row
+      // when the row that had focus (version 2, whose box was just cleared) hides its buttons
+      await p.getByTestId('version-row-1').hover();
+      await p.getByTestId('copy-version-1').click();
+      const d = p.getByRole('dialog', { name: 'Copy v1 as a new page' });
+      await d.getByLabel('Title').fill('Handbook first draft');
+      await Promise.all([
+        p.waitForResponse((r) => r.request().method() === 'PUT' && /\/draft$/.test(r.url()), { timeout: 8000 }),
+        d.getByTestId('hx-copy-confirm').click(),
+      ]);
+      await p.getByText('Created a draft').waitFor();
+      await item('Handbook first draft').waitFor();
+    });
     await s.step('open version 1 and restore it', async () => {
       await p.getByText('First version').first().click();
       await p.getByRole('button', { name: /Restore/ }).first().click();
+      // restore asks first: it makes a new version and says what happens to comments
+      await p.getByTestId('hx-restore').getByText('Restoring creates v3.').waitFor();
+      await p.getByTestId('hx-restore-comments').getByText('Comments stay with the page, not with a version.').waitFor();
       const confirm = p.getByRole('dialog').getByRole('button', { name: /Restore/ });
       if (await confirm.count()) await confirm.last().click();
       await s.settle(2500);
@@ -197,6 +230,30 @@ export default {
       await p.getByRole('button', { name: 'Resolve thread' }).first().click();
       await s.settle();
     });
+    await s.step('a comment carries its block, and with the panel closed its mark sits in the margin', async () => {
+      const li = p.getByRole('listitem').filter({ hasText: 'step two' }).first();
+      await li.scrollIntoViewIfNeeded();
+      const box = await li.boundingBox();
+      await p.mouse.move(box.x + 2, box.y + box.height / 2);
+      await p.mouse.down();
+      await p.mouse.move(box.x + 60, box.y + box.height / 2, { steps: 6 });
+      await p.mouse.up();
+      await p.waitForTimeout(300);
+      await p.getByTestId('selection-comment').click();
+      const dlg = p.getByRole('dialog', { name: 'New comment' });
+      await dlg.getByPlaceholder('Write a comment…').fill('Say which tool this step needs.');
+      const [req] = await Promise.all([
+        p.waitForRequest((r) => r.method() === 'POST' && /\/comments$/.test(r.url()), { timeout: 8000 }),
+        p.keyboard.press('Control+Enter'),
+      ]);
+      const sent = JSON.parse(req.postData() ?? '{}');
+      if (!sent.anchor?.block_id) throw new Error('the comment must carry its block id: ' + req.postData());
+      await p.getByTestId('comments-close').click();
+      const mark = p.getByTestId('margin-mark').first();
+      await mark.waitFor();
+      await mark.click();
+      await p.getByTestId('comments-panel').getByText('Say which tool this step needs.').waitFor();
+    });
     await s.step('move Install guide to the bin', async () => {
       await item('Install guide').click();
       await p.getByRole('button', { name: 'Page actions', exact: true }).click();
@@ -204,8 +261,10 @@ export default {
       await p.getByRole('dialog').getByRole('button', { name: /^Delete page/ }).click();
       await item('Install guide').waitFor({ state: 'detached' });
     }, { expectConsole: true }); // the open page is fetched once more after it is gone (410)
-    await s.step('restore it from the Recycle Bin', async () => {
-      await p.getByRole('button', { name: 'Recycle Bin' }).click();
+    await s.step('restore it from the Recycle Bin (the row under the tree opens it); its days left are shown', async () => {
+      // the sidebar and the row under the page tree both open the bin
+      await p.getByTestId('tree-recycle-bin').click();
+      await p.getByRole('dialog', { name: 'Recycle Bin' }).getByTestId('bin-days-left').first().waitFor();
       await p.getByRole('button', { name: 'Restore' }).first().click();
       await s.settle(2000);
     });
@@ -213,6 +272,70 @@ export default {
       await p.keyboard.press('Escape');
       await openDocs(s).catch(() => {});
       await item('Install guide').waitFor();
+    });
+    // Organising pages: icons, views, filters, moving, several pages (design "Rich Docs — organising pages")
+    await s.step('row menu › Page icon…: the emoji shows in the tree row', async () => {
+      await item('Release notes').hover();
+      await tree().getByRole('button', { name: 'Page actions for Release notes' }).click();
+      await p.getByRole('menuitem', { name: /Page icon/ }).click();
+      const picker = p.getByRole('dialog', { name: 'Page icon' });
+      await picker.getByRole('option', { name: '📖' }).click();
+      await picker.waitFor({ state: 'detached' });
+      await p.getByTestId('tree-row-release-notes').getByText('📖').waitFor();
+    });
+    await s.step('Gallery: top-level pages as cards; a card with pages inside opens as a folder', async () => {
+      await p.getByTestId('tree-view-menu').click();
+      await p.getByTestId('tree-view-gallery').click();
+      const g = p.getByTestId('docs-gallery');
+      await g.getByTestId('gallery-card-handbook').getByRole('button', { name: 'Handbook', exact: true }).click();
+      await g.getByText('1 page inside').waitFor();
+      await g.getByRole('button', { name: 'Open page' }).click();
+      await g.waitFor({ state: 'detached' });
+      await p.getByTestId('page-title').getByText('Handbook', { exact: true }).waitFor();
+    });
+    await s.step('Recent: the newest edits grouped by day', async () => {
+      await p.getByTestId('tree-view-menu').click();
+      await p.getByTestId('tree-view-recent').click();
+      const r = p.getByTestId('docs-recent');
+      await r.getByRole('group', { name: 'Today' }).waitFor();
+      await r.getByRole('button', { name: /Release notes/ }).first().click();
+      await r.waitFor({ state: 'detached' });
+    });
+    await s.step('filters combine and say which are on when nothing matches', async () => {
+      await p.getByTestId('tree-filter').click();
+      await p.getByTestId('tree-filter-outdated').click();
+      await p.getByTestId('tree-filter-show').click();
+      await p.getByTestId('tree-no-match').getByText('None of the pages may be outdated.').waitFor();
+      await p.getByTestId('tree-no-match').getByRole('button', { name: 'Clear filters' }).click();
+      await item('Handbook').waitFor();
+    });
+    await s.step('Alt+Shift+↑ moves a page up; the toast offers Undo', async () => {
+      await p.getByTestId('tree-row-release-notes').focus();
+      await p.keyboard.press('Alt+Shift+ArrowUp');
+      await p.getByText(/Moved “Release notes” to the top level/).waitFor();
+      await p.getByRole('button', { name: 'Undo' }).first().click();
+      await p.getByText('Moved “Release notes” back').waitFor();
+    });
+    await s.step('several pages: a picked parent brings its child page; Done ends it', async () => {
+      await p.getByTestId('tree-row-handbook').click({ modifiers: ['Control'] });
+      await p.getByTestId('tree-selection-bar').getByText('1 selected · 2 pages').waitFor();
+      await p.getByTestId('tree-selection-done').click();
+      await p.getByTestId('tree-selection-bar').waitFor({ state: 'detached' });
+    });
+    await s.step('row menu › Turn into a book… opens Page settings on its Book tab', async () => {
+      await item('Handbook').hover();
+      await tree().getByRole('button', { name: 'Page actions for Handbook' }).click();
+      await p.getByRole('menuitem', { name: /Turn into a book/ }).click();
+      await p.getByTestId('ps-book').click();
+      await p.getByTestId('ps-done').click();
+      // a book reads in order: the side shows its chapters, numbered, and the footer leads to chapter 1
+      const ch = p.getByTestId('chapter-list');
+      await ch.getByText('1 chapter').waitFor();
+      await ch.getByRole('listitem').filter({ hasText: 'Install guide' }).getByText('1', { exact: true }).waitFor();
+      await p.getByTestId('reading-footer').getByText('1. Install guide').waitFor();
+      // a book's pages read in focus, the tree folded to its rail; a page outside the book brings the tree back
+      await p.getByRole('button', { name: 'Release notes', exact: true }).first().click();
+      await item('Release notes').waitFor();
     });
     await s.step('search with Ctrl+K', async () => {
       await p.keyboard.press('Control+k');

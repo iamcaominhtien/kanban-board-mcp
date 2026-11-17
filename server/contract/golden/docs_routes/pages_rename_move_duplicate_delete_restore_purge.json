@@ -1308,7 +1308,11 @@
         "icon": null,
         "cover": null,
         "page_status": null,
-        "book": null
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       },
       {
         "id": "<uuid:2>",
@@ -1326,7 +1330,11 @@
         "icon": null,
         "cover": null,
         "page_status": null,
-        "book": null
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       },
       {
         "id": "<uuid:3>",
@@ -1344,7 +1352,11 @@
         "icon": null,
         "cover": null,
         "page_status": null,
-        "book": null
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       },
       {
         "id": "<uuid:5>",
@@ -1362,7 +1374,11 @@
         "icon": null,
         "cover": null,
         "page_status": null,
-        "book": null
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       },
       {
         "id": "<uuid:6>",
@@ -1380,7 +1396,11 @@
         "icon": null,
         "cover": null,
         "page_status": null,
-        "book": null
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       },
       {
         "id": "<uuid:7>",
@@ -1398,7 +1418,11 @@
         "icon": null,
         "cover": null,
         "page_status": null,
-        "book": null
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       },
       {
         "id": "<uuid:4>",
@@ -1416,7 +1440,11 @@
         "icon": null,
         "cover": null,
         "page_status": null,
-        "book": null
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       },
       {
         "id": "<uuid:8>",
@@ -1434,7 +1462,11 @@
         "icon": null,
         "cover": null,
         "page_status": null,
-        "book": null
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       },
       {
         "id": "<uuid:9>",
@@ -1452,7 +1484,11 @@
         "icon": null,
         "cover": null,
         "page_status": null,
-        "book": null
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       }
     ]
   },
@@ -1475,7 +1511,11 @@
         "icon": null,
         "cover": null,
         "page_status": null,
-        "book": null
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       },
       {
         "id": "<uuid:2>",
@@ -1493,7 +1533,11 @@
         "icon": null,
         "cover": null,
         "page_status": null,
-        "book": null
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       },
       {
         "id": "<uuid:3>",
@@ -1511,7 +1555,11 @@
         "icon": null,
         "cover": null,
         "page_status": null,
-        "book": null
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       },
       {
         "id": "<uuid:4>",
@@ -1529,7 +1577,11 @@
         "icon": null,
         "cover": null,
         "page_status": null,
-        "book": null
+        "book": null,
+        "not_for_ai": false,
+        "created_by": "user",
+        "updated_by": "user",
+        "created_at": "<time>"
       }
     ]
   }

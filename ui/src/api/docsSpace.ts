@@ -34,9 +34,11 @@ export interface DocsSpaceSettings {
 
 /** A change: whole keys, or part of an object key (`newPage`, `uploads`, `aiApply` merge key by key). */
 export type DocsSpacePatch = {
-  [K in keyof DocsSpaceSettings]?: DocsSpaceSettings[K] extends Record<string, unknown>
-    ? Partial<DocsSpaceSettings[K]>
-    : DocsSpaceSettings[K];
+  [K in keyof DocsSpaceSettings]?: DocsSpaceSettings[K] extends unknown[]
+    ? DocsSpaceSettings[K]
+    : DocsSpaceSettings[K] extends object
+      ? Partial<DocsSpaceSettings[K]>
+      : DocsSpaceSettings[K];
 };
 
 /** The largest upload limits an admin can choose, in MB (the server's `MAX_LIMITS_MB`). */

@@ -332,12 +332,26 @@ fn book_of(req: &ExportRequest) -> Option<Book> {
 }
 
 /// Renders the export: the bytes of the file to keep.
+/// The bytes of a finished export.
+struct Output {
+    bytes: Vec<u8>,
+    /// Whether the bytes are a zip of several files (the stored name then ends in `.zip`).
+    zip: bool,
+}
+
+/// Renders the pages into the export's bytes, off the async runtime.
+///
+/// `zipped` asks for one file per page in a zip; a format that makes several files (images in a folder, an HTML folder)
+/// is zipped as well.
+///
+/// # Errors
+/// The reason, when a page cannot be rendered (a PDF that Chromium could not print) or nothing was exported.
 async fn run(
     id: &str,
     pages: Vec<ExportPage>,
     req: &ExportRequest,
     zipped: bool,
-) -> std::result::Result<Vec<u8>, String> {
+) -> std::result::Result<Output, String> {
     let id = id.to_string();
     let req = req.clone();
     tokio::task::spawn_blocking(move || {
@@ -432,13 +446,26 @@ async fn run(
         };
         let _ = id;
         if zipped || files.len() > 1 {
-            zip_files(&files)
+            zip_files(&files).map(|bytes| Output { bytes, zip: true })
         } else {
-            files.into_iter().next().map(|f| f.bytes).ok_or_else(|| "Nothing was exported.".to_string())
+            files
+                .into_iter()
+                .next()
+                .map(|f| Output { bytes: f.bytes, zip: false })
+                .ok_or_else(|| "Nothing was exported.".to_string())
         }
     })
     .await
     .map_err(|e| format!("The export stopped: {e}"))?
+}
+
+/// The stored name of an export: `name` with its extension changed to `.zip` when the output is a zip.
+fn zip_name(name: &str, zip: bool) -> String {
+    if !zip || name.ends_with(".zip") {
+        return name.to_string();
+    }
+    let stem = name.rsplit_once('.').map_or(name, |(stem, _)| stem);
+    format!("{stem}.zip")
 }
 
 /// A zip of the files (stored, no compression needed for the formats that are already compressed).
@@ -461,7 +488,7 @@ fn export_dir() -> PathBuf {
     kb_files::uploads::get_private_dir().join("docs-exports")
 }
 
-async fn finish(session: &Session, id: &str, outcome: std::result::Result<Vec<u8>, String>) -> Result<()> {
+async fn finish(session: &Session, id: &str, outcome: std::result::Result<Output, String>) -> Result<()> {
     let Some(row) = docs_export::Entity::find_by_id(id).one(session).await? else { return Ok(()) };
     if row.state == "cancelled" {
         return Ok(());
@@ -469,9 +496,10 @@ async fn finish(session: &Session, id: &str, outcome: std::result::Result<Vec<u8
     let mut active = kb_db::edit(row.clone());
     active.finished_at = Set(Some(time::now_iso()));
     match outcome {
-        Ok(bytes) => {
+        Ok(Output { bytes, zip }) => {
             let dir = export_dir().join(id);
-            let name = row.file_name.clone().unwrap_or_else(|| "export".into());
+            let name = zip_name(row.file_name.as_deref().unwrap_or("export"), zip);
+            active.file_name = Set(Some(name.clone()));
             let written = tokio::fs::create_dir_all(&dir).await.and(tokio::fs::write(dir.join(&name), &bytes).await);
             match written {
                 Ok(()) => {
@@ -606,6 +634,13 @@ pub async fn purge_expired(session: &Session) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn zipped_outputs_are_named_zip() {
+        assert_eq!(zip_name("Handbook.md", true), "Handbook.zip");
+        assert_eq!(zip_name("Handbook.md", false), "Handbook.md");
+        assert_eq!(zip_name("Handbook.zip", true), "Handbook.zip");
+    }
 
     #[test]
     fn file_names_are_cleaned() {

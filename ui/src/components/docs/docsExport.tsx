@@ -1,8 +1,7 @@
 /**
  * Export from the page header and the page menu (design board "Rich Docs — reading", frame 26): one short menu of
  * four formats. Picking one asks for the export dialog with that format chosen; "Export…" in More asks for it with
- * the last format used. The dialog itself comes later: until something answers the `docs:open-export` event, the
- * caller falls back (Markdown still downloads as before).
+ * the last format used. The dialog is `export/ExportHost.tsx`, which answers the `docs:open-export` event.
  */
 
 import { useEffect, useRef } from 'react';

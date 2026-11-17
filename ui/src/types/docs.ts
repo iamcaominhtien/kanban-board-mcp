@@ -41,6 +41,8 @@ export interface DocsTreeNode {
   /** Who made the page and who edited it last, when the server sends them ("My pages"). */
   createdBy?: string | null;
   updatedBy?: string | null;
+  /** The page's `notForAi` setting, when the server sends it (Settings › Docs counts them). */
+  notForAi?: boolean;
 }
 
 export interface DocsHeading {

@@ -305,25 +305,91 @@ export default {
       await bar.getByRole('button', { name: 'Close' }).click();
       await bar.waitFor({ state: 'detached' });
     });
-    await s.step('export the page as Markdown and compare the file', async () => {
-      // the header's Export menu where there is room, "Export…" in More (the last format, Markdown at first) otherwise
+    // Export goes through the export dialog: the header's Export menu picks the format where there is room,
+    // "Export…" in More opens it with the last format otherwise; the file downloads by itself when it is ready
+    const exportAs = async (format, setUp) => {
       const exportButton = p.getByTestId('export-button');
-      let pick;
       if (await exportButton.count()) {
         await exportButton.click();
-        pick = p.getByRole('menuitem', { name: /Markdown/ });
+        await p.getByTestId(`export-${format}`).click();
       } else {
         await p.getByRole('button', { name: 'Page actions' }).click();
-        pick = p.getByRole('menuitem', { name: /Export…/ });
+        await p.getByRole('menuitem', { name: /Export…/ }).click();
       }
-      const [dl] = await Promise.all([p.waitForEvent('download'), pick.click()]);
-      s.note('export file name', dl.suggestedFilename());
-      const text = fs.readFileSync(await dl.path(), 'utf8');
+      const dialog = p.getByTestId('export-dialog');
+      await dialog.waitFor();
+      await dialog.getByTestId(`export-format-${format}`).click();
+      if ((await dialog.getByTestId(`export-format-${format}`).getAttribute('aria-pressed')) !== 'true') throw new Error(`${format} is not chosen`);
+      if (setUp) await setUp(dialog);
+      const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), dialog.getByTestId('export-go').click()]);
+      await dialog.getByTestId('export-ready').waitFor();
+      s.note(`${format} export file name`, dl.suggestedFilename());
+      const file = fs.readFileSync(await dl.path());
+      await dialog.getByTestId('export-done').click();
+      await dialog.waitFor({ state: 'detached' });
+      return { name: dl.suggestedFilename(), file };
+    };
+    await s.step('export the page as Markdown through the dialog and compare the file', async () => {
+      const { name, file } = await exportAs('md', async (dialog) => {
+        // pictures inline keep it one .md file
+        await dialog.getByTestId('export-images-inline').click();
+        if (!(await dialog.getByTestId('export-file-name').inputValue()).startsWith('Editor tour')) throw new Error('the file name does not start as the page title');
+      });
+      const text = file.toString('utf8');
       s.note('export content', text);
-      if (!dl.suggestedFilename().endsWith('.md')) throw new Error('not a .md file: ' + dl.suggestedFilename());
+      if (!name.endsWith('.md')) throw new Error('not a .md file: ' + name);
       for (const part of ['# Editor tour', 'Tour of the editor', '**Bold line**', '*Italic line*', '~~Struck line~~', '`code line`', '==Marked line==', 'first item', 'second item', 'Engineer', 'Remember to publish.', '```', 'fn main() {}', '$$']) {
         if (!text.includes(part)) throw new Error(`the export lacks ${JSON.stringify(part)}:\n${text}`);
       }
+    });
+    await s.step('export the page as one HTML file with the plain look', async () => {
+      const { name, file } = await exportAs('html', async (dialog) => {
+        await dialog.getByTestId('export-layout-single').click();
+        await dialog.getByTestId('export-look-plain').click();
+      });
+      const html = file.toString('utf8');
+      if (!name.endsWith('.html')) throw new Error('not a .html file: ' + name);
+      if (!/<html/i.test(html)) throw new Error('not an HTML page: ' + html.slice(0, 200));
+      for (const part of ['Editor tour', 'Tour of the editor', 'Remember to publish.', 'Engineer']) {
+        if (!html.includes(part)) throw new Error(`the HTML export lacks ${JSON.stringify(part)}`);
+      }
+    });
+    await s.step('export the page as a PDF: Fit to content turns orientation and page numbers off', async () => {
+      const { name, file } = await exportAs('pdf', async (dialog) => {
+        await dialog.getByTestId('export-pagesize-fit').click();
+        if (!(await dialog.getByTestId('export-orientation-landscape').isDisabled())) throw new Error('orientation is not off with Fit to content');
+        if (!(await dialog.getByTestId('export-pagenumbers').isDisabled())) throw new Error('page numbers are not off with Fit to content');
+        await dialog.getByTestId('export-pagesize-a4').click();
+        // the name is checked as you type; the extension stays
+        const nameBox = dialog.getByTestId('export-file-name');
+        await nameBox.fill('Editor tour / draft?');
+        await dialog.getByText('A file name cannot contain').waitFor();
+        if (!(await dialog.getByTestId('export-go').isDisabled())) throw new Error('Export works with a bad file name');
+        await nameBox.fill('editor-tour');
+      });
+      if (name !== 'editor-tour.pdf') throw new Error('the PDF is named ' + name);
+      if (file.subarray(0, 5).toString('latin1') !== '%PDF-') throw new Error('not a PDF: ' + file.subarray(0, 20).toString('latin1'));
+    });
+    await s.step('History lists the three exports, ready to download again', async () => {
+      const exportButton = p.getByTestId('export-button');
+      if (await exportButton.count()) {
+        await exportButton.click();
+        await p.getByTestId('export-md').click();
+      } else {
+        await p.getByRole('button', { name: 'Page actions' }).click();
+        await p.getByRole('menuitem', { name: /Export…/ }).click();
+      }
+      const dialog = p.getByTestId('export-dialog');
+      await dialog.getByTestId('export-tab-history').click();
+      await dialog.getByTestId('export-history').waitFor();
+      const rows = dialog.getByTestId('export-row');
+      await rows.nth(2).waitFor();
+      for (const n of ['editor-tour.pdf', '.html', '.md']) await dialog.getByTestId('export-row').filter({ hasText: n }).first().waitFor();
+      if ((await dialog.locator('[data-testid="export-row"][data-state="ready"]').count()) < 3) throw new Error('the exports are not all ready');
+      const [dl] = await Promise.all([p.waitForEvent('download'), rows.first().getByTestId('export-row-download-btn').click()]);
+      s.note('downloaded again', dl.suggestedFilename());
+      await p.keyboard.press('Escape');
+      await dialog.waitFor({ state: 'detached' });
     });
     await s.step('Copy as Markdown puts the page on the clipboard', async () => {
       await p.getByRole('button', { name: 'Page actions' }).click();

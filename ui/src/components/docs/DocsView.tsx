@@ -13,6 +13,7 @@ import {
 } from '../../api/docs';
 import { bookOf } from './book';
 import { openExport, type ExportFormat } from './docsExport';
+import { ExportHost } from './export/ExportHost';
 import { useRenameWithLinks } from '../../api/docsActions';
 import { fetchRenameLinkCount } from '../../api/docsPage';
 import { client } from '../../api/client';
@@ -593,17 +594,9 @@ export function DocsView({
     }
   }
 
-  /**
-   * Asks for the export dialog with a format; until there is one, Markdown downloads as before and the other
-   * formats say they are not here yet.
-   */
+  /** Opens the export dialog (ExportHost) with a format; without it (never here), Markdown downloads as before. */
   function exportPage(full: DocsPage, format: ExportFormat | null) {
     if (openExport(full.id, format)) return;
-    const chosen = format ?? 'md';
-    if (chosen !== 'md') {
-      toast.info('Not yet', 'This format comes with the export dialog. Markdown works now.');
-      return;
-    }
     const doc = publishedDoc(full);
     const md = doc ? docToMarkdown(doc) : full.markdown;
     download(`${full.slug}.md`, `# ${full.title}\n\n${canvasesAsImages(sketchesAsImages(md))}\n`);
@@ -1505,6 +1498,14 @@ export function DocsView({
             onRenamed={() => setRenameFor(null)}
           />
         )}
+        <ExportHost
+          projectId={projectId}
+          projectName={projectName}
+          nodes={nodes}
+          canEdit={!!access.data?.canEdit}
+          layout={layout}
+          currentPage={page}
+        />
         {peekTarget && (
           <DocPeekPanel
             target={peekTarget}

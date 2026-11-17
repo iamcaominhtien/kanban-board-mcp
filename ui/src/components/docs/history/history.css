@@ -317,8 +317,11 @@
   border: 1px solid #d9ccf7;
   color: #5b3aa6;
 }
+/* On desktop the buttons keep their room while hidden: a row that grew on hover or focus would move the rows under
+   it, and a click aimed at them would land on the wrong row. */
 .hx-actions {
-  display: none;
+  display: flex;
+  visibility: hidden;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 6px;
@@ -327,10 +330,11 @@
 .hx-row:hover .hx-actions,
 .hx-row:focus-within .hx-actions,
 .hx-row[data-selected] .hx-actions {
-  display: flex;
+  visibility: visible;
 }
 .hx-touch .hx-actions {
   display: none;
+  visibility: visible;
 }
 .hx-touch[data-selected] .hx-actions {
   display: flex;

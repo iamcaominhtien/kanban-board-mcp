@@ -1,0 +1,128 @@
+/* Settings › Docs: the cards beyond "on" and "who can edit" (design "Rich Docs — organising pages", F). */
+.ds-root {
+  display: contents;
+}
+.ds-off .ds-fields,
+.ds-off .ds-preview {
+  opacity: 0.5;
+}
+.ds-fields {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ds-fields:disabled {
+  cursor: default;
+}
+.ds-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .ds-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.ds-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+.ds-preview {
+  border-radius: 12px;
+  border: 1px solid #e3e8e5;
+  background: #f6faf7;
+  padding: 12px;
+}
+.ds-preview-page {
+  border-radius: 8px;
+  padding: 18px 14px;
+  min-height: 200px;
+  box-shadow: 0 2px 10px rgba(30, 42, 34, 0.08);
+  line-height: 1.55;
+}
+.ds-preview-page p {
+  margin: 8px 0;
+}
+.ds-preview-title {
+  font-size: 1.5em;
+  font-weight: 800;
+}
+.ds-preview-by {
+  font-size: 0.78em;
+  margin-top: 2px;
+}
+.ds-preview-h {
+  font-size: 1.15em;
+  font-weight: 700;
+  margin-top: 10px;
+}
+.ds-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ds-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: #1e2a22;
+}
+.ds-check input {
+  margin-top: 2px;
+  accent-color: #2e6f40;
+}
+.ds-check small,
+.ds-team small,
+.ds-tpl small {
+  display: block;
+  font-size: 12px;
+  color: #5b6b60;
+}
+.ds-mb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #5b6b60;
+}
+.ds-mb input {
+  width: 90px;
+}
+.ds-fixed {
+  font-size: 13px;
+  font-weight: 600;
+  color: #3a4a3e;
+}
+.ds-team {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ds-tpl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #eef3ef;
+  font-size: 13px;
+}
+.ds-tpl small {
+  grid-column: 1;
+}
+.ds-tpl span {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: 12px;
+  color: #5b6b60;
+}
