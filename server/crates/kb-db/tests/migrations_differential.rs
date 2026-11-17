@@ -1,13 +1,13 @@
 //! The migration differential on SQLite (docs/specs/rust-migration.md, "How parity is checked", point 5).
 //!
-//! `contract/migrations/gen_fixtures.py` built, with the Python server's Alembic chain, a database at each of the 80
+//! `contract/migrations/gen_fixtures.py` built, with the Python server's Alembic chain, a database at each of the 81
 //! revisions, filled it with sample rows and saved it (`fixtures/sqlite/<revision>.db.gz`), then let Alembic upgrade
 //! a copy to the head and saved what it held (`expected/sqlite/<revision>.json.gz`). Here the Rust server upgrades
 //! the same fixtures, through `database::setup` and `init_db` as at startup, and what the database holds afterwards
 //! must be the same: every table's columns (order, declared type, NOT NULL, default, primary key), indexes (name,
 //! columns, unique, partial and its WHERE), foreign keys, the FTS tables, and every row of every table.
 //!
-//! Besides the 80 revisions there are fixtures for an empty file, a file with only an unstamped `alembic_version`,
+//! Besides the 81 revisions there are fixtures for an empty file, a file with only an unstamped `alembic_version`,
 //! and eight databases that are not what the chain makes (`<revision>+<what>`: stamped with a removed revision, or
 //! left half-made by a pre-release build).
 //!
@@ -104,7 +104,7 @@ fn the_runner_plans_the_revisions_in_alembics_order() {
     let plans: Value =
         serde_json::from_slice(&std::fs::read(differential::contract_dir().join("plans.json")).unwrap()).unwrap();
     let plans = plans.as_object().unwrap();
-    // from nothing, from each of the 80 revisions, and from the states with two branches open
+    // from nothing, from each of the 81 revisions, and from the states with two branches open
     assert!(plans.len() > 100);
     for (start, order) in plans {
         let current: Vec<String> = start.split(',').filter(|s| !s.is_empty()).map(str::to_string).collect();
@@ -119,11 +119,11 @@ fn the_runner_plans_the_revisions_in_alembics_order() {
 async fn every_revision_upgrades_to_what_the_python_server_made_of_it() {
     let from_python = std::env::var("MIGRATION_EXPECT_FROM_PYTHON").is_ok_and(|v| v == "1");
     let names = differential::fixture_names("sqlite");
-    // none dropped: a fixture for each of the 80 revisions
+    // none dropped: a fixture for each of the 81 revisions
     for revision in differential::revisions() {
         assert!(names.iter().any(|n| n == revision), "no fixture for {revision}");
     }
-    assert_eq!(differential::revisions().len(), 80);
+    assert_eq!(differential::revisions().len(), 81);
 
     let dir = tempfile::tempdir().unwrap();
     let mut failures: Vec<String> = Vec::new();

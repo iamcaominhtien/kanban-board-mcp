@@ -1050,6 +1050,7 @@ CREATE TABLE docs_comment_thread (
 	created_at VARCHAR NOT NULL, 
 	resolved_by VARCHAR, 
 	resolved_at VARCHAR, 
+	anchor_block_id VARCHAR, 
 	PRIMARY KEY (id)
 );
 
@@ -1065,6 +1066,9 @@ CREATE TABLE docs_draft (
 	saves INTEGER NOT NULL, 
 	updated_at VARCHAR NOT NULL, 
 	ai_source VARCHAR, 
+	format VARCHAR DEFAULT 'md' NOT NULL, 
+	content VARCHAR, 
+	text VARCHAR, 
 	PRIMARY KEY (id)
 );
 
@@ -1081,6 +1085,8 @@ CREATE TABLE docs_link (
 	display_text VARCHAR, 
 	snippet VARCHAR NOT NULL, 
 	origin VARCHAR NOT NULL, 
+	source_block_id VARCHAR, 
+	target_block_id VARCHAR, 
 	PRIMARY KEY (id)
 );
 
@@ -1107,6 +1113,9 @@ CREATE TABLE docs_page (
 	deleted_by VARCHAR, 
 	deleted_root_id VARCHAR, 
 	kind VARCHAR NOT NULL, 
+	settings VARCHAR, 
+	convert_state VARCHAR, 
+	convert_error VARCHAR, 
 	PRIMARY KEY (id)
 );
 
@@ -1145,6 +1154,9 @@ CREATE TABLE docs_version (
 	created_at VARCHAR NOT NULL, 
 	diagram_versions VARCHAR NOT NULL, 
 	with_ai BOOLEAN NOT NULL, 
+	format VARCHAR DEFAULT 'md' NOT NULL, 
+	content VARCHAR, 
+	text VARCHAR, 
 	PRIMARY KEY (id)
 );
 

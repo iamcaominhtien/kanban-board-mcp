@@ -21,6 +21,10 @@ pub struct Model {
     /// page: written in a published page; manual: a person linked a ticket to a page.
     /// (Mentions in a ticket's description or comments are derived on read, not stored.)
     pub origin: String,
+    /// Id of the block the link is written in; None for a Markdown page
+    pub source_block_id: Option<String>,
+    /// Id of the block the link points at; None when it points at the page
+    pub target_block_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -42,5 +46,7 @@ pub fn new() -> ActiveModel {
         display_text: Set(None),
         snippet: Set("".to_string()),
         origin: Set("page".to_string()),
+        source_block_id: Set(None),
+        target_block_id: Set(None),
     }
 }

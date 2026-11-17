@@ -20,6 +20,12 @@ pub struct Model {
     pub updated_at: String,
     /// "Drafted with AI": JSON {kind, from, member_id, gaps: [], sources: [], accepted: bool}; None for a plain draft
     pub ai_source: Option<String>,
+    /// `md` (Markdown in `markdown`) or `rich` (the page is the JSON in `content`)
+    pub format: String,
+    /// The page as rich JSON; None while `format` is `md`
+    pub content: Option<String>,
+    /// Plain-text projection of `content`, for search and AI; None while `format` is `md`
+    pub text: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -40,5 +46,8 @@ pub fn new() -> ActiveModel {
         saves: Set(1),
         updated_at: Set(kb_base::time::now_iso()),
         ai_source: Set(None),
+        format: Set("md".to_string()),
+        content: Set(None),
+        text: Set(None),
     }
 }

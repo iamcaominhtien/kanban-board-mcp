@@ -270,8 +270,8 @@ pub async fn server_differential(url: &str, folder: &str, dialect: &str) {
         .into_iter()
         .filter(|id| *id == migrations::SERVER_BASE || migrations::runs_on_servers(id))
         .collect();
-    assert_eq!(server_range.len(), 10);
-    assert_eq!(names.len(), 10);
+    assert_eq!(server_range.len(), 11);
+    assert_eq!(names.len(), 11);
     let mut failures: Vec<String> = Vec::new();
     for revision in &server_range {
         assert!(names.iter().any(|n| n == revision), "no fixture for {revision}");

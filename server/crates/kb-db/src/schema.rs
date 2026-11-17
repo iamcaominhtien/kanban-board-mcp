@@ -194,7 +194,7 @@ mod tests {
 
     #[test]
     fn the_chain_ends_at_the_snapshot_head() {
-        assert_eq!(CHAIN.len(), 80);
+        assert_eq!(CHAIN.len(), 81);
         assert_eq!(head_revision(), include_str!("../schema/head.txt").trim());
         assert!(known_revision("551353060a20"));
         assert!(known_revision("f6a7b8c9d0e1"));

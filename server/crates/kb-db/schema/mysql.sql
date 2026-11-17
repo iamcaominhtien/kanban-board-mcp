@@ -1050,6 +1050,7 @@ CREATE TABLE docs_comment_thread (
 	created_at LONGTEXT NOT NULL, 
 	resolved_by LONGTEXT, 
 	resolved_at LONGTEXT, 
+	anchor_block_id VARCHAR(255), 
 	PRIMARY KEY (id)
 )ENGINE=InnoDB CHARSET=utf8mb4 COLLATE utf8mb4_bin;
 
@@ -1065,6 +1066,9 @@ CREATE TABLE docs_draft (
 	saves INTEGER NOT NULL, 
 	updated_at LONGTEXT NOT NULL, 
 	ai_source LONGTEXT, 
+	format VARCHAR(255) NOT NULL DEFAULT 'md', 
+	content LONGTEXT, 
+	text LONGTEXT, 
 	PRIMARY KEY (id)
 )ENGINE=InnoDB CHARSET=utf8mb4 COLLATE utf8mb4_bin;
 
@@ -1081,6 +1085,8 @@ CREATE TABLE docs_link (
 	display_text LONGTEXT, 
 	snippet LONGTEXT NOT NULL, 
 	origin LONGTEXT NOT NULL, 
+	source_block_id VARCHAR(255), 
+	target_block_id VARCHAR(255), 
 	PRIMARY KEY (id)
 )ENGINE=InnoDB CHARSET=utf8mb4 COLLATE utf8mb4_bin;
 
@@ -1107,6 +1113,9 @@ CREATE TABLE docs_page (
 	deleted_by LONGTEXT, 
 	deleted_root_id LONGTEXT, 
 	kind LONGTEXT NOT NULL, 
+	settings LONGTEXT, 
+	convert_state VARCHAR(255), 
+	convert_error LONGTEXT, 
 	PRIMARY KEY (id)
 )ENGINE=InnoDB CHARSET=utf8mb4 COLLATE utf8mb4_bin;
 
@@ -1145,6 +1154,9 @@ CREATE TABLE docs_version (
 	created_at LONGTEXT NOT NULL, 
 	diagram_versions LONGTEXT NOT NULL, 
 	with_ai BOOL NOT NULL, 
+	format VARCHAR(255) NOT NULL DEFAULT 'md', 
+	content LONGTEXT, 
+	text LONGTEXT, 
 	PRIMARY KEY (id)
 )ENGINE=InnoDB CHARSET=utf8mb4 COLLATE utf8mb4_bin;
 

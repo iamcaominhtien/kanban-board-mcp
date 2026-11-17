@@ -1,4 +1,4 @@
--- SQLite schema at Alembic head b8d0f2a4c6e9, as the migrations leave it (exported from the Python server).
+-- SQLite schema at Alembic head d2f4a6c8e0b1, as the migrations leave it (exported from the Python server).
 
 CREATE TABLE ai_account (
 	id VARCHAR NOT NULL, 
@@ -886,6 +886,7 @@ CREATE TABLE docs_comment_thread (
 	created_at VARCHAR NOT NULL, 
 	resolved_by VARCHAR, 
 	resolved_at VARCHAR, 
+	anchor_block_id VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(page_id) REFERENCES docs_page (id)
 );
@@ -898,6 +899,9 @@ CREATE TABLE docs_draft (
 	markdown VARCHAR DEFAULT '' NOT NULL, 
 	base_version INTEGER DEFAULT '0' NOT NULL, 
 	updated_at VARCHAR NOT NULL, saves INTEGER DEFAULT '1' NOT NULL, ai_source VARCHAR, 
+	format VARCHAR DEFAULT 'md' NOT NULL, 
+	content VARCHAR, 
+	text VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(page_id) REFERENCES docs_page (id)
 );
@@ -914,6 +918,8 @@ CREATE TABLE docs_link (
 	target_ticket_id VARCHAR, 
 	display_text VARCHAR, 
 	snippet VARCHAR DEFAULT '' NOT NULL, origin VARCHAR DEFAULT 'page' NOT NULL, 
+	source_block_id VARCHAR, 
+	target_block_id VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(source_page_id) REFERENCES docs_page (id)
 );
@@ -935,6 +941,9 @@ CREATE TABLE "docs_page" (
 	deleted_by VARCHAR, 
 	deleted_root_id VARCHAR, 
 	kind VARCHAR DEFAULT 'page' NOT NULL, 
+	settings VARCHAR, 
+	convert_state VARCHAR, 
+	convert_error VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(project_id) REFERENCES project (id), 
 	FOREIGN KEY(parent_id) REFERENCES docs_page (id)
@@ -969,6 +978,9 @@ CREATE TABLE "docs_version" (
 	created_at VARCHAR NOT NULL, 
 	diagram_versions VARCHAR DEFAULT '{}' NOT NULL, 
 	with_ai BOOLEAN DEFAULT 0 NOT NULL, 
+	format VARCHAR DEFAULT 'md' NOT NULL, 
+	content VARCHAR, 
+	text VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(page_id) REFERENCES docs_page (id)
 );
