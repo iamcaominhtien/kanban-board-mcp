@@ -84,6 +84,7 @@ quyết định số phận 8 call code chết.
 | Số gốc | 21 / 375 | 57.1 % | 26.0 % | 47.6 % | 42.8 % |
 | Đợt 1 (23, 24, 25) | 24 / 449 | 59.7 % | 29.8 % | 48.8 % | 43.4 % |
 | Đợt 2 (26, 27, 28) | 27 / 574 | 63.0 % | 38.9 % | 53.8 % | 48.0 % |
+| Đợt 3 (29, 30, 31) | 30 / 713 | 69.8 % | 46.3 % | 58.0 % | 52.3 % |
 
 Đợt 1: `api/tickets.ts` còn 1 call chưa phủ (từ 10), call duy nhất còn lại thuộc Docs / Idea (đợt 2, 4). Các component
 gốc (board, ticket) tăng từ 60.4 % lên 67.2 % function. Bug đã sửa: trang vẫn gọi API của project đã xoá (`App.tsx`);
@@ -96,6 +97,12 @@ option đó, nên 7 loại link trong `RelationsSection` vẫn hiện là chưa 
 Markdown source ngay sau khi mở trang bị bỏ qua (`DocsEditor.tsx`); "Retry now" ẩn banner offline khi server vẫn chưa
 liên lạc được (`DocsEditScreen.tsx`). Tính năng thêm theo yêu cầu: sửa tên / màu project, xoá cả project đang mở và
 project cuối, tạo Story từ New Ticket, Story đổi trạng thái như ticket thường.
+
+Đợt 3 (Canvas, Sketch, Diagram): draw.io được thay bằng một editor giả lập chạy ngay trong scenario 31 (một HTTP
+server nhỏ nói giao thức embed). Bug đã sửa: nhấp đúp vào note / label / board trên canvas không sửa được; Esc trong ô
+comment mới của canvas không đóng; phím P của canvas lọt xuống ticket bên dưới; "Open on a canvas" gửi sai tên tham số
+(không bao giờ liệt kê canvas có sẵn) và để trình xem file đè lên editor; Esc khi đổi tên layer của sketch vẫn lưu tên
+và mở hộp lưu; ý tưởng của Sketch AI không hiện; editor draw.io tải địa chỉ chết trước khi kiểm tra xong.
 
 ## 6. Những gì đo được đến giờ
 

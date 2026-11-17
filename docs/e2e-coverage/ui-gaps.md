@@ -41,13 +41,8 @@
 - never shown: `Linked branch` (src/components/DebugSpaceSection.tsx:396)
 - never shown: `Confirm delete` (src/components/DebugSpaceSection.tsx:949, src/components/WorkspaceSection.tsx:621)
 
-## src/components/LoadError.tsx (1)
+## src/components/MarkdownEditor.tsx (10)
 
-- never shown: `Try again` (src/components/LoadError.tsx:35, src/components/McpIntegrations.tsx:325, src/components/McpIntegrations.tsx:448, src/components/MembersPanel.tsx:153, src/components/ai/AiDialogs.tsx:61, src/components/ai/AiMembersPage.tsx:523, src/components/ai/aiUi.tsx:423, src/components/ai/code/RepoCommands.tsx:344, src/components/ai/editor/useEditorAi.tsx:653, src/components/ai/editor/useEditorAi.tsx:724, src/components/assist/AnswerBlock.tsx:201, src/components/assist/AssistSettings.tsx:201, src/components/assist/DocsAi.tsx:131, src/components/canvas/CanvasEditor.tsx:2083, src/components/docs/ImportDialog.tsx:1086, src/components/docs/ai/AskPanel.tsx:292, src/components/ideas/IdeaAiExtras.tsx:503, src/components/ideas/IdeaAiPanel.tsx:509, src/components/ideas/IdeaAiPanel.tsx:522, src/components/ideas/IdeaPage.tsx:138, src/components/ideas/IdeaSpace.tsx:433, src/components/ideas/PromoteDialog.tsx:148, src/components/notifications/NotificationStates.tsx:48, src/components/preview/TextReader.tsx:386)
-
-## src/components/MarkdownEditor.tsx (11)
-
-- shown: `Redo` (src/components/MarkdownEditor.tsx:983, src/components/sketch/SketchEditor.tsx:576)
 - shown: `Heading` (src/components/MarkdownEditor.tsx:1067)
 - shown: `Insert doc reference` (src/components/MarkdownEditor.tsx:1163, src/components/comments/Composer.tsx:392)
 - shown: `Attach File` (src/components/MarkdownEditor.tsx:1219)
@@ -123,17 +118,17 @@
 
 ## src/components/TicketModal.tsx (11)
 
-- shown: `Ticket or AI activity` (src/components/TicketModal.tsx:1907)
-- shown: `Reopen History` (src/components/TicketModal.tsx:2088)
-- never shown: `Uploading …` (src/components/TicketModal.tsx:2558)
-- shown: `Add attachment` (src/components/TicketModal.tsx:2574)
-- shown: `Ticket` (src/components/TicketModal.tsx:1908)
-- shown: `Open in Flow` (src/components/TicketModal.tsx:1954, src/components/ai/activity/AiActivityDesign.tsx:47)
-- shown: `1 pt` (src/components/TicketModal.tsx:3299)
-- shown: `2 pt` (src/components/TicketModal.tsx:3300)
-- shown: `3 pt` (src/components/TicketModal.tsx:3301)
-- shown: `8 pt` (src/components/TicketModal.tsx:3303)
-- shown: `13 pt` (src/components/TicketModal.tsx:3304)
+- shown: `Ticket or AI activity` (src/components/TicketModal.tsx:1912)
+- shown: `Reopen History` (src/components/TicketModal.tsx:2093)
+- never shown: `Uploading …` (src/components/TicketModal.tsx:2563)
+- shown: `Add attachment` (src/components/TicketModal.tsx:2579)
+- shown: `Ticket` (src/components/TicketModal.tsx:1913)
+- shown: `Open in Flow` (src/components/TicketModal.tsx:1959, src/components/ai/activity/AiActivityDesign.tsx:47)
+- shown: `1 pt` (src/components/TicketModal.tsx:3304)
+- shown: `2 pt` (src/components/TicketModal.tsx:3305)
+- shown: `3 pt` (src/components/TicketModal.tsx:3306)
+- shown: `8 pt` (src/components/TicketModal.tsx:3308)
+- shown: `13 pt` (src/components/TicketModal.tsx:3309)
 
 ## src/components/UpdateNotice.tsx (4)
 
@@ -242,7 +237,7 @@
 - never shown: `Stop signing in?` (src/components/ai/accounts/SignInWindow.tsx:445)
 - never shown: `Cancel sign-in` (src/components/ai/accounts/SignInWindow.tsx:429)
 - never shown: `Keep signing in` (src/components/ai/accounts/SignInWindow.tsx:461)
-- never shown: `Stop` (src/components/ai/accounts/SignInWindow.tsx:465, src/components/ai/code/worktreeUi.tsx:147, src/components/ai/editor/useEditorAi.tsx:632, src/components/aiteam/ResourcesTab.tsx:237, src/components/assist/AnswerBlock.tsx:145, src/components/assist/AnswerBlock.tsx:155, src/components/assist/AnswerBlock.tsx:180, src/components/docs/ai/AskPanel.tsx:275, src/components/ideas/IdeaAiPanel.tsx:540, src/components/sketch/SketchAiPanel.tsx:451, src/components/sketch/SketchAiPanel.tsx:458)
+- never shown: `Stop` (src/components/ai/accounts/SignInWindow.tsx:465, src/components/ai/code/worktreeUi.tsx:147, src/components/ai/editor/useEditorAi.tsx:632, src/components/aiteam/ResourcesTab.tsx:237, src/components/assist/AnswerBlock.tsx:145, src/components/assist/AnswerBlock.tsx:155, src/components/assist/AnswerBlock.tsx:180, src/components/docs/ai/AskPanel.tsx:275, src/components/ideas/IdeaAiPanel.tsx:540, src/components/sketch/SketchAiPanel.tsx:457, src/components/sketch/SketchAiPanel.tsx:464)
 
 ## src/components/ai/accounts/SignedOutBanners.tsx (1)
 
@@ -409,14 +404,13 @@
 
 - never shown: `Add…` (src/components/ai/tools/CatalogueTab.tsx:74)
 
-## src/components/ai/tools/InstalledTab.tsx (9)
+## src/components/ai/tools/InstalledTab.tsx (8)
 
 - never shown: `Working` (src/components/ai/tools/InstalledTab.tsx:222)
 - shown: `Search skills and plugins…` (src/components/ai/tools/InstalledTab.tsx:306)
 - shown: `Search installed` (src/components/ai/tools/InstalledTab.tsx:307)
 - shown: `Filter` (src/components/ai/tools/InstalledTab.tsx:313)
 - never shown: `See what changed` (src/components/ai/tools/InstalledTab.tsx:120)
-- shown: `Open` (src/components/ai/tools/InstalledTab.tsx:129, src/components/assist/TicketChat.tsx:27, src/components/ideas/Triage.tsx:324, src/components/notifications/DayCard.tsx:73, src/components/notifications/NotificationRow.tsx:337, src/components/settings/database/DatabaseCard.tsx:301)
 - never shown: `Unpin` (src/components/ai/tools/InstalledTab.tsx:133, src/components/ideas/IdeaDiscussion.tsx:446)
 - shown: `Check for update` (src/components/ai/tools/InstalledTab.tsx:142, src/components/ai/tools/InstalledTab.tsx:174)
 - never shown: `Roll back` (src/components/ai/tools/InstalledTab.tsx:190)
@@ -433,13 +427,12 @@
 - never shown: `Map of the teams, you and the tickets` (src/components/aiteam/FlowMap.tsx:284)
 - never shown: `Widen the range` (src/components/aiteam/FlowMap.tsx:366, src/components/aiteam/SteppedInTab.tsx:495)
 
-## src/components/aiteam/FlowScopeBar.tsx (5)
+## src/components/aiteam/FlowScopeBar.tsx (4)
 
 - shown: `What Flow looks at` (src/components/aiteam/FlowScopeBar.tsx:167)
 - never shown: `Go to a team, Story or ticket` (src/components/aiteam/FlowScopeBar.tsx:207, src/components/aiteam/FlowScopeBar.tsx:191)
 - never shown: `code or words` (src/components/aiteam/FlowScopeBar.tsx:214)
 - never shown: `Search teams, Stories and tickets` (src/components/aiteam/FlowScopeBar.tsx:215)
-- shown: `Map` (src/components/aiteam/FlowScopeBar.tsx:291, src/components/canvas/CanvasEditor.tsx:2179)
 
 ## src/components/aiteam/FlowTab.tsx (2)
 
@@ -493,10 +486,9 @@
 
 - never shown: `…: … the roles` (src/components/aiteam/TimelineGroups.tsx:96)
 
-## src/components/aiteam/TimelineStrip.tsx (2)
+## src/components/aiteam/TimelineStrip.tsx (1)
 
 - shown: `The range at a glance: drag the box to move it, drag an edge to zoom` (src/components/aiteam/TimelineStrip.tsx:103)
-- never shown: `Reset zoom` (src/components/aiteam/TimelineStrip.tsx:159, src/components/diagrams/DiagramViewer.tsx:112)
 
 ## src/components/aiteam/TimelineTab.tsx (14)
 
@@ -586,85 +578,43 @@
 - never shown: `Reply to passage …` (src/components/assist/quoteReplies.tsx:223)
 - never shown: `Remove passage …` (src/components/assist/quoteReplies.tsx:236)
 
-## src/components/canvas/CanvasEditor.tsx (19)
+## src/components/canvas/CanvasEditor.tsx (1)
 
-- shown: `Canvas …` (src/components/canvas/CanvasEditor.tsx:1032)
-- shown: `Canvas name` (src/components/canvas/CanvasEditor.tsx:1046)
-- shown: `Keys` (src/components/canvas/CanvasEditor.tsx:1262, src/components/canvas/EditorParts.tsx:339)
-- shown: `Add a page tab` (src/components/canvas/CanvasEditor.tsx:1329)
-- never shown: `Delete this page tab` (src/components/canvas/CanvasEditor.tsx:1346)
-- never shown: `Label text` (src/components/canvas/CanvasEditor.tsx:1591)
-- never shown: `Board name` (src/components/canvas/CanvasEditor.tsx:1653)
-- shown: `Board menu` (src/components/canvas/CanvasEditor.tsx:1812)
-- shown: `Note colour …` (src/components/canvas/CanvasEditor.tsx:1962)
-- shown: `Zoom out` (src/components/canvas/CanvasEditor.tsx:2154, src/components/diagrams/DiagramViewer.tsx:93, src/components/preview/ImageReader.tsx:320, src/components/preview/PdfReader.tsx:283, src/components/sketch/SketchEditor.tsx:588)
-- shown: `Tools` (src/components/canvas/CanvasEditor.tsx:2188, src/components/sketch/SketchEditor.tsx:744)
-- never shown: `Is the button label long enough for Vietnamese?` (src/components/canvas/CanvasEditor.tsx:2284)
-- shown: `Save a copy` (src/components/canvas/CanvasEditor.tsx:1245, src/components/sketch/SketchEditor.tsx:642, src/components/sketch/SketchEditor.tsx:699)
-- never shown: `Trying it: clicks go to the page. Stop` (src/components/canvas/CanvasEditor.tsx:1718)
-- never shown: `Save as copy` (src/components/canvas/CanvasEditor.tsx:2053, src/components/diagrams/DiagramEditor.tsx:530)
-- never shown: `Load theirs` (src/components/canvas/CanvasEditor.tsx:2060)
-- never shown: `Replace theirs` (src/components/canvas/CanvasEditor.tsx:2068, src/components/sketch/SketchEditor.tsx:708)
-- shown: `Fit` (src/components/canvas/CanvasEditor.tsx:2173, src/components/preview/ImageReader.tsx:334, src/components/preview/PdfReader.tsx:290)
-- shown: `Boards` (src/components/canvas/CanvasEditor.tsx:2339)
+- shown: `Tools` (src/components/canvas/CanvasEditor.tsx:2199, src/components/sketch/SketchEditor.tsx:746)
 
 ## src/components/canvas/CanvasEmbed.tsx (1)
 
 - shown: `Canvas actions` (src/components/canvas/CanvasEmbed.tsx:180)
 
-## src/components/canvas/CanvasViewer.tsx (8)
+## src/components/canvas/CanvasViewer.tsx (1)
 
-- never shown: `Previous board` (src/components/canvas/CanvasViewer.tsx:196)
-- never shown: `Next board` (src/components/canvas/CanvasViewer.tsx:205)
-- never shown: `Page width` (src/components/canvas/CanvasViewer.tsx:311, src/components/preview/HtmlReader.tsx:49)
-- shown: `Present` (src/components/canvas/CanvasViewer.tsx:450)
-- never shown: `Previous` (src/components/canvas/CanvasViewer.tsx:452, src/components/preview/OfficeReader.tsx:271, src/components/preview/PreviewViewer.tsx:417)
-- never shown: `Open canvas` (src/components/canvas/CanvasViewer.tsx:365)
-- never shown: `Try it` (src/components/canvas/CanvasViewer.tsx:462)
-- never shown: `Exit` (src/components/canvas/CanvasViewer.tsx:500)
+- shown: `Page width` (src/components/canvas/CanvasViewer.tsx:311, src/components/preview/HtmlReader.tsx:49)
 
-## src/components/canvas/CommentsPanel.tsx (2)
+## src/components/canvas/CommentsPanel.tsx (1)
 
-- never shown: `Filter comments` (src/components/canvas/CommentsPanel.tsx:149)
-- never shown: `Comment on “…”… Type @ to mention a person or a team` (src/components/canvas/CommentsPanel.tsx:168)
+- shown: `Filter comments` (src/components/canvas/CommentsPanel.tsx:149)
 
-## src/components/canvas/EditorParts.tsx (7)
+## src/components/canvas/EditorParts.tsx (5)
 
-- never shown: `Find a board…` (src/components/canvas/EditorParts.tsx:242)
-- never shown: `Find a board` (src/components/canvas/EditorParts.tsx:245)
 - never shown: `Fit height to content` (src/components/canvas/EditorParts.tsx:104)
 - never shown: `Custom…` (src/components/canvas/EditorParts.tsx:109)
 - never shown: `Files` (src/components/canvas/EditorParts.tsx:138)
 - never shown: `SVG` (src/components/canvas/EditorParts.tsx:153)
 - never shown: `GIF` (src/components/canvas/EditorParts.tsx:166)
 
-## src/components/canvas/HistoryPanel.tsx (4)
+## src/components/canvas/HistoryPanel.tsx (1)
 
 - never shown: `Compare versions` (src/components/canvas/HistoryPanel.tsx:239)
-- never shown: `Restore this version` (src/components/canvas/HistoryPanel.tsx:149)
-- never shown: `Name…` (src/components/canvas/HistoryPanel.tsx:160)
-- never shown: `Compare with the one before` (src/components/canvas/HistoryPanel.tsx:165)
 
-## src/components/canvas/MoveToDocsDialog.tsx (2)
+## src/components/canvas/NewCanvasDialog.tsx (2)
 
-- never shown: `Move to Docs` (src/components/canvas/MoveToDocsDialog.tsx:58)
-- shown: `Top level` (src/components/canvas/MoveToDocsDialog.tsx:71)
-
-## src/components/canvas/NewCanvasDialog.tsx (3)
-
-- never shown: `New canvas` (src/components/canvas/NewCanvasDialog.tsx:47)
 - never shown: `Start with` (src/components/canvas/NewCanvasDialog.tsx:72)
 - never shown: `Choose files` (src/components/canvas/NewCanvasDialog.tsx:103)
 
-## src/components/canvas/SourceEditor.tsx (7)
+## src/components/canvas/SourceEditor.tsx (2)
 
 - never shown: `Someone else is editing` (src/components/canvas/SourceEditor.tsx:274)
-- never shown: `Source of …` (src/components/canvas/SourceEditor.tsx:469)
-- never shown: `Preview width` (src/components/canvas/SourceEditor.tsx:487)
-- never shown: `OK` (src/components/canvas/SourceEditor.tsx:296)
-- never shown: `Back to editor` (src/components/canvas/SourceEditor.tsx:391, src/components/diagrams/DiagramEditor.tsx:653)
-- never shown: `Save as new board` (src/components/canvas/SourceEditor.tsx:395, src/components/canvas/SourceEditor.tsx:415)
-- never shown: `+ Add file` (src/components/canvas/SourceEditor.tsx:452)
+- shown: `Preview width` (src/components/canvas/SourceEditor.tsx:487)
 
 ## src/components/canvas/useCanvasBlocks.tsx (4)
 
@@ -681,38 +631,26 @@
 
 - never shown: `Source on GitHub` (src/components/desktop/DesktopWindows.tsx:277)
 
-## src/components/diagrams/DiagramEditor.tsx (6)
+## src/components/diagrams/DiagramEditor.tsx (2)
 
-- never shown: `Diagram editor` (src/components/diagrams/DiagramEditor.tsx:415)
-- never shown: `Diagram title` (src/components/diagrams/DiagramEditor.tsx:428)
-- never shown: `Discard your changes?` (src/components/diagrams/DiagramEditor.tsx:669)
-- never shown: `Reload theirs` (src/components/diagrams/DiagramEditor.tsx:533)
-- never shown: `For admins: no draw.io editor is running` (src/components/diagrams/DiagramEditor.tsx:575)
-- never shown: `Download .drawio` (src/components/diagrams/DiagramEditor.tsx:607, src/components/diagrams/DiagramEditor.tsx:616)
+- shown: `Diagram editor` (src/components/diagrams/DiagramEditor.tsx:421)
+- never shown: `Discard your changes?` (src/components/diagrams/DiagramEditor.tsx:679)
 
-## src/components/diagrams/DiagramEmbed.tsx (3)
+## src/components/diagrams/DiagramEmbed.tsx (1)
 
-- never shown: `Diagram actions` (src/components/diagrams/DiagramEmbed.tsx:159)
-- shown: `View full size` (src/components/diagrams/DiagramEmbed.tsx:180)
-- never shown: `Text summary` (src/components/diagrams/DiagramEmbed.tsx:222)
+- shown: `Diagram actions` (src/components/diagrams/DiagramEmbed.tsx:159)
 
-## src/components/diagrams/DiagramSettingsSection.tsx (2)
+## src/components/diagrams/DiagramSettingsSection.tsx (1)
 
 - shown: `Where the draw.io editor runs` (src/components/diagrams/DiagramSettingsSection.tsx:63)
-- shown: `Editor address` (src/components/diagrams/DiagramSettingsSection.tsx:89)
-
-## src/components/diagrams/DiagramViewer.tsx (1)
-
-- never shown: `…, full size` (src/components/diagrams/DiagramViewer.tsx:81)
 
 ## src/components/docs/AiChangedBar.tsx (1)
 
 - never shown: `See changes` (src/components/docs/AiChangedBar.tsx:109)
 
-## src/components/docs/CanvasPageView.tsx (2)
+## src/components/docs/CanvasPageView.tsx (1)
 
 - shown: `Breadcrumb` (src/components/docs/CanvasPageView.tsx:40, src/components/docs/DocsPageView.tsx:355)
-- never shown: `Page menu` (src/components/docs/CanvasPageView.tsx:72)
 
 ## src/components/docs/DocPeekPanel.tsx (1)
 
@@ -978,9 +916,8 @@
 - never shown: `note` (src/components/ideas/IdeaEvidenceTab.tsx:119)
 - never shown: `Draw a sketch` (src/components/ideas/IdeaEvidenceTab.tsx:148)
 
-## src/components/ideas/IdeaList.tsx (2)
+## src/components/ideas/IdeaList.tsx (1)
 
-- shown: `Ideas` (src/components/ideas/IdeaList.tsx:182, src/components/sketch/SketchAiPanel.tsx:569)
 - never shown: `Assign` (src/components/ideas/IdeaList.tsx:225)
 
 ## src/components/ideas/IdeaMatrix.tsx (2)
@@ -1122,13 +1059,13 @@
 - shown: `Preview of …` (src/components/preview/PreviewViewer.tsx:380)
 - never shown: `File … of …` (src/components/preview/PreviewViewer.tsx:422)
 - never shown: `Draw on it` (src/components/preview/PreviewViewer.tsx:437)
-- never shown: `Download and open` (src/components/preview/PreviewViewer.tsx:471)
-- never shown: `Open in app` (src/components/preview/PreviewViewer.tsx:486, src/components/preview/PreviewViewer.tsx:286)
-- never shown: `Show in folder` (src/components/preview/PreviewViewer.tsx:497)
-- never shown: `Full screen` (src/components/preview/PreviewViewer.tsx:517)
-- never shown: `Previous file` (src/components/preview/PreviewViewer.tsx:536)
-- never shown: `Close details` (src/components/preview/PreviewViewer.tsx:565)
-- never shown: `Files in this place` (src/components/preview/PreviewViewer.tsx:620)
+- never shown: `Download and open` (src/components/preview/PreviewViewer.tsx:472)
+- never shown: `Open in app` (src/components/preview/PreviewViewer.tsx:487, src/components/preview/PreviewViewer.tsx:286)
+- never shown: `Show in folder` (src/components/preview/PreviewViewer.tsx:498)
+- never shown: `Full screen` (src/components/preview/PreviewViewer.tsx:518)
+- never shown: `Previous file` (src/components/preview/PreviewViewer.tsx:537)
+- never shown: `Close details` (src/components/preview/PreviewViewer.tsx:566)
+- never shown: `Files in this place` (src/components/preview/PreviewViewer.tsx:621)
 
 ## src/components/preview/SlideCanvas.tsx (1)
 
@@ -1262,61 +1199,29 @@
 
 - shown: `Steps` (src/components/settings/database/dbUi.tsx:371)
 
-## src/components/sketch/NewSketchDialog.tsx (3)
+## src/components/sketch/NewSketchDialog.tsx (2)
 
 - never shown: `New sketch` (src/components/sketch/NewSketchDialog.tsx:29)
-- never shown: `Size` (src/components/sketch/NewSketchDialog.tsx:31)
 - shown: `Background` (src/components/sketch/NewSketchDialog.tsx:53)
 
-## src/components/sketch/SketchAiPanel.tsx (10)
+## src/components/sketch/SketchAiPanel.tsx (4)
 
-- never shown: `Shapes from the AI` (src/components/sketch/SketchAiPanel.tsx:486)
-- shown: `AI help` (src/components/sketch/SketchAiPanel.tsx:617, src/components/sketch/SketchEditor.tsx:627)
-- never shown: `Close AI help` (src/components/sketch/SketchAiPanel.tsx:663)
-- never shown: `Conversation about this drawing` (src/components/sketch/SketchAiPanel.tsx:710)
-- never shown: `Ask, or say what to draw…` (src/components/sketch/SketchAiPanel.tsx:801)
-- never shown: `Message to the AI` (src/components/sketch/SketchAiPanel.tsx:802)
-- never shown: `Attach a picture or a text file` (src/components/sketch/SketchAiPanel.tsx:843)
-- never shown: `Put on the drawing` (src/components/sketch/SketchAiPanel.tsx:151)
-- never shown: `Show on the drawing` (src/components/sketch/SketchAiPanel.tsx:545)
-- never shown: `What will be sent` (src/components/sketch/SketchAiPanel.tsx:734)
+- never shown: `Shapes from the AI` (src/components/sketch/SketchAiPanel.tsx:492)
+- shown: `Conversation about this drawing` (src/components/sketch/SketchAiPanel.tsx:716)
+- shown: `Attach a picture or a text file` (src/components/sketch/SketchAiPanel.tsx:849)
+- never shown: `Show on the drawing` (src/components/sketch/SketchAiPanel.tsx:551)
 
-## src/components/sketch/SketchEditor.tsx (6)
+## src/components/sketch/SketchEditor.tsx (3)
 
-- shown: `Fit to window` (src/components/sketch/SketchEditor.tsx:615)
-- shown: `Colour` (src/components/sketch/SketchEditor.tsx:765, src/components/sketch/SketchPanels.tsx:397)
-- shown: `Layers` (src/components/sketch/SketchEditor.tsx:774, src/components/sketch/SketchPanels.tsx:472)
-- shown: `Text` (src/components/sketch/SketchEditor.tsx:799)
-- never shown: `Save your drawing?` (src/components/sketch/SketchEditor.tsx:866)
-- shown: `Crop and resize` (src/components/sketch/SketchEditor.tsx:728)
+- shown: `Colour` (src/components/sketch/SketchEditor.tsx:767, src/components/sketch/SketchPanels.tsx:397)
+- shown: `Layers` (src/components/sketch/SketchEditor.tsx:776, src/components/sketch/SketchPanels.tsx:473)
+- never shown: `Save your drawing?` (src/components/sketch/SketchEditor.tsx:868)
 
-## src/components/sketch/SketchEmbed.tsx (2)
+## src/components/sketch/SketchEmbed.tsx (1)
 
 - shown: `Sketch actions` (src/components/sketch/SketchEmbed.tsx:115)
-- shown: `View large` (src/components/sketch/SketchEmbed.tsx:132)
-
-## src/components/sketch/SketchPanels.tsx (18)
-
-- never shown: `Width` (src/components/sketch/SketchPanels.tsx:337)
-- never shown: `Height` (src/components/sketch/SketchPanels.tsx:346)
-- shown: `Colour picker` (src/components/sketch/SketchPanels.tsx:406)
-- shown: `Colour as hex` (src/components/sketch/SketchPanels.tsx:412)
-- shown: `Colour …` (src/components/sketch/SketchPanels.tsx:434)
-- shown: `Recent colour …` (src/components/sketch/SketchPanels.tsx:450)
-- shown: `Add layer` (src/components/sketch/SketchPanels.tsx:484)
-- never shown: `Layer name` (src/components/sketch/SketchPanels.tsx:513)
-- shown: `Move layer up` (src/components/sketch/SketchPanels.tsx:556)
-- shown: `Move layer down` (src/components/sketch/SketchPanels.tsx:565)
-- shown: `Merge down` (src/components/sketch/SketchPanels.tsx:574)
-- shown: `Delete layer` (src/components/sketch/SketchPanels.tsx:584)
-- shown: `Layer opacity` (src/components/sketch/SketchPanels.tsx:600)
-- never shown: `Put down (Enter)` (src/components/sketch/SketchPanels.tsx:322)
-- never shown: `Resize canvas` (src/components/sketch/SketchPanels.tsx:353)
-- never shown: `Scale drawing` (src/components/sketch/SketchPanels.tsx:362)
-- never shown: `Trim to content` (src/components/sketch/SketchPanels.tsx:365)
-- never shown: `Crop to box` (src/components/sketch/SketchPanels.tsx:368)
 
 ## Keys pressed outside text fields
 
-/, Alt+Alt, Alt+n, ArrowRight, Ctrl+A, Ctrl+Control, Ctrl+End, Ctrl+Enter, Ctrl+a, Ctrl+f, Ctrl+j, Ctrl+k, Enter, Escape, F2, j, k, p
+ , +, -, /, 0, 1, 2, =, Alt+Alt, Alt+n, ArrowLeft, ArrowRight, Ctrl+-, Ctrl+0, Ctrl+A, Ctrl+Control, Ctrl+End, Ctrl+Enter, Ctrl+a, Ctrl+f, Ctrl+j, Ctrl+k, Ctrl+s, Ctrl+y, Ctrl+z, Delete, Enter, Escape, F2, Shift+ArrowRight, Shift+Shift, Tab, a, c, e, f, g, h, i, j, k, m, n, p, t, v
 
