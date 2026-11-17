@@ -151,9 +151,18 @@ export default function App() {
   const deleteProjectMutation = useDeleteProject();
 
   const { theme, toggleTheme } = useTheme();
-  const [currentProjectId, setCurrentProjectId] = useState<string>(
+  const [selectedProjectId, setCurrentProjectId] = useState<string>(
     () => new URLSearchParams(window.location.search).get('proj') ?? localStorage.getItem('activeProjectId') ?? '',
   );
+  // The project the board shows. Nothing asks for a project's data before the list is loaded, and an id from the URL
+  // or localStorage that is not in the list (the project was deleted) gives way to the first project, or to none:
+  // otherwise every query of the board would ask for a project that no longer exists.
+  const projectsLoaded = projectsQuery.data !== undefined;
+  const currentProjectId = !projectsLoaded
+    ? ''
+    : apiProjects.some((p) => p.id === selectedProjectId)
+      ? selectedProjectId
+      : (apiProjects[0]?.id ?? '');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeType, setActiveType] = useState<IssueType | 'all'>('all');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
@@ -226,18 +235,14 @@ export default function App() {
   }, [searchQuery]);
 
   useEffect(() => {
+    if (!projectsLoaded) return;
     if (currentProjectId) {
       localStorage.setItem('activeProjectId', currentProjectId);
     } else {
       localStorage.removeItem('activeProjectId');
     }
-  }, [currentProjectId]);
-
-  useEffect(() => {
-    if (apiProjects.length > 0 && !apiProjects.find((p) => p.id === currentProjectId)) {
-      setCurrentProjectId(apiProjects[0].id);
-    }
-  }, [apiProjects, currentProjectId]);
+    if (currentProjectId !== selectedProjectId) setCurrentProjectId(currentProjectId);
+  }, [projectsLoaded, currentProjectId, selectedProjectId]);
 
   const currentProject = apiProjects.find((p) => p.id === currentProjectId);
 
