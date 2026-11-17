@@ -57,12 +57,24 @@
    "where": "docs_title_aliases.page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P')"
   },
   {
+   "table": "docs_suggestion",
+   "where": "docs_suggestion.page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P')"
+  },
+  {
+   "table": "docs_public_link",
+   "where": "docs_public_link.page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P')"
+  },
+  {
    "table": "docs_page_seen",
    "where": "docs_page_seen.page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P')"
   },
   {
    "table": "docs_link",
    "where": "docs_link.source_page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P')"
+  },
+  {
+   "table": "docs_highlight",
+   "where": "docs_highlight.page_id IN (SELECT docs_page.id FROM docs_page WHERE docs_page.project_id = 'P')"
   },
   {
    "table": "docs_draft",
@@ -125,8 +137,16 @@
    "where": "idea_ticket.project_id = 'P'"
   },
   {
+   "table": "docs_template",
+   "where": "docs_template.project_id = 'P'"
+  },
+  {
    "table": "docs_page",
    "where": "docs_page.project_id = 'P'"
+  },
+  {
+   "table": "docs_export",
+   "where": "docs_export.project_id = 'P'"
   },
   {
    "table": "docs_ai_settings",

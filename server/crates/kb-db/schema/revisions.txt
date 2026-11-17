@@ -79,3 +79,4 @@ e6a8c0d2f4b6 e2a4c6e8b0d1 e6a8c0d2f4b6_docs_ai_v1_leftovers.py
 f7b9d1e3a5c7 e6a8c0d2f4b6 f7b9d1e3a5c7_ai_run_depth.py
 b8d0f2a4c6e9 f7b9d1e3a5c7 b8d0f2a4c6e9_notifications_v2_kinds.py
 d2f4a6c8e0b1 b8d0f2a4c6e9 d2f4a6c8e0b1_docs_rich_format.py
+e4b6d8f0a2c3 d2f4a6c8e0b1 e4b6d8f0a2c3_docs_rich_tables.py

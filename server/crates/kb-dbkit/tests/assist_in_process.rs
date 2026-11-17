@@ -100,7 +100,7 @@ async fn test_copy_stops_the_ai_proposes_the_board_applies_and_checks() {
     // the target's tables, then a column the target is too small for, as VARCHAR(255) on MySQL
     let job = jobs::new(target.clone()).await.expect("a new move");
     let checked = job.check().await.expect("check");
-    assert!(checked["plan"]["rows"].as_i64().expect("rows") > 0 && checked["plan"]["tables_count"] == 77);
+    assert!(checked["plan"]["rows"].as_i64().expect("rows") > 0 && checked["plan"]["tables_count"] == 82);
     job.start("empty", false).await.expect("start");
     assert_eq!(wait(&job, &["verified", "failed"]).await["state"], "verified");
     jobs::forget().await.expect("forget");

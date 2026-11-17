@@ -1,4 +1,4 @@
--- SQLite schema at Alembic head d2f4a6c8e0b1, as the migrations leave it (exported from the Python server).
+-- SQLite schema at Alembic head e4b6d8f0a2c3, as the migrations leave it (exported from the Python server).
 
 CREATE TABLE ai_account (
 	id VARCHAR NOT NULL, 
@@ -908,6 +908,46 @@ CREATE TABLE docs_draft (
 
 CREATE VIRTUAL TABLE docs_fts USING fts5(page_id UNINDEXED, project_id UNINDEXED, title, headings, body, tokenize = 'unicode61 remove_diacritics 2');
 
+CREATE TABLE docs_export (
+	id VARCHAR NOT NULL, 
+	project_id VARCHAR NOT NULL, 
+	page_id VARCHAR, 
+	scope VARCHAR NOT NULL, 
+	format VARCHAR NOT NULL, 
+	options VARCHAR, 
+	state VARCHAR DEFAULT 'running' NOT NULL, 
+	step VARCHAR, 
+	file_path VARCHAR, 
+	file_name VARCHAR, 
+	size INTEGER, 
+	error VARCHAR, 
+	created_by VARCHAR NOT NULL, 
+	created_at VARCHAR NOT NULL, 
+	finished_at VARCHAR, 
+	expires_at VARCHAR, 
+	PRIMARY KEY (id)
+);
+
+CREATE TABLE docs_highlight (
+	id VARCHAR NOT NULL, 
+	page_id VARCHAR NOT NULL, 
+	block_id VARCHAR NOT NULL, 
+	start_offset INTEGER NOT NULL, 
+	end_offset INTEGER NOT NULL, 
+	end_block_id VARCHAR, 
+	quote VARCHAR NOT NULL, 
+	prefix VARCHAR, 
+	suffix VARCHAR, 
+	color VARCHAR NOT NULL, 
+	author VARCHAR NOT NULL, 
+	created_at VARCHAR NOT NULL, 
+	thread_id VARCHAR, 
+	state VARCHAR DEFAULT 'ok' NOT NULL, 
+	deleted_at VARCHAR, 
+	deleted_by VARCHAR, 
+	PRIMARY KEY (id)
+);
+
 CREATE TABLE docs_link (
 	id VARCHAR NOT NULL, 
 	source_page_id VARCHAR NOT NULL, 
@@ -957,6 +997,56 @@ CREATE TABLE docs_page_seen (
 	seen_at VARCHAR NOT NULL, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(page_id) REFERENCES docs_page (id)
+);
+
+CREATE TABLE docs_public_link (
+	id VARCHAR NOT NULL, 
+	page_id VARCHAR NOT NULL, 
+	token VARCHAR NOT NULL, 
+	created_by VARCHAR NOT NULL, 
+	created_at VARCHAR NOT NULL, 
+	expires_at VARCHAR, 
+	show_names BOOLEAN DEFAULT 0 NOT NULL, 
+	allow_index BOOLEAN DEFAULT 0 NOT NULL, 
+	revoked_at VARCHAR, 
+	PRIMARY KEY (id)
+);
+
+CREATE TABLE docs_suggestion (
+	id VARCHAR NOT NULL, 
+	page_id VARCHAR NOT NULL, 
+	block_id VARCHAR, 
+	after_block_id VARCHAR, 
+	kind VARCHAR NOT NULL, 
+	content VARCHAR, 
+	"before" VARCHAR, 
+	base_version INTEGER NOT NULL, 
+	author VARCHAR NOT NULL, 
+	member_id VARCHAR, 
+	run_id VARCHAR, 
+	note VARCHAR, 
+	state VARCHAR DEFAULT 'pending' NOT NULL, 
+	decided_by VARCHAR, 
+	decided_at VARCHAR, 
+	created_at VARCHAR NOT NULL, 
+	PRIMARY KEY (id)
+);
+
+CREATE TABLE docs_template (
+	id VARCHAR NOT NULL, 
+	project_id VARCHAR, 
+	owner VARCHAR NOT NULL, 
+	name VARCHAR NOT NULL, 
+	description VARCHAR, 
+	category VARCHAR, 
+	keeps VARCHAR DEFAULT 'content' NOT NULL, 
+	scope VARCHAR DEFAULT 'me' NOT NULL, 
+	content VARCHAR NOT NULL, 
+	settings VARCHAR, 
+	used_count INTEGER DEFAULT 0 NOT NULL, 
+	created_at VARCHAR NOT NULL, 
+	updated_at VARCHAR NOT NULL, 
+	PRIMARY KEY (id)
 );
 
 CREATE TABLE docs_title_aliases (
@@ -1242,6 +1332,7 @@ CREATE TABLE "project" (
 	repo_path VARCHAR, 
 	worktree_template VARCHAR, 
 	worktree_by_default BOOLEAN DEFAULT 0 NOT NULL, docs_enabled BOOLEAN DEFAULT 1 NOT NULL, docs_edit_policy VARCHAR DEFAULT 'members' NOT NULL, 
+	docs_settings VARCHAR, 
 	PRIMARY KEY (id), 
 	UNIQUE (prefix)
 );
@@ -1535,6 +1626,14 @@ CREATE INDEX ix_docs_comment_thread_page_id ON docs_comment_thread (page_id);
 
 CREATE INDEX ix_docs_draft_page_id ON docs_draft (page_id);
 
+CREATE INDEX ix_docs_export_project_id ON docs_export (project_id);
+
+CREATE INDEX ix_docs_export_page_id ON docs_export (page_id);
+
+CREATE INDEX ix_docs_highlight_page_id ON docs_highlight (page_id);
+
+CREATE INDEX ix_docs_highlight_thread_id ON docs_highlight (thread_id);
+
 CREATE INDEX ix_docs_link_source_page_id ON docs_link (source_page_id);
 
 CREATE INDEX ix_docs_link_target_page_id ON docs_link (target_page_id);
@@ -1546,6 +1645,20 @@ CREATE INDEX ix_docs_page_parent_id ON docs_page (parent_id);
 CREATE INDEX ix_docs_page_project_id ON docs_page (project_id);
 
 CREATE INDEX ix_docs_page_seen_page_id ON docs_page_seen (page_id);
+
+CREATE UNIQUE INDEX ix_docs_public_link_token ON docs_public_link (token);
+
+CREATE INDEX ix_docs_public_link_page_id ON docs_public_link (page_id);
+
+CREATE INDEX ix_docs_suggestion_page_id ON docs_suggestion (page_id);
+
+CREATE INDEX ix_docs_suggestion_member_id ON docs_suggestion (member_id);
+
+CREATE INDEX ix_docs_suggestion_run_id ON docs_suggestion (run_id);
+
+CREATE INDEX ix_docs_template_project_id ON docs_template (project_id);
+
+CREATE INDEX ix_docs_template_owner ON docs_template (owner);
 
 CREATE INDEX ix_docs_title_aliases_page_id ON docs_title_aliases (page_id);
 

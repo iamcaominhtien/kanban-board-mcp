@@ -32,7 +32,7 @@ pub async fn scenario() {
     assert_eq!(state.state, "board");
     assert_eq!(state.revision.as_deref(), Some(schema::head_revision()));
     // on SQLite the three FTS tables and their five shadow tables each are counted, as SQLAlchemy listed them
-    assert_eq!(state.tables, if database::is_sqlite() { 77 + 3 * 6 } else { 77 }, "{state:?}");
+    assert_eq!(state.tables, if database::is_sqlite() { 82 + 3 * 6 } else { 82 }, "{state:?}");
     // a second start changes nothing
     database::init_db().await.unwrap();
 

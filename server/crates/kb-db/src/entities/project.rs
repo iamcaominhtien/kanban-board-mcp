@@ -21,6 +21,8 @@ pub struct Model {
     pub worktree_by_default: bool,
     pub docs_enabled: bool,
     pub docs_edit_policy: String,
+    /// JSON Docs settings of the project; None means the defaults
+    pub docs_settings: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -42,5 +44,6 @@ pub fn new() -> ActiveModel {
         worktree_by_default: Set(false),
         docs_enabled: Set(true),
         docs_edit_policy: Set("members".to_string()),
+        docs_settings: Set(None),
     }
 }

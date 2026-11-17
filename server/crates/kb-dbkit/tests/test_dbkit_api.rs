@@ -67,7 +67,7 @@ async fn test_the_card_says_what_the_board_uses() {
         ]
     );
     let db = s.db_path().to_string_lossy().into_owned();
-    assert_eq!(body["tables"], 77);
+    assert_eq!(body["tables"], 82);
     assert_eq!(body["label"], "SQLite");
     assert_eq!(body["display"], db);
     assert_eq!(body["settings"], json!({"engine": "sqlite", "path": db}));
@@ -236,7 +236,7 @@ async fn test_copy_stops_the_ai_proposes_the_board_applies_and_checks() {
         (&job["id"], &job["state"], &job["resume_at"]),
         (&json!("abcdef012345"), &json!("interrupted"), &json!("ai_account"))
     );
-    assert_eq!(job["tables_total"], 77);
+    assert_eq!(job["tables_total"], 82);
 
     let r = client.post("/database/move/resume", json!({})).await;
     assert_eq!(r.status, 200, "{}", r.text());
@@ -247,7 +247,7 @@ async fn test_copy_stops_the_ai_proposes_the_board_applies_and_checks() {
     assert_eq!(stop["value_length"], 7);
     assert_eq!(
         (&stop["row"], &stop["copied"], &stop["total"], &stop["tables_total"]),
-        (&json!(1), &json!(0), &json!(1), &json!(77))
+        (&json!(1), &json!(0), &json!(1), &json!(82))
     );
     assert_eq!((&stop["error"], &stop["code"]), (&json!("Data too long for column 'name' at row 1"), &json!("")));
     assert_eq!((&stop["source_type"], &stop["target_type"]), (&json!("VARCHAR"), &json!("VARCHAR")));
@@ -296,14 +296,14 @@ async fn test_copy_stops_the_ai_proposes_the_board_applies_and_checks() {
     assert_eq!(
         titles,
         [
-            "Row counts · equal in all 77 tables".to_string(),
+            "Row counts · equal in all 82 tables".to_string(),
             format!("Content · {rows} rows read back and compared (500 at random per big table)"),
             "Links between rows · the same 52 kinds of link on both sides".to_string(),
             "Counters · the next ticket number carries on from MOV-1".to_string(),
             "Docs search · 0 of 0 pages indexed".to_string(),
         ]
     );
-    assert_eq!((&job["tables_done"], &job["rows_done"]), (&json!(77), &json!(rows)));
+    assert_eq!((&job["tables_done"], &job["rows_done"]), (&json!(82), &json!(rows)));
     assert_eq!(job["verify"]["rows"], rows);
 
     client.delete(&format!("/projects/{}", made.json()["id"].as_str().expect("id"))).await;

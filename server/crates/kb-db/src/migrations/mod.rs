@@ -86,6 +86,7 @@ mod m_d9e0f1a2b3c4_ai_chat_feedback;
 mod m_e1f3a5c7b9d2_ai_grant_role;
 mod m_e2a4c6e8b0d1_ai_touch_mark;
 mod m_e2f3a4b5c6d7_docs_comments;
+mod m_e4b6d8f0a2c3_docs_rich_tables;
 mod m_e4f5a6b7c8d9_ai_safety_cost;
 mod m_e5f6a7b8c9d0_add_links;
 mod m_e5f7a9b1c234_ai_team_dismissed;
@@ -324,6 +325,7 @@ async fn apply<C: ConnectionTrait>(conn: &C, id: &str) -> ops::StepResult {
         "f7b9d1e3a5c7" => m_f7b9d1e3a5c7_ai_run_depth::upgrade(conn).await,
         "b8d0f2a4c6e9" => m_b8d0f2a4c6e9_notifications_v2_kinds::upgrade(conn).await,
         "d2f4a6c8e0b1" => m_d2f4a6c8e0b1_docs_rich_format::upgrade(conn).await,
+        "e4b6d8f0a2c3" => m_e4b6d8f0a2c3_docs_rich_tables::upgrade(conn).await,
         other => Err(DatabaseError::Other(format!("Migration {other} is not part of this app."))),
     }
 }
@@ -435,7 +437,8 @@ mod tests {
                 "e6a8c0d2f4b6",
                 "f7b9d1e3a5c7",
                 "b8d0f2a4c6e9",
-                "d2f4a6c8e0b1"
+                "d2f4a6c8e0b1",
+                "e4b6d8f0a2c3"
             ]
         );
     }

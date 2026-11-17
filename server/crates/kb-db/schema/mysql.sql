@@ -1074,6 +1074,54 @@ CREATE TABLE docs_draft (
 
 CREATE INDEX ix_docs_draft_page_id ON docs_draft (page_id);
 
+CREATE TABLE docs_export (
+	id VARCHAR(255) NOT NULL, 
+	project_id VARCHAR(255) NOT NULL, 
+	page_id VARCHAR(255), 
+	scope VARCHAR(255) NOT NULL, 
+	format VARCHAR(255) NOT NULL, 
+	options LONGTEXT, 
+	state VARCHAR(255) NOT NULL DEFAULT 'running', 
+	step VARCHAR(255), 
+	file_path LONGTEXT, 
+	file_name LONGTEXT, 
+	size INTEGER, 
+	error LONGTEXT, 
+	created_by VARCHAR(255) NOT NULL, 
+	created_at VARCHAR(255) NOT NULL, 
+	finished_at VARCHAR(255), 
+	expires_at VARCHAR(255), 
+	PRIMARY KEY (id)
+)ENGINE=InnoDB CHARSET=utf8mb4 COLLATE utf8mb4_bin;
+
+CREATE INDEX ix_docs_export_project_id ON docs_export (project_id);
+
+CREATE INDEX ix_docs_export_page_id ON docs_export (page_id);
+
+CREATE TABLE docs_highlight (
+	id VARCHAR(255) NOT NULL, 
+	page_id VARCHAR(255) NOT NULL, 
+	block_id VARCHAR(255) NOT NULL, 
+	start_offset INTEGER NOT NULL, 
+	end_offset INTEGER NOT NULL, 
+	end_block_id VARCHAR(255), 
+	quote LONGTEXT NOT NULL, 
+	prefix LONGTEXT, 
+	suffix LONGTEXT, 
+	color VARCHAR(255) NOT NULL, 
+	author VARCHAR(255) NOT NULL, 
+	created_at VARCHAR(255) NOT NULL, 
+	thread_id VARCHAR(255), 
+	state VARCHAR(255) NOT NULL DEFAULT 'ok', 
+	deleted_at VARCHAR(255), 
+	deleted_by VARCHAR(255), 
+	PRIMARY KEY (id)
+)ENGINE=InnoDB CHARSET=utf8mb4 COLLATE utf8mb4_bin;
+
+CREATE INDEX ix_docs_highlight_page_id ON docs_highlight (page_id);
+
+CREATE INDEX ix_docs_highlight_thread_id ON docs_highlight (thread_id);
+
 CREATE TABLE docs_link (
 	id VARCHAR(255) NOT NULL, 
 	source_page_id VARCHAR(255) NOT NULL, 
@@ -1133,6 +1181,70 @@ CREATE TABLE docs_page_seen (
 )ENGINE=InnoDB CHARSET=utf8mb4 COLLATE utf8mb4_bin;
 
 CREATE INDEX ix_docs_page_seen_page_id ON docs_page_seen (page_id);
+
+CREATE TABLE docs_public_link (
+	id VARCHAR(255) NOT NULL, 
+	page_id VARCHAR(255) NOT NULL, 
+	token VARCHAR(255) NOT NULL, 
+	created_by VARCHAR(255) NOT NULL, 
+	created_at VARCHAR(255) NOT NULL, 
+	expires_at VARCHAR(255), 
+	show_names BOOL NOT NULL DEFAULT 0, 
+	allow_index BOOL NOT NULL DEFAULT 0, 
+	revoked_at VARCHAR(255), 
+	PRIMARY KEY (id)
+)ENGINE=InnoDB CHARSET=utf8mb4 COLLATE utf8mb4_bin;
+
+CREATE UNIQUE INDEX ix_docs_public_link_token ON docs_public_link (token);
+
+CREATE INDEX ix_docs_public_link_page_id ON docs_public_link (page_id);
+
+CREATE TABLE docs_suggestion (
+	id VARCHAR(255) NOT NULL, 
+	page_id VARCHAR(255) NOT NULL, 
+	block_id VARCHAR(255), 
+	after_block_id VARCHAR(255), 
+	kind VARCHAR(255) NOT NULL, 
+	content LONGTEXT, 
+	`before` LONGTEXT, 
+	base_version INTEGER NOT NULL, 
+	author VARCHAR(255) NOT NULL, 
+	member_id VARCHAR(255), 
+	run_id VARCHAR(255), 
+	note LONGTEXT, 
+	state VARCHAR(255) NOT NULL DEFAULT 'pending', 
+	decided_by VARCHAR(255), 
+	decided_at VARCHAR(255), 
+	created_at VARCHAR(255) NOT NULL, 
+	PRIMARY KEY (id)
+)ENGINE=InnoDB CHARSET=utf8mb4 COLLATE utf8mb4_bin;
+
+CREATE INDEX ix_docs_suggestion_page_id ON docs_suggestion (page_id);
+
+CREATE INDEX ix_docs_suggestion_member_id ON docs_suggestion (member_id);
+
+CREATE INDEX ix_docs_suggestion_run_id ON docs_suggestion (run_id);
+
+CREATE TABLE docs_template (
+	id VARCHAR(255) NOT NULL, 
+	project_id VARCHAR(255), 
+	owner VARCHAR(255) NOT NULL, 
+	name VARCHAR(255) NOT NULL, 
+	description LONGTEXT, 
+	category VARCHAR(255), 
+	keeps VARCHAR(255) NOT NULL DEFAULT 'content', 
+	scope VARCHAR(255) NOT NULL DEFAULT 'me', 
+	content LONGTEXT NOT NULL, 
+	settings LONGTEXT, 
+	used_count INTEGER NOT NULL DEFAULT 0, 
+	created_at VARCHAR(255) NOT NULL, 
+	updated_at VARCHAR(255) NOT NULL, 
+	PRIMARY KEY (id)
+)ENGINE=InnoDB CHARSET=utf8mb4 COLLATE utf8mb4_bin;
+
+CREATE INDEX ix_docs_template_project_id ON docs_template (project_id);
+
+CREATE INDEX ix_docs_template_owner ON docs_template (owner);
 
 CREATE TABLE docs_title_aliases (
 	id VARCHAR(255) NOT NULL, 
@@ -1472,6 +1584,7 @@ CREATE TABLE project (
 	worktree_by_default BOOL NOT NULL, 
 	docs_enabled BOOL NOT NULL, 
 	docs_edit_policy LONGTEXT NOT NULL, 
+	docs_settings LONGTEXT, 
 	PRIMARY KEY (id), 
 	UNIQUE (prefix)
 )ENGINE=InnoDB CHARSET=utf8mb4 COLLATE utf8mb4_bin;
