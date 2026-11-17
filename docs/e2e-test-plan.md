@@ -81,9 +81,16 @@ quyết định số phận 8 call code chết.
 
 - `03-tickets / log a debug-space entry`: test chập chờn. Danh sách hiện entry mới trước khi form kịp đóng nên cùng
   một dòng chữ xuất hiện hai chỗ. Đã sửa: test chờ form đóng rồi mới đọc.
-- Code chết, không còn chỗ nào trong UI gọi tới: `deleteCanvas`, `makeVersion` (canvas), `usePageMarkers`,
-  `useDocsVersion`, `useDocsAiJobs`, `useCoverage`, `useTicketDrafts`, `useMentionEstimate`. Ngoài ra `toggleSubTask`,
-  `restoreComment`, `undoReopenTicket` trong `api/tickets.ts` cũng không thấy được import ở đâu.
+- 8 hàm trong `ui/src/api` không còn chỗ nào trong UI gọi tới. Theo lịch sử git:
+  - **Refactor AI v2 bỏ quên** (#322, 08/11): `useTicketDrafts`, `useCoverage`, `useMentionEstimate`. #322 đã xoá chỗ
+    gọi trong component nhưng để lại hàm. Phía server, khái niệm draft đã bị bỏ ("Drafts are gone in AI v2", trả 410),
+    nhưng route `GET /tickets/{id}/ai/assist/drafts`, `…/coverage`, `GET /tickets/{id}/ai/estimate` vẫn còn: cần xem
+    route nào cũng thừa.
+  - **Viết sẵn mà chưa bao giờ nối vào UI**: `deleteCanvas`, `makeVersion` (#247), `usePageMarkers`, `useDocsAiJobs`
+    (#208), `useDocsVersion` (#135; UI dùng `useDocsVersions`, bản danh sách). Route server của cả năm hàm vẫn còn.
+  - `toggleSubTask`, `restoreComment`, `undoReopenTicket` **không** chết: chúng được gọi qua `useToggleSubTask`,
+    `useRestoreComment`, `useUndoReopen`, và các hook này có dùng trong `TicketModal` / `useMarkerActions`. Chúng nằm
+    trong danh sách thiếu chỉ vì chưa có step nào gọi tới.
 - Những thứ người dùng thấy nhưng chưa từng được test: Docs mở ở cửa sổ riêng, đổi tên / nhân bản / chuyển trang, so
   sánh version, comment / history / source của canvas, discussion của idea, AI trong sketch.
 
