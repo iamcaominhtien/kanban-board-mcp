@@ -3,7 +3,7 @@
 Redesign reference for the Kanban Board app (React UI in `ui/`), exported from the Claude Design canvas so it can be reviewed and implemented against without opening the canvas.
 
 - **Canvas (design source of truth):** https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2
-- **Canvas version exported:** `1794110641-1323` (82 desktop/web artboards; the newest — Docs comments, Diagrams, AI schedules, the two Preview boards, the two Settings boards (which replace the old Settings modal design), and the new Idea Space boards, the Sketch tool, AI where you work, the AI Team boards, the AI paused board, the AI Team Resources board, the AI accounts board, the Docs AI boards, the desktop menu bar, the guideline design, the Notifications board, the three AI wave boards the Story, Flow and Live commentary board and the AI sets up the commands board — are proposals; docs for earlier ones keep their original header version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
+- **Canvas version exported:** `1794927884-e6a0` (94 desktop/web artboards; the newest — Docs comments, Diagrams, AI schedules, the two Preview boards, the two Settings boards (which replace the old Settings modal design), and the new Idea Space boards, the Sketch tool, AI where you work, the AI Team boards, the AI paused board, the AI Team Resources board, the AI accounts board, the Docs AI boards, the desktop menu bar, the guideline design, the Notifications board, the three AI wave boards the Story, Flow and Live commentary board and the AI sets up the commands board, and the twelve **Rich Docs** boards (a rich-format document editor: colours, float images, merged cells, embeds, templates, public links, export, AI suggestions; they live next to the older Docs boards and do not replace them) — are proposals; docs for earlier ones keep their original header version; docs for unchanged artboards keep their original header version, each `sha256` in the doc header and `MANIFEST.json` is authoritative) — see [`MANIFEST.json`](MANIFEST.json) for per-file sha256, size and export date.
 
 > The canvas also has a **Mobile** page (iOS-first designs for every screen). Those artboards are not exported to this folder yet.
 
@@ -86,6 +86,19 @@ Each doc's header links to its source file and records the canvas version and sh
 - [Docs — search](screens/docs-search.md)
 - [Docs AI — ask, write, read & edit](screens/docs-ai.md)
 - [Docs AI — keeping docs true, proposals & control](screens/docs-ai-care.md)
+- [Rich Docs — overview, reading order and implementation notes (migration, MCP)](screens/rich-docs-overview.md)
+- [Rich Docs — app frame & responsive](screens/rich-docs-shell.md)
+- [Rich Docs — editing text](screens/rich-docs-editor.md)
+- [Rich Docs — blocks & properties](screens/rich-docs-blocks.md)
+- [Rich Docs — embeds & files](screens/rich-docs-embeds.md)
+- [Rich Docs — new page, templates & page settings](screens/rich-docs-start.md)
+- [Rich Docs — reading, sharing & print](screens/rich-docs-reader.md)
+- [Rich Docs — page tree, gallery & Recycle Bin](screens/rich-docs-tree.md)
+- [Rich Docs — search, links & backlinks](screens/rich-docs-links.md)
+- [Rich Docs — AI teams on rich pages](screens/rich-docs-ai.md)
+- [Rich Docs — history & comments](screens/rich-docs-history.md)
+- [Rich Docs — export](screens/rich-docs-export.md)
+- [Rich Docs — states: loading, offline, conflict, access](screens/rich-docs-states.md)
 - [Guideline — design of the user and administrator guide](screens/guideline-design.md)
 - [List View](screens/list-view.md)
 - [Login](screens/login.md)

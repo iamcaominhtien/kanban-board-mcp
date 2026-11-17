@@ -1,7 +1,7 @@
 {
   "canvas_url": "https://claude.ai/artifact/B3jiFjnoEL9erRN7QYRHj2",
-  "canvas_version": "1794110641-1323",
-  "exported": "2026-11-02",
+  "canvas_version": "1794927884-e6a0",
+  "exported": "2026-11-17",
   "files": {
     "AccountMenu.dc.html": {
       "bytes": 17393,
@@ -498,6 +498,102 @@
       "page": "components",
       "w": 1080,
       "h": 1220
+    },
+    "RichDocsAi.dc.html": {
+      "bytes": 462981,
+      "sha256": "93d7d01f121f5a420c508c147f42c6f377bf2f439ef4520a187563ec558b9e56",
+      "title": "Rich Docs — AI teams on rich pages",
+      "page": "screens_docs_rich",
+      "w": 1900,
+      "h": 16010
+    },
+    "RichDocsBlocks.dc.html": {
+      "bytes": 559303,
+      "sha256": "2f4d86974804a7a4e68c8bb0c90d31344e277e326c078b92f8af659bf9708648",
+      "title": "Rich Docs — blocks & properties",
+      "page": "screens_docs_rich",
+      "w": 1784,
+      "h": 17145
+    },
+    "RichDocsEditor.dc.html": {
+      "bytes": 840322,
+      "sha256": "c563f09edea9369539cbb85c3e0352b1fca55b15348a262e63dc880eb6a4096f",
+      "title": "Rich Docs — editing text",
+      "page": "screens_docs_rich",
+      "w": 2800,
+      "h": 17643
+    },
+    "RichDocsEmbeds.dc.html": {
+      "bytes": 399837,
+      "sha256": "17622ec3ccd3477dd99e3a0d4955f4f0d239cc0e5e4ae9886a8a503470e68011",
+      "title": "Rich Docs — embeds & files",
+      "page": "screens_docs_rich",
+      "w": 1784,
+      "h": 16158
+    },
+    "RichDocsExport.dc.html": {
+      "bytes": 694623,
+      "sha256": "c2d5cbe90d83d72018db2aa8d6d5928f27ddc461e1770c317b83bf83988a682c",
+      "title": "Rich Docs — export",
+      "page": "screens_docs_rich",
+      "w": 2730,
+      "h": 14613
+    },
+    "RichDocsHistory.dc.html": {
+      "bytes": 394489,
+      "sha256": "d6044c46b53747f4c27b5f2a466df0695752d3b75b21d1ce779fa786b87e7055",
+      "title": "Rich Docs — history & comments",
+      "page": "screens_docs_rich",
+      "w": 1900,
+      "h": 14441
+    },
+    "RichDocsLinks.dc.html": {
+      "bytes": 913063,
+      "sha256": "cedcc4aa010ca7fb14193ed1b6a1854e72dcf8aece469354e051d163127451fa",
+      "title": "Rich Docs — search, links & backlinks",
+      "page": "screens_docs_rich",
+      "w": 2730,
+      "h": 26919
+    },
+    "RichDocsReader.dc.html": {
+      "bytes": 683946,
+      "sha256": "0783221d6afd1a3d56e9129d0494a187e6998c5530723089f5811535fac04933",
+      "title": "Rich Docs — reading, sharing & print",
+      "page": "screens_docs_rich",
+      "w": 2730,
+      "h": 21261
+    },
+    "RichDocsShell.dc.html": {
+      "bytes": 527675,
+      "sha256": "5b9c562232a1575e3e58ff6e2a2ad82d7305b2f38bfd56dba6acabc0e514e701",
+      "title": "Rich Docs — app frame & responsive",
+      "page": "screens_docs_rich",
+      "w": 2800,
+      "h": 10443
+    },
+    "RichDocsStart.dc.html": {
+      "bytes": 814072,
+      "sha256": "947b0b92389cb208a03fb97fba5e5d5c3fa9ac5a4a164573c70281f9054bd534",
+      "title": "Rich Docs — new page, templates & page settings",
+      "page": "screens_docs_rich",
+      "w": 2730,
+      "h": 18767
+    },
+    "RichDocsStates.dc.html": {
+      "bytes": 1083866,
+      "sha256": "0b499c3357f5a346da045b495c7b3207f20ba5184447b7158080226d0e516244",
+      "title": "Rich Docs — states: loading, offline, conflict, access",
+      "page": "screens_docs_rich",
+      "w": 2730,
+      "h": 26487
+    },
+    "RichDocsTree.dc.html": {
+      "bytes": 1356566,
+      "sha256": "9ce8e396eaef39f668a3893fe3c58863176e01bf8f895a659bb28d0b7758bb50",
+      "title": "Rich Docs — page tree, gallery & Recycle Bin",
+      "page": "screens_docs_rich",
+      "w": 2730,
+      "h": 24218
     },
     "SettingsMcp.dc.html": {
       "bytes": 107403,
