@@ -433,7 +433,7 @@ async fn patch_ticket_answers_the_same() {
         (json!({"status": "wont_do", "wont_do_reason": " \n "}), "wont_do_reason is required when status is wont_do"),
         (
             json!({"type": "story"}),
-            "Make a ticket a Story with Make this a Story, which hands it to the PM; a Story stays a Story.",
+            "A ticket cannot become a Story, and a Story stays a Story: make a new ticket of type Story.",
         ),
     ];
     for (body, detail) in cases {
@@ -576,14 +576,13 @@ async fn moving_a_ticket_follows_the_same_rules() {
     refused(
         &patch(&c, "TST-2", json!({"type": "task"})).await,
         400,
-        "Make a ticket a Story with Make this a Story, which hands it to the PM; a Story stays a Story.",
+        "A ticket cannot become a Story, and a Story stays a Story: make a new ticket of type Story.",
     );
-    // a Story moves with its own state
+    // a Story moves between the columns like any ticket
     let story = new_ticket(&c, &pid, json!({"title": "Goal", "type": "story"})).await;
     let story_id = id(&story);
-    let moves = "A Story moves with its own state: hand it to the PM, approve its plan, or pause, drop or reopen it.";
-    refused(&patch(&c, &story_id, json!({"status": "todo"})).await, 400, moves);
-    refused(&c.patch(&format!("/tickets/{story_id}/status"), json!({"status": "done"})).await, 400, moves);
+    patch(&c, &story_id, json!({"status": "todo"})).await.assert_status(200);
+    c.patch(&format!("/tickets/{story_id}/status"), json!({"status": "in-progress"})).await.assert_status(200);
     patch(&c, &story_id, json!({"status": "backlog", "title": "The goal"})).await.assert_status(200);
 
     // Done waits for the criteria, the test cases and the tickets that block it

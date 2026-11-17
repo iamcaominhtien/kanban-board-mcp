@@ -1192,7 +1192,7 @@ function TicketModalInner({
                   <option value="bug">Bug</option>
                   <option value="feature">Feature</option>
                   <option value="chore">Chore</option>
-                  {/* A Story is made by giving it to the PM (the board's Give a Story, or Make this a Story) */}
+                  {/* A Story is made as one (New Ticket › Story); a ticket does not become a Story later */}
                   <option value="story" disabled={ticket.type !== 'story'}>
                     Story
                   </option>

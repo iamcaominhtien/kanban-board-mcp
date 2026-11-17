@@ -83,12 +83,19 @@ quyết định số phận 8 call code chết.
 |---|---|---:|---:|---:|---:|
 | Số gốc | 21 / 375 | 57.1 % | 26.0 % | 47.6 % | 42.8 % |
 | Đợt 1 (23, 24, 25) | 24 / 449 | 59.7 % | 29.8 % | 48.8 % | 43.4 % |
+| Đợt 2 (26, 27, 28) | 27 / 574 | 63.0 % | 38.9 % | 53.8 % | 48.0 % |
 
 Đợt 1: `api/tickets.ts` còn 1 call chưa phủ (từ 10), call duy nhất còn lại thuộc Docs / Idea (đợt 2, 4). Các component
 gốc (board, ticket) tăng từ 60.4 % lên 67.2 % function. Bug đã sửa: trang vẫn gọi API của project đã xoá (`App.tsx`);
 "Open ticket" trong menu card không làm gì, "Copy link" của card không báo (`TicketCard.tsx`,
 `DraggableTicketCard.tsx`). Giới hạn đo: chọn một `<option>` bằng `selectOption` không được ghi là thao tác lên
 option đó, nên 7 loại link trong `RelationsSection` vẫn hiện là chưa phủ dù scenario 23 có dùng đủ.
+
+Đợt 2 (Docs): bug đã sửa: xoá trang đang mở làm trang bị gọi lại (410, rồi 404 sau khi xoá hẳn) (`DocsView.tsx`,
+`api/docs.ts`); trang nháp không tìm được vì lưu nháp không cập nhật chỉ mục (`kb-docs` `save_draft`); sửa trong ô
+Markdown source ngay sau khi mở trang bị bỏ qua (`DocsEditor.tsx`); "Retry now" ẩn banner offline khi server vẫn chưa
+liên lạc được (`DocsEditScreen.tsx`). Tính năng thêm theo yêu cầu: sửa tên / màu project, xoá cả project đang mở và
+project cuối, tạo Story từ New Ticket, Story đổi trạng thái như ticket thường.
 
 ## 6. Những gì đo được đến giờ
 

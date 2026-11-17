@@ -1,4 +1,4 @@
-import { ensureProject, createTicket, openTicket, closeTicket, card, columnOf } from '../lib/ui.mjs';
+import { ensureProject, createTicket, openTicket, closeTicket, card, columnOf, dragCard } from '../lib/ui.mjs';
 
 export default {
   name: 'Projects and Stories: delete a project, Story page, sub-tickets, waves, lanes',
@@ -267,6 +267,13 @@ export default {
     });
 
     // ---- the last project
+    await s.step('a Story moves between the columns like any ticket (it used to be refused: "hand it to the PM")', async () => {
+      const moved = p.waitForResponse((r) => r.request().method() === 'PATCH' && /\/tickets\/ALP-1\/status$/.test(r.url()));
+      await dragCard(p, 'ALP-1', 'Testing');
+      if ((await moved).status() !== 200) throw new Error('the Story move was refused');
+      await columnOf(p, 'Testing').getByRole('button', { name: /ALP-1/ }).waitFor();
+      if ((await api('GET', '/tickets/ALP-1')).body.status !== 'testing') throw new Error('the Story should be in Testing');
+    });
     await s.step('Edit a project: a new name and colour, the prefix stays, a reload keeps them', async () => {
       await nav().getByTitle('Alpha (ALP)').hover();
       await nav().locator('[aria-label="Edit Alpha"]').click();

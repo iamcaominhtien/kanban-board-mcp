@@ -4,8 +4,8 @@
 
 ## src/App.tsx (2)
 
-- shown: `Blocked ticket` (src/App.tsx:1336)
-- shown: `Move Anyway` (src/App.tsx:1353)
+- shown: `Blocked ticket` (src/App.tsx:1343)
+- shown: `Move Anyway` (src/App.tsx:1360)
 
 ## src/components/ActivitySection.tsx (1)
 
@@ -26,20 +26,18 @@
 
 - shown: `… active tickets` (src/components/Column.tsx:121, src/components/Column.tsx:133)
 
-## src/components/CommentsSection.tsx (2)
+## src/components/CommentsSection.tsx (1)
 
 - never shown: `Cancel send` (src/components/CommentsSection.tsx:894, src/components/CommentsSection.tsx:1035)
-- never shown: `Retry` (src/components/CommentsSection.tsx:941, src/components/CommentsSection.tsx:1082, src/components/LoadingPill.tsx:49, src/components/ProjectSidebar.tsx:143, src/components/ai/RunPanel.tsx:410, src/components/ai/activity/design/designBlocks.tsx:2032, src/components/diagrams/DiagramEditor.tsx:521, src/components/diagrams/DiagramEditor.tsx:594, src/components/docs/comments/CommentBox.tsx:246, src/components/docs/comments/CommentsPanel.tsx:141, src/components/docs/comments/SendToAi.tsx:363, src/components/preview/TextReader.tsx:369)
 
 ## src/components/ConflictNotice.tsx (1)
 
 - never shown: `View ticket` (src/components/ConflictNotice.tsx:31)
 
-## src/components/DebugSpaceSection.tsx (5)
+## src/components/DebugSpaceSection.tsx (4)
 
 - shown: `Formatting` (src/components/DebugSpaceSection.tsx:313, src/components/docs/editor/EditorToolbar.tsx:140)
 - shown: `Code` (src/components/DebugSpaceSection.tsx:337, src/components/MarkdownEditor.tsx:1136, src/components/ideas/IdeaDiscussion.tsx:350)
-- shown: `Link` (src/components/DebugSpaceSection.tsx:359, src/components/MarkdownEditor.tsx:1187, src/components/docs/ai/DocsHealthView.tsx:199, src/components/ideas/IdeaDiscussion.tsx:353)
 - never shown: `Linked branch` (src/components/DebugSpaceSection.tsx:396)
 - never shown: `Confirm delete` (src/components/DebugSpaceSection.tsx:949, src/components/WorkspaceSection.tsx:621)
 
@@ -47,14 +45,13 @@
 
 - never shown: `Try again` (src/components/LoadError.tsx:35, src/components/McpIntegrations.tsx:325, src/components/McpIntegrations.tsx:448, src/components/MembersPanel.tsx:153, src/components/ai/AiDialogs.tsx:61, src/components/ai/AiMembersPage.tsx:523, src/components/ai/aiUi.tsx:423, src/components/ai/code/RepoCommands.tsx:344, src/components/ai/editor/useEditorAi.tsx:653, src/components/ai/editor/useEditorAi.tsx:724, src/components/assist/AnswerBlock.tsx:201, src/components/assist/AssistSettings.tsx:201, src/components/assist/DocsAi.tsx:131, src/components/canvas/CanvasEditor.tsx:2083, src/components/docs/ImportDialog.tsx:1086, src/components/docs/ai/AskPanel.tsx:292, src/components/ideas/IdeaAiExtras.tsx:503, src/components/ideas/IdeaAiPanel.tsx:509, src/components/ideas/IdeaAiPanel.tsx:522, src/components/ideas/IdeaPage.tsx:138, src/components/ideas/IdeaSpace.tsx:433, src/components/ideas/PromoteDialog.tsx:148, src/components/notifications/NotificationStates.tsx:48, src/components/preview/TextReader.tsx:386)
 
-## src/components/MarkdownEditor.tsx (12)
+## src/components/MarkdownEditor.tsx (11)
 
 - shown: `Redo` (src/components/MarkdownEditor.tsx:983, src/components/sketch/SketchEditor.tsx:576)
 - shown: `Heading` (src/components/MarkdownEditor.tsx:1067)
 - shown: `Insert doc reference` (src/components/MarkdownEditor.tsx:1163, src/components/comments/Composer.tsx:392)
 - shown: `Attach File` (src/components/MarkdownEditor.tsx:1219)
 - shown: `Canvas` (src/components/MarkdownEditor.tsx:1344, src/components/comments/Composer.tsx:420, src/components/docs/comments/CommentBox.tsx:308)
-- shown: `Image` (src/components/MarkdownEditor.tsx:1364, src/components/canvas/EditorParts.tsx:142)
 - shown: `Align left` (src/components/MarkdownEditor.tsx:1418)
 - shown: `Align center` (src/components/MarkdownEditor.tsx:1444)
 - shown: `Align right` (src/components/MarkdownEditor.tsx:1470)
@@ -87,17 +84,7 @@
 
 ## src/components/ProjectSidebar.tsx (1)
 
-- shown: `Project navigation` (src/components/ProjectSidebar.tsx:116)
-
-## src/components/RelationsSection.tsx (7)
-
-- never shown: `Blocks` (src/components/RelationsSection.tsx:325)
-- never shown: `Blocked by` (src/components/RelationsSection.tsx:326)
-- never shown: `Relates to` (src/components/RelationsSection.tsx:327)
-- never shown: `Causes` (src/components/RelationsSection.tsx:328)
-- never shown: `Caused by` (src/components/RelationsSection.tsx:329)
-- never shown: `Duplicates` (src/components/RelationsSection.tsx:330)
-- never shown: `Duplicated by` (src/components/RelationsSection.tsx:331)
+- shown: `Project navigation` (src/components/ProjectSidebar.tsx:146)
 
 ## src/components/ResumeDialog.tsx (1)
 
@@ -134,20 +121,17 @@
 
 - shown: `Blocked` (src/components/TicketCard.tsx:243, src/components/icons/StatusMarks.tsx:67)
 
-## src/components/TicketModal.tsx (14)
+## src/components/TicketModal.tsx (11)
 
 - shown: `Ticket or AI activity` (src/components/TicketModal.tsx:1907)
 - shown: `Reopen History` (src/components/TicketModal.tsx:2088)
 - never shown: `Uploading …` (src/components/TicketModal.tsx:2558)
 - shown: `Add attachment` (src/components/TicketModal.tsx:2574)
-- shown: `Story` (src/components/TicketModal.tsx:1196, src/components/icons/TicketTypeIcons.tsx:214)
 - shown: `Ticket` (src/components/TicketModal.tsx:1908)
 - shown: `Open in Flow` (src/components/TicketModal.tsx:1954, src/components/ai/activity/AiActivityDesign.tsx:47)
-- never shown: `Nobody` (src/components/TicketModal.tsx:3192)
 - shown: `1 pt` (src/components/TicketModal.tsx:3299)
 - shown: `2 pt` (src/components/TicketModal.tsx:3300)
 - shown: `3 pt` (src/components/TicketModal.tsx:3301)
-- shown: `5 pt` (src/components/TicketModal.tsx:3302)
 - shown: `8 pt` (src/components/TicketModal.tsx:3303)
 - shown: `13 pt` (src/components/TicketModal.tsx:3304)
 
@@ -157,11 +141,6 @@
 - never shown: `Later` (src/components/UpdateNotice.tsx:120)
 - never shown: `Skip this version` (src/components/UpdateNotice.tsx:123)
 - never shown: `What's new` (src/components/UpdateNotice.tsx:129)
-
-## src/components/WorkLogSection.tsx (2)
-
-- never shown: `Your name...` (src/components/WorkLogSection.tsx:105)
-- never shown: `Log Work` (src/components/WorkLogSection.tsx:138)
 
 ## src/components/ai/AddTeamModal.tsx (3)
 
@@ -324,7 +303,7 @@
 - never shown: `idea` (src/components/ai/editor/useEditorAi.tsx:1053)
 - never shown: `Ask AI to write, with this page as context…` (src/components/ai/editor/useEditorAi.tsx:1053)
 - never shown: `Ask AI to write, with this ticket as context…` (src/components/ai/editor/useEditorAi.tsx:1053)
-- never shown: `AI on the selection` (src/components/ai/editor/useEditorAi.tsx:1202)
+- shown: `AI on the selection` (src/components/ai/editor/useEditorAi.tsx:1202)
 - never shown: `Show the draft` (src/components/ai/editor/useEditorAi.tsx:656)
 - never shown: `Insert below` (src/components/ai/editor/useEditorAi.tsx:702, src/components/ai/editor/useEditorAi.tsx:943)
 - never shown: `Continue` (src/components/ai/editor/useEditorAi.tsx:732, src/components/assist/AnswerBlock.tsx:261)
@@ -430,7 +409,7 @@
 
 - never shown: `Add…` (src/components/ai/tools/CatalogueTab.tsx:74)
 
-## src/components/ai/tools/InstalledTab.tsx (10)
+## src/components/ai/tools/InstalledTab.tsx (9)
 
 - never shown: `Working` (src/components/ai/tools/InstalledTab.tsx:222)
 - shown: `Search skills and plugins…` (src/components/ai/tools/InstalledTab.tsx:306)
@@ -440,7 +419,6 @@
 - shown: `Open` (src/components/ai/tools/InstalledTab.tsx:129, src/components/assist/TicketChat.tsx:27, src/components/ideas/Triage.tsx:324, src/components/notifications/DayCard.tsx:73, src/components/notifications/NotificationRow.tsx:337, src/components/settings/database/DatabaseCard.tsx:301)
 - never shown: `Unpin` (src/components/ai/tools/InstalledTab.tsx:133, src/components/ideas/IdeaDiscussion.tsx:446)
 - shown: `Check for update` (src/components/ai/tools/InstalledTab.tsx:142, src/components/ai/tools/InstalledTab.tsx:174)
-- shown: `Reload` (src/components/ai/tools/InstalledTab.tsx:166, src/components/docs/ConflictBanner.tsx:99, src/components/preview/HtmlReader.tsx:56)
 - never shown: `Roll back` (src/components/ai/tools/InstalledTab.tsx:190)
 
 ## src/components/ai/tools/SkillsPluginsSection.tsx (4)
@@ -455,13 +433,12 @@
 - never shown: `Map of the teams, you and the tickets` (src/components/aiteam/FlowMap.tsx:284)
 - never shown: `Widen the range` (src/components/aiteam/FlowMap.tsx:366, src/components/aiteam/SteppedInTab.tsx:495)
 
-## src/components/aiteam/FlowScopeBar.tsx (6)
+## src/components/aiteam/FlowScopeBar.tsx (5)
 
 - shown: `What Flow looks at` (src/components/aiteam/FlowScopeBar.tsx:167)
 - never shown: `Go to a team, Story or ticket` (src/components/aiteam/FlowScopeBar.tsx:207, src/components/aiteam/FlowScopeBar.tsx:191)
 - never shown: `code or words` (src/components/aiteam/FlowScopeBar.tsx:214)
 - never shown: `Search teams, Stories and tickets` (src/components/aiteam/FlowScopeBar.tsx:215)
-- shown: `View` (src/components/aiteam/FlowScopeBar.tsx:290, src/components/ideas/IdeaSpace.tsx:312, src/components/schedules/SchedulesTab.tsx:438)
 - shown: `Map` (src/components/aiteam/FlowScopeBar.tsx:291, src/components/canvas/CanvasEditor.tsx:2179)
 
 ## src/components/aiteam/FlowTab.tsx (2)
@@ -609,12 +586,11 @@
 - never shown: `Reply to passage …` (src/components/assist/quoteReplies.tsx:223)
 - never shown: `Remove passage …` (src/components/assist/quoteReplies.tsx:236)
 
-## src/components/canvas/CanvasEditor.tsx (22)
+## src/components/canvas/CanvasEditor.tsx (19)
 
 - shown: `Canvas …` (src/components/canvas/CanvasEditor.tsx:1032)
 - shown: `Canvas name` (src/components/canvas/CanvasEditor.tsx:1046)
 - shown: `Keys` (src/components/canvas/CanvasEditor.tsx:1262, src/components/canvas/EditorParts.tsx:339)
-- shown: `Pages` (src/components/canvas/CanvasEditor.tsx:1288, src/components/docs/MoveToDialog.tsx:572, src/components/docs/MoveToDialog.tsx:638, src/components/preview/PdfReader.tsx:320)
 - shown: `Add a page tab` (src/components/canvas/CanvasEditor.tsx:1329)
 - never shown: `Delete this page tab` (src/components/canvas/CanvasEditor.tsx:1346)
 - never shown: `Label text` (src/components/canvas/CanvasEditor.tsx:1591)
@@ -624,9 +600,7 @@
 - shown: `Zoom out` (src/components/canvas/CanvasEditor.tsx:2154, src/components/diagrams/DiagramViewer.tsx:93, src/components/preview/ImageReader.tsx:320, src/components/preview/PdfReader.tsx:283, src/components/sketch/SketchEditor.tsx:588)
 - shown: `Tools` (src/components/canvas/CanvasEditor.tsx:2188, src/components/sketch/SketchEditor.tsx:744)
 - never shown: `Is the button label long enough for Vietnamese?` (src/components/canvas/CanvasEditor.tsx:2284)
-- shown: `Close panel` (src/components/canvas/CanvasEditor.tsx:2363, src/components/docs/DocPeekPanel.tsx:198)
 - shown: `Save a copy` (src/components/canvas/CanvasEditor.tsx:1245, src/components/sketch/SketchEditor.tsx:642, src/components/sketch/SketchEditor.tsx:699)
-- shown: `Share` (src/components/canvas/CanvasEditor.tsx:1250)
 - never shown: `Trying it: clicks go to the page. Stop` (src/components/canvas/CanvasEditor.tsx:1718)
 - never shown: `Save as copy` (src/components/canvas/CanvasEditor.tsx:2053, src/components/diagrams/DiagramEditor.tsx:530)
 - never shown: `Load theirs` (src/components/canvas/CanvasEditor.tsx:2060)
@@ -649,12 +623,10 @@
 - never shown: `Try it` (src/components/canvas/CanvasViewer.tsx:462)
 - never shown: `Exit` (src/components/canvas/CanvasViewer.tsx:500)
 
-## src/components/canvas/CommentsPanel.tsx (4)
+## src/components/canvas/CommentsPanel.tsx (2)
 
 - never shown: `Filter comments` (src/components/canvas/CommentsPanel.tsx:149)
 - never shown: `Comment on “…”… Type @ to mention a person or a team` (src/components/canvas/CommentsPanel.tsx:168)
-- never shown: `Delete thread` (src/components/canvas/CommentsPanel.tsx:241)
-- shown: `Reply…` (src/components/canvas/CommentsPanel.tsx:256, src/components/docs/comments/ThreadCard.tsx:676)
 
 ## src/components/canvas/EditorParts.tsx (7)
 
@@ -684,13 +656,12 @@
 - never shown: `Start with` (src/components/canvas/NewCanvasDialog.tsx:72)
 - never shown: `Choose files` (src/components/canvas/NewCanvasDialog.tsx:103)
 
-## src/components/canvas/SourceEditor.tsx (8)
+## src/components/canvas/SourceEditor.tsx (7)
 
 - never shown: `Someone else is editing` (src/components/canvas/SourceEditor.tsx:274)
 - never shown: `Source of …` (src/components/canvas/SourceEditor.tsx:469)
 - never shown: `Preview width` (src/components/canvas/SourceEditor.tsx:487)
 - never shown: `OK` (src/components/canvas/SourceEditor.tsx:296)
-- never shown: `Keep editing` (src/components/canvas/SourceEditor.tsx:367, src/components/diagrams/DiagramEditor.tsx:675, src/components/docs/DiscardDialog.tsx:101, src/components/sketch/SketchEditor.tsx:891)
 - never shown: `Back to editor` (src/components/canvas/SourceEditor.tsx:391, src/components/diagrams/DiagramEditor.tsx:653)
 - never shown: `Save as new board` (src/components/canvas/SourceEditor.tsx:395, src/components/canvas/SourceEditor.tsx:415)
 - never shown: `+ Add file` (src/components/canvas/SourceEditor.tsx:452)
@@ -743,181 +714,77 @@
 - shown: `Breadcrumb` (src/components/docs/CanvasPageView.tsx:40, src/components/docs/DocsPageView.tsx:355)
 - never shown: `Page menu` (src/components/docs/CanvasPageView.tsx:72)
 
-## src/components/docs/ConflictBanner.tsx (1)
+## src/components/docs/DocPeekPanel.tsx (1)
 
-- never shown: `Keep mine` (src/components/docs/ConflictBanner.tsx:90)
-
-## src/components/docs/DocPeekPanel.tsx (2)
-
-- never shown: `Doc preview` (src/components/docs/DocPeekPanel.tsx:143)
-- never shown: `Show page top` (src/components/docs/DocPeekPanel.tsx:367)
+- shown: `Doc preview` (src/components/docs/DocPeekPanel.tsx:143)
 
 ## src/components/docs/DocsEditScreen.tsx (1)
 
-- shown: `Editor mode` (src/components/docs/DocsEditScreen.tsx:502)
-
-## src/components/docs/DocsFollowToggle.tsx (1)
-
-- shown: `Following this space` (src/components/docs/DocsFollowToggle.tsx:13)
-
-## src/components/docs/DocsHero.tsx (2)
-
-- shown: `Choose files…` (src/components/docs/DocsHero.tsx:351, src/components/docs/ImportDialog.tsx:916)
-- shown: `Choose folder…` (src/components/docs/DocsHero.tsx:359, src/components/docs/ImportDialog.tsx:919)
-
-## src/components/docs/DocsMarkdown.tsx (1)
-
-- shown: `Copy code` (src/components/docs/DocsMarkdown.tsx:200)
+- shown: `Editor mode` (src/components/docs/DocsEditScreen.tsx:523)
 
 ## src/components/docs/DocsPageView.tsx (1)
 
 - shown: `On this page` (src/components/docs/DocsPageView.tsx:770, src/components/settings/SettingsPage.tsx:627)
 
-## src/components/docs/DocsRail.tsx (3)
+## src/components/docs/DocsRail.tsx (1)
 
 - shown: `Docs space (collapsed)` (src/components/docs/DocsRail.tsx:68)
-- shown: `Expand page tree` (src/components/docs/DocsRail.tsx:88)
-- shown: `Search pages` (src/components/docs/DocsRail.tsx:94)
 
 ## src/components/docs/DocsRecycleSection.tsx (1)
 
 - never shown: `Deleted docs pages` (src/components/docs/DocsRecycleSection.tsx:355)
 
-## src/components/docs/DocsStates.tsx (3)
+## src/components/docs/DocsStates.tsx (2)
 
 - never shown: `Loading pages` (src/components/docs/DocsStates.tsx:40)
 - never shown: `Loading page` (src/components/docs/DocsStates.tsx:83, src/components/docs/DocsStates.tsx:188, src/components/docs/DocsTree.tsx:730)
-- never shown: `I need to read the API docs` (src/components/docs/DocsStates.tsx:658)
 
 ## src/components/docs/DocsSuggest.tsx (1)
 
 - shown: `Link a page` (src/components/docs/DocsSuggest.tsx:240)
 
-## src/components/docs/DocsTree.tsx (9)
+## src/components/docs/DocsTree.tsx (1)
 
-- shown: `Resize page tree` (src/components/docs/DocsTree.tsx:135)
-- shown: `Collapse` (src/components/docs/DocsTree.tsx:669, src/components/docs/ReferencedBy.tsx:173)
-- never shown: `Expand` (src/components/docs/DocsTree.tsx:669, src/components/docs/ReferencedBy.tsx:173)
 - never shown: `Saving move` (src/components/docs/DocsTree.tsx:730)
-- shown: `Add child page under …` (src/components/docs/DocsTree.tsx:740)
-- shown: `Page actions for …` (src/components/docs/DocsTree.tsx:754)
-- shown: `Docs space` (src/components/docs/DocsTree.tsx:810)
-- shown: `Collapse page tree` (src/components/docs/DocsTree.tsx:856)
-- never shown: `Clear filter` (src/components/docs/DocsTree.tsx:908, src/components/docs/DocsTree.tsx:1003)
 
-## src/components/docs/DocsView.tsx (1)
+## src/components/docs/DuplicateDialog.tsx (1)
 
-- shown: `Open Docs in its own window` (src/components/docs/DocsView.tsx:598)
-
-## src/components/docs/DuplicateDialog.tsx (2)
-
-- never shown: `Include child pages` (src/components/docs/DuplicateDialog.tsx:223)
 - never shown: `Pages that will be created` (src/components/docs/DuplicateDialog.tsx:242)
 
-## src/components/docs/FindInPage.tsx (1)
+## src/components/docs/HistoryDrawer.tsx (2)
 
-- shown: `Previous match` (src/components/docs/FindInPage.tsx:391, src/components/preview/TextReader.tsx:93)
-
-## src/components/docs/GivePageDialog.tsx (1)
-
-- never shown: `Check the error cases against the API` (src/components/docs/GivePageDialog.tsx:121)
-
-## src/components/docs/HistoryDrawer.tsx (5)
-
-- never shown: `Diff layout` (src/components/docs/HistoryDrawer.tsx:443)
-- never shown: `Jump to a change` (src/components/docs/HistoryDrawer.tsx:534)
-- shown: `Select version …` (src/components/docs/HistoryDrawer.tsx:629)
-- never shown: `Inline` (src/components/docs/HistoryDrawer.tsx:453)
-- never shown: `Side by side` (src/components/docs/HistoryDrawer.tsx:462)
-
-## src/components/docs/ImportDialog.tsx (2)
-
-- shown: `Files…` (src/components/docs/ImportDialog.tsx:1021)
-- shown: `Folder…` (src/components/docs/ImportDialog.tsx:1024)
-
-## src/components/docs/MoveToDialog.tsx (3)
-
-- never shown: `Place here` (src/components/docs/MoveToDialog.tsx:401)
-- never shown: `Find a page` (src/components/docs/MoveToDialog.tsx:525, src/components/docs/NewPageDialog.tsx:724)
-- never shown: `Find a page…` (src/components/docs/MoveToDialog.tsx:526, src/components/docs/NewPageDialog.tsx:723)
+- shown: `Diff layout` (src/components/docs/HistoryDrawer.tsx:443)
+- shown: `Jump to a change` (src/components/docs/HistoryDrawer.tsx:534)
 
 ## src/components/docs/NewPageDialog.tsx (2)
 
 - shown: `Template` (src/components/docs/NewPageDialog.tsx:387)
 - shown: `Write with AI` (src/components/docs/NewPageDialog.tsx:465)
 
-## src/components/docs/OfflineBanners.tsx (1)
-
-- never shown: `Retry now` (src/components/docs/OfflineBanners.tsx:31)
-
-## src/components/docs/PageInfoPopover.tsx (2)
+## src/components/docs/PageInfoPopover.tsx (1)
 
 - never shown: `Page info` (src/components/docs/PageInfoPopover.tsx:104)
-- shown: `Referenced by` (src/components/docs/PageInfoPopover.tsx:178, src/components/docs/ReferencedBy.tsx:151)
 
 ## src/components/docs/PageWork.tsx (1)
 
-- never shown: `AI at work on this page` (src/components/docs/PageWork.tsx:41)
+- shown: `AI at work on this page` (src/components/docs/PageWork.tsx:41)
 
-## src/components/docs/PublishDialog.tsx (4)
+## src/components/docs/PublishDialog.tsx (1)
 
 - never shown: `Publish page` (src/components/docs/PublishDialog.tsx:150)
-- never shown: `Notify members` (src/components/docs/PublishDialog.tsx:382)
-- never shown: `Review changes` (src/components/docs/PublishDialog.tsx:213)
-- never shown: `Go to marker` (src/components/docs/PublishDialog.tsx:410)
 
-## src/components/docs/RefChip.tsx (2)
+## src/components/docs/RefChip.tsx (1)
 
-- never shown: `Open in side panel` (src/components/docs/RefChip.tsx:764)
 - shown: `Open page` (src/components/docs/RefChip.tsx:1035)
 
-## src/components/docs/RenameDialog.tsx (1)
-
-- never shown: `Rename only` (src/components/docs/RenameDialog.tsx:113)
-
-## src/components/docs/SearchPalette.tsx (5)
+## src/components/docs/SearchPalette.tsx (2)
 
 - never shown: `Search or Ask` (src/components/docs/SearchPalette.tsx:652)
-- never shown: `Search docs` (src/components/docs/SearchPalette.tsx:1719, src/components/docs/SearchResults.tsx:528)
-- never shown: `Show them` (src/components/docs/SearchPalette.tsx:1368)
 - never shown: `Esc` (src/components/docs/SearchPalette.tsx:1841)
-- never shown: `Linking syntax: [[Page#Section]], KAN-12 and anchors →` (src/components/docs/SearchPalette.tsx:1852)
 
-## src/components/docs/SearchResults.tsx (16)
-
-- never shown: `Search … docs…` (src/components/docs/SearchResults.tsx:527)
-- never shown: `Clear search` (src/components/docs/SearchResults.tsx:544)
-- never shown: `Search scope` (src/components/docs/SearchResults.tsx:584)
-- never shown: `Search within results…` (src/components/docs/SearchResults.tsx:640)
-- never shown: `Search within results` (src/components/docs/SearchResults.tsx:641)
-- never shown: `Edited since` (src/components/docs/SearchResults.tsx:752)
-- never shown: `Page tree location` (src/components/docs/SearchResults.tsx:784)
-- never shown: `Only pages that link a ticket` (src/components/docs/SearchResults.tsx:821)
-- never shown: `Remove edited filter` (src/components/docs/SearchResults.tsx:864)
-- shown: `This space` (src/components/docs/SearchResults.tsx:589)
-- never shown: `All projects` (src/components/docs/SearchResults.tsx:590)
-- never shown: `Tickets` (src/components/docs/SearchResults.tsx:591)
-- never shown: `Relevance` (src/components/docs/SearchResults.tsx:666)
-- never shown: `Recently edited` (src/components/docs/SearchResults.tsx:673)
-- never shown: `Clear all` (src/components/docs/SearchResults.tsx:699)
-- never shown: `Anywhere in space` (src/components/docs/SearchResults.tsx:789)
-
-## src/components/docs/SharePopover.tsx (2)
+## src/components/docs/SharePopover.tsx (1)
 
 - never shown: `Share page` (src/components/docs/SharePopover.tsx:110)
-- never shown: `Copy reference` (src/components/docs/SharePopover.tsx:228)
-
-## src/components/docs/SinceViewedBanner.tsx (2)
-
-- never shown: `Mark changed paragraphs in the page` (src/components/docs/SinceViewedBanner.tsx:138)
-- never shown: `Mark as seen` (src/components/docs/SinceViewedBanner.tsx:259)
-
-## src/components/docs/TicketDocsSection.tsx (4)
-
-- never shown: `Remove link` (src/components/docs/TicketDocsSection.tsx:161)
-- shown: `Link a doc` (src/components/docs/TicketDocsSection.tsx:249)
-- never shown: `Search pages and sections` (src/components/docs/TicketDocsSection.tsx:287)
-- shown: `Team` (src/components/docs/TicketDocsSection.tsx:381)
 
 ## src/components/docs/ai/CheckThisPage.tsx (1)
 
@@ -991,25 +858,17 @@
 - never shown: `Paste the notes here: a meeting, a call, a brain dump` (src/components/docs/ai/WriteWithAi.tsx:201)
 - shown: `What kind of page` (src/components/docs/ai/WriteWithAi.tsx:222)
 
-## src/components/docs/comments/CommentBox.tsx (1)
-
-- shown: `Attach an image or file` (src/components/docs/comments/CommentBox.tsx:271)
-
-## src/components/docs/comments/CommentsPanel.tsx (3)
+## src/components/docs/comments/CommentsPanel.tsx (1)
 
 - shown: `Inline comments` (src/components/docs/comments/CommentsPanel.tsx:89)
-- shown: `Close comments` (src/components/docs/comments/CommentsPanel.tsx:100)
-- shown: `Show resolved` (src/components/docs/comments/CommentsPanel.tsx:158)
 
 ## src/components/docs/comments/DocsMentionIntent.tsx (1)
 
 - never shown: `What does the mention mean` (src/components/docs/comments/DocsMentionIntent.tsx:79)
 
-## src/components/docs/comments/OrphanWarning.tsx (3)
+## src/components/docs/comments/OrphanWarning.tsx (1)
 
-- never shown: `Publish with orphaned comments` (src/components/docs/comments/OrphanWarning.tsx:44)
-- never shown: `Review comments` (src/components/docs/comments/OrphanWarning.tsx:83)
-- never shown: `Publish anyway` (src/components/docs/comments/OrphanWarning.tsx:86)
+- shown: `Publish with orphaned comments` (src/components/docs/comments/OrphanWarning.tsx:44)
 
 ## src/components/docs/comments/PageComments.tsx (1)
 
@@ -1026,42 +885,26 @@
 - shown: `Choose where to send this thread` (src/components/docs/comments/SendToAi.tsx:564)
 - never shown: `add one in Members` (src/components/docs/comments/SendToAi.tsx:419)
 
-## src/components/docs/comments/ThreadCard.tsx (3)
+## src/components/docs/comments/ThreadCard.tsx (2)
 
 - shown: `Reply` (src/components/docs/comments/ThreadCard.tsx:315)
-- shown: `Comment actions` (src/components/docs/comments/ThreadCard.tsx:329)
 - never shown: `Delete this comment?` (src/components/docs/comments/ThreadCard.tsx:396)
 
-## src/components/docs/editor/BubbleToolbar.tsx (2)
+## src/components/docs/editor/DocsEditor.tsx (1)
 
-- never shown: `Link URL` (src/components/docs/editor/BubbleToolbar.tsx:206)
-- never shown: `Paste or type a link` (src/components/docs/editor/BubbleToolbar.tsx:208)
-
-## src/components/docs/editor/DocsEditor.tsx (4)
-
-- shown: `Add block` (src/components/docs/editor/DocsEditor.tsx:812)
 - shown: `Drag to move` (src/components/docs/editor/DocsEditor.tsx:828)
-- shown: `Upload image` (src/components/docs/editor/DocsEditor.tsx:927)
-- shown: `Attach a file` (src/components/docs/editor/DocsEditor.tsx:939)
 
 ## src/components/docs/editor/EditorErrorBoundary.tsx (1)
 
 - never shown: `Reload the editor` (src/components/docs/editor/EditorErrorBoundary.tsx:54)
 
-## src/components/docs/editor/RefSuggester.tsx (2)
+## src/components/docs/editor/RefSuggester.tsx (1)
 
 - never shown: `Link a page or ticket` (src/components/docs/editor/RefSuggester.tsx:318)
-- never shown: `Syntax help` (src/components/docs/editor/RefSuggester.tsx:557)
 
 ## src/components/docs/editor/SlashMenu.tsx (1)
 
 - never shown: `Insert block` (src/components/docs/editor/SlashMenu.tsx:157)
-
-## src/components/docs/editor/TableControls.tsx (3)
-
-- shown: `Select column …` (src/components/docs/editor/TableControls.tsx:196)
-- shown: `Select row …` (src/components/docs/editor/TableControls.tsx:217)
-- never shown: `Header row` (src/components/docs/editor/TableControls.tsx:320)
 
 ## src/components/icons/AppLogo.tsx (1)
 
@@ -1274,15 +1117,14 @@
 
 - never shown: `PDF pages` (src/components/preview/PdfReader.tsx:325)
 
-## src/components/preview/PreviewViewer.tsx (11)
+## src/components/preview/PreviewViewer.tsx (10)
 
-- never shown: `Preview of …` (src/components/preview/PreviewViewer.tsx:380)
+- shown: `Preview of …` (src/components/preview/PreviewViewer.tsx:380)
 - never shown: `File … of …` (src/components/preview/PreviewViewer.tsx:422)
 - never shown: `Draw on it` (src/components/preview/PreviewViewer.tsx:437)
 - never shown: `Download and open` (src/components/preview/PreviewViewer.tsx:471)
 - never shown: `Open in app` (src/components/preview/PreviewViewer.tsx:486, src/components/preview/PreviewViewer.tsx:286)
 - never shown: `Show in folder` (src/components/preview/PreviewViewer.tsx:497)
-- never shown: `Copied` (src/components/preview/PreviewViewer.tsx:507)
 - never shown: `Full screen` (src/components/preview/PreviewViewer.tsx:517)
 - never shown: `Previous file` (src/components/preview/PreviewViewer.tsx:536)
 - never shown: `Close details` (src/components/preview/PreviewViewer.tsx:565)
@@ -1292,9 +1134,8 @@
 
 - never shown: `Slide` (src/components/preview/SlideCanvas.tsx:326)
 
-## src/components/preview/TableReader.tsx (2)
+## src/components/preview/TableReader.tsx (1)
 
-- never shown: `… table` (src/components/preview/TableReader.tsx:153)
 - never shown: `Download all rows` (src/components/preview/TableReader.tsx:116)
 
 ## src/components/preview/TextReader.tsx (2)
@@ -1342,12 +1183,11 @@
 - never shown: `Next week` (src/components/schedules/SchedulesTab.tsx:509)
 - never shown: `Today` (src/components/schedules/SchedulesTab.tsx:515)
 
-## src/components/settings/DiagnosticsPage.tsx (4)
+## src/components/settings/DiagnosticsPage.tsx (3)
 
 - shown: `Info and above` (src/components/settings/DiagnosticsPage.tsx:108)
 - shown: `Warnings and errors` (src/components/settings/DiagnosticsPage.tsx:109)
 - shown: `Errors only` (src/components/settings/DiagnosticsPage.tsx:110)
-- shown: `Everything` (src/components/settings/DiagnosticsPage.tsx:111)
 
 ## src/components/settings/NotificationsSettings.tsx (7)
 
@@ -1478,5 +1318,5 @@
 
 ## Keys pressed outside text fields
 
-/, Alt+Alt, Alt+n, ArrowRight, Ctrl+A, Ctrl+Control, Ctrl+End, Ctrl+Enter, Ctrl+a, Ctrl+f, Ctrl+j, Ctrl+k, Enter, Escape, P, p
+/, Alt+Alt, Alt+n, ArrowRight, Ctrl+A, Ctrl+Control, Ctrl+End, Ctrl+Enter, Ctrl+a, Ctrl+f, Ctrl+j, Ctrl+k, Enter, Escape, F2, j, k, p
 
