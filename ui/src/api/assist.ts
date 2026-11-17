@@ -9,10 +9,8 @@ import type {
   ChatMessage,
   Chat,
   ChatScope,
-  CoverageRow,
   HealthPanel,
   InsightChip,
-  MentionEstimate,
   ScopeState,
   SimilarTicket,
 } from '../types/assist';
@@ -23,14 +21,10 @@ export const assistKeys = {
   chat: (id: string) => ['assist', 'chat', id] as const,
   message: (id: string) => ['assist', 'message', id] as const,
   draft: (id: string) => ['assist', 'draft', id] as const,
-  ticketDrafts: (ticketId: string) => ['assist', 'ticket-drafts', ticketId] as const,
   health: (projectId: string) => ['assist', 'health', projectId] as const,
   chips: (projectId: string) => ['assist', 'chips', projectId] as const,
-  coverage: (ticketId: string) => ['assist', 'coverage', ticketId] as const,
   docDrafts: (projectId: string, docId: string) => ['assist', 'doc-drafts', projectId, docId] as const,
   scope: (kind: string, id: string) => ['assist', 'scope', kind, id] as const,
-  mention: (ticketId: string, memberId: string, mode: string) =>
-    ['assist', 'mention', ticketId, memberId, mode] as const,
 };
 
 const ACTIVE_MSG = ['queued', 'thinking', 'streaming', 'rate_limited'];
@@ -80,16 +74,6 @@ export function useDraft(id: string | null | undefined) {
   });
 }
 
-/** Drafts on a ticket (badges, the latest description / split / cases draft). */
-export function useTicketDrafts(ticketId: string | undefined) {
-  return useQuery({
-    queryKey: assistKeys.ticketDrafts(ticketId ?? ''),
-    queryFn: async () => (await client.get<AssistDraft[]>(`/tickets/${ticketId}/ai/assist/drafts`)).data,
-    enabled: !!ticketId,
-    refetchInterval: (q) => (q.state.data?.some((d) => d.status === 'pending') ? 600 : false),
-  });
-}
-
 /** The Board health panel. */
 export function useHealth(projectId: string | null | undefined, enabled = true) {
   return useQuery({
@@ -110,20 +94,6 @@ export function useInsightChips(projectId: string | null | undefined) {
   });
 }
 
-/** Coverage by acceptance criterion. */
-export function useCoverage(ticketId: string | undefined) {
-  return useQuery({
-    queryKey: assistKeys.coverage(ticketId ?? ''),
-    queryFn: async () =>
-      (
-        await client.get<{ coverage: CoverageRow[]; covered: number; total: number }>(
-          `/tickets/${ticketId}/ai/assist/coverage`,
-        )
-      ).data,
-    enabled: !!ticketId,
-  });
-}
-
 /**
  * The chat panel's state for one thing (a ticket, a page, an idea): what it reads, who answers, whether the person
  * may ask, and the cost of an answer or a run.
@@ -134,26 +104,6 @@ export function useScopeState(scope: ChatScope | null, enabled = true) {
     queryFn: async () => (await client.get<ScopeState>(`/ai/scopes/${scope!.kind}/${scope!.id}`)).data,
     enabled: !!scope && enabled,
     refetchInterval: 20000,
-  });
-}
-
-/** What mentioning an AI member would do and cost, before the comment is sent. */
-export function useMentionEstimate(
-  ticketId: string,
-  memberId: string | null | undefined,
-  mode: 'ask' | 'work',
-  enabled = true,
-) {
-  return useQuery({
-    queryKey: assistKeys.mention(ticketId, memberId ?? '', mode),
-    queryFn: async () =>
-      (
-        await client.get<MentionEstimate>(`/tickets/${ticketId}/ai/estimate`, {
-          params: { member_id: memberId, mode },
-        })
-      ).data,
-    enabled: !!ticketId && !!memberId && enabled,
-    staleTime: 15000,
   });
 }
 
