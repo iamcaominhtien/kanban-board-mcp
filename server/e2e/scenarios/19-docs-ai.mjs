@@ -281,6 +281,8 @@ export default {
     await s.step('New page, Write with AI: "What will be sent" shows the chips and the tokens', async () => {
       await p.getByRole('button', { name: 'New page' }).first().click();
       const d = p.getByRole('dialog', { name: 'New page' });
+      // Write with AI is a violet chip of the gallery (design "Starting and shaping a page", frame 47)
+      await d.getByTestId('chip-ai').click();
       await d.getByRole('group', { name: 'Write with AI' }).waitFor();
       for (const t of ['From a ticket', 'From an idea', 'From pasted notes', 'From a prompt']) await d.getByRole('button', { name: t }).waitFor();
       await d.getByTestId('write-ai-prompt').click();
@@ -305,6 +307,7 @@ export default {
       await openDocs(s);
       await p.getByRole('button', { name: 'New page' }).first().click();
       const d = p.getByRole('dialog', { name: 'New page' });
+      await d.getByTestId('chip-ai').click();
       await d.getByTestId('write-ai-prompt').click();
       await d.getByRole('textbox', { name: 'What the page is about' }).fill('How paging works in the API');
       await d.getByTestId('what-will-be-sent').getByText(/~\d[\d,]* tokens/).waitFor();

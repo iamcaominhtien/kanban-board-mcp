@@ -10,6 +10,9 @@ import { aiGate } from '../../utils/docsAiRules';
 import { TidyOptions } from './ai/TidyOptions';
 import type { DocsTreeNode } from '../../types/docs';
 import type { DocsImportConflict, DocsImportDryFile, DocsImportDryRun, DocsImportEntry } from '../../types/docsFx';
+import { ConvertImport } from './start/ConvertImport';
+import { ImportSourceTiles } from './start/ImportSources';
+import { sourceForFiles, sourceOfFile, type ImportSource } from './start/importConvert';
 
 export const IMPORT_MAX_FILES = 200;
 export const IMPORT_MAX_BYTES = 2 * 1024 * 1024;
@@ -277,10 +280,59 @@ export interface ImportDialogProps {
   onDone: (created: string[]) => void;
   /** Shows the "Review links" action on the result toast when pages with unresolved links were created. */
   onReviewLinks?: (pageId: string) => void;
+  /** The tile the dialog opens on (default: from the files, else Markdown). */
+  initialSource?: ImportSource;
+  /** Text for the Paste tile (from the clipboard). */
+  initialText?: string;
+  /** Phone: the Word, HTML and Paste import is a full-screen sheet. */
+  phone?: boolean;
 }
 
 /**
- * Dialog to import Markdown files or folders as pages.
+ * Dialog to import pages: Markdown files or folders through the server's import, Word and HTML files and pasted
+ * text converted in the browser (start/ConvertImport). The tiles at the top switch between them.
+ * @param props.initialSource - The tile to open on; by default the chosen files say (all Markdown: Markdown).
+ */
+export function ImportDialog(props: ImportDialogProps) {
+  const { initialSource, initialFiles, initialEntries } = props;
+  const [source, setSource] = useState<ImportSource>(
+    () => initialSource ?? (initialEntries?.length ? 'markdown' : sourceForFiles(initialFiles ?? [])),
+  );
+  // files picked in the Markdown tile that are Word or HTML move to their tile
+  const [handoff, setHandoff] = useState<File[] | undefined>(() =>
+    initialFiles?.filter((f) => sourceOfFile(f.name) !== 'markdown'),
+  );
+  if (source !== 'markdown') {
+    return (
+      <ConvertImport
+        key={source}
+        projectId={props.projectId}
+        nodes={props.nodes}
+        source={source}
+        onSource={setSource}
+        initialFiles={handoff}
+        initialText={props.initialText}
+        initialParentId={props.initialParentId}
+        phone={props.phone}
+        onClose={props.onClose}
+        onDone={props.onDone}
+      />
+    );
+  }
+  return (
+    <MarkdownImport
+      {...props}
+      onSource={setSource}
+      onOtherFiles={(files) => {
+        setHandoff(files);
+        setSource(sourceForFiles(files));
+      }}
+    />
+  );
+}
+
+/**
+ * The Markdown tile of the Import dialog: Markdown files or folders as pages, through the server's import.
  * @param props.nodes - Page tree, used to pick the destination.
  * @param props.initialFiles - Files to import when the dialog opens.
  * @param props.initialEntries - Entries with relative paths (from `useDocsFileDrop` or folder drops).
@@ -289,7 +341,7 @@ export interface ImportDialogProps {
  * @param props.onDone - Called with the created page ids when the import finishes (also after the dialog was closed).
  * @param props.onReviewLinks - Shows "Review links" on the result toast when pages with unresolved links were created.
  */
-export function ImportDialog({
+function MarkdownImport({
   projectId,
   projectName,
   nodes,
@@ -299,7 +351,9 @@ export function ImportDialog({
   onClose,
   onDone,
   onReviewLinks,
-}: ImportDialogProps) {
+  onSource,
+  onOtherFiles,
+}: ImportDialogProps & { onSource: (s: ImportSource) => void; onOtherFiles: (files: File[]) => void }) {
   const toast = useToast();
   const [rawEntries, setEntries] = useState<DocsImportEntry[]>(
     () => initialEntries ?? entriesFromFileList(initialFiles ?? []),
@@ -564,7 +618,11 @@ export function ImportDialog({
   const pickFiles = (e: React.ChangeEvent<HTMLInputElement>, folder: boolean) => {
     if (e.target.files) {
       const list = entriesFromFileList(e.target.files, folder);
-      if (!list.length) setNotice('No .md or .markdown files found in that selection.');
+      const other = Array.from(e.target.files).filter(
+        (f) => sourceOfFile(f.name) && sourceOfFile(f.name) !== 'markdown',
+      );
+      if (!list.length && other.length) onOtherFiles(other);
+      else if (!list.length) setNotice('No .md or .markdown files found in that selection.');
       else {
         setNotice(null);
         addEntries(list);
@@ -873,6 +931,7 @@ export function ImportDialog({
     return shell(
       <>
         <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <ImportSourceTiles value="markdown" onChange={onSource} />
           <div
             style={{
               width: '100%',
@@ -1000,6 +1059,7 @@ export function ImportDialog({
           </div>
         ) : (
           <>
+            <ImportSourceTiles value="markdown" onChange={onSource} />
             <div
               style={{
                 display: 'flex',

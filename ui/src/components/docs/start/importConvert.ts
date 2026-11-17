@@ -189,7 +189,7 @@ function textOf(node: JSONContent): string {
 /** Takes a leading heading 1 off a page as its title (the page title is not a block of the page). */
 function liftTitle(doc: JSONContent): { doc: JSONContent; title: string | null } {
   const first = doc.content?.[0];
-  if (first?.type === 'heading' && first.attrs?.level === 1) {
+  if (first?.type === 'heading' && (first.attrs?.level ?? 1) === 1) {
     const title = textOf(first).trim();
     const rest = doc.content!.slice(1);
     return { doc: { ...doc, content: rest.length ? rest : [{ type: 'paragraph' }] }, title: title || null };

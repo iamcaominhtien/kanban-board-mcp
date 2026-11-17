@@ -62,7 +62,7 @@ export function ConvertedNotice({ page, onViewOriginal }: { page: DocsPage; onVi
   return (
     <div className="dk-convert-note" role="status" data-testid="converted-notice">
       <Icon name="i17" size={15} strokeWidth={1.9} style={{ color: '#2E6F40' }} />
-      <span>This page was converted to the new format. Nothing was removed.</span>
+      <span>Converted to the new format. The original is kept in History.</span>
       <button type="button" className="st-btn st-btn-sm" onClick={onViewOriginal}>
         View original
       </button>

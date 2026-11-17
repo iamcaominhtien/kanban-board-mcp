@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import type { DocsPage } from '../../types/docs';
 import { Icon } from './Icon';
 
@@ -11,6 +11,7 @@ export type PageMenuAction =
   | 'move'
   | 'history'
   | 'settings'
+  | 'save-template'
   | 'export'
   | 'print'
   | 'give-ai'
@@ -26,6 +27,8 @@ interface PageMenuProps {
   hidden?: readonly PageMenuAction[];
   /** Entries drawn only when asked for: Print (the read view, where the header has no room for it). */
   extra?: readonly PageMenuAction[];
+  /** AI team rows drawn after "Give to an AI team…" (AI changes, Not for AI teams; suggestions/pageAi.tsx). */
+  aiItems?: ReactNode;
 }
 
 /** Entries a menu shows only when its `extra` names them. */
@@ -50,6 +53,7 @@ const GROUPS: Item[][] = [
   ],
   [
     { action: 'settings', label: 'Page settings…', icon: 'i42' },
+    { action: 'save-template', label: 'Save as template…', icon: 'i24' },
     { action: 'history', label: 'Page history', icon: 'i39', kbd: 'H' },
     { action: 'export', label: 'Export…', icon: 'i43' },
     { action: 'print', label: 'Print', icon: 'page', kbd: 'Ctrl P' },
@@ -103,8 +107,9 @@ export function usePageShortcuts(onAction: (a: PageMenuAction) => void, enabled 
  * @param props.variant - `sheet` draws it in place, full width, with 44 px rows (a phone's bottom sheet).
  * @param props.hidden - Entries to leave out.
  * @param props.extra - Optional entries to draw (Print).
+ * @param props.aiItems - AI team rows drawn after "Give to an AI team…".
  */
-export function PageMenu({ onAction, onClose, variant = 'popover', hidden, extra }: PageMenuProps) {
+export function PageMenu({ onAction, onClose, variant = 'popover', hidden, extra, aiItems }: PageMenuProps) {
   const sheet = variant === 'sheet';
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -183,6 +188,7 @@ export function PageMenu({ onAction, onClose, variant = 'popover', hidden, extra
                 )}
               </button>
             ))}
+            {aiItems && all.some((it) => it.action === 'give-ai') && aiItems}
           </div>
         );
       })}

@@ -49,7 +49,7 @@ describe('converted notice', () => {
     const onViewOriginal = vi.fn();
     const { unmount } = render(<ConvertedNotice page={page()} onViewOriginal={onViewOriginal} />);
     expect(screen.getByTestId('converted-notice').textContent).toContain(
-      'This page was converted to the new format. Nothing was removed.',
+      'Converted to the new format. The original is kept in History.',
     );
     fireEvent.click(screen.getByRole('button', { name: 'View original' }));
     expect(onViewOriginal).toHaveBeenCalledTimes(1);

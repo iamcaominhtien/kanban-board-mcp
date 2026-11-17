@@ -59,6 +59,8 @@ interface Props {
   readOnly?: string | null;
   initialTab?: SettingsTab;
   onClose: () => void;
+  /** "Save as template…" at the foot of the panel (editors); left out when not given. */
+  onSaveTemplate?: () => void;
 }
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
@@ -626,8 +628,9 @@ function HeaderTab({ look, set }: TabProps) {
  *   can.
  * @param props.initialTab - The tab it opens on.
  * @param props.onClose - Called by Done, the close button, Esc or a tap outside.
+ * @param props.onSaveTemplate - Opens "Save as a template" for the page.
  */
-export function PageSettingsPanel({ page, layout, readOnly, initialTab = 'layout', onClose }: Props) {
+export function PageSettingsPanel({ page, layout, readOnly, initialTab = 'layout', onClose, onSaveTemplate }: Props) {
   const [tab, setTab] = useState<SettingsTab>(initialTab);
   const save = usePageSettingsSaver(page.id);
   const look = readPageLook(page.settings);
@@ -691,6 +694,17 @@ export function PageSettingsPanel({ page, layout, readOnly, initialTab = 'layout
         </fieldset>
       </div>
       <div className="dk-ps-foot">
+        {onSaveTemplate && !readOnly && (
+          <button
+            type="button"
+            className="st-btn"
+            style={{ marginRight: 'auto' }}
+            onClick={onSaveTemplate}
+            data-testid="ps-save-template"
+          >
+            Save as template…
+          </button>
+        )}
         <button type="button" className="st-btn st-btn-primary" onClick={onClose} data-testid="ps-done">
           Done
         </button>

@@ -56,6 +56,11 @@ import { HistoryDrawer } from './HistoryDrawer';
 import { Icon } from './Icon';
 import { MoveToDialog } from './MoveToDialog';
 import { NewPageDialog } from './NewPageDialog';
+import type { GalleryChip } from './start/galleryRules';
+import type { ImportSource } from './start/importConvert';
+import { NewPageMenu } from './start/NewPageMenu';
+import { SaveTemplateDialog } from './start/SaveTemplateDialog';
+import { WhatsNewTour } from './start/WhatsNewTour';
 import { PageMenu, usePageShortcuts, type PageMenuAction } from './PageMenu';
 import { RenameDialog } from './RenameDialog';
 import { SearchResults } from './SearchResults';
@@ -77,9 +82,9 @@ interface Props {
   requestedAnchor?: string | null;
   onRequestHandled?: () => void;
   onOpenTicket: (ticketId: string) => void;
-  /** "Import Markdown" (hero) and the import strip. */
-  onImport?: () => void;
-  /** Markdown files or folders dropped anywhere on the Docs page, or picked with "Choose files…". */
+  /** "Import…" (hero, import strip, the tree's New page menu), with the source chosen (Markdown when not given). */
+  onImport?: (source?: ImportSource) => void;
+  /** Markdown, Word or HTML files or folders dropped anywhere on the Docs page, or picked with "Choose files…". */
   onDropFiles?: (files: File[]) => void;
   /** Docs switched off for the project (E6). */
   onOpenSettings?: () => void;
@@ -284,7 +289,11 @@ export function DocsView({
     title?: string;
     /** Opens the dialog with Write with AI preselected. */
     aiFrom?: { kind: 'ticket' | 'idea' | 'notes' | 'prompt'; ticketId?: string; text?: string };
+    /** The gallery chip to open on. */
+    chip?: GalleryChip;
   } | null>(null);
+  // "Save as template…" from a page menu
+  const [saveTplFor, setSaveTplFor] = useState<DocsPage | null>(null);
   // Desktop menu: File › New Doc Page
   useAppCommand('new-doc', () => setNewPage({ parentId: null }));
   const [moveFor, setMoveFor] = useState<DocsPage | null>(null);
@@ -559,6 +568,12 @@ export function DocsView({
         if (page?.id !== target.id) select(target.id);
         setSettingsFor(target.id);
         return;
+      case 'save-template':
+        if (readOnly) {
+          toast.info('Read-only', readOnly);
+          return;
+        }
+        break;
       default:
     }
     const full = await pageForNode(target.id);
@@ -566,6 +581,7 @@ export function DocsView({
     if (action === 'move') setMoveFor(full);
     else if (action === 'duplicate') setDupFor(full);
     else if (action === 'export') exportPage(full, null);
+    else if (action === 'save-template') setSaveTplFor(full);
     else if (action === 'copy-markdown') {
       // a rich page's Markdown is written from its JSON, as the editor writes it (the server's projection otherwise)
       const doc = publishedDoc(full);
@@ -574,7 +590,7 @@ export function DocsView({
     }
   }
 
-  const anyDialog = !!(newPage || moveFor || dupFor || history || deleteFor || renameFor || giveFor);
+  const anyDialog = !!(newPage || moveFor || dupFor || history || deleteFor || renameFor || giveFor || saveTplFor);
   usePageShortcuts(
     (a) => {
       if (page) void runAction(a, page);
@@ -716,6 +732,18 @@ export function DocsView({
         select(id);
       }}
       onNewPage={(parentId) => setNewPage({ parentId })}
+      renderNewPageMenu={(close) => (
+        <NewPageMenu
+          touch={narrow}
+          onClose={close}
+          onChoose={(c) => {
+            if (c.kind === 'blank') setNewPage({ parentId: null, template: 'blank' });
+            else if (c.kind === 'gallery') setNewPage({ parentId: null });
+            else if (c.kind === 'template') setNewPage({ parentId: null, template: c.id });
+            else onImport?.(c.kind === 'paste' ? 'paste' : undefined);
+          }}
+        />
+      )}
       headerActions={
         onPopOut ? (
           <button
@@ -833,7 +861,10 @@ export function DocsView({
     content = (
       <DocsHero
         projectName={projectName}
+        projectId={projectId}
         ticketPrefix={heroPrefix}
+        layout={layout}
+        onBrowseTemplates={() => setNewPage({ parentId: null })}
         onCreate={(t) => setNewPage({ parentId: null, template: t })}
         onImport={onImport}
         onDropFiles={onDropFiles}
@@ -1045,6 +1076,7 @@ export function DocsView({
       layout={layout}
       readOnly={readOnly ?? (offlineCopy ? 'Reconnect to change the page settings.' : null)}
       onClose={() => setSettingsFor(null)}
+      onSaveTemplate={() => setSaveTplFor(settingsPage)}
     />
   );
 
@@ -1110,6 +1142,9 @@ export function DocsView({
             <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>
               Drop to add {dragFiles} file{dragFiles === 1 ? '' : 's'}
             </div>
+            <div style={{ fontSize: 12.5, color: '#2E6F40' }}>
+              Markdown, Word and HTML files. Folders become a page tree.
+            </div>
           </div>
         )}
 
@@ -1121,6 +1156,8 @@ export function DocsView({
             initialTemplate={newPage.template}
             initialTitle={newPage.title}
             aiFrom={newPage.aiFrom}
+            initialChip={newPage.chip}
+            layout={layout}
             onClose={() => setNewPage(null)}
             onCreated={(p) => {
               setNewPage(null);
@@ -1130,6 +1167,22 @@ export function DocsView({
             }}
           />
         )}
+        {saveTplFor && (
+          <SaveTemplateDialog
+            projectId={projectId}
+            page={saveTplFor}
+            layout={layout}
+            onClose={() => setSaveTplFor(null)}
+            onSaved={() => {
+              setSaveTplFor(null);
+              toast.success('Saved as a template.', 'Find it in New page › Yours.', 8000, {
+                label: 'Open the gallery',
+                onClick: () => setNewPage({ parentId: null, chip: 'yours' }),
+              });
+            }}
+          />
+        )}
+        {editing && page?.convertState === 'done' && !readOnly && <WhatsNewTour layout={layout} />}
         {moveFor && (
           <MoveToDialog
             projectId={projectId}
@@ -1229,7 +1282,7 @@ export function DocsView({
 /** Files from a drop, walking dropped folders and keeping the relative path on `webkitRelativePath`. */
 async function collectFiles(dt: DataTransfer): Promise<File[]> {
   const out: File[] = [];
-  const isMd = (n: string) => /\.(md|markdown)$/i.test(n);
+  const isMd = (n: string) => /\.(md|markdown|docx|html?)$/i.test(n);
   const walk = async (entry: FileSystemEntry, prefix: string): Promise<void> => {
     if (entry.isFile) {
       const file = await new Promise<File>((res, rej) => (entry as FileSystemFileEntry).file(res, rej));

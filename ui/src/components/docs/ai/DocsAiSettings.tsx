@@ -3,6 +3,7 @@ import { useDocsTree } from '../../../api/docs';
 import { docsAiError, useDocsAiState, useUpdateDocsAi, type DocsAiSettingsPatch } from '../../../api/docsAi';
 import type { Project } from '../../../types/ticket';
 import { Switch } from '../../settings/settingsUi';
+import { TeamApplySettings } from '../suggestions/pageAi';
 
 const box: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 14 };
 const label: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: '#1E2A22' };
@@ -117,6 +118,7 @@ export function DocsAiSettings({ project }: { project: Project }) {
           />
         </Row>
       </div>
+      <TeamApplySettings projectId={project.id} teams={d.candidates} admin={admin} />
       {err && (
         <div role="alert" style={{ fontSize: 12, color: '#C4432A' }}>
           {err}

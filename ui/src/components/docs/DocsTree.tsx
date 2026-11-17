@@ -1,8 +1,34 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import type { DocsLayout } from '../../hooks/useDocsLayout';
 import type { DocsTreeNode } from '../../types/docs';
 import { Icon } from './Icon';
 import { TreeEmpty } from './DocsStates';
+import { NoMatch } from './tree/PageViews';
+import { SelectionBar } from './tree/SelectionBar';
+import { FilterButton, FilterChips, ViewMenu } from './tree/TreeToolbar';
+import {
+  activeFilterCount,
+  affectedPages,
+  ancestorsOf,
+  buildRows,
+  chapterNumbers,
+  describeTarget,
+  filterCounts,
+  isBook,
+  keyboardMove,
+  matchesFilters,
+  NO_FILTERS,
+  rowStatus,
+  selectionRoots,
+  type MoveDir,
+  type TreeFilters,
+  type TreeRow,
+  type TreeSort,
+  type TreeView,
+} from './tree/treeModel';
+import { ConvertMark, HoverCard, PageIcon, StatusDot, useHoverCard } from './tree/treeParts';
+import { SuggestionMarker } from './suggestions/extras';
 
 interface Props {
   projectId: string;
@@ -13,6 +39,8 @@ interface Props {
   loadingId?: string | null;
   onSelect: (id: string) => void;
   onNewPage: (parentId: string | null) => void;
+  /** The New page menu (From template, Import, Paste), opened by the arrow beside New page; `close` dismisses it. */
+  renderNewPageMenu?: (close: () => void) => ReactNode;
   /** The reader can't edit this space: no add buttons. */
   readOnly?: boolean;
   /** Rename inline: the tree asks the lead to decide between a plain rename and the rewrite-links dialog. */
@@ -46,16 +74,28 @@ interface Props {
   onHealth?: () => void;
   healthActive?: boolean;
   healthCount?: number;
+  /** The Docs area's layout: hover cards on a desktop; long-press drag and the reorder mode on touch. */
+  layout?: DocsLayout;
+  /** Tree, Gallery or Recent (the switch in the header) and the sort of the last two; no switch when absent. */
+  view?: TreeView;
+  onViewChange?: (v: TreeView) => void;
+  sort?: TreeSort;
+  onSortChange?: (s: TreeSort) => void;
+  /** The filters (they combine) and their change; no Filter button when `onFiltersChange` is absent. */
+  filters?: TreeFilters;
+  onFiltersChange?: (f: TreeFilters) => void;
+  /** Who is looking (DocsAccess.me), for "My pages". */
+  me?: string;
+  /** Several pages picked: the action and the picked pages none of whose parents is picked, in tree order. */
+  onBulk?: (action: 'move' | 'duplicate' | 'export' | 'delete', roots: string[]) => void;
+  /** "Move to…" for one page (M on a row, the reorder mode's button). */
+  onMoveTo?: (node: DocsTreeNode) => void;
+  /** Pages in the Recycle Bin and opening it (the row under the tree); no row when absent. */
+  binCount?: number;
+  onOpenBin?: () => void;
 }
 
-interface Row {
-  node: DocsTreeNode;
-  depth: number;
-  hasChildren: boolean;
-  open: boolean;
-  childCount: number;
-  dim: boolean;
-}
+type Row = TreeRow;
 
 type Zone = 'before' | 'after' | 'nest';
 interface Drop {
@@ -218,6 +258,7 @@ function highlight(text: string, q: string): ReactNode {
  * @param props.loadingId - Page whose content is loading (row spinner).
  * @param props.onSelect - Called with the id of the clicked page.
  * @param props.onNewPage - Called with the parent page id, or `null` for a root page.
+ * @param props.renderNewPageMenu - Renders the New page menu beside the New page button.
  * @param props.readOnly - Hides the add-page buttons when the reader can't edit the space.
  * @param props.onRequestRename - Called with the node and typed title; the lead decides between a plain rename and the rewrite-links dialog.
  * @param props.renamingId - Page being renamed inline (controlled), or `null`.
@@ -238,6 +279,7 @@ export function DocsTree({
   loadingId,
   onSelect,
   onNewPage,
+  renderNewPageMenu,
   readOnly,
   onRequestRename,
   renamingId,
@@ -265,6 +307,7 @@ export function DocsTree({
   });
   const [filter, setFilter] = useState('');
   const [filterFocus, setFilterFocus] = useState(false);
+  const [newMenu, setNewMenu] = useState(false);
   const [menu, setMenu] = useState<{ id: string; left: number; top: number } | null>(null);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ id: string; x: number; y: number } | null>(null);
@@ -720,6 +763,7 @@ export function DocsTree({
               }}
             />
           )}
+          {!renaming && <SuggestionMarker count={n.suggestions} />}
           {!renaming && r.hasChildren && !r.open && (
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9AA8A0' }}>{r.childCount}</span>
           )}
@@ -1023,7 +1067,7 @@ export function DocsTree({
         )}
       </div>
       {!readOnly && (
-        <div style={{ padding: '8px 10px 14px' }}>
+        <div style={{ padding: '8px 10px 14px', display: 'flex', gap: 4, position: 'relative' }}>
           <button
             type="button"
             onClick={() => onNewPage(null)}
@@ -1032,7 +1076,8 @@ export function DocsTree({
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              width: '100%',
+              flex: 1,
+              minWidth: 0,
               padding: '7px 10px',
               borderRadius: 8,
               border: '1px dashed #C7D2CB',
@@ -1048,6 +1093,33 @@ export function DocsTree({
             <Icon name="plus" size={12} strokeWidth={2.6} />
             New page
           </button>
+          {renderNewPageMenu && (
+            <button
+              type="button"
+              aria-label="More ways to start a page"
+              aria-haspopup="menu"
+              aria-expanded={newMenu}
+              data-testid="tree-new-page-menu"
+              // the open menu closes on a mousedown outside it: this button toggles it instead
+              onMouseDown={(e) => newMenu && e.stopPropagation()}
+              onClick={() => setNewMenu((v) => !v)}
+              style={{
+                width: 32,
+                flexShrink: 0,
+                borderRadius: 8,
+                border: '1px dashed #C7D2CB',
+                background: 'none',
+                cursor: 'pointer',
+                color: '#2E6F40',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Icon name="chevronDown" size={12} strokeWidth={2.4} />
+            </button>
+          )}
+          {newMenu && renderNewPageMenu?.(() => setNewMenu(false))}
         </div>
       )}
 

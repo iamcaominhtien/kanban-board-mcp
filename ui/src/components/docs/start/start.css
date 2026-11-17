@@ -24,13 +24,13 @@
 }
 
 /* ── chips ── */
-.dk-chips {
+.dks-chips {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
 }
-.dk-chip {
+.dks-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -46,25 +46,25 @@
   cursor: pointer;
   white-space: nowrap;
 }
-.dk-chip:hover {
+.dks-chip:hover {
   border-color: #c7d2cb;
 }
-.dk-chip[aria-pressed='true'] {
+.dks-chip[aria-pressed='true'] {
   background: #1e2a22;
   border-color: #1e2a22;
   color: #ffffff;
 }
-.dk-chip-n {
+.dks-chip-n {
   font-size: 11px;
   font-weight: 600;
   opacity: 0.7;
 }
-.dk-chip-ai {
+.dks-chip-ai {
   background: #f1eaff;
   border-color: #c9b6ff;
   color: #5b3aa6;
 }
-.dk-chip-ai[aria-pressed='true'] {
+.dks-chip-ai[aria-pressed='true'] {
   background: #7c5cd6;
   border-color: #7c5cd6;
   color: #ffffff;
@@ -279,11 +279,11 @@
 .dk-np-phone .dk-np-fields {
   flex-direction: column;
 }
-.dk-np-phone .dk-chips {
+.dk-np-phone .dks-chips {
   flex-wrap: nowrap;
   overflow-x: auto;
 }
-.dk-np-phone .dk-chip,
+.dk-np-phone .dks-chip,
 .dk-np-phone .st-btn {
   min-height: 44px;
 }
@@ -351,13 +351,13 @@
 .dk-keep[aria-checked='true'] .dk-keep-dot {
   border: 5px solid #2e6f40;
 }
-.dk-seg {
+.dks-seg {
   display: inline-flex;
   border: 1px solid #e3e8e5;
   border-radius: 8px;
   overflow: hidden;
 }
-.dk-seg button {
+.dks-seg button {
   border: none;
   background: #ffffff;
   padding: 7px 14px;
@@ -367,10 +367,10 @@
   color: #3a4a3e;
   cursor: pointer;
 }
-.dk-seg button + button {
+.dks-seg button + button {
   border-left: 1px solid #e3e8e5;
 }
-.dk-seg button[aria-pressed='true'] {
+.dks-seg button[aria-pressed='true'] {
   background: #dceee1;
   color: #1e4a2b;
 }
@@ -454,7 +454,7 @@
   background: #2e6f40;
   transition: width 0.2s;
 }
-.dk-paste {
+.dks-paste {
   width: 100%;
   min-height: 150px;
   box-sizing: border-box;

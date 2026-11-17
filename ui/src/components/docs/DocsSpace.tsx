@@ -4,6 +4,7 @@ import { DocsView } from './DocsView';
 import { getActiveReplaceAdapter } from './editorReplace';
 import { FindInPage, useDocsFindHotkey } from './FindInPage';
 import { ImportDialog } from './ImportDialog';
+import type { ImportSource } from './start/importConvert';
 import { RefCheatSheetHost } from './RefCheatSheet';
 import { SearchPalette, rememberDocsPage, useDocsSearchHotkey } from './SearchPalette';
 import type { DocsLayout } from '../../hooks/useDocsLayout';
@@ -56,7 +57,7 @@ export function DocsSpace({
   const [intent, setIntent] = useState<ComponentProps<typeof DocsView>['intent']>(null);
   const [palette, setPalette] = useState<{ q?: string; mode?: 'ask' } | null>(null);
   const [results, setResults] = useState<string | null>(null);
-  const [importing, setImporting] = useState<{ files?: File[] } | null>(null);
+  const [importing, setImporting] = useState<{ files?: File[]; source?: ImportSource; text?: string } | null>(null);
   const [findOpen, setFindOpen] = useState(false);
   const [root, setRoot] = useState<HTMLElement | null>(null);
   const [layout, setLayout] = useState<DocsLayout>('desktop');
@@ -94,7 +95,15 @@ export function DocsSpace({
           onRequestHandled?.();
         }}
         onOpenTicket={onOpenTicket}
-        onImport={() => setImporting({})}
+        onImport={(source) => {
+          // Paste starts with what is on the clipboard, when the browser lets the page read it
+          if (source === 'paste' && navigator.clipboard?.readText)
+            navigator.clipboard.readText().then(
+              (text) => setImporting({ source, text }),
+              () => setImporting({ source }),
+            );
+          else setImporting({ source });
+        }}
         onDropFiles={(files) => setImporting({ files })}
         onOpenSettings={onOpenSettings}
         onBack={onBack}
@@ -160,6 +169,9 @@ export function DocsSpace({
           projectName={projectName}
           nodes={nodes}
           initialFiles={importing.files}
+          initialSource={importing.source}
+          initialText={importing.text}
+          phone={layout === 'phone'}
           onClose={() => setImporting(null)}
           onDone={(created) => {
             if (created.length) {

@@ -6,6 +6,7 @@ import { pagesLabel } from '../../../utils/writeRules';
 import type { DocsTreeNode } from '../../../types/docs';
 import { Icon } from '../Icon';
 import { AiSpark } from './AiSpark';
+import { SuggestionsWaiting } from '../suggestions/extras';
 
 const key = (projectId: string) => `docsLastVisit:${projectId}`;
 
@@ -105,6 +106,7 @@ export function SinceViewedDigest({ projectId, nodes, onOpenPage }: Props) {
           <Icon name="close" size={13} strokeWidth={2} />
         </button>
       </div>
+      <SuggestionsWaiting nodes={nodes} onOpenPage={onOpenPage} />
       {done ? (
         <div
           style={{

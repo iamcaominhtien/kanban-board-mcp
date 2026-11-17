@@ -38,6 +38,8 @@ export function topicsOf(data: string): string[] | null {
     const j = JSON.parse(data) as { type?: unknown; topics?: unknown };
     // who a new comment notified (server/api/tickets.py): it comes right after the comment's own announcement
     if (j.type === 'comment_added') return ['comments'];
+    // an AI team's suggestions on a page were added, accepted or rejected (kb-docs docs_suggestions.rs)
+    if (j.type === 'docs_suggestions') return ['docs'];
     if (j.type !== 'invalidate' || !Array.isArray(j.topics) || j.topics.length === 0) return null;
     return j.topics.filter((t): t is string => typeof t === 'string');
   } catch {

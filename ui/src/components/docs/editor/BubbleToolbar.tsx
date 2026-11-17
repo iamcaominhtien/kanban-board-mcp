@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import type { Editor } from '@tiptap/react';
 import { useEditorState } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
@@ -31,6 +31,8 @@ interface Props {
   onAi?: (action: 'summarise' | 'rewrite' | 'ask', text: string) => void;
   /** Shows an "AI" item that swaps this bar for the AI selection bar (Improve, Shorten, Explain, Ask…). */
   onAiBar?: () => void;
+  /** The "Ask the team" button (a Docs page with an AI team): it takes the place of the AI items. */
+  askTeam?: ReactNode;
   /** The page colour, for the colour swatches (default white). */
   pageHex?: string;
   /** The text is stored as Markdown (an idea): no underline or colours. */
@@ -97,6 +99,7 @@ function editorColumn(editor: Editor): Element | null {
  * @param props.onComment - Shows a Comment button that starts an inline comment on the selection.
  * @param props.onAi - Shows Summarise / Rewrite / Ask AI… for the selection.
  * @param props.onAiBar - Shows an "AI" item that opens the AI selection bar in place of this one.
+ * @param props.askTeam - The "Ask the team" button, drawn where the AI items go.
  * @param props.pageHex - The page colour, for the colour swatches.
  * @param props.plain - The text is stored as Markdown: no underline or colours.
  */
@@ -108,6 +111,7 @@ export function BubbleToolbar({
   onComment,
   onAi,
   onAiBar,
+  askTeam,
   pageHex = '#FFFFFF',
   plain,
 }: Props) {
@@ -468,6 +472,12 @@ export function BubbleToolbar({
                   </span>
                   <Icon name="chevronDown" size={10} strokeWidth={2.3} />
                 </Btn>
+              </>
+            )}
+            {askTeam && (
+              <>
+                {SEP}
+                {askTeam}
               </>
             )}
             {onComment && (

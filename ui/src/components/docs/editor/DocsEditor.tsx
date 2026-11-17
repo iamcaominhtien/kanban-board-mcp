@@ -69,6 +69,7 @@ import { RichFormatting, richStorage } from './ribbon/RichFormatting';
 import { ShortcutSheet } from './ribbon/ShortcutSheet';
 import { StatusLine } from './ribbon/StatusLine';
 import { useStore } from './ribbon/store';
+import { AskTeamButton, useAskTeam } from '../suggestions/AskTeam';
 
 /** Inline comments shown in the editor: highlights, a Comment button on the selection and the shortcut. */
 export interface EditorComments {
@@ -421,6 +422,9 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     };
   }, []);
   const aiSurface = inlineAi?.surface ?? 'doc';
+  // a Docs page with an AI team: "Ask the team" takes the place of the AI items of the selection bar
+  const teamAsk = useAskTeam();
+  const askTeam = inlineAi && aiSurface === 'doc' && !readOnly ? teamAsk : null;
   const textAi = useEditorAi({
     surface: aiSurface,
     projectId: inlineAi?.projectId,
@@ -1071,8 +1075,27 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             onComment={comments ? startComment : undefined}
             // the selection bar of the AI layer (Improve, Shorten, Fix spelling, Explain, Ask…) replaces these three;
             // it opens from the bar's "AI" item, so one bar shows at a time
-            onAi={hasTextAi ? undefined : ai?.onSelection}
-            onAiBar={inlineAi && hasTextAi ? () => setAiBarOpen(true) : undefined}
+            onAi={hasTextAi || askTeam ? undefined : ai?.onSelection}
+            onAiBar={inlineAi && hasTextAi && !askTeam ? () => setAiBarOpen(true) : undefined}
+            askTeam={
+              askTeam ? (
+                <AskTeamButton
+                  className="dk-bubble-ask"
+                  capture={() => {
+                    const ed = editorRef.current;
+                    if (!ed) return null;
+                    const { from, to, $from } = ed.state.selection;
+                    const top = $from.depth >= 1 ? $from.node(1) : null;
+                    const explain = textAi.available && textAi.bar.some((b) => b.action === 'explain');
+                    return {
+                      quote: ed.state.doc.textBetween(from, to, '\n'),
+                      blockId: typeof top?.attrs.blockId === 'string' ? top.attrs.blockId : null,
+                      explain: explain ? () => textAi.run('explain') : undefined,
+                    };
+                  }}
+                />
+              ) : undefined
+            }
             pageHex={pageHex}
             plain={!rich}
           />

@@ -220,6 +220,58 @@ export default {
       await p.getByRole('dialog').getByText('Release notes').first().waitFor();
       await p.keyboard.press('Escape');
     });
+    // Starting and shaping a page: Save as template, then the New page gallery
+    await s.step('save Release notes as a template from its page menu; the gallery shows it under Yours', async () => {
+      await item('Release notes').click();
+      await p.getByTestId('page-title').getByText('Release notes', { exact: true }).waitFor();
+      await p.getByRole('button', { name: 'Page actions', exact: true }).click();
+      await p.getByRole('menuitem', { name: /Save as template/ }).click();
+      const d = p.getByRole('dialog', { name: 'Save as a template' });
+      await d.getByLabel('Name').fill('x'.repeat(61));
+      await d.getByTestId('name-too-long').getByText('61 / 60').waitFor();
+      if (!(await d.getByTestId('save-template').isDisabled())) throw new Error('Save should be off while the name is too long');
+      await d.getByLabel('Name').fill('Release notes template');
+      await d.getByRole('button', { name: 'This project' }).click();
+      await d.getByTestId('save-template').click();
+      await d.waitFor({ state: 'detached' });
+      await p.getByRole('button', { name: 'Open the gallery' }).click();
+      const g = p.getByRole('dialog', { name: 'New page' });
+      await g.getByRole('radio', { name: /Release notes template/ }).waitFor();
+      await g.getByText('Yours · this project').waitFor();
+      await g.getByRole('button', { name: 'Close' }).click();
+    });
+    await s.step('save it again under the same name: it says so and offers Replace', async () => {
+      await p.getByRole('button', { name: 'Page actions', exact: true }).click();
+      await p.getByRole('menuitem', { name: /Save as template/ }).click();
+      const d = p.getByRole('dialog', { name: 'Save as a template' });
+      await d.getByLabel('Name').fill('Release notes template');
+      await d.getByTestId('save-template').click();
+      await d.getByTestId('name-taken').waitFor();
+      await d.getByRole('button', { name: 'Replace' }).click();
+      await d.waitFor({ state: 'detached' });
+    });
+    await s.step('the New page gallery: chips, a search with no match, then a page from Blog post', async () => {
+      await p.getByRole('button', { name: 'New page' }).first().click();
+      const g = p.getByRole('dialog', { name: 'New page' });
+      await g.getByTestId('chip-writing').click();
+      await g.getByTestId('template-blog-post').waitFor();
+      await g.getByTestId('chip-all').click();
+      await g.getByLabel('Find a template').fill('pitch deck');
+      await g.getByText('No templates match “pitch deck”').waitFor();
+      await g.getByRole('button', { name: 'Clear search' }).click();
+      await g.getByTestId('template-blog-post').click();
+      await g.getByTestId('template-preview').getByText(/Preview · Blog post/).waitFor();
+      await g.getByRole('textbox', { name: 'Title' }).fill('');
+      await g.getByRole('button', { name: 'Create page' }).click();
+      await g.getByText('Give the page a title to create it.').waitFor();
+      await g.getByRole('textbox', { name: 'Title' }).fill('Field notes');
+      await g.getByRole('button', { name: 'Create page' }).click();
+      await g.waitFor({ state: 'detached' });
+      await p.getByRole('textbox', { name: 'Page title' }).waitFor();
+      // the editor folds the tree to its rail: the new page shows in the breadcrumb, with the template's style
+      await p.getByText('Field notes', { exact: true }).first().waitFor();
+      await p.getByRole('heading', { name: 'What happened' }).waitFor();
+    });
     }
   },
 };

@@ -8,7 +8,7 @@
 
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, memo, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useResolveRefs } from '../../api/docs';
 import type { DocsRefRequest, RichDoc } from '../../types/docs';
 import { docToMarkdown, topLevelBlocks } from '../../richdoc';
@@ -60,6 +60,14 @@ export interface RichDocViewProps extends ReaderCallbacks {
   progressive?: boolean;
   /** Called once every piece is on the page (at once when not progressive). */
   onRendered?: () => void;
+  /**
+   * Draws around a top-level block (AI suggestions): gets the block and how it renders, returns what goes on the
+   * page in its place. Keep it stable (a new function renders every block again).
+   */
+  blockWrap?: (node: RichDoc, rendered: ReactNode) => ReactNode;
+  /** Drawn before the first block and after the last one, inside the reader (they can use {@link RichBlocks}). */
+  lead?: ReactNode;
+  tail?: ReactNode;
 }
 
 /** Top-level blocks per piece of a progressive render. */
@@ -206,6 +214,7 @@ interface BlockAttrs {
 interface Render {
   ids: Map<Node, string>;
   changed: Map<Node, number> | null;
+  wrap?: (node: Node, rendered: ReactNode) => ReactNode;
 }
 
 /** Alignment, indent, line height and spacing of a text block. */
@@ -828,8 +837,26 @@ function block(node: Node, r: Render, key: string): ReactNode {
 
 /** A run of top-level blocks; renders again only when its blocks or the marks change (chips update via ChipCtx). */
 const Piece = memo(function Piece({ blocks, start, r }: { blocks: Node[]; start: number; r: Render }) {
-  return <>{blocks.map((b, i) => block(b, r, String(start + i)))}</>;
+  const { wrap } = r;
+  if (!wrap) return <>{blocks.map((b, i) => block(b, r, String(start + i)))}</>;
+  return (
+    <>
+      {blocks.map((b, i) => (
+        <Fragment key={start + i}>{wrap(b, block(b, r, String(start + i)))}</Fragment>
+      ))}
+    </>
+  );
 });
+
+/**
+ * Some blocks of a rich page drawn as the reader draws them (an AI suggestion's block as it was or would be). Use it
+ * inside a {@link RichDocView} (its `blockWrap`, `lead` or `tail`): reference chips read the reader's context.
+ * @param props.nodes - The blocks.
+ */
+export function RichBlocks({ nodes }: { nodes: Node[] }) {
+  const r = useMemo<Render>(() => ({ ids: headingIds({ type: 'doc', content: nodes }), changed: null }), [nodes]);
+  return <>{nodes.map((n, i) => block(n, r, `x${i}`))}</>;
+}
 
 /** The top-level blocks (columns' blocks included) that a version changed, from the plain-Markdown lines it added. */
 function changedBlocks(doc: Node, changedIn: Map<string, number> | undefined): Map<Node, number> | null {
@@ -860,6 +887,9 @@ function changedBlocks(doc: Node, changedIn: Map<string, number> | undefined): M
  * @param props.changedIn - Marks top-level blocks whose Markdown lines a later version added ("Changed in vN").
  * @param props.progressive - Render a long page in pieces.
  * @param props.onRendered - Called once the whole page is on the page.
+ * @param props.blockWrap - Draws around each top-level block (AI suggestions).
+ * @param props.lead - Drawn before the first block.
+ * @param props.tail - Drawn after the last block, once the whole page is there.
  */
 export function RichDocView({
   doc,
@@ -873,6 +903,9 @@ export function RichDocView({
   changedIn,
   progressive = false,
   onRendered,
+  blockWrap,
+  lead,
+  tail,
 }: RichDocViewProps) {
   const refs = useMemo(() => collectRefs(doc), [doc]);
   const resolved = useResolveRefs(projectId, refs.length ? refs : NO_REFS);
@@ -915,7 +948,10 @@ export function RichDocView({
     ],
   );
 
-  const r = useMemo<Render>(() => ({ ids: headingIds(doc), changed: changedBlocks(doc, changedIn) }), [doc, changedIn]);
+  const r = useMemo<Render>(
+    () => ({ ids: headingIds(doc), changed: changedBlocks(doc, changedIn), wrap: blockWrap }),
+    [doc, changedIn, blockWrap],
+  );
 
   // the page in pieces of top-level blocks (one when not progressive), and how many are on the page yet
   const pieces = useMemo(() => {
@@ -949,9 +985,11 @@ export function RichDocView({
   return (
     <ChipCtx.Provider value={chips}>
       <div className="dk-md dk-rich" data-preview-scope data-rendering={done ? undefined : ''}>
+        {lead}
         {pieces.slice(0, count).map((p) => (
           <Piece key={p.start} blocks={p.blocks} start={p.start} r={r} />
         ))}
+        {done && tail}
       </div>
     </ChipCtx.Provider>
   );

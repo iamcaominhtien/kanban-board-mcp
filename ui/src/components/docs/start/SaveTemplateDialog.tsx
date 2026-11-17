@@ -279,7 +279,7 @@ export function SaveTemplateDialog({
               <span className="st-field-label" style={{ fontSize: 11 }}>
                 Who can use it
               </span>
-              <div className="dk-seg" role="group" aria-label="Who can use it">
+              <div className="dks-seg" role="group" aria-label="Who can use it">
                 <button type="button" aria-pressed={scope === 'me'} onClick={() => setScope('me')}>
                   Only me
                 </button>
@@ -292,7 +292,7 @@ export function SaveTemplateDialog({
               <span className="st-field-label" style={{ fontSize: 11 }}>
                 Listed under
               </span>
-              <div className="dk-seg" role="group" aria-label="Listed under">
+              <div className="dks-seg" role="group" aria-label="Listed under">
                 {CATEGORIES.map((c) => (
                   <button key={c.id} type="button" aria-pressed={category === c.id} onClick={() => setCategory(c.id)}>
                     {c.label}

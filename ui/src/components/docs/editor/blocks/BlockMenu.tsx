@@ -28,6 +28,7 @@ import {
 import { cardToChip, chipToCard, chipsIn } from './refCards';
 import { Row, Seg, useBlockLayout, useCoarsePointer } from './ui';
 import { useEditorTick } from './useInside';
+import { useBlockLock } from '../../suggestions/pageAi';
 
 const LISTS = ['bulletList', 'orderedList', 'taskList'];
 
@@ -205,6 +206,7 @@ export function BlockMenu({
   onComment?: () => void;
 }) {
   const toast = useToast();
+  const lock = useBlockLock();
   const layout = useBlockLayout();
   const coarse = useCoarsePointer();
   const [sub, setSub] = useState<'turn' | 'list' | null>(null);
@@ -316,6 +318,13 @@ export function BlockMenu({
                   .catch(() => toast.error('Could not copy the link', link));
               })}
             />
+          )}
+          {!many && blockId && lock && (
+            <Item label="Teams cannot change this" onClick={done(() => lock.toggle(blockId))}>
+              <span className="dk-bm-kbd" data-testid="block-lock-state">
+                {lock.locked.includes(blockId) ? '✓ On' : 'Off'}
+              </span>
+            </Item>
           )}
           {!many && onComment && (
             <Item

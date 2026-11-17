@@ -27,7 +27,6 @@ import { ComposePopover, SelectionToolbar, type Pick } from './comments/Selectio
 import { personOf } from './comments/people';
 import { useCommentsController } from './comments/useCommentsController';
 import { useCommentHighlights } from './comments/useCommentHighlights';
-import { PageSettledContext } from './pageSettled';
 import './comments/comments.css';
 import { avatarColors, pageFullTime } from './docsUi';
 import { useMembers } from '../../api/members';
@@ -36,6 +35,19 @@ import { Icon } from './Icon';
 import { PageInfoPopover } from './PageInfoPopover';
 import { PageMenu, type PageMenuAction } from './PageMenu';
 import { PageWork } from './PageWork';
+import {
+  AiChangesItems,
+  AskTeamButton,
+  LockMarks,
+  PageTeamHost,
+  ReviewBar,
+  SuggestionChip,
+  TeamRunEndings,
+  lockedBlocks,
+  topBlockIdOf,
+  usePageSuggestions,
+} from './suggestions';
+import { notForAi } from './suggestions/pageAi';
 import { ReferencedBy } from './ReferencedBy';
 import { SharePopover } from './SharePopover';
 import { AiChangedBar, aiWriter } from './AiChangedBar';
@@ -351,6 +363,19 @@ export function DocsPageView({
       : draftDoc(page.draft);
   const richKey = useMemo(() => (richDoc ? contentKey(JSON.stringify(richDoc)) : ''), [richDoc]);
   const settled = !(published || page.draft) || renderedKey === page.id;
+  // AI teams' suggestions on the published page (suggestions/), drawn on its blocks by the reader
+  const sg = usePageSuggestions({
+    page,
+    projectId,
+    doc: !older && published ? richDoc : null,
+    enabled: published && !offline && !older && !!richDoc && settled,
+    canEdit: !readOnly && !offline,
+    layout,
+    onOpenTicket,
+    onCompare,
+    onHistory: () => onAction('history'),
+  });
+  const askable = !readOnly && !offline && !older && published && !notForAi(page.settings);
   const showDraft = !older && page.hasUnpublishedChanges && !!page.draft;
   const who = older ? (olderDetail?.author ?? page.updatedBy) : showDraft ? page.draft!.author : page.updatedBy;
   const whenIso = older
@@ -663,6 +688,11 @@ export function DocsPageView({
     else onAction(a);
   }
 
+  const aiItems =
+    published && !offline && !older && !readOnly ? (
+      <AiChangesItems page={page} projectId={projectId} canEdit={!readOnly} onClose={() => setMenu(false)} />
+    ) : null;
+
   const menuButton = (
     <div data-popover style={{ position: 'relative' }}>
       <button
@@ -682,6 +712,7 @@ export function DocsPageView({
           extra={moreExtra}
           onAction={menuAction}
           onClose={() => setMenu(false)}
+          aiItems={aiItems}
         />
       )}
     </div>
@@ -690,7 +721,15 @@ export function DocsPageView({
   const editLabel = page.draft ? 'Continue editing' : 'Edit';
 
   return (
-    <PageSettledContext.Provider value={settled}>
+    <PageTeamHost
+      settled={settled}
+      review={sg.review}
+      page={page}
+      projectId={projectId}
+      askable={askable}
+      layout={layout}
+      onOpenTicket={onOpenTicket}
+    >
       <div
         style={{
           flex: 1,
@@ -714,6 +753,7 @@ export function DocsPageView({
           />
         )}
         {prefs.theme !== 'white' && <style>{readerThemeCss()}</style>}
+        {!readOnly && !older && <LockMarks ids={lockedBlocks(page.settings)} />}
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
           {chapterSide && book && (
             <nav aria-label="Chapters" className="dk-chapters-side">
@@ -972,6 +1012,7 @@ export function DocsPageView({
             <div className="dk-statusrow">
               {statusChips}
               {pageInfo}
+              <SuggestionChip />
             </div>
             <div className="dk-doc-col" data-testid="page-column">
               {older && (
@@ -1003,6 +1044,7 @@ export function DocsPageView({
                   onCompare={onCompare}
                 />
               )}
+              <ReviewBar />
               {!offline && !older && (
                 <div style={{ marginBottom: 16 }}>
                   <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />
@@ -1036,6 +1078,12 @@ export function DocsPageView({
               {!offline && !older && published && (
                 <div style={{ marginTop: 16 }}>
                   <PageWork pageId={page.id} onOpenTicket={onOpenTicket} />
+                  <TeamRunEndings
+                    page={page}
+                    onOpenTicket={onOpenTicket}
+                    onCompare={onCompare}
+                    onReview={sg.review?.list.length ? () => sg.review?.focus(sg.review.list[0].id) : undefined}
+                  />
                 </div>
               )}
               <div ref={setBody} data-testid="page-body" style={{ position: 'relative' }}>
@@ -1115,6 +1163,9 @@ export function DocsPageView({
                         changedIn={published && since.behind && since.marks ? since.changedIn : undefined}
                         progressive={renderedKey !== page.id}
                         onRendered={onRendered}
+                        blockWrap={sg.wrap}
+                        lead={sg.lead}
+                        tail={sg.tail}
                       />
                     ) : (
                       <DocsMarkdown
@@ -1292,6 +1343,7 @@ export function DocsPageView({
                 extra={moreExtra}
                 onAction={menuAction}
                 onClose={() => setMenu(false)}
+                aiItems={aiItems}
               />
             </div>
           </BottomSheet>
@@ -1360,11 +1412,24 @@ export function DocsPageView({
         <SelectionToolbar
           root={bodyEl}
           label={cc.reattachId ? 'Attach here' : 'Comment'}
-          enabled={(canComment || aiOn) && !compose}
+          enabled={(canComment || aiOn || askable) && !compose}
           onPick={onPick}
           hideComment={!canComment}
           extra={
-            aiOn ? (pick, close) => <SelectionAi pick={pick} pageId={page.id} view={aiView} done={close} /> : undefined
+            aiOn || askable
+              ? (pick, close) => (
+                  <>
+                    {aiOn && <SelectionAi pick={pick} pageId={page.id} view={aiView} done={close} noAsk={askable} />}
+                    <AskTeamButton
+                      capture={() => ({
+                        quote: pick.anchor.quote,
+                        blockId: topBlockIdOf(pick.range?.startContainer),
+                      })}
+                      onOpened={close}
+                    />
+                  </>
+                )
+              : undefined
           }
         />
         {aiOn && <ExplainCard view={aiView} />}
@@ -1388,7 +1453,7 @@ export function DocsPageView({
           />
         )}
       </div>
-    </PageSettledContext.Provider>
+    </PageTeamHost>
   );
 }
 

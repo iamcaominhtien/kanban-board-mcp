@@ -34,6 +34,13 @@ export interface DocsTreeNode {
   pageStatus?: string | null;
   /** The address of the page's cover picture, when it has one. */
   cover?: string | null;
+  /** AI suggestions waiting on the page (the tree's ✦ marker). */
+  suggestions?: number;
+  /** The page's `icon` setting: an emoji, `icon:<name>` or an uploaded picture (`/uploads/...`). */
+  icon?: string | null;
+  /** Who made the page and who edited it last, when the server sends them ("My pages"). */
+  createdBy?: string | null;
+  updatedBy?: string | null;
 }
 
 export interface DocsHeading {

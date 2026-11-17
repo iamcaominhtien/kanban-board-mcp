@@ -18,7 +18,7 @@ import { personOf } from './comments/people';
 import { useCommentsController } from './comments/useCommentsController';
 import './comments/comments.css';
 import { DocsEditor, type DocsEditorHandle } from './editor/DocsEditor';
-import { EditorErrorBoundary } from './editor/EditorErrorBoundary';
+import { EditorTeamHost } from './suggestions/EditorTeamHost';
 import { createEditorReplaceAdapter, setActiveReplaceAdapter } from './editorReplace';
 import { Icon } from './Icon';
 import { BackOnlineBanner, OfflineBanner, useOnline } from './OfflineBanners';
@@ -645,7 +645,7 @@ export function DocsEditScreen({
 
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-            <EditorErrorBoundary>
+            <EditorTeamHost page={page} projectId={projectId} layout={layout} onOpenTicket={onOpenTicket}>
               <DocsEditor
                 ref={editor}
                 projectId={projectId}
@@ -721,7 +721,7 @@ export function DocsEditScreen({
                   </div>
                 }
               />
-            </EditorErrorBoundary>
+            </EditorTeamHost>
             {preview && (
               <div
                 className={`dk-page-scroll ${surface.className}`}

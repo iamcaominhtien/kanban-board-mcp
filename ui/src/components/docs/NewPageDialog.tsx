@@ -301,7 +301,7 @@ export function NewPageDialog({
   const aiChip = aiReady ? (
     <button
       type="button"
-      className="dk-chip dk-chip-ai"
+      className="dks-chip dks-chip-ai"
       aria-pressed={chip === 'ai'}
       data-testid="chip-ai"
       onClick={() => pickChip('ai')}
@@ -312,19 +312,19 @@ export function NewPageDialog({
   ) : null;
 
   const chips = (
-    <div className="dk-chips" role="group" aria-label="Template categories">
+    <div className="dks-chips" role="group" aria-label="Template categories">
       {!phone && aiChip}
       {GALLERY_CHIPS.map((c) => (
         <button
           key={c.id}
           type="button"
-          className="dk-chip"
+          className="dks-chip"
           aria-pressed={chip === c.id}
           data-testid={`chip-${c.id}`}
           onClick={() => pickChip(c.id)}
         >
           {c.label}
-          {!phone && <span className="dk-chip-n">{counts[c.id]}</span>}
+          {!phone && <span className="dks-chip-n">{counts[c.id]}</span>}
         </button>
       ))}
       {phone && aiChip}
