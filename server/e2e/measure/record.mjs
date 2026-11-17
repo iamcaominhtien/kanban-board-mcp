@@ -2,6 +2,9 @@
 // V8 coverage of the UI's scripts. report.mjs turns the files written here into the coverage report.
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
+
+const { mergeScriptCovs } = createRequire(import.meta.url)('@bcoe/v8-coverage');
 
 /** True when the run should record (E2E_MEASURE=1). */
 export const measuring = () => process.env.E2E_MEASURE === '1';
@@ -48,7 +51,7 @@ export class Recorder {
     this.s = session;
     this.acts = [];
     this.seen = new Set();
-    this.v8 = [];
+    this.v8 = new Map(); // script path → merged V8 script coverage
     this.covering = new Set();
   }
 
@@ -60,12 +63,39 @@ export class Recorder {
     context.on('page', (p) => { this.startCoverage(p).catch(() => {}); });
   }
 
-  /** Starts JS coverage on a page (before it loads anything when called from Session.newPage). */
+  /**
+   * Starts JS coverage on a page (before it loads anything when called from Session.newPage).
+   * Chromium drops the counts of a document when the page navigates away from it, so goto, reload and close first
+   * take what was counted so far (flush) and start again.
+   */
   async startCoverage(page) {
     if (this.covering.has(page)) return;
     this.covering.add(page);
     await page.coverage.startJSCoverage({ resetOnNavigation: false });
+    for (const name of ['goto', 'reload', 'goBack', 'goForward']) {
+      const orig = page[name].bind(page);
+      page[name] = async (...a) => { await this.flush(page, true); return orig(...a); };
+    }
+    const close = page.close.bind(page);
+    page.close = async (...a) => { await this.flush(page, false); this.covering.delete(page); return close(...a); };
     page.once('close', () => this.covering.delete(page));
+  }
+
+  /** Adds what a page counted so far to the merged coverage; `restart` starts counting again. */
+  async flush(page, restart) {
+    if (!this.covering.has(page)) return;
+    const origin = new URL(this.s.server.base).origin;
+    let entries = [];
+    try { entries = await page.coverage.stopJSCoverage(); } catch {}
+    for (const e of entries) {
+      if (!e.url.startsWith(origin)) continue;
+      const u = new URL(e.url).pathname;
+      if (!/\.js$/.test(u)) continue;
+      const cov = { scriptId: '0', url: u, functions: e.functions };
+      const prev = this.v8.get(u);
+      this.v8.set(u, prev ? mergeScriptCovs([prev, cov]) : mergeScriptCovs([cov]));
+    }
+    if (restart) { try { await page.coverage.startJSCoverage({ resetOnNavigation: false }); } catch {} }
   }
 
   /** Records what the open pages show at the end of a step. */
@@ -77,21 +107,11 @@ export class Recorder {
 
   /** Stops coverage on every open page and writes the scenario's files to <reportDir>/measure. */
   async finish() {
-    const origin = new URL(this.s.server.base).origin;
-    for (const p of [...this.covering]) {
-      try {
-        for (const e of await p.coverage.stopJSCoverage()) {
-          if (!e.url.startsWith(origin)) continue;
-          const u = new URL(e.url).pathname;
-          if (!/\.js$/.test(u)) continue;
-          this.v8.push({ path: u, functions: e.functions });
-        }
-      } catch {}
-    }
+    for (const p of [...this.covering]) await this.flush(p, false);
     const dir = path.join(this.s.reportDir, 'measure');
     fs.mkdirSync(dir, { recursive: true });
     const base = `${this.s.scenario.id}-${this.s.server.target}`;
     fs.writeFileSync(path.join(dir, `${base}.acts.json`), JSON.stringify({ acts: this.acts, seen: [...this.seen] }));
-    fs.writeFileSync(path.join(dir, `${base}.v8.json`), JSON.stringify(this.v8));
+    fs.writeFileSync(path.join(dir, `${base}.v8.json`), JSON.stringify([...this.v8.values()].map((c) => ({ path: c.url, functions: c.functions }))));
   }
 }

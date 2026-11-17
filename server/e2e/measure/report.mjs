@@ -7,13 +7,12 @@
 //   code — line, branch and function coverage of ui/src, from the V8 coverage of the pages (needs a ui/dist built
 //          with --sourcemap); the chunks the run never loaded count as 0 %
 // Writes <report>/measure/summary.md, api-gaps.md, ui-gaps.md, code-files.md, coverage.json and code-html/.
+// The UI must be built unminified with source maps, or lines map badly: npx vite build --sourcemap --minify false
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 import { apiInventory, uiInventory, templateRegex, labelRegex, sourceFiles } from './inventory.mjs';
 
-const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(here, '../../..');
 const UI_SRC = path.join(REPO, 'ui/src');
@@ -84,45 +83,55 @@ const labels = [...byLabel.values()];
 // ---- code
 let code = null;
 try {
-  const v8toIstanbul = require('v8-to-istanbul');
-  const libCoverage = require('istanbul-lib-coverage');
-  const libReport = require('istanbul-lib-report');
-  const reports = require('istanbul-reports');
-  const map = libCoverage.createCoverageMap({});
-  const keep = (file) => file.startsWith(UI_SRC + path.sep) && !/\.(test|spec)\.tsx?$/.test(file);
-  const add = async (jsPath, functions) => {
+  const { CoverageReport } = await import('monocart-coverage-reports');
+  const keep = (file) => file.startsWith('src/') && !/\.(test|spec)\.tsx?$/.test(file) && !file.includes('node_modules');
+  const mcr = new CoverageReport({
+    name: 'UI coverage of the e2e run',
+    outputDir: path.join(outDir, 'code-html'),
+    reports: ['v8'],
+    logging: 'error',
+    cleanCache: true,
+    // sources from the maps read as ../../src/…; only the UI's own code counts
+    sourcePath: (p) => p.replace(/^(\.\.\/)+/, '').replace(/^.*?(?=src\/)/, ''),
+    sourceFilter: (p) => keep(p.replace(/^(\.\.\/)+/, '').replace(/^.*?(?=src\/)/, '')),
+    entryFilter: (e) => /\/assets\/.*\.js$/.test(e.url),
+  });
+  const cache = new Map();
+  const load = (jsPath) => {
+    if (cache.has(jsPath)) return cache.get(jsPath);
     const local = path.join(dist, jsPath.replace(/^\/+/, ''));
-    if (!fs.existsSync(local) || !fs.existsSync(local + '.map')) return false;
-    const conv = v8toIstanbul(local, 0, { source: fs.readFileSync(local, 'utf8'), sourceMap: { sourcemap: JSON.parse(fs.readFileSync(local + '.map', 'utf8')) } });
-    await conv.load();
-    conv.applyCoverage(functions);
-    const data = conv.toIstanbul();
-    for (const k of Object.keys(data)) if (!keep(path.resolve(k))) delete data[k];
-    map.merge(data);
-    return true;
+    const v = fs.existsSync(local) && fs.existsSync(local + '.map')
+      ? { source: fs.readFileSync(local, 'utf8'), sourceMap: JSON.parse(fs.readFileSync(local + '.map', 'utf8')) } : null;
+    cache.set(jsPath, v);
+    return v;
   };
   const loaded = new Set();
   let noMap = 0;
   for (const f of v8Files) {
+    const batch = [];
     for (const e of JSON.parse(fs.readFileSync(f, 'utf8'))) {
       if (!/\/assets\//.test(e.path)) continue;
-      if (await add(e.path, e.functions)) loaded.add(e.path.replace(/^.*\/assets\//, 'assets/'));
-      else noMap++;
+      const src = load(e.path);
+      if (!src) { noMap++; continue; }
+      loaded.add(e.path.replace(/^.*\/assets\//, 'assets/'));
+      batch.push({ url: `http://ui${e.path}`, source: src.source, sourceMap: src.sourceMap, functions: e.functions });
     }
+    if (batch.length) await mcr.add(batch);
   }
   // chunks no page loaded: everything in them is uncovered
   const neverLoaded = [];
   for (const f of fs.readdirSync(path.join(dist, 'assets')).filter((x) => x.endsWith('.js'))) {
     if (loaded.has(`assets/${f}`)) continue;
+    const src = load(`/assets/${f}`);
+    if (!src) continue;
     neverLoaded.push(f);
-    const len = fs.statSync(path.join(dist, 'assets', f)).size;
-    await add(`assets/${f}`, [{ functionName: '', isBlockCoverage: true, ranges: [{ startOffset: 0, endOffset: len, count: 0 }] }]);
+    await mcr.add([{ url: `http://ui/assets/${f}`, source: src.source, sourceMap: src.sourceMap, functions: [{ functionName: '', isBlockCoverage: true, ranges: [{ startOffset: 0, endOffset: src.source.length, count: 0 }] }] }]);
   }
-  const inMap = new Set(map.files().map((f) => path.resolve(f)));
+  const res = await mcr.generate();
+  const inMap = new Set(res.files.map((f) => path.join(REPO, 'ui', f.sourcePath)));
   const outsideBundle = sourceFiles(UI_SRC).filter((f) => !inMap.has(f)).map(rel);
-  const ctx = libReport.createContext({ dir: path.join(outDir, 'code-html'), coverageMap: map, defaultSummarizer: 'nested' });
-  reports.create('html').execute(ctx);
-  const files = map.files().map((f) => ({ file: rel(path.resolve(f)), s: map.fileCoverageFor(f).toSummary().data })).sort((a, b) => a.s.lines.pct - b.s.lines.pct || a.file.localeCompare(b.file));
+  const files = res.files.map((f) => ({ file: 'ui/' + f.sourcePath, s: f.summary }))
+    .sort((a, b) => (a.s.lines.pct ?? 0) - (b.s.lines.pct ?? 0) || a.file.localeCompare(b.file));
   const folders = new Map();
   for (const f of files) {
     const parts = f.file.split('/');
@@ -132,7 +141,7 @@ try {
     g.files++;
     folders.set(key, g);
   }
-  code = { total: map.getCoverageSummary().data, files, folders, neverLoaded, noMap, outsideBundle, runs: v8Files.length };
+  code = { total: res.summary, files, folders, neverLoaded, noMap, outsideBundle, runs: v8Files.length };
 } catch (e) {
   code = { error: String(e.stack || e) };
 }
@@ -147,7 +156,7 @@ md.push('| Measure | Covered | Total | % |', '|---|---:|---:|---:|');
 md.push(`| Server calls made by a step | ${apiHit.length} | ${apiTestable.length} | ${pct(apiHit.length, apiTestable.length)} |`);
 md.push(`| Labelled controls acted on | ${labels.filter((l) => l.acted).length} | ${labels.length} | ${pct(labels.filter((l) => l.acted).length, labels.length)} |`);
 md.push(`| Labelled controls shown | ${labels.filter((l) => l.seen).length} | ${labels.length} | ${pct(labels.filter((l) => l.seen).length, labels.length)} |`);
-if (code.total) for (const m of ['lines', 'statements', 'branches', 'functions']) md.push(`| Code ${m} (ui/src) | ${code.total[m].covered} | ${code.total[m].total} | ${code.total[m].pct.toFixed(1)} |`);
+if (code.total) for (const m of ['lines', 'statements', 'branches', 'functions', 'bytes']) if (code.total[m]) md.push(`| Code ${m} (ui/src) | ${code.total[m].covered} | ${code.total[m].total} | ${Number(code.total[m].pct).toFixed(1)} |`);
 md.push('');
 md.push('Not counted: ' + [
   `${api.dynamic.length} call sites whose URL is not a literal (listed in api-gaps.md)`,
@@ -192,7 +201,7 @@ fs.writeFileSync(path.join(outDir, 'ui-gaps.md'), um.join('\n') + '\n');
 
 if (code.files) {
   const cm = ['# Code coverage per file (lowest first)', '', '| File | Lines % | Branches % | Functions % | Lines |', '|---|---:|---:|---:|---:|'];
-  for (const f of code.files) cm.push(`| ${f.file} | ${f.s.lines.pct.toFixed(1)} | ${f.s.branches.pct.toFixed(1)} | ${f.s.functions.pct.toFixed(1)} | ${f.s.lines.total} |`);
+  for (const f of code.files) cm.push(`| ${f.file} | ${pct(f.s.lines.covered, f.s.lines.total)} | ${pct(f.s.branches.covered, f.s.branches.total)} | ${pct(f.s.functions.covered, f.s.functions.total)} | ${f.s.lines.total} |`);
   fs.writeFileSync(path.join(outDir, 'code-files.md'), cm.join('\n') + '\n');
 }
 fs.writeFileSync(path.join(outDir, 'coverage.json'), JSON.stringify({
