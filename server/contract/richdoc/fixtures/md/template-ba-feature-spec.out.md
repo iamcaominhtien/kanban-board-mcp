@@ -6,7 +6,7 @@ One or two sentences: who gets what, and why it matters now. Link the ticket (KA
 
 Ordered by priority. Each one can be built and tested on its own: P1 alone is already worth shipping.
 
-### P1 · 
+### P1 · &lt;title>
 
 As a &lt;who>, I want &lt;what>, so that &lt;why>.
 
@@ -15,7 +15,7 @@ As a &lt;who>, I want &lt;what>, so that &lt;why>.
   1. **Given** &lt;starting state>, **when** &lt;action>, **then** &lt;what the user sees or gets>.
   2. **Given** …, **when** …, **then** …
 
-### P2 · 
+### P2 · &lt;title>
 
 …
 

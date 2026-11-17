@@ -58,10 +58,10 @@ Reading Markdown:
 - Callout kinds: `NOTE` → note, `DANGER` → danger (format 1; before, info and warning), `TIP`/`OK` → success,
   `CAUTION`/`WARN` → warning, `IMPORTANT` → info, case-insensitive. An unknown kind (`[!FOO]`) stays a quote and is
   written `> \[!FOO\]`.
-- Inline HTML is read by the editor's HTML parser: known tags become marks (`<b>`, `<i>`, and in format 1 `<u>`,
-  `<sup>`, `<sub>`), `<br>` a hard break, other tags (`<span>`, `<kbd>`, `<div>`) are dropped and their text kept; an
-  angle-bracket word that is no tag (`<not a tag>`) stays text, but `<title>`, `<who>`… in the templates are read as
-  elements and vanish (`template-ba-feature-spec`).
+- Inline and block HTML: only `<a>`, `<b>`, `<strong>`, `<i>`, `<em>`, `<u>`, `<s>`, `<del>`, `<strike>`, `<sup>`,
+  `<sub>`, `<code>`, `<mark>` and `<br>` are read as formatting. Any other tag (`<span>`, `<div>`, `<kbd>`, `<title>`
+  in the templates) is kept as the text typed, written back `&lt;span>…` (format 1; before, the element and its text
+  could vanish).
 - A ticket key that is the whole of a bold span loses the bold (`**FR-001**` → `FR-001`), and anything shaped like a
   key (`UTF-8`, `ISO-8601`) is read as a ticket reference (the editor shows it plain when no such ticket exists).
 - `![x](…)` inside a sentence stays an image inside the paragraph (the schema has image as a block; the editor keeps
@@ -79,7 +79,6 @@ Not idempotent (read again, the Markdown changes once more):
 - `code-fence-tilde`: `~~~` and longer fences are written as ```` ``` ````, so a fence inside a fence closes it.
 - `html-inline`: `<not a tag>` is written `&lt;not a tag>`, which reads back as the text `<not a tag>`.
 - `lists-bullet`: two lists one after the other (`-` then `*`) are written as two `-` lists, which read back as one.
-- `template-ba-feature-spec`: the `<title>` placeholders above.
 
 Writing plain Markdown from a rich page (json fixtures):
 

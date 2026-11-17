@@ -1,5 +1,5 @@
 import { InputRule, type AnyExtension } from '@tiptap/core';
-import { Markdown } from '@tiptap/markdown';
+import { Markdown, MarkdownManager } from '@tiptap/markdown';
 import StarterKit from '@tiptap/starter-kit';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { TableKit } from '@tiptap/extension-table';
@@ -68,6 +68,31 @@ const DocRefInput = DocRef.extend({
     ];
   },
 });
+
+/** HTML tags the page keeps as formatting when they appear in Markdown; any other tag stays as the text typed. */
+const KEPT_HTML = new Set([
+  'a',
+  'b',
+  'strong',
+  'i',
+  'em',
+  'u',
+  's',
+  'del',
+  'strike',
+  'sup',
+  'sub',
+  'code',
+  'mark',
+  'br',
+]);
+const TAG = /<\/?\s*([A-Za-z][\w-]*)/g;
+
+// Format 1: HTML in Markdown whose tags are not all in KEPT_HTML is read as literal text, so `<title>` in a template
+// or `<div>` in prose is never dropped (the HTML parser drops elements the schema does not know, text and all). The
+// manager has no option for it, so its check for unknown HTML is widened once, for every editor.
+const manager = MarkdownManager.prototype as unknown as { isUnrecognizedHtml: (html: string) => boolean };
+manager.isUnrecognizedHtml = (html: string) => [...html.matchAll(TAG)].some((m) => !KEPT_HTML.has(m[1].toLowerCase()));
 
 /** Assemble the Tiptap extensions for the Docs editor. */
 export function buildExtensions(opts: ExtensionOptions): AnyExtension[] {

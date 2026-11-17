@@ -55,7 +55,7 @@
                 },
                 {
                   "type": "text",
-                  "text": " <action> responds within  with <amount of data>."
+                  "text": " <action> responds within <time> with <amount of data>."
                 }
               ]
             }

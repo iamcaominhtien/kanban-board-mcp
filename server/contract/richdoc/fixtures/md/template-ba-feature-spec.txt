@@ -2,13 +2,13 @@ Summary
 One or two sentences: who gets what, and why it matters now. Link the ticket (KAN-12) and any Story.
 User stories
 Ordered by priority. Each one can be built and tested on its own: P1 alone is already worth shipping.
-P1 · 
+P1 · <title>
 As a <who>, I want <what>, so that <why>.
 - Test on its own: how a tester sees that this story works, without the others.
 - Acceptance scenarios:
 - Given <starting state>, when <action>, then <what the user sees or gets>.
 - Given …, when …, then …
-P2 · 
+P2 · <title>
 …
 Edge cases
 - Empty, zero, the largest value, wrong input: what happens?

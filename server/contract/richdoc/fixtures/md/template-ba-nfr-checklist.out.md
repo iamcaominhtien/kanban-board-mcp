@@ -2,7 +2,7 @@
 
 Only the lines that matter for this feature, each with a number a tester can check.
 
-- **Performance:** &lt;action> responds within  with &lt;amount of data>.
+- **Performance:** &lt;action> responds within &lt;time> with &lt;amount of data>.
 - **Reliability:** what happens when the network or a service fails; nothing the user entered is lost.
 - **Security and privacy:** who may see and change it; personal data stored or sent; what is logged.
 - **Accessibility:** keyboard only, screen reader labels, contrast, text size.

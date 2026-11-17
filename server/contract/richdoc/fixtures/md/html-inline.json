@@ -73,14 +73,14 @@
       "content": [
         {
           "type": "text",
-          "text": "A span and "
+          "text": "A <span>span</span> and "
         },
         {
           "type": "hardBreak"
         },
         {
           "type": "text",
-          "text": " break and Ctrl."
+          "text": " break and <kbd>Ctrl</kbd>."
         }
       ]
     },
@@ -92,7 +92,7 @@
       "content": [
         {
           "type": "text",
-          "text": "A block of HTML"
+          "text": "<div>A block of HTML</div>"
         }
       ]
     },

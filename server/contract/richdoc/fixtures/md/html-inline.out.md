@@ -1,8 +1,8 @@
 Text with **bold tag** and *italic* and underline and 2.
 
-A span and   
- break and Ctrl.
+A &lt;span>span&lt;/span> and   
+ break and &lt;kbd>Ctrl&lt;/kbd>.
 
-A block of HTML
+&lt;div>A block of HTML&lt;/div>
 
 Not a tag: a < b and c > d and &lt;not a tag>.

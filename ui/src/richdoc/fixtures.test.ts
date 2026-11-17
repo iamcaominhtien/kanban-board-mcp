@@ -32,7 +32,6 @@ const NOT_IDEMPOTENT = new Set([
   'code-fence-tilde', // a longer fence around a ``` fence is written with ```, so the inner fence closes it
   'html-inline', // `<not a tag>` is written `&lt;not a tag>`, which reads back as the text `<not a tag>`
   'lists-bullet', // two lists one after the other are written as one Markdown list
-  'template-ba-feature-spec', // `<title>` placeholders are read as HTML and vanish
 ]);
 
 /**
