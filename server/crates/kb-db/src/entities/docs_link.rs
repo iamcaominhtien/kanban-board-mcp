@@ -22,8 +22,10 @@ pub struct Model {
     /// (Mentions in a ticket's description or comments are derived on read, not stored.)
     pub origin: String,
     /// Id of the block the link is written in; None for a Markdown page
+    #[serde(default)]
     pub source_block_id: Option<String>,
     /// Id of the block the link points at; None when it points at the page
+    #[serde(default)]
     pub target_block_id: Option<String>,
 }
 

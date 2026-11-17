@@ -16,7 +16,7 @@ use std::path::PathBuf;
 
 use common::{exec, id, import, insert, member, mk, new_ticket, pid, project, publish};
 use serde_json::{Map, Value, json};
-use testkit::{Client, Resp, Server, normalize, skip_unless_available, target};
+use testkit::{Client, Resp, Server, normalize, skip_unless_available};
 
 /// The recorded answers of one test, and what this run answers.
 struct Rec {
@@ -32,9 +32,8 @@ impl Rec {
             .join("../../contract/golden/docs_routes")
             .join(format!("{name}.json"));
         let record = std::env::var("DOCS_ROUTES_RECORD").is_ok_and(|v| v == "1");
-        if record {
-            assert_eq!(format!("{:?}", target()), "Python", "record from the Python server");
-        }
+        // Since 5.0 the Rust server is the contract (the Python one is gone): a deliberate change of an answer is
+        // recorded from it, and the diff of the golden file is reviewed like code.
         let golden = match std::fs::read_to_string(&path) {
             Ok(text) => serde_json::from_str::<Map<String, Value>>(&text).expect("golden file parses"),
             Err(_) if record => Map::new(),

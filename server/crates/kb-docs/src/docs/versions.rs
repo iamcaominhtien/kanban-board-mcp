@@ -12,6 +12,7 @@ use kb_doctext::docs_text::{DocsError, heading_anchors, heading_match, strip_inl
 use kb_draw::diagrams;
 use serde_json::{Map, Value, json};
 
+use super::body::{BodyInput, PageBody};
 use super::pages::{check_markdown, clean_title, draft_for, get_page, latest_version, opt, page_detail, project};
 use super::refs::{refresh_link_targets, reindex_links};
 use crate::util::{Tag, opcodes, word_count};
@@ -24,12 +25,13 @@ use crate::{Result, docs_comments, docs_err, docs_search, hooks};
 pub async fn save_draft(
     session: &Session,
     page_id: &str,
-    markdown: &str,
+    input: BodyInput<'_>,
     title: Option<&str>,
     base_version: Option<i32>,
 ) -> Result<Map<String, Value>> {
     let page = get_page(session, page_id, false, true).await?;
-    check_markdown(markdown)?;
+    check_editable(&page)?;
+    let body = PageBody::from_input(input)?;
     let actor = activity::current_actor();
     let draft = draft_for(session, &page.id, &actor).await?;
     let new_title = match title {
@@ -42,14 +44,14 @@ pub async fn save_draft(
             row.page_id = Set(page.id.clone());
             row.author = Set(actor);
             row.title = Set(new_title.filter(|t| !t.is_empty()).unwrap_or_else(|| page.title.clone()));
-            row.markdown = Set(markdown.to_string());
+            set_draft_body(&mut row, &body);
             row.base_version = Set(base_version.unwrap_or(page.version));
             row.insert(session).await?;
         }
         Some(draft) => {
             let saves = draft.saves + 1;
             let mut row = kb_db::edit(draft);
-            row.markdown = Set(markdown.to_string());
+            set_draft_body(&mut row, &body);
             row.saves = Set(saves);
             if let Some(t) = new_title.filter(|t| !t.is_empty()) {
                 row.title = Set(t);
@@ -63,6 +65,30 @@ pub async fn save_draft(
     }
     session.commit().await?;
     page_detail(session, page_id).await
+}
+
+/// Writes a body's columns into a draft row.
+pub(crate) fn set_draft_body(row: &mut docs_draft::ActiveModel, body: &PageBody) {
+    row.markdown = Set(body.markdown.clone());
+    row.format = Set(body.format.as_str().to_string());
+    row.content = Set(body.content_column());
+    row.text = Set(Some(body.text.clone()));
+}
+
+/// 409 `page_converting` while a page waits for (or is in) its conversion to the rich format, and 409
+/// `page_not_converted` when its conversion failed (it stays read-only, its Markdown kept).
+pub fn check_editable(page: &docs_page::Model) -> Result<()> {
+    match page.convert_state.as_deref() {
+        Some("waiting" | "working") => {
+            docs_err(409, "page_converting", "This page is being converted to the new format. Try again in a moment.")
+        }
+        Some("failed") => docs_err(
+            409,
+            "page_not_converted",
+            "This page could not be converted to the new format. Its original text is kept, read-only.",
+        ),
+        _ => Ok(()),
+    }
 }
 
 /// Return who follows a project's Docs space: `{following, count, names}`; `count` and `names` leave out the
@@ -177,10 +203,11 @@ pub async fn publish_page(
     page_id: &str,
     base_version: i64,
     note: Option<&str>,
-    markdown: Option<&str>,
+    input: Option<BodyInput<'_>>,
     title: Option<&str>,
 ) -> Result<Map<String, Value>> {
     let mut page = get_page(session, page_id, false, true).await?;
+    check_editable(&page)?;
     let actor = activity::current_actor();
     if base_version != i64::from(page.version) {
         let latest = latest_version(session, &page).await?;
@@ -195,20 +222,20 @@ pub async fn publish_page(
         .into());
     }
     let draft = draft_for(session, &page.id, &actor).await?;
-    let markdown = match markdown {
-        Some(m) => m.to_string(),
+    let body = match input {
+        Some(input) => PageBody::from_input(input)?,
         None => match &draft {
-            Some(d) => d.markdown.clone(),
+            Some(d) => PageBody::of_draft(d).into_rich(),
             None => return docs_err(422, "nothing_to_publish", "There is no draft to publish"),
         },
     };
-    check_markdown(&markdown)?;
+    check_markdown(&body.markdown)?;
     let wanted = title.filter(|t| !t.is_empty()).map(str::to_string).unwrap_or_else(|| match &draft {
         Some(d) => d.title.clone(),
         None => page.title.clone(),
     });
     let new_title = clean_title(Some(&wanted))?;
-    commit_version(session, &mut page, &markdown, &new_title, &actor, note, draft, true).await
+    commit_version(session, &mut page, &body, &new_title, &actor, note, draft, true).await
 }
 
 /// Write a page's next version: the page row, the version row, link index, aliases, search index and comment
@@ -216,13 +243,14 @@ pub async fn publish_page(
 pub async fn commit_version(
     session: &Session,
     page: &mut docs_page::Model,
-    markdown: &str,
+    body: &PageBody,
     title: &str,
     author: &str,
     note: Option<&str>,
     draft: Option<docs_draft::Model>,
     commit: bool,
 ) -> Result<Map<String, Value>> {
+    let markdown = body.markdown.as_str();
     let previous = latest_version(session, page).await?;
     let renamed = previous.is_none() || title != page.title;
     let mut row = kb_db::edit(page.clone());
@@ -238,6 +266,9 @@ pub async fn commit_version(
     version.version = Set(page.version);
     version.title = Set(title.to_string());
     version.markdown = Set(markdown.to_string());
+    version.format = Set(body.format.as_str().to_string());
+    version.content = Set(body.content_column());
+    version.text = Set(Some(body.text.clone()));
     version.author = Set(author.to_string());
     version.note = Set(if note.is_empty() { None } else { Some(note) });
     version.diagram_versions = Set(diagrams::pin_versions(session, markdown).await?);
@@ -259,6 +290,7 @@ pub async fn commit_version(
     docs_search::reindex(session, std::slice::from_ref(&page.id)).await?;
     // late import in Python: docs_comments builds on this module
     docs_comments::rematch_page(session, page, markdown).await?;
+    crate::docs_highlights::rematch(session, page).await?;
     if !commit {
         return Ok(Map::new());
     }
@@ -388,6 +420,8 @@ pub async fn get_version(session: &Session, page_id: &str, n: i64) -> Result<Map
     out.insert("version".into(), json!(v.version));
     out.insert("title".into(), json!(v.title));
     out.insert("markdown".into(), json!(v.markdown));
+    out.insert("format".into(), json!(v.format));
+    out.insert("content".into(), PageBody::of_version(&v).content.unwrap_or(Value::Null));
     out.insert("author".into(), json!(v.author));
     out.insert("note".into(), opt(&v.note));
     out.insert("created_at".into(), json!(v.created_at));
@@ -534,7 +568,10 @@ pub async fn restore_version(
     // Diagrams go back to the versions this page version used, before the new version pins them
     diagrams::restore_pins(session, &diagrams::parse_pins(Some(&v.diagram_versions))).await?;
     let note = note.filter(|n| !n.is_empty()).map(str::to_string).unwrap_or_else(|| format!("Restored from v{n}"));
-    commit_version(session, &mut page, &v.markdown, &v.title, &actor, Some(&note), draft, true).await
+    check_editable(&page)?;
+    // an old Markdown version comes back as a rich page (new block ids)
+    let body = PageBody::of_version(&v).into_rich();
+    commit_version(session, &mut page, &body, &v.title, &actor, Some(&note), draft, true).await
 }
 
 #[cfg(test)]

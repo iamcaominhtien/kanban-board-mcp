@@ -17,6 +17,8 @@ kb-fuzzy = { path = "crates/kb-fuzzy" }
 kb-log = { path = "crates/kb-log" }
 kb-notify = { path = "crates/kb-notify" }
 kb-doctext = { path = "crates/kb-doctext" }
+kb-richdoc = { path = "crates/kb-richdoc" }
+kb-docexport = { path = "crates/kb-docexport" }
 kb-draw = { path = "crates/kb-draw" }
 kb-docs = { path = "crates/kb-docs" }
 kb-board = { path = "crates/kb-board" }
@@ -39,15 +41,22 @@ async-trait = "0.1"
 axum = { version = "0.8", features = ["ws", "multipart", "macros"] }
 base64 = "0.22"
 bytes = "1"
+calamine = { version = "0.38", default-features = false }
 chrono = { version = "0.4", default-features = false, features = ["std", "clock", "serde"] }
 chrono-tz = "0.10"
+docx-rs = { version = "0.4.22", default-features = false }
+markup5ever_rcdom = "0.40.1"
+quick-xml = "0.42"
 jiff = { version = "0.2", features = ["tzdb-bundle-always"] }
 futures = "0.3"
+html5ever = "0.40"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp"] }
 regex = "1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream", "multipart"] }
 sea-orm = { version = "2.0", default-features = false, features = ["macros", "with-json", "sqlx-sqlite", "sqlx-postgres", "sqlx-mysql", "runtime-tokio-rustls", "sqlite-use-returning-for-3_35"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+tempfile = "3"
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
@@ -55,7 +64,9 @@ tokio-util = { version = "0.7", features = ["io", "codec"] }
 tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["cors", "fs", "trace"] }
 tracing = "0.1"
+url = "2"
 uuid = { version = "1", features = ["v4"] }
+zip = { version = "8", default-features = false, features = ["deflate"] }
 
 [workspace.lints.rust]
 unsafe_code = "deny"

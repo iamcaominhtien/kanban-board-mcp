@@ -10,7 +10,8 @@
       "worktree_template": null,
       "worktree_by_default": 0,
       "docs_enabled": 1,
-      "docs_edit_policy": "members"
+      "docs_edit_policy": "members",
+      "docs_settings": null
     },
     {
       "id": "<uuid:2>",
@@ -22,7 +23,8 @@
       "worktree_template": null,
       "worktree_by_default": 0,
       "docs_enabled": 1,
-      "docs_edit_policy": "members"
+      "docs_edit_policy": "members",
+      "docs_settings": null
     }
   ],
   "story": [
@@ -409,7 +411,8 @@
         "worktree_template": null,
         "worktree_by_default": 0,
         "docs_enabled": 1,
-        "docs_edit_policy": "members"
+        "docs_edit_policy": "members",
+        "docs_settings": null
       },
       {
         "id": "<uuid:2>",
@@ -421,7 +424,8 @@
         "worktree_template": null,
         "worktree_by_default": 0,
         "docs_enabled": 1,
-        "docs_edit_policy": "members"
+        "docs_edit_policy": "members",
+        "docs_settings": null
       }
     ],
     "story": [],

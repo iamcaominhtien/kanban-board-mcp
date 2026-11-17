@@ -36,7 +36,7 @@ use crate::docs_search::{self, SearchParams};
 use crate::schemas::{
     AccessRequestBody, AnchorBody, AnchorPreviewBody, AssignPageBody, CommentBody, DraftSave, FollowBody,
     ImportResolveBody, PageCreate, PageDuplicate, PageMove, PageRename, PublishBody, ResolveBody, RestoreBody,
-    SeenBody, SendCommentsBody, SendToAiBody, ThreadCreate, TicketDocBody,
+    SeenBody, SendCommentsBody, SendToAiBody, SettingsBody, ThreadCreate, TicketDocBody,
 };
 use crate::{docs, docs_comments, docs_import, docs_work};
 
@@ -63,6 +63,35 @@ pub fn routes() -> Routes {
         .get("/docs/pages/{page_id}/rename-preview", get_rename_preview)
         .get("/docs/pages/{page_id}/delete-preview", get_delete_preview)
         .patch("/docs/pages/{page_id}", patch_page)
+        .patch("/docs/pages/{page_id}/settings", patch_settings)
+        .get("/projects/{project_id}/docs/settings", get_space_settings)
+        .patch("/projects/{project_id}/docs/settings", patch_space_settings)
+        .get("/projects/{project_id}/docs/gallery", get_gallery)
+        .post("/projects/{project_id}/docs/gallery", post_gallery_template)
+        .post("/projects/{project_id}/docs/pages/from-template", post_from_template)
+        .patch("/docs/templates/{template_id}", patch_template)
+        .delete("/docs/templates/{template_id}", del_template)
+        .get("/docs/pages/{page_id}/public-link", get_public_link)
+        .put("/docs/pages/{page_id}/public-link", put_public_link)
+        .get("/docs/public/{token}", get_public_page)
+        .get("/docs/pages/{page_id}/highlights", get_highlights)
+        .post("/docs/pages/{page_id}/highlights", post_highlight)
+        .post("/docs/pages/{page_id}/highlights/clear", post_clear_highlights)
+        .post("/docs/pages/{page_id}/highlights/restore", post_restore_highlights)
+        .patch("/docs/highlights/{highlight_id}", patch_highlight)
+        .delete("/docs/highlights/{highlight_id}", del_highlight)
+        .get("/docs/pages/{page_id}/suggestions", get_suggestions)
+        .post("/docs/convert", post_convert)
+        .post("/projects/{project_id}/docs/exports", post_export)
+        .get("/projects/{project_id}/docs/exports", get_exports)
+        .get("/docs/exports/{export_id}", get_export)
+        .get("/docs/exports/{export_id}/download", get_export_file)
+        .post("/docs/exports/{export_id}/cancel", post_cancel_export)
+        .delete("/docs/exports/{export_id}", del_export)
+        .post("/docs/pages/{page_id}/convert/retry", post_convert_retry)
+        .post("/docs/pages/{page_id}/suggestions/accept", post_accept_suggestions)
+        .post("/docs/pages/{page_id}/suggestions/accept-all", post_accept_all)
+        .post("/docs/pages/{page_id}/suggestions/reject", post_reject_suggestions)
         .delete("/docs/pages/{page_id}", del_page)
         .post("/docs/pages/{page_id}/move", post_move)
         .post("/docs/pages/{page_id}/duplicate", post_duplicate)
@@ -102,6 +131,10 @@ pub fn routes() -> Routes {
         .get("/projects/{project_id}/docs/comment-events", get_comment_events)
         .get("/projects/{project_id}/docs/access", get_docs_access)
         .post("/projects/{project_id}/docs/access-requests", post_access_request)
+        // a picture, video or file for a page: the handler streams it to disk and caps it by the project's limits
+        .add("POST", "/projects/{project_id}/docs/uploads", post(post_docs_upload).layer(DefaultBodyLimit::disable()))
+        .get("/docs/link-preview", get_link_preview)
+        .get("/docs/file-preview", get_file_preview)
 }
 
 fn obj(map: Map<String, Value>) -> Json<Value> {
@@ -401,6 +434,283 @@ async fn patch_page(
     Ok(obj(mutate(&headers, docs::rename_page(&session, &page_id, &body.title, body.rewrite_links).await).await?))
 }
 
+/// Change a page's settings (`{settings: {key: value | null}}`; null puts a key back to its default).
+async fn patch_settings(
+    headers: HeaderMap,
+    Path(page_id): Path<String>,
+    Body(body): Body<SettingsBody>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(obj(mutate(&headers, docs::update_settings(&session, &page_id, &body.settings).await).await?))
+}
+
+/// Return the project's Docs settings.
+async fn get_space_settings(headers: HeaderMap, Path(project_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(obj(done(&headers, docs::space::get_space_settings(&session, &project_id).await)?))
+}
+
+/// Change the project's Docs settings (admins).
+async fn patch_space_settings(
+    headers: HeaderMap,
+    Path(project_id): Path<String>,
+    Body(body): Body<SettingsBody>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(obj(mutate(&headers, docs::space::update_space_settings(&session, &project_id, &body.settings).await).await?))
+}
+
+/// The New page gallery: built-in templates and the ones people saved.
+async fn get_gallery(headers: HeaderMap, Path(project_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(obj(done(&headers, docs::gallery::gallery(&session, &project_id).await)?))
+}
+
+/// Save a page as a template.
+async fn post_gallery_template(
+    headers: HeaderMap,
+    Path(project_id): Path<String>,
+    Body(body): Body<docs::gallery::TemplateSave>,
+) -> ApiResult<(StatusCode, Json<Value>)> {
+    let session = kb_db::session();
+    let saved = mutate(&headers, docs::gallery::save_template(&session, &project_id, &body).await).await?;
+    Ok((StatusCode::CREATED, Json(saved)))
+}
+
+/// Create a page from a gallery template.
+async fn post_from_template(
+    headers: HeaderMap,
+    Path(project_id): Path<String>,
+    Body(body): Body<PageCreate>,
+) -> ApiResult<(StatusCode, Json<Value>)> {
+    let session = kb_db::session();
+    let page = docs::gallery::create_from_template(
+        &session,
+        &project_id,
+        &body.title,
+        body.parent_id.as_deref(),
+        &body.template,
+    )
+    .await;
+    let page = mutate(&headers, page).await?;
+    Ok((StatusCode::CREATED, obj(page)))
+}
+
+/// Rename, describe or re-share a saved template.
+async fn patch_template(
+    headers: HeaderMap,
+    Path(template_id): Path<String>,
+    Body(body): Body<Map<String, Value>>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(Json(mutate(&headers, docs::gallery::update_template(&session, &template_id, &body).await).await?))
+}
+
+/// Delete a saved template.
+async fn del_template(headers: HeaderMap, Path(template_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(Json(mutate(&headers, docs::gallery::delete_template(&session, &template_id).await).await?))
+}
+
+/// A page's public link.
+async fn get_public_link(headers: HeaderMap, Path(page_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(Json(done(&headers, docs::public::public_link(&session, &page_id).await)?))
+}
+
+/// Turn a page's public link on or off.
+async fn put_public_link(
+    headers: HeaderMap,
+    Path(page_id): Path<String>,
+    Body(body): Body<docs::public::PublicLinkSet>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(Json(mutate(&headers, docs::public::set_public_link(&session, &page_id, &body).await).await?))
+}
+
+/// What a public link shows (no sign-in).
+async fn get_public_page(headers: HeaderMap, Path(token): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(obj(done(&headers, docs::public::public_page(&session, &token).await)?))
+}
+
+/// A page's shared highlights.
+async fn get_highlights(headers: HeaderMap, Path(page_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(obj(done(&headers, crate::docs_highlights::list(&session, &page_id).await)?))
+}
+
+/// Highlight a passage.
+async fn post_highlight(
+    headers: HeaderMap,
+    Path(page_id): Path<String>,
+    Body(body): Body<crate::docs_highlights::HighlightNew>,
+) -> ApiResult<(StatusCode, Json<Value>)> {
+    let session = kb_db::session();
+    Ok((StatusCode::CREATED, Json(done(&headers, crate::docs_highlights::add(&session, &page_id, &body).await)?)))
+}
+
+/// Request body to clear highlights: `mine` or `all`.
+#[derive(Debug, serde::Deserialize)]
+struct ClearBody {
+    scope: String,
+}
+
+/// Remove all my highlights, or (editors) everybody's.
+async fn post_clear_highlights(
+    headers: HeaderMap,
+    Path(page_id): Path<String>,
+    Body(body): Body<ClearBody>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    let scope = if body.scope == "all" {
+        crate::docs_highlights::ClearScope::Everyone
+    } else {
+        crate::docs_highlights::ClearScope::Mine
+    };
+    Ok(Json(done(&headers, crate::docs_highlights::clear(&session, &page_id, scope).await)?))
+}
+
+/// Request body to bring removed highlights back.
+#[derive(Debug, serde::Deserialize)]
+struct RestoreHighlightsBody {
+    ids: Vec<String>,
+}
+
+/// Undo: bring removed highlights back.
+async fn post_restore_highlights(
+    headers: HeaderMap,
+    Path(page_id): Path<String>,
+    Body(body): Body<RestoreHighlightsBody>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(obj(done(&headers, crate::docs_highlights::restore(&session, &page_id, &body.ids).await)?))
+}
+
+/// Change a highlight (colour, thread, re-attach).
+async fn patch_highlight(
+    headers: HeaderMap,
+    Path(highlight_id): Path<String>,
+    Body(body): Body<Map<String, Value>>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(Json(done(&headers, crate::docs_highlights::update(&session, &highlight_id, &body).await)?))
+}
+
+/// Remove a highlight.
+async fn del_highlight(headers: HeaderMap, Path(highlight_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(Json(done(&headers, crate::docs_highlights::remove(&session, &highlight_id).await)?))
+}
+
+/// Convert the pages still in Markdown now (the background loop does it at start and every few minutes).
+async fn post_convert(headers: HeaderMap) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    let report = crate::docs_convert::run(&session).await.map(|r| json!({"done": r.done, "failed": r.failed}));
+    Ok(Json(mutate(&headers, report).await?))
+}
+
+/// Try a page whose conversion failed again ("Try again").
+async fn post_convert_retry(headers: HeaderMap, Path(page_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    done(&headers, crate::docs::get_page(&session, &page_id, true, true).await)?;
+    let report =
+        crate::docs_convert::retry(&session, &page_id).await.map(|r| json!({"done": r.done, "failed": r.failed}));
+    Ok(Json(mutate(&headers, report).await?))
+}
+
+/// Start an export (Word, PDF, HTML or Markdown) in the background.
+async fn post_export(
+    headers: HeaderMap,
+    Path(project_id): Path<String>,
+    Body(body): Body<crate::docs_export::ExportRequest>,
+) -> ApiResult<(StatusCode, Json<Value>)> {
+    let session = kb_db::session();
+    Ok((StatusCode::ACCEPTED, Json(done(&headers, crate::docs_export::start(&session, &project_id, &body).await)?)))
+}
+
+/// Your export history in the project (last 20).
+async fn get_exports(headers: HeaderMap, Path(project_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(Json(done(&headers, crate::docs_export::history(&session, &project_id).await)?))
+}
+
+/// One export.
+async fn get_export(headers: HeaderMap, Path(export_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(Json(done(&headers, crate::docs_export::detail(&session, &export_id).await)?))
+}
+
+/// Download a ready export.
+async fn get_export_file(headers: HeaderMap, Path(export_id): Path<String>) -> ApiResult<axum::response::Response> {
+    use axum::response::IntoResponse;
+    let session = kb_db::session();
+    let (name, bytes) = done(&headers, crate::docs_export::file(&session, &export_id).await)?;
+    let ext = name.rsplit_once('.').map(|(_, e)| format!(".{}", e.to_lowercase())).unwrap_or_default();
+    let mime = kb_files::uploads::mime_by_extension(&ext).unwrap_or("application/octet-stream");
+    let safe: String = name.chars().filter(|c| c.is_ascii() && *c != '"' && !c.is_control()).collect();
+    let disposition = format!("attachment; filename=\"{safe}\"");
+    Ok((
+        [(axum::http::header::CONTENT_TYPE, mime.to_string()), (axum::http::header::CONTENT_DISPOSITION, disposition)],
+        bytes,
+    )
+        .into_response())
+}
+
+/// Cancel a running export.
+async fn post_cancel_export(headers: HeaderMap, Path(export_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(Json(done(&headers, crate::docs_export::cancel(&session, &export_id).await)?))
+}
+
+/// Remove an export and its file.
+async fn del_export(headers: HeaderMap, Path(export_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(Json(done(&headers, crate::docs_export::delete(&session, &export_id).await)?))
+}
+
+/// A page's pending AI suggestions.
+async fn get_suggestions(headers: HeaderMap, Path(page_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(obj(done(&headers, crate::docs_suggestions::list(&session, &page_id).await)?))
+}
+
+/// Request body to accept or reject suggestions.
+#[derive(Debug, Default, serde::Deserialize)]
+struct SuggestionIds {
+    #[serde(default)]
+    ids: Vec<String>,
+    /// The reviewer looked at a block changed since the team wrote it.
+    #[serde(default)]
+    looked: bool,
+}
+
+/// Accept suggestions (one new version).
+async fn post_accept_suggestions(
+    headers: HeaderMap,
+    Path(page_id): Path<String>,
+    Body(body): Body<SuggestionIds>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(obj(mutate(&headers, crate::docs_suggestions::accept(&session, &page_id, &body.ids, body.looked).await).await?))
+}
+
+/// Accept every suggestion that did not change under the team.
+async fn post_accept_all(headers: HeaderMap, Path(page_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(Json(mutate(&headers, crate::docs_suggestions::accept_all(&session, &page_id).await).await?))
+}
+
+/// Reject suggestions (all when no ids).
+async fn post_reject_suggestions(
+    headers: HeaderMap,
+    Path(page_id): Path<String>,
+    Body(body): Body<SuggestionIds>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(Json(mutate(&headers, crate::docs_suggestions::reject(&session, &page_id, &body.ids).await).await?))
+}
+
 /// Move a page and its sub-pages to the Recycle Bin.
 async fn del_page(headers: HeaderMap, Path(page_id): Path<String>) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
@@ -466,7 +776,12 @@ async fn put_draft(
     Body(body): Body<DraftSave>,
 ) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
-    let saved = docs::save_draft(&session, &page_id, &body.markdown, body.title.as_deref(), body.base_version).await;
+    let input = match (&body.content, &body.markdown) {
+        (Some(content), _) => docs::BodyInput::Content(content),
+        (None, Some(markdown)) => docs::BodyInput::Markdown(markdown),
+        (None, None) => return Err(ApiError::validation(&["body", "markdown"], "Field required", "missing")),
+    };
+    let saved = docs::save_draft(&session, &page_id, input, body.title.as_deref(), body.base_version).await;
     Ok(obj(done(&headers, saved)?))
 }
 
@@ -520,7 +835,11 @@ async fn post_publish(
         &page_id,
         body.base_version,
         body.note.as_deref(),
-        body.markdown.as_deref(),
+        match (&body.content, &body.markdown) {
+            (Some(content), _) => Some(docs::BodyInput::Content(content)),
+            (None, Some(markdown)) => Some(docs::BodyInput::Markdown(markdown)),
+            (None, None) => None,
+        },
         body.title.as_deref(),
     )
     .await;
@@ -923,4 +1242,33 @@ async fn post_ticket_doc_comments_send(
         hooked(&headers, hook.send_ticket_doc_comments(&session, &ticket_id, body.give_team_id.as_deref()).await)?;
     events::publish("invalidate", &[]).await;
     Ok((StatusCode::ACCEPTED, obj(out)))
+}
+
+/// Store a picture, video or file for a page (multipart `file` and `kind`): the project's limits, no programs or
+/// scripts, a virus scan; answers `{src, name, size, mime, kind}`.
+async fn post_docs_upload(
+    headers: HeaderMap,
+    Path(project_id): Path<String>,
+    multipart: Result<Multipart, MultipartRejection>,
+) -> ApiResult<(StatusCode, Json<Value>)> {
+    let multipart = multipart.map_err(|_| ApiError::validation(&["body", "file"], "Field required", "missing"))?;
+    let session = kb_db::session();
+    let out = done(&headers, crate::docs_embeds::receive_upload(&session, &project_id, multipart).await)?;
+    Ok((StatusCode::CREATED, Json(out)))
+}
+
+/// Read a pasted link: title, description, picture, site, whether it can be embedded and the player address.
+async fn get_link_preview(headers: HeaderMap, RawQuery(raw): RawQuery) -> ApiResult<Json<Value>> {
+    let pairs = query_pairs(raw.as_deref());
+    let url = query_required(&pairs, "url")?;
+    let project_id = query_opt(&pairs, "project_id");
+    let session = kb_db::session();
+    Ok(Json(done(&headers, crate::docs_embeds::link_preview(&session, &url, project_id.as_deref()).await)?))
+}
+
+/// The inline preview of an uploaded file: PDF, Word blocks, sheet rows, or none.
+async fn get_file_preview(headers: HeaderMap, RawQuery(raw): RawQuery) -> ApiResult<Json<Value>> {
+    let pairs = query_pairs(raw.as_deref());
+    let src = query_required(&pairs, "src")?;
+    Ok(Json(done(&headers, crate::docs_embeds::file_preview(&src).await)?))
 }

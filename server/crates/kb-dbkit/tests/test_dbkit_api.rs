@@ -298,7 +298,7 @@ async fn test_copy_stops_the_ai_proposes_the_board_applies_and_checks() {
         [
             "Row counts · equal in all 82 tables".to_string(),
             format!("Content · {rows} rows read back and compared (500 at random per big table)"),
-            "Links between rows · the same 52 kinds of link on both sides".to_string(),
+            "Links between rows · the same 58 kinds of link on both sides".to_string(),
             "Counters · the next ticket number carries on from MOV-1".to_string(),
             "Docs search · 0 of 0 pages indexed".to_string(),
         ]

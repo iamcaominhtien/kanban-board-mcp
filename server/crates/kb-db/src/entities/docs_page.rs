@@ -29,10 +29,13 @@ pub struct Model {
     /// page | canvas: a canvas page opens the Canvas editor instead of the text editor
     pub kind: String,
     /// JSON page settings; None means the defaults
+    #[serde(default)]
     pub settings: Option<String>,
     /// Conversion to the rich format: waiting | working | done | failed; None = never needed
+    #[serde(default)]
     pub convert_state: Option<String>,
     /// Why the last conversion failed; None unless `convert_state` is `failed`
+    #[serde(default)]
     pub convert_error: Option<String>,
 }
 

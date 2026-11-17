@@ -25609,6 +25609,406 @@
      }
     }
    }
+  },
+  "/docs/exports/{export_id}": {
+   "delete": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/highlights/{highlight_id}": {
+   "delete": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/templates/{template_id}": {
+   "delete": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/exports/{export_id}/download": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/file-preview": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/link-preview": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/highlights": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/public-link": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/suggestions": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/public/{token}": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/projects/{project_id}/docs/exports": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/projects/{project_id}/docs/gallery": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/projects/{project_id}/docs/settings": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/settings": {
+   "patch": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/convert": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/exports/{export_id}/cancel": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/convert/retry": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/highlights/clear": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/highlights/restore": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/suggestions/accept": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/suggestions/accept-all": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/suggestions/reject": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/projects/{project_id}/docs/pages/from-template": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/projects/{project_id}/docs/uploads": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
   }
  },
  "components": {

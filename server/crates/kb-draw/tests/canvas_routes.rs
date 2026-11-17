@@ -15,7 +15,7 @@ use common::hash::sha256_hex;
 use common::{FilePart, Reply, form, member, pid, png, raw_get};
 use regex::Regex;
 use serde_json::{Map, Value, json};
-use testkit::{Client, Server, Target, skip_unless_available, target};
+use testkit::{Client, Server, skip_unless_available};
 
 const SNAPSHOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../contract/golden/canvas_routes.json");
 
@@ -888,7 +888,8 @@ async fn every_route_answers_as_the_python_server_does() {
     }
     let srv = Server::start().await;
     let got = script(&srv).await;
-    if std::env::var("KB_RECORD_ROUTES").is_ok() && target() == Target::Python {
+    // since 5.0 the Rust server is the contract: a deliberate change is recorded from it and its diff reviewed
+    if std::env::var("KB_RECORD_ROUTES").is_ok() {
         std::fs::write(SNAPSHOT, serde_json::to_string_pretty(&Value::Object(got.clone())).expect("json"))
             .expect("write the snapshot");
         return;

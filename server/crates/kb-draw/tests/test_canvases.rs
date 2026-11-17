@@ -780,7 +780,8 @@ async fn test_a_docs_page_canvas_gets_a_version_every_ten_minutes() {
             && cv["page_id"] == out.json()["page"]["id"]
     );
     let page = get_json(&c, &format!("/docs/pages/{}", s(&cv["page_id"]))).await;
-    assert!(page["kind"] == "canvas" && page["markdown"] == cv["markdown"]);
+    // the page is rich since format 1: its Markdown is the editor's, which ends a page that ends in a block with a new line
+    assert!(page["kind"] == "canvas" && page["markdown"].as_str().map(str::trim_end) == cv["markdown"].as_str());
     let tree = get_json(&c, &format!("/projects/{pid}/docs/tree")).await;
     assert!(tree.as_array().expect("tree").iter().any(|p| p["id"] == cv["page_id"] && p["kind"] == "canvas"));
     let cid = s(&cv["id"]);

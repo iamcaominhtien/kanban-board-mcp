@@ -355,12 +355,12 @@ async fn test_sqlite_files() {
         finding(
             "empty",
             "warn",
-            "Already holds a Kanban board · 95 tables, 0 tickets",
+            "Already holds a Kanban board · 100 tables, 0 tickets",
             "Use it as it is (Use this database), or empty it in the next step to copy your data in.",
             ""
         )
     );
-    assert_eq!((&report["state"], &report["tables"], &report["tickets"]), (&json!("board"), &json!(95), &json!(0)));
+    assert_eq!((&report["state"], &report["tables"], &report["tickets"]), (&json!("board"), &json!(100), &json!(0)));
     let foreign = tmp.path().join("other.db");
     sqlite_exec(&foreign, "CREATE TABLE a (x)", &[]).await;
     sqlite_exec(&foreign, "CREATE TABLE b (y)", &[]).await;

@@ -64,10 +64,14 @@ pub struct PageDuplicate {
     pub include_children: bool,
 }
 
-/// Request body to save a draft.
+/// Request body to save a draft: the page as rich JSON (`content`, the editor) or as Markdown (`markdown`, older
+/// clients); one of the two is required.
 #[derive(Debug, Deserialize)]
 pub struct DraftSave {
-    pub markdown: String,
+    #[serde(default)]
+    pub markdown: Option<String>,
+    #[serde(default)]
+    pub content: Option<Value>,
     #[serde(default)]
     pub title: Option<String>,
     #[serde(default)]
@@ -94,6 +98,9 @@ pub struct PublishBody {
     pub note: Option<String>,
     #[serde(default)]
     pub markdown: Option<String>,
+    /// The page as rich JSON (wins over `markdown`).
+    #[serde(default)]
+    pub content: Option<Value>,
     #[serde(default)]
     pub title: Option<String>,
     #[serde(default)]
@@ -203,4 +210,10 @@ pub struct SendCommentsBody {
 #[derive(Debug, Deserialize)]
 pub struct AnchorPreviewBody {
     pub markdown: String,
+}
+
+/// Request body to change a page's settings.
+#[derive(Debug, Deserialize)]
+pub struct SettingsBody {
+    pub settings: Map<String, Value>,
 }

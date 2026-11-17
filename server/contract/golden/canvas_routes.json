@@ -8730,6 +8730,11 @@
         "status": "draft",
         "version": 0,
         "markdown": "",
+        "format": "rich",
+        "content": null,
+        "settings": {},
+        "convert_state": null,
+        "convert_error": null,
         "headings": [],
         "path": [],
         "created_by": "user",
@@ -8746,6 +8751,18 @@
         "draft": {
           "title": "Settings flow",
           "markdown": "",
+          "format": "rich",
+          "content": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "paragraph",
+                "attrs": {
+                  "blockId": "<bid:1>"
+                }
+              }
+            ]
+          },
           "base_version": 0,
           "saves": 1,
           "updated_at": "<time>",
@@ -8830,6 +8847,11 @@
         "status": "draft",
         "version": 0,
         "markdown": "",
+        "format": "rich",
+        "content": null,
+        "settings": {},
+        "convert_state": null,
+        "convert_error": null,
         "headings": [],
         "path": [],
         "created_by": "user",
@@ -8846,6 +8868,18 @@
         "draft": {
           "title": "Login flow",
           "markdown": "",
+          "format": "rich",
+          "content": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "paragraph",
+                "attrs": {
+                  "blockId": "<bid:1>"
+                }
+              }
+            ]
+          },
           "base_version": 0,
           "saves": 1,
           "updated_at": "<time>",

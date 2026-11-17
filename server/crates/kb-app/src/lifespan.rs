@@ -13,6 +13,7 @@ pub struct Running {
     sweeper: JoinHandle<()>,
     db_watcher: JoinHandle<()>,
     rescans: JoinHandle<()>,
+    docs_convert: JoinHandle<()>,
 }
 
 /// Bring the database up and start the background work.
@@ -35,7 +36,32 @@ pub async fn startup() -> Result<Running, DatabaseError> {
     kb_notify::start();
     kb_ai_work::github::start();
     let rescans = tokio::spawn(rescan_loop());
-    Ok(Running { follow, sweeper, db_watcher, rescans })
+    let docs_convert = tokio::spawn(docs_convert_loop());
+    Ok(Running { follow, sweeper, db_watcher, rescans, docs_convert })
+}
+
+const DOCS_CONVERT_EVERY: Duration = Duration::from_secs(5 * 60);
+
+/// Convert the Docs pages still in Markdown to the rich format: at start, then now and then (a database switched to,
+/// copied in or written by an older app can bring new ones).
+async fn docs_convert_loop() {
+    loop {
+        let session = database::session();
+        match kb_docs::docs_convert::run(&session).await {
+            Ok(report) if report.done + report.failed > 0 => {
+                tracing::info!(
+                    target: "kanban.http",
+                    "Docs pages converted to the rich format: {} done, {} could not be converted",
+                    report.done,
+                    report.failed
+                );
+                kb_base::events::publish("invalidate", &[]).await;
+            }
+            Ok(_) => {}
+            Err(err) => tracing::error!(target: "kanban.http", "Converting Docs pages failed: {err:?}"),
+        }
+        tokio::time::sleep(DOCS_CONVERT_EVERY).await;
+    }
 }
 
 const RESCAN_EVERY: Duration = Duration::from_secs(30 * 60);
@@ -55,6 +81,7 @@ async fn rescan_loop() {
 pub async fn shutdown(running: Running) {
     kb_ai_work::github::stop().await;
     running.rescans.abort();
+    running.docs_convert.abort();
     kb_notify::stop().await;
     // No CLI process outlives the board: cancel the AI runs and kill their process trees
     kb_ai_run::schedules::stop_scheduler().await;

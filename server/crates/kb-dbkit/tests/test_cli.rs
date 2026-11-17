@@ -171,7 +171,7 @@ async fn test_the_command_line_says_what_the_python_script_said() {
     assert_eq!(codes, [0, 0, 2, 2, 0, 0, 3, 3, 0, 2, 2, 2, 4, 0, 3, 2, 2, 2]);
     assert_eq!(
         ran[0].1,
-        "ok    A file on this computer · <dir>/source.db\nnote  Already holds a Kanban board · 95 tables, 4 tickets\n      Use it as it is (Use this database), or empty it in the next step to copy your data in."
+        "ok    A file on this computer · <dir>/source.db\nnote  Already holds a Kanban board · 100 tables, 4 tickets\n      Use it as it is (Use this database), or empty it in the next step to copy your data in."
     );
     assert_eq!(
         ran[2].1,
@@ -192,10 +192,10 @@ async fn test_the_command_line_says_what_the_python_script_said() {
     assert_eq!(
         copied[copied.len() - 8..],
         [
-            "copied    82 tables, 1,408 rows, N min N s",
+            "copied    82 tables, 1,428 rows, N min N s",
             "ok  Row counts · equal in all 82 tables",
-            "ok  Content · 804 rows read back and compared (500 at random per big table)",
-            "ok  Links between rows · the same 52 kinds of link on both sides (70 row(s) already pointed at a deleted row in the source and still do)",
+            "ok  Content · 824 rows read back and compared (500 at random per big table)",
+            "ok  Links between rows · the same 58 kinds of link on both sides (76 row(s) already pointed at a deleted row in the source and still do)",
             "ok  Counters · the next ticket number carries on from prefix 0 plain-2,147,483,648",
             "ok  Docs search · 3 of 1 pages indexed",
             "verified  counts, samples, links, counters",
@@ -203,7 +203,7 @@ async fn test_the_command_line_says_what_the_python_script_said() {
         ]
     );
     assert!(ran[6].1.ends_with(
-        "The target is not empty (95 tables).\n\
+        "The target is not empty (100 tables).\n\
          Pass --empty-first to delete what it holds, or --resume to go on with an interrupted copy."
     ));
     assert!(ran[7].1.ends_with("Not confirmed; nothing was written."));

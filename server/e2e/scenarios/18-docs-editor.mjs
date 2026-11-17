@@ -1,9 +1,11 @@
 import fs from 'node:fs';
-import { ensureProject, openDocs, newDocPage, publishDoc, setMarkdown } from '../lib/ui.mjs';
+import { ensureProject, openDocs, newDocPage, publishDoc, setMarkdown, getMarkdown } from '../lib/ui.mjs';
+import { makeFixtures, cleanFixtures } from '../lib/fixtures.mjs';
 
-// The Docs page editor: slash menu, formatting toolbar, table, callout, math, code block, Find in page, export.
+// The Docs page editor: slash menu, formatting ribbon (colour, highlight, alignment), table, callout, math, code
+// block, Find and replace, Preview, export, and the Page settings panel (width, theme, Reset).
 export default {
-  name: 'Docs editor: slash menu, formatting, table, callout, math, code, find and replace, export',
+  name: 'Docs editor: slash menu, formatting, table, callout, math, code, find and replace, preview, export, page settings',
   async run(s) {
     const p = s.page;
     const content = () => p.getByRole('textbox', { name: 'Page content' });
@@ -26,7 +28,8 @@ export default {
       await newDocPage(s, 'Editor tour');
       await content().waitFor();
       await toolbar().waitFor();
-      await p.getByRole('group', { name: 'Editor mode' }).getByRole('button', { name: 'Visual' }).waitFor();
+      // Rich Docs: the page is edited as rich text only (the Visual / Markdown switch is gone)
+      if (await p.getByRole('group', { name: 'Editor mode' }).count()) throw new Error('the editor still has a Markdown mode');
     });
     await s.step('slash menu: lists the blocks and filters them as you type', async () => {
       await content().click();
@@ -142,13 +145,10 @@ export default {
       await saved();
     });
     await s.step('math: an inline formula and a display formula render with KaTeX', async () => {
-      await p.getByRole('button', { name: 'Markdown', exact: true }).click();
-      const src = p.getByRole('textbox', { name: 'Markdown source' });
-      const md = await src.inputValue();
+      const md = await getMarkdown(s);
       s.note('markdown source before the formulas', md);
       if (!/\| Name/.test(md) && !/Name/.test(md)) throw new Error('the Markdown source lacks the table: ' + md.slice(0, 200));
       await setMarkdown(s, md.trimEnd() + '\n\nEuler said $e^{i\\pi}+1=0$ once.\n\n$$\n\\int_0^1 x^2\\,dx = \\frac{1}{3}\n$$\n');
-      await p.getByRole('button', { name: 'Visual', exact: true }).click();
       await content().waitFor();
       await content().locator('.katex').first().waitFor({ timeout: 10000 });
       await p.waitForFunction(() => document.querySelectorAll('[aria-label="Page content"] .katex').length >= 2);
@@ -177,29 +177,91 @@ export default {
       await bar.getByRole('textbox', { name: 'Find' }).press('Enter');
       await bar.getByText('1/2').waitFor();
       await bar.getByRole('textbox', { name: 'Find' }).fill('zzzz');
-      await bar.getByText('0/0').waitFor();
+      await bar.getByText('No results').waitFor();
       await bar.getByRole('textbox', { name: 'Find' }).fill('point');
       await bar.getByText('1/2').waitFor();
       await bar.getByRole('button', { name: 'Match case' }).click();
       await bar.getByRole('textbox', { name: 'Find' }).fill('POINT');
-      await bar.getByText('0/0').waitFor();
+      await bar.getByText('No results').waitFor();
       await bar.getByRole('button', { name: 'Match case' }).click();
       await bar.getByRole('textbox', { name: 'Find' }).fill('point');
       await bar.getByText('1/2').waitFor();
     });
     await s.step('Find and replace: replace one match, then the rest', async () => {
       const bar = p.getByRole('search', { name: 'Find in page' });
+      // Ctrl+F finds; Ctrl+H shows the replace row
+      if (await bar.getByRole('textbox', { name: 'Replace with' }).count()) throw new Error('Ctrl+F opened the replace row');
+      await bar.getByRole('textbox', { name: 'Find' }).press('Control+h');
       await bar.getByRole('textbox', { name: 'Replace with' }).fill('item');
       await bar.getByRole('button', { name: 'Replace', exact: true }).click();
       await content().getByText('first item').or(content().getByText('second item')).first().waitFor();
       await bar.getByText('1/1').waitFor();
       await bar.getByRole('button', { name: 'Replace all' }).click();
-      await p.getByText('Replaced 1 match').waitFor();
+      await bar.getByText('Replaced 1 match').waitFor();
+      await bar.getByRole('button', { name: 'Undo' }).waitFor();
       await content().getByText('first item').waitFor();
       await content().getByText('second item').waitFor();
       await bar.getByRole('button', { name: 'Close' }).click();
       await bar.waitFor({ state: 'detached' });
       await saved();
+    });
+    await s.step('ribbon: a text colour by name, a highlight colour and the alignment of a paragraph', async () => {
+      await content().getByText(/Euler said/).click();
+      await p.keyboard.press('End');
+      await p.keyboard.press('Enter');
+      await p.keyboard.type('Colour line');
+      await p.keyboard.press('Shift+Home');
+      await tb('Text colour').click();
+      await p.getByRole('menu', { name: 'Text colour' }).getByRole('menuitemradio', { name: 'Green' }).click();
+      // stored by name, drawn through the page's palette variable
+      const green = content().locator('span[data-color="green"]', { hasText: 'Colour line' });
+      await green.waitFor();
+      if (!/var\(--rd-c-green/.test((await green.getAttribute('style')) ?? '')) throw new Error('the colour is not drawn by name');
+      await tb('Highlight colours').click();
+      await p.getByRole('menu', { name: 'Highlight' }).getByRole('menuitemradio', { name: 'Teal' }).click();
+      await content().locator('mark[data-color="teal"]', { hasText: 'Colour line' }).waitFor();
+      await tb('Align centre').click();
+      await content().locator('p[data-text-align="center"]', { hasText: 'Colour line' }).waitFor();
+      await tb('Align centre').and(p.locator('[aria-pressed="true"]')).waitFor();
+      await p.keyboard.press('Control+Shift+R');
+      await content().locator('p[data-text-align="right"]', { hasText: 'Colour line' }).waitFor();
+      await p.getByTestId('editor-status').getByText(/Selected: 2 words/).waitFor();
+      await saved();
+    });
+    await s.step('Find and replace from Ctrl+H: whole word, No results, Replace all keeps the colour', async () => {
+      await p.keyboard.press('End');
+      await p.keyboard.press('Control+h');
+      const bar = p.getByRole('search', { name: 'Find in page' });
+      await bar.waitFor();
+      const find = bar.getByRole('textbox', { name: 'Find' });
+      await find.fill('Colou');
+      await bar.getByText('1/1').waitFor();
+      await bar.getByRole('button', { name: 'Whole word' }).click();
+      await bar.getByText('No results').waitFor();
+      await find.fill('Colour');
+      await bar.getByText('1/1').waitFor();
+      await bar.getByRole('textbox', { name: 'Replace with' }).fill('Color');
+      await bar.getByRole('button', { name: 'Replace all' }).click();
+      await bar.getByText('Replaced 1 match').waitFor();
+      await content().locator('span[data-color="green"]', { hasText: 'Color line' }).waitFor();
+      await bar.getByRole('button', { name: 'Whole word' }).click(); // back off for the steps after
+      await bar.getByRole('button', { name: 'Close' }).click();
+      await bar.waitFor({ state: 'detached' });
+      await saved();
+    });
+    await s.step('Preview shows the page as readers will see it, then back to editing with the text kept', async () => {
+      const toggle = p.getByTestId('preview-toggle');
+      await toggle.click();
+      const preview = p.getByTestId('editor-preview');
+      await preview.waitFor();
+      await preview.getByRole('heading', { name: 'Editor tour', level: 1 }).waitFor();
+      await preview.getByText('Remember to publish.').waitFor();
+      await preview.getByRole('table').getByText('Engineer').waitFor();
+      if (await content().isVisible()) throw new Error('the editor is still shown during Preview');
+      if ((await toggle.getAttribute('aria-pressed')) !== 'true') throw new Error('Preview is not shown as on');
+      await toggle.click();
+      await preview.waitFor({ state: 'detached' });
+      await content().getByText('Remember to publish.').waitFor();
     });
     await s.step('publish the page and read it: every block is there', async () => {
       await publishDoc(s, 'Editor tour');
@@ -210,6 +272,9 @@ export default {
       await p.getByRole('table').getByText('Engineer').waitFor();
       await p.getByText('Remember to publish.').waitFor();
       await p.locator('.katex').first().waitFor();
+      // the colour and the alignment set in the ribbon reach the reader
+      await p.locator('p', { hasText: 'Color line' }).and(p.locator('[style*="text-align: right"]')).first().waitFor();
+      await p.locator('[style*="--rd-c-green"]', { hasText: 'Color line' }).first().waitFor();
     });
     await s.step('Find in page right after publishing finds the matches without reloading', async () => {
       await p.keyboard.press('Control+f');
@@ -256,6 +321,163 @@ export default {
       await p.getByText('Markdown copied').waitFor();
       const clip = await p.evaluate(() => navigator.clipboard.readText());
       if (!clip.includes('# Editor tour') || !clip.includes('Engineer')) throw new Error('clipboard: ' + clip.slice(0, 120));
+    });
+    await s.step('Page settings: Wide folds the tree to its rail, Sepia colours the page, both kept after a reload', async () => {
+      const patched = () => p.waitForResponse((r) => /\/docs\/pages\/[^/]+\/settings$/.test(r.url()) && r.request().method() === 'PATCH');
+      await p.getByRole('button', { name: 'Page actions' }).click();
+      await p.getByRole('menuitem', { name: 'Page settings…' }).click();
+      const panel = p.getByRole('complementary', { name: 'Page settings' });
+      await panel.waitFor();
+      await panel.getByText('Applies to this page only.').waitFor();
+      // the page changes as you choose, before the server has answered
+      let saved = patched();
+      await panel.getByRole('radio', { name: /^Wide/ }).click();
+      await p.locator('[data-page-width="wide"]').waitFor();
+      await p.getByRole('complementary', { name: 'Docs space (collapsed)' }).waitFor();
+      await p.getByTestId('toc-button').waitFor();
+      if ((await saved).status() !== 200) throw new Error('saving the width failed');
+      await panel.getByRole('tab', { name: 'Colour' }).click();
+      saved = patched();
+      await panel.getByRole('radio', { name: /Sepia/ }).click();
+      await p.locator('[data-page-bg="sepia"]').waitFor();
+      if ((await saved).status() !== 200) throw new Error('saving the background failed');
+      await panel.getByRole('button', { name: 'Done' }).click();
+      await panel.waitFor({ state: 'detached' });
+      await p.reload();
+      await p.getByRole('complementary', { name: 'Project navigation' }).waitFor({ timeout: 20000 });
+      await p.getByRole('button', { name: 'Docs', exact: true }).click();
+      await p.getByRole('heading', { name: 'Editor tour', level: 1 }).waitFor();
+      await p.locator('[data-page-width="wide"][data-page-bg="sepia"]').waitFor();
+    });
+    await s.step('Page settings: Reset puts the page back to its defaults', async () => {
+      await p.getByRole('button', { name: 'Page actions' }).click();
+      await p.getByRole('menuitem', { name: 'Page settings…' }).click();
+      const panel = p.getByRole('complementary', { name: 'Page settings' });
+      await panel.waitFor();
+      const saved = p.waitForResponse((r) => /\/settings$/.test(r.url()) && r.request().method() === 'PATCH');
+      await panel.getByRole('button', { name: 'Reset' }).click();
+      await p.locator('[data-page-width="normal"][data-page-bg="white"]').waitFor();
+      if ((await saved).status() !== 200) throw new Error('Reset was not saved');
+      await p.getByRole('complementary', { name: 'Docs space', exact: true }).waitFor();
+      await panel.getByRole('button', { name: 'Close page settings' }).click();
+      await panel.waitFor({ state: 'detached' });
+    });
+
+    // Rich Docs phase 4: blocks and their properties (images, tables, columns, callouts), on a page of their own
+    const fx = makeFixtures();
+    const insert = async (filter) => {
+      await p.keyboard.type('/' + filter);
+      const menu = p.getByRole('listbox', { name: 'Insert block' });
+      await menu.waitFor();
+      await p.keyboard.press('Enter');
+    };
+    await s.step('blocks: a new page Blocks tour, the Insert catalog with its groups', async () => {
+      await newDocPage(s, 'Blocks tour');
+      await content().click();
+      await p.keyboard.type('/');
+      const menu = p.getByRole('listbox', { name: 'Insert block' });
+      await menu.waitFor();
+      for (const g of ['Text', 'Lists', 'Media', 'Tables & layout', 'Embeds', 'Link to']) await menu.getByRole('tab', { name: g }).waitFor();
+      await menu.getByRole('tab', { name: 'Tables & layout' }).click();
+      await menu.getByRole('option', { name: /Columns/ }).first().waitFor();
+      if (await menu.getByRole('option', { name: /Heading 1/ }).count()) throw new Error('the group did not narrow the catalog');
+      await p.keyboard.press('Escape');
+      await menu.waitFor({ state: 'detached' });
+      await p.keyboard.press('Backspace');
+    });
+    await s.step('image: uploaded from the Insert image dialog, floated right at 50 %, alt text set', async () => {
+      await insert('image');
+      const dlg = p.getByRole('dialog', { name: 'Insert image' });
+      await dlg.waitFor();
+      await dlg.getByText('PNG, JPG, GIF, WebP or SVG, up to 10 MB.', { exact: false }).waitFor();
+      await dlg.locator('input[type="file"]').setInputFiles(fx.png);
+      await dlg.waitFor({ state: 'detached' });
+      const img = content().getByTestId('docs-image').first();
+      await img.locator('img[src*="/uploads/"]').waitFor({ timeout: 15000 });
+      await img.locator('img').click();
+      const bar = p.getByRole('toolbar', { name: 'Image' });
+      await bar.waitFor();
+      await bar.getByRole('button', { name: 'Float right' }).click();
+      await content().locator('.dk-img-floatRight').waitFor();
+      await bar.getByRole('button', { name: 'Width 50%' }).click();
+      await p.waitForFunction(() => document.querySelector('[aria-label="Page content"] .dk-img-floatRight')?.getAttribute('style')?.includes('width:50%'));
+      await bar.getByRole('button', { name: 'Alt text' }).click();
+      const props = p.getByTestId('image-props');
+      await props.waitFor();
+      await props.getByRole('textbox', { name: 'Alt text' }).fill('A test pattern');
+      await props.getByRole('button', { name: 'Done' }).click();
+      await props.waitFor({ state: 'detached' });
+      await saved();
+    });
+    await s.step('table: inserted with the size picker, two cells merged, then split again', async () => {
+      await p.keyboard.press('Control+End');
+      await p.keyboard.press('Enter');
+      await insert('table');
+      await p.getByTestId('table-size').waitFor();
+      await p.getByText('3 columns x 3 rows').waitFor();
+      await p.keyboard.press('ArrowRight');
+      await p.getByText('4 columns x 3 rows').waitFor();
+      await p.keyboard.press('Enter');
+      const table = content().locator('table').first();
+      await table.waitFor();
+      if ((await table.locator('tr').first().locator('th,td').count()) !== 4) throw new Error('expected 4 columns');
+      await table.locator('tr').nth(1).locator('td').first().click();
+      await p.keyboard.type('Merged');
+      // at the end of the cell, Shift+→ selects it and the next one
+      await p.keyboard.press('Shift+ArrowRight');
+      const merge = p.getByTestId('merge-cells');
+      await merge.waitFor();
+      await merge.click();
+      await content().locator('td[colspan="2"]').waitFor();
+      await p.getByTestId('split-cell').click();
+      await p.waitForFunction(() => !document.querySelector('[aria-label="Page content"] td[colspan="2"]'));
+      await saved();
+    });
+    await s.step('columns: two columns, the ratio set to 33 / 67 from the columns toolbar', async () => {
+      await p.keyboard.press('Control+End');
+      if (await p.evaluate(() => !!window.getSelection()?.anchorNode?.parentElement?.closest('td,th'))) {
+        for (let i = 0; i < 4; i += 1) await p.keyboard.press('ArrowDown');
+      }
+      await insert('columns');
+      const cols = content().getByTestId('docs-columns').last();
+      await cols.waitFor();
+      if ((await cols.locator('[data-rd-node="column"]').count()) !== 2) throw new Error('expected two columns');
+      await p.keyboard.type('Left side');
+      await p.getByRole('toolbar', { name: 'Columns' }).getByRole('button', { name: '33 / 67' }).click();
+      await p.waitForFunction(() =>
+        [...document.querySelectorAll('[aria-label="Page content"] .dk-colsv')].some((c) => c.style.getPropertyValue('--dk-cols').includes('2fr')),
+      );
+      await saved();
+    });
+    await s.step('callout: Danger from the catalog, then made Custom with its own colour and a left bar', async () => {
+      await p.keyboard.press('Control+End');
+      await p.keyboard.press('ArrowDown');
+      await insert('danger');
+      await p.keyboard.type('Deleting a project cannot be undone.');
+      const callout = content().locator('[data-callout="danger"]').first();
+      await callout.getByText('Deleting a project cannot be undone.').waitFor();
+      await callout.hover();
+      await callout.getByTestId('callout-type').click();
+      await p.getByRole('menuitem', { name: 'Custom' }).click();
+      const custom = content().locator('[data-callout="custom"]').first();
+      await custom.waitFor();
+      await p.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Teal' }).click();
+      await p.getByRole('radiogroup', { name: 'Style' }).getByRole('radio', { name: 'Left bar' }).click();
+      await content().locator('[data-callout="custom"][data-callout-style="bar"]').waitFor();
+      await saved();
+    });
+    await s.step('Preview shows the blocks as readers will see them', async () => {
+      const toggle = p.getByTestId('preview-toggle');
+      await toggle.click();
+      const preview = p.getByTestId('editor-preview');
+      await preview.waitFor();
+      await preview.locator('.dk-img-floatRight img[alt="A test pattern"]').waitFor();
+      await preview.locator('.dk-columns .dk-column').first().waitFor();
+      await preview.locator('[data-callout="custom"][data-callout-style="bar"]').waitFor();
+      if ((await preview.locator('table tr').first().locator('th,td').count()) !== 4) throw new Error('the table lost a column');
+      await toggle.click();
+      await preview.waitFor({ state: 'detached' });
+      cleanFixtures(fx);
     });
   },
 };

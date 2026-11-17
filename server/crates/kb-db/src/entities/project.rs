@@ -22,6 +22,7 @@ pub struct Model {
     pub docs_enabled: bool,
     pub docs_edit_policy: String,
     /// JSON Docs settings of the project; None means the defaults
+    #[serde(default)]
     pub docs_settings: Option<String>,
 }
 

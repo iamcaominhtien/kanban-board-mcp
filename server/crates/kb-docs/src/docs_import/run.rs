@@ -31,7 +31,7 @@ pub async fn run_import(
     let mut plan = build_plan(session, project_id, files, parent_id, on_conflict).await?;
     let actor = activity::current_actor();
     let mut created: Vec<Value> = Vec::new();
-    let mut pages: Vec<(docs_page::Model, String, docs_draft::Model)> = Vec::new();
+    let mut pages: Vec<(docs_page::Model, crate::docs::PageBody, docs_draft::Model)> = Vec::new();
     // by key: a later node with the same key replaces the earlier in Python's dictionary
     let mut by_key: std::collections::HashMap<Vec<String>, usize> = std::collections::HashMap::new();
     for &n in &plan.ordered {
@@ -61,13 +61,14 @@ pub async fn run_import(
         draft.page_id = Set(page.id.clone());
         draft.author = Set(actor.clone());
         draft.title = Set(title.clone());
-        draft.markdown = Set(body.clone());
+        let rich = crate::docs::PageBody::from_markdown(&body, &mut kb_richdoc::RandomIds);
+        crate::docs::versions::set_draft_body(&mut draft, &rich);
         draft.base_version = Set(0);
         let draft = draft.insert(session).await?;
         plan.arena[n].page_id = Some(page.id.clone());
         let path = plan.arena[n].key.join("/");
         created.push(json!({"path": path, "page_id": page.id, "title": title}));
-        pages.push((page, body, draft));
+        pages.push((page, rich, draft));
     }
     if publish {
         for (mut page, markdown, draft) in pages {

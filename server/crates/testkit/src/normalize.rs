@@ -23,22 +23,33 @@ fn patterns() -> &'static Patterns {
 }
 
 /// Replace UUIDs (hyphenated and 32 hex) by `<uuid:N>` numbered by first appearance (equal ids stay equal), ISO
-/// timestamps by `<time>` and the port of a localhost URL by `<port>`; everything else is kept. Object keys are
-/// normalized too.
+/// timestamps by `<time>`, the port of a localhost URL by `<port>`, and a string that is a whole Rich Docs block id
+/// (`b-` and 6 hex digits, random on every run) by `<bid:N>`; everything else is kept. Object keys are normalized
+/// too.
 pub fn normalize(value: &Value) -> Value {
     let mut ids = HashMap::new();
-    walk(value, &mut ids)
+    let mut blocks = HashMap::new();
+    walk(value, &mut ids, &mut blocks)
 }
 
-fn walk(value: &Value, ids: &mut HashMap<String, usize>) -> Value {
+/// A whole string that is a block id (`b-3f2a9c`).
+fn is_block_id(s: &str) -> bool {
+    s.len() == 8 && s.starts_with("b-") && s[2..].bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+fn walk(value: &Value, ids: &mut HashMap<String, usize>, blocks: &mut HashMap<String, usize>) -> Value {
     match value {
+        Value::String(s) if is_block_id(s) => {
+            let next = blocks.len() + 1;
+            Value::String(format!("<bid:{}>", *blocks.entry(s.clone()).or_insert(next)))
+        }
         Value::String(s) => Value::String(normalize_str(s, ids)),
-        Value::Array(a) => Value::Array(a.iter().map(|v| walk(v, ids)).collect()),
+        Value::Array(a) => Value::Array(a.iter().map(|v| walk(v, ids, blocks)).collect()),
         Value::Object(o) => Value::Object(
             o.iter()
                 .map(|(k, v)| {
                     let key = normalize_str(k, ids);
-                    (key, walk(v, ids))
+                    (key, walk(v, ids, blocks))
                 })
                 .collect(),
         ),
@@ -73,5 +84,7 @@ mod tests {
         assert_eq!(n["t"], "<time>");
         assert_eq!(n["u"], "http://127.0.0.1:<port>/x");
         assert_eq!(n["n"], 5);
+        let b = normalize(&json!({"x": "b-3f2a9c", "y": ["b-000001", "b-3f2a9c"], "z": "b-3f2a9c and more"}));
+        assert_eq!(b, json!({"x": "<bid:1>", "y": ["<bid:2>", "<bid:1>"], "z": "b-3f2a9c and more"}));
     }
 }

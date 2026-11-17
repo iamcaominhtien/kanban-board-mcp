@@ -27,8 +27,18 @@ const INSERT_ROW: &str = "INSERT INTO docs_fts (page_id, project_id, title, head
 
 /// Return the three columns indexed for a page: `(title, headings, body)`.
 pub fn index_fields(title: &str, markdown: &str) -> (String, String, String) {
-    let headings = heading_anchors(markdown).into_iter().map(|h| h.text).collect::<Vec<_>>().join("\n");
-    (title.to_string(), headings, markdown.to_string())
+    let markdown = readable(markdown);
+    let headings = heading_anchors(&markdown).into_iter().map(|h| h.text).collect::<Vec<_>>().join("\n");
+    (title.to_string(), headings, markdown)
+}
+
+/// The Markdown projection of a rich page as people read it: the editor writes `<` that would read as HTML as
+/// `&lt;` (and `&` before a name as `&amp;`); search, snippets and the link index read the characters themselves.
+pub fn readable(markdown: &str) -> String {
+    if !markdown.contains('&') {
+        return markdown.to_string();
+    }
+    markdown.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
 }
 
 /// Create the FTS table on a connection (migrations). False when FTS5 is unavailable.
@@ -132,7 +142,7 @@ pub async fn contents(session: &Session, pages: &[docs_page::Model]) -> Result<H
     for row in session.query_all(&select).await? {
         let pid: String = row.try_get_by_index(0)?;
         let markdown: String = row.try_get_by_index(1)?;
-        out.insert(pid, markdown);
+        out.insert(pid, readable(&markdown));
     }
     let missing: Vec<String> = ids.iter().filter(|i| !out.contains_key(*i)).cloned().collect();
     if !missing.is_empty() {
@@ -142,7 +152,7 @@ pub async fn contents(session: &Session, pages: &[docs_page::Model]) -> Result<H
             .all(session)
             .await?;
         for d in drafts {
-            out.entry(d.page_id).or_insert(d.markdown);
+            out.entry(d.page_id).or_insert_with(|| readable(&d.markdown));
         }
     }
     canvas_outline(session, pages, &mut out).await?;

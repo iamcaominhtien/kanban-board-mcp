@@ -148,11 +148,12 @@ async fn copy_page(session: &Session, src: &docs_page::Model, title: &str, paren
     let latest = latest_version(session, src).await?;
     let actor = activity::current_actor();
     let draft = draft_for(session, &src.id, &actor).await?;
-    let markdown = match (&latest, &draft) {
-        (Some(l), _) => l.markdown.clone(),
-        (None, Some(d)) => d.markdown.clone(),
-        _ => String::new(),
-    };
+    let body = match (&latest, &draft) {
+        (Some(l), _) => super::body::PageBody::of_version(l),
+        (None, Some(d)) => super::body::PageBody::of_draft(d),
+        _ => super::body::PageBody::from_markdown("", &mut kb_richdoc::RandomIds),
+    }
+    .into_rich();
     let mut page = docs_page::new();
     page.project_id = Set(src.project_id.clone());
     page.parent_id = Set(parent_id.map(str::to_string));
@@ -166,7 +167,7 @@ async fn copy_page(session: &Session, src: &docs_page::Model, title: &str, paren
     draft.page_id = Set(page.id.clone());
     draft.author = Set(actor);
     draft.title = Set(title.to_string());
-    draft.markdown = Set(markdown);
+    super::versions::set_draft_body(&mut draft, &body);
     draft.base_version = Set(0);
     draft.insert(session).await?;
     Ok(page.id)
@@ -328,6 +329,19 @@ pub async fn hard_delete(session: &Session, pages: &[docs_page::Model]) -> Resul
         .exec(session)
         .await?;
     docs_ai_job::Entity::delete_many().filter(docs_ai_job::Column::PageId.is_in(ids.clone())).exec(session).await?;
+    // format 1: the page's highlights, public links and suggestions go with it (an export file stays its own)
+    kb_db::entities::docs_highlight::Entity::delete_many()
+        .filter(kb_db::entities::docs_highlight::Column::PageId.is_in(ids.clone()))
+        .exec(session)
+        .await?;
+    kb_db::entities::docs_public_link::Entity::delete_many()
+        .filter(kb_db::entities::docs_public_link::Column::PageId.is_in(ids.clone()))
+        .exec(session)
+        .await?;
+    kb_db::entities::docs_suggestion::Entity::delete_many()
+        .filter(kb_db::entities::docs_suggestion::Column::PageId.is_in(ids.clone()))
+        .exec(session)
+        .await?;
     docs_page::Entity::delete_many().filter(docs_page::Column::Id.is_in(ids)).exec(session).await?;
     Ok(())
 }

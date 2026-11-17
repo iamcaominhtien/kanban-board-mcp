@@ -110,6 +110,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -126,6 +131,18 @@
       "draft": {
         "title": "Kid (copy)",
         "markdown": "",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:1>"
+              }
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -146,6 +163,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -161,7 +183,38 @@
       "kind": "page",
       "draft": {
         "title": "Omega (copy)",
-        "markdown": "## One\nfirst",
+        "markdown": "## One\n\nfirst",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "heading",
+              "attrs": {
+                "blockId": "<bid:1>",
+                "level": 2
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "One"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:2>"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "first"
+                }
+              ]
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -192,6 +245,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -208,6 +266,41 @@
       "draft": {
         "title": "Gamma (copy)",
         "markdown": "links to [[Omega]] and [[Omega#One]]",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:1>"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "links to "
+                },
+                {
+                  "type": "docRef",
+                  "attrs": {
+                    "page": "Omega"
+                  }
+                },
+                {
+                  "type": "text",
+                  "text": " and "
+                },
+                {
+                  "type": "docRef",
+                  "attrs": {
+                    "page": "Omega",
+                    "section": "One"
+                  }
+                }
+              ]
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -250,6 +343,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -265,7 +363,38 @@
       "kind": "page",
       "draft": {
         "title": "Twin",
-        "markdown": "## One\nfirst",
+        "markdown": "## One\n\nfirst",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "heading",
+              "attrs": {
+                "blockId": "<bid:1>",
+                "level": 2
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "One"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:2>"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "first"
+                }
+              ]
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -286,6 +415,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -302,6 +436,30 @@
       "draft": {
         "title": "Draft",
         "markdown": "wants [[Omega]]",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:1>"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "wants "
+                },
+                {
+                  "type": "docRef",
+                  "attrs": {
+                    "page": "Omega"
+                  }
+                }
+              ]
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -366,6 +524,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -382,6 +545,18 @@
       "draft": {
         "title": "Kid",
         "markdown": "",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:1>"
+              }
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -402,6 +577,44 @@
       "status": "published",
       "version": 2,
       "markdown": "links to [[Omega]] and [[Omega#One]]",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:1>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "links to "
+              },
+              {
+                "type": "docRef",
+                "attrs": {
+                  "page": "Omega"
+                }
+              },
+              {
+                "type": "text",
+                "text": " and "
+              },
+              {
+                "type": "docRef",
+                "attrs": {
+                  "page": "Omega",
+                  "section": "One"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [
         {
@@ -471,6 +684,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [
         {
@@ -493,6 +711,18 @@
       "draft": {
         "title": "Kid",
         "markdown": "",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:1>"
+              }
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -513,6 +743,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -529,6 +764,30 @@
       "draft": {
         "title": "Draft",
         "markdown": "wants [[Omega]]",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:1>"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "wants "
+                },
+                {
+                  "type": "docRef",
+                  "attrs": {
+                    "page": "Omega"
+                  }
+                }
+              ]
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -549,6 +808,44 @@
       "status": "published",
       "version": 2,
       "markdown": "links to [[Omega]] and [[Omega#One]]",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:1>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "links to "
+              },
+              {
+                "type": "docRef",
+                "attrs": {
+                  "page": "Omega"
+                }
+              },
+              {
+                "type": "text",
+                "text": " and "
+              },
+              {
+                "type": "docRef",
+                "attrs": {
+                  "page": "Omega",
+                  "section": "One"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -576,7 +873,41 @@
       "slug_path": "alpha",
       "status": "published",
       "version": 1,
-      "markdown": "## One\nfirst",
+      "markdown": "## One\n\nfirst",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "blockId": "<bid:1>",
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "One"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:2>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "first"
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [
         {
           "level": 2,
@@ -782,7 +1113,41 @@
       "slug_path": "omega",
       "status": "published",
       "version": 1,
-      "markdown": "## One\nfirst",
+      "markdown": "## One\n\nfirst",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "heading",
+            "attrs": {
+              "blockId": "<bid:1>",
+              "level": 2
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "One"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:2>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "first"
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [
         {
           "level": 2,
@@ -819,6 +1184,44 @@
       "status": "published",
       "version": 2,
       "markdown": "links to [[Omega]] and [[Omega#One]]",
+      "format": "rich",
+      "content": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": {
+              "blockId": "<bid:1>"
+            },
+            "content": [
+              {
+                "type": "text",
+                "text": "links to "
+              },
+              {
+                "type": "docRef",
+                "attrs": {
+                  "page": "Omega"
+                }
+              },
+              {
+                "type": "text",
+                "text": " and "
+              },
+              {
+                "type": "docRef",
+                "attrs": {
+                  "page": "Omega",
+                  "section": "One"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -899,7 +1302,13 @@
         "version": 1,
         "has_draft": false,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:2>",
@@ -911,7 +1320,13 @@
         "version": 2,
         "has_draft": false,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:3>",
@@ -923,7 +1338,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:5>",
@@ -935,7 +1356,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:6>",
@@ -947,7 +1374,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:7>",
@@ -959,7 +1392,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:4>",
@@ -971,7 +1410,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:8>",
@@ -983,7 +1428,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:9>",
@@ -995,7 +1446,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       }
     ]
   },
@@ -1012,7 +1469,13 @@
         "version": 1,
         "has_draft": false,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:2>",
@@ -1024,7 +1487,13 @@
         "version": 2,
         "has_draft": false,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:3>",
@@ -1036,7 +1505,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:4>",
@@ -1048,7 +1523,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       }
     ]
   }

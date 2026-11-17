@@ -6,9 +6,10 @@ use kb_base::{activity, time};
 use kb_db::Session;
 use kb_db::entities::{docs_draft, docs_link, docs_page};
 use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
-use kb_doctext::docs_text::{count_page_links, rewrite_page_links};
+use kb_doctext::docs_text::count_page_links;
 use serde_json::{Map, Value, json};
 
+use super::body::PageBody;
 use super::pages::{all_pages, clean_title, draft_for, get_page, latest_version, page_detail};
 use super::refs::{Headings, PageRef, refresh_link_targets, remember_title, resolve_page_ref};
 use super::tickets::ticket_mentions;
@@ -50,7 +51,8 @@ async fn links_to_rename(session: &Session, page: &docs_page::Model, old_title: 
         } else {
             0
         };
-        let in_drafts = mine.iter().map(|d| count_page_links(&d.markdown, old_title)).max().unwrap_or(0);
+        let in_drafts =
+            mine.iter().map(|d| PageBody::of_draft(d).rewrite_links(old_title, old_title).1).max().unwrap_or(0);
         let count = if p.version > 0 { published } else { in_drafts };
         if published > 0 || in_drafts > 0 {
             let count = if count > 0 { count } else { in_drafts };
@@ -136,14 +138,14 @@ pub async fn rename_page(
         let (old_version, mut published_n) = (src.version, 0usize);
         if src.version > 0 {
             if let Some(latest) = latest_version(session, &src).await? {
-                let (new_md, n) = rewrite_page_links(&latest.markdown, &old_title, &new_title);
+                let (new_body, n) = PageBody::of_version(&latest).rewrite_links(&old_title, &new_title);
                 published_n = n;
                 if published_n > 0 {
                     let title = src.title.clone();
                     commit_version(
                         session,
                         &mut src,
-                        &new_md,
+                        &new_body,
                         &title,
                         &actor,
                         Some(&format!("Link to \"{new_title}\" updated")),
@@ -156,7 +158,7 @@ pub async fn rename_page(
         }
         let mut draft_n = 0usize;
         for d in item.drafts {
-            let (new_md, n) = rewrite_page_links(&d.markdown, &old_title, &new_title);
+            let (new_body, n) = PageBody::of_draft(&d).rewrite_links(&old_title, &new_title);
             if n == 0 {
                 continue;
             }
@@ -167,7 +169,7 @@ pub async fn rename_page(
                 // the rewrite is in this draft too: no false conflict
                 active.base_version = Set(src.version);
             }
-            active.markdown = Set(new_md);
+            super::versions::set_draft_body(&mut active, &new_body);
             active.update(session).await?;
         }
         if published_n > 0 || draft_n > 0 {

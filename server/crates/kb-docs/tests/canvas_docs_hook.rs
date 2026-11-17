@@ -65,7 +65,8 @@ async fn scenario() {
         .await
         .expect("version")
         .expect("version row");
-    assert_eq!(version.markdown, embed_line(&canvas_id, "Flow", None));
+    // format 1: the page is rich; its Markdown is the editor's (a page that ends in a block ends with a new line)
+    assert_eq!(version.markdown, format!("{}\n", embed_line(&canvas_id, "Flow", None)));
     assert_eq!(version.note.as_deref(), Some("Canvas"));
     let row = canvas::Entity::find_by_id(canvas_id.as_str()).one(&s).await.expect("canvas").expect("canvas row");
     assert_eq!(row.page_id.as_deref(), Some(page_id.as_str()));

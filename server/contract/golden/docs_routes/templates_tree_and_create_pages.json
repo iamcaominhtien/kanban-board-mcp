@@ -105,6 +105,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -121,6 +126,18 @@
       "draft": {
         "title": "Top",
         "markdown": "",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:1>"
+              }
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -152,6 +169,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [
         {
@@ -174,6 +196,18 @@
       "draft": {
         "title": "Child",
         "markdown": "",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:1>"
+              }
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -217,6 +251,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "Mia",
@@ -233,6 +272,18 @@
       "draft": {
         "title": "By Mia",
         "markdown": "",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:1>"
+              }
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -288,6 +339,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -304,6 +360,18 @@
       "draft": {
         "title": "Top",
         "markdown": "",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:1>"
+              }
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -335,6 +403,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -350,7 +423,371 @@
       "kind": "page",
       "draft": {
         "title": "Req",
-        "markdown": "## Summary\n\nOne or two sentences on what this is and why it matters.\n\n## Goals\n\n- Goal one\n- Goal two\n\n## Requirements\n\n| ID | Requirement | Priority |\n|---|---|---|\n| R1 | Describe the requirement | Must |\n| R2 | Describe the requirement | Should |\n\n## Acceptance criteria\n\n- [ ] Given / when / then…\n",
+        "markdown": "## Summary\n\nOne or two sentences on what this is and why it matters.\n\n## Goals\n\n- Goal one\n- Goal two\n\n## Requirements\n\n| ID | Requirement | Priority |\n| --- | --- | --- |\n| R1 | Describe the requirement | Must |\n| R2 | Describe the requirement | Should |\n\n## Acceptance criteria\n\n- [ ] Given / when / then…\n",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "heading",
+              "attrs": {
+                "blockId": "<bid:1>",
+                "level": 2
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Summary"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:2>"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "One or two sentences on what this is and why it matters."
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "attrs": {
+                "blockId": "<bid:3>",
+                "level": 2
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Goals"
+                }
+              ]
+            },
+            {
+              "type": "bulletList",
+              "attrs": {
+                "blockId": "<bid:4>"
+              },
+              "content": [
+                {
+                  "type": "listItem",
+                  "attrs": {
+                    "blockId": "<bid:5>"
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "blockId": "<bid:6>"
+                      },
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Goal one"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "listItem",
+                  "attrs": {
+                    "blockId": "<bid:7>"
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "blockId": "<bid:8>"
+                      },
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Goal two"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "attrs": {
+                "blockId": "<bid:9>",
+                "level": 2
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Requirements"
+                }
+              ]
+            },
+            {
+              "type": "table",
+              "attrs": {
+                "blockId": "<bid:10>"
+              },
+              "content": [
+                {
+                  "type": "tableRow",
+                  "attrs": {
+                    "blockId": "<bid:11>"
+                  },
+                  "content": [
+                    {
+                      "type": "tableHeader",
+                      "attrs": {
+                        "blockId": "<bid:12>"
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "blockId": "<bid:13>"
+                          },
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "ID"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "tableHeader",
+                      "attrs": {
+                        "blockId": "<bid:14>"
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "blockId": "<bid:15>"
+                          },
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Requirement"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "tableHeader",
+                      "attrs": {
+                        "blockId": "<bid:16>"
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "blockId": "<bid:17>"
+                          },
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Priority"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "tableRow",
+                  "attrs": {
+                    "blockId": "<bid:18>"
+                  },
+                  "content": [
+                    {
+                      "type": "tableCell",
+                      "attrs": {
+                        "blockId": "<bid:19>"
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "blockId": "<bid:20>"
+                          },
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "R1"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "tableCell",
+                      "attrs": {
+                        "blockId": "<bid:21>"
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "blockId": "<bid:22>"
+                          },
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Describe the requirement"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "tableCell",
+                      "attrs": {
+                        "blockId": "<bid:23>"
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "blockId": "<bid:24>"
+                          },
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Must"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "tableRow",
+                  "attrs": {
+                    "blockId": "<bid:25>"
+                  },
+                  "content": [
+                    {
+                      "type": "tableCell",
+                      "attrs": {
+                        "blockId": "<bid:26>"
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "blockId": "<bid:27>"
+                          },
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "R2"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "tableCell",
+                      "attrs": {
+                        "blockId": "<bid:28>"
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "blockId": "<bid:29>"
+                          },
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Describe the requirement"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "tableCell",
+                      "attrs": {
+                        "blockId": "<bid:30>"
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "blockId": "<bid:31>"
+                          },
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Should"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "heading",
+              "attrs": {
+                "blockId": "<bid:32>",
+                "level": 2
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Acceptance criteria"
+                }
+              ]
+            },
+            {
+              "type": "taskList",
+              "attrs": {
+                "blockId": "<bid:33>"
+              },
+              "content": [
+                {
+                  "type": "taskItem",
+                  "attrs": {
+                    "blockId": "<bid:34>"
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "blockId": "<bid:35>"
+                      },
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Given / when / then…"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:36>"
+              }
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -371,6 +808,11 @@
       "status": "draft",
       "version": 0,
       "markdown": "",
+      "format": "rich",
+      "content": null,
+      "settings": {},
+      "convert_state": null,
+      "convert_error": null,
       "headings": [],
       "path": [],
       "created_by": "user",
@@ -387,6 +829,24 @@
       "draft": {
         "title": "Spec",
         "markdown": "own text",
+        "format": "rich",
+        "content": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "blockId": "<bid:1>"
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "own text"
+                }
+              ]
+            }
+          ]
+        },
         "base_version": 0,
         "saves": 1,
         "updated_at": "<time>",
@@ -463,7 +923,13 @@
         "version": 0,
         "has_draft": false,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:2>",
@@ -475,7 +941,13 @@
         "version": 0,
         "has_draft": false,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:3>",
@@ -487,7 +959,13 @@
         "version": 0,
         "has_draft": false,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:4>",
@@ -499,7 +977,13 @@
         "version": 0,
         "has_draft": false,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:5>",
@@ -511,7 +995,13 @@
         "version": 0,
         "has_draft": false,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:6>",
@@ -523,7 +1013,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       }
     ]
   },
@@ -578,7 +1074,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:2>",
@@ -590,7 +1092,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:3>",
@@ -602,7 +1110,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:4>",
@@ -614,7 +1128,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:5>",
@@ -626,7 +1146,13 @@
         "version": 0,
         "has_draft": true,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       },
       {
         "id": "<uuid:6>",
@@ -638,7 +1164,13 @@
         "version": 0,
         "has_draft": false,
         "updated_at": "<time>",
-        "kind": "page"
+        "kind": "page",
+        "convert_state": null,
+        "suggestions": 0,
+        "icon": null,
+        "cover": null,
+        "page_status": null,
+        "book": null
       }
     ]
   }

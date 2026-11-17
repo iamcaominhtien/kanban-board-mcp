@@ -27,6 +27,7 @@ pub struct Model {
     pub resolved_by: Option<String>,
     pub resolved_at: Option<String>,
     /// Id of the rich-format block the thread is anchored to; None for a Markdown page
+    #[serde(default)]
     pub anchor_block_id: Option<String>,
 }
 

@@ -13,6 +13,10 @@ workspace = true
 kb-base = { workspace = true }
 kb-db = { workspace = true }
 kb-doctext = { workspace = true }
+kb-richdoc = { workspace = true }
+kb-docexport = { workspace = true }
+kb-files = { workspace = true }
+zip = { workspace = true }
 kb-draw = { workspace = true }
 kb-fuzzy = { workspace = true }
 kb-notify = { workspace = true }
@@ -24,6 +28,12 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+calamine = { workspace = true }
+html5ever = { workspace = true }
+markup5ever_rcdom = { workspace = true }
+quick-xml = { workspace = true }
+reqwest = { workspace = true }
+url = { workspace = true }
 caseless = "0.2.2"
 serde_urlencoded = "0.7"
 unicode-normalization = "0.1"

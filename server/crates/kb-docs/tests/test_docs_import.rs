@@ -132,7 +132,7 @@ async fn test_folders_become_parent_pages_and_pages_are_drafts() {
     let rows = rows_by_title(&c, &pid).await;
     assert!(rows.values().all(|r| r["status"] == "draft" && r["version"] == 0));
     let alpha = c.get(&format!("/docs/pages/{}", id(&rows["Alpha"]))).await.json();
-    assert_eq!(alpha["draft"]["markdown"], "## Section\ntext"); // the title heading became the title
+    assert_eq!(alpha["draft"]["markdown"], "## Section\n\ntext"); // the title heading became the title
     assert!(alpha["status"] == "draft" && alpha["created_by"] == "user");
     assert_eq!(alpha["draft"]["base_version"], 0);
     let page_ids: Vec<&Value> =
@@ -221,7 +221,7 @@ async fn test_titles_front_matter_beats_heading_beats_file_name() {
         async move { c.get(&url).await.json()["draft"]["markdown"].clone() }
     };
     assert_eq!(md("Same").await, "body");
-    assert_eq!(md("T").await, "# Heading stays\nbody");
+    assert_eq!(md("T").await, "# Heading stays\n\nbody");
     assert_eq!(real["created"].as_array().unwrap().len(), 2);
 }
 

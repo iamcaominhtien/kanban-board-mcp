@@ -140,7 +140,7 @@ async fn run(golden: Value) {
         let id = made["id"].as_str().expect("id").to_string();
         if page["publish"] == json!(true) {
             let session = database::session();
-            docs::publish_page(&session, &id, 0, None, Some(field(page, "markdown")), None)
+            docs::publish_page(&session, &id, 0, None, Some(docs::BodyInput::Markdown(field(page, "markdown"))), None)
                 .await
                 .unwrap_or_else(|e| panic!("publish {title}: {e}"));
         }

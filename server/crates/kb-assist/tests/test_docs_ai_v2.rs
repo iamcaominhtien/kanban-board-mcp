@@ -448,7 +448,9 @@ async fn test_create_tickets_puts_the_keys_on_the_draft_lines() {
     let (_pid, page, _team) = space(json!({})).await;
     let s = database::session();
     let original = "# API\n\nThe API uses REST.\n\n- [ ] Add paging\n```\n- [ ] Add paging\n```\n";
-    kb_docs::docs::save_draft(&s, &page, original, None, None).await.expect("draft");
+    kb_docs::docs::save_draft(&s, &page, kb_docs::docs::BodyInput::Markdown(original), None, None)
+        .await
+        .expect("draft");
     let drafts = [
         json!({"title": "Page the API", "text": "Add paging"}),
         json!({"title": "Other", "text": "Nothing like it on the page"}),
@@ -469,7 +471,7 @@ async fn test_create_tickets_puts_the_keys_on_the_draft_lines() {
     let key = out["tickets"][0]["id"].as_str().expect("key").to_string();
     assert_eq!((&out["replaced"], &out["linked"]), (&json!(1), &json!(0)));
     assert_eq!(out["not_replaced"], json!(["Nothing like it on the page"]));
-    let after = format!("# API\n\nThe API uses REST.\n\n- [ ] Add paging {key}\n```\n- [ ] Add paging\n```\n");
+    let after = format!("# API\n\nThe API uses REST.\n\n- [ ] Add paging {key}\n\n```\n- [ ] Add paging\n```\n");
     assert_eq!(out["draft_markdown"], json!(after));
     let draft = kb_docs::docs::draft_for(&s, &page, &kb_base::activity::current_actor())
         .await
@@ -485,18 +487,21 @@ async fn test_create_tickets_puts_the_keys_on_the_draft_lines() {
         .await
         .expect("draft")
         .expect("a draft");
-    assert_eq!(draft.markdown, original);
+    // the draft is as it was (as the editor writes it since format 1: a blank line before the fence)
+    assert_eq!(draft.markdown, original.replacen("paging\n```", "paging\n\n```", 1));
 
     // a draft that changed since is left as it is
     let again = adocs::create_tickets(&s, &page, BY, &drafts[..1], true, adocs::LineKeys::Put).await.expect("create");
-    kb_docs::docs::save_draft(&s, &page, "# API\n\nRewritten.\n", None, None).await.expect("save");
+    kb_docs::docs::save_draft(&s, &page, kb_docs::docs::BodyInput::Markdown("# API\n\nRewritten.\n"), None, None)
+        .await
+        .expect("save");
     let undone = adocs::undo_tickets(&s, again["undo_token"].as_str().expect("token"), BY).await.expect("undo");
     assert_eq!((&undone["deleted"], &undone["draft_restored"]), (&json!(1), &json!(false)));
     let draft = kb_docs::docs::draft_for(&s, &page, &kb_base::activity::current_actor())
         .await
         .expect("draft")
         .expect("a draft");
-    assert_eq!(draft.markdown, "# API\n\nRewritten.\n");
+    assert_eq!(draft.markdown, "# API\n\nRewritten.");
 }
 
 /// A row that says `viewer` last saw version `version` of a page.
@@ -520,7 +525,16 @@ async fn test_since_viewed_lists_the_pages_changed_since_the_person_saw_them() {
     seen(&api, BY, 1).await;
     seen(&current, BY, 1).await;
     let s = database::session();
-    kb_docs::docs::publish_page(&s, &api, 1, None, Some("# API\n\nREST v2.\n"), None).await.expect("v2");
+    kb_docs::docs::publish_page(
+        &s,
+        &api,
+        1,
+        None,
+        Some(kb_docs::docs::BodyInput::Markdown("# API\n\nREST v2.\n")),
+        None,
+    )
+    .await
+    .expect("v2");
 
     // the server finds the pages: API changed since v1, Guide never seen (and new), Current is up to date
     let found = adocs::changed_since_viewed(&s, &pid, BY).await.expect("changed");

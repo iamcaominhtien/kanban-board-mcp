@@ -163,13 +163,19 @@ pub async fn update_docs_page(
             }
         }
         let page = if publish {
-            docs::publish_page(&session, page_id, base_version, note, Some(&markdown), None)
+            docs::publish_page(&session, page_id, base_version, note, Some(docs::BodyInput::Markdown(&markdown)), None)
                 .await
                 .map_err(docs_error)?
         } else {
-            docs::save_draft(&session, page_id, &markdown, None, i32::try_from(base_version).ok())
-                .await
-                .map_err(docs_error)?
+            docs::save_draft(
+                &session,
+                page_id,
+                docs::BodyInput::Markdown(&markdown),
+                None,
+                i32::try_from(base_version).ok(),
+            )
+            .await
+            .map_err(docs_error)?
         };
         let mut out = match pick(&page, &["id", "title", "version"]) {
             Value::Object(out) => out,
