@@ -63,6 +63,71 @@ syntax the editor already kept before format 1, written exactly as the TipTap ed
   means "keep this block as it is"; leaving one out of `update` keeps it too (it can only be removed with an explicit
   block delete). Full detail of one block: `docs_read(action='block')` (JSON).
 
+## Annotated attribute names
+
+The annotated flavour as `kb-richdoc` writes and reads it (`fixtures/annotated/<name>.md` is the annotated form of
+the page `md/<name>.json` or `json/<name>.json`).
+
+**Markers.** `<!-- #b-3f2a9c [type] key=value … -->` on its own line, right before the block's Markdown; blocks are
+separated by a blank line. The marker lists only what the block's Markdown does not give back when read: the
+attributes below whose value differs (`alt=null` when `![](…)` would read as an empty alt), in key order. The `type`
+word appears when the Markdown reads as another node (`fileCard` reads as a link, `pageCard` as a page reference,
+`ticketCard` as a ticket reference, `pullQuote` as a quote, an empty `pageCard`/`ticketCard` as nothing) and for
+placeholders. Values are a bare word or a JSON string in double quotes (`-->` written `-\u002d>`); a bare value takes
+the attribute's type (`24`, `true`, `null`), objects and arrays (`crop`) are JSON in a string. In input, the id can
+be left out (the block gets a new one), a marker names attributes by these names or by their schema names, and an
+HTML comment that does not start like a marker (`#id`, a node type, `column`, `/columns` or `key=value`) is text.
+An unknown key or a value of the wrong type is a syntax error.
+
+| Schema attribute | Annotated name | | Schema attribute | Annotated name |
+|---|---|---|---|---|
+| `textAlign` | `align` | | `language` (codeBlock) | `lang` |
+| `indent` | `indent` | | `filename` | `file` |
+| `lineHeight` | `line-height` | | `lineNumbers` | `numbers` |
+| `spaceBefore` / `spaceAfter` | `before` / `after` | | `highlightLines` | `lines` |
+| `dropCap` | `dropcap` | | `wrap`, `theme`, `diff` | same |
+| `variant`, `source` | same | | `width` (image, px) | `px` |
+| `listStyle` | `style` | | `widthPct` (image, diagram, video) | `width` |
+| `start`, `type` (orderedList) | same | | `wrapGap` (image) | `gap` |
+| `style` (rule, table, callout) | `style` | | `runScripts` (htmlEmbed) | `scripts` |
+| `width` (table), `ratio`, `gap`, `line` (columns) | same | | `pageId` | `page-id` |
+| `kind`, `color`, `icon`, `title` (callout) | same | | `targetBlockId` | `target` |
+
+Every other attribute keeps its schema name (`placement`, `caption`, `href`, `crop`, `border`, `radius`, `shadow`,
+`version`, `fragment`, `poster`, `loop`, `muted`, `size`, `mime`, `preview`, `site`…). A callout's `title` is always
+in its marker (the `> [!KIND]` line is written without it, since the plain flavour reads a title line back as body
+text).
+
+**Inline spans.** `[text]{…}` with `.underline`, `.sup`, `.sub` and `color=`, `highlight=` (a coloured highlight; a
+default one stays `==text==`), `font=` (a `fontFamily` key), `size=` (px), classes first:
+`[**all of them**]{.underline color=teal font=caveat size=24}`. A span sits inside a link and outside every other mark
+(`[[x]{.sup}](url)`, `[**x**]{.sub}`). A page reference's ids follow it: `[[Spec#Fields]]{page-id=pg_9
+target=b-00ab12}`.
+
+**Columns.** `<!-- #b-… columns ratio=1:2 gap=32 line=true -->`, then `<!-- #b-… column -->` before each column's
+blocks (each with its own marker), then `<!-- /columns -->`.
+
+**Placeholders.** `<!-- #b-… video -->` + `[embed: video · Release demo]` (also `htmlEmbed`, `linkEmbed`, `table` for a
+table with merged cells). A block whose annotated Markdown would not read back exactly (rare: two inline formulas
+side by side, a code span holding a line break, an empty ordered-list item…) is written the same way with its own
+type (`<!-- #b-… paragraph -->` + `[embed: paragraph · first words]`). Reading, a marker with a type followed by an
+`[embed: …]` line takes the block of that id from the page as it is (its marker's attributes applied); a `video`,
+`htmlEmbed` or `linkEmbed` marker followed by anything else is refused.
+
+**Escapes added to plain text** so it reads back as written: `\$` where `$` would open math or makes `$$`, `\=\=`
+for `==`, `KAN\-12` for text that only looks like a ticket key, `http\://`, `www\.`, `a\@b` for bare URLs and
+e-mails that are not links, `\<` before a tag-like `<`, `\&` before an entity-like `&` (no `&amp;` encoding),
+`&#32;` for spaces that start or end a text block, `<br>` for every hard break, a fence longer than any backtick run
+in the code, and, when needed, block syntax at the start of a paragraph line (`\# `, `\> `, `\- `, `1\. `, `a\) `).
+
+**Reading.** The first block under a marker takes its id and attributes (more blocks under one marker get new ids).
+Nested blocks (list items, cells, a callout's paragraphs…) take their ids and the attributes plain Markdown cannot
+show (`background`, `colspan`, a nested callout's `title`…) from the block of the same id in the page, by position
+and type; attributes the Markdown holds (`level`, `language`, `checked`, image `src`/`alt`/`title`/`width`, a cell's
+`align` when its column's alignment changed…) come from the Markdown. A block whose Markdown renders exactly as the
+page's block of the same id is that block, unchanged (white space at mark edges and similar details survive).
+Markers inside fenced code are code.
+
 ## Projections written on every save
 
 - `markdown`: plain Markdown (above).
