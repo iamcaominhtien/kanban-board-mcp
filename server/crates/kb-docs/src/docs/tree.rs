@@ -279,21 +279,26 @@ pub async fn list_deleted(session: &Session, project_id: &str) -> Result<Vec<Val
         // `p.deleted_at or _now()`
         let deleted_at = p.deleted_at.clone().filter(|at| !at.is_empty()).unwrap_or_else(time::now_iso);
         let days_left = (RECYCLE_DAYS - days_since(&deleted_at)?).max(0);
-        out.push((
-            p.deleted_at.clone().unwrap_or_default(),
-            json!({
-                "id": p.id,
-                "title": p.title,
-                "project_id": p.project_id,
-                "parent_title": parent.as_ref().map(|x| x.title.clone()),
-                "parent_deleted": parent.as_ref().is_some_and(|x| x.deleted_at.as_deref().is_some_and(|d| !d.is_empty())),
-                "deleted_at": p.deleted_at,
-                "deleted_by": p.deleted_by,
-                "page_count": count,
-                "child_titles": children,
-                "days_left": days_left,
-            }),
-        ));
+        let mut entry = json!({
+            "id": p.id,
+            "title": p.title,
+            "project_id": p.project_id,
+            "parent_title": parent.as_ref().map(|x| x.title.clone()),
+            "parent_deleted": parent.as_ref().is_some_and(|x| x.deleted_at.as_deref().is_some_and(|d| !d.is_empty())),
+            "deleted_at": p.deleted_at,
+            "deleted_by": p.deleted_by,
+            "page_count": count,
+            "child_titles": children,
+            "days_left": days_left,
+        });
+        // the page's icon, only when it has one: a page without one answers as in 4.0.x (MCP and HTTP)
+        if let (Some(icon), Some(row)) = (
+            super::settings::read_settings(p.settings.as_deref()).get("icon").filter(|i| !i.is_null()),
+            entry.as_object_mut(),
+        ) {
+            row.insert("icon".into(), icon.clone());
+        }
+        out.push((p.deleted_at.clone().unwrap_or_default(), entry));
     }
     out.sort_by(|a, b| b.0.cmp(&a.0));
     Ok(out.into_iter().map(|(_, v)| v).collect())

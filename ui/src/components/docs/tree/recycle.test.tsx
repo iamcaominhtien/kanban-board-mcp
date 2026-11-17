@@ -27,7 +27,7 @@ function entry(id: string, over: Partial<RecycleEntry> = {}): RecycleEntry {
 const ENTRIES: RecycleEntry[] = [
   entry('Sunset plan', { pageCount: 2, childTitles: ['Pricing note'] }),
   entry('Pricing draft', { parentTitle: 'Sunset plan', parentDeleted: true, daysLeft: 2 }),
-  entry('Old launch plan', { daysLeft: 6, deletedAt: '2026-10-24T10:00:00Z' }),
+  entry('Old launch plan', { daysLeft: 6, deletedAt: '2026-10-24T10:00:00Z', icon: '📘' }),
 ];
 const TREE = [
   {
@@ -71,6 +71,15 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('the Recycle Bin', () => {
+  it("shows a deleted page's emoji in place of the page mark", async () => {
+    setup();
+    const title = await screen.findByText('Old launch plan');
+    const row = title.closest('[data-testid]') ?? title.parentElement!.parentElement!;
+    expect(row.textContent).toContain('📘');
+    // only that page has one: the others keep the page mark
+    expect(document.body.textContent?.match(/📘/g)).toHaveLength(1);
+  });
+
   it('colours the days left: grey, amber in the last week, red in the last three days', async () => {
     setup();
     await screen.findByText('Pricing draft');

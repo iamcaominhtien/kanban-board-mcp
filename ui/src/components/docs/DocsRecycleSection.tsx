@@ -426,6 +426,7 @@ export function PageBinRow({
     <BinRow
       kind="page"
       title={entry.title}
+      icon={entry.icon}
       first={first}
       last={last}
       pinned={confirming || busy}

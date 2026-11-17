@@ -271,3 +271,22 @@ async fn highlights_follow_their_words_and_respect_roles() {
     let r = as_(&c, "Mia").post(&format!("/docs/pages/{page_id}/highlights"), body).await;
     assert_eq!(r.status, 409);
 }
+
+#[tokio::test]
+async fn the_recycle_bin_shows_a_page_icon_only_when_the_page_has_one() {
+    if !skip_unless_available("the_recycle_bin_shows_a_page_icon_only_when_the_page_has_one") {
+        return;
+    }
+    let s = Server::start().await;
+    let c = s.client();
+    let (pid, with_icon) = rich_page(&c, doc(json!([para("b-000001", "Hello")]))).await;
+    c.patch(&format!("/docs/pages/{with_icon}/settings"), json!({"settings": {"icon": "📘"}})).await;
+    let plain = id(&c.post(&format!("/projects/{pid}/docs/pages"), json!({"title": "Plain"})).await.json());
+    assert_eq!(c.delete(&format!("/docs/pages/{with_icon}")).await.status, 200);
+    assert_eq!(c.delete(&format!("/docs/pages/{plain}")).await.status, 200);
+    let bin = c.get(&format!("/projects/{pid}/docs/recycle-bin")).await.json();
+    let row = |page: &str| bin.as_array().unwrap().iter().find(|r| r["id"] == page).cloned().unwrap();
+    assert_eq!(row(&with_icon)["icon"], "📘");
+    // a page without an icon answers as before: no key at all
+    assert!(row(&plain).get("icon").is_none());
+}

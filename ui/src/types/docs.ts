@@ -185,6 +185,8 @@ export interface DocsDeletedEntry {
   /** titles of the pages directly under it that were deleted with it */
   childTitles?: string[];
   daysLeft: number;
+  /** the page's icon (an emoji, icon:<name> or an upload); absent when it has none */
+  icon?: string | null;
 }
 
 export interface DocsTicketDoc {
