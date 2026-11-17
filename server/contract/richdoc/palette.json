@@ -1,0 +1,193 @@
+{
+  "backgrounds": {
+    "white": {
+      "page": "#FFFFFF",
+      "ink": "#1E2A22",
+      "text": {
+        "ink": "#1E2A22",
+        "slate": "#5B6B60",
+        "green": "#2E6F40",
+        "olive": "#5C6B1E",
+        "teal": "#0F766E",
+        "blue": "#1F5A8E",
+        "violet": "#5B4BB5",
+        "pink": "#B02A6B",
+        "red": "#C4432A",
+        "orange": "#B4571F",
+        "amber": "#8A5A00",
+        "brown": "#6B4A2E"
+      },
+      "highlight": {
+        "yellow": "#FFE9A8",
+        "lime": "#E6EFB8",
+        "green": "#CFE8D6",
+        "teal": "#C8EAE5",
+        "blue": "#CFE3F5",
+        "violet": "#E1DAF6",
+        "pink": "#F8D5E6",
+        "red": "#F8D3CB",
+        "orange": "#FADDBF",
+        "sand": "#EFE3CC",
+        "grey": "#E3E8E5",
+        "slate": "#C9D3CC"
+      }
+    },
+    "paper": {
+      "page": "#FBF8F1",
+      "ink": "#1E2A22",
+      "text": {
+        "ink": "#1E2A22",
+        "slate": "#5B6B60",
+        "green": "#2E6F40",
+        "olive": "#5C6B1E",
+        "teal": "#0F766E",
+        "blue": "#1F5A8E",
+        "violet": "#5B4BB5",
+        "pink": "#B02A6B",
+        "red": "#C4432A",
+        "orange": "#B4571F",
+        "amber": "#8A5A00",
+        "brown": "#6B4A2E"
+      },
+      "highlight": {
+        "yellow": "#FFE9A8",
+        "lime": "#E6EFB8",
+        "green": "#CFE8D6",
+        "teal": "#C8EAE5",
+        "blue": "#CFE3F5",
+        "violet": "#E1DAF6",
+        "pink": "#F8D5E6",
+        "red": "#F8D3CB",
+        "orange": "#FADDBF",
+        "sand": "#EFE3CC",
+        "grey": "#E3E8E5",
+        "slate": "#C9D3CC"
+      }
+    },
+    "mist": {
+      "page": "#EAF1EC",
+      "ink": "#1E2A22",
+      "text": {
+        "ink": "#1E2A22",
+        "slate": "#5B6B60",
+        "green": "#2E6F40",
+        "olive": "#5C6B1E",
+        "teal": "#0F766E",
+        "blue": "#1F5A8E",
+        "violet": "#5B4BB5",
+        "pink": "#B02A6B",
+        "red": "#C4432A",
+        "orange": "#B4571F",
+        "amber": "#8A5A00",
+        "brown": "#6B4A2E"
+      },
+      "highlight": {
+        "yellow": "#FFE9A8",
+        "lime": "#E6EFB8",
+        "green": "#CFE8D6",
+        "teal": "#C8EAE5",
+        "blue": "#CFE3F5",
+        "violet": "#E1DAF6",
+        "pink": "#F8D5E6",
+        "red": "#F8D3CB",
+        "orange": "#FADDBF",
+        "sand": "#EFE3CC",
+        "grey": "#E3E8E5",
+        "slate": "#C9D3CC"
+      }
+    },
+    "sepia": {
+      "page": "#F4ECD8",
+      "ink": "#2B2418",
+      "text": {
+        "ink": "#2B2418",
+        "slate": "#5E5444",
+        "green": "#2A6A3C",
+        "olive": "#56611C",
+        "teal": "#0E6F67",
+        "blue": "#1D5688",
+        "violet": "#55459F",
+        "pink": "#A5266A",
+        "red": "#B73F28",
+        "orange": "#A5501C",
+        "amber": "#7F5300",
+        "brown": "#5F4128"
+      },
+      "highlight": {
+        "yellow": "#F7E0A0",
+        "lime": "#DFE6A8",
+        "green": "#C6DFC9",
+        "teal": "#BCE0D6",
+        "blue": "#C3D9EB",
+        "violet": "#D8D0EC",
+        "pink": "#F2CCDC",
+        "red": "#F2C9BC",
+        "orange": "#F5D3A8",
+        "sand": "#E8D9B8",
+        "grey": "#DDD7C6",
+        "slate": "#CCC7B5"
+      }
+    },
+    "night": {
+      "page": "#17211A",
+      "ink": "#E6EEE8",
+      "text": {
+        "ink": "#E6EEE8",
+        "slate": "#A9B8AE",
+        "green": "#7FCB95",
+        "olive": "#C3D36B",
+        "teal": "#5EC9BC",
+        "blue": "#7DB5E8",
+        "violet": "#B3A6F0",
+        "pink": "#F08DBB",
+        "red": "#F4907A",
+        "orange": "#F2A56B",
+        "amber": "#E8B93A",
+        "brown": "#D1A77E"
+      },
+      "highlight": {
+        "yellow": "#5C4A12",
+        "lime": "#3E4A14",
+        "green": "#1F4A2E",
+        "teal": "#14463F",
+        "blue": "#1F3F5E",
+        "violet": "#3A3162",
+        "pink": "#5A2442",
+        "red": "#5A2A20",
+        "orange": "#5A3516",
+        "sand": "#4A3F2A",
+        "grey": "#2E3A32",
+        "slate": "#3B4A40"
+      }
+    }
+  },
+  "textColors": [
+    "ink",
+    "slate",
+    "green",
+    "olive",
+    "teal",
+    "blue",
+    "violet",
+    "pink",
+    "red",
+    "orange",
+    "amber",
+    "brown"
+  ],
+  "highlightColors": [
+    "yellow",
+    "lime",
+    "green",
+    "teal",
+    "blue",
+    "violet",
+    "pink",
+    "red",
+    "orange",
+    "sand",
+    "grey",
+    "slate"
+  ],
+  "defaultHighlight": "yellow"
+}

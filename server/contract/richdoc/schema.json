@@ -1,0 +1,972 @@
+{
+  "formatVersion": 1,
+  "blockIdPattern": "^b-[0-9a-f]{6}$",
+  "topLevelParents": [
+    "doc",
+    "column"
+  ],
+  "nodes": {
+    "doc": {
+      "content": "block+"
+    },
+    "paragraph": {
+      "group": "block",
+      "content": "inline*",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "textAlign": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "left",
+            "center",
+            "right",
+            "justify"
+          ]
+        },
+        "indent": {
+          "default": 0,
+          "type": "number",
+          "min": 0,
+          "max": 8
+        },
+        "lineHeight": {
+          "default": null,
+          "type": "number|null",
+          "note": "1, 1.15, 1.5 or 2"
+        },
+        "spaceBefore": {
+          "default": null,
+          "type": "number|null",
+          "note": "px"
+        },
+        "spaceAfter": {
+          "default": null,
+          "type": "number|null",
+          "note": "px"
+        },
+        "dropCap": {
+          "default": 0,
+          "type": "enum",
+          "values": [
+            0,
+            3,
+            5
+          ]
+        },
+        "variant": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "lead",
+            "small"
+          ]
+        }
+      }
+    },
+    "heading": {
+      "group": "block",
+      "content": "inline*",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "level": {
+          "default": 1,
+          "type": "enum",
+          "values": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        "textAlign": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "left",
+            "center",
+            "right",
+            "justify"
+          ]
+        },
+        "indent": {
+          "default": 0,
+          "type": "number",
+          "min": 0,
+          "max": 8
+        },
+        "lineHeight": {
+          "default": null,
+          "type": "number|null",
+          "note": "1, 1.15, 1.5 or 2"
+        },
+        "spaceBefore": {
+          "default": null,
+          "type": "number|null",
+          "note": "px"
+        },
+        "spaceAfter": {
+          "default": null,
+          "type": "number|null",
+          "note": "px"
+        }
+      }
+    },
+    "blockquote": {
+      "group": "block",
+      "content": "block+",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "variant": {
+          "default": "plain",
+          "type": "enum",
+          "values": [
+            "plain",
+            "serif",
+            "card"
+          ]
+        },
+        "source": {
+          "default": null,
+          "type": "string|null"
+        }
+      }
+    },
+    "pullQuote": {
+      "group": "block",
+      "content": "inline*",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "textAlign": {
+          "default": "center",
+          "type": "enum",
+          "values": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "source": {
+          "default": null,
+          "type": "string|null"
+        }
+      }
+    },
+    "bulletList": {
+      "group": "block list",
+      "content": "listItem+",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "listStyle": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "disc",
+            "circle",
+            "square",
+            "dash"
+          ]
+        }
+      }
+    },
+    "orderedList": {
+      "group": "block list",
+      "content": "listItem+",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "start": {
+          "default": 1,
+          "type": "number"
+        },
+        "type": {
+          "default": null,
+          "type": "string|null"
+        },
+        "listStyle": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "decimal",
+            "lower-alpha",
+            "upper-alpha",
+            "lower-roman",
+            "upper-roman",
+            "decimal-paren"
+          ]
+        }
+      }
+    },
+    "listItem": {
+      "content": "paragraph block*",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        }
+      }
+    },
+    "taskList": {
+      "group": "block list",
+      "content": "taskItem+",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        }
+      }
+    },
+    "taskItem": {
+      "content": "paragraph block*",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "checked": {
+          "default": false,
+          "type": "boolean"
+        }
+      }
+    },
+    "codeBlock": {
+      "group": "block",
+      "content": "text*",
+      "code": true,
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "language": {
+          "default": null,
+          "type": "string|null"
+        },
+        "filename": {
+          "default": null,
+          "type": "string|null"
+        },
+        "lineNumbers": {
+          "default": false,
+          "type": "boolean"
+        },
+        "wrap": {
+          "default": false,
+          "type": "boolean"
+        },
+        "theme": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "light",
+            "dark"
+          ]
+        },
+        "highlightLines": {
+          "default": null,
+          "type": "string|null",
+          "note": "\"5-6,9\""
+        },
+        "diff": {
+          "default": false,
+          "type": "boolean"
+        }
+      }
+    },
+    "horizontalRule": {
+      "group": "block",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "style": {
+          "default": "line",
+          "type": "enum",
+          "values": [
+            "line",
+            "short",
+            "dots",
+            "stars",
+            "fleuron",
+            "wave",
+            "thick",
+            "double"
+          ]
+        }
+      }
+    },
+    "table": {
+      "group": "block",
+      "content": "tableRow+",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "style": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "plain",
+            "lined",
+            "striped",
+            "boxed",
+            "minimal"
+          ]
+        },
+        "width": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "full",
+            "fit"
+          ]
+        }
+      }
+    },
+    "tableRow": {
+      "content": "(tableCell | tableHeader)*",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        }
+      }
+    },
+    "tableCell": {
+      "content": "block+",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "colspan": {
+          "default": 1,
+          "type": "number"
+        },
+        "rowspan": {
+          "default": 1,
+          "type": "number"
+        },
+        "colwidth": {
+          "default": null,
+          "type": "array|null"
+        },
+        "align": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "background": {
+          "default": null,
+          "type": "string|null",
+          "note": "colour name from palette.json or #rrggbb (highlight names)"
+        },
+        "verticalAlign": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "top",
+            "middle",
+            "bottom"
+          ]
+        }
+      }
+    },
+    "tableHeader": {
+      "content": "block+",
+      "attrs": "same as tableCell"
+    },
+    "image": {
+      "group": "block",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "src": {
+          "default": "",
+          "type": "string"
+        },
+        "alt": {
+          "default": null,
+          "type": "string|null"
+        },
+        "title": {
+          "default": null,
+          "type": "string|null"
+        },
+        "width": {
+          "default": null,
+          "type": "number|null",
+          "note": "px, from ![alt|640](src)"
+        },
+        "height": {
+          "default": null,
+          "type": "number|null"
+        },
+        "placement": {
+          "default": "block",
+          "type": "enum",
+          "values": [
+            "block",
+            "left",
+            "center",
+            "right",
+            "floatLeft",
+            "floatRight"
+          ]
+        },
+        "widthPct": {
+          "default": null,
+          "type": "number|null",
+          "note": "25..100"
+        },
+        "wrapGap": {
+          "default": 16,
+          "type": "number",
+          "note": "px"
+        },
+        "caption": {
+          "default": null,
+          "type": "string|null"
+        },
+        "href": {
+          "default": null,
+          "type": "string|null"
+        },
+        "crop": {
+          "default": null,
+          "type": "object|null",
+          "note": "{x,y,w,h} as fractions of the original"
+        },
+        "border": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "thin",
+            "thick"
+          ]
+        },
+        "radius": {
+          "default": 0,
+          "type": "number"
+        },
+        "shadow": {
+          "default": false,
+          "type": "boolean"
+        }
+      }
+    },
+    "columns": {
+      "group": "block",
+      "content": "column{2,4}",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "ratio": {
+          "default": null,
+          "type": "string|null",
+          "note": "\"1:2\", \"1:1:1\""
+        },
+        "gap": {
+          "default": 24,
+          "type": "number"
+        },
+        "line": {
+          "default": false,
+          "type": "boolean"
+        }
+      }
+    },
+    "column": {
+      "content": "block+",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        }
+      }
+    },
+    "callout": {
+      "group": "block",
+      "content": "block+",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "kind": {
+          "default": "info",
+          "type": "enum",
+          "values": [
+            "info",
+            "warning",
+            "success",
+            "danger",
+            "note",
+            "custom"
+          ]
+        },
+        "color": {
+          "default": null,
+          "type": "string|null",
+          "note": "colour name from palette.json or #rrggbb"
+        },
+        "icon": {
+          "default": null,
+          "type": "string|null"
+        },
+        "style": {
+          "default": "soft",
+          "type": "enum",
+          "values": [
+            "soft",
+            "bar",
+            "outline"
+          ]
+        },
+        "title": {
+          "default": null,
+          "type": "string|null"
+        }
+      }
+    },
+    "mathBlock": {
+      "group": "block",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "latex": {
+          "default": "",
+          "type": "string"
+        }
+      }
+    },
+    "diagram": {
+      "group": "block",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "id": {
+          "default": "",
+          "type": "string"
+        },
+        "label": {
+          "default": "Diagram",
+          "type": "string"
+        },
+        "version": {
+          "default": null,
+          "type": "number|null"
+        },
+        "widthPct": {
+          "default": null,
+          "type": "number|null"
+        }
+      }
+    },
+    "sketch": {
+      "group": "block",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "id": {
+          "default": "",
+          "type": "string"
+        },
+        "label": {
+          "default": "Sketch",
+          "type": "string"
+        }
+      }
+    },
+    "canvas": {
+      "group": "block",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "id": {
+          "default": "",
+          "type": "string"
+        },
+        "label": {
+          "default": "Canvas",
+          "type": "string"
+        },
+        "fragment": {
+          "default": "",
+          "type": "string"
+        }
+      }
+    },
+    "video": {
+      "group": "block",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "src": {
+          "default": "",
+          "type": "string"
+        },
+        "provider": {
+          "default": "file",
+          "type": "enum",
+          "values": [
+            "file",
+            "youtube",
+            "vimeo"
+          ]
+        },
+        "poster": {
+          "default": null,
+          "type": "string|null"
+        },
+        "title": {
+          "default": null,
+          "type": "string|null"
+        },
+        "caption": {
+          "default": null,
+          "type": "string|null"
+        },
+        "description": {
+          "default": null,
+          "type": "string|null"
+        },
+        "loop": {
+          "default": false,
+          "type": "boolean"
+        },
+        "muted": {
+          "default": false,
+          "type": "boolean"
+        },
+        "widthPct": {
+          "default": 100,
+          "type": "number"
+        }
+      }
+    },
+    "htmlEmbed": {
+      "group": "block",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "html": {
+          "default": "",
+          "type": "string",
+          "note": "sanitised on save, max 512 KB"
+        },
+        "title": {
+          "default": null,
+          "type": "string|null"
+        },
+        "height": {
+          "default": null,
+          "type": "number|null",
+          "note": "null = follow the content"
+        },
+        "runScripts": {
+          "default": false,
+          "type": "boolean"
+        }
+      }
+    },
+    "fileCard": {
+      "group": "block",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "src": {
+          "default": "",
+          "type": "string"
+        },
+        "name": {
+          "default": "",
+          "type": "string"
+        },
+        "size": {
+          "default": null,
+          "type": "number|null"
+        },
+        "mime": {
+          "default": null,
+          "type": "string|null"
+        },
+        "preview": {
+          "default": false,
+          "type": "boolean"
+        }
+      }
+    },
+    "linkEmbed": {
+      "group": "block",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "url": {
+          "default": "",
+          "type": "string"
+        },
+        "title": {
+          "default": null,
+          "type": "string|null"
+        },
+        "description": {
+          "default": null,
+          "type": "string|null"
+        },
+        "image": {
+          "default": null,
+          "type": "string|null"
+        },
+        "site": {
+          "default": null,
+          "type": "string|null"
+        },
+        "kind": {
+          "default": "card",
+          "type": "enum",
+          "values": [
+            "card",
+            "video"
+          ]
+        }
+      }
+    },
+    "pageCard": {
+      "group": "block",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "page": {
+          "default": "",
+          "type": "string"
+        },
+        "pageId": {
+          "default": null,
+          "type": "string|null"
+        }
+      }
+    },
+    "ticketCard": {
+      "group": "block",
+      "attrs": {
+        "blockId": {
+          "default": null,
+          "type": "string|null",
+          "note": "b-xxxxxx"
+        },
+        "key": {
+          "default": "",
+          "type": "string"
+        }
+      }
+    },
+    "text": {
+      "group": "inline"
+    },
+    "hardBreak": {
+      "group": "inline",
+      "inline": true
+    },
+    "docRef": {
+      "group": "inline",
+      "inline": true,
+      "attrs": {
+        "page": {
+          "default": "",
+          "type": "string"
+        },
+        "section": {
+          "default": null,
+          "type": "string|null"
+        },
+        "label": {
+          "default": null,
+          "type": "string|null"
+        },
+        "pageId": {
+          "default": null,
+          "type": "string|null"
+        },
+        "targetBlockId": {
+          "default": null,
+          "type": "string|null"
+        }
+      }
+    },
+    "ticketRef": {
+      "group": "inline",
+      "inline": true,
+      "attrs": {
+        "key": {
+          "default": "",
+          "type": "string"
+        }
+      }
+    },
+    "mathInline": {
+      "group": "inline",
+      "inline": true,
+      "attrs": {
+        "latex": {
+          "default": "",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "marks": {
+    "bold": {},
+    "italic": {},
+    "strike": {},
+    "code": {},
+    "underline": {},
+    "superscript": {},
+    "subscript": {},
+    "link": {
+      "attrs": {
+        "href": {
+          "default": "",
+          "type": "string"
+        },
+        "title": {
+          "default": null,
+          "type": "string|null"
+        }
+      }
+    },
+    "highlight": {
+      "attrs": {
+        "color": {
+          "default": null,
+          "type": "string|null",
+          "note": "null = yellow; colour name from palette.json or #rrggbb"
+        }
+      }
+    },
+    "textStyle": {
+      "attrs": {
+        "color": {
+          "default": null,
+          "type": "string|null",
+          "note": "colour name from palette.json or #rrggbb"
+        },
+        "fontFamily": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "jakarta",
+            "lora",
+            "source-serif",
+            "merriweather",
+            "playfair",
+            "inter",
+            "jetbrains-mono",
+            "caveat"
+          ]
+        },
+        "fontSize": {
+          "default": null,
+          "type": "number|null",
+          "note": "px"
+        }
+      }
+    }
+  },
+  "fonts": {
+    "jakarta": "Plus Jakarta Sans",
+    "lora": "Lora",
+    "source-serif": "Source Serif 4",
+    "merriweather": "Merriweather",
+    "playfair": "Playfair Display",
+    "inter": "Inter",
+    "jetbrains-mono": "JetBrains Mono",
+    "caveat": "Caveat"
+  }
+}
