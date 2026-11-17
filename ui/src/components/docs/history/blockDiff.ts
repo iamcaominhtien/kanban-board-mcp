@@ -86,6 +86,17 @@ const str = (v: unknown) => (typeof v === 'string' ? v : '');
 const short = (s: string, n = 28) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 const json = (v: unknown) => JSON.stringify(v ?? null);
 
+/** A block with every block id left out (ids are not content: a block paired by its words compares by the rest). */
+function withoutIds(node: RichDoc): RichDoc {
+  const { blockId: _drop, ...attrs } = (node.attrs ?? {}) as Record<string, unknown>;
+  void _drop;
+  return {
+    ...node,
+    ...(node.attrs ? { attrs } : {}),
+    ...(node.content ? { content: node.content.map(withoutIds) } : {}),
+  };
+}
+
 /** The key a block is matched by: its block id, or its place when it has none. */
 function keyOf(node: RichDoc, index: number): string {
   const id = str(node.attrs?.blockId);
@@ -184,6 +195,67 @@ export function shortName(node: RichDoc | null | undefined, doc?: RichDoc | null
   return blockName(node, doc);
 }
 
+/** The words of a block (its text nodes, any depth), for pairing blocks whose ids changed. */
+function wordsOf(node: RichDoc): string[] {
+  const out: string[] = [];
+  const walk = (n: RichDoc) => {
+    if (typeof n.text === 'string') out.push(n.text);
+    (n.content ?? []).forEach(walk);
+  };
+  walk(node);
+  return out.join(' ').toLowerCase().split(/\s+/).filter(Boolean);
+}
+
+/** How alike two word lists are (Dice coefficient on the words; two empty blocks are alike). */
+function alike(a: string[], b: string[]): number {
+  if (!a.length && !b.length) return 1;
+  const count = new Map<string, number>();
+  a.forEach((w) => count.set(w, (count.get(w) ?? 0) + 1));
+  let both = 0;
+  b.forEach((w) => {
+    const n = count.get(w) ?? 0;
+    if (n > 0) {
+      both++;
+      count.set(w, n - 1);
+    }
+  });
+  return (2 * both) / (a.length + b.length);
+}
+
+/**
+ * Pairs the blocks whose ids are not on the other side (a page written again as a whole, by an import or a team's
+ * Markdown, gets new ids): in order, a new block of the same type whose words are alike enough (or which sits where
+ * a block of its type was) takes the older block's key, so it reads as edited, not as removed and added.
+ */
+function pairByContent(olds: RichDoc[], news: RichDoc[], oldKeys: string[], newKeys: string[]): string[] {
+  const oldSet = new Set(oldKeys);
+  const newSet = new Set(newKeys);
+  const freeOld = oldKeys.map((k, i) => (newSet.has(k) ? -1 : i)).filter((i) => i >= 0);
+  const freeNew = newKeys.map((k, j) => (oldSet.has(k) ? -1 : j)).filter((j) => j >= 0);
+  if (!freeOld.length || !freeNew.length || freeOld.length * freeNew.length > 1_000_000) return newKeys;
+  const ow = freeOld.map((i) => wordsOf(olds[i]));
+  const nw = freeNew.map((j) => wordsOf(news[j]));
+  const ok = (a: number, b: number) => olds[freeOld[a]].type === news[freeNew[b]].type && alike(ow[a], nw[b]) >= 0.5;
+  const n = freeOld.length;
+  const m = freeNew.length;
+  const lcs: Uint32Array[] = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
+  for (let a = n - 1; a >= 0; a--)
+    for (let b = m - 1; b >= 0; b--)
+      lcs[a][b] = ok(a, b) ? lcs[a + 1][b + 1] + 1 : Math.max(lcs[a + 1][b], lcs[a][b + 1]);
+  const out = [...newKeys];
+  let a = 0;
+  let b = 0;
+  while (a < n && b < m) {
+    if (ok(a, b)) {
+      out[freeNew[b]] = oldKeys[freeOld[a]];
+      a++;
+      b++;
+    } else if (lcs[a + 1][b] >= lcs[a][b + 1]) a++;
+    else b++;
+  }
+  return out;
+}
+
 /**
  * Compare two versions of a rich page block by block.
  * @param oldDoc - The older version (null or missing: an empty page).
@@ -195,7 +267,7 @@ export function diffBlocks(oldDoc: RichDoc | null | undefined, newDoc: RichDoc |
   const olds = oldDoc?.content ?? [];
   const news = newDoc?.content ?? [];
   const oldKeys = olds.map(keyOf);
-  const newKeys = news.map(keyOf);
+  const newKeys = pairByContent(olds, news, oldKeys, news.map(keyOf));
   const oldAt = new Map(oldKeys.map((k, i) => [k, i]));
   const newAt = new Map(newKeys.map((k, i) => [k, i]));
   const common = (k: string) => oldAt.has(k) && newAt.has(k);
@@ -254,7 +326,7 @@ export function diffBlocks(oldDoc: RichDoc | null | undefined, newDoc: RichDoc |
     const moveText = moved
       ? `${moveDirection(oldKeys, newKeys, key, common)}, from ${afterWhat(olds, i, oldD)} to ${afterWhat(news, j, newD)}`
       : null;
-    if (json(before) === json(node)) {
+    if (json(withoutIds(before)) === json(withoutIds(node))) {
       out.push({
         kind: moved ? 'moved' : 'same',
         id: key,

@@ -224,3 +224,27 @@ describe('diffItems: unchanged runs fold, a very large change is cut', () => {
     expect(fold?.type === 'fold' && fold.blocks.length).toBe(4);
   });
 });
+
+describe('diffBlocks: a page written again as a whole (new block ids)', () => {
+  it('pairs blocks by type and words, so an edit reads as an edit', () => {
+    const t = (type: string, text: string, id: string): RichDoc => ({
+      type,
+      attrs: { blockId: id },
+      content: [{ type: 'text', text }],
+    });
+    const before: RichDoc = {
+      type: 'doc',
+      content: [t('heading', 'Intro', 'b-000001'), t('paragraph', 'Welcome to the handbook.', 'b-000002')],
+    };
+    const after: RichDoc = {
+      type: 'doc',
+      content: [
+        t('heading', 'Intro', 'b-00000a'),
+        t('paragraph', 'Welcome to the handbook, second edition.', 'b-00000b'),
+        t('paragraph', 'New.', 'b-00000c'),
+      ],
+    };
+    const out = diffBlocks(before, after).map((c) => c.kind);
+    expect(out).toEqual(['same', 'changed', 'added']);
+  });
+});

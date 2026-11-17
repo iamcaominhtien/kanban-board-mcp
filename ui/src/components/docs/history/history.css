@@ -296,7 +296,7 @@
   white-space: nowrap;
 }
 .hx-chip-current {
-  background: #dcEEe1;
+  background: #dceee1;
   color: #1f5a31;
 }
 .hx-chip-conv {
@@ -548,7 +548,7 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 2px solid #dcEEe1;
+  border: 2px solid #dceee1;
   border-top-color: #2e6f40;
   animation: hx-spin 0.8s linear infinite;
 }
@@ -803,7 +803,7 @@
   border-left-color: #9aa8a0;
 }
 .hx-jump-item[aria-current='true'] {
-  background: #dcEEe1;
+  background: #dceee1;
 }
 .hx-jump-name {
   font-size: 12.5px;

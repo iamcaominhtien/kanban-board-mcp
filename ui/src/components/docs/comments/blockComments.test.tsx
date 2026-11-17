@@ -9,6 +9,7 @@ vi.mock('../../../api/docsComments', () => ({
 }));
 vi.mock('./CommentText', () => ({ CommentText: ({ text }: { text: string }) => <p>{text}</p> }));
 vi.mock('./CommentBox', () => ({ CommentBox: () => null }));
+vi.mock('./SendToAi', () => ({ ThreadSendButton: () => null }));
 
 import { MarginMarks, markInputs } from './MarginMarks';
 import { ThreadCard } from './ThreadCard';
