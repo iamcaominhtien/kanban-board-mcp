@@ -48,15 +48,19 @@ export function useKbDoc(id: string | null) {
   return useQuery({ queryKey: kbKeys.doc(id ?? ''), queryFn: () => kbApi.get(id as string), enabled: !!id });
 }
 
-/** A change to the knowledge base refreshes the list, the searches and the open document. */
-export function useKbMutation<TVars, TOut>(projectId: string, fn: (v: TVars) => Promise<TOut>) {
+/**
+ * A change to the knowledge base refreshes the list, the searches and the open documents. `deleted` names the document
+ * the change removes: it is not fetched again (its row is still on screen until the list comes back, and asking for it
+ * would be a 404).
+ */
+export function useKbMutation<TVars, TOut>(projectId: string, fn: (v: TVars) => Promise<TOut>, deleted?: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: fn,
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['ai', 'kb', projectId] });
       void qc.invalidateQueries({ queryKey: ['ai', 'kb-search', projectId] });
-      void qc.invalidateQueries({ queryKey: ['ai', 'kb-doc'] });
+      void qc.invalidateQueries({ queryKey: ['ai', 'kb-doc'], predicate: (q) => q.queryKey[2] !== deleted });
     },
   });
 }
