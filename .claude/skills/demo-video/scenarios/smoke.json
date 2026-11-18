@@ -1,0 +1,12 @@
+{
+  "name": "smoke", "voice": "vi-VN-HoaiMyNeural", "tempo": 1.08, "bpm": 76,
+  "ready": "text:Fix add() in calc.py",
+  "intro": {"title": "Kanban Board", "subtitle": "Bản thử nhanh của quy trình làm video", "chips": ["Bảng", "Docs"], "say": "Kanban Board. Đây là bản thử nhanh."},
+  "scenes": [
+    {"kind": "app", "cap": "Mỗi thẻ là một ticket trên bảng", "say": "Mỗi thẻ trên bảng là một ticket.",
+     "steps": [{"do": "cam", "target": "text:Fix add() in calc.py", "scale": 1.4}, {"do": "spot", "target": "text:Fix add() in calc.py", "grow": {"left": 10, "right": 10, "top": 30, "bottom": 100}}, {"do": "hover", "target": "text:Fix add() in calc.py"}]},
+    {"kind": "app", "cap": "Docs: không gian tài liệu của dự án", "say": "Bấm vào Docs để mở không gian tài liệu.",
+     "steps": [{"do": "spot"}, {"do": "cam"}, {"do": "click", "target": "exact:Docs", "settle": 1.2}]}
+  ],
+  "outro": {"title": "Kanban Board", "tagline": "Hết bản thử", "say": "Cảm ơn bạn đã xem.", "caption": "Cảm ơn bạn đã xem", "steps": []}
+}
