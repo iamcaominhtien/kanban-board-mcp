@@ -206,7 +206,7 @@
   display: block;
   margin: 10px 0;
   border: 1px solid var(--cv-line);
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fff;
   overflow: visible;
   max-width: 100%;
@@ -221,24 +221,36 @@
 .embedStage {
   position: relative;
   display: block;
-  border-radius: 10px 10px 0 0;
+  border-radius: 12px 12px 0 0;
   overflow: hidden;
   cursor: zoom-in;
 }
+/* the card's foot (Embeds 50): the Canvas tag, the name, then frames and who edited it at the right */
 .embedFooter {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-top: 1px solid var(--cv-line);
+  gap: 10px;
+  padding: 8px 14px;
+  border-top: 1px solid #eef3ef;
+  background: #fbfcfb;
+  border-radius: 0 0 12px 12px;
   font-size: 12px;
   color: var(--cv-mute);
   flex-wrap: wrap;
 }
+.embedFooter > .chip {
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 5px;
+  background: #e8f1fa;
+  color: #2f6fb0;
+  font: 700 11.5px var(--font-body);
+  letter-spacing: 0;
+}
 .embedName {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--cv-ink);
-  font-size: 13px;
+  font-size: 12.5px;
 }
 .embedNote {
   padding: 6px 12px;
@@ -249,17 +261,17 @@
 }
 .toolbar {
   position: absolute;
-  right: 8px;
-  top: -14px;
+  right: 12px;
+  top: 12px;
   z-index: 5;
   display: none;
   align-items: center;
   gap: 1px;
-  padding: 2px;
-  border-radius: 9px;
+  padding: 3px 4px;
+  border-radius: 10px;
   background: #fff;
-  border: 1px solid #d5ded8;
-  box-shadow: 0 6px 16px rgba(30, 42, 34, 0.16);
+  border: 1px solid #e3e8e5;
+  box-shadow: 0 8px 24px rgba(30, 42, 34, 0.13);
   white-space: nowrap;
 }
 .embed:hover .toolbar,
@@ -270,10 +282,11 @@
 .tbBtn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 26px;
-  padding: 0 8px;
-  border-radius: 6px;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 7px;
   border: none;
   background: none;
   font: 600 12px var(--font-body);
@@ -283,14 +296,31 @@
 .tbBtn:hover {
   background: #f1f5f2;
 }
+/* an icon-only button of the card's toolbar (View full size, Copy link): 26 px */
+.tbIcon {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+}
+/* not found (Embeds 52): a 130 px panel, its icon, the title and the alt text, centred */
 .embedState {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 18px 16px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 130px;
+  box-sizing: border-box;
+  padding: 12px 20px;
+  background: #f6faf7;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.45;
   color: var(--cv-mute);
 }
 .embedStateTitle {
+  font-size: 13px;
   font-weight: 700;
   color: var(--cv-ink);
 }

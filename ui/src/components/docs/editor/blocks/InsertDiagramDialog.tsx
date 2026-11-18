@@ -7,7 +7,8 @@ import type { Editor } from '@tiptap/core';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { client } from '../../../../api/client';
-import type { Diagram } from '../../../../api/diagrams';
+import { diagramSvgUrl, type Diagram } from '../../../../api/diagrams';
+import { EmbIcon } from '../../embeds/embIcons';
 import { actorName, relativeTime } from '../../../../utils/relativeTime';
 import { setNodeAttrs } from './commands';
 import { Dialog } from './ui';
@@ -79,19 +80,35 @@ export function InsertDiagramDialog({
             onNew();
           }}
         >
+          <i className="dk-dg-ico" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="7" height="6" rx="1.5" />
+              <rect x="14" y="15" width="7" height="6" rx="1.5" />
+              <path d="M6.5 9v3.5a2.5 2.5 0 0 0 2.5 2.5h5" />
+            </svg>
+          </i>
           <strong>New draw.io drawing</strong>
+          <kbd className="dk-dg-kbd">/diagram</kbd>
           <span>Boxes and arrows, edited in draw.io</span>
         </button>
       )}
-      <div className="dk-bp-label">From this project</div>
-      <input
-        className="dk-bp-input"
-        type="search"
-        aria-label="Search diagrams"
-        placeholder="Search diagrams"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
+      <div className="dk-dg-choice dk-dg-here" role="presentation">
+        <i className="dk-dg-ico" aria-hidden="true">
+          <EmbIcon name="folder" size={15} />
+        </i>
+        <strong>From this project</strong>
+        <span>Open a diagram that already exists</span>
+      </div>
+      <label className="dk-dg-search">
+        <EmbIcon name="search" size={14} />
+        <input
+          type="search"
+          aria-label="Search diagrams"
+          placeholder="Search diagrams"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </label>
       <div className="dk-dg-list" role="listbox" aria-label="Diagrams of this project">
         {list.isLoading && <p className="dk-bp-muted">Loading the diagrams…</p>}
         {!list.isLoading && shown.length === 0 && <p className="dk-bp-muted">No diagrams match.</p>}
@@ -105,6 +122,9 @@ export function InsertDiagramDialog({
             onClick={() => setChosen(d)}
             onDoubleClick={() => insert(d)}
           >
+            <span className="dk-dg-thumb" aria-hidden="true">
+              {!d.empty && <img src={diagramSvgUrl(d.id)} alt="" loading="lazy" />}
+            </span>
             <span className="dk-dg-name">{d.label}</span>
             <span className="dk-dg-meta">
               {actorName(d.updatedBy)} · {relativeTime(d.updatedAt)}
@@ -116,12 +136,15 @@ export function InsertDiagramDialog({
       {!replacing && onImport && (
         <button
           type="button"
-          className="dk-dg-choice"
+          className="dk-dg-choice dk-dg-import"
           onClick={() => {
             onClose();
             onImport();
           }}
         >
+          <i className="dk-dg-ico" aria-hidden="true">
+            <EmbIcon name="upload" size={15} />
+          </i>
           <strong>Import .drawio file</strong>
           <span>Also drop a file onto the page</span>
         </button>

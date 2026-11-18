@@ -315,11 +315,16 @@ describe('RichDocView: format 1 attributes', () => {
       ],
     };
     const { container, getByRole } = show(doc);
-    expect(container.querySelector('video')).toBeNull();
+    // before Play only the metadata loads (the length, the first frame): no autoplay, no player controls
+    const still = container.querySelector('video')!;
+    expect(still.getAttribute('preload')).toBe('metadata');
+    expect(still.autoplay).toBe(false);
+    expect(still.controls).toBe(false);
     fireEvent.click(getByRole('button', { name: 'Play Release demo' }));
     const video = container.querySelector('video')!;
     expect(video.getAttribute('src')).toBe('/uploads/demo.mp4');
     expect(video.autoplay).toBe(false);
+    expect(video.controls).toBe(true);
     // Rich Docs phase 5: the HTML runs in a sandboxed frame, never in the page itself
     const html = container.querySelector('[data-block-id="b-000002"]')!;
     expect(html.textContent).toContain('HTML');

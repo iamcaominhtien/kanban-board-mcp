@@ -144,7 +144,8 @@ describe('DocsPageView on a desktop', () => {
     show('desktop', { settings: { cover: { src: '/uploads/c.png', positionY: 30, height: 's', titleOnCover: true } } });
     const cover = screen.getByTestId('page-cover');
     expect(cover.style.height).toBe('160px');
-    expect(cover.style.backgroundPosition).toBe('center 30%');
+    // the cover sits where its focal point says (positionX, positionY; 50 % across when only Y was stored)
+    expect(cover.style.backgroundPosition).toBe('50% 30%');
     expect(cover.contains(screen.getByTestId('page-title'))).toBe(true);
   });
 });

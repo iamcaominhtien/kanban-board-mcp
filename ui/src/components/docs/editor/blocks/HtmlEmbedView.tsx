@@ -11,6 +11,7 @@ import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { clearRemoved, useRemoved } from '../../embeds/cleanedHtml';
+import { highlight } from '../../docsHighlight';
 import { HtmlChip, HtmlKind, SourceView } from '../../embeds/HtmlEmbedBlock';
 import { EmbIcon } from '../../embeds/embIcons';
 import { HtmlEmbedFrame, SandboxNote } from '../../embeds/HtmlEmbedFrame';
@@ -42,7 +43,10 @@ export function CodeArea({ value, onChange, crossed, label, autoFocus, areaRef }
   const own = useRef<HTMLTextAreaElement>(null);
   const ref = areaRef ?? own;
   const [scroll, setScroll] = useState({ top: 0, left: 0 });
+  // the line the caret is on is tinted (Embeds 11)
+  const [caretLine, setCaretLine] = useState<number | null>(null);
   const lines = value.split('\n');
+  const trackCaret = (t: HTMLTextAreaElement) => setCaretLine(value.slice(0, t.selectionStart).split('\n').length);
   const marks = new Set(crossed);
   const onKey = (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== 'Tab' || e.shiftKey) return;
@@ -67,8 +71,8 @@ export function CodeArea({ value, onChange, crossed, label, autoFocus, areaRef }
         <div className="dk-ca-back" aria-hidden="true">
           <div style={{ transform: `translate(${-scroll.left}px, ${-scroll.top}px)` }}>
             {lines.map((l, i) => (
-              <div key={i} className={marks.has(i + 1) ? 'dk-ca-x' : undefined}>
-                {l || ' '}
+              <div key={i} className={marks.has(i + 1) ? 'dk-ca-x' : caretLine === i + 1 ? 'dk-ca-cur' : undefined}>
+                {l ? highlight(l, 'html') : ' '}
               </div>
             ))}
           </div>
@@ -85,6 +89,8 @@ export function CodeArea({ value, onChange, crossed, label, autoFocus, areaRef }
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKey}
+          onSelect={(e) => trackCaret(e.currentTarget)}
+          onBlur={() => setCaretLine(null)}
           onScroll={(e) => setScroll({ top: e.currentTarget.scrollTop, left: e.currentTarget.scrollLeft })}
         />
       </div>
@@ -109,6 +115,7 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
   const [draft, setDraft] = useState(html);
   const [shown, setShown] = useState(html);
   const [fullScreen, setFullScreen] = useState(false);
+  const [fullMenu, setFullMenu] = useState(false);
   const [source, setSource] = useState(false);
   const [sizeAt, setSizeAt] = useState<DOMRect | null>(null);
   const [menu, setMenu] = useState(false);
@@ -449,6 +456,83 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
       {source && <SourceView html={html} />}
     </>
   );
+  // editing code on a phone (Embeds 11): full screen, a 46 px bar (back, the name, Saved, More), the code with its
+  // colours and the caret's line tinted, the sandbox note, and the symbol keys over the keyboard
+  const fullEditor =
+    fullScreen &&
+    createPortal(
+      <div className="dk-emb-full" role="dialog" aria-label="Edit HTML" data-block-ui="">
+        <div className="dk-emb-full-head">
+          <button
+            type="button"
+            className="dk-emb-ib dk-emb-full-ib"
+            aria-label="Done"
+            title="Back to the page"
+            onClick={() => setFullScreen(false)}
+          >
+            <EmbIcon name="back" size={18} />
+          </button>
+          <strong>Edit HTML</strong>
+          {draft === shown && (
+            <span className="dk-emb-full-saved" data-testid="html-full-saved">
+              <EmbIcon name="check" size={12} sw={2.6} />
+              Saved
+            </span>
+          )}
+          <span style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className="dk-emb-ib dk-emb-full-ib"
+              aria-label="More"
+              aria-haspopup="menu"
+              aria-expanded={fullMenu}
+              onClick={() => setFullMenu((v) => !v)}
+            >
+              <EmbIcon name="more" size={18} />
+            </button>
+            {fullMenu && (
+              <div className="dk-emb-menu dk-emb-full-menu" role="menu" aria-label="HTML embed">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setFullMenu(false);
+                    setFullScreen(false);
+                    attachAsFile();
+                  }}
+                >
+                  Attach as a file
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="dk-emb-del"
+                  onClick={() => {
+                    setFullScreen(false);
+                    deleteNode();
+                  }}
+                >
+                  <EmbIcon name="trash" /> Delete the embed
+                </button>
+              </div>
+            )}
+          </span>
+        </div>
+        <div className="dk-emb-full-body">
+          <CodeArea value={draft} onChange={setDraft} crossed={crossed} label="HTML code" areaRef={areaRef} autoFocus />
+          <SandboxNote />
+        </div>
+        <div className="dk-emb-symbols" role="toolbar" aria-label="Symbols">
+          {SYMBOLS.map((sym) => (
+            <button key={sym} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => insert(sym)}>
+              {sym}
+            </button>
+          ))}
+        </div>
+      </div>,
+      document.body,
+    );
+
   // on a phone the Edit code and View source buttons sit under the card, outside its frame (Embeds board, frame 10)
   return phone ? (
     <NodeViewWrapper className="dk-emb-phone-wrap" data-testid="html-embed" contentEditable={false}>
@@ -464,70 +548,12 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
           </button>
         </div>
       )}
-      {fullScreen &&
-        createPortal(
-          <div className="dk-emb-full" role="dialog" aria-label="Edit HTML" data-block-ui="">
-            <div className="dk-emb-full-head">
-              <strong>Edit HTML</strong>
-              <button type="button" className="st-btn st-btn-primary" onClick={() => setFullScreen(false)}>
-                Done
-              </button>
-            </div>
-            <div className="dk-emb-full-body">
-              <CodeArea
-                value={draft}
-                onChange={setDraft}
-                crossed={crossed}
-                label="HTML code"
-                areaRef={areaRef}
-                autoFocus
-              />
-              <SandboxNote />
-            </div>
-            <div className="dk-emb-symbols" role="toolbar" aria-label="Symbols">
-              {SYMBOLS.map((s) => (
-                <button key={s} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => insert(s)}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>,
-          document.body,
-        )}
+      {fullEditor}
     </NodeViewWrapper>
   ) : (
     <NodeViewWrapper className={cardClass} data-testid="html-embed" contentEditable={false}>
       {card}
-      {fullScreen &&
-        createPortal(
-          <div className="dk-emb-full" role="dialog" aria-label="Edit HTML" data-block-ui="">
-            <div className="dk-emb-full-head">
-              <strong>Edit HTML</strong>
-              <button type="button" className="st-btn st-btn-primary" onClick={() => setFullScreen(false)}>
-                Done
-              </button>
-            </div>
-            <div className="dk-emb-full-body">
-              <CodeArea
-                value={draft}
-                onChange={setDraft}
-                crossed={crossed}
-                label="HTML code"
-                areaRef={areaRef}
-                autoFocus
-              />
-              <SandboxNote />
-            </div>
-            <div className="dk-emb-symbols" role="toolbar" aria-label="Symbols">
-              {SYMBOLS.map((s) => (
-                <button key={s} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => insert(s)}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>,
-          document.body,
-        )}
+      {fullEditor}
     </NodeViewWrapper>
   );
 }

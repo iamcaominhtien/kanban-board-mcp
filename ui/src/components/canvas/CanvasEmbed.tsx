@@ -83,6 +83,7 @@ export function CanvasEmbed({ id, label, boardId, pageId, small, readOnly, onRep
     return (
       <span className={cls} data-testid="canvas-missing" role="note" onClick={(e) => e.stopPropagation()}>
         <span className={styles.embedState}>
+          <CanvasIcon name="canvas" size={18} />
           <span className={styles.embedStateTitle}>Canvas not found</span>
           <span>It was deleted, or you do not have access. Alt text: “{label}”.</span>
         </span>
@@ -192,11 +193,25 @@ export function CanvasEmbed({ id, label, boardId, pageId, small, readOnly, onRep
         >
           <CanvasIcon name="download" size={14} /> Download
         </a>
-        <button type="button" className={styles.tbBtn} onClick={view} data-testid="canvas-view">
-          <CanvasIcon name="expand" size={14} /> View full size
+        <button
+          type="button"
+          className={`${styles.tbBtn} ${styles.tbIcon}`}
+          aria-label="View full size"
+          title="View full size"
+          onClick={view}
+          data-testid="canvas-view"
+        >
+          <CanvasIcon name="expand" size={14} />
         </button>
-        <button type="button" className={styles.tbBtn} onClick={copyLink} data-testid="canvas-copy-link">
-          <CanvasIcon name="link" size={14} /> Copy link
+        <button
+          type="button"
+          className={`${styles.tbBtn} ${styles.tbIcon}`}
+          aria-label="Copy link"
+          title="Copy link"
+          onClick={copyLink}
+          data-testid="canvas-copy-link"
+        >
+          <CanvasIcon name="link" size={14} />
         </button>
         {canEdit && (
           <span style={{ position: 'relative' }}>

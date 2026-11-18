@@ -2852,7 +2852,7 @@ a.dk-link-card:hover {
     [data-testid='canvas-missing']
   )
   > span
-  > span:first-child {
+  > span:first-of-type {
   font: 700 13px var(--font-body);
   color: #1e2a22;
 }
@@ -2864,7 +2864,7 @@ a.dk-link-card:hover {
     [data-testid='canvas-missing']
   )
   > span
-  > span:nth-child(2) {
+  > span:nth-of-type(2) {
   font: 400 12px/1.45 var(--font-body);
   color: #5b6b60;
 }
@@ -3283,4 +3283,153 @@ span.dk-vid-bar-btn {
 .dk-vprops-file video.dk-vid-poster-thumb {
   width: 64px;
   object-fit: cover;
+}
+
+/* inside the editor .dk-md strong is ink: the too-large title keeps its amber (Embeds 9) */
+.dk-md .dk-emb-fail-big > strong {
+  color: #8a5a00;
+}
+/* the code area paints its code (Embeds 2, 11): the coloured backdrop shows through a textarea whose own letters are
+   clear, the caret stays white, the caret's line is tinted */
+.dk-ca-back {
+  color: #e8f0ea;
+}
+.dk-ca-input {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.dk-ca-input::selection {
+  background: rgba(104, 186, 127, 0.35);
+}
+.dk-ca-back .dk-ca-cur {
+  background: rgba(104, 186, 127, 0.16);
+}
+.dk-ca-back .dk-ca-x {
+  color: #f0a08f;
+}
+/* the phone's full-screen editor bar (Embeds 11): back and More are 44 px, Saved in green */
+.dk-emb-full-head .dk-emb-full-ib {
+  width: 44px;
+  height: 44px;
+}
+.dk-emb-full-head > strong {
+  padding-left: 0;
+}
+.dk-emb-full-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2e6f40;
+}
+.dk-emb-full-menu {
+  right: 0;
+  top: 44px;
+}
+
+/* Insert diagram (frame 20): each choice has its 15 px icon in an 18 px column, "/diagram" at the right of New, the
+   search field has its icon, each diagram a 76 × 48 preview, a rule above Import */
+.dk-dg-choice {
+  grid-template-columns: 18px 1fr auto;
+}
+.dk-dg-choice > .dk-dg-ico {
+  grid-column: 1;
+  grid-row: 1;
+  display: inline-flex;
+  justify-content: center;
+  color: #5b6b60;
+  font-style: normal;
+}
+.dk-dg-choice > strong {
+  grid-row: 1;
+}
+.dk-dg-choice > span {
+  grid-column: 2 / 4;
+  grid-row: 2;
+}
+.dk-dg-kbd {
+  grid-column: 3;
+  grid-row: 1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: #5b6b60;
+  background: none;
+  border: none;
+  padding: 0;
+}
+.dk-dg-here,
+.dk-dg-here:hover {
+  background: #f1f8f3;
+  cursor: default;
+}
+.dk-dg-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  box-sizing: border-box;
+  margin: 2px 4px 6px;
+  padding: 0 10px;
+  border: 1px solid #c7d2cb;
+  border-radius: 8px;
+  color: #5b6b60;
+}
+.dk-dg-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  color: #1e2a22;
+}
+.dk-dg-search:focus-within {
+  border-color: #2e6f40;
+}
+.dk-dg-row {
+  grid-template-columns: 76px 1fr auto;
+  grid-template-areas: 'thumb name ver' 'thumb meta ver';
+  align-items: center;
+}
+.dk-dg-thumb {
+  grid-area: thumb;
+  width: 76px;
+  height: 48px;
+  box-sizing: border-box;
+  border: 1px solid #e3e8e5;
+  border-radius: 6px;
+  background: #ffffff;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dk-dg-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.dk-dg-name {
+  align-self: end;
+}
+.dk-dg-row .dk-dg-meta {
+  align-self: start;
+}
+.dk-dg-import {
+  border-top: 1px solid #e3e8e5;
+  border-radius: 0 0 7px 7px;
+  margin-top: 5px;
+  padding-top: 9px;
+}
+
+/* the not-found panels carry the sketch's or the canvas's icon over the title (frame 52) */
+:is(.dk-editor, .dk-rich) :is([data-testid='sketch-missing'], [data-testid='canvas-missing']) > span > svg {
+  color: #5b6b60;
+  flex: none;
+}
+/* Insert diagram's buttons sit at the right (frame 20) */
+[data-testid='insert-diagram'] .dk-bp-foot {
+  justify-content: flex-end;
 }

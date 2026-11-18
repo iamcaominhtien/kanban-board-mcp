@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-/** A tiny tokenizer for sh / json / ts / py code blocks, painted with the board's mc-k / mc-s / mc-p / mc-c / mc-f colours. */
+/** A tiny tokenizer for sh / json / ts / py / html code blocks, painted with the board's mc-k / mc-s / mc-p / mc-c / mc-f colours. */
 
 type Tok = [cls: string | null, text: string];
 
@@ -123,6 +123,17 @@ function highlightSh(src: string): Tok[] {
   return out;
 }
 
+function highlightHtml(src: string): Tok[] {
+  return scan(src, [
+    [/<!--[\s\S]*?(?:-->|$)/y, () => 'mc-p'],
+    // a tag's name with its bracket, and its end
+    [/<\/?[A-Za-z][\w-]*|\/?>/y, () => 'mc-k'],
+    [/"[^"\n]*"|'[^'\n]*'/y, () => 'mc-s'],
+    // an attribute (class=) or a CSS property (display:)
+    [/[A-Za-z-]+(?==)|[A-Za-z-]+(?=\s*:[^/])/y, () => 'mc-f'],
+  ]);
+}
+
 /**
  * Syntax-highlight code for a language into React nodes.
  * @param code - Source code.
@@ -136,6 +147,7 @@ export function highlight(code: string, lang?: string): ReactNode {
   else if (l === 'json' || l === 'jsonc') toks = highlightJson(code);
   else if (['ts', 'tsx', 'typescript', 'js', 'jsx', 'javascript'].includes(l)) toks = highlightTs(code);
   else if (['py', 'python'].includes(l)) toks = highlightPy(code);
+  else if (['html', 'htm', 'xml', 'svg'].includes(l)) toks = highlightHtml(code);
   else return code;
   return toks.map(([cls, text], i) =>
     cls ? (

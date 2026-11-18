@@ -56,6 +56,7 @@ export function SketchEmbed({ id, label, small, readOnly, onReplace, onChanged }
     return (
       <span className={cls} data-testid="sketch-missing" role="note" onClick={(e) => e.stopPropagation()}>
         <span className={styles.embedState}>
+          <SketchIcon name="edit" size={18} />
           <span className={styles.embedStateTitle}>Sketch not found</span>
           <span className={styles.embedStateText}>It was deleted, or you do not have access. Alt text: “{label}”.</span>
         </span>
