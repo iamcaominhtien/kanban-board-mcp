@@ -30,6 +30,7 @@ import {
   ReaderVideo,
 } from './embeds/readerEmbeds';
 import { CALLOUT_STYLE, type CalloutKind } from './editor/constants';
+import { CALLOUT_ICON_PATHS, CalloutGlyph } from './editor/blocks/calloutIcons';
 import { Icon } from './Icon';
 import {
   ChipCtx,
@@ -529,7 +530,19 @@ function cellStyle(a: Record<string, unknown>, extra?: CSSProperties): CSSProper
   if (va) s.verticalAlign = va as CSSProperties['verticalAlign'];
   const w = Array.isArray(a.colwidth) ? num(a.colwidth[0]) : null;
   if (w) s.width = w;
+  const bc = str(a.borderColor);
+  if (bc) (s as Record<string, string>)['--dk-cb'] = colorOf('c', bc) ?? bc;
   return Object.keys(s).length ? s : undefined;
+}
+
+/** A cell's Cell properties as the `data-*` attributes the table rules read (docs.css). */
+function cellData(a: Record<string, unknown>): Record<string, string | undefined> {
+  return {
+    'data-border': str(a.border) || undefined,
+    'data-border-style': str(a.borderStyle) || undefined,
+    'data-padding': str(a.padding) || undefined,
+    'data-background': str(a.background) || undefined,
+  };
 }
 
 function tableCell(cell: Node, r: Render, key: string): ReactNode {
@@ -543,13 +556,18 @@ function tableCell(cell: Node, r: Render, key: string): ReactNode {
   if (header) {
     const width = text === 'Method' ? 78 : text === 'Auth' ? 70 : undefined;
     return (
-      <th key={key} {...span} {...blockAttrs(cell, r, null, cellStyle(a, width ? { width } : undefined))}>
+      <th
+        key={key}
+        {...span}
+        {...cellData(a)}
+        {...blockAttrs(cell, r, null, cellStyle(a, width ? { width } : undefined))}
+      >
         {children(cell, r, key)}
       </th>
     );
   }
   return (
-    <td key={key} {...span} {...blockAttrs(cell, r, null, cellStyle(a))}>
+    <td key={key} {...span} {...cellData(a)} {...blockAttrs(cell, r, null, cellStyle(a))}>
       {METHOD_COLORS[text] && cell.content?.length === 1 ? (
         // an HTTP method in an API table is drawn in its colour, as DocsMarkdown does
         <p {...blockAttrs(cell.content[0], r)}>
@@ -712,10 +730,15 @@ function block(node: Node, r: Render, key: string): ReactNode {
               .filter(Boolean)
               .join(' ')}
             data-block-id={own['data-block-id']}
+            data-banded={a.banded === true ? 'true' : undefined}
+            data-borders={str(a.borders) || undefined}
+            data-spacing={str(a.spacing) || undefined}
+            data-align={str(a.align) || undefined}
           >
             {head && <thead>{row(head, 0)}</thead>}
             <tbody>{body.map((b, i) => row(b, head ? i + 1 : i))}</tbody>
           </table>
+          {typeof a.caption === 'string' && a.caption && <div className="dk-table-caption">{a.caption}</div>}
         </div>
       );
       // the table clips its own overflow, so a "Changed in" mark sits on a wrapper
@@ -747,7 +770,13 @@ function block(node: Node, r: Render, key: string): ReactNode {
       return (
         <div key={key} {...own} role="note" data-callout={kind} data-callout-style={look}>
           <span style={{ color: fg, marginTop: 2, display: 'flex' }}>
-            {emoji ? <span aria-hidden="true">{emoji}</span> : <Icon name={pal.icon} size={16} strokeWidth={2.2} />}
+            {CALLOUT_ICON_PATHS[icon] ? (
+              <CalloutGlyph name={icon} size={16} strokeWidth={2.2} />
+            ) : emoji ? (
+              <span aria-hidden="true">{emoji}</span>
+            ) : (
+              <Icon name={pal.icon} size={16} strokeWidth={2.2} />
+            )}
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             {str(a.title) && (
@@ -810,6 +839,7 @@ function block(node: Node, r: Render, key: string): ReactNode {
             columnGap: num(a.gap) ?? 24,
             // the rule of a lined block sits as far from the next column's text as the gap
             ['--dk-gap' as string]: `${num(a.gap) ?? 24}px`,
+            ...(a.valign === 'middle' ? { alignItems: 'center' } : {}),
           } as CSSProperties)}
         >
           {cols.map((col, i) => (

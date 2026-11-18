@@ -43,8 +43,24 @@ const GAPS = [
   { value: 40, label: 'Large' },
 ];
 
+/** The ratios Columns properties offers (Blocks board, F 37 for two columns, L 70 for three). */
+export const PANEL_RATIOS: Record<number, number[][]> = {
+  2: [
+    [1, 1],
+    [1, 2],
+    [2, 1],
+    [3, 1],
+  ],
+  3: [
+    [1, 1, 1],
+    [1, 2, 1],
+    [2, 1, 1],
+  ],
+};
+
 /**
- * The Columns properties panel for the block at `pos`.
+ * The Columns properties panel for the block at `pos` (Blocks board, F 37; L 70 for three columns): number, ratio
+ * tiles drawn as small bars, gap, the line between the columns and, for two columns, where their content sits.
  * @param props.anchor - The block's rect (the popover points at it).
  */
 export function ColumnsProps({
@@ -63,14 +79,16 @@ export function ColumnsProps({
   if (!node || node.type.name !== 'columns') return null;
   const n = node.childCount;
   const weights = weightsOf(node.attrs.ratio, n);
+  const current = ratioFromWeights(weights);
   const set = (a: Record<string, unknown>) => setNodeAttrs(editor, pos, a);
+  const ratios = PANEL_RATIOS[n] ?? [weights];
   return (
     <Panel
       title="Columns"
       anchor={anchor}
       onClose={onClose}
       testId="columns-props"
-      width={320}
+      width={330}
       footer={
         <button type="button" className="dk-btn-primary" style={{ marginLeft: 'auto' }} onClick={onClose}>
           Done
@@ -89,13 +107,30 @@ export function ColumnsProps({
         />
       </Row>
       <Row label="Ratio">
-        <Seg
-          label="Ratio"
-          wrap
-          value={ratioFromWeights(weights)}
-          onChange={(v) => set({ ratio: v })}
-          options={(RATIO_PRESETS[n] ?? [weights]).map((w) => ({ value: ratioFromWeights(w), label: ratioLabel(w) }))}
-        />
+        <div className="dk-ratios" role="radiogroup" aria-label="Ratio">
+          {ratios.map((w) => {
+            const r = ratioFromWeights(w);
+            const on = r === current;
+            return (
+              <button
+                key={ratioLabel(w)}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                className={`dk-ratio${on ? ' on' : ''}`}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => set({ ratio: r })}
+              >
+                <span className="dk-ratio-bars" aria-hidden="true">
+                  {w.map((x, i) => (
+                    <span key={i} style={{ flex: x }} />
+                  ))}
+                </span>
+                {ratioLabel(w)}
+              </button>
+            );
+          })}
+        </div>
       </Row>
       <Row label="Gap">
         <Seg
@@ -106,7 +141,38 @@ export function ColumnsProps({
         />
       </Row>
       <Toggle label="Line between columns" checked={!!node.attrs.line} onChange={(v) => set({ line: v })} />
-      <p className="dk-bp-note">On phones the columns stack in reading order, left one first.</p>
+      {n === 2 && (
+        <Row label="Align content">
+          <Seg
+            label="Align content"
+            value={(node.attrs.valign as string | null) ?? null}
+            onChange={(v) => set({ valign: v })}
+            options={[
+              { value: null, label: 'Top' },
+              { value: 'middle', label: 'Middle' },
+            ]}
+          />
+        </Row>
+      )}
+      {n === 2 && (
+        <div className="dk-bp-info">
+          <svg
+            aria-hidden="true"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v5M12 8h.01" />
+          </svg>
+          <div>On phones the columns stack in reading order, left one first.</div>
+        </div>
+      )}
     </Panel>
   );
 }
@@ -187,6 +253,7 @@ export function ColumnsView({ node, editor, getPos, updateAttributes }: NodeView
       ref={wrapRef}
       className={`dk-colsv${node.attrs.line ? ' dk-colsv-line' : ''}${inside ? ' is-inside' : ''}`}
       style={style}
+      data-valign={node.attrs.valign === 'middle' ? 'middle' : undefined}
       data-testid="docs-columns"
     >
       {inside && (

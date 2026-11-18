@@ -34,7 +34,7 @@
 .dk-btn-primary:focus-visible,
 .dk-btn-ghost:focus-visible,
 .dk-btb:focus-visible,
-.dk-seg button:focus-visible,
+.dk-track button:focus-visible,
 .dk-swatch:focus-visible {
   outline: 2px solid #2e6f40;
   outline-offset: 2px;
@@ -109,19 +109,38 @@
 .dk-bp-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px 8px;
+  gap: 8px;
+  padding: 14px 14px 12px;
   font-size: 13.5px;
   font-weight: 700;
   flex: none;
 }
+.dk-bp-head > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+/* a count beside the title ("4 cells") */
+.dk-bp-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #f1f3f1;
+  color: #3a4a3e;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex: none;
+}
 .dk-bp-x {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border: none;
   background: none;
-  border-radius: 6px;
-  color: #5b6b60;
+  border-radius: 7px;
+  color: #3a4a3e;
+  flex: none;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -131,25 +150,37 @@
   background: #f1f5f2;
 }
 .dk-bp-body {
-  padding: 2px 14px 12px;
+  padding: 0 14px 14px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   min-height: 0;
 }
 .dk-bp-foot {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
-  border-top: 1px solid #eef3ef;
+  padding: 0 14px 14px;
   flex: none;
+}
+/* the board's small buttons (st-btn-sm) in a panel's footer */
+.dk-bp-foot .dk-btn-primary,
+.dk-bp-foot .dk-btn-ghost {
+  height: auto;
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.dk-bp-foot .dk-btn-ghost {
+  border-color: #e3e8e5;
 }
 .dk-bp-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
 .dk-bp-row-inline {
   display: flex;
@@ -177,9 +208,9 @@
   padding: 0 12px;
 }
 .dk-bp-label {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #5b6b60;
 }
@@ -236,7 +267,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -245,12 +276,13 @@
   font-weight: 400;
   color: #5b6b60;
   font-size: 11.5px;
+  margin-top: 1px;
 }
 .dk-bp-toggle input {
   appearance: none;
   width: 34px;
-  height: 20px;
-  border-radius: 10px;
+  height: 19px;
+  border-radius: 999px;
   background: #c7d2cb;
   position: relative;
   cursor: pointer;
@@ -263,8 +295,8 @@
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   background: #ffffff;
   transition: left 0.15s;
@@ -273,7 +305,7 @@
   background: #2e6f40;
 }
 .dk-bp-toggle input:checked::after {
-  left: 16px;
+  left: 17px;
 }
 .dk-bp-tabs {
   display: flex;
@@ -297,38 +329,44 @@
   color: #2e6f40;
   border-bottom-color: #2e6f40;
 }
-.dk-seg {
-  display: inline-flex;
-  border: 1px solid #d3dbd6;
+/* a segmented choice: the board's grey track with the chosen option raised in white */
+.dk-track {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
   border-radius: 8px;
-  overflow: hidden;
-  background: #ffffff;
+  background: #eef3ef;
   max-width: 100%;
+  box-sizing: border-box;
 }
-.dk-seg-wrap {
+.dk-track-wrap {
   flex-wrap: wrap;
 }
-.dk-seg button {
+.dk-track button {
+  flex: 1;
   border: none;
-  border-right: 1px solid #e3e8e5;
-  background: none;
+  background: transparent;
   font: inherit;
   font-size: 12px;
   font-weight: 600;
-  color: #3a4a3e;
-  padding: 6px 10px;
+  color: #5b6b60;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  min-height: 32px;
+  white-space: nowrap;
 }
-.dk-seg button:last-child {
-  border-right: none;
+.dk-track button:hover:not(.on) {
+  color: #1e2a22;
 }
-.dk-seg button.on {
-  background: #eaf5ee;
-  color: #2e6f40;
+.dk-track button.on {
+  background: #ffffff;
+  color: #1e2a22;
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.18);
 }
 .dk-swatches {
   display: flex;
@@ -336,8 +374,9 @@
   gap: 6px;
 }
 .dk-swatch {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
   border-radius: 6px;
   border: 1px solid rgba(30, 42, 34, 0.14);
   cursor: pointer;
@@ -349,14 +388,172 @@
     0 0 0 4px #2e6f40;
 }
 .dk-swatch-none {
-  background: linear-gradient(135deg, #ffffff 45%, #c4432a 46%, #c4432a 54%, #ffffff 55%);
+  border-color: #c7d2cb;
+  background: linear-gradient(135deg, #ffffff 46%, #c4432a 46%, #c4432a 54%, #ffffff 54%);
+}
+
+/* pill chips (Cell properties' Borders): 26 px, the chosen one green */
+.dk-chips {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.dk-chips button {
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid #e3e8e5;
+  background: #ffffff;
+  color: #5b6b60;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dk-chips button.on {
+  background: #f1f8f3;
+  border-color: #bfdcc7;
+  color: #2e6f40;
+}
+/* a small select or field of a panel (board: 30-32 px, border #C7D2CB, radius 8) */
+.dk-bp-select,
+.dk-bp-field {
+  height: 30px;
+  box-sizing: border-box;
+  border: 1px solid #c7d2cb;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 12.5px;
+  color: #1e2a22;
+  min-width: 0;
+  width: 100%;
+}
+.dk-bp-field::placeholder {
+  color: #5b6b60;
+}
+.dk-bp-field:focus,
+.dk-bp-select:focus {
+  outline: 2px solid #2e6f40;
+  outline-offset: -1px;
+}
+.dk-bp-fields {
+  display: flex;
+  gap: 10px;
+}
+.dk-bp-fields label {
+  width: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5b6b60;
+}
+.dk-bp-toggle-label .dk-bp-label {
+  flex: 1;
+}
+.dk-btn-ghost.dk-btn-danger-outline {
+  border-color: #f0c4b8;
+  color: #c4432a;
+}
+/* Cell properties (Blocks board, F 30) */
+.dk-cellp-borders {
+  gap: 8px;
+}
+.dk-cellp-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dk-cellp-line .dk-bp-select {
+  width: 112px;
+  height: 32px;
+  flex: none;
+}
+.dk-cellp-align {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dk-cellp-align .dk-track button {
+  flex: none;
+  padding: 0 10px;
+}
+/* Table styles (Blocks board, F 32): a 2 x 2 grid of previews */
+.dk-looks {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.dk-look {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px;
+  border: 1.5px solid #e3e8e5;
+  border-radius: 10px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e2a22;
+  text-align: left;
+  cursor: pointer;
+}
+.dk-look.on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+}
+.dk-look-t {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+}
+.dk-look-t td {
+  border: 1px solid #d5ddd8;
+  padding: 0 6px;
+  height: 24px;
+  box-sizing: border-box;
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.4;
+  background: #ffffff;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.dk-look-t td.h,
+.dk-look-t td.hc {
+  background: #f1f5f2;
+  font-weight: 700;
+}
+.dk-look-striped td.h {
+  background: #2e6f40;
+  color: #ffffff;
+}
+.dk-look-striped tr:nth-child(odd) td:not(.h) {
+  background: #f1f8f3;
+}
+.dk-look-minimal td {
+  border-width: 0 0 1px;
+  background: none;
+}
+.dk-look-minimal td.h {
+  background: none;
+  border-bottom: 2px solid #1e2a22;
 }
 
 /* touch: 44 px controls */
 @media (pointer: coarse) {
-  .dk-seg button,
+  .dk-track button {
+    height: 40px;
+  }
   .dk-btn-primary,
-  .dk-btn-ghost {
+  .dk-btn-ghost,
+  .dk-bp-foot .dk-btn-primary,
+  .dk-bp-foot .dk-btn-ghost {
     min-height: 44px;
   }
   .dk-swatch {
@@ -735,6 +932,53 @@
   font-style: italic;
   margin-top: 4px;
 }
+/* Image not found (Blocks board, D 21) */
+.dk-imgv-missing {
+  /* as wide as the text column (the image box shrinks to its content) */
+  width: 760px;
+  max-width: 100%;
+  line-height: 1.45;
+  height: 190px;
+  box-sizing: border-box;
+  border: 1px dashed #c7d2cb;
+  border-radius: 10px;
+  background: #f6faf7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  text-align: center;
+  padding: 0 22px;
+  color: #1e2a22;
+}
+.dk-imgv-missing-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+.dk-imgv-missing-text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #5b6b60;
+}
+.dk-imgv-missing .dk-imgv-alttext {
+  display: inline;
+  font-style: normal;
+  margin: 0;
+}
+.dk-imgv-missing-actions {
+  display: flex;
+  gap: 8px;
+}
+.dk-imgv-missing-actions .dk-btn-ghost {
+  height: auto;
+  line-height: 1.45;
+  padding: 5px 10px;
+  border-color: #e3e8e5;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
 .dk-imgv-card-actions {
   display: flex;
   gap: 8px;
@@ -887,15 +1131,16 @@
 }
 .dk-link-prev {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
   border: 1px solid #e3e8e5;
   border-radius: 10px;
   padding: 8px;
 }
 .dk-link-prev img {
-  width: 72px;
-  height: 52px;
+  width: 64px;
+  height: 44px;
+  flex: none;
   object-fit: cover;
   border-radius: 6px;
   background: #eef3ef;
@@ -903,8 +1148,52 @@
 .dk-link-prev div {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   min-width: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.dk-link-prev strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dk-link-prev .dk-bp-muted {
+  font-size: 12px;
+}
+/* Insert image (Blocks board, D 14-16): 14 px padding, the tabs as a segmented track with icons, the Link tab's
+   "Image address" field in mono, then the preview card and "Save a copy" */
+.dk-imgdlg .dk-bp-head {
+  padding-bottom: 10px;
+}
+.dk-imgdlg .dk-bp-body {
+  gap: 12px;
+}
+.dk-imgdlg-tabs button {
+  height: 26px;
+}
+.dk-imgdlg-link {
+  gap: 0;
+}
+.dk-imgdlg-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #5b6b60;
+  margin-bottom: 4px;
+}
+.dk-imgdlg-url {
+  min-height: 0;
+  height: 32px;
+  padding: 0 10px;
+  border-color: #c7d2cb;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+}
+.dk-imgdlg-link .dk-link-prev {
+  margin-top: 12px;
+}
+.dk-imgdlg-link .dk-bp-toggle {
+  margin-top: 12px;
 }
 .dk-files-grid {
   display: grid;
@@ -1016,18 +1305,147 @@
 /* the table styles themselves are in docs.css, shared with the reader */
 .dk-table-corner {
   position: absolute;
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
-  border: 1px solid #c7d2cb;
-  background: #ffffff;
+  border-radius: 3px;
+  border: none;
+  background: #c7d2cb;
   cursor: pointer;
   padding: 0;
   pointer-events: auto;
 }
-.dk-table-corner:hover {
+.dk-table-corner:hover,
+.dk-table-grip:hover {
+  background: #2e6f40 !important;
+}
+/* the "+" handles: add a column after the column in hand (on its bar), add a row under the table */
+.dk-table-plus {
+  position: absolute;
+  pointer-events: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
   background: #2e6f40;
-  border-color: #2e6f40;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+}
+.dk-table-plus-row {
+  width: 20px;
+  height: 20px;
+}
+/* the bar over selected cells (Blocks board, F 28): white, 28 px buttons, the chosen ones green */
+.dk-ctb {
+  position: absolute;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 5px;
+  background: #ffffff;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(30, 42, 34, 0.13);
+  z-index: 3;
+  white-space: nowrap;
+}
+.dk-ctb-btn,
+.dk-ctb-merge {
+  width: 28px;
+  height: 28px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #3a4a3e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  flex: none;
+}
+.dk-ctb-btn:hover {
+  background: #f1f5f2;
+}
+.dk-ctb-btn.on {
+  background: #f1f8f3;
+  color: #2e6f40;
+}
+.dk-ctb-btn.danger {
+  color: #c4432a;
+}
+.dk-ctb-btn.off {
+  color: #5b6b60;
+  cursor: default;
+}
+.dk-ctb-btn.off:hover {
+  background: transparent;
+}
+.dk-ctb-merge {
+  width: auto;
+  min-width: 28px;
+  padding: 0 9px;
+  gap: 3px;
+  background: #f1f8f3;
+  color: #2e6f40;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+.dk-ctb-merge.off {
+  background: transparent;
+  color: #9aa8a0;
+  cursor: default;
+}
+.dk-ctb-sep {
+  width: 1px;
+  height: 18px;
+  background: #e3e8e5;
+  margin: 0 3px;
+  flex: none;
+}
+.dk-ctb-count {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  margin: 0 6px 0 2px;
+  border: none;
+  border-radius: 999px;
+  background: #f1f3f1;
+  color: #3a4a3e;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dk-ctb-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  z-index: 4;
+}
+/* tablet (Blocks board, L 61): 44 px buttons, 19 px icons */
+.dk-ctb-tablet {
+  gap: 2px;
+  padding: 5px 6px;
+}
+.dk-ctb-tablet .dk-ctb-btn {
+  width: 44px;
+  height: 44px;
+}
+.dk-ctb-tablet .dk-ctb-merge {
+  height: 44px;
+  min-width: 44px;
+  padding: 0 9px;
+  font-size: 13px;
+}
+.dk-ctb-tablet .dk-ctb-sep {
+  height: 24px;
 }
 /* the bar under a selected cell on a phone (Blocks board, frame 34): white, a hairline on top, 64×56 buttons with a
    20 px icon over a 10 px word, Delete in red */
@@ -1108,59 +1526,83 @@
 }
 
 /* the size picker */
+/* Insert table: size (Blocks board, F 25) */
+.dk-cat-desk.dk-cat-step {
+  padding: 14px;
+}
 .dk-tsize {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 6px;
+}
+.dk-bp-sheet .dk-tsize,
+.dk-cat-tablet .dk-tsize {
+  padding: 0 14px 14px;
 }
 .dk-tsize-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 13.5px;
+  margin-bottom: 10px;
 }
 .dk-tsize-n {
-  margin-left: auto;
-  font-weight: 600;
-  color: #5b6b60;
-  font-size: 12px;
-}
-.dk-tsize-back {
-  border: none;
-  background: none;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  color: #5b6b60;
-  padding: 0 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #2e6f40;
+  margin: 10px 0 12px;
 }
 .dk-tsize-grid {
   display: grid;
   gap: 3px;
 }
 .dk-tsize-grid button {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
   border-radius: 3px;
-  border: 1px solid #d3dbd6;
+  border: 1px solid #c7d2cb;
   background: #ffffff;
   padding: 0;
   cursor: pointer;
 }
 .dk-tsize-grid button.on {
-  background: #cfe8d6;
+  background: #e6f2ea;
   border-color: #2e6f40;
 }
 .dk-tsize-opts {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
 }
-.dk-tsize .dk-bp-foot {
-  padding: 8px 0 0;
-  justify-content: flex-end;
+.dk-tsize-steppers + .dk-tsize-opts {
+  margin-top: 12px;
+}
+.dk-tsize-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+}
+.dk-tsize-foot .dk-btn-primary {
+  height: auto;
+  min-height: 28px;
+  margin-left: auto;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.dk-tsize-custom {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2e6f40;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  white-space: nowrap;
 }
 .dk-tsize-steppers {
   display: flex;
@@ -1203,6 +1645,131 @@
 .dk-colsv [data-rd-node='column'] {
   min-width: 0;
   border-radius: 6px;
+}
+.dk-colsv[data-valign='middle'] > .dk-colsv-content > [data-node-view-content-react] {
+  align-items: center;
+}
+/* Callout properties (Blocks board, H 42) */
+.dk-kinds {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.dk-kinds button {
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dk-kinds button.on {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 3.5px #2e6f40;
+}
+.dk-swatches-24 .dk-swatch {
+  width: 24px;
+  height: 24px;
+}
+.dk-bp-fields-one {
+  width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5b6b60;
+}
+.dk-bp-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+}
+.dk-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+.dk-icon-grid button {
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid #e3e8e5;
+  background: #ffffff;
+  color: #5b6b60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.dk-icon-grid button.on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+  color: #2e6f40;
+}
+
+/* Columns properties (Blocks board, F 37, L 70): ratio tiles with little bars */
+.dk-ratios {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dk-ratio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 70px;
+  box-sizing: border-box;
+  padding: 7px 8px;
+  border: 1.5px solid #e3e8e5;
+  border-radius: 9px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.dk-ratio.on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+  color: #2e6f40;
+}
+.dk-ratio-bars {
+  display: flex;
+  gap: 2px;
+  width: 50px;
+}
+.dk-ratio-bars span {
+  height: 14px;
+  border-radius: 2px;
+  background: #9aa8a0;
+}
+.dk-ratio.on .dk-ratio-bars span {
+  background: #2e6f40;
+}
+/* an information note in a panel (blue) */
+.dk-bp-info {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: #e8f1fa;
+  color: #244e78;
+  border: 1px solid #c9ddf0;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.dk-bp-info svg {
+  flex: none;
+  margin-top: 3px;
 }
 .dk-colsv.is-inside {
   outline: 2px solid #2e6f40;
@@ -1570,18 +2137,108 @@
   padding: 0;
   box-shadow: 0 2px 8px rgba(30, 42, 34, 0.12);
 }
+/* select mode (Blocks board, J 55): round 22 px checkboxes in a 32 px margin; a chosen block on a green row */
 .dk-block-check {
-  width: 30px;
-  height: 30px;
-  margin: 7px;
-  border-radius: 7px;
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
+  border-radius: 50%;
   border: 2px solid #9aa8a0;
   box-shadow: none;
+  cursor: pointer;
+}
+.dk-block-check::before {
+  /* a 44 px target round the 22 px circle */
+  content: '';
+  position: absolute;
+  inset: -11px;
 }
 .dk-block-check.on {
   background: #2e6f40;
   border-color: #2e6f40;
   color: #ffffff;
+}
+[data-select-mode] .dk-pm > * {
+  margin-left: 32px;
+}
+[data-select-mode] .dk-editor .dk-block-chosen {
+  background: #e6f2ea;
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 5px #e6f2ea,
+    -32px 0 0 5px #e6f2ea;
+}
+.dk-sel-top {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #1e2a22;
+  color: #ffffff;
+}
+.dk-sel-top strong {
+  flex: 1;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.dk-sel-top button {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.dk-sel-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 4px 6px calc(4px + env(safe-area-inset-bottom, 0));
+  background: #ffffff;
+  border-top: 1px solid #e3e8e5;
+  overflow-x: auto;
+}
+.dk-sel-bar button {
+  width: 64px;
+  height: 56px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #3a4a3e;
+  font: inherit;
+  cursor: pointer;
+}
+.dk-sel-bar button span {
+  font-size: 10px;
+  font-weight: 600;
+}
+.dk-sel-bar button.danger {
+  color: #c4432a;
+}
+.dk-sel-bar button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 @media (pointer: coarse) {
   .dk-handle button {
@@ -2254,7 +2911,7 @@
   letter-spacing: 0.06em;
 }
 /* a choice of words: a tinted pill with 40 px segments */
-:is(.dk-bp-sheet, .dk-bp-side) .dk-seg {
+:is(.dk-bp-sheet, .dk-bp-side) .dk-track {
   display: flex;
   gap: 2px;
   padding: 2px;
@@ -2262,7 +2919,7 @@
   border-radius: 8px;
   background: #eef3ef;
 }
-:is(.dk-bp-sheet, .dk-bp-side) .dk-seg button {
+:is(.dk-bp-sheet, .dk-bp-side) .dk-track button {
   flex: 1;
   justify-content: center;
   min-height: 40px;
@@ -2272,18 +2929,18 @@
   color: #5b6b60;
   white-space: nowrap;
 }
-:is(.dk-bp-sheet, .dk-bp-side) .dk-seg button.on {
+:is(.dk-bp-sheet, .dk-bp-side) .dk-track button.on {
   background: #ffffff;
   color: #1e2a22;
   box-shadow: 0 1px 3px rgba(30, 42, 34, 0.18);
 }
 /* a choice drawn with pictures (Position): 64 px tiles, the picture over the word */
-:is(.dk-bp-sheet, .dk-bp-side) .dk-seg:has(> button > svg) {
+:is(.dk-bp-sheet, .dk-bp-side) .dk-track:has(> button > svg) {
   gap: 6px;
   padding: 0;
   background: none;
 }
-:is(.dk-bp-sheet, .dk-bp-side) .dk-seg > button:has(> svg) {
+:is(.dk-bp-sheet, .dk-bp-side) .dk-track > button:has(> svg) {
   flex-direction: column;
   gap: 4px;
   height: 64px;
@@ -2294,7 +2951,7 @@
   font-size: 11.5px;
   box-shadow: none;
 }
-:is(.dk-bp-sheet, .dk-bp-side) .dk-seg > button:has(> svg).on {
+:is(.dk-bp-sheet, .dk-bp-side) .dk-track > button:has(> svg).on {
   border-color: #2e6f40;
   background: #f1f8f3;
   color: #2e6f40;

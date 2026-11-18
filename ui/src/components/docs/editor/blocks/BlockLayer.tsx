@@ -9,11 +9,12 @@
 
 import type { Editor } from '@tiptap/core';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { uploadLimitMb, useDocsSpaceSettings } from '../../embeds/embedApi';
 import { Icon } from '../../Icon';
 import { blockKitOf, type BlockUiRequest, type ImageTab } from './bus';
 import { blockRange, chosenBlocks, clearChosenBlocks, setChosenBlocks, toggleChosenBlock } from './BlockKit';
-import { BlockMenu } from './BlockMenu';
+import { BlockMenu, selectBlockText } from './BlockMenu';
 import { currentBlock, deleteBlocks, duplicateBlocks, moveBlock } from './commands';
 import { CropDialog } from './CropDialog';
 import { ImageProps } from './ImageProps';
@@ -207,6 +208,12 @@ export function BlockLayer({
   useLayoutEffect(() => {
     const layer = layerRef.current;
     if (!layer || editor.isDestroyed) return;
+    // select mode (Blocks board, J 55): the blocks step 32 px right, their checkboxes stand in the margin
+    const host = hostRef.current;
+    if (host) {
+      if (selectMode) host.setAttribute('data-select-mode', '');
+      else host.removeAttribute('data-select-mode');
+    }
     const base = layer.getBoundingClientRect();
     const want: number[] = selectMode
       ? (() => {
@@ -225,7 +232,7 @@ export function BlockLayer({
       next.push({ pos, top: r.top - base.top, left: r.left - base.left, height: r.height });
     }
     setRects((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
-  }, [editor, tick, selectMode, cursorTop, layout]);
+  }, [editor, tick, selectMode, cursorTop, layout, hostRef]);
 
   const firstChosenRect = (() => {
     if (!chosen.length) return null;
@@ -237,20 +244,118 @@ export function BlockLayer({
   })();
 
   const many = chosen.length;
-  const bar = many > 0 && editable && (
+  const selIcon = (d: string) => (
+    <svg
+      aria-hidden="true"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={d} />
+    </svg>
+  );
+  const commentChosen = () => {
+    if (!onComment || many !== 1) return;
+    const pos = chosen[0];
+    clearChosenBlocks(editor);
+    if (selectBlockText(editor, pos)) onComment();
+  };
+  // select mode (Blocks board, J 55): a dark bar on top with the count, a white bar of six actions at the bottom
+  const selectBars =
+    selectMode &&
+    many > 0 &&
+    editable &&
+    createPortal(
+      <>
+        <div
+          className="dk-sel-top"
+          role="status"
+          data-block-ui=""
+          style={{
+            top: (hostRef.current?.closest('[data-testid="editor-scroll"]')?.getBoundingClientRect().top ?? 56) + 8,
+          }}
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <strong>{many} selected</strong>
+          <button type="button" aria-label="Clear the selection" onClick={() => clearChosenBlocks(editor)}>
+            <Icon name="close" size={16} />
+          </button>
+        </div>
+        <div
+          className="dk-sel-bar"
+          role="toolbar"
+          aria-label={`${many} blocks`}
+          data-block-ui=""
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <button type="button" onClick={() => setMenu({ pos: chosen[0], anchor: null })}>
+            {selIcon('M4 8h13l-3-3M20 16H7l3 3')}
+            <span>Turn into</span>
+          </button>
+          <button type="button" onClick={() => duplicateBlocks(editor, chosen)}>
+            {selIcon('M8 8h12v12H8zM16 8V4H4v12h4')}
+            <span>Duplicate</span>
+          </button>
+          <button
+            type="button"
+            disabled={many !== 1}
+            onClick={() => {
+              const to = moveBlock(editor, chosen[0], -1);
+              if (to != null) setChosenBlocks(editor, [to]);
+            }}
+          >
+            {selIcon('M12 19V5M6 11l6-6 6 6')}
+            <span>Up</span>
+          </button>
+          <button
+            type="button"
+            disabled={many !== 1}
+            onClick={() => {
+              const to = moveBlock(editor, chosen[0], 1);
+              if (to != null) setChosenBlocks(editor, [to]);
+            }}
+          >
+            {selIcon('M12 5v14M6 13l6 6 6-6')}
+            <span>Down</span>
+          </button>
+          <button type="button" disabled={!onComment || many !== 1} onClick={commentChosen}>
+            {selIcon('M4 5h16v11H9l-5 4z')}
+            <span>Comment</span>
+          </button>
+          <button
+            type="button"
+            className="danger"
+            onClick={() => {
+              deleteBlocks(editor, chosen);
+              clearChosenBlocks(editor);
+            }}
+          >
+            {selIcon('M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6')}
+            <span>Delete</span>
+          </button>
+        </div>
+      </>,
+      document.body,
+    );
+  const bar = many > 0 && editable && !selectMode && (
     <div
-      className={`dk-chosen-bar${layout === 'phone' || selectMode ? ' dk-chosen-bar-bottom' : ''}`}
+      className={`dk-chosen-bar${layout === 'phone' ? ' dk-chosen-bar-bottom' : ''}`}
       role="toolbar"
       aria-label={`${many} blocks`}
       data-block-ui=""
       style={
-        layout === 'phone' || selectMode || !firstChosenRect
+        layout === 'phone' || !firstChosenRect
           ? undefined
           : { top: Math.max(0, firstChosenRect.top - 46), left: firstChosenRect.left }
       }
       onMouseDown={(e) => e.preventDefault()}
     >
-      <strong>{selectMode ? `${many} selected` : `${many} blocks`}</strong>
+      <strong>{`${many} blocks`}</strong>
       <button
         type="button"
         onClick={(e) =>
@@ -262,30 +367,6 @@ export function BlockLayer({
       <button type="button" onClick={() => duplicateBlocks(editor, chosen)}>
         Duplicate
       </button>
-      {selectMode && (
-        <>
-          <button
-            type="button"
-            disabled={many !== 1}
-            onClick={() => {
-              const to = moveBlock(editor, chosen[0], -1);
-              if (to != null) setChosenBlocks(editor, [to]);
-            }}
-          >
-            Up
-          </button>
-          <button
-            type="button"
-            disabled={many !== 1}
-            onClick={() => {
-              const to = moveBlock(editor, chosen[0], 1);
-              if (to != null) setChosenBlocks(editor, [to]);
-            }}
-          >
-            Down
-          </button>
-        </>
-      )}
       <button
         type="button"
         className="danger"
@@ -299,7 +380,7 @@ export function BlockLayer({
       <button type="button" aria-label="Clear the selection" onClick={() => clearChosenBlocks(editor)}>
         <Icon name="close" size={13} />
       </button>
-      {!selectMode && layout === 'desktop' && (
+      {layout === 'desktop' && (
         <span className="dk-chosen-hint">Esc clears the selection · Ctrl A selects every block · Del deletes</span>
       )}
     </div>
@@ -341,18 +422,30 @@ export function BlockLayer({
               aria-label="Choose this block"
               className={`dk-block-check${on ? ' on' : ''}`}
               data-block-ui=""
-              style={{
-                top: r.top + Math.min(r.height / 2 - 22, 0),
-                left: Math.max(r.left - 46, -((hostRef.current?.getBoundingClientRect().left ?? 0) - 2)),
-              }}
+              style={{ top: r.top + 1, left: r.left - 32 }}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => toggleChosenBlock(editor, r.pos)}
             >
-              {on && <Icon name="check" size={16} />}
+              {on && (
+                <svg
+                  aria-hidden="true"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 12.5L10 17.5L19 7" />
+                </svg>
+              )}
             </button>
           );
         })}
       {bar}
+      {selectBars}
       {imageDialog && (
         <InsertImageDialog
           editor={editor}

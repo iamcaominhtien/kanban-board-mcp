@@ -1,13 +1,13 @@
 /**
- * Insert table: the size (board F 25, 26). A hover grid on a desktop or tablet, steppers on a phone; header row,
- * header column and full width; Insert table. The arrow keys change the size while the catalog has the keyboard.
+ * Insert table: the size (board F 25, 26). A hover grid on a desktop or tablet, steppers on a phone (or after
+ * "Custom size…"); header row, header column and full width; Insert table. The arrow keys change the size while the catalog has the keyboard.
  */
 
 import { useState } from 'react';
 import type { TableSize } from './commands';
 import { Toggle } from './ui';
 
-const GRID_COLS = 10;
+const GRID_COLS = 8;
 const GRID_ROWS = 8;
 
 /** One stepper: label, value, minus and plus (44 px on a phone). */
@@ -49,46 +49,31 @@ function Stepper({
 }
 
 /**
- * The size picker.
+ * The size picker (Blocks board, F 25): "Insert table", an 8 x 8 hover grid of 22 px cells, the size in green under
+ * it, the three switches, then "Custom size…" and Insert table. Custom size (and a phone) shows steppers instead of
+ * the grid, for tables larger than the grid.
  * @param props.steppers - Steppers instead of the hover grid (a phone).
- * @param props.onBack - Back to the catalog's list.
  */
 export function TableSizePicker({
   size,
   onChange,
   onInsert,
-  onBack,
   steppers,
 }: {
   size: TableSize;
   onChange: (s: TableSize) => void;
   /** Inserts the table: `picked` when a grid cell was clicked, else the size shown. */
   onInsert: (picked?: TableSize) => void;
-  onBack: () => void;
   steppers?: boolean;
 }) {
   const [hover, setHover] = useState<{ r: number; c: number } | null>(null);
+  const [custom, setCustom] = useState(false);
   const shown = hover ? { rows: hover.r, cols: hover.c } : size;
+  const withSteppers = steppers || custom || size.cols > GRID_COLS || size.rows > GRID_ROWS;
   return (
     <div className="dk-tsize" data-testid="table-size">
-      <div className="dk-tsize-head">
-        <button
-          type="button"
-          className="dk-tsize-back"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={onBack}
-          aria-label="Back"
-        >
-          ‹
-        </button>
-        <span>Insert table</span>
-        {!steppers && (
-          <span className="dk-tsize-n" aria-live="polite">
-            {shown.cols} columns x {shown.rows} rows
-          </span>
-        )}
-      </div>
-      {steppers ? (
+      <div className="dk-tsize-head">Insert table</div>
+      {withSteppers ? (
         <div className="dk-tsize-steppers">
           <Stepper
             label="Columns"
@@ -105,7 +90,7 @@ export function TableSizePicker({
           role="grid"
           aria-label="Table size"
           onMouseLeave={() => setHover(null)}
-          style={{ gridTemplateColumns: `repeat(${GRID_COLS}, 18px)` }}
+          style={{ gridTemplateColumns: `repeat(${GRID_COLS}, 22px)` }}
         >
           {Array.from({ length: GRID_ROWS * GRID_COLS }, (_, i) => {
             const r = Math.floor(i / GRID_COLS) + 1;
@@ -126,6 +111,11 @@ export function TableSizePicker({
           })}
         </div>
       )}
+      {!steppers && (
+        <div className="dk-tsize-n" aria-live="polite">
+          {shown.cols} columns x {shown.rows} rows
+        </div>
+      )}
       <div className="dk-tsize-opts">
         <Toggle label="Header row" checked={!!size.headerRow} onChange={(v) => onChange({ ...size, headerRow: v })} />
         <Toggle
@@ -137,7 +127,18 @@ export function TableSizePicker({
           <Toggle label="Full width" checked={!!size.fullWidth} onChange={(v) => onChange({ ...size, fullWidth: v })} />
         )}
       </div>
-      <div className="dk-bp-foot">
+      <div className="dk-tsize-foot">
+        {!steppers && (
+          <button
+            type="button"
+            className="dk-tsize-custom"
+            aria-pressed={withSteppers}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setCustom((v) => !v)}
+          >
+            {withSteppers ? 'Pick on the grid' : 'Custom size…'}
+          </button>
+        )}
         <button
           type="button"
           className="dk-btn-primary"

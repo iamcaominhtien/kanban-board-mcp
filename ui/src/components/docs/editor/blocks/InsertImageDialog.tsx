@@ -6,11 +6,11 @@
  */
 
 import type { Editor } from '@tiptap/core';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTickets } from '../../../../api/tickets';
 import { setNodeAttrs } from './commands';
 import { IMAGE_TYPES, isImageFile, startImageUpload } from './imageUpload';
-import { Dialog, Tabs, Toggle } from './ui';
+import { Dialog, Toggle, formatBytes } from './ui';
 
 type Tab = 'upload' | 'link' | 'files';
 
@@ -35,6 +35,21 @@ export function fileNameOf(src: string): string {
     return src;
   }
 }
+
+/** "JPG" for `…/hanoi-office.jpg`, else the picture type's subtype ("image/png" gives "PNG"); "" when neither. */
+export function imageKind(src: string, type?: string | null): string {
+  const ext = /\.([a-z0-9]{2,5})$/i.exec(fileNameOf(src))?.[1];
+  if (ext) return ext.toUpperCase().replace('JPEG', 'JPG');
+  const sub = type?.startsWith('image/') ? type.slice(6).replace(/\+.*$/, '') : '';
+  return sub.toUpperCase().replace('JPEG', 'JPG');
+}
+
+/** The tabs' icons (board D 14-16): upload arrow, link, folder. */
+const TAB_ICON: Record<Tab, ReactNode> = {
+  upload: <path d="M12 16V4M7 9l5-5 5 5M4 20h16" />,
+  link: <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />,
+  files: <path d="M3 6h6l2 2h10v11H3z" />,
+};
 
 /** The picture addresses in a Markdown text (`![…](src)` and `<img src>`). */
 export function imagesInText(text: string): string[] {
@@ -67,12 +82,33 @@ export function InsertImageDialog({
   const fileRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState('');
   const [preview, setPreview] = useState<{ w: number; h: number } | null | 'error'>(null);
+  // the picture's size and type when the site answers a HEAD request (it often does not: then they are left out)
+  const [head, setHead] = useState<{ bytes: number | null; type: string | null } | null>(null);
   const [saveCopy, setSaveCopy] = useState(true);
   const [busy, setBusy] = useState(false);
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<'all' | 'ticket' | 'doc'>('all');
   const [chosen, setChosen] = useState<string[]>([]);
   const tickets = useTickets(projectId);
+  const typed = url.trim();
+  useEffect(() => {
+    setHead(null);
+    if (!/^https?:\/\//i.test(typed) && !typed.startsWith('/')) return undefined;
+    const ctl = new AbortController();
+    const t = window.setTimeout(() => {
+      fetch(typed, { method: 'HEAD', signal: ctl.signal })
+        .then((r) => {
+          if (!r.ok) return;
+          const len = Number(r.headers.get('content-length'));
+          setHead({ bytes: Number.isFinite(len) && len > 0 ? len : null, type: r.headers.get('content-type') });
+        })
+        .catch(() => {});
+    }, 250);
+    return () => {
+      window.clearTimeout(t);
+      ctl.abort();
+    };
+  }, [typed]);
 
   const files = useMemo<ProjectFile[]>(() => {
     const out: ProjectFile[] = [];
@@ -144,7 +180,8 @@ export function InsertImageDialog({
     <Dialog
       title={replacing ? 'Replace image' : 'Insert image'}
       onClose={onClose}
-      width={560}
+      width={tab === 'link' ? 360 : 560}
+      className="dk-imgdlg"
       testId="insert-image"
       footer={
         tab === 'upload' ? undefined : (
@@ -166,15 +203,39 @@ export function InsertImageDialog({
         )
       }
     >
-      <Tabs
-        tabs={[
-          ['upload', 'Upload'],
-          ['link', 'Link'],
-          ['files', 'Project files'],
-        ]}
-        value={tab}
-        onChange={setTab}
-      />
+      <div className="dk-track dk-imgdlg-tabs" role="tablist" aria-label="Where the picture comes from">
+        {(
+          [
+            ['upload', 'Upload'],
+            ['link', 'Link'],
+            ['files', 'Project files'],
+          ] as const
+        ).map(([v, label]) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={tab === v}
+            className={tab === v ? 'on' : undefined}
+            onClick={() => setTab(v)}
+          >
+            <svg
+              aria-hidden="true"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {TAB_ICON[v]}
+            </svg>
+            {label}
+          </button>
+        ))}
+      </div>
       {tab === 'upload' && (
         <div
           className={`dk-drop${over ? ' over' : ''}`}
@@ -214,13 +275,13 @@ export function InsertImageDialog({
         </div>
       )}
       {tab === 'link' && (
-        <div className="dk-bp-col">
-          <label className="dk-bp-label" htmlFor="dk-img-url">
+        <div className="dk-bp-col dk-imgdlg-link">
+          <label className="dk-imgdlg-label" htmlFor="dk-img-url">
             Image address
           </label>
           <input
             id="dk-img-url"
-            className="dk-bp-input"
+            className="dk-bp-input dk-imgdlg-url"
             type="url"
             placeholder="https://images.example.com/picture.jpg"
             value={url}
@@ -239,8 +300,18 @@ export function InsertImageDialog({
               />
               <div>
                 <strong>{fileNameOf(url.trim())}</strong>
-                <span className="dk-bp-muted">
-                  {preview === 'error' ? 'Not found' : preview ? `${preview.w} x ${preview.h} px` : 'Loading…'}
+                <span className="dk-bp-muted" data-testid="image-link-meta">
+                  {preview === 'error'
+                    ? 'Not found'
+                    : preview
+                      ? [
+                          `${preview.w} x ${preview.h} px`,
+                          imageKind(typed, head?.type),
+                          head?.bytes ? formatBytes(head.bytes) : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')
+                      : 'Loading…'}
                 </span>
               </div>
             </div>

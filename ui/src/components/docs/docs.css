@@ -379,6 +379,81 @@ table[data-style='minimal'] td {
 table[data-style='minimal'] th {
   border-bottom: 2px solid #1e2a22;
 }
+/* Table properties (Blocks board, F 31): banded rows, borders, cell spacing, alignment and caption; Cell properties
+   (F 30): the sides with a line, their style and colour, and the padding. The reader writes the same data-* attributes
+   on its table and cells as the editor. */
+:is(.dk-editor, .dk-rich) table[data-banded='true'] tr:nth-child(odd) td:not([data-background]) {
+  background: #f6faf7;
+}
+.dk-rich table.dk-table[data-banded='true'] tr:nth-child(odd) td:not([data-background]) {
+  background: none;
+}
+.dk-rich table.dk-table[data-banded='true'] tbody tr:nth-child(even) td:not([data-background]) {
+  background: #f6faf7;
+}
+:is(.dk-editor, .dk-rich) table[data-borders='rows'] :is(th, td) {
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+:is(.dk-editor, .dk-rich) table[data-borders='outer'] {
+  outline: 1px solid #d5ddd8;
+  outline-offset: -1px;
+}
+:is(.dk-editor, .dk-rich) table[data-borders='outer'] :is(th, td),
+:is(.dk-editor, .dk-rich) table[data-borders='none'] :is(th, td) {
+  border-color: transparent;
+}
+:is(.dk-editor, .dk-rich) table[data-spacing='tight'] :is(th, td),
+:is(.dk-editor, .dk-rich) table :is(th, td)[data-padding='tight'] {
+  height: 30px;
+  padding: 2px 8px;
+}
+:is(.dk-editor, .dk-rich) table[data-spacing='roomy'] :is(th, td),
+:is(.dk-editor, .dk-rich) table :is(th, td)[data-padding='roomy'] {
+  height: 48px;
+  padding: 10px 14px;
+}
+:is(.dk-editor, .dk-rich) table[data-align='center'],
+:is(.dk-editor, .dk-rich) table[data-align='right'] {
+  margin-left: auto;
+}
+:is(.dk-editor, .dk-rich) table[data-align='center'] {
+  margin-right: auto;
+}
+:is(.dk-editor, .dk-rich) table[data-align] {
+  width: auto;
+}
+:is(.dk-editor, .dk-rich) :is(th, td)[data-border] {
+  --dk-cb-line: 1px solid var(--dk-cb, #d5ddd8);
+  border-color: transparent;
+}
+:is(.dk-editor, .dk-rich) :is(th, td)[data-border-style='thick'] {
+  --dk-cb-line: 2px solid var(--dk-cb, #d5ddd8);
+}
+:is(.dk-editor, .dk-rich) :is(th, td)[data-border-style='dashed'] {
+  --dk-cb-line: 1px dashed var(--dk-cb, #d5ddd8);
+}
+:is(.dk-editor, .dk-rich) :is(th, td)[data-border~='top'] {
+  border-top: var(--dk-cb-line);
+}
+:is(.dk-editor, .dk-rich) :is(th, td)[data-border~='right'] {
+  border-right: var(--dk-cb-line);
+}
+:is(.dk-editor, .dk-rich) :is(th, td)[data-border~='bottom'] {
+  border-bottom: var(--dk-cb-line);
+}
+:is(.dk-editor, .dk-rich) :is(th, td)[data-border~='left'] {
+  border-left: var(--dk-cb-line);
+}
+.dk-table-caption {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: #5b6b60;
+  text-align: center;
+}
+.dk-table-caption[data-empty] {
+  color: #9aa8a0;
+}
 .dk-code {
   position: relative;
   background: #1e2a22;

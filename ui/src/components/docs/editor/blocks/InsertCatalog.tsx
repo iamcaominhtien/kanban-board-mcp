@@ -121,7 +121,7 @@ export function InsertCatalog({ host, state, ctx, usePosition }: Props) {
     fullWidth: false,
   });
   const listRef = useRef<HTMLDivElement>(null);
-  const width = desktop ? (filtering || step ? 380 : 900) : 0;
+  const width = desktop ? (step ? 290 : filtering ? 380 : 900) : 0;
   const { ref, pos } = usePosition(desktop ? state.rect : null, width || 380);
 
   useEffect(() => setActive(0), [query, group]);
@@ -254,7 +254,6 @@ export function InsertCatalog({ host, state, ctx, usePosition }: Props) {
       size={size}
       onChange={setSize}
       onInsert={(picked) => insert(step, picked ?? size)}
-      onBack={() => setStep(null)}
       steppers={layout === 'phone'}
     />
   );
@@ -401,7 +400,7 @@ export function InsertCatalog({ host, state, ctx, usePosition }: Props) {
     content = (
       <div
         ref={ref}
-        className={`dk-menu dk-cat dk-cat-desk${filtering || step ? ' dk-cat-narrow' : ''}`}
+        className={`dk-menu dk-cat dk-cat-desk${filtering || step ? ' dk-cat-narrow' : ''}${step ? ' dk-cat-step' : ''}`}
         role="listbox"
         aria-label="Insert block"
         data-testid="slash-menu"

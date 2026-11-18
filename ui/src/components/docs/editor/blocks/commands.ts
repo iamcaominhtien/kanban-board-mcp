@@ -135,15 +135,124 @@ export function splitSelectedCell(editor: Editor): boolean {
   return editor.chain().focus().splitCell().run();
 }
 
+/** A cell attribute Cell properties sets (schema.json `tableCell`). */
+export type CellAttr = 'background' | 'align' | 'verticalAlign' | 'border' | 'borderStyle' | 'borderColor' | 'padding';
+
 /**
  * Sets one attribute on every selected cell (or the cell holding the caret).
- * @param name - `background` (a highlight name or null), `align`, `verticalAlign`.
+ * @param name - `background` (a highlight name or null), `align`, `verticalAlign`, the border's `borderStyle` and
+ *   `borderColor`, `padding`.
  */
-export function setCellsAttr(editor: Editor, name: 'background' | 'align' | 'verticalAlign', value: string | null) {
+export function setCellsAttr(editor: Editor, name: CellAttr, value: string | null) {
   return editor.chain().focus().setCellAttribute(name, value).run();
 }
 
-/** Puts the shading and alignment of the cells in hand back to their defaults (Clear formatting). */
+/** Which lines Cell properties draws round the selected cells (board F 30). */
+export type BorderMode = 'all' | 'outer' | 'top' | 'bottom' | 'left' | 'right' | 'none';
+
+/** The cells in hand (the cell selection, or the cell with the caret) as rectangles of the table's map. */
+function cellsInHand(state: EditorState): {
+  table: { node: PMNode; pos: number };
+  rect: { left: number; top: number; right: number; bottom: number };
+  cells: { pos: number; node: PMNode; left: number; top: number; right: number; bottom: number }[];
+} | null {
+  const t = tableAt(state);
+  const cell = cellAt(state);
+  if (!t || !cell) return null;
+  const map = TableMap.get(t.node);
+  const start = t.pos + 1;
+  const sel = state.selection;
+  const positions: number[] = [];
+  if (sel instanceof CellSelection) sel.forEachCell((_n, pos) => positions.push(pos));
+  else positions.push(cell.pos);
+  const cells = positions.map((pos) => {
+    const r = map.findCell(pos - start);
+    return { pos, node: state.doc.nodeAt(pos) as PMNode, ...r };
+  });
+  const rect = {
+    left: Math.min(...cells.map((c) => c.left)),
+    top: Math.min(...cells.map((c) => c.top)),
+    right: Math.max(...cells.map((c) => c.right)),
+    bottom: Math.max(...cells.map((c) => c.bottom)),
+  };
+  return { table: t, rect, cells };
+}
+
+/** The `border` value each cell in hand gets for a mode: the sides of the selection's outline, or every side. */
+export function bordersFor(state: EditorState, mode: BorderMode): Map<number, string> | null {
+  const h = cellsInHand(state);
+  if (!h) return null;
+  const out = new Map<number, string>();
+  for (const c of h.cells) {
+    const sides: string[] = [];
+    const edge = {
+      top: c.top === h.rect.top,
+      right: c.right === h.rect.right,
+      bottom: c.bottom === h.rect.bottom,
+      left: c.left === h.rect.left,
+    };
+    for (const side of ['top', 'right', 'bottom', 'left'] as const) {
+      if (mode === 'all' || (mode === 'outer' && edge[side]) || (mode === side && edge[side])) sides.push(side);
+    }
+    out.set(c.pos, sides.length ? sides.join(' ') : 'none');
+  }
+  return out;
+}
+
+/** The mode the cells in hand are drawn with now (`all` when none has its own lines), or null for a mix. */
+export function currentBorderMode(state: EditorState): BorderMode | null {
+  const h = cellsInHand(state);
+  if (!h) return null;
+  if (h.cells.every((c) => c.node.attrs.border == null)) return 'all';
+  for (const mode of ['all', 'outer', 'top', 'bottom', 'left', 'right', 'none'] as const) {
+    const want = bordersFor(state, mode);
+    if (want && h.cells.every((c) => (c.node.attrs.border ?? 'top right bottom left') === want.get(c.pos))) return mode;
+  }
+  return null;
+}
+
+/** Draws the lines of a mode round the cells in hand ("All" puts the table's own lines back). */
+export function setCellBorders(editor: Editor, mode: BorderMode): boolean {
+  const want = bordersFor(editor.state, mode);
+  if (!want) return false;
+  const tr = editor.state.tr;
+  for (const [pos, border] of want) {
+    const node = tr.doc.nodeAt(pos);
+    if (node) tr.setNodeMarkup(pos, undefined, { ...node.attrs, border: mode === 'all' ? null : border });
+  }
+  editor.view.dispatch(tr);
+  return true;
+}
+
+/**
+ * Sets the width of the columns of the cells in hand, in px (null: back to automatic).
+ * @param px - The width in CSS px, or null.
+ */
+export function setCellsWidth(editor: Editor, px: number | null): boolean {
+  const h = cellsInHand(editor.state);
+  if (!h) return false;
+  const tr = editor.state.tr;
+  const start = h.table.pos + 1;
+  const map = TableMap.get(h.table.node);
+  for (let col = h.rect.left; col < h.rect.right; col += 1) {
+    for (let row = 0; row < map.height; row += 1) {
+      const at = map.map[row * map.width + col];
+      if (row > 0 && map.map[(row - 1) * map.width + col] === at) continue;
+      const node = tr.doc.nodeAt(start + at);
+      if (!node) continue;
+      const span = (node.attrs.colspan as number) ?? 1;
+      const widths = Array.isArray(node.attrs.colwidth) ? [...(node.attrs.colwidth as number[])] : Array(span).fill(0);
+      const cellLeft = map.findCell(at).left;
+      widths[col - cellLeft] = px ?? 0;
+      const colwidth = widths.every((w) => !w) ? null : widths;
+      tr.setNodeMarkup(start + at, undefined, { ...node.attrs, colwidth });
+    }
+  }
+  editor.view.dispatch(tr);
+  return true;
+}
+
+/** Puts the shading, alignment, lines and padding of the cells in hand back to their defaults (Clear formatting). */
 export function clearCellFormatting(editor: Editor) {
   return editor
     .chain()
@@ -151,6 +260,10 @@ export function clearCellFormatting(editor: Editor) {
     .setCellAttribute('background', null)
     .setCellAttribute('align', null)
     .setCellAttribute('verticalAlign', null)
+    .setCellAttribute('border', null)
+    .setCellAttribute('borderStyle', null)
+    .setCellAttribute('borderColor', null)
+    .setCellAttribute('padding', null)
     .run();
 }
 
@@ -164,8 +277,8 @@ export function tableAt(state: EditorState): { node: PMNode; pos: number } | nul
   return null;
 }
 
-/** Merges `attrs` (`style`, `width`) into the table that holds the selection. */
-export function setTableAttrs(editor: Editor, attrs: { style?: string | null; width?: string | null }): boolean {
+/** Merges `attrs` (`style`, `width`, `banded`, `borders`, `spacing`, `align`, `caption`) into the table in hand. */
+export function setTableAttrs(editor: Editor, attrs: Record<string, string | boolean | null>): boolean {
   const t = tableAt(editor.state);
   return t ? setNodeAttrs(editor, t.pos, attrs) : false;
 }

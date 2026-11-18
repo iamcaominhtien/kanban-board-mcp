@@ -131,7 +131,10 @@ export default {
       await p.keyboard.type('fn main() {}');
       const code = content().locator('pre code');
       await code.getByText('fn main() {}').waitFor();
-      await content().getByRole('combobox', { name: 'Code language' }).selectOption({ label: 'Rust' });
+      // the language in the block's header opens its settings, where the language is picked (Embeds 33)
+      await content().locator('.dk-code-wrap').last().getByRole('button', { name: 'Code block settings' }).click();
+      await p.getByTestId('code-settings').getByRole('combobox', { name: 'Code language' }).selectOption({ label: 'Rust' });
+      await p.getByTestId('code-settings').getByRole('button', { name: 'Done' }).click();
       await content().locator('.dk-code-wrap[data-language="rust"]').waitFor();
       await saved();
     });
@@ -145,8 +148,16 @@ export default {
       await callout.getByText('Remember to publish.').waitFor();
       await callout.hover();
       await callout.getByTestId('callout-type').click();
-      await p.getByRole('menuitem', { name: 'Warning' }).click();
+      // Callout properties (Blocks board, H 42): the kinds are coloured chips
+      const props = p.getByTestId('callout-props');
+      await props.getByRole('radio', { name: 'Warning' }).click();
       await p.locator('[data-callout="warning"]').getByText('Remember to publish.').waitFor();
+      await props.getByRole('radio', { name: 'Custom' }).click();
+      await props.getByRole('radio', { name: 'Violet' }).waitFor();
+      await props.getByRole('radio', { name: 'Bulb' }).click();
+      await p.locator('[data-callout="custom"]').getByText('Remember to publish.').waitFor();
+      await props.getByRole('button', { name: 'Done' }).click();
+      await props.waitFor({ state: 'detached' });
       await saved();
     });
     await s.step('math: an inline formula and a display formula render with KaTeX', async () => {
@@ -660,7 +671,7 @@ export default {
       await sheet.getByText('Ada').waitFor();
       await saved();
     });
-    await s.step('video: by address; a poster and Play, and no player before Play', async () => {
+    await s.step('video: by address; a poster and Play, and nothing plays before Play', async () => {
       await atEnd();
       await p.keyboard.press('Enter');
       await insert('video');
@@ -671,8 +682,11 @@ export default {
       await dlg.getByText('demo.mp4').waitFor();
       await dlg.getByRole('button', { name: 'Insert video' }).click();
       const video = content().getByTestId('video-block').last();
-      await video.getByRole('button', { name: /^Play/ }).waitFor();
-      if (await video.locator('video').count()) throw new Error('the video loaded before Play');
+      // only the metadata loads (the length, the first frame): an address the test machine cannot reach says so at
+      // once instead of showing Play
+      await video.getByRole('button', { name: /^Play/ }).or(video.getByText('This video could not be played')).first().waitFor();
+      const playing = await video.locator('video').evaluateAll((vs) => vs.some((v) => !v.paused || v.autoplay || v.controls));
+      if (playing) throw new Error('the video started, or showed its player, before Play');
       await saved();
     });
     await s.step('link: a pasted address on an empty line asks what it becomes; Link card makes a card', async () => {
@@ -714,8 +728,9 @@ export default {
       await checkSandbox(preview);
       await preview.getByRole('button', { name: 'Run it' }).waitFor();
       await preview.locator('[data-testid="code-view"].dk-cv-light').getByText('tokens.py').waitFor();
-      await preview.getByTestId('video-poster').waitFor();
-      if (await preview.locator('video').count()) throw new Error('the reader loaded the video before Play');
+      await preview.getByTestId('video-poster').or(preview.getByText('This video could not be played')).first().waitFor();
+      const started = await preview.locator('video').evaluateAll((vs) => vs.some((v) => !v.paused || v.autoplay || v.controls));
+      if (started) throw new Error('the reader started the video, or showed its player, before Play');
       await preview.getByTestId('link-unread').waitFor();
       await preview.getByTestId('file-sheet-preview').getByText('Ada').waitFor();
       await toggle.click();

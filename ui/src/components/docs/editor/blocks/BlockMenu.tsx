@@ -45,7 +45,7 @@ function caretInto(editor: Editor, pos: number) {
 }
 
 /** Selects the text of the first text block inside the block at `pos` (a comment attaches to it). */
-function selectBlockText(editor: Editor, pos: number): boolean {
+export function selectBlockText(editor: Editor, pos: number): boolean {
   const node = editor.state.doc.nodeAt(pos);
   if (!node) return false;
   let range: { from: number; to: number } | null = null;

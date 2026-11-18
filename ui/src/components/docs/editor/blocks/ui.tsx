@@ -42,13 +42,15 @@ interface PanelProps {
   footer?: ReactNode;
   /** A data-testid for the panel. */
   testId?: string;
+  /** A count beside the title ("4 cells"). */
+  badge?: ReactNode;
 }
 
 /**
  * A properties panel: a popover under (or above) `anchor` on a desktop, a side panel on the right on a tablet, a
  * bottom sheet on a phone. Esc and a click outside close it; changes apply as they are made.
  */
-export function Panel({ title, anchor, onClose, children, width = 340, footer, testId }: PanelProps) {
+export function Panel({ title, anchor, onClose, children, width = 340, footer, testId, badge }: PanelProps) {
   const layout = useBlockLayout();
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -95,6 +97,7 @@ export function Panel({ title, anchor, onClose, children, width = 340, footer, t
   const head = (
     <div className="dk-bp-head">
       <span>{title}</span>
+      {badge != null && <span className="dk-bp-badge">{badge}</span>}
       <button type="button" className="dk-bp-x" aria-label="Close" onClick={onClose}>
         <Icon name="close" size={14} />
       </button>
@@ -197,7 +200,7 @@ export function Seg<T extends string | number | boolean | null>({
   wrap?: boolean;
 }) {
   return (
-    <div className={`dk-seg${wrap ? ' dk-seg-wrap' : ''}`} role="radiogroup" aria-label={label}>
+    <div className={`dk-track${wrap ? ' dk-track-wrap' : ''}`} role="radiogroup" aria-label={label}>
       {options.map((o) => (
         <button
           key={String(o.value)}
@@ -308,6 +311,7 @@ export function Dialog({
   footer,
   width = 520,
   testId,
+  className,
 }: {
   title: string;
   onClose: () => void;
@@ -315,6 +319,8 @@ export function Dialog({
   footer?: ReactNode;
   width?: number;
   testId?: string;
+  /** An extra class on the dialog box, for a dialog drawn to its own board frame. */
+  className?: string;
 }) {
   const layout = useBlockLayout();
   const live = useRef(onClose);
@@ -333,7 +339,7 @@ export function Dialog({
     <div className="dk-bp-overlay dk-bp-overlay-center" data-block-ui="">
       <div className="dk-bp-scrim" onMouseDown={onClose} />
       <div
-        className={`dk-bp ${layout === 'phone' ? 'dk-bp-sheet' : 'dk-bp-dialog'}`}
+        className={`dk-bp ${layout === 'phone' ? 'dk-bp-sheet' : 'dk-bp-dialog'}${className ? ` ${className}` : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}

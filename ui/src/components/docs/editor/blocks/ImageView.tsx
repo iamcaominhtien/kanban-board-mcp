@@ -612,26 +612,45 @@ export function ImageView({ node, selected, editor, getPos, updateAttributes, de
       );
     }
   } else if (!src || src.startsWith('uploading:') || missing) {
+    // Blocks board, D 21: a 190 px dashed box, everything centred, the alt text on its own line
     body = (
-      <StateCard
-        tone="muted"
-        title="Image not found"
-        actions={
-          editable && (
+      <div className="dk-imgv-missing" contentEditable={false} role="status" data-testid="image-missing">
+        <svg
+          aria-hidden="true"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#5B6B60"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect height="16" rx="2" width="18" x="3" y="4" />
+          <circle cx="9" cy="10" r="1.6" />
+          <path d="M3 17l5-4 4 3 3-2 6 4" />
+        </svg>
+        <div className="dk-imgv-missing-title">Image not found</div>
+        <div className="dk-imgv-missing-text">
+          It was deleted, or you do not have access.
+          {str(attrs.alt) && (
             <>
-              <button type="button" className="dk-btn-ghost" onClick={replace}>
-                Replace
-              </button>
-              <button type="button" className="dk-btn-ghost" onClick={() => deleteNode()}>
-                Remove
-              </button>
+              <br />
+              <span className="dk-imgv-alttext">Alt text: “{str(attrs.alt)}”</span>
             </>
-          )
-        }
-      >
-        It was deleted, or you do not have access.
-        {str(attrs.alt) && <span className="dk-imgv-alttext">Alt text: “{str(attrs.alt)}”</span>}
-      </StateCard>
+          )}
+        </div>
+        {editable && (
+          <div className="dk-imgv-missing-actions">
+            <button type="button" className="dk-btn-ghost" onClick={replace}>
+              Replace
+            </button>
+            <button type="button" className="dk-btn-ghost" onClick={() => deleteNode()}>
+              Remove
+            </button>
+          </div>
+        )}
+      </div>
     );
   } else {
     body = (
