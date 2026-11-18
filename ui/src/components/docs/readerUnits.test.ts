@@ -9,6 +9,7 @@ import { buildPrintSheet, DEFAULT_PRINT, mountPrintSheet, pageCss } from './prin
 import {
   applyReaderLook,
   cleanReaderPrefs,
+  docsTone,
   DEFAULT_READER_PREFS,
   READER_PREFS_KEY,
   readerClass,
@@ -29,12 +30,25 @@ afterEach(() => {
 describe('reader preferences', () => {
   it('stay on this device: written, read back, and cleaned of values they cannot hold', () => {
     expect(readReaderPrefs()).toEqual(DEFAULT_READER_PREFS);
-    writeReaderPrefs({ size: 19, theme: 'sepia', font: 'sans', width: 'narrow', justify: true });
+    writeReaderPrefs({ size: 19, theme: 'sepia', font: 'sans', width: 'narrow', justify: true, highlights: true });
     expect(JSON.parse(localStorage.getItem(READER_PREFS_KEY)!)).toMatchObject({ size: 19, theme: 'sepia' });
-    expect(readReaderPrefs()).toEqual({ size: 19, theme: 'sepia', font: 'sans', width: 'narrow', justify: true });
+    expect(readReaderPrefs()).toEqual({
+      size: 19,
+      theme: 'sepia',
+      font: 'sans',
+      width: 'narrow',
+      justify: true,
+      highlights: true,
+    });
     expect(cleanReaderPrefs({ size: 99, theme: 'purple', font: 'comic', width: 'full', justify: 'yes' })).toEqual(
       DEFAULT_READER_PREFS,
     );
+  });
+
+  it('show highlights unless the reader turned them off (Reader 5-7, "Show highlights")', () => {
+    expect(cleanReaderPrefs({}).highlights).toBe(true);
+    expect(cleanReaderPrefs({ highlights: 'no' }).highlights).toBe(true);
+    expect(cleanReaderPrefs({ highlights: false }).highlights).toBe(false);
   });
 
   it('fall back to the defaults when storage is blocked, and writing does not throw', () => {
@@ -214,5 +228,18 @@ describe('print', () => {
     expect(document.body.classList.contains('dk-printing')).toBe(false);
     expect(document.querySelector('.dk-print-sheet')).toBeNull();
     expect(document.head.querySelector('style[data-docs-print]')).toBeNull();
+  });
+});
+
+describe('the tone of the Docs area', () => {
+  it('is the reading theme over the page, the page background otherwise, white with no page', () => {
+    const look = readPageLook({ background: 'sepia' });
+    expect(docsTone(null, { ...DEFAULT_READER_PREFS, theme: 'night' }).tone).toBe('white');
+    expect(docsTone(look, DEFAULT_READER_PREFS)).toMatchObject({ tone: 'sepia', className: '' });
+    expect(docsTone(look, { ...DEFAULT_READER_PREFS, theme: 'night' })).toMatchObject({
+      tone: 'night',
+      className: 'dk-rt-night',
+    });
+    expect((docsTone(look, DEFAULT_READER_PREFS).style as Record<string, string>)['--dp-page']).toBeTruthy();
   });
 });

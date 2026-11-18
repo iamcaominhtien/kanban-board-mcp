@@ -26,6 +26,7 @@ import { SendToTeamDialog } from './SendToTeam';
 import { SelectionSwatches, type AddBlock } from './SelectionSwatches';
 import { flashRange, useHighlightLayer, type HlPerson } from './useHighlightLayer';
 import { useHighlights, type HlItem } from './useHighlights';
+import { useReaderPrefs } from '../readerPrefs';
 import './highlights.css';
 
 const TIP_KEY = 'kb.docs.highlightTip';
@@ -91,6 +92,8 @@ export function useReaderHighlights(o: ReaderHighlightsOpts) {
   const pageOff = page.settings?.highlights === 'off';
   const projectOff = !!data && !data.enabled && !pageOff && /project/i.test(data.reason ?? '');
   const off = pageOff || (!!data && !data.enabled);
+  // "Show highlights" in the reader settings: this reader's own view, the layer only (the list stays)
+  const [readerPrefs] = useReaderPrefs();
   const viewer = comments?.role === 'viewer';
   const block: AddBlock = older ? 'older' : off ? (projectOff ? 'project-off' : 'off') : viewer ? 'viewer' : null;
   const canAdd = available && !!data && !block && data.canAdd;
@@ -124,7 +127,7 @@ export function useReaderHighlights(o: ReaderHighlightsOpts) {
   const ranges = useHighlightLayer({
     root: available ? bodyEl : null,
     items: m.items,
-    hidden: off,
+    hidden: off || !readerPrefs.highlights,
     revision: o.revision,
     personOf,
     onOpen: (id, rect) => setOpen({ id, rect }),

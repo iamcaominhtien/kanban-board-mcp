@@ -30,6 +30,8 @@ export interface ReaderPrefs {
   width: ReaderWidth;
   /** Even edges on both sides. */
   justify: boolean;
+  /** Draw the page's shared highlights (Reader 5-7, "Show highlights"): off hides the layer for this reader only. */
+  highlights: boolean;
 }
 
 export const DEFAULT_READER_PREFS: ReaderPrefs = {
@@ -38,6 +40,7 @@ export const DEFAULT_READER_PREFS: ReaderPrefs = {
   font: 'page',
   width: 'page',
   justify: false,
+  highlights: true,
 };
 
 /** The four steps of the text size; the slider moves between {@link READER_SIZE_MIN} and {@link READER_SIZE_MAX}. */
@@ -72,6 +75,7 @@ export function cleanReaderPrefs(raw: unknown): ReaderPrefs {
     font: FONTS.includes(r.font as ReaderFont) ? (r.font as ReaderFont) : 'page',
     width: WIDTHS.includes(r.width as ReaderWidth) ? (r.width as ReaderWidth) : 'page',
     justify: r.justify === true,
+    highlights: r.highlights !== false,
   };
 }
 

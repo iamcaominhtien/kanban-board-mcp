@@ -689,19 +689,58 @@
   flex-direction: column;
   gap: 14px;
 }
+/* a link that is not public (Reader 44-45): a lock in a 56 px circle, a 20 px title, a line and Sign in */
+.dk-public-empty-mid {
+  align-items: center;
+  padding: 24px;
+}
 .dk-public-gone {
   max-width: 460px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.dk-public-gone-ico {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #eef3ef;
+  color: #5b6b60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .dk-public-gone h1 {
-  margin: 0 0 8px;
-  font-size: 22px;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
 }
 .dk-public-gone p {
-  margin: 0 0 18px;
-  font-size: 14px;
+  margin: 0;
+  max-width: 380px;
+  font-size: 13.5px;
   line-height: 1.55;
   color: #5b6b60;
+}
+.dk-public-gone .st-btn {
+  margin-top: 6px;
+  text-decoration: none;
+}
+.dk-public-signin {
+  margin-left: auto;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+@media (max-width: 599px) {
+  .dk-public-gone .st-btn {
+    min-height: 44px;
+  }
 }
 
 /* books: the chapter list beside the page, and the footer to the previous and the next page (Reader boards, A) */

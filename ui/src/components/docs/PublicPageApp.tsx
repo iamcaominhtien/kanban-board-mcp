@@ -82,9 +82,19 @@ export function PublicPageApp({ token }: { token: string }) {
   return (
     <div className="dk-public docs-root" data-testid="public-page">
       <header className="dk-public-bar">
+        <PublicMark />
         <span className="dk-public-brand">Kanban</span>
+        {/* a link that is not public (Reader 44-45): the only way on is to sign in */}
+        {load.state !== 'loading' && (
+          <a className="st-btn dk-public-signin" href="/" data-testid="public-sign-in">
+            Sign in
+          </a>
+        )}
       </header>
-      <main className="dk-public-empty" aria-busy={load.state === 'loading'}>
+      <main
+        className={`dk-public-empty${load.state === 'loading' ? '' : ' dk-public-empty-mid'}`}
+        aria-busy={load.state === 'loading'}
+      >
         {load.state === 'loading' && (
           <div className="dk-public-skel" aria-label="Loading page">
             <div className="skel" style={{ width: '60%', height: 30 }} />
@@ -96,8 +106,26 @@ export function PublicPageApp({ token }: { token: string }) {
         )}
         {load.state === 'gone' && (
           <div className="dk-public-gone" data-testid="public-gone">
-            <h1>This link is no longer public.</h1>
+            <span className="dk-public-gone-ico" aria-hidden="true">
+              <svg
+                width={24}
+                height={24}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="5" y="11" width="14" height="10" rx="2" />
+                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+              </svg>
+            </span>
+            <h1>This link is not public</h1>
             <p>The owner may have stopped sharing it, the link may have expired, or the page was unpublished.</p>
+            <a className="st-btn st-btn-primary dk-public-gone-btn" href="/">
+              Sign in to Kanban
+            </a>
           </div>
         )}
         {load.state === 'error' && (

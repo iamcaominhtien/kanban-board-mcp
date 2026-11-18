@@ -209,7 +209,7 @@ describe('the public view', () => {
     serve(404, { detail: { code: 'public_link_not_found' } });
     app('nope');
     expect((await screen.findByTestId('public-gone')).querySelector('h1')?.textContent).toBe(
-      'This link is no longer public.',
+      'This link is not public',
     );
     expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex');
     expect(get.mock.calls).toHaveLength(0);

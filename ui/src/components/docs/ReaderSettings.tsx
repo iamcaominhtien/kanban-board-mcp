@@ -166,6 +166,18 @@ export function ReaderSettingsPanel({ prefs, onChange, pagePx }: PanelProps) {
           onChange={(justify) => onChange({ justify })}
         />
       </div>
+      <div className="dk-rs-switch">
+        <span>
+          <b>Show highlights</b>
+          <span>A view setting on this device, on by default. Hides the layer for you only.</span>
+        </span>
+        <Switch
+          on={prefs.highlights}
+          label="Show highlights"
+          testId="reader-highlights"
+          onChange={(highlights) => onChange({ highlights })}
+        />
+      </div>
       <p className="dk-rs-note">
         Only for you, on this device. “Page” keeps the fonts and width the author chose. Sepia and Night are not
         printed.
