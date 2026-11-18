@@ -152,6 +152,7 @@ npm run build`) and Playwright installed globally (`NODE_PATH`).
 | 35–37 (`ai`) | AI runs that fail, hang, are stopped, retried, restarted or messaged, sessions, accounts; the assistants (Board AI chats and insights, editor AI, Docs AI Ask, Write and history); knowledge base, lessons, notes, role packs, plugins, the repository scan, schedules, worktrees, the team page |
 | 38 (`ai`) | a ticket's AI activity: the run card and the hand-over of its worktree (outputs to the Workspace, commit, the route changed per ticket, Merge, a conflict with main, discard) |
 | 39–40 | Settings and system (the database move wizard to another SQLite file, a stopped copy and its AI help, the reconnect screen, the data folder, updates and the update notice); notifications (snooze, dismiss, clear, turn a kind off, unmute, the day card) and previews (xlsx charts, pptx shapes, connectors, tables and charts, the image viewer) |
+| 41 | PostgreSQL and MariaDB for real: the move wizard SQLite → PostgreSQL → MariaDB with each card's fields, refused connections, copy, verify, switch; Edit connection; the reconnect screen while the server is down. Skipped unless `KANBAN_TEST_POSTGRES_URL` and `KANBAN_TEST_MYSQL_URL` are set (`scripts/dev-databases.sh start`) |
 
 Not covered: the real draw.io editor (not in the checkout), a real Claude sign-in, the desktop-only windows and OS
 notifications.
