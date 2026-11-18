@@ -13,6 +13,7 @@ function renderSidebar(notifications: Props['notifications']) {
       onSelectProject={vi.fn()}
       onCreateProject={vi.fn()}
       onDeleteProject={vi.fn()}
+      onUpdateProject={vi.fn()}
       onOpenRecycleBin={vi.fn()}
       onOpenMembers={vi.fn()}
       onOpenSettings={vi.fn()}

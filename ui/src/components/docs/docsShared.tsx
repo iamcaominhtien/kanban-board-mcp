@@ -1,4 +1,5 @@
-import { useEffect, type CSSProperties, type ReactNode } from 'react';
+import { useDialogFocus } from '../../hooks/useDialogFocus';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { Icon } from './Icon';
 
 /** Scrim colour used by every Docs dialog in the boards (never burgundy). */
@@ -196,6 +197,8 @@ export function ModalShell({
   testId,
 }: ModalShellProps) {
   useEscape(onClose);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef);
   return (
     <div
       className="docs-root"
@@ -212,6 +215,8 @@ export function ModalShell({
       }}
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}

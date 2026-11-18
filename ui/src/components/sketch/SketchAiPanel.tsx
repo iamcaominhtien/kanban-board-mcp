@@ -207,6 +207,12 @@ export function SketchAiPanel({ sketcher, state, owner, title, ai, scopeId, onFi
   const chat = useChat(chatId);
   const messages = useMemo(() => chat.data?.messages ?? [], [chat.data?.messages]);
   const drafts = chat.data?.drafts;
+  // An answer's draft (the shapes and ideas) comes with the message itself; the chat's own list of drafts is empty
+  // since AI v2, so it is only the fallback.
+  const draftOf = useCallback(
+    (m: ChatMessage): AssistDraft | null => m.draft ?? drafts?.find((x) => x.id === m.draftId) ?? null,
+    [drafts],
+  );
   const availability = st.data?.availability ?? ai.availability;
   const ok = availability.code === 'ok';
   const viewer = availability.code === 'viewer';
@@ -255,13 +261,13 @@ export function SketchAiPanel({ sketcher, state, owner, title, ai, scopeId, onFi
   useEffect(() => {
     for (const m of messages) {
       if (m.role !== 'ai' || m.state !== 'done' || !sentIds.current.has(m.id) || autoShown.current.has(m.id)) continue;
-      const d = drafts?.find((x) => x.id === m.draftId);
+      const d = draftOf(m);
       if (!d) continue;
       autoShown.current.add(m.id);
       const res = (d.payload as unknown as { result?: SketchProposal }).result;
       if (d.status === 'open' && res?.ops?.length) showProposal(d);
     }
-  }, [messages, drafts, showProposal]);
+  }, [messages, draftOf, showProposal]);
 
   // --- attachments ------------------------------------------------------------------------------
   const addFiles = useCallback(async (files: File[]) => {
@@ -425,7 +431,7 @@ export function SketchAiPanel({ sketcher, state, owner, title, ai, scopeId, onFi
   const waitingImages = pending.filter((p) => p.kind === 'image').length;
 
   const proposalOf = (m: ChatMessage) => {
-    const d = drafts?.find((x) => x.id === m.draftId);
+    const d = draftOf(m);
     if (!d) return null;
     const res = (d.payload as unknown as { result?: SketchProposal }).result;
     return res ? { d, res } : null;

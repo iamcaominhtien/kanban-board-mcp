@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SWATCHES, normaliseHex } from './engine/colour';
 import { MAX_LAYERS, MAX_SIDE } from './engine/limits';
 import { SketchIcon } from './SketchIcon';
@@ -465,6 +465,7 @@ export function ColourPanel({ sketcher, state }: OptionsProps) {
  */
 export function LayersPanel({ sketcher, state }: OptionsProps) {
   const [renaming, setRenaming] = useState<string | null>(null);
+  const renameCancelled = useRef(false);
   const active = state.layers.find((l) => l.id === state.activeId);
   const full = state.layers.length >= MAX_LAYERS;
   const top = [...state.layers].reverse();
@@ -511,14 +512,17 @@ export function LayersPanel({ sketcher, state }: OptionsProps) {
                 autoFocus
                 defaultValue={l.name}
                 aria-label="Layer name"
+                data-own-escape
                 onBlur={(e) => {
-                  sketcher.renameLayer(l.id, e.target.value);
+                  // Esc cancels: the field unmounts while focused, and a blur that follows must not rename
+                  if (!renameCancelled.current) sketcher.renameLayer(l.id, e.target.value);
                   setRenaming(null);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') e.currentTarget.blur();
                   if (e.key === 'Escape') {
                     e.stopPropagation();
+                    renameCancelled.current = true;
                     setRenaming(null);
                   }
                 }}
@@ -528,7 +532,10 @@ export function LayersPanel({ sketcher, state }: OptionsProps) {
                 type="button"
                 className={styles.layerSelect}
                 onClick={() => sketcher.setActive(l.id)}
-                onDoubleClick={() => setRenaming(l.id)}
+                onDoubleClick={() => {
+                  renameCancelled.current = false;
+                  setRenaming(l.id);
+                }}
                 aria-pressed={l.id === state.activeId}
                 title="Double-click to rename"
               >

@@ -143,7 +143,7 @@
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   transition: color 0.15s ease;
 }
 
@@ -275,7 +275,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   flex-shrink: 0;
   transition:
     background-color 0.15s ease,
@@ -297,7 +297,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   flex-shrink: 0;
   transition:
     background-color 0.15s ease,
@@ -319,7 +319,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   flex-shrink: 0;
   transition:
     background-color 0.15s ease,
@@ -427,7 +427,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   transition:
     border-color 0.15s ease,
     color 0.15s ease;
@@ -452,7 +452,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .descSection {
@@ -485,7 +485,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .attachmentsList {
@@ -595,7 +595,7 @@
 
 .attFileSize {
   font-size: 10.5px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .attDownloadBtn {
@@ -607,7 +607,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   margin-left: 4px;
   border-radius: 4px;
   transition:
@@ -636,7 +636,7 @@
   border: 1px dashed #c7d2cb;
   background: none;
   cursor: pointer;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   transition:
     border-color 0.15s ease,
     color 0.15s ease,
@@ -661,7 +661,7 @@
 
 .attMetaText {
   font-size: 10px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   padding-left: 2px;
 }
 
@@ -689,7 +689,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .branchBtn {
@@ -732,7 +732,7 @@
 
 .branchSubtext {
   font-size: 11px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   padding-left: 2px;
 }
 
@@ -758,7 +758,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .branchList {
@@ -866,7 +866,7 @@
   cursor: pointer;
   text-align: left;
   font-size: 12.5px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   font-family: inherit;
   transition:
     background-color 0.12s,
@@ -921,7 +921,7 @@
 }
 
 .repoIcon {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   flex-shrink: 0;
 }
 
@@ -944,7 +944,7 @@
   padding: 1px 5px;
   border-radius: 4px;
   background: #eef3ef;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .repoActionBtn {
@@ -995,7 +995,7 @@
 
 .repoEmptyDesc {
   font-size: 11px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   line-height: 1.35;
   font-family:
     'Plus Jakarta Sans',
@@ -1145,7 +1145,7 @@
   flex-direction: column;
   gap: 4px;
   font-size: 11.5px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   line-height: 1.6;
 }
 
@@ -1187,7 +1187,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .ntInput {

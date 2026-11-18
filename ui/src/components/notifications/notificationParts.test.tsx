@@ -103,7 +103,7 @@ describe('notificationUi helpers', () => {
 
   it('finds the action that opens a row, null for gone rows', () => {
     expect(openActionOf(row({ gone: true }))).toBeNull();
-    expect(openActionOf(row({ actions: [{ id: 'review', label: 'R' }] }))).toBe('review');
+    expect(openActionOf(row({ actions: [{ id: 'open_ai', label: 'R' }] }))).toBe('open_ai');
     expect(openActionOf(row({ ticketId: 'K-1' }))).toBe('open_ticket');
     expect(openActionOf(row({ kind: 'day_card' }))).toBe('open');
     expect(openActionOf(row())).toBeNull();

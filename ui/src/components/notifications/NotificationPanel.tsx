@@ -1,3 +1,4 @@
+import { useDialogFocus } from '../../hooks/useDialogFocus';
 import { useEffect, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -102,6 +103,9 @@ export function NotificationPanel({
   const scroller = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // focus moves into the panel on open and back to the bell on close
+  useDialogFocus(panelRef);
+
   // Esc closes; a click outside closes (the bell toggles on its own)
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -142,7 +146,7 @@ export function NotificationPanel({
   const showNeeds = () => onTab('needs');
 
   return (
-    <aside ref={panelRef} className={styles.panel} aria-label="Notifications" role="dialog">
+    <aside ref={panelRef} tabIndex={-1} className={styles.panel} aria-label="Notifications" role="dialog">
       <div className={styles.header}>
         <b className={styles.heading}>Notifications</b>
         <span className={styles.spacer} />

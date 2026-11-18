@@ -10,6 +10,7 @@ import { TicketTypeIcon, PriorityMark } from './icons';
 import styles from './TicketCard.module.css';
 import { createPortal } from 'react-dom';
 import { HoverTip } from './HoverTip';
+import { useOptionalToast } from './Toast';
 import { STATUS_NAMES } from '../hooks/useMarkerActions';
 
 const TYPE_LABELS: Record<IssueType, string> = {
@@ -43,6 +44,8 @@ interface TicketCardProps {
   onPending?: (ticket: Ticket) => void;
   onResume?: (ticket: Ticket) => void;
   onDelete?: (ticket: Ticket) => void;
+  /** "Open ticket" in the card menu (defaults to onClick; a draggable card handles clicks on its wrapper instead). */
+  onOpen?: () => void;
 }
 
 /**
@@ -60,11 +63,13 @@ export function TicketCard({
   onPending,
   onResume,
   onDelete,
+  onOpen,
 }: TicketCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [dismissPrompt, setDismissPrompt] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const toast = useOptionalToast();
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -224,7 +229,7 @@ export function TicketCard({
   function copyTicketLink(e: React.MouseEvent) {
     e.stopPropagation();
     const url = `${window.location.origin}/#ticket-${ticket.id}`;
-    void navigator.clipboard.writeText(url);
+    void navigator.clipboard.writeText(url).then(() => toast?.success('Link copied'));
     setMenuOpen(false);
   }
 
@@ -401,7 +406,7 @@ export function TicketCard({
                 onClick={(e) => {
                   e.stopPropagation();
                   setMenuOpen(false);
-                  onClick?.();
+                  (onOpen ?? onClick)?.();
                 }}
               >
                 <svg

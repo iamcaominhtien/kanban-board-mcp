@@ -229,7 +229,9 @@ export function DiagramEditor({ request, onClose }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [origin, post]);
 
-  // ask first whether a self-hosted editor answers at all: without one the iframe spun for 20 s before failing
+  // ask first whether a self-hosted editor answers at all: without one the iframe spun for 20 s before failing. The
+  // iframe waits for the answer (`checkedAttempt`), so a dead address is not loaded at all.
+  const [checkedAttempt, setCheckedAttempt] = useState(0);
   useEffect(() => {
     if (!base || attempt === 0 || settings.data?.mode !== 'self-hosted') return;
     let cancelled = false;
@@ -242,8 +244,12 @@ export function DiagramEditor({ request, onClose }: Props) {
           setNoEditorAt(c.url);
           setPhase((p) => (p === 'loading' ? 'unreachable' : p));
         }
+        setCheckedAttempt(attempt);
       })
-      .catch(() => undefined); // the iframe's own timeout still applies
+      .catch(() => {
+        // the check itself failed: load the iframe, whose own timeout still applies
+        if (!cancelled) setCheckedAttempt(attempt);
+      });
     return () => {
       cancelled = true;
     };
@@ -539,16 +545,20 @@ export function DiagramEditor({ request, onClose }: Props) {
         <div className={styles.frameWrap}>
           {/* only once the drawing is loaded (attempt > 0): mounted before, the editor loaded twice, the second time
               when the key changed, and the page stood still meanwhile */}
-          {base && attempt > 0 && phase !== 'missing' && !noEditorAt && (
-            <iframe
-              key={attempt}
-              ref={frame}
-              className={styles.frame}
-              title="draw.io editor"
-              src={editorSrc(base, settings.data?.mode === 'built-in')}
-              allow="clipboard-read; clipboard-write"
-            />
-          )}
+          {base &&
+            attempt > 0 &&
+            phase !== 'missing' &&
+            !noEditorAt &&
+            (settings.data?.mode !== 'self-hosted' || checkedAttempt === attempt) && (
+              <iframe
+                key={attempt}
+                ref={frame}
+                className={styles.frame}
+                title="draw.io editor"
+                src={editorSrc(base, settings.data?.mode === 'built-in')}
+                allow="clipboard-read; clipboard-write"
+              />
+            )}
           {phase === 'loading' && (
             <div className={styles.cover}>
               <div className={styles.card} role="status">

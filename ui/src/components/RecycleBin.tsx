@@ -1,3 +1,4 @@
+import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Ticket } from '../types';
 import { BinRow, PageBinRow, useDocsRecycle } from './docs/DocsRecycleSection';
@@ -37,9 +38,9 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
   });
   const pages = projectId ? docs.entries : [];
 
+  useDialogFocus(panelRef);
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
-    panelRef.current?.focus();
   }, []);
 
   const handleClose = useCallback(() => {

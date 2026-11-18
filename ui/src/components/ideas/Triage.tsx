@@ -11,13 +11,14 @@ import {
   sortedThisWeekLine,
 } from '../../api/ideas';
 import type { IdeaRow, IdeaScope } from '../../types/idea';
+import type { IdeaAdvice } from '../../api/ideaAi';
 import { relativeTime } from '../../utils/relativeTime';
 import { useToast } from '../Toast';
 import { plural } from '../docs/docsShared';
 import { AiChip, Kbd, StagePill, dateIn, sourceLine } from './ideaShared';
-import { useIdeaMoves, type Decision } from './useIdeaMoves';
+import { useIdeaMoves, type Decision, type FromAdvice } from './useIdeaMoves';
 import { useIdeaCapture } from './IdeaCapture';
-import { AdviceBar, AdviceCard, AdviceSwitch, RowAdvice } from './IdeaAiExtras';
+import { AdviceBar, AdviceCard, AdviceSwitch, RowAdvice, useAcceptAdvice } from './IdeaAiExtras';
 import { IdeaIcon, type IdeaIconName } from './ideaIcons';
 
 interface Props {
@@ -87,6 +88,9 @@ export function Triage({
     useTagSuggestions(current ? `${current.title} ${current.body}` : '', current?.id).data ?? []
   ).filter((t) => !current?.tags.includes(t));
 
+  const acceptAdvice = useAcceptAdvice();
+  // an accepted advice parks for the days it suggests, and is marked accepted once the move is done
+  const fromAdvice = (a: IdeaAdvice): FromAdvice => ({ parkDays: a.parkDays, onAccepted: () => acceptAdvice(a.id) });
   const decide = useCallback((d: Decision) => current && moves.decide(current, d), [current, moves]);
 
   useEffect(() => {
@@ -266,9 +270,9 @@ export function Triage({
                     projectId={aiProject}
                     ideaId={i.id}
                     ideaIds={ideas.map((x) => x.id)}
-                    onAccept={(decision) => {
+                    onAccept={(decision, advice) => {
                       setSelectedId(i.id);
-                      moves.decide(i, decision);
+                      moves.decide(i, decision, fromAdvice(advice));
                     }}
                   />
                 </div>
@@ -359,7 +363,11 @@ export function Triage({
           )}
 
           <div style={{ marginTop: 14 }}>
-            <AdviceCard projectId={current.projectId} ideaId={current.id} onAccept={(decision) => decide(decision)} />
+            <AdviceCard
+              projectId={current.projectId}
+              ideaId={current.id}
+              onAccept={(decision, advice) => current && moves.decide(current, decision, fromAdvice(advice))}
+            />
           </div>
 
           <button type="button" className="is-link" style={{ marginTop: 12 }} onClick={() => onOpenIdea(current.id)}>

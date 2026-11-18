@@ -3,6 +3,7 @@ import { Normalizer } from './normalize.mjs';
 import { snapshot } from './snapshot.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
+import { Recorder, measuring } from '../measure/record.mjs';
 
 const STATIC = /\.(?:js|mjs|css|map|woff2?|ttf|ico|png|jpg|jpeg|gif|svg|webp|html)$/i;
 const STEP_TIMEOUT_MS = 60_000;
@@ -27,7 +28,8 @@ export class Session {
 
   async open() {
     this.context = await this.browser.newContext({
-      viewport: { width: 1440, height: 900 },
+      // a scenario may pick its own size (`viewport: { width, height }` on the scenario object); the default stays 1440x900
+      viewport: this.scenario.viewport || { width: 1440, height: 900 },
       deviceScaleFactor: 1,
       acceptDownloads: true,
       permissions: ['clipboard-read', 'clipboard-write'],
@@ -35,6 +37,7 @@ export class Session {
       timezoneId: 'UTC',
     });
     this.context.setDefaultTimeout(8000);
+    if (measuring()) { this.recorder = new Recorder(this); await this.recorder.attachContext(this.context); }
     if (this.apiFallback404) {
       // The Rust server answers a route it does not serve yet with the UI's index.html (200). The UI crashes on that
       // (it expects JSON). To see what the rest of the screen does, such an answer is turned into a 404 for the page;
@@ -60,6 +63,7 @@ export class Session {
     const page = await this.context.newPage();
     page.setDefaultTimeout(8000);
     this.pages.push(page);
+    if (this.recorder) await this.recorder.startCoverage(page);
     const origin = new URL(this.server.base).origin;
     page.on('request', (req) => {
       if (!req.url().startsWith(origin)) return;
@@ -154,6 +158,7 @@ export class Session {
       clearTimeout(timer);
     }
     try { rec.snapshot = await snapshot(this.page, this.norm); } catch (e) { rec.snapshot = { error: String(e.message) }; }
+    if (this.recorder) await this.recorder.afterStep();
     rec.ms = Date.now() - t0;
     this.cur = null;
   }
@@ -165,6 +170,7 @@ export class Session {
 
   async close() {
     try { this.final = await this.shot('final'); } catch {}
+    if (this.recorder) await this.recorder.finish().catch((e) => console.log(`measure: ${e.message}`));
     await this.context.close().catch(() => {});
   }
 

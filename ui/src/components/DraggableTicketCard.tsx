@@ -105,6 +105,7 @@ export function DraggableTicketCard({
         onPending={onPending}
         onResume={onResume}
         onDelete={onDelete}
+        onOpen={() => (onCardOpen ?? onCardClick)?.(ticket)}
       />
     </div>
   );

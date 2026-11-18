@@ -16,8 +16,10 @@ use kb_files::drawio_bundle;
 
 use crate::LocalAddr;
 
-const DB_FREE_PATHS: [&str; 8] =
-    ["/database", "/version", "/settings", "/events", "/logs", "/mcp-clients", "/assets", "/drawio"];
+// `/health` too: the start-up splash polls it and keeps the page inert until it answers, so a 503 there left the
+// reconnect screen unclickable while a server database was down
+const DB_FREE_PATHS: [&str; 9] =
+    ["/database", "/version", "/settings", "/events", "/logs", "/mcp-clients", "/assets", "/drawio", "/health"];
 
 fn unreachable_response(state: Map<String, Value>) -> Response {
     let mut detail = Map::new();

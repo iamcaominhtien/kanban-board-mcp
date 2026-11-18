@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { docsErrorDetail, useDiscardDraft, useMarkDocsSeen, usePublishPage, useSaveDraft } from '../../api/docs';
 import { extractError } from '../../api/extractError';
+import { resolveOrigin } from '../../api/resolveOrigin';
 import type { DocsPage, DocsTreeNode } from '../../types/docs';
 import { useToast } from '../Toast';
 import { ConflictBanner } from './ConflictBanner';
@@ -211,6 +212,26 @@ export function DocsEditScreen({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page.id, keepLocal]);
+
+  // "Retry now" of the offline banner: the banner goes only when the server answers. With an edit to save, the save
+  // is the check; with nothing to save, flush() sends nothing, so the server's health is asked instead.
+  const [checkingConnection, setCheckingConnection] = useState(false);
+  const retryConnection = useCallback(async () => {
+    editor.current?.flush();
+    if (dirty.current) {
+      if (await flush()) setOnline(true);
+      return;
+    }
+    setCheckingConnection(true);
+    try {
+      const res = await fetch(`${resolveOrigin()}/health`, { cache: 'no-store' });
+      if (res.ok) setOnline(true);
+    } catch {
+      /* still offline: the banner stays */
+    } finally {
+      setCheckingConnection(false);
+    }
+  }, [flush, setOnline]);
 
   const touch = useCallback(() => {
     dirty.current = true;
@@ -579,7 +600,7 @@ export function DocsEditScreen({
             onReload={() => void doDiscard()}
           />
         )}
-        {!online && <OfflineBanner onRetry={() => void flush().then((ok) => ok && setOnline(true))} />}
+        {!online && <OfflineBanner onRetry={() => void retryConnection()} checking={checkingConnection} />}
         {online && justBack && <BackOnlineBanner onDismiss={clearJustBack} />}
         <HeadingRenameNote pageId={page.id} published={page.headings} markdown={markdown} />
         {docsAiOn && page.draft?.aiSource && (

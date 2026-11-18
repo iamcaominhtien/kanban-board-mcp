@@ -114,7 +114,7 @@
   transform: rotate(45deg);
 }
 .dk-editor ul[data-type='taskList'] li[data-checked='true'] > div {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   text-decoration: line-through;
   text-decoration-color: #c7d2cb;
 }
@@ -171,7 +171,7 @@
   position: absolute;
   left: 0;
   top: 0;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   white-space: nowrap;
   pointer-events: none;
   user-select: none;
@@ -335,7 +335,7 @@
 .dk-handle {
   display: flex;
   align-items: center;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .dk-handle button {
   width: 24px;

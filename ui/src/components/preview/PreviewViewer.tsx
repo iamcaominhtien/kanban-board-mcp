@@ -451,6 +451,7 @@ export default function PreviewViewer({ items, index, onIndex, onClose, sketchOw
                   src={item.src}
                   buttonClass={`${styles.iconBtn} ${styles.iconBtnDraw}`}
                   labelClass={styles.srOnly}
+                  onOpened={onClose}
                 />
               )}
             <button

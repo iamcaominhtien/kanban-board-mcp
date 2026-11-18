@@ -27,7 +27,7 @@
   display: inline-block;
 }
 .sc-placeholder {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 /* Ticket line: dot, key, title */
@@ -121,7 +121,7 @@
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   background: #f6faf7;
   border-bottom: 1px solid #e3e8e5;
   padding-top: 11px;
@@ -144,7 +144,7 @@
   outline-offset: -2px;
 }
 .sc-dim {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .sc-dim .sc-strong,
 .sc-dim .sc-ttitle {
@@ -238,7 +238,7 @@
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   border-left: none;
 }
 .sc-wgrid.sc-thead .sc-today {
@@ -830,7 +830,7 @@
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .sc-template {
   flex: 1 1 180px;

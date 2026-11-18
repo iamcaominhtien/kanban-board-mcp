@@ -360,7 +360,19 @@ export function useRecordOutcome() {
 
 /** Mutation: delete an idea for good. */
 export function useDeleteIdea() {
-  return useIdeaMutation(async (id: string) => client.delete(`${BASE}/${id}`));
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => client.delete(`${BASE}/${id}`),
+    onSuccess: (_r, id) => {
+      // the deleted idea's own queries (page, comments, log, …) are not refetched: they would answer 404 while its
+      // page is still open. Removing them would not help: the open page would make them again and fetch. They are
+      // dropped from the cache once nothing uses them.
+      const own = (key: readonly unknown[]) => key[0] === 'ideas' && key[2] === id;
+      qc.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'ideas' && !own(q.queryKey) });
+      qc.invalidateQueries({ queryKey: ['tickets'] });
+      qc.invalidateQueries({ queryKey: ['ticket'] });
+    },
+  });
 }
 
 // assumptions

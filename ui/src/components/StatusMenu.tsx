@@ -52,6 +52,7 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const currentOption = STATUS_OPTIONS.find((opt) => opt.status === value) ?? STATUS_OPTIONS[0];
 
@@ -64,7 +65,9 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape' && isOpen) {
+        e.preventDefault(); // the Esc is used here: the dialog around the menu stays open
         setIsOpen(false);
+        triggerRef.current?.focus();
       }
     }
 
@@ -80,6 +83,7 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
 
   const handleSelect = (status: Status) => {
     setIsOpen(false);
+    triggerRef.current?.focus(); // the list unmounts: keep the keyboard focus on the trigger
     // While a ticket is closed, choosing another status runs the same Reopen confirm (lands in To Do)
     if ((value === 'done' || value === 'wont_do') && status !== value && status !== 'wont_do' && onReopen) {
       onReopen();
@@ -100,6 +104,7 @@ export const StatusMenu: React.FC<StatusMenuProps> = ({
   return (
     <div ref={containerRef} className={`${styles.container} ${compact ? styles.compact : ''} ${className ?? ''}`}>
       <button
+        ref={triggerRef}
         type="button"
         className={`${styles.trigger} ${isOpen ? styles.triggerOpen : ''}`}
         onClick={() => !disabled && setIsOpen((prev) => !prev)}

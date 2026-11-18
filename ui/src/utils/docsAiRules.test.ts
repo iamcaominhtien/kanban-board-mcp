@@ -27,10 +27,10 @@ describe('menuRows', () => {
 });
 
 describe('costLabel', () => {
-  it('says Not metered for a local runner and rounds small costs', () => {
+  it('says Not metered for a local runner or a run that reported no cost, and rounds small costs', () => {
     expect(costLabel(0.5, false)).toBe('Not metered');
     expect(costLabel(0.004, true)).toBe('About $0.004');
     expect(costLabel(0.031, true)).toBe('About $0.03');
-    expect(costLabel(0, true)).toBe('About $0.00');
+    expect(costLabel(0, true)).toBe('Not metered');
   });
 });

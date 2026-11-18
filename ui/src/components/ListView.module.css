@@ -35,7 +35,7 @@
 .toolbarLabel {
   font-size: 12px;
   font-weight: 600;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   white-space: nowrap;
 }
 
@@ -77,12 +77,12 @@
 }
 
 .labelMuted {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   font-weight: 500;
 }
 
 .chevronIcon {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   transition: transform 0.15s ease;
 }
 
@@ -236,7 +236,7 @@
 
 .empty {
   font-size: 13px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   padding: 24px 0;
   text-align: center;
 }
@@ -341,7 +341,7 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -372,7 +372,7 @@
 .rowId {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   width: 68px;
   flex-shrink: 0;
 }
@@ -399,7 +399,7 @@
 
 .rowDue {
   font-size: 11.5px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   width: 78px;
   text-align: right;
   flex-shrink: 0;

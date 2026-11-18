@@ -31,7 +31,7 @@
   min-width: 0;
 }
 .fl-sepchar {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   padding: 0 4px;
 }
 .fl-crumb {

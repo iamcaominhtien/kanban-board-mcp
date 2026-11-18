@@ -191,6 +191,31 @@ pub async fn create_run(session: &Session, new: NewRun<'_>) -> Result<ai_run::Mo
 }
 
 /// Why a queued run cannot start yet, or None.
+/// Moves the queued runs of an AI member to the account the member runs as now.
+///
+/// A run keeps the account it was queued with so that a started run finishes where it began; one that has not started
+/// yet follows the member, or it would wait for the old account's sign-in after the member was moved to another one.
+/// `account_id` is the member's new account (`None`: the login already on this computer). The caller commits.
+///
+/// # Errors
+/// A database error.
+pub async fn follow_member_account(session: &Session, member_id: &str, account_id: Option<&str>) -> Result<(), DbErr> {
+    let queued = ai_run::Entity::find()
+        .filter(ai_run::Column::MemberId.eq(member_id))
+        .filter(ai_run::Column::State.eq("queued"))
+        .all(session)
+        .await?;
+    for run in queued {
+        if run.account_id.as_deref() == account_id {
+            continue;
+        }
+        let mut row: ai_run::ActiveModel = run.into();
+        row.account_id = Set(account_id.map(str::to_string));
+        row.update(session).await?;
+    }
+    Ok(())
+}
+
 async fn blocking_reason(
     session: &Session,
     run: &ai_run::Model,

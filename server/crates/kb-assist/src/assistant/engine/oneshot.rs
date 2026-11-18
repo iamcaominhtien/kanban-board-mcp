@@ -149,6 +149,7 @@ pub async fn oneshot(skill: &str, inputs: &Map<String, Value>, opts: OneshotOpts
             }
         };
         let parsed = parser.parse(&line).map_err(other)?;
+        out.note_context(&parsed);
         if let Some(found) = parsed.result.filter(pyjson::truthy) {
             result = Some(found);
         }

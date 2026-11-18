@@ -1,11 +1,11 @@
 //! `services/tickets.py`, lines 449-753: the partial update of a ticket, with the activity log of what changed and
-//! the rules of a move between statuses (Won't Do needs a reason, Done waits for criteria, test cases and blockers,
-//! a Story moves with its own state), and what follows a move (pending flags, the tickets that waited for this
+//! the rules of a move between statuses (Won't Do needs a reason, Done waits for criteria, test cases and blockers;
+//! a ticket's type does not change to or from Story), and what follows a move (pending flags, the tickets that waited for this
 //! one, the idea it was promoted from, the hand-over of the code).
 
 use kb_base::{activity as act, pyjson, pytext, time};
 use kb_db::Session;
-use kb_db::entities::{member, story, ticket};
+use kb_db::entities::{member, ticket};
 use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde_json::{Map, Value, json};
 
@@ -146,18 +146,13 @@ pub async fn update_ticket(
     let new_type = text_of(&update_data, "type").map(str::to_string);
     let new_type = new_type.as_deref();
 
-    if ticket.r#type == "story" && new_status.is_some_and(|status| status != ticket.status) {
-        if story::Entity::find_by_id(ticket_id).one(session).await?.is_some() {
-            return value_error(
-                "A Story moves with its own state: hand it to the PM, approve its plan, or pause, drop or reopen it.",
-            );
-        }
-    }
+    // A Story moves between the columns like any ticket (the PM that once moved it is gone since AI v2). It holds
+    // tickets, so the type does not change either way: a Story is made as one.
     if new_type == Some("story") && ticket.r#type != "story"
         || (ticket.r#type == "story" && new_type.is_some_and(|t| t != "story"))
     {
         return value_error(
-            "Make a ticket a Story with Make this a Story, which hands it to the PM; a Story stays a Story.",
+            "A ticket cannot become a Story, and a Story stays a Story: make a new ticket of type Story.",
         );
     }
 

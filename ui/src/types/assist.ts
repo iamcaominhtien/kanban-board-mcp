@@ -523,18 +523,3 @@ export interface ScopeState {
   work: { allowed: boolean; estimate: CostEstimate | null };
   chatId: string | null;
 }
-
-/** What @mentioning an AI member in a comment would do (design C, step 2). */
-export interface MentionEstimate {
-  memberId: string;
-  memberName: string;
-  mode: 'ask' | 'work';
-  available: boolean;
-  reason: string | null;
-  status: string | null;
-  metered: boolean;
-  estimate: CostEstimate;
-  reads: string[];
-  canEditCode: boolean;
-  stopsAt: string;
-}

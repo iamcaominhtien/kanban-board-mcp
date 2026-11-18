@@ -30,6 +30,7 @@
       "prepared_at": null,
       "project_id": "<uuid:1>",
       "repo": "<tmp>/repo",
+      "route": "local",
       "state": "active",
       "ticket_id": "KAN-1"
     }
@@ -62,6 +63,7 @@
       "prepared_at": null,
       "project_id": "<uuid:1>",
       "repo": "<tmp>/repo",
+      "route": "local",
       "state": "active",
       "ticket_id": "KAN-1"
     }

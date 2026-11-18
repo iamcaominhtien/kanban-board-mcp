@@ -840,7 +840,16 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
                     <div style={PANE_LABEL}>
                       <b style={{ color: '#1E2A22' }}>Markdown</b> Source. Editing either pane updates the other
                     </div>
-                    <MarkdownPane value={markdown} filename={filename} onChange={onChange} readOnly={readOnly} />
+                    <MarkdownPane
+                      value={markdown}
+                      filename={filename}
+                      onChange={(md) => {
+                        // a change in the source pane is always typed, pasted or dropped by the person
+                        live.current.onUserInput?.();
+                        onChange(md);
+                      }}
+                      readOnly={readOnly}
+                    />
                   </div>
                 )}
               </div>

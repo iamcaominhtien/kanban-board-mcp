@@ -795,16 +795,26 @@ fn auth_login(login_file: &str) -> ! {
 
 /// An assistant turn (AI v2 stage 7): one board read, then the answer; FAKE_CLAUDE_ASSISTANT_JSON is the structured
 /// answer, FAKE_CLAUDE_ASSISTANT_TEXT the plain one; FAKE_CLAUDE_PROMPTS keeps each prompt it was given.
+/// FAKE_CLAUDE_CONTEXT=`<used>,<window>` reports how full the conversation is, as the CLI does: the message's usage
+/// (`input_tokens`) and the result's `modelUsage.<model>.contextWindow`.
 fn assistant_turn(args: &[String], prompt_text: &str, session: &str) -> ! {
     if let Some(prompts) = env_set("FAKE_CLAUDE_PROMPTS") {
         append(&prompts, &format!("{}\n", dumps(&json!({"prompt": prompt_text, "args": args}))));
     }
-    emit(json!({
+    let context: Option<(i64, i64)> = env_set("FAKE_CLAUDE_CONTEXT").and_then(|text| {
+        let (used, window) = text.split_once(',')?;
+        Some((used.trim().parse().ok()?, window.trim().parse().ok()?))
+    });
+    let mut first = json!({
         "type": "assistant",
         "message": {"content": [
             {"type": "tool_use", "id": "as1", "name": "mcp__kanban__docs_read", "input": {"action": "list"}}
         ]},
-    }));
+    });
+    if let Some((used, _)) = context {
+        first["message"]["usage"] = json!({"input_tokens": used, "output_tokens": 10});
+    }
+    emit(first);
     emit(json!({
         "type": "user",
         "message": {"content": [
@@ -845,6 +855,9 @@ fn assistant_turn(args: &[String], prompt_text: &str, session: &str) -> ! {
     }
     result.insert("total_cost_usd".into(), json!(0.02));
     result.insert("usage".into(), json!({"input_tokens": 200, "output_tokens": 40}));
+    if let Some((_, window)) = context {
+        result.insert("modelUsage".into(), json!({"claude-sonnet": {"contextWindow": window}}));
+    }
     result.insert("session_id".into(), json!(session));
     emit(Value::Object(result));
     exit(0)
@@ -899,6 +912,37 @@ fn v2_turn(mode: &str, args: &[String], prompt_text: &str, live: bool, stdin: &m
             {"type": "tool_result", "tool_use_id": "v2agent", "is_error": false, "content": "Looks good."}
         ]},
     }));
+    if let Some(count) = env_set("FAKE_CLAUDE_V2_STEPS") {
+        // a long run: this many more commands (the board shows only the newest steps of a run at first)
+        for i in 0..count.parse::<u32>().unwrap_or(0) {
+            let id = format!("v2more{i}");
+            emit(json!({
+                "type": "assistant",
+                "message": {"content": [
+                    {"type": "tool_use", "id": id, "name": "Bash", "input": {"command": format!("echo step {i}")}}
+                ]},
+            }));
+            emit(json!({
+                "type": "user",
+                "message": {"content": [
+                    {"type": "tool_result", "tool_use_id": id, "is_error": false, "content": format!("step {i}\n")}
+                ]},
+            }));
+        }
+    }
+    // Failure modes of a v2 run, for the UI scenarios. Each only acts when its variable is set:
+    // FAKE_CLAUDE_V2_FAIL (the text of the error) ends the run as the CLI does on an API error, FAKE_CLAUDE_V2_HANG keeps
+    // it "working" with no further output until the board stops it, FAKE_CLAUDE_V2_DELAY (seconds) is a slow run.
+    if let Some(why) = env_set("FAKE_CLAUDE_V2_FAIL") {
+        emit(json!({"type": "result", "subtype": "error_during_execution", "is_error": true, "result": why}));
+        exit(1);
+    }
+    if env_set("FAKE_CLAUDE_V2_HANG").is_some() {
+        sleep(300.0);
+    }
+    if let Some(delay) = env_set("FAKE_CLAUDE_V2_DELAY") {
+        sleep(py_float(&delay));
+    }
     let mut heard = String::new();
     if live && env_set("FAKE_CLAUDE_V2_WAIT_MESSAGE").is_some() {
         let end = now() + py_float(&env_or("FAKE_CLAUDE_WAIT", "10"));

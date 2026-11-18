@@ -91,7 +91,7 @@ async fn scenario(s: &Server) {
     ok(&an, "KAN-7", json!({"status": "wont_do", "wont_do_reason": "Trùng với KAN-2"})).await;
     ok(&c, "KAN-7", json!({"status": "todo"})).await;
     refused(&c, "KAN-7", json!({"status": "wont_do"})).await;
-    refused(&c, "KAN-3", json!({"status": "todo"})).await;
+    // (a Story moved by hand used to be refused here; it now moves like any ticket: tickets_routes.rs checks it)
     refused(&c, "KAN-4", json!({"type": "story"})).await;
     refused(&c, "KAN-5", json!({"status": "wont_do", "wont_do_reason": "a sub-ticket of a ticket"})).await;
     ok(&c, "KAN-4", json!({"status": "wont_do", "wont_do_reason": "the plan dropped it"})).await;

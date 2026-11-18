@@ -55,7 +55,7 @@
 
 .size {
   font-size: 10.5px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -73,7 +73,7 @@
 .actionBtn {
   background: transparent;
   border: none;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   width: 18px;
   height: 18px;
   border-radius: 3px;

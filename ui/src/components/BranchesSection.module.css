@@ -32,7 +32,7 @@
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12.5px;
   font-weight: 500;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   transition: all 0.12s;
 }
 
@@ -54,7 +54,7 @@
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 12px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   transition: all 0.12s;
 }
 
@@ -82,7 +82,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .brRow {
@@ -124,7 +124,7 @@
 .branchMeta {
   flex-grow: 1;
   font-size: 12.5px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .metaMono {
@@ -135,7 +135,7 @@
 .dateCol {
   width: 70px;
   font-size: 11.5px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   flex-shrink: 0;
 }
 
@@ -223,7 +223,7 @@
 .fieldLabel {
   font-size: 11px;
   font-weight: 600;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .textInput {
@@ -286,7 +286,7 @@
 .emptyState {
   padding: 32px;
   text-align: center;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   font-size: 13px;
 }
 

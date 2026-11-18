@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
-import { aiApi, isActive, useAiMutation, useAiRun, useRunMessages, useTicketRuns } from '../../api/ai';
+import { useState } from 'react';
+import { aiApi, isActive, useAiMutation, useAiRun, useRunMessages } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import type { AiRun, AiRunFull, RunReport } from '../../types/ai';
-import type { Ticket } from '../../types';
 import { useToast } from '../Toast';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { QuestionCard } from './QuestionCard';
@@ -15,7 +14,6 @@ import {
   fmtElapsed,
   hhmm,
   money,
-  shortDate,
   testsOf,
   useAiBoardState,
   useNow,
@@ -441,100 +439,6 @@ export function RunView({ runId }: { runId: string }) {
       <div className="ai-muted">
         <LineIcon name="shield" size={13} /> Secrets, tokens and key-like strings are masked before the log is stored or
         shown.
-      </div>
-    </div>
-  );
-}
-
-/** Every run on this ticket, newest first; a click opens that run (the table of main's run history). */
-export function RunHistory({
-  runs,
-  selected,
-  onSelect,
-}: {
-  runs: AiRun[];
-  selected: string | null;
-  onSelect: (id: string) => void;
-}) {
-  const { members } = useAiBoardState();
-  return (
-    <table className="ai-table" data-testid="run-history">
-      <thead>
-        <tr>
-          <th>Run</th>
-          <th>Team</th>
-          <th>Started by</th>
-          <th>State</th>
-          <th>Time</th>
-          <th>Usage</th>
-          <th>Changes</th>
-        </tr>
-      </thead>
-      <tbody>
-        {runs.map((r) => (
-          <tr
-            key={r.id}
-            onClick={() => onSelect(r.id)}
-            style={{ cursor: 'pointer', background: selected === r.id ? '#F6FAF7' : undefined }}
-            data-testid="run-history-item"
-            aria-selected={selected === r.id}
-          >
-            <td style={{ fontWeight: 700 }}>#{r.number}</td>
-            <td>{members.get(r.memberId)?.name ?? 'Team'}</td>
-            <td className="ai-muted">
-              {r.mode === 'ask' ? 'Ask' : r.trigger === 'assign' ? 'Assigned' : (r.trigger ?? '').replace(/_/g, ' ')} by{' '}
-              {r.startedBy},{' '}
-              {r.queuedAt && new Date(r.queuedAt).toDateString() !== new Date().toDateString()
-                ? shortDate(r.queuedAt)
-                : hhmm(r.queuedAt)}
-            </td>
-            <td>
-              <RunStateChip state={r.paused ? 'paused' : r.state} />
-            </td>
-            <td>{fmtElapsed(runSeconds(r))}</td>
-            <td className="ai-muted">{r.costUsd > 0 ? money(r.costUsd) : 'Not metered'}</td>
-            <td className="ai-muted">
-              {r.mode === 'ask'
-                ? 'no changes (answer only)'
-                : r.files.length
-                  ? `${r.files.length} file${r.files.length === 1 ? '' : 's'}`
-                  : '—'}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-/** The ticket's AI tab: the newest run in full, then the table of every run (a click opens that one). */
-export function TicketRunsTab({ ticket, runId }: { ticket: Ticket; runId?: string | null }) {
-  const q = useTicketRuns(ticket.id);
-  const runs = q.data ?? [];
-  const [picked, setPicked] = useState<string | null>(runId ?? null);
-  useEffect(() => {
-    if (runId) setPicked(runId);
-  }, [runId]);
-  if (q.isError) return <LoadError what="the runs" error={q.error} onRetry={() => void q.refetch()} />;
-  if (q.isLoading) return <span className="ai-spin" />;
-  if (!runs.length)
-    return (
-      <div className="ai-card ai-root" style={{ padding: 20 }} data-testid="no-runs">
-        <b>No AI runs on this ticket yet</b>
-        <div className="ai-hint">Assign it to a team, or use Run.</div>
-      </div>
-    );
-  const current = runs.find((r) => r.id === picked) ?? runs[0];
-  return (
-    <div
-      className="ai-root"
-      style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '4px 2px' }}
-      data-testid="ticket-runs-tab"
-    >
-      <RunView key={current.id} runId={current.id} />
-      <div className="ai-card" style={{ padding: 12 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 6 }}>Run history for {ticket.id}</div>
-        <RunHistory runs={runs} selected={current.id} onSelect={setPicked} />
       </div>
     </div>
   );
