@@ -13,6 +13,7 @@ import {
   useRestoreVersion,
 } from '../../api/docs';
 import { bookOf } from './book';
+import { docsTone, readerThemeCss, useReaderPrefs } from './readerPrefs';
 import { openExport, type ExportFormat } from './docsExport';
 import { ExportHost } from './export/ExportHost';
 import { useRenameWithLinks } from '../../api/docsActions';
@@ -127,6 +128,11 @@ interface Props {
   onImmersiveChange?: (on: boolean) => void;
   /** Called with the layout the Docs area has (desktop, tablet, phone) whenever it changes. */
   onLayoutChange?: (layout: DocsLayout) => void;
+  /**
+   * Called with true while a page reads in focus (Reader 1, 4 and the phone frames: no app chrome), so the app hides
+   * its sidebar and its header; false when the chrome comes back.
+   */
+  onFocusChange?: (on: boolean) => void;
 }
 
 /** A touch that starts this close to the left edge of the Docs area (px) and moves right opens the tree. */
@@ -336,6 +342,7 @@ function cachedToPage(
  * @param props.onOpenSidebar - Opens the project sidebar the app hides on a tablet or a phone.
  * @param props.onImmersiveChange - Called with true while the app bar should hide (editing on touch layouts).
  * @param props.onLayoutChange - Called with the Docs area's layout when it changes.
+ * @param props.onFocusChange - Called with true while a page reads in focus, without the app's chrome.
  */
 export function DocsView({
   projectId,
@@ -359,6 +366,7 @@ export function DocsView({
   onOpenSidebar,
   onImmersiveChange,
   onLayoutChange,
+  onFocusChange,
 }: Props) {
   const toast = useToast();
   const offlineApi = useDocsOffline(projectId);
@@ -571,6 +579,14 @@ export function DocsView({
     immersiveRef.current?.(immersive);
   }, [immersive]);
   useEffect(() => () => immersiveRef.current?.(false), []);
+
+  // Focus reading (Reader 1, 4 and the phone frames 3, 6, 9): a book's page on a desktop, and any page read on a
+  // phone, has no app chrome: no project sidebar, no app header, no tree. "← Kanban Board" in the page bar brings
+  // the chrome back for that page; the next page opened reads in focus again.
+  const [focusLeft, setFocusLeft] = useState<string | null>(null);
+  const [readerPrefs] = useReaderPrefs();
+  const focusPage =
+    !!page && focusLeft !== page.id && (layout === 'phone' || (layout === 'desktop' && !!bookOf(page, nodes)));
 
   // a swipe from the left edge opens the tree on touch screens (the Pages button and the rail do the same)
   const swipe = useRef<{ x: number; y: number } | null>(null);
@@ -962,6 +978,8 @@ export function DocsView({
 
   let content: React.ReactNode;
   let leftOverride: React.ReactNode = null;
+  // the page is read (not edited, no list or view over it): it may read in focus
+  let focusOn = false;
   if (docsDisabled) {
     leftOverride = <></>;
     content = (
@@ -1151,6 +1169,7 @@ export function DocsView({
       />
     );
   } else {
+    focusOn = true;
     content = (
       <DocsPageView
         key={page.id}
@@ -1184,6 +1203,7 @@ export function DocsView({
         onSearch={onSearch ? () => onSearch() : undefined}
         nodes={nodes}
         onExport={(f) => exportPage(page, f)}
+        focus={focusPage ? { onLeave: () => setFocusLeft(page.id), label: projectName } : null}
         olderVersion={
           readingVersion
             ? {
@@ -1200,6 +1220,7 @@ export function DocsView({
   }
 
   if (resultsQuery !== null && !docsDisabled && !treeLoading) {
+    focusOn = false;
     content = (
       <SearchResults
         key={resultsQuery}
@@ -1228,6 +1249,7 @@ export function DocsView({
     !empty &&
     !(healthOpen && aiOn);
   if (otherView) {
+    focusOn = false;
     const viewProps = {
       nodes,
       layout,
@@ -1258,6 +1280,16 @@ export function DocsView({
       );
   }
 
+  const focus = focusOn && focusPage;
+  // the page's tone (the reader's Sepia or Night, or the page's own background) dresses the whole space around it
+  const tone = docsTone(focusOn && page && page.kind !== 'canvas' ? readPageLook(page.settings) : null, readerPrefs);
+  const focusRef = useRef(onFocusChange);
+  focusRef.current = onFocusChange;
+  useEffect(() => {
+    focusRef.current?.(focus);
+  }, [focus]);
+  useEffect(() => () => focusRef.current?.(false), []);
+
   const treeDrawer = railOpen && !leftOverride && (
     <DocsDrawer
       label="Pages"
@@ -1272,7 +1304,7 @@ export function DocsView({
   // a phone has no tree beside the page (it is a drawer); an empty space keeps the full tree for its New page
   const left =
     leftOverride ??
-    (layout === 'phone' ? null : showRail && !empty ? (
+    (layout === 'phone' || focus ? null : showRail && !empty ? (
       <DocsRail
         nodes={nodes}
         selectedId={selectedId}
@@ -1303,9 +1335,10 @@ export function DocsView({
     <DocsPeekProvider value={peek}>
       <div
         ref={setRootEl}
-        className={`docs-root dk-layout-${layout}${narrow ? ' dk-touch' : ''}`}
+        className={`docs-root dk-layout-${layout}${narrow ? ' dk-touch' : ''}${tone.className ? ` ${tone.className}` : ''}`}
         data-testid="docs-view"
         data-layout={layout}
+        data-docs-tone={tone.tone}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
         style={{
@@ -1316,8 +1349,10 @@ export function DocsView({
           position: 'relative',
           overflow: 'hidden',
           background: '#FFFFFF',
+          ...tone.style,
         }}
       >
+        {tone.className && <style>{readerThemeCss()}</style>}
         {/* the first Tab stop of the space: past the tree to the page text (Docs states J 69) */}
         {page && !editing && <SkipLink />}
         {left}

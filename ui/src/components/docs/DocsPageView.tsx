@@ -66,6 +66,8 @@ import { outdatedOf, shortDate } from './pageStatus';
 import { PrintDialog } from './PrintDialog';
 import { openDocsFind } from './FindInPage';
 import { DEFAULT_PRINT, isPrinting, mountPrintSheet, printPage, type PrintOptions, type PrintParts } from './printPage';
+import { AskAiButton } from '../assist/AssistEntry';
+import { NotificationBellButton } from '../notifications/NotificationsHost';
 import { applyReaderLook, readerClass, readerThemeCss, readerVars, useReaderPrefs } from './readerPrefs';
 import { AaGlyph, ReaderSettingsPanel, ReaderSettingsPopover } from './ReaderSettings';
 import { useWideBlocks } from './wideBlocks';
@@ -125,6 +127,11 @@ interface Props {
   olderVersion?: OlderVersion | null;
   /** Asks for the export dialog with a format chosen (`null`: the last one used). */
   onExport?: (format: ExportFormat | null) => void;
+  /**
+   * Set while the page reads in focus, without the app's chrome (Reader 1, 4 and the phone frames): the bar leads
+   * with "← {label}", which brings the chrome back, and carries the app's Ask AI and notification bell.
+   */
+  focus?: { label: string; onLeave: () => void } | null;
 }
 
 /** An older version of the page, read from History. */
@@ -189,6 +196,7 @@ function CrumbSep() {
  * @param props.nodes - The space's tree (book chapters, the next page).
  * @param props.olderVersion - An older version opened from History, shown read-only with a way back.
  * @param props.onExport - Asks for the export dialog with a format.
+ * @param props.focus - Set while the page reads in focus: the bar's way back to the app and its label.
  */
 export function DocsPageView({
   page,
@@ -214,6 +222,7 @@ export function DocsPageView({
   nodes,
   olderVersion,
   onExport,
+  focus = null,
 }: Props) {
   const since = useSinceViewed(page, !offline);
   const qc = useQueryClient();
@@ -544,7 +553,8 @@ export function DocsPageView({
   const tocList = (
     <div className="dk-toc-list">
       {headings.map((h) => {
-        const on = activeSlug === h.slug;
+        // before any heading has scrolled into view the first one is the current one (Reader boards 1, 4)
+        const on = (activeSlug ?? headings[0]?.slug) === h.slug;
         return (
           <a
             key={h.slug}
@@ -857,69 +867,94 @@ export function DocsPageView({
         )}
         {prefs.theme !== 'white' && <style>{readerThemeCss()}</style>}
         {!readOnly && !older && <LockMarks ids={lockedBlocks(page.settings)} />}
-        <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
-          {chapterSide && book && (
-            <nav aria-label="Chapters" className="dk-chapters-side">
-              <ChapterList book={book} currentId={page.id} onOpen={(id) => onOpenPage(id)} />
-            </nav>
-          )}
+        {/* the page bar spans the page and the outline beside it (Reader boards, A); the page's colours and the
+            reader's theme are set here, so the bar, the outline and the side panels take them too */}
+        <div
+          className={`dk-page-frame ${lookClass(readerLook)} ${readerClass(prefs)}`.trim()}
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            ...lookVars(readerLook, layout),
+            ...readerVars(prefs),
+          }}
+          data-reader-theme={prefs.theme}
+        >
+          {/* The page bar: where you are, the status and the page actions; it stays while the page scrolls */}
           <div
-            ref={setScroll}
-            className={`dk-page-scroll ${lookClass(readerLook)} ${readerClass(prefs)}`.trim()}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              overflowY: 'auto',
-              boxSizing: 'border-box',
-              position: 'relative',
-              ...lookVars(readerLook, layout),
-              ...readerVars(prefs),
-              ...(paneWidth ? { '--dp-pane-w': `${Math.max(0, paneWidth - 32)}px` } : {}),
-            }}
-            data-page-width={look.width}
-            data-page-bg={look.background}
-            data-reader-theme={prefs.theme}
+            className={`dk-pagebar${focus ? ' dk-pagebar-focus' : ''}`}
+            data-testid="page-bar"
+            role="banner"
+            aria-label="Page header"
           >
-            {/* The page bar: where you are, the status and the page actions; it stays while the page scrolls */}
-            <div className="dk-pagebar" data-testid="page-bar" role="banner" aria-label="Page header">
-              {onOpenSidebar && (
-                <button
-                  type="button"
-                  className="dk-icobtn dk-bar-ico"
-                  aria-label="Open the project sidebar"
-                  title="Projects"
-                  data-testid="open-sidebar"
-                  onClick={onOpenSidebar}
+            {focus && (
+              <button
+                type="button"
+                className={phone ? 'dk-icobtn dk-bar-ico' : 'st-btn dk-hbtn dk-focus-back'}
+                aria-label={`Back to ${focus.label}`}
+                title={`Back to ${focus.label}`}
+                data-testid="focus-back"
+                onClick={focus.onLeave}
+              >
+                <svg
+                  aria-hidden="true"
+                  width={phone ? 20 : 14}
+                  height={phone ? 20 : 14}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ flexShrink: 0 }}
                 >
-                  <MenuGlyph />
-                </button>
+                  <path d="M19 12H5M11 6l-6 6 6 6" />
+                </svg>
+                {!phone && <span className="dk-focus-back-label">{focus.label}</span>}
+              </button>
+            )}
+            {onOpenSidebar && !focus && (
+              <button
+                type="button"
+                className="dk-icobtn dk-bar-ico"
+                aria-label="Open the project sidebar"
+                title="Projects"
+                data-testid="open-sidebar"
+                onClick={onOpenSidebar}
+              >
+                <MenuGlyph />
+              </button>
+            )}
+            {phone && onOpenTree && (
+              <button
+                type="button"
+                className="dk-icobtn dk-bar-ico"
+                aria-label="Pages"
+                title="Pages"
+                data-testid="open-tree"
+                onClick={onOpenTree}
+              >
+                <Icon name="sidePanel" size={18} strokeWidth={1.8} />
+              </button>
+            )}
+            <nav aria-label="Breadcrumb" className="dk-crumbs">
+              {/* in focus "← Kanban Board" already names the space (Reader 1, 4) */}
+              {!phone && !focus && (
+                <>
+                  <Icon
+                    name="folder"
+                    size={13}
+                    strokeWidth={1.8}
+                    style={{ color: 'var(--dp-muted, #9AA8A0)', flexShrink: 0 }}
+                  />
+                  <span style={crumb}>{projectName}</span>
+                  <CrumbSep />
+                </>
               )}
-              {phone && onOpenTree && (
-                <button
-                  type="button"
-                  className="dk-icobtn dk-bar-ico"
-                  aria-label="Pages"
-                  title="Pages"
-                  data-testid="open-tree"
-                  onClick={onOpenTree}
-                >
-                  <Icon name="sidePanel" size={18} strokeWidth={1.8} />
-                </button>
-              )}
-              <nav aria-label="Breadcrumb" className="dk-crumbs">
-                {!phone && (
-                  <>
-                    <Icon
-                      name="folder"
-                      size={13}
-                      strokeWidth={1.8}
-                      style={{ color: 'var(--dp-muted, #9AA8A0)', flexShrink: 0 }}
-                    />
-                    <span style={crumb}>{projectName}</span>
-                    <CrumbSep />
-                  </>
-                )}
-                {shownPath.map((p, i) =>
+              {/* a phone in focus has no path: back, Edit and More (Reader 1, 3, 6, 9) */}
+              {!(phone && focus) &&
+                shownPath.map((p, i) =>
                   p ? (
                     <span key={p.id} style={{ display: 'contents' }}>
                       <button type="button" className="dk-crumb" onClick={() => onOpenPage(p.id)} style={crumb}>
@@ -944,479 +979,513 @@ export function DocsPageView({
                     </span>
                   ),
                 )}
-                <span className="dk-crumb-here">{page.title}</span>
-              </nav>
-              <div className="dk-pagebar-actions">
-                {readOnly && viewer && !phone && !older && (
-                  <ViewerNote
-                    projectId={projectId}
-                    projectName={projectName}
-                    role={viewer.role}
-                    reason={readOnly}
-                    admins={viewer.admins}
-                  />
-                )}
-                {book && !chapterSide && book.chapters.length > 0 && (
-                  <button
-                    type="button"
-                    className={phone ? 'dk-icobtn dk-bar-ico' : 'st-btn dk-hbtn'}
-                    aria-label="Chapters"
-                    title="Chapters"
-                    aria-expanded={chaptersOpen}
-                    data-testid="chapters-button"
-                    onClick={() => setChaptersOpen(true)}
-                  >
-                    <Icon name="page" size={phone ? 18 : 14} strokeWidth={1.9} />
-                    {!phone && 'Chapters'}
-                  </button>
-                )}
-                {!touch && outlineButton}
-                {phone && onSearch && (
-                  <button
-                    type="button"
-                    className="dk-icobtn dk-bar-ico"
-                    aria-label="Search pages"
-                    title="Search pages"
-                    onClick={onSearch}
-                  >
-                    <Icon name="search" size={18} strokeWidth={1.8} />
-                  </button>
-                )}
-                {!phone && !offline && !older && (
-                  <PageAiMenu
-                    projectId={projectId}
-                    page={page}
-                    canEdit={!readOnly}
-                    view={aiView}
-                    onEdit={() => onAction('edit')}
-                    onOpenTicket={onOpenTicket}
-                  />
-                )}
-                {!offline && hl.headerButton}
-                {!phone && !offline && !older && (
-                  <RefsButton pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
-                )}
-                {!phone && !offline && plan.comments !== 'more' && (
-                  <button
-                    type="button"
-                    className={plan.comments === 'icon' ? 'st-btn dk-hbtn dk-hico' : 'st-btn dk-hbtn'}
-                    aria-pressed={cc.open}
-                    aria-label={plan.comments === 'icon' ? `Comments, ${commentTotal}` : undefined}
-                    title={plan.comments === 'icon' ? 'Comments' : undefined}
-                    data-testid="comments-button"
-                    onClick={() => cc.setOpen((v) => !v)}
-                  >
-                    <Icon name="comment" size={14} strokeWidth={1.9} />
-                    {plan.comments === 'open' && 'Comments'}
-                    <span className="dc-btn-count" data-testid="comments-count">
-                      {commentTotal}
-                    </span>
-                    {anyUnread && <span className="dc-btn-dot" data-testid="comments-unread" />}
-                  </button>
-                )}
-                {!phone && plan.reader !== 'more' && (
-                  <div data-popover style={{ position: 'relative' }}>
-                    <button
-                      type="button"
-                      className="dk-icobtn dk-hico"
-                      aria-label="Reading settings"
-                      title="Reading settings"
-                      aria-expanded={readerOpen}
-                      data-testid="reader-button"
-                      onClick={() => setReaderOpen((v) => !v)}
-                    >
-                      <AaGlyph />
-                    </button>
-                    {readerOpen && (
-                      <ReaderSettingsPopover
-                        prefs={prefs}
-                        onChange={setPrefs}
-                        pagePx={TEXT_SIZE_PX[look.textSize]}
-                        onClose={() => setReaderOpen(false)}
-                      />
-                    )}
-                  </div>
-                )}
-                {!phone && !offline && (
-                  <FollowBell scope="page" scopeId={page.id} projectId={projectId} className="dk-hico" />
-                )}
-                {!phone && (
-                  <div data-popover style={{ position: 'relative' }}>
-                    <button
-                      type="button"
-                      className={plan.share === 'icon' ? 'st-btn dk-hbtn dk-hico' : 'st-btn dk-hbtn'}
-                      onClick={() => (canShare ? setShare((v) => !v) : onAction('copy-link'))}
-                      data-testid="share"
-                      aria-expanded={share}
-                      aria-label={plan.share === 'icon' ? (canShare ? 'Share' : 'Copy link') : undefined}
-                      title={plan.share === 'icon' ? (canShare ? 'Share' : 'Copy link') : undefined}
-                    >
-                      <Icon name="link" size={14} strokeWidth={1.9} />
-                      {plan.share === 'open' && (canShare ? 'Share' : 'Copy link')}
-                    </button>
-                    {share && (
-                      <SharePopover page={page} onClose={() => setShare(false)} publicLinks={{ canEdit: !readOnly }} />
-                    )}
-                  </div>
-                )}
-                {!phone && plan.export === 'open' && (
-                  <div data-popover style={{ position: 'relative' }}>
-                    <button
-                      type="button"
-                      className="st-btn dk-hbtn"
-                      aria-haspopup="menu"
-                      aria-expanded={exportOpen}
-                      data-testid="export-button"
-                      onClick={() => setExportOpen((v) => !v)}
-                    >
-                      <Icon name="i43" size={14} strokeWidth={1.9} />
-                      Export
-                      <Icon name="chevronDown" size={11} strokeWidth={2.3} />
-                    </button>
-                    {exportOpen && (
-                      <ExportMenu
-                        onPick={(f) => (onExport ? onExport(f) : onAction('export'))}
-                        onClose={() => setExportOpen(false)}
-                      />
-                    )}
-                  </div>
-                )}
-                {!phone && plan.print === 'open' && (
+              {!(phone && focus) && <span className="dk-crumb-here">{page.title}</span>}
+            </nav>
+            <div className="dk-pagebar-actions">
+              {readOnly && viewer && !phone && !older && (
+                <ViewerNote
+                  projectId={projectId}
+                  projectName={projectName}
+                  role={viewer.role}
+                  reason={readOnly}
+                  admins={viewer.admins}
+                />
+              )}
+              {book && !chapterSide && book.chapters.length > 0 && (
+                <button
+                  type="button"
+                  className={phone ? 'dk-icobtn dk-bar-ico' : 'st-btn dk-hbtn'}
+                  aria-label="Chapters"
+                  title="Chapters"
+                  aria-expanded={chaptersOpen}
+                  data-testid="chapters-button"
+                  onClick={() => setChaptersOpen(true)}
+                >
+                  <Icon name="page" size={phone ? 18 : 14} strokeWidth={1.9} />
+                  {!phone && 'Chapters'}
+                </button>
+              )}
+              {!touch && outlineButton}
+              {/* reading in focus the app header is gone: its Ask AI and bell come into the page bar */}
+              {focus && <AskAiButton compact={touch} />}
+              {focus && (
+                <span className="dk-focus-bell">
+                  <NotificationBellButton />
+                </span>
+              )}
+              {phone && onSearch && !focus && (
+                <button
+                  type="button"
+                  className="dk-icobtn dk-bar-ico"
+                  aria-label="Search pages"
+                  title="Search pages"
+                  onClick={onSearch}
+                >
+                  <Icon name="search" size={18} strokeWidth={1.8} />
+                </button>
+              )}
+              {!phone && !offline && !older && (
+                <PageAiMenu
+                  projectId={projectId}
+                  page={page}
+                  canEdit={!readOnly}
+                  view={aiView}
+                  onEdit={() => onAction('edit')}
+                  onOpenTicket={onOpenTicket}
+                />
+              )}
+              {!offline && hl.headerButton}
+              {!phone && !offline && !older && (
+                <RefsButton pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
+              )}
+              {!phone && !offline && plan.comments !== 'more' && (
+                <button
+                  type="button"
+                  className={plan.comments === 'icon' ? 'st-btn dk-hbtn dk-hico' : 'st-btn dk-hbtn'}
+                  aria-pressed={cc.open}
+                  aria-label={plan.comments === 'icon' ? `Comments, ${commentTotal}` : undefined}
+                  title={plan.comments === 'icon' ? 'Comments' : undefined}
+                  data-testid="comments-button"
+                  onClick={() => cc.setOpen((v) => !v)}
+                >
+                  <Icon name="comment" size={14} strokeWidth={1.9} />
+                  {plan.comments === 'open' && 'Comments'}
+                  <span className="dc-btn-count" data-testid="comments-count">
+                    {commentTotal}
+                  </span>
+                  {anyUnread && <span className="dc-btn-dot" data-testid="comments-unread" />}
+                </button>
+              )}
+              {!phone && plan.reader !== 'more' && (
+                <div data-popover style={{ position: 'relative' }}>
                   <button
                     type="button"
                     className="dk-icobtn dk-hico"
-                    aria-label="Print"
-                    title="Print"
-                    data-testid="print-button"
-                    onClick={() => setPrintOpen(true)}
+                    aria-label="Reading settings"
+                    title="Reading settings"
+                    aria-expanded={readerOpen}
+                    data-testid="reader-button"
+                    onClick={() => setReaderOpen((v) => !v)}
                   >
-                    <Icon name="page" size={15} strokeWidth={1.9} />
+                    <AaGlyph />
                   </button>
-                )}
-                {(!phone || !offline) && (
-                  <div
-                    style={{ position: 'relative' }}
-                    onMouseEnter={() => editBlocked && setEditTip(true)}
-                    onMouseLeave={() => setEditTip(false)}
-                  >
-                    <button
-                      type="button"
-                      // a reader who cannot edit sees it greyed, still green (Reader boards, J: frame 66)
-                      className="st-btn st-btn-primary dk-hbtn dk-hbtn-primary"
-                      disabled={!!editBlocked}
-                      aria-description={editBlocked ?? undefined}
-                      onClick={() => onAction('edit')}
-                      data-testid="edit-page"
-                    >
-                      {/* a phone's bar has room for the word only (Reader boards, C: "Edit", "Continue") */}
-                      {!phone && <Icon name={lock ? 'lock' : 'i15'} size={14} strokeWidth={1.9} />}
-                      {phone && page.draft ? 'Continue' : editLabel}
-                    </button>
-                    {editTip && editBlocked && (
-                      <div
-                        className="dk-tt"
-                        role="tooltip"
-                        style={{ position: 'absolute', right: 0, top: 'calc(100% + 10px)', zIndex: 3 }}
-                      >
-                        {editBlocked}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {menuButton}
-              </div>
-              {/* how far the page is read: 3 px under the bar, the only thing that sticks (Reader boards, A) */}
-              <div
-                className="dk-progress"
-                role="progressbar"
-                aria-label="Reading progress"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(readPct)}
-                data-testid="read-progress"
-              >
-                <i style={{ width: `${readPct}%` }} />
-              </div>
-            </div>
-            {hl.strips}
-            {touch && outlineButton}
-            <div
-              className="dk-doc-col"
-              data-testid="page-column"
-              id="dk-page-main"
-              role="main"
-              aria-label="The page"
-              tabIndex={-1}
-            >
-              {older && (
-                <OlderVersionBar
-                  version={older.version}
-                  current={page.version}
-                  currentAt={page.updatedAt}
-                  onBack={older.onBack}
-                  onRestore={readOnly ? undefined : older.onRestore}
-                  restoring={older.restoring}
-                />
-              )}
-              {outdated && (
-                <OutdatedNote
-                  outdated={outdated}
-                  canEdit={!readOnly}
-                  busy={reviewing}
-                  onReviewed={() => void markReviewed()}
-                />
-              )}
-              {lock && <ConvertBar lock={lock} />}
-              {!offline && !older && <ConvertedNotice page={page} onViewOriginal={() => onAction('history')} />}
-              {!offline && !older && (
-                <div style={{ marginBottom: 16 }}>
-                  <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />
+                  {readerOpen && (
+                    <ReaderSettingsPopover
+                      prefs={prefs}
+                      onChange={setPrefs}
+                      pagePx={TEXT_SIZE_PX[look.textSize]}
+                      onClose={() => setReaderOpen(false)}
+                    />
+                  )}
                 </div>
               )}
-              {!offline && !older && (
-                <DocsAiBanners projectId={projectId} page={page} canEdit={!readOnly} onOpenTicket={onOpenTicket} />
+              {!phone && !offline && (
+                <FollowBell scope="page" scopeId={page.id} projectId={projectId} className="dk-hico" />
               )}
-              {book && book.index >= 0 && (
-                <div className="dk-chapter-line" data-testid="chapter-line">
-                  {book.title} · Chapter {book.index + 1} of {book.chapters.length}
-                </div>
-              )}
-              <PageHeader
-                look={look}
-                byline={byline}
-                fallbackEyebrow={page.path[page.path.length - 1]?.title}
-                title={
-                  <h1 data-testid="page-title" className={titleClass(look)}>
-                    {page.title}
-                  </h1>
-                }
-              />
-              {/* the status: a quiet line under the title (Reader boards, D) */}
-              <div className="dk-statusrow">
-                {statusChips}
-                {pageInfo}
-                {/* a phone has no room in the bar: "N references" joins the status line, its list a sheet (Links F 33) */}
-                {phone && !offline && !older && (
-                  <RefsButton pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
-                )}
-                <SuggestionChip />
-                {!offline && !older && !sg.review?.list.length && (
-                  <AiEditedChip
-                    page={page}
-                    projectId={projectId}
-                    members={members}
-                    canEdit={!readOnly}
-                    onCompare={onCompare}
-                  />
-                )}
-              </div>
-              <ReviewBar />
-              {!offline && !older && aiOn && (
-                <div style={{ marginTop: 16 }}>
-                  <SummaryBlock view={aiView} />
-                  <TranslateBanner view={aiView} markdown={published ? page.markdown : (page.draft?.markdown ?? '')} />
-                </div>
-              )}
-              {!offline && !older && published && (
-                <div style={{ marginTop: 16 }}>
-                  <PageWork pageId={page.id} onOpenTicket={onOpenTicket} />
-                  <TeamRunEndings
-                    page={page}
-                    onOpenTicket={onOpenTicket}
-                    onCompare={onCompare}
-                    onReview={sg.review?.list.length ? () => sg.review?.focus(sg.review.list[0].id) : undefined}
-                  />
-                </div>
-              )}
-              <ArrivalBanner />
-              <div ref={setBody} data-testid="page-body" style={{ position: 'relative' }}>
-                {!published && !older && (
-                  <div
-                    style={{
-                      margin: '24px 0',
-                      padding: '16px 18px',
-                      borderRadius: 10,
-                      border: '1px dashed #C7D2CB',
-                      background: '#F6FAF7',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 4,
-                      fontSize: 13.5,
-                      color: '#5B6B60',
-                    }}
-                  >
-                    <strong style={{ color: '#1E2A22' }}>This page has not been published yet.</strong>
-                    <span>
-                      {page.draft
-                        ? 'Continue editing to finish your draft, then publish it so everyone can read it. Below is a preview of the draft.'
-                        : 'Edit the page and publish it so everyone can read it.'}
-                    </span>
-                  </div>
-                )}
-                {older && !olderDetail && (
-                  <div aria-busy="true" aria-label="Loading the version" style={{ display: 'grid', gap: 10 }}>
-                    <div className="skel" style={{ width: '100%', height: 11 }} />
-                    <div className="skel" style={{ width: '92%', height: 11 }} />
-                    <div className="skel" style={{ width: '64%', height: 11 }} />
-                  </div>
-                )}
-                {older && olderDetail && !richDoc && (
-                  <DocsMarkdown
-                    key={contentKey(olderDetail.markdown)}
-                    projectId={projectId}
-                    projectName={projectName}
-                    onOpenPage={onOpenPage}
-                    onOpenTicket={onOpenTicket}
-                    progressive={renderedKey !== page.id}
-                    onRendered={onRendered}
-                  >
-                    {olderDetail.markdown}
-                  </DocsMarkdown>
-                )}
-                {older && richDoc && (
-                  <RichDocView
-                    key={richKey}
-                    doc={richDoc}
-                    projectId={projectId}
-                    projectName={projectName}
-                    onOpenPage={onOpenPage}
-                    onOpenTicket={onOpenTicket}
-                    progressive={renderedKey !== page.id}
-                    onRendered={onRendered}
-                  />
-                )}
-                {!older && (published || page.draft) && (
-                  <div
-                    style={{ display: 'contents' }}
-                    data-idea-source={JSON.stringify({ source: 'doc', id: page.id, label: page.title })}
-                  >
-                    {richDoc && !translated ? (
-                      <RichDocView
-                        // keyed by what it shows: the comment numbers are placed inline in this DOM
-                        // (useCommentHighlights), so new text gets fresh nodes instead of edits to split ones
-                        key={richKey}
-                        doc={richDoc}
-                        projectId={projectId}
-                        projectName={projectName}
-                        onOpenPage={onOpenPage}
-                        onOpenTicket={onOpenTicket}
-                        onCreatePage={onCreatePage}
-                        onRestorePage={onRestorePage}
-                        onReplaceSection={published ? onReplaceSection : undefined}
-                        changedIn={published && since.behind && since.marks ? since.changedIn : undefined}
-                        progressive={renderedKey !== page.id}
-                        onRendered={onRendered}
-                        blockWrap={sg.wrap}
-                        lead={sg.lead}
-                        tail={sg.tail}
-                      />
-                    ) : (
-                      <DocsMarkdown
-                        // keyed by what it shows (see above)
-                        key={contentKey(translated ?? (published ? page.markdown : page.draft!.markdown))}
-                        projectId={projectId}
-                        projectName={projectName}
-                        onOpenPage={onOpenPage}
-                        onOpenTicket={onOpenTicket}
-                        onCreatePage={onCreatePage}
-                        onRestorePage={onRestorePage}
-                        onReplaceSection={published && !translated ? onReplaceSection : undefined}
-                        changedIn={
-                          published && since.behind && since.marks && !translated ? since.changedIn : undefined
-                        }
-                        progressive={renderedKey !== page.id}
-                        onRendered={onRendered}
-                      >
-                        {translated ?? (published ? page.markdown : page.draft!.markdown)}
-                      </DocsMarkdown>
-                    )}
-                  </div>
-                )}
-                {!older && !offline && published && richDoc && !translated && (
-                  <BlockRefBadges root={bodyEl} pageId={page.id} revision={richKey} onOpenPage={onOpenPage} />
-                )}
-                {!older && !offline && published && commentsData && (
-                  <MarginMarks
-                    root={bodyEl}
-                    doc={richDoc && !translated ? richDoc : null}
-                    threads={inlineThreads}
-                    panelOpen={cc.open}
-                    activeId={cc.activeId}
-                    layout={layout}
-                    revision={richKey || page.markdown}
-                    canComment={canComment}
-                    onSelect={cc.activate}
-                    onComment={setCompose}
-                  />
-                )}
-              </div>
-              {!older && (
-                <ReadingFooter prev={around.prev} next={around.next} book={book} onOpen={(id) => onOpenPage(id)} />
-              )}
-              {!offline && !older && <PageComments projectId={projectId} data={commentsData} actions={cc.actions} />}
-              <ReferencedBy pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
-            </div>
-          </div>
-          {cc.open && !offline && !touch && (
-            <CommentsPanel
-              pageId={page.id}
-              projectId={projectId}
-              version={page.version}
-              data={commentsData}
-              loading={cc.query.isLoading}
-              error={cc.query.isError}
-              onRetry={() => void cc.query.refetch()}
-              actions={cc.actions}
-              tab={cc.tab}
-              onTab={cc.setTab}
-              activeId={cc.activeId}
-              onActivate={cc.activate}
-              reattachId={cc.reattachId}
-              onReattach={cc.setReattachId}
-              onClose={() => cc.setOpen(false)}
-              doc={!older && published && !translated ? richDoc : null}
-            />
-          )}
-          {hl.rail}
-          {!hl.rail && inlineOutline && outlineOn && (
-            <nav
-              aria-label="On this page"
-              className="dk-toc"
-              ref={tocNavRef}
-              // as tall as the pane (a flex child of it): a list taller than that scrolls here, so its end can be reached
-            >
-              <div>
-                {hl.outlineTabs}
-                <span className="dk-toc-head">On this page</span>
-                {tocList}
-                <div className="dk-toc-foot">
-                  <span data-testid="minutes-left">
-                    {Math.max(1, Math.round(minutes * (1 - readPct / 100)))} min left
-                  </span>
+              {!phone && (
+                <div data-popover style={{ position: 'relative' }}>
                   <button
                     type="button"
-                    className="dk-toc-top"
-                    onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className={plan.share === 'icon' ? 'st-btn dk-hbtn dk-hico' : 'st-btn dk-hbtn'}
+                    onClick={() => (canShare ? setShare((v) => !v) : onAction('copy-link'))}
+                    data-testid="share"
+                    aria-expanded={share}
+                    aria-label={plan.share === 'icon' ? (canShare ? 'Share' : 'Copy link') : undefined}
+                    title={plan.share === 'icon' ? (canShare ? 'Share' : 'Copy link') : undefined}
                   >
-                    <svg
-                      aria-hidden="true"
-                      width={12}
-                      height={12}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2.2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 19V5M6 11l6-6 6 6" />
-                    </svg>
-                    Back to top
+                    <Icon name="link" size={14} strokeWidth={1.9} />
+                    {plan.share === 'open' && (canShare ? 'Share' : 'Copy link')}
                   </button>
+                  {share && (
+                    <SharePopover page={page} onClose={() => setShare(false)} publicLinks={{ canEdit: !readOnly }} />
+                  )}
                 </div>
+              )}
+              {!phone && plan.export === 'open' && (
+                <div data-popover style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    className="st-btn dk-hbtn"
+                    aria-haspopup="menu"
+                    aria-expanded={exportOpen}
+                    data-testid="export-button"
+                    onClick={() => setExportOpen((v) => !v)}
+                  >
+                    <Icon name="i43" size={14} strokeWidth={1.9} />
+                    Export
+                    <Icon name="chevronDown" size={11} strokeWidth={2.3} />
+                  </button>
+                  {exportOpen && (
+                    <ExportMenu
+                      onPick={(f) => (onExport ? onExport(f) : onAction('export'))}
+                      onClose={() => setExportOpen(false)}
+                    />
+                  )}
+                </div>
+              )}
+              {!phone && plan.print === 'open' && (
+                <button
+                  type="button"
+                  className="dk-icobtn dk-hico"
+                  aria-label="Print"
+                  title="Print"
+                  data-testid="print-button"
+                  onClick={() => setPrintOpen(true)}
+                >
+                  <Icon name="page" size={15} strokeWidth={1.9} />
+                </button>
+              )}
+              {(!phone || !offline) && (
+                <div
+                  style={{ position: 'relative' }}
+                  onMouseEnter={() => editBlocked && setEditTip(true)}
+                  onMouseLeave={() => setEditTip(false)}
+                >
+                  <button
+                    type="button"
+                    // a reader who cannot edit sees it greyed, still green (Reader boards, J: frame 66)
+                    className="st-btn st-btn-primary dk-hbtn dk-hbtn-primary"
+                    disabled={!!editBlocked}
+                    aria-description={editBlocked ?? undefined}
+                    onClick={() => onAction('edit')}
+                    data-testid="edit-page"
+                  >
+                    {/* a phone's bar has room for the word only (Reader boards, C: "Edit", "Continue") */}
+                    {!phone && <Icon name={lock ? 'lock' : 'i15'} size={14} strokeWidth={1.9} />}
+                    {phone && page.draft ? 'Continue' : editLabel}
+                  </button>
+                  {editTip && editBlocked && (
+                    <div
+                      className="dk-tt"
+                      role="tooltip"
+                      style={{ position: 'absolute', right: 0, top: 'calc(100% + 10px)', zIndex: 3 }}
+                    >
+                      {editBlocked}
+                    </div>
+                  )}
+                </div>
+              )}
+              {menuButton}
+            </div>
+            {/* how far the page is read: 3 px under the bar, the only thing that sticks (Reader boards, A) */}
+            <div
+              className="dk-progress"
+              role="progressbar"
+              aria-label="Reading progress"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(readPct)}
+              data-testid="read-progress"
+            >
+              <i style={{ width: `${readPct}%` }} />
+            </div>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+            {chapterSide && book && (
+              <nav aria-label="Chapters" className="dk-chapters-side">
+                <ChapterList book={book} currentId={page.id} onOpen={(id) => onOpenPage(id)} />
+              </nav>
+            )}
+            <div
+              ref={setScroll}
+              className={`dk-page-scroll ${lookClass(readerLook)} ${readerClass(prefs)}`.trim()}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                overflowY: 'auto',
+                boxSizing: 'border-box',
+                position: 'relative',
+                ...lookVars(readerLook, layout),
+                ...readerVars(prefs),
+                ...(paneWidth ? { '--dp-pane-w': `${Math.max(0, paneWidth - 32)}px` } : {}),
+              }}
+              data-page-width={look.width}
+              data-page-bg={look.background}
+              data-reader-theme={prefs.theme}
+            >
+              {hl.strips}
+              {touch && outlineButton}
+              <div
+                className="dk-doc-col"
+                data-testid="page-column"
+                id="dk-page-main"
+                role="main"
+                aria-label="The page"
+                tabIndex={-1}
+              >
+                {older && (
+                  <OlderVersionBar
+                    version={older.version}
+                    current={page.version}
+                    currentAt={page.updatedAt}
+                    onBack={older.onBack}
+                    onRestore={readOnly ? undefined : older.onRestore}
+                    restoring={older.restoring}
+                  />
+                )}
+                {outdated && (
+                  <OutdatedNote
+                    outdated={outdated}
+                    canEdit={!readOnly}
+                    busy={reviewing}
+                    onReviewed={() => void markReviewed()}
+                  />
+                )}
+                {lock && <ConvertBar lock={lock} />}
+                {!offline && !older && <ConvertedNotice page={page} onViewOriginal={() => onAction('history')} />}
+                {!offline && !older && (
+                  <div style={{ marginBottom: 16 }}>
+                    <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />
+                  </div>
+                )}
+                {!offline && !older && (
+                  <DocsAiBanners projectId={projectId} page={page} canEdit={!readOnly} onOpenTicket={onOpenTicket} />
+                )}
+                {book && book.index >= 0 && (
+                  <div className="dk-chapter-line" data-testid="chapter-line">
+                    {book.title} · Chapter {book.index + 1} of {book.chapters.length}
+                  </div>
+                )}
+                <PageHeader
+                  look={look}
+                  byline={byline}
+                  fallbackEyebrow={page.path[page.path.length - 1]?.title}
+                  title={
+                    <h1 data-testid="page-title" className={titleClass(look)}>
+                      {page.title}
+                    </h1>
+                  }
+                />
+                {/* the status: a quiet line under the title (Reader boards, D) */}
+                <div className="dk-statusrow">
+                  {statusChips}
+                  {pageInfo}
+                  {/* a phone has no room in the bar: "N references" joins the status line, its list a sheet (Links F 33) */}
+                  {phone && !offline && !older && (
+                    <RefsButton pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
+                  )}
+                  <SuggestionChip />
+                  {!offline && !older && !sg.review?.list.length && (
+                    <AiEditedChip
+                      page={page}
+                      projectId={projectId}
+                      members={members}
+                      canEdit={!readOnly}
+                      onCompare={onCompare}
+                    />
+                  )}
+                </div>
+                <ReviewBar />
+                {!offline && !older && aiOn && (
+                  <div style={{ marginTop: 16 }}>
+                    <SummaryBlock view={aiView} />
+                    <TranslateBanner
+                      view={aiView}
+                      markdown={published ? page.markdown : (page.draft?.markdown ?? '')}
+                    />
+                  </div>
+                )}
+                {!offline && !older && published && (
+                  <div style={{ marginTop: 16 }}>
+                    <PageWork pageId={page.id} onOpenTicket={onOpenTicket} />
+                    <TeamRunEndings
+                      page={page}
+                      onOpenTicket={onOpenTicket}
+                      onCompare={onCompare}
+                      onReview={sg.review?.list.length ? () => sg.review?.focus(sg.review.list[0].id) : undefined}
+                    />
+                  </div>
+                )}
+                <ArrivalBanner />
+                <div ref={setBody} data-testid="page-body" style={{ position: 'relative' }}>
+                  {!published && !older && (
+                    <div
+                      style={{
+                        margin: '24px 0',
+                        padding: '16px 18px',
+                        borderRadius: 10,
+                        border: '1px dashed #C7D2CB',
+                        background: '#F6FAF7',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 4,
+                        fontSize: 13.5,
+                        color: '#5B6B60',
+                      }}
+                    >
+                      <strong style={{ color: '#1E2A22' }}>This page has not been published yet.</strong>
+                      <span>
+                        {page.draft
+                          ? 'Continue editing to finish your draft, then publish it so everyone can read it. Below is a preview of the draft.'
+                          : 'Edit the page and publish it so everyone can read it.'}
+                      </span>
+                    </div>
+                  )}
+                  {older && !olderDetail && (
+                    <div aria-busy="true" aria-label="Loading the version" style={{ display: 'grid', gap: 10 }}>
+                      <div className="skel" style={{ width: '100%', height: 11 }} />
+                      <div className="skel" style={{ width: '92%', height: 11 }} />
+                      <div className="skel" style={{ width: '64%', height: 11 }} />
+                    </div>
+                  )}
+                  {older && olderDetail && !richDoc && (
+                    <DocsMarkdown
+                      key={contentKey(olderDetail.markdown)}
+                      projectId={projectId}
+                      projectName={projectName}
+                      onOpenPage={onOpenPage}
+                      onOpenTicket={onOpenTicket}
+                      progressive={renderedKey !== page.id}
+                      onRendered={onRendered}
+                    >
+                      {olderDetail.markdown}
+                    </DocsMarkdown>
+                  )}
+                  {older && richDoc && (
+                    <RichDocView
+                      key={richKey}
+                      doc={richDoc}
+                      projectId={projectId}
+                      projectName={projectName}
+                      onOpenPage={onOpenPage}
+                      onOpenTicket={onOpenTicket}
+                      progressive={renderedKey !== page.id}
+                      onRendered={onRendered}
+                    />
+                  )}
+                  {!older && (published || page.draft) && (
+                    <div
+                      style={{ display: 'contents' }}
+                      data-idea-source={JSON.stringify({ source: 'doc', id: page.id, label: page.title })}
+                    >
+                      {richDoc && !translated ? (
+                        <RichDocView
+                          // keyed by what it shows: the comment numbers are placed inline in this DOM
+                          // (useCommentHighlights), so new text gets fresh nodes instead of edits to split ones
+                          key={richKey}
+                          doc={richDoc}
+                          projectId={projectId}
+                          projectName={projectName}
+                          onOpenPage={onOpenPage}
+                          onOpenTicket={onOpenTicket}
+                          onCreatePage={onCreatePage}
+                          onRestorePage={onRestorePage}
+                          onReplaceSection={published ? onReplaceSection : undefined}
+                          changedIn={published && since.behind && since.marks ? since.changedIn : undefined}
+                          progressive={renderedKey !== page.id}
+                          onRendered={onRendered}
+                          blockWrap={sg.wrap}
+                          lead={sg.lead}
+                          tail={sg.tail}
+                        />
+                      ) : (
+                        <DocsMarkdown
+                          // keyed by what it shows (see above)
+                          key={contentKey(translated ?? (published ? page.markdown : page.draft!.markdown))}
+                          projectId={projectId}
+                          projectName={projectName}
+                          onOpenPage={onOpenPage}
+                          onOpenTicket={onOpenTicket}
+                          onCreatePage={onCreatePage}
+                          onRestorePage={onRestorePage}
+                          onReplaceSection={published && !translated ? onReplaceSection : undefined}
+                          changedIn={
+                            published && since.behind && since.marks && !translated ? since.changedIn : undefined
+                          }
+                          progressive={renderedKey !== page.id}
+                          onRendered={onRendered}
+                        >
+                          {translated ?? (published ? page.markdown : page.draft!.markdown)}
+                        </DocsMarkdown>
+                      )}
+                    </div>
+                  )}
+                  {!older && !offline && published && richDoc && !translated && (
+                    <BlockRefBadges root={bodyEl} pageId={page.id} revision={richKey} onOpenPage={onOpenPage} />
+                  )}
+                  {!older && !offline && published && commentsData && (
+                    <MarginMarks
+                      root={bodyEl}
+                      doc={richDoc && !translated ? richDoc : null}
+                      threads={inlineThreads}
+                      panelOpen={cc.open}
+                      activeId={cc.activeId}
+                      layout={layout}
+                      revision={richKey || page.markdown}
+                      canComment={canComment}
+                      onSelect={cc.activate}
+                      onComment={setCompose}
+                    />
+                  )}
+                </div>
+                {!older && (
+                  <ReadingFooter prev={around.prev} next={around.next} book={book} onOpen={(id) => onOpenPage(id)} />
+                )}
+                {!offline && !older && <PageComments projectId={projectId} data={commentsData} actions={cc.actions} />}
+                <ReferencedBy pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
               </div>
-            </nav>
-          )}
+            </div>
+            {cc.open && !offline && !touch && (
+              <CommentsPanel
+                pageId={page.id}
+                projectId={projectId}
+                version={page.version}
+                data={commentsData}
+                loading={cc.query.isLoading}
+                error={cc.query.isError}
+                onRetry={() => void cc.query.refetch()}
+                actions={cc.actions}
+                tab={cc.tab}
+                onTab={cc.setTab}
+                activeId={cc.activeId}
+                onActivate={cc.activate}
+                reattachId={cc.reattachId}
+                onReattach={cc.setReattachId}
+                onClose={() => cc.setOpen(false)}
+                doc={!older && published && !translated ? richDoc : null}
+              />
+            )}
+            {hl.rail}
+            {!hl.rail && inlineOutline && outlineOn && (
+              <nav
+                aria-label="On this page"
+                className="dk-toc"
+                ref={tocNavRef}
+                // as tall as the pane (a flex child of it): a list taller than that scrolls here, so its end can be reached
+              >
+                <div>
+                  {hl.outlineTabs}
+                  <span className="dk-toc-head">On this page</span>
+                  {tocList}
+                  <div className="dk-toc-foot">
+                    <span data-testid="minutes-left">
+                      {Math.max(1, Math.round(minutes * (1 - readPct / 100)))} min left
+                    </span>
+                    <button
+                      type="button"
+                      className="dk-toc-top"
+                      onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                    >
+                      <svg
+                        aria-hidden="true"
+                        width={12}
+                        height={12}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2.2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 19V5M6 11l6-6 6 6" />
+                      </svg>
+                      Back to top
+                    </button>
+                  </div>
+                </div>
+              </nav>
+            )}
+          </div>
         </div>
         {cc.open && !offline && phone && (
           <PhoneComments

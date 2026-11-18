@@ -1249,8 +1249,8 @@
 .dk-toc {
   width: 226px;
   flex-shrink: 0;
-  /* level with the page's first line: under the 60 px bar and its 3 px progress, then 26 px */
-  padding: 89px 36px 24px 0;
+  /* level with the page's first line: 26 px under the bar and its 3 px progress (the bar spans this column) */
+  padding: 29px 36px 24px 0;
   box-sizing: border-box;
   max-height: 100%;
   overflow-y: auto;
@@ -1915,4 +1915,181 @@
 }
 .dk-share-sheet .dk-share-person {
   min-height: 44px;
+}
+
+/* ---------- focus reading (Reader 1, 4 and the phone frames): no app chrome, the page bar leads ---------- */
+/* a 56 px bar with a rule, "← Kanban Board" first; the app's Ask AI and bell join the page actions */
+.dk-pagebar.dk-pagebar-focus:not(.dk-touch .dk-pagebar) {
+  min-height: 56px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--dp-rule, #e3e8e5);
+}
+.dk-pagebar .dk-focus-back {
+  flex: none;
+}
+.dk-focus-back-label {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dk-pagebar .as-header-btn {
+  height: 32px;
+  padding: 0 12px;
+  gap: 6px;
+  border: 1px solid var(--dp-link, #2e6f40);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dp-ink, #1e2a22);
+  font-size: 12.5px;
+  box-sizing: border-box;
+}
+.dk-pagebar .as-header-btn .as-kbd {
+  background: transparent;
+  border-color: var(--dp-rule, #d5ddd8);
+  color: var(--dp-muted, #5b6b60);
+}
+.dk-pagebar .as-header-btn.as-header-btn-icon {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  justify-content: center;
+  border: none;
+}
+.dk-focus-bell {
+  display: inline-flex;
+}
+.dk-focus-bell button {
+  background: transparent;
+  border-color: var(--dp-rule, #e3e8e5);
+  color: var(--dp-ink, #3a4a3e);
+}
+.dk-touch .dk-focus-bell button {
+  width: 44px;
+  height: 44px;
+  border: none;
+}
+
+/* ---------- the page's tone dresses the whole Docs area (Reader 1, 7: a sepia or night page is sepia or night
+   from edge to edge): the tree and its rail, the bar, the outline, page comments and "Referenced by". The colours
+   are the page's own variables, set on the Docs root by DocsView (`data-docs-tone`, `dk-rt-*` for a reading theme) */
+.docs-root[data-docs-tone]:not([data-docs-tone='white']) {
+  --dk-side: color-mix(in srgb, var(--dp-page) 94%, var(--dp-ink));
+  background: var(--dp-page) !important;
+  color: var(--dp-ink);
+}
+:is(.docs-root[data-docs-tone='sepia'], .docs-root[data-docs-tone='night']) aside[aria-label^='Docs space'],
+:is(.docs-root[data-docs-tone='paper'], .docs-root[data-docs-tone='mist']) aside[aria-label^='Docs space'] {
+  background: var(--dk-side) !important;
+  color: var(--dp-ink) !important;
+  border-color: var(--dp-rule) !important;
+}
+.docs-root:not([data-docs-tone='white'])
+  aside[aria-label^='Docs space']
+  :is(.tr-head-eyebrow, .dk-icobtn, .tr-headbtn, .tr-chev, .tr-binrow, .tr-icon:not(.tr-emoji)),
+.docs-root:not([data-docs-tone='white']) .tr-head-name > span {
+  color: var(--dp-muted) !important;
+}
+.docs-root:not([data-docs-tone='white']) .tr-head-name {
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] .tr-search {
+  background: var(--dp-page) !important;
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-muted) !important;
+}
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] .tr-search input {
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] .dk-kbd {
+  background: var(--dp-surface) !important;
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-muted) !important;
+}
+.docs-root:not([data-docs-tone='white']) .tr-seg {
+  background: var(--dp-surface) !important;
+}
+.docs-root:not([data-docs-tone='white']) .tr-seg button {
+  color: var(--dp-muted) !important;
+}
+.docs-root:not([data-docs-tone='white']) .tr-seg button[aria-checked='true'] {
+  background: var(--dp-page) !important;
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] .tr-tool,
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] .tr-newpage button {
+  background: transparent !important;
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-text) !important;
+}
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] .tr-newpage button {
+  color: var(--dp-link) !important;
+}
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] .tr-binrow {
+  border-color: var(--dp-rule) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dk-tree-row {
+  color: var(--dp-text) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dk-tree-row:hover {
+  background: color-mix(in srgb, var(--dk-side) 70%, var(--dp-ink) 8%) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dk-tree-row[aria-current='page'] {
+  background: var(--dp-surface) !important;
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dk-tree-row .tr-title {
+  color: inherit !important;
+}
+.docs-root:not([data-docs-tone='white']) aside[aria-label^='Docs space'] :is(.tr-booktag, .tr-tag) {
+  background: transparent !important;
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-link) !important;
+}
+/* page comments and "Referenced by" at the end of the page */
+.docs-root:not([data-docs-tone='white']) .dc-page-comments {
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dc-page-comments h2 {
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dc-page-comments .dc-sort {
+  color: var(--dp-muted) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dc-page-comments .dc-count-pill {
+  background: var(--dp-surface) !important;
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) .dc-page-comments .dc-reply-field {
+  background: var(--dp-page) !important;
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) .rb-panel {
+  background: transparent !important;
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white']) .rb-panel > div:not(.rb-head) {
+  background: var(--dp-surface) !important;
+  border-color: var(--dp-rule) !important;
+}
+.docs-root:not([data-docs-tone='white']) .rb-panel > div:not(.rb-head) > div:first-child {
+  background: var(--dp-page) !important;
+  color: var(--dp-muted) !important;
+}
+.docs-root:not([data-docs-tone='white']) .rb-panel :is(.rb-sum, [style*='color']) {
+  color: var(--dp-muted) !important;
+}
+.docs-root:not([data-docs-tone='white']) .rb-panel .rb-head,
+.docs-root:not([data-docs-tone='white']) .rb-panel > div > div:nth-child(2) {
+  color: var(--dp-ink) !important;
+}
+.docs-root:not([data-docs-tone='white'])
+  :is(.rb-panel, .dk-page-frame)
+  .st-btn:not(.st-btn-primary):not(.dk-hbtn-primary) {
+  background: transparent !important;
+  border-color: var(--dp-rule) !important;
+  color: var(--dp-ink) !important;
 }

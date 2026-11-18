@@ -32,6 +32,8 @@ interface Props {
   onOpenSidebar?: () => void;
   /** Called with true while the app bar should hide (editing on a tablet or a phone), false after. */
   onImmersiveChange?: (on: boolean) => void;
+  /** Called with true while a page reads in focus, without the app's sidebar and header; false after. */
+  onFocusChange?: (on: boolean) => void;
 }
 
 /**
@@ -46,6 +48,7 @@ interface Props {
  * @param props.onPopOut - Called with the open page to move Docs into a window of its own.
  * @param props.onOpenSidebar - Opens the project sidebar the app hides on narrow screens.
  * @param props.onImmersiveChange - Called with true while the app bar should hide (editing on touch layouts).
+ * @param props.onFocusChange - Called with true while a page reads in focus (no app chrome).
  */
 export function DocsSpace({
   projectId,
@@ -58,6 +61,7 @@ export function DocsSpace({
   onPopOut,
   onOpenSidebar,
   onImmersiveChange,
+  onFocusChange,
 }: Props) {
   const tree = useDocsTree(projectId);
   const nodes = tree.data ?? [];
@@ -149,6 +153,7 @@ export function DocsSpace({
         onIntentHandled={() => setIntent(null)}
         onOpenSidebar={onOpenSidebar}
         onImmersiveChange={onImmersiveChange}
+        onFocusChange={onFocusChange}
         onLayoutChange={setLayout}
       />
       <RefCheatSheetHost />

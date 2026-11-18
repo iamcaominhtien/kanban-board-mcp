@@ -891,6 +891,8 @@ export default function App() {
   const narrowWindow = useNarrowWindow(DOCS_SIDEBAR_DRAWER_BELOW);
   const sidebarAsDrawer = narrowWindow && boardShown && viewMode === 'docs';
   const [sidebarDrawer, setSidebarDrawer] = useState(false);
+  // a Docs page reading in focus has no app chrome: the sidebar steps aside too (Reader 1, 4)
+  const [docsFocus, setDocsFocus] = useState(false);
   useEffect(() => {
     if (!sidebarAsDrawer) setSidebarDrawer(false);
   }, [sidebarAsDrawer]);
@@ -995,7 +997,9 @@ export default function App() {
                 onView={showMenuView}
               />
               <AssistOverlays />
-              {!sidebarAsDrawer && <SidebarWithAssist {...sidebarProps} />}
+              {!sidebarAsDrawer && !(docsFocus && boardShown && viewMode === 'docs') && (
+                <SidebarWithAssist {...sidebarProps} />
+              )}
               {sidebarAsDrawer && sidebarDrawer && (
                 <div className="kb-sidebar-drawer" data-testid="sidebar-drawer">
                   <div className="kb-sidebar-scrim" aria-hidden="true" onClick={() => setSidebarDrawer(false)} />
@@ -1131,6 +1135,7 @@ export default function App() {
                           onOpenSettings={() => setSettingsTarget({ page: 'docs' })}
                           onOpenAiMember={(id) => setAiPage({ memberId: id, key: Date.now() })}
                           onOpenDocsPage={openDocsPage}
+                          onDocsFocusChange={setDocsFocus}
                           members={members}
                           activeAssignee={activeAssignee}
                           onAssigneeChange={setActiveAssignee}
@@ -1159,7 +1164,9 @@ export default function App() {
                           }
                           headerExtra={
                             <>
-                              <BoardHealthChip />
+                              {/* the Docs header is the design's: the title, the views and New Ticket, with Ask AI and
+                                  the bell carried over; Board health belongs to the board */}
+                              {viewMode !== 'docs' && <BoardHealthChip />}
                               <KeepAwakeChip />
                               <AskAiButton />
                               <NotificationBellButton />

@@ -59,6 +59,8 @@ interface BoardProps {
   /** AI Team view: open an AI member's page (fix its connection) and a Docs page. */
   onOpenAiMember?: (memberId: string) => void;
   onOpenDocsPage?: (pageId: string) => void;
+  /** Called with true while a Docs page reads in focus (no app chrome: the app hides its sidebar too). */
+  onDocsFocusChange?: (on: boolean) => void;
   /** Docs view: a page to open (from a ticket's linked docs or a ?docs= link). */
   docsRequestedPageId?: string | null;
   onDocsRequestHandled?: () => void;
@@ -148,6 +150,7 @@ export function Board({
   onOpenSettings,
   onOpenAiMember,
   onOpenDocsPage,
+  onDocsFocusChange,
   members = [],
   activeAssignee = 'all',
   onAssigneeChange,
@@ -201,7 +204,15 @@ export function Board({
   }, [docsPopped, docsRequestedPageId, showInDocsWindow, onDocsRequestHandled]);
   // editing a page on a tablet or a phone: the app bar and the view tabs hide so the page gets the screen
   const [docsImmersive, setDocsImmersive] = useState(false);
-  const hideBar = viewMode === 'docs' && docsImmersive;
+  // a Docs page reading in focus (Reader 1, 4 and the phone frames) has no app chrome at all
+  const [docsFocus, setDocsFocus] = useState(false);
+  const focusRef = useRef(onDocsFocusChange);
+  focusRef.current = onDocsFocusChange;
+  const docsFocusOn = viewMode === 'docs' && docsFocus;
+  useEffect(() => {
+    focusRef.current?.(docsFocusOn);
+  }, [docsFocusOn]);
+  const hideBar = viewMode === 'docs' && (docsImmersive || docsFocus);
   // Docs on a phone-sized window: the app's header folds to the boards' 52 px bar and the tabs to a strip
   const docsPhone = useNarrowWindow(DOCS_PHONE_BELOW) && viewMode === 'docs';
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
@@ -396,7 +407,7 @@ export function Board({
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div
-        className={`${styles.board}${docsPhone ? ` ${styles.boardDocsPhone}` : ''}`}
+        className={`${styles.board}${docsPhone ? ` ${styles.boardDocsPhone}` : viewMode === 'docs' ? ` ${styles.boardDocs}` : ''}`}
         aria-busy={loadState ? true : undefined}
       >
         {docsPhone && !hideBar && (
@@ -572,6 +583,7 @@ export function Board({
             onOpenTicket={openTicketById}
             onOpenSidebar={onOpenSidebar}
             onImmersiveChange={setDocsImmersive}
+            onFocusChange={setDocsFocus}
             onPopOut={(pageId) => {
               if (!docsWindow.popOut(pageId)) {
                 toast.error('The window was blocked', 'Allow pop-ups for the board, then try again.');

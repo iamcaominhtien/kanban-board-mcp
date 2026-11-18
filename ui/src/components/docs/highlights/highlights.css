@@ -515,7 +515,7 @@
 .hl-rail {
   width: 336px;
   flex-shrink: 0;
-  padding: 89px 36px 0 0;
+  padding: 29px 36px 0 0;
   box-sizing: border-box;
   max-height: 100%;
   display: flex;

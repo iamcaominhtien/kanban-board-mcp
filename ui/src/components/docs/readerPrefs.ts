@@ -6,7 +6,14 @@
  */
 
 import { useEffect, useState, type CSSProperties } from 'react';
-import { lookVars, readPageLook, type PageFont, type PageLook, type PageWidth } from './pageSettings';
+import {
+  lookVars,
+  readPageLook,
+  type PageBackground,
+  type PageFont,
+  type PageLook,
+  type PageWidth,
+} from './pageSettings';
 
 export type ReaderTheme = 'white' | 'sepia' | 'night';
 /** `page` keeps the fonts the author chose. */
@@ -208,4 +215,30 @@ export function readerThemeCss(): string {
  */
 export function readerSizeLabel(prefs: ReaderPrefs, pagePx: number): string {
   return `${prefs.size ?? pagePx} px`;
+}
+
+/** The colours of the Docs area around a page being read: its tone, a class and the colour variables. */
+export interface DocsTone {
+  /** The reader's Sepia or Night, else the page's own background; `white` for a plain page or no page. */
+  tone: PageBackground;
+  /** `dk-rt-sepia` / `dk-rt-night` for a reading theme (its colours win, see {@link readerThemeCss}), else empty. */
+  className: string;
+  /** The page's colour variables (`--dp-page`, `--dp-ink`, `--dp-muted`, `--dp-rule`, `--dp-surface`, `--dp-link`). */
+  style: CSSProperties;
+}
+
+const TONE_VARS = ['--dp-page', '--dp-ink', '--dp-text', '--dp-muted', '--dp-rule', '--dp-surface', '--dp-link'];
+
+/**
+ * The tone the whole Docs area takes while a page is read (the header, the tree, the outline, comments and
+ * "Referenced by" — not only the text): a reading theme dresses all of it, and so does a page's own background.
+ * @param look - The page's settings, or `null` when no page is read (a list, the editor): the area stays white.
+ * @param prefs - The reader's preferences.
+ */
+export function docsTone(look: PageLook | null, prefs: ReaderPrefs): DocsTone {
+  if (!look) return { tone: 'white', className: '', style: {} };
+  const tone: PageBackground = prefs.theme !== 'white' ? prefs.theme : look.background;
+  const vars = lookVars(look) as Record<string, string>;
+  const style = Object.fromEntries(TONE_VARS.map((k) => [k, vars[k]])) as CSSProperties;
+  return { tone, className: prefs.theme !== 'white' ? `dk-rt-${prefs.theme}` : '', style };
 }

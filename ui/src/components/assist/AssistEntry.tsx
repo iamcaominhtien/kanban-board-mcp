@@ -4,8 +4,11 @@ import { shortcutLabel, useAssist } from './AssistContext';
 import { featureBlock } from './assistUi';
 import './assist.css';
 
-/** Header "Ask AI ⌘J" (A1). Hidden when chat is turned off (I12); disabled with the reason on hover (I1, I2). */
-export function AskAiButton() {
+/**
+ * Header "Ask AI ⌘J" (A1). Hidden when chat is turned off (I12); disabled with the reason on hover (I1, I2).
+ * @param props.compact - Only the sparkle, for a bar with little room (a phone's Docs page bar).
+ */
+export function AskAiButton({ compact = false }: { compact?: boolean } = {}) {
   const ctx = useAssist();
   const st = useAssistState(ctx?.projectId);
   if (!ctx || !st.data) return null;
@@ -15,14 +18,21 @@ export function AskAiButton() {
   return (
     <button
       type="button"
-      className="as-header-btn"
+      className={compact ? 'as-header-btn as-header-btn-icon' : 'as-header-btn'}
       onClick={ctx.toggle}
       disabled={!!block}
       title={block ? `${block.reason}. Fix in AI Team.` : 'Ask the Board AI'}
+      aria-label={compact ? 'Ask AI' : undefined}
       data-testid="ask-ai-button"
       aria-pressed={ctx.open}
     >
-      <SparkleIcon size={13} /> Ask AI <span className="as-kbd">{shortcutLabel()}</span>
+      <SparkleIcon size={compact ? 17 : 13} />
+      {!compact && (
+        <>
+          {' '}
+          Ask AI <span className="as-kbd">{shortcutLabel()}</span>
+        </>
+      )}
     </button>
   );
 }

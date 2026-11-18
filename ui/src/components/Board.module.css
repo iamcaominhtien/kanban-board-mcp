@@ -337,6 +337,19 @@
   padding: 0;
   gap: 0;
 }
+/* Docs on a desktop or a tablet (Shell 1-2, Reader 1): the header is a bar of its own with a rule under it and the
+   space fills the rest edge to edge, no margins around it */
+.boardDocs {
+  padding: 0;
+  gap: 0;
+}
+.boardDocs .topBar {
+  padding: 20px 28px 16px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.boardDocs .statusRow {
+  margin-bottom: -28px;
+}
 .phoneBar {
   height: 52px;
   flex: none;
@@ -413,4 +426,69 @@
   color: #1e2a22;
   font-weight: 700;
   border-bottom-color: #2e6f40;
+}
+
+/* the Docs header takes the tone of the page being read (Reader 1, 7): a reading theme or the page's own
+   background dresses the whole Docs screen, the header included (DocsView sets `data-docs-tone`) */
+.boardDocs:has([data-docs-tone='sepia']) {
+  --tone-bg: #f4ecd8;
+  --tone-ink: #3b3024;
+  --tone-mute: #66543e;
+  --tone-rule: #e0d2b4;
+  --tone-soft: #ebe0c6;
+}
+.boardDocs:has([data-docs-tone='night']) {
+  --tone-bg: #171d19;
+  --tone-ink: #d9e2db;
+  --tone-mute: #93a398;
+  --tone-rule: #2c372f;
+  --tone-soft: #202922;
+}
+.boardDocs:has([data-docs-tone='paper']) {
+  --tone-bg: #fbf8f1;
+  --tone-ink: #1e2a22;
+  --tone-mute: #5b6b60;
+  --tone-rule: #e6dfcf;
+  --tone-soft: #f3eee2;
+}
+.boardDocs:has([data-docs-tone='mist']) {
+  --tone-bg: #eef3ef;
+  --tone-ink: #1e2a22;
+  --tone-mute: #5b6b60;
+  --tone-rule: #cfdcd3;
+  --tone-soft: #dfe9e2;
+}
+.boardDocs:has([data-docs-tone]:not([data-docs-tone='white'])) {
+  background: var(--tone-bg);
+}
+.boardDocs:has([data-docs-tone]:not([data-docs-tone='white'])) .topBar {
+  background: var(--tone-bg);
+  border-bottom-color: var(--tone-rule);
+}
+.boardDocs:has([data-docs-tone]:not([data-docs-tone='white'])) .title {
+  color: var(--tone-ink);
+}
+.boardDocs:has([data-docs-tone]:not([data-docs-tone='white'])) .viewSwitcher {
+  background: var(--tone-soft);
+}
+.boardDocs:has([data-docs-tone]:not([data-docs-tone='white'])) .viewBtn {
+  color: var(--tone-mute);
+}
+.boardDocs:has([data-docs-tone]:not([data-docs-tone='white'])) .viewBtnActive {
+  background: var(--tone-bg);
+  color: var(--tone-ink);
+}
+.boardDocs:has([data-docs-tone]:not([data-docs-tone='white'])) .topBar :global(.as-header-btn),
+.boardDocs:has([data-docs-tone]:not([data-docs-tone='white'])) .topBar :global([data-notification-bell]) button {
+  background: transparent;
+  color: var(--tone-ink);
+  border-color: var(--tone-rule);
+}
+.boardDocs:has([data-docs-tone]:not([data-docs-tone='white'])) .topBar :global(.as-header-btn) {
+  border-color: var(--tone-mute);
+}
+.boardDocs:has([data-docs-tone]:not([data-docs-tone='white'])) .topBar :global(.as-kbd) {
+  background: transparent;
+  border-color: var(--tone-rule);
+  color: var(--tone-mute);
 }
