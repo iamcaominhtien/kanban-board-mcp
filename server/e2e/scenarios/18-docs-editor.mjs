@@ -722,7 +722,7 @@ export default {
       await saved();
     });
     await s.step('Focus mode: Ctrl Shift F covers the whole window, over the side bar; Esc leaves (Editor 56)', async () => {
-      await content().locator('pre code').last().click();
+      await atEnd();
       await p.keyboard.press('Control+Shift+F');
       const root = p.locator('.dk-editor-root.dk-focus-mode');
       await root.waitFor();

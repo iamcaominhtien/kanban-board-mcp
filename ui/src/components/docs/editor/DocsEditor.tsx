@@ -958,7 +958,10 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   useEffect(() => {
     if (!focusMode || !editor) return undefined;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !e.defaultPrevented && !slashHost.getSnapshot()) setFocusMode(false);
+      // heard before the text does (the editor takes Escape for itself); an open menu or dialog closes first
+      if (e.key !== 'Escape' || slashHost.getSnapshot()) return;
+      if (document.querySelector('[role="menu"], [role="dialog"], [role="listbox"]')) return;
+      setFocusMode(false);
     };
     const center = () => {
       const scroller = editor.view.dom.closest('[data-testid="editor-scroll"]');
@@ -971,10 +974,10 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
         /* no layout */
       }
     };
-    window.addEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
     editor.on('update', center);
     return () => {
-      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keydown', onKey, true);
       editor.off('update', center);
     };
   }, [focusMode, editor, slashHost]);

@@ -1561,7 +1561,8 @@ body.dk-focus-on aside[aria-label='Project navigation'] {
 }
 /* a white page is written on the board's paper in Focus mode (Editor 56); a page with its own colour keeps it */
 .dk-focus-mode .dk-paged.dk-bg-white {
-  background: #fbf8f1;
+  /* over the scroller's inline background: var(--dp-page), which the page's own settings set to white */
+  background: #fbf8f1 !important;
 }
 /* Focus mode (Editor 56): a 56 px bar with the save state and a "Leave Focus mode" pill at the right, and the word
    count in a pill at the foot of the screen */
