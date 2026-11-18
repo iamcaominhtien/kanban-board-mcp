@@ -83,8 +83,8 @@ describe('accounts for a member type', () => {
 
 describe('the picker', () => {
   it('describes an account with who, plan and how many already use it', () => {
-    expect(accountSub(acct(), true)).toBe('an.nguyen@work.example · Max · 3 members already use it');
-    expect(accountSub(acct({ memberCount: 1 }), false)).toContain('1 member already use it');
+    expect(accountSub(acct(), true)).toBe('an.nguyen@work.example · Max · 3 teams');
+    expect(accountSub(acct({ memberCount: 1 }), false)).toContain('1 team');
   });
   it('says session expired for a signed-out account that is not the chosen one', () => {
     const out = acct({ status: 'needs_sign_in', signedOutAt: 'x', email: 'an.n@home.example', plan: 'pro' });
@@ -103,17 +103,17 @@ describe('the picker', () => {
     expect(accountReady(acct({ status: 'signing_in' }))).toBe(false);
     expect(accountReady(acct({ status: 'cli_missing' }))).toBe(false);
   });
-  it('counts the members that will share the limit, including the one being added', () => {
+  it('counts the members that will share the limit, including the one being added (sharedHint counts the teams already on the account)', () => {
     expect(sharingCount(acct(), false)).toBe(4);
     expect(sharingCount(acct(), true)).toBe(3);
     expect(sharedHint(acct(), false)?.text).toBe(
-      'The 4 AI members on Work Claude draw from the same plan limit. A busy day for one can slow the others.',
+      'The 3 AI teams on Work Claude draw from the same plan limit. A busy day for one can slow the others.',
     );
     expect(sharedHint(acct({ memberCount: 0 }), false)).toBeNull();
     expect(sharedHint(acct({ memberCount: 1 }), true)).toBeNull();
   });
-  it('says on the profile how many members share the account', () => {
-    expect(sharedProfileHint(ref({ sharedBy: 3 }))).toBe('3 members share this account and its limits');
+  it('says on the profile how many teams share the account', () => {
+    expect(sharedProfileHint(ref({ sharedBy: 3 }))).toBe('3 teams share this account and its limits');
     expect(sharedProfileHint(ref({ sharedBy: 1 }))).toBeNull();
   });
 });
@@ -158,15 +158,15 @@ describe('the banner', () => {
     expect(groups[0].members.map((m) => m.name)).toEqual(['Weekend helper', 'Spec writer']);
     expect(groups[0].queued).toBe(3);
     expect(bannerCopy(groups[0])).toEqual({
-      title: '2 AI members can’t run: Personal Claude needs to sign in',
-      text: 'Weekend helper and Spec writer have 3 queued runs held. They start by themselves once the account is signed in again.',
+      title: '2 teams can’t run: Personal Claude needs to sign in',
+      text: 'Weekend helper and Spec writer have 3 runs waiting in their queues. They start by themselves once the account is signed in again.',
     });
   });
   it('words one member with one held run as the design does', () => {
     const [g] = blockedAccounts([member()]);
     expect(bannerCopy(g)).toEqual({
-      title: '1 AI member can’t run: Personal Claude needs to sign in',
-      text: 'Weekend helper has 1 queued run held. It starts by itself once the account is signed in again.',
+      title: '1 team can’t run: Personal Claude needs to sign in',
+      text: 'Weekend helper has 1 run waiting in its queue. It starts by itself once the account is signed in again.',
     });
   });
   it('does not promise held runs when nothing is queued', () => {
@@ -198,7 +198,7 @@ describe('telling the person once per account', () => {
     const before = [acct({ status: 'needs_sign_in' })];
     const ev = accountEvents(state(before), [acct()], new Map([['a1', 2]]));
     expect(ev).toEqual([{ kind: 'signed_in', account: acct(), heldRuns: 2 }]);
-    expect(eventCopy(ev[0]).message).toBe('2 held runs restart by themselves.');
+    expect(eventCopy(ev[0]).message).toBe('2 waiting runs start by themselves.');
   });
   it('stays quiet for an account nobody uses', () => {
     const before = [acct({ status: 'needs_sign_in', memberCount: 0 })];
@@ -207,7 +207,7 @@ describe('telling the person once per account', () => {
   it('words the signed-out toast', () => {
     expect(eventCopy({ kind: 'signed_out', account: acct({ memberCount: 1 }) })).toEqual({
       title: 'Work Claude needs to sign in',
-      message: '1 AI member can’t run until someone signs in again. Queued runs wait.',
+      message: '1 team can’t run until someone signs in again. Queued runs wait.',
     });
   });
 });

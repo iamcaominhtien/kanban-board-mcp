@@ -177,6 +177,7 @@ pub(super) async fn run(run: &ai_run::Model, out: &mut Turn, args: RunArgs<'_>) 
             }
         };
         let parsed = parser.parse(&line).map_err(said)?;
+        out.note_context(&parsed);
         let mut fields = Map::new();
         if parsed.ready {
             fields.insert("state".into(), json!("running"));

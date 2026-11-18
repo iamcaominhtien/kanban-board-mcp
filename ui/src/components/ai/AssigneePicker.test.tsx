@@ -51,7 +51,9 @@ describe('assigning an AI team', () => {
     const pick = vi.fn();
     open(pick);
     expect(screen.getByTestId('assign-start-popover').textContent).toContain('Assign only');
-    fireEvent.click(screen.getByTestId('assign-only'));
+    fireEvent.click(screen.getByTestId('assign-choice-only'));
+    expect(screen.getByTestId('assign-confirm').textContent).toBe('Assign');
+    fireEvent.click(screen.getByTestId('assign-confirm'));
     expect(pick).toHaveBeenCalledWith('t1', false);
   });
 

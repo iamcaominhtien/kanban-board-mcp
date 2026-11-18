@@ -73,6 +73,20 @@ function mount() {
         },
       });
     if (url === '/projects/p1/ai/knowledge') return Promise.resolve({ data: null });
+    // the Resources snapshot (the Now cards read its limits) and the "You stepped in" totals (the tab count)
+    if (url === '/projects/p1/ai/resources')
+      return Promise.resolve({
+        data: {
+          at: '2026-11-05T10:00:00Z',
+          machine: {},
+          limits: { runMemoryLimitMb: 0, autoRestarts: 0, boardMaxParallel: 2 },
+          runs: [],
+        },
+      });
+    if (url === '/projects/p1/ai/team/touches')
+      return Promise.resolve({
+        data: { totals: { touches: 0, needed: 0, avoidable: 0, unmarked: 0, tickets: 0, runs: 0, perTicket: null } },
+      });
     return Promise.resolve({ data: [] });
   });
   render(

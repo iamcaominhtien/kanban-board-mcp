@@ -44,6 +44,7 @@ export default {
       const vars = { FAKE_CLAUDE_MODE: 'assistant', FAKE_CLAUDE_ASSISTANT_BY_SKILL: JSON.stringify(answers.by) };
       if (answers.text != null) vars.FAKE_CLAUDE_ASSISTANT_TEXT = answers.text;
       if (answers.wait != null) vars.FAKE_CLAUDE_ASSISTANT_WAIT = String(answers.wait);
+      if (answers.context != null) vars.FAKE_CLAUDE_CONTEXT = answers.context;
       s.server.fake(vars);
     };
     const dock = () => p.getByRole('complementary', { name: 'Board AI' });
@@ -85,12 +86,16 @@ export default {
       s.note('tickets', ids);
     });
 
-    await s.step('Board AI: ask a question, the answer shows what it was based on', async () => {
+    await s.step('Board AI: ask a question, the answer shows what it was based on and how full the chat is', async () => {
+      fake({ context: '50000,200000' });
       await home(s);
       await openDock();
       await ask('What is overdue?');
       await dock().getByText('Nothing is overdue.').waitFor({ timeout: 40000 });
       await dock().getByRole('button', { name: 'Regenerate' }).waitFor();
+      // the context meter: Claude Code said 50k of a 200k window are in the conversation (it never showed before:
+      // the server did not keep what the CLI reported)
+      await dock().getByRole('img', { name: 'The conversation is 25% full' }).waitFor();
       const chats = await get(`/projects/${ids.project}/ai/assist/chats`);
       s.note('chats', { count: chats.count, titles: chats.chats.map((c) => c.title), keepDays: chats.keepDays });
       if (chats.count !== 1) throw new Error('expected one chat: ' + JSON.stringify(chats));

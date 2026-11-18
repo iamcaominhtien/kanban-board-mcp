@@ -795,16 +795,26 @@ fn auth_login(login_file: &str) -> ! {
 
 /// An assistant turn (AI v2 stage 7): one board read, then the answer; FAKE_CLAUDE_ASSISTANT_JSON is the structured
 /// answer, FAKE_CLAUDE_ASSISTANT_TEXT the plain one; FAKE_CLAUDE_PROMPTS keeps each prompt it was given.
+/// FAKE_CLAUDE_CONTEXT=`<used>,<window>` reports how full the conversation is, as the CLI does: the message's usage
+/// (`input_tokens`) and the result's `modelUsage.<model>.contextWindow`.
 fn assistant_turn(args: &[String], prompt_text: &str, session: &str) -> ! {
     if let Some(prompts) = env_set("FAKE_CLAUDE_PROMPTS") {
         append(&prompts, &format!("{}\n", dumps(&json!({"prompt": prompt_text, "args": args}))));
     }
-    emit(json!({
+    let context: Option<(i64, i64)> = env_set("FAKE_CLAUDE_CONTEXT").and_then(|text| {
+        let (used, window) = text.split_once(',')?;
+        Some((used.trim().parse().ok()?, window.trim().parse().ok()?))
+    });
+    let mut first = json!({
         "type": "assistant",
         "message": {"content": [
             {"type": "tool_use", "id": "as1", "name": "mcp__kanban__docs_read", "input": {"action": "list"}}
         ]},
-    }));
+    });
+    if let Some((used, _)) = context {
+        first["message"]["usage"] = json!({"input_tokens": used, "output_tokens": 10});
+    }
+    emit(first);
     emit(json!({
         "type": "user",
         "message": {"content": [
@@ -845,6 +855,9 @@ fn assistant_turn(args: &[String], prompt_text: &str, session: &str) -> ! {
     }
     result.insert("total_cost_usd".into(), json!(0.02));
     result.insert("usage".into(), json!({"input_tokens": 200, "output_tokens": 40}));
+    if let Some((_, window)) = context {
+        result.insert("modelUsage".into(), json!({"claude-sonnet": {"contextWindow": window}}));
+    }
     result.insert("session_id".into(), json!(session));
     emit(Value::Object(result));
     exit(0)
