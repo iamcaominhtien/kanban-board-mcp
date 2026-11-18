@@ -187,6 +187,41 @@ async fn removing(policy: &str, expect_other: bool, expect_paused: bool) {
 }
 
 #[tokio::test]
+async fn test_a_queued_run_follows_its_member_to_another_account_and_a_started_one_does_not() {
+    let _lock = fake_cli().await;
+    let (pid, _) = common::project().await;
+    let old = account("Old").await;
+    let spare = account("Spare").await;
+    let opts = common::TeamOpts { account_id: Some(old.id.clone()), ..common::TeamOpts::default() };
+    let (m, _) = common::team(&pid, "Claude Code · Backend", opts).await;
+    let mut sick: ai_team::ActiveModel = team_row(&m.id).await.into();
+    sick.health = kb_db::sea_orm::ActiveValue::Set("not_logged_in".to_string());
+    kb_db::sea_orm::ActiveModelTrait::update(sick, &database::session()).await.expect("health");
+    let on_old = |r: &mut kb_db::entities::ai_run::ActiveModel| {
+        r.account_id = kb_db::sea_orm::ActiveValue::Set(Some(old.id.clone()));
+    };
+    let queued = common::run(&pid, &m.id, None, "queued", on_old).await;
+    let running = common::run(&pid, &m.id, None, "running", on_old).await;
+    let session = database::session();
+    accounts::assign(&session, &m.id, Some(&spare.id)).await.expect("assign");
+    let account_of = |id: String| async move {
+        kb_db::entities::ai_run::Entity::find_by_id(id)
+            .one(&database::session())
+            .await
+            .expect("query")
+            .expect("the run")
+            .account_id
+    };
+    assert_eq!(account_of(queued.id.clone()).await, Some(spare.id.clone()));
+    assert_eq!(account_of(running.id.clone()).await, Some(old.id.clone()));
+    // the old account's health ("not signed in") is not kept for the new one: it is checked again
+    assert_eq!(team_row(&m.id).await.health, "unknown");
+    // back to the login of this computer: the queued run follows again
+    accounts::assign(&session, &m.id, None).await.expect("assign");
+    assert_eq!(account_of(queued.id).await, None);
+}
+
+#[tokio::test]
 async fn test_removing_an_account_says_what_happens_to_its_members_login() {
     removing("login", false, false).await;
 }

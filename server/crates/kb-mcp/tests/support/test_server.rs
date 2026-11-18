@@ -99,6 +99,12 @@ async fn main() -> std::process::ExitCode {
     kb_docs::hooks::register();
     kb_ideas::register();
     kb_doctext::docs_access::set_notifications_hook(Box::new(Notifications));
+    // an MCP tool names the tables it wrote in its announcement (`kb-app/src/hooks.rs` installs it): without it every
+    // tool announced a plain "invalidate"
+    kb_mcp::common::install_write_listener();
+    // the notification centre's loop, as `kb-app/src/lifespan.rs` starts it: it closes the Needs you rows (a mention
+    // closes when the person replied in the thread), so the stored rows match what the board's server leaves
+    kb_notify::start();
     // in the order `main.py` includes the routers
     let routes = Routes::new()
         .merge(kb_mcp::routes())

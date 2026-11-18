@@ -7,5 +7,10 @@
     "python": "node run.mjs --target python",
     "rust": "node run.mjs --target rust",
     "both": "node run.mjs --target both"
+  },
+  "devDependencies": {
+    "@bcoe/v8-coverage": "^1.0.2",
+    "axe-core": "^4.14.1",
+    "monocart-coverage-reports": "^2.13.2"
   }
 }

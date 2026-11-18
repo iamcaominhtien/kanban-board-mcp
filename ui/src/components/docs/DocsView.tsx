@@ -322,10 +322,15 @@ export function DocsView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestedPageId, requestedAnchor, projectId]);
 
+  // Pages this view just moved to the Recycle Bin: the tree can still list them until it is fetched again, and
+  // they must not be picked as "the first page" meanwhile (the deleted page would be opened and stored again).
+  const deletedHere = useRef(new Set<string>());
   // open the first top-level page when nothing is selected yet
   useEffect(() => {
     if (!tree.isSuccess || nodes.length === 0 || selectedId || requestedPageId) return;
-    const first = nodes.filter((n) => !n.parentId).sort((x, y) => x.position - y.position)[0];
+    const first = nodes
+      .filter((n) => !n.parentId && !deletedHere.current.has(n.id))
+      .sort((x, y) => x.position - y.position)[0];
     if (first) setSelectedId(first.id);
   }, [tree.isSuccess, nodes, selectedId, requestedPageId]);
 
@@ -548,7 +553,8 @@ export function DocsView({
     };
   }, [onDropFiles, editing]);
 
-  const firstPage = () => nodes.filter((n) => !n.parentId).sort((a, b) => a.position - b.position)[0];
+  const firstPage = () =>
+    nodes.filter((n) => !n.parentId && !deletedHere.current.has(n.id)).sort((a, b) => a.position - b.position)[0];
   const goOverview = () => {
     const f = firstPage();
     if (f) select(f.id);
@@ -805,7 +811,12 @@ export function DocsView({
         nodes={nodes}
         onOpenPage={select}
         onOpenTicket={onOpenTicket}
-        onEditorRoot={onBodyRef}
+        // The editor clears its root in a passive cleanup, which runs after the page view that replaces it has
+        // already announced its body: forwarding that null would wipe the new root (Find in page found nothing
+        // right after publishing). A root that left the document is dropped by the consumer instead.
+        onEditorRoot={(el) => {
+          if (el) onBodyRef?.(el);
+        }}
         onExit={(updated) => {
           setEditing(false);
           if (updated) setSelectedId(updated.id);
@@ -1010,6 +1021,7 @@ export function DocsView({
                 `Moved “${title}” to the Recycle Bin`,
                 count > 1 ? `${count} pages, kept for 30 days` : 'Kept for 30 days',
               );
+              deletedHere.current.add(id);
               if (selectedId === id) {
                 localStorage.removeItem(`docsPage:${projectId}`);
                 setSelectedId(null);

@@ -81,6 +81,11 @@ fn steady(value: &Value) -> Value {
         let rules = RULES.get_or_init(|| {
             [
                 (r"\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d{1,2}(?: (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))?\b", "<day>"),
+                // the next free time after a time in the past ("Fri Nov 13, 09:00") is a day after today
+                (
+                    r"Next free time: (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{1,2}\b",
+                    "Next free time: <day>",
+                ),
                 (r"\bin \d+ (?:min|h|d)(?: \d+ (?:min|h|m))?\b", "in <n>"),
                 (r"user:\d{4}-\d{2}-\d{2}", "user:<date>"),
                 (r"· \d\d:\d\d ·", "· <hm> ·"),

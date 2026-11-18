@@ -61,9 +61,10 @@ FACTS: dict[str, tuple[object, str]] = {
     "tool_count": (len(_tool_names()), "server/contract/mcp-tools.json"),
     "tool_names": (_tool_names(), "server/contract/mcp-tools.json"),
     "idea_tool_count": (len(_idea_tool_names()), "server/contract/mcp-tools-ideas.json"),
-    "ai_parallel": (_grab("server/services/ai/members.py", r'max_parallel=data\.get\("max_parallel"\) or (\d+)'), "server/services/ai/members.py"),
-    "ai_runs_per_day": (_grab("server/services/ai/members.py", r'data\.get\("max_runs_per_day", (\d+)\)'), "server/services/ai/members.py"),
-    "ai_daily_budget": (f"${float(_grab('server/services/ai/members.py', r'daily_budget=data\.get\(\"daily_budget\", ([\d.]+)')):.0f}", "server/services/ai/members.py"),
+    "ai_parallel": (
+        _grab("server/crates/kb-ai-run/src/teams/edit.rs", r'truthy\(data, "max_parallel"\) \{.*?None => (\d+)'),
+        "server/crates/kb-ai-run/src/teams/edit.rs",
+    ),
     "ticket_statuses": (_enum("STATUSES"), "server/crates/kb-mcp/src/common.rs (STATUSES)"),
     "ticket_types": (_enum("TICKET_TYPES"), "server/crates/kb-mcp/src/common.rs (TICKET_TYPES)"),
     "ticket_priorities": (_enum("PRIORITIES"), "server/crates/kb-mcp/src/common.rs (PRIORITIES)"),

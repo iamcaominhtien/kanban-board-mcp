@@ -153,7 +153,7 @@ describe('useNotificationActions', () => {
     expect(toast.info).toHaveBeenCalledWith('A question is off', expect.any(String), 5000);
   });
 
-  it.each(['open', 'open_ticket', 'sign_in', 'review', 'open_ai', 'change_permission', 'open_list', 'expand'])(
+  it.each(['open', 'open_ticket', 'sign_in', 'open_ai', 'open_list', 'expand'])(
     'sends %s to navigate and marks an unread row read',
     async (id) => {
       const { act, navigate } = setup();

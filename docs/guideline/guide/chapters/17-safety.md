@@ -68,7 +68,7 @@ The templates decide what an AI may do to tickets. You can tighten a template wi
 
 @figure d06-approvals-inbox "The approvals inbox with a request waiting for a decision."
 
-New AI members start with: {fact:ai_parallel} parallel runs, {fact:ai_runs_per_day} scheduled runs a day and a daily budget of {fact:ai_daily_budget} for an API key.
+A new AI team starts with {fact:ai_parallel} parallel runs, no limit on scheduled runs a day and no budget; set them on the team’s page.
 
 ## What counts as a run
 

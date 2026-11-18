@@ -252,9 +252,9 @@ const PARK_CHOICES = [
 ];
 
 /** Park: "for good ideas at a bad time". It returns to the Inbox on the chosen date. */
-export function ParkDialog({ idea, onClose, onDone }: DialogProps) {
+export function ParkDialog({ idea, days = 7, onClose, onDone }: DialogProps & { days?: number }) {
   const move = useMoveIdea();
-  const [date, setDate] = useState(dateIn(7));
+  const [date, setDate] = useState(dateIn(days));
   const dateRef = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);

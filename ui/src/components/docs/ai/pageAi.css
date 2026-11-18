@@ -397,7 +397,7 @@
 .ask-source-date {
   font-size: 11.5px;
   font-weight: 500;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .ask-source-quote {
   display: block;

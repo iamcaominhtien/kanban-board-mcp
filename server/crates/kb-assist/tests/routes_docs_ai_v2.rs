@@ -160,6 +160,12 @@ async fn test_write_a_page_and_markers() {
         )
         .await;
     assert!(pre.status == 200 && pre.json()["items"][0]["kind"] == "prompt", "{}", pre.text());
+    // what the dialog reads: the chips, an estimate of the tokens, no cost (a Claude Code account is not metered)
+    let pre = pre.json();
+    assert_eq!(pre["send"]["prompt"], true);
+    assert!(pre["tokens"].as_i64().is_some_and(|t| t > 0) && pre["cost"] == 0.0 && pre["metered"] == false);
+    assert!(pre["skipped"] == json!([]) && pre["notes"] == json!([]) && pre["injections"] == json!([]));
+    assert_eq!(pre["member"], "Claude Code \u{b7} Backend");
     let r = c
         .post(
             &format!("/projects/{pid}/docs/ai/write"),
@@ -201,7 +207,7 @@ async fn test_tickets_from_a_page_draft_create_undo() {
     let made = c.post(&format!("/docs/pages/{page}/ai/tickets/create"), json!({"drafts": d["result"]["drafts"]})).await;
     made.assert_status(200);
     let out = made.json();
-    assert!(out["tickets"].as_array().is_some_and(|t| t.len() == 1) && out["linked"] == true);
+    assert!(out["tickets"].as_array().is_some_and(|t| t.len() == 1) && out["linked"] == 1);
     assert!(out["undo_token"].as_str().is_some_and(|t| !t.is_empty()));
     let tid = out["tickets"][0]["id"].as_str().expect("ticket id").to_string();
     assert_eq!(c.get(&format!("/tickets/{tid}")).await.json()["title"], "Add paging");
@@ -209,8 +215,66 @@ async fn test_tickets_from_a_page_draft_create_undo() {
     assert!(linked.as_array().expect("list").iter().any(|p| p["page_id"] == page.as_str()));
     let undo = c.post("/docs/ai/tickets/undo", json!({"undo_token": out["undo_token"]})).await;
     assert!(undo.status == 200 && undo.json()["removed"] == json!([tid]));
+    assert!(undo.json()["deleted"] == 1 && undo.json()["draft_restored"] == false);
     c.get(&format!("/tickets/{tid}")).await.assert_status(404);
     c.post("/docs/ai/tickets/undo", json!({"undo_token": out["undo_token"]})).await.assert_status(404);
+}
+
+#[tokio::test]
+async fn test_create_tickets_with_replace_text_answers_what_the_dialog_reads() {
+    let Some((f, _pid, page)) = space("test_create_tickets_with_replace_text", json!({})).await else {
+        return;
+    };
+    let c = &f.c;
+    let body = json!({"drafts": [{"title": "Add paging to the API", "text": "Add paging"},
+                                 {"title": "Other", "text": "Not on the page"}],
+                      "replace_text": true});
+    let made = c.post(&format!("/docs/pages/{page}/ai/tickets/create"), body).await;
+    made.assert_status(200);
+    let out = made.json();
+    let key = out["tickets"][0]["id"].as_str().expect("key").to_string();
+    let draft = format!("# API\n\nThe API uses REST.\n\n- [ ] Add paging {key}\n");
+    assert_eq!(
+        (&out["replaced"], &out["linked"], &out["not_replaced"]),
+        (&json!(1), &json!(2), &json!(["Not on the page"]))
+    );
+    assert_eq!(out["draft_markdown"], json!(draft));
+    assert_eq!(c.get(&format!("/docs/pages/{page}")).await.json()["draft"]["markdown"], json!(draft));
+    // undo puts the draft back
+    let undo = c.post("/docs/ai/tickets/undo", json!({"undo_token": out["undo_token"]})).await.json();
+    assert_eq!((&undo["deleted"], &undo["draft_restored"]), (&json!(2), &json!(true)));
+    assert_eq!(
+        c.get(&format!("/docs/pages/{page}")).await.json()["draft"]["markdown"],
+        json!("# API\n\nThe API uses REST.\n\n- [ ] Add paging\n")
+    );
+}
+
+#[tokio::test]
+async fn test_since_viewed_answers_the_pages_the_digest_card_reads() {
+    let Some((f, pid, api)) = space(
+        "test_since_viewed_answers_the_pages",
+        json!({"docs-history": {"lines": ["API: Added the REST v2 line."]}}),
+    )
+    .await
+    else {
+        return;
+    };
+    let c = &f.c;
+    // v1 is what the person saw (`PUT /docs/pages/{id}/seen`), v2 is published after
+    c.post(&format!("/docs/pages/{api}/publish"), json!({"base_version": 0})).await.assert_status(200);
+    c.put(&format!("/docs/pages/{api}/seen"), json!({"version": 1})).await.assert_status(200);
+    c.post(&format!("/docs/pages/{api}/publish"), json!({"base_version": 1, "markdown": "# API\n\nREST v2.\n"}))
+        .await
+        .assert_status(200);
+    let r = c.post_empty(&format!("/projects/{pid}/docs/ai/since-viewed")).await;
+    r.assert_status(200);
+    let j = f.job(&http::id(&r.json())).await;
+    assert_eq!(j["state"], "finished", "{j}");
+    assert_eq!(
+        j["result"]["pages"],
+        json!([{"page_id": api, "title": "API", "kind": "changed", "from_version": 1, "to_version": 2,
+                "line": "Added the REST v2 line."}])
+    );
 }
 
 #[tokio::test]

@@ -31,7 +31,7 @@ const targets = target === 'both' ? ['python', 'rust'] : [target];
 // --report <folder>: where the screenshots and JSON go (runs side by side each need their own); default e2e/report
 const reportDir = path.resolve(opt('report', path.join(here, 'report')));
 fs.mkdirSync(reportDir, { recursive: true });
-if (!fs.existsSync(path.join(REPO, 'ui/dist/index.html'))) { console.error('ui/dist is missing: cd ui && npm ci && npm run build'); process.exit(2); }
+if (!fs.existsSync(path.join(process.env.E2E_UI_DIST || path.join(REPO, 'ui/dist'), 'index.html'))) { console.error('ui/dist is missing: cd ui && npm ci && npm run build'); process.exit(2); }
 
 const scenarioFiles = fs.readdirSync(path.join(here, 'scenarios')).filter((f) => /^\d.*\.mjs$/.test(f)).sort();
 const scenarios = [];

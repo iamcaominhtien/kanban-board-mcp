@@ -83,9 +83,12 @@ function Sources({
                 </>
               )}
             </span>
-            <span className="ask-source-quote">
-              …{s.quote}… <span style={{ color: MUTED }}>Edited {editedLabel(s.editedAt)}</span>
-            </span>
+            {(s.quote || s.editedAt) && (
+              <span className="ask-source-quote">
+                {s.quote && <>…{s.quote}… </>}
+                {s.editedAt && <span style={{ color: MUTED }}>Edited {editedLabel(s.editedAt)}</span>}
+              </span>
+            )}
           </span>
         </button>
       ))}
@@ -305,7 +308,7 @@ export function AskPanel({
     body = (
       <div
         style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}
-        data-testid={`ask-${view.kind}`}
+        data-testid={`ask-state-${view.kind}`}
       >
         <div className="ask-lead">
           {view.kind === 'not_covered' && <InfoIcon />}

@@ -12,6 +12,8 @@ interface ProjectSidebarProps {
   onSelectProject: (id: string) => void;
   onCreateProject: (data: { name: string; prefix: string; color: string }) => Promise<void>;
   onDeleteProject: (id: string) => void;
+  /** Saves a project's new name and colour (the prefix is part of every ticket key and stays). */
+  onUpdateProject: (id: string, data: { name: string; color: string }) => Promise<void>;
   onOpenRecycleBin: () => void;
   onOpenMembers: () => void;
   onOpenSettings: () => void;
@@ -54,6 +56,7 @@ export function ProjectSidebar({
   onSelectProject,
   onCreateProject,
   onDeleteProject,
+  onUpdateProject,
   onOpenRecycleBin,
   onOpenMembers,
   onOpenSettings,
@@ -68,8 +71,13 @@ export function ProjectSidebar({
   onRetryProjects,
 }: ProjectSidebarProps) {
   const [showForm, setShowForm] = useState(false);
+  // The project whose name and colour the form edits (null: the form makes a new project)
+  const [editingId, setEditingId] = useState<string | null>(null);
   // Desktop menu: File › New Project…
-  useAppCommand('new-project', () => setShowForm(true));
+  useAppCommand('new-project', () => {
+    resetForm();
+    setShowForm(true);
+  });
   const [formName, setFormName] = useState('');
   const [formPrefix, setFormPrefix] = useState('');
   const [formColor, setFormColor] = useState(PRESET_COLORS[0]);
@@ -79,6 +87,17 @@ export function ProjectSidebar({
     setFormName('');
     setFormPrefix('');
     setFormColor(PRESET_COLORS[0]);
+    setEditingId(null);
+  }
+
+  function startEdit(e: React.MouseEvent, project: Project) {
+    e.stopPropagation();
+    setFormName(project.name);
+    setFormPrefix(project.prefix);
+    setFormColor(project.color);
+    setPrefixError(null);
+    setEditingId(project.id);
+    setShowForm(true);
   }
 
   function toggleBoard() {
@@ -88,6 +107,17 @@ export function ProjectSidebar({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!formName.trim() || !formPrefix.trim()) return;
+    if (editingId) {
+      setPrefixError(null);
+      try {
+        await onUpdateProject(editingId, { name: formName.trim(), color: formColor });
+        resetForm();
+        setShowForm(false);
+      } catch (err) {
+        setPrefixError(`Error: ${extractError(err)}`);
+      }
+      return;
+    }
     const upperPrefix = formPrefix.trim().toUpperCase();
     setPrefixError(null);
     if (projects.some((p) => p.prefix.toUpperCase() === upperPrefix)) {
@@ -166,16 +196,24 @@ export function ProjectSidebar({
                     <span className={styles.projectDot} style={{ backgroundColor: project.color }} />
                     <span className={styles.projectName}>{project.name}</span>
                     <span className={styles.prefixBadge}>{project.prefix}</span>
-                    {projects.length > 1 && !isActive && (
-                      <button
-                        type="button"
-                        className={styles.deleteBtn}
-                        onClick={(e) => handleDelete(e, project.id, project.name)}
-                        aria-label={`Delete ${project.name}`}
-                      >
-                        <LineIcon name="close" size={14} />
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className={styles.deleteBtn}
+                      onClick={(e) => startEdit(e, project)}
+                      aria-label={`Edit ${project.name}`}
+                      title="Edit name and colour"
+                    >
+                      <LineIcon name="edit" size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.deleteBtn} ${styles.deleteBtnDanger}`}
+                      onClick={(e) => handleDelete(e, project.id, project.name)}
+                      aria-label={`Delete ${project.name}`}
+                      title="Delete project"
+                    >
+                      <LineIcon name="close" size={14} />
+                    </button>
                   </div>
                 );
               })}
@@ -186,7 +224,7 @@ export function ProjectSidebar({
       {/* New Project Button or Form */}
       {showForm ? (
         <form className={styles.newProjectForm} onSubmit={handleSubmit}>
-          <div className={styles.formTitle}>New Project</div>
+          <div className={styles.formTitle}>{editingId ? 'Edit Project' : 'New Project'}</div>
           <input
             className={styles.formInput}
             type="text"
@@ -201,6 +239,8 @@ export function ProjectSidebar({
             placeholder="Prefix (e.g. PROJ)"
             value={formPrefix}
             maxLength={6}
+            disabled={!!editingId}
+            title={editingId ? 'The prefix is part of every ticket key, so it stays' : undefined}
             onChange={(e) => {
               setFormPrefix(e.target.value.toUpperCase());
               setPrefixError(null);
@@ -221,7 +261,7 @@ export function ProjectSidebar({
           </div>
           <div className={styles.formActions}>
             <button type="submit" className={styles.submitBtn}>
-              Create
+              {editingId ? 'Save' : 'Create'}
             </button>
             <button
               type="button"
@@ -229,6 +269,7 @@ export function ProjectSidebar({
               onClick={() => {
                 setShowForm(false);
                 setPrefixError(null);
+                if (editingId) resetForm();
               }}
             >
               Cancel

@@ -8,7 +8,7 @@ import { ToastProvider } from '../Toast';
 const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn() }));
 vi.mock('../../api/client', () => ({ client: http }));
 
-import { TicketRunsTab } from './RunView';
+import { RunView } from './RunView';
 import { AiBoardContext } from './aiUi';
 
 const run = (over: Partial<AiRunFull> = {}): AiRunFull =>
@@ -64,7 +64,7 @@ function setup(current: AiRunFull, older: AiRunFull[] = []) {
             settings: null,
           }}
         >
-          <TicketRunsTab ticket={{ id: 'KAN-1' } as never} />
+          <RunView runId={current.id} />
         </AiBoardContext.Provider>
       </ToastProvider>
     </QueryClientProvider>,
@@ -142,7 +142,7 @@ describe('the run on a ticket', () => {
     expect(screen.getByTestId('report-open-items').textContent).toContain('Add a test');
   });
 
-  it('lays the run out as on main: steps beside files, commands, tests and usage, then the history table', async () => {
+  it('lays the run out as on main: steps beside files, commands, tests and usage', async () => {
     setup(
       run({
         state: 'finished',
@@ -163,7 +163,5 @@ describe('the run on a ticket', () => {
     expect(screen.getByTestId('run-commands').textContent).toContain('npm run lint');
     expect(screen.getByTestId('run-commands').textContent).toContain('exit 1');
     expect(screen.getByTestId('run-tests').textContent).toContain('login.test');
-    expect(screen.getByText('Run history for KAN-1')).toBeTruthy();
-    expect(screen.getAllByTestId('run-history-item')).toHaveLength(2);
   });
 });

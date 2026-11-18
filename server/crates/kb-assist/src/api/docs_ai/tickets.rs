@@ -87,7 +87,6 @@ fn backlog() -> String {
 struct CreateBody {
     drafts: Vec<TicketDraft>,
     #[serde(default)]
-    #[allow(dead_code)]
     replace_text: bool,
     #[serde(default = "yes")]
     link: bool,
@@ -97,7 +96,8 @@ fn yes() -> bool {
     true
 }
 
-/// Create the drafts as tickets and link them to the page. Returns `{tickets, undo_token, replaced, linked}`.
+/// Create the drafts as tickets and link them to the page; with `replace_text`, each ticket's key goes on the line of
+/// the person's draft it came from. Returns `{tickets, undo_token, replaced, not_replaced, linked, draft_markdown}`.
 async fn create_tickets(
     headers: HeaderMap,
     Path(page_id): Path<String>,
@@ -114,7 +114,8 @@ async fn create_tickets(
             })
         })
         .collect();
-    let out = svc::create_tickets(&session, &page_id, &by(), &drafts, body.link)
+    let keys = if body.replace_text { svc::LineKeys::Put } else { svc::LineKeys::Keep };
+    let out = svc::create_tickets(&session, &page_id, &by(), &drafts, body.link, keys)
         .await
         .map_err(|e| docs_ai_failure(&headers, e))?;
     events::publish(events::INVALIDATE, &[]).await;

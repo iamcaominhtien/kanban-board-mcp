@@ -106,6 +106,8 @@ export default {
       await p.getByLabel('Author').fill('Ada Lovelace');
       await p.getByLabel('Note').fill('Checked the build, all green');
       await p.getByRole('button', { name: 'Log entry' }).last().click();
+      // the list can show the entry before the form closes (it closes once the save returns): wait for both
+      await dlg().getByTestId('debug-form-add').waitFor({ state: 'detached' });
       await dlg().getByText('Checked the build, all green').waitFor();
     });
     await s.step('add a test case', async () => {

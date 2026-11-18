@@ -1,3 +1,4 @@
+import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StartedAsIdea, TestsAssumption } from './ideas/ideaLinks';
 import { useResolveAssumption } from '../api/ideas';
@@ -65,12 +66,8 @@ import {
 import { aiApi } from '../api/ai';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
-import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
-import { TicketHandover } from './ai/code/TicketHandover';
-import { PullStatus } from './ai/code/PullStatus';
-import { TimelineTab } from './aiteam/TimelineTab';
-import { AiActivityDesign, AiRunPanelDesign } from './ai/activity/AiActivityDesign';
-import { MOCK_AI_ACTIVITY } from './ai/activity/mock';
+import { RunHeaderButton, RunHeaderChip } from './ai/RunPanel';
+import { AiActivity, AiRunPanel } from './ai/activity/AiActivity';
 import { openTimeline } from './aiteam/timelineLink';
 import { TicketAiMenu } from './assist/TicketAi';
 import { TicketChat } from './assist/TicketChat';
@@ -259,7 +256,6 @@ function TicketModalInner({
   const [hasAiPane, setHasAiPane] = useState(false);
   const [aiNeedsYou, setAiNeedsYou] = useState(false);
   const aiPaneRef = useRef<HTMLDivElement>(null);
-  const runsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = aiPaneRef.current;
     if (!el) {
@@ -268,7 +264,8 @@ function TicketModalInner({
     }
     const read = () => {
       setHasAiPane(el.childElementCount > 0);
-      setAiNeedsYou(!!el.querySelector('[data-testid="ai-approve-done"]'));
+      // the lead asked a question and waits for the answer
+      setAiNeedsYou(!!el.querySelector('[data-testid="active-run-card"][data-state="needs_input"]'));
     };
     read();
     const watch = new MutationObserver(read);
@@ -297,9 +294,11 @@ function TicketModalInner({
         setActiveTab('main');
         window.setTimeout(() => openTicketId && fireAiEvent(ASSIGN_AI_EVENT, openTicketId, memberId), 60);
       },
+      // the run itself is on the ticket's AI tab (the AI activity shows its card and opens it there)
       openRun: (runId) => {
         setAiRunId(runId);
-        setMainView('ai');
+        setMainView('ticket');
+        setActiveTab('ai');
       },
     }),
     [openTicketId],
@@ -333,6 +332,14 @@ function TicketModalInner({
 
   const [title, setTitle] = useState(ticket?.title ?? '');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const titleHeadingRef = useRef<HTMLHeadingElement>(null);
+  const titleFocusBack = useRef(false);
+  useEffect(() => {
+    if (!isEditingTitle && titleFocusBack.current) {
+      titleFocusBack.current = false;
+      titleHeadingRef.current?.focus();
+    }
+  }, [isEditingTitle]);
   const resolveAssumption = useResolveAssumption();
   const [description, setDescription] = useState(ticket?.description ?? '');
   const [status, setStatus] = useState<Status>(ticket?.status ?? 'backlog');
@@ -513,6 +520,22 @@ function TicketModalInner({
   }
   const handleCloseRef = useRef(handleClose);
   handleCloseRef.current = handleClose;
+  // focus goes into the dialog on open and back to the card (or button) that opened it on close; in the New Ticket form
+  // Esc closes from a field too (the window listener below leaves fields alone)
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(
+    panelRef,
+    () => {
+      if (localMode === 'create' || !ticket) handleCloseRef.current();
+    },
+    // the card may have moved to another column (a new element) while the ticket was open
+    () =>
+      ticket
+        ? (document
+            .querySelector<HTMLElement>(`[data-ticket-id="${ticket.id}"]`)
+            ?.closest<HTMLElement>('[role="button"]') ?? null)
+        : null,
+  );
 
   // Esc closes the ticket unless something inside is using it (a field, the doc side panel, another dialog)
   useEffect(() => {
@@ -720,6 +743,11 @@ function TicketModalInner({
       if (isReopenOpen || isPendingOpen || isResumeOpen || isWontDoOpen) {
         return;
       }
+      // an editor or viewer opened from this ticket (canvas, sketch, draw.io, AI) is on top: its keys are its own
+      // (P is Present on a canvas)
+      if (document.querySelector('[data-canvas-layer], [data-sketch-layer], [data-diagram-layer], [data-ai-layer]')) {
+        return;
+      }
       if (e.key === 'r' || e.key === 'R') {
         if (status === 'done' || status === 'wont_do') {
           e.preventDefault();
@@ -868,6 +896,11 @@ function TicketModalInner({
     return (
       <div className={`${styles.overlay} ${visible ? styles.overlayVisible : ''}`} onClick={handleClose}>
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="New ticket"
+          ref={panelRef}
+          tabIndex={-1}
           className={`${styles.panel} ${styles.panelNew} ${visible ? styles.panelVisible : ''}`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -920,7 +953,7 @@ function TicketModalInner({
               <div className={styles.ntField}>
                 <span className={styles.ntLabel}>Type</span>
                 <div className={styles.typeButtonsGrid}>
-                  {(['task', 'bug', 'feature', 'chore'] as IssueType[]).map((t) => (
+                  {(['task', 'bug', 'feature', 'chore', 'story'] as IssueType[]).map((t) => (
                     <button
                       key={t}
                       type="button"
@@ -1170,6 +1203,8 @@ function TicketModalInner({
           role="dialog"
           aria-modal="true"
           aria-label={`Ticket ${ticket.id}`}
+          ref={panelRef}
+          tabIndex={-1}
           className={`${styles.panel} ${styles.panelDetail} ${chatOpen && aiChatAvailable ? styles.panelWithChat : ''} ${visible ? styles.panelVisible : ''} ${isFullscreen ? styles.panelFullscreen : ''}`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -1185,6 +1220,7 @@ function TicketModalInner({
                 <span>{TYPE_CONFIG[ticket.type].label}</span>
                 <select
                   className={styles.sidebarSelect}
+                  aria-label="Ticket type"
                   value={ticket.type}
                   onChange={(e) => handleTypeChange(e.target.value as IssueType)}
                 >
@@ -1192,7 +1228,7 @@ function TicketModalInner({
                   <option value="bug">Bug</option>
                   <option value="feature">Feature</option>
                   <option value="chore">Chore</option>
-                  {/* A Story is made by giving it to the PM (the board's Give a Story, or Make this a Story) */}
+                  {/* A Story is made as one (New Ticket › Story); a ticket does not become a Story later */}
                   <option value="story" disabled={ticket.type !== 'story'}>
                     Story
                   </option>
@@ -1927,56 +1963,18 @@ function TicketModalInner({
                     </div>
                   )}
                   <div ref={aiPaneRef} className={styles.aiPane} hidden={!hasAiPane || mainView !== 'ai'}>
-                    {/* TODO(connect to data): the design's mock for now; port the real logic from main (table in ai/activity/mock.ts) */}
-                    {MOCK_AI_ACTIVITY && <PullStatus ticketId={ticket.id} />}
-                    {MOCK_AI_ACTIVITY && (
-                      <AiActivityDesign
-                        ticket={ticket}
-                        ticketId={ticket.id}
-                        projectId={ticket.projectId}
-                        onOpenTimeline={() => openTimeline({ scope: ticket.id })}
-                        onOpenRun={() => {
-                          setMainView('ticket');
-                          setActiveTab('ai');
-                        }}
-                      />
-                    )}
-                    {!MOCK_AI_ACTIVITY && (
-                      <>
-                        <TicketAiPanel
-                          ticket={ticket}
-                          onOpenRun={() => runsRef.current?.scrollIntoView({ block: 'start' })}
-                        />
-                        <TicketHandover ticket={ticket} />
-                        {/* the team's work on this ticket as a sequence diagram, as on main: one column per AI */}
-                        {mainView === 'ai' && ticket.projectId && (
-                          <div data-testid="ticket-timeline" style={{ padding: '0 24px' }}>
-                            <button
-                              type="button"
-                              className="ai-btn ai-btn-sm"
-                              style={{ marginBottom: 8 }}
-                              data-testid="open-in-timeline"
-                              onClick={() => openTimeline({ scope: ticket.id })}
-                            >
-                              Open in Flow
-                            </button>
-                            <TimelineTab
-                              projectId={ticket.projectId}
-                              scopeTicketId={ticket.id}
-                              compactChrome
-                              actions={{
-                                onOpenTicket: () => undefined,
-                                onOpenDocsPage: () => undefined,
-                              }}
-                            />
-                          </div>
-                        )}
-                        {/* every run of the ticket and the chosen one whole: its report, messages and steps as a tree */}
-                        <div ref={runsRef} style={{ padding: '12px 24px' }}>
-                          <TicketRunsTab ticket={ticket} runId={aiRunId} />
-                        </div>
-                      </>
-                    )}
+                    {/* the ticket's AI activity: its run, notices, Resources, the hand-over of its code, the Timeline */}
+                    <AiActivity
+                      ticket={ticket}
+                      ticketId={ticket.id}
+                      projectId={ticket.projectId}
+                      shown={hasAiPane && mainView === 'ai'}
+                      onOpenTimeline={() => openTimeline({ scope: ticket.id })}
+                      onOpenRun={() => {
+                        setMainView('ticket');
+                        setActiveTab('ai');
+                      }}
+                    />
                   </div>
                   <div
                     className={`${styles.detailBody} ${styles.tabFadeSlide}`}
@@ -2005,8 +2003,18 @@ function TicketModalInner({
                             />
                           ) : (
                             <h2
+                              ref={titleHeadingRef}
                               className={styles.titleText}
                               onClick={() => setIsEditingTitle(true)}
+                              // keyboard: Enter or F2 edits the title (focus returns here when the edit ends)
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === 'F2') {
+                                  e.preventDefault();
+                                  titleFocusBack.current = true;
+                                  setIsEditingTitle(true);
+                                }
+                              }}
                               title="Click to edit"
                             >
                               {ticket.title}
@@ -3210,6 +3218,7 @@ function TicketModalInner({
                           <span style={{ textTransform: 'capitalize' }}>{priority}</span>
                           <select
                             className={styles.sidebarSelect}
+                            aria-label="Priority"
                             value={priority}
                             onChange={(e) => handlePriorityChange(e.target.value as Priority)}
                           >
@@ -3260,6 +3269,7 @@ function TicketModalInner({
                             ref={dateInputRef}
                             type="date"
                             className={styles.invisibleDateInput}
+                            aria-label="Due date"
                             value={dueDate ?? ''}
                             onChange={(e) => {
                               const next = e.target.value || null;
@@ -3292,6 +3302,7 @@ function TicketModalInner({
                           </span>
                           <select
                             className={styles.sidebarSelect}
+                            aria-label="Estimate"
                             value={estimate ?? ''}
                             onChange={(e) => handleEstimateChange(e.target.value ? Number(e.target.value) : null)}
                           >
@@ -3460,12 +3471,7 @@ function TicketModalInner({
                       <WorkspaceNotSetUp onOpenSettings={onOpenSettings} />
                     ))}
                   {activeTab === 'branches' && <BranchesSection ticketId={ticket.id} />}
-                  {activeTab === 'ai' &&
-                    (MOCK_AI_ACTIVITY ? (
-                      <AiRunPanelDesign ticket={ticket} />
-                    ) : (
-                      <TicketRunsTab ticket={ticket} runId={aiRunId} />
-                    ))}
+                  {activeTab === 'ai' && <AiRunPanel ticket={ticket} runId={aiRunId} />}
                   {activeTab === 'activity' && (
                     <ActivitySection
                       ticketId={ticket.id}

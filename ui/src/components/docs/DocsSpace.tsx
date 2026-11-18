@@ -51,6 +51,9 @@ export function DocsSpace({
   const [findOpen, setFindOpen] = useState(false);
   const [root, setRoot] = useState<HTMLElement | null>(null);
 
+  // a root whose page or editor was closed is no longer in the document
+  const liveRoot = root?.isConnected ? root : null;
+
   const open = useCallback((id: string, anchor?: string) => {
     setResults(null);
     setRequest({ id, anchor });
@@ -97,8 +100,8 @@ export function DocsSpace({
       <RefCheatSheetHost />
       {findOpen && (
         <FindInPage
-          root={root}
-          editable={Boolean(root?.isContentEditable)}
+          root={liveRoot}
+          editable={Boolean(liveRoot?.isContentEditable)}
           replaceAdapter={getActiveReplaceAdapter()}
           onClose={() => setFindOpen(false)}
         />

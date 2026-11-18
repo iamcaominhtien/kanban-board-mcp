@@ -31,7 +31,7 @@
   font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 500;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   transition: all 0.12s;
 }
 .toggleBtnActive {
@@ -42,7 +42,7 @@
 }
 .meta {
   font-size: 12px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   flex-grow: 1;
 }
 .linkBtn {
@@ -53,7 +53,7 @@
   cursor: pointer;
   font-family: var(--font-body);
   font-size: 12px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .linkBtn:hover {
   border-color: var(--color-forest);
@@ -98,7 +98,7 @@
   white-space: nowrap;
 }
 .legendMeta {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   font-size: 12px;
   flex-grow: 1;
   min-width: 0;
@@ -142,7 +142,7 @@
 }
 .badgeArchived {
   background: #f6faf7;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .badgeMissing {
   background: rgba(196, 67, 42, 0.1);
@@ -196,7 +196,7 @@
 .hash {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   flex-shrink: 0;
 }
 .author {
@@ -208,7 +208,7 @@
   text-overflow: ellipsis;
 }
 .date {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   font-size: 12px;
   margin-left: auto;
   padding-left: 12px;
@@ -216,7 +216,7 @@
 }
 .hidden {
   font-size: 11px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   font-style: italic;
   flex-shrink: 0;
 }
@@ -315,7 +315,7 @@
   border: none;
   background: none;
   cursor: pointer;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   font-size: 18px;
   line-height: 1;
   padding: 2px 6px;
@@ -470,7 +470,7 @@
   white-space: nowrap;
 }
 .fileOld {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .fileStats {
   flex-shrink: 0;
@@ -480,10 +480,10 @@
 .panelNote {
   padding: 6px 16px 12px;
   font-size: 12px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .panelLoading {
   padding: 18px 16px;
   font-size: 12.5px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }

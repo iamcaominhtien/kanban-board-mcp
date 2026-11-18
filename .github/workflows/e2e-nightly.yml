@@ -1,0 +1,206 @@
+name: Nightly e2e
+
+# Once a night on main: the whole real-UI suite (server/e2e, Playwright on headless Chromium against the built Rust
+# server, the AI screens on the fake-claude stand-in), scenario 41 on a real PostgreSQL and MariaDB, and the Electron
+# desktop app's own e2e under Xvfb. Pull requests do not wait for it: the suite takes about half an hour, and on a
+# change only the scenarios of its area are run (CLAUDE.md, "Tests").
+#
+# A night with no new commit on main since the last run that passed is skipped. Run it by hand from the Actions tab
+# ("Run workflow"): `only` takes the scenario numbers of run.mjs --only (e.g. "03,15"), `force` runs an unchanged
+# main again.
+#
+# A failed run keeps its report (screenshots, the per-step JSON) as an artifact for a week.
+
+on:
+  schedule:
+    - cron: "43 19 * * *" # 02:43 in Vietnam (UTC+7)
+  workflow_dispatch:
+    inputs:
+      only:
+        description: Scenario numbers to run (run.mjs --only), empty for all
+        type: string
+        default: ""
+      force:
+        description: Run even when main has not changed since the last run that passed
+        type: boolean
+        default: false
+
+concurrency:
+  group: e2e-nightly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read # to find the last run that passed
+
+env:
+  # Keep equal to rust-version in server/Cargo.toml
+  RUST_TOOLCHAIN: "1.94"
+  # Keep equal to the Playwright the suite was written against
+  PLAYWRIGHT_VERSION: "1.63.0"
+
+jobs:
+  check:
+    name: Anything new on main
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
+          MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          last=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/e2e-nightly.yml/runs?branch=main&status=success&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // ""' || true)
+          echo "main is at $GITHUB_SHA, the last run that passed tested ${last:-nothing}"
+          if [ "$last" = "$GITHUB_SHA" ] && [ "$FORCE" != "true" ] && [ "$MANUAL" != "true" ]; then
+            echo "::notice::main has not changed since the last run that passed: skipped"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  e2e:
+    name: Real UI (Playwright)
+    needs: check
+    if: needs.check.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: kanban
+          POSTGRES_PASSWORD: ${{ github.run_id }}-db
+          POSTGRES_DB: kanban_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U kanban" --health-interval 5s --health-timeout 5s --health-retries 10
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_USER: kanban
+          MARIADB_PASSWORD: ${{ github.run_id }}-db
+          MARIADB_DATABASE: kanban_test
+          MARIADB_ROOT_PASSWORD: ${{ github.run_id }}-root
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized" --health-interval 5s --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: cargo-e2e-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-${{ hashFiles('server/Cargo.lock') }}
+          restore-keys: cargo-e2e-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            ui/package-lock.json
+            server/e2e/package-lock.json
+
+      - name: Build the server and the AI stand-in
+        working-directory: server
+        run: cargo build -p kanban-server -p kanban-mcp-stdio -p fake-claude
+      - name: Build the UI
+        working-directory: ui
+        run: npm ci && npm run build
+      - name: Install Playwright and Chromium
+        run: |
+          npm install -g "playwright@$PLAYWRIGHT_VERSION"
+          npx -y "playwright@$PLAYWRIGHT_VERSION" install --with-deps chromium
+          echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
+      - name: Install the suite's own packages
+        working-directory: server/e2e
+        run: npm ci
+      # scenario 41 makes and drops its own databases: on MariaDB the test user may create those named
+      # kanban_dbkit_* (as server/scripts/dev-databases.sh grants); the PostgreSQL user owns its server
+      - name: Let the test user make its databases on MariaDB
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -uroot -p"${{ github.run_id }}-root" -e \
+            "GRANT ALL ON \`kanban\\_dbkit\\_%\`.* TO 'kanban'@'%'; FLUSH PRIVILEGES;"
+
+      - name: Run the scenarios
+        working-directory: server/e2e
+        env:
+          KANBAN_TEST_POSTGRES_URL: postgresql://kanban:${{ github.run_id }}-db@127.0.0.1:5432/kanban_test?sslmode=disable
+          KANBAN_TEST_MYSQL_URL: mysql://kanban:${{ github.run_id }}-db@127.0.0.1:3306/kanban_test?sslmode=disable
+          ONLY: ${{ inputs.only }}
+        run: |
+          set -o pipefail
+          args=(--target rust --jobs 3 --report report)
+          if [ -n "$ONLY" ]; then args+=(--only "$ONLY"); fi
+          # to a file, not a pipe: a pipe can hang on a stand-in AI process that is still going
+          node run.mjs "${args[@]}" > run.log 2>&1 || status=$?
+          cat run.log
+          exit "${status:-0}"
+      - name: Keep the report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            server/e2e/report
+            server/e2e/run.log
+          retention-days: 7
+
+  desktop:
+    name: Desktop app (Electron under Xvfb)
+    needs: check
+    if: needs.check.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: cargo-desktop-e2e-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-${{ hashFiles('server/Cargo.lock') }}
+          restore-keys: cargo-desktop-e2e-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            ui/package-lock.json
+            desktop/package-lock.json
+      - name: Build the server
+        working-directory: server
+        run: cargo build -p kanban-server
+      - name: Build the UI
+        working-directory: ui
+        run: npm ci && npm run build
+      - name: Install the desktop app and Playwright
+        run: |
+          (cd desktop && npm ci)
+          npm install -g "playwright@$PLAYWRIGHT_VERSION"
+          echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
+      # the app runs for real (it starts the server); the OS notifications, the badge and the update feed are
+      # recorded in its main process (desktop/README.md)
+      - name: Run the desktop e2e
+        working-directory: desktop
+        run: xvfb-run -a npm run e2e
+      - name: Keep the report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-e2e-report
+          path: desktop/e2e/report
+          retention-days: 7

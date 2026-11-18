@@ -68,13 +68,12 @@ describe('status chip', () => {
       false,
       NOW,
     );
-    expect([v.label, v.sub, v.subTone]).toEqual(['Needs sign-in', 'Session expired. 1 member can’t run.', 'bad']);
+    expect([v.label, v.sub, v.subTone]).toEqual(['Needs sign-in', 'Session expired. 1 team can’t run.', 'bad']);
   });
   it('does not claim a session expired for an account that was never signed in', () => {
     expect(statusView(acct({ status: 'needs_sign_in' }), false, NOW).sub).toBe('Not signed in yet.');
   });
-  it('is Not ready for a signed-in account whose CLI cannot run yet, but Needs sign-in wins when signed out', () => {
-    expect(statusView(acct({ runnable: false }), false, NOW).label).toBe('Not ready');
+  it('says Needs sign-in even when the account is not runnable (no "Not ready" state since AI v2: Claude Code is the only CLI and it runs)', () => {
     expect(statusView(acct({ runnable: false, status: 'needs_sign_in' }), false, NOW).label).toBe('Needs sign-in');
   });
   it('shows Signing in (blue) while a window is open, and Checking while the CLI is asked', () => {
@@ -106,19 +105,19 @@ describe('banner and counts', () => {
   it('names the account once and who is held back', () => {
     expect(bannerText(out, NOW)).toEqual({
       title: 'Work Claude needs to sign in again',
-      body: 'Its session expired 4 minutes ago. 1 AI member (Weekend helper) can’t run until someone signs in.',
+      body: 'Its session expired 4 minutes ago. 1 team (Weekend helper) can’t run until someone signs in.',
     });
   });
   it('says so when nobody uses it', () => {
     expect(bannerText(acct({ status: 'needs_sign_in' }), NOW).body).toBe(
-      'It has not been signed in yet. No AI member uses it.',
+      'It has not been signed in yet. No team uses it.',
     );
   });
   it('counts members once, however many accounts they appear in, and lists the long ones short', () => {
     const many = [ref('1', 'A'), ref('2', 'B'), ref('3', 'C'), ref('4', 'D'), ref('5', 'E')];
     expect(namesList(many)).toBe('A, B, C and 2 more');
     expect(cantRunClause(acct({ membersHere: many.slice(0, 2) }), 'until you choose one')).toBe(
-      '2 AI members (A, B) can’t run until you choose one.',
+      '2 teams (A, B) can’t run until you choose one.',
     );
     expect(cantRunClause(acct())).toBe('');
   });
@@ -131,8 +130,8 @@ describe('banner and counts', () => {
     expect(stats).toMatchObject({ total: 3, signedIn: 2, attention: ['Work Claude'], using: 4, here: 3, elsewhere: 1 });
     expect(needsAttention([out]).map((a) => a.id)).toEqual(['a1']);
   });
-  it('words members and times', () => {
-    expect([membersCount(0), membersCount(1), membersCount(3)]).toEqual(['No members', '1 member', '3 members']);
+  it('words teams and times', () => {
+    expect([membersCount(0), membersCount(1), membersCount(3)]).toEqual(['No teams', '1 team', '3 teams']);
     expect([agoWords(iso(10), NOW), agoWords(iso(600), NOW), agoWords(iso(7200), NOW)]).toEqual([
       'just now',
       '10 min ago',
@@ -161,13 +160,14 @@ describe('what can be done', () => {
       'Sign in again',
       'Check now',
       'Rename',
-      'See members using it',
+      'See teams using it',
       'Sign out',
       'Remove…',
     ]);
     expect(items.find((i) => i.action === 'sign_out')?.divider).toBe(true);
     expect(items[5].danger).toBe(true);
-    expect(items.every((i) => !i.disabled)).toBe(true);
+    // a signed-in account has nothing to sign in again; the rest is on
+    expect(items.filter((i) => i.disabled).map((i) => i.action)).toEqual(['sign_in']);
   });
   it('is read only in the web build except for seeing the members', () => {
     const items = menuItems(acct(), false);

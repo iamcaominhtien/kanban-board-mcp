@@ -94,15 +94,17 @@ export function CreateTicketsDialog({
           10000,
           {
             label: 'Undo',
+            // mutateAsync, not mutate with callbacks: the dialog is closed by then, and a closed component's
+            // mutate callbacks never run, so neither the result nor an error would be shown
             onClick: () =>
-              undo.mutate(out.undoToken, {
-                onSuccess: (r) =>
+              void undo.mutateAsync(out.undoToken).then(
+                (r) =>
                   toast.info(
                     `${r.deleted} ticket${r.deleted === 1 ? '' : 's'} removed`,
                     r.draftRestored ? undefined : 'Your draft was changed since, so it was left as it is.',
                   ),
-                onError: (e) => toast.error("Couldn't undo", docsAiError(e)?.detail),
-              }),
+                (e: unknown) => toast.error("Couldn't undo", docsAiError(e)?.detail),
+              ),
           },
         );
         if (out.tickets.length === 1 && onOpenTicket) onOpenTicket(out.tickets[0]!.id);

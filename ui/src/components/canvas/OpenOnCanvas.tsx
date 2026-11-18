@@ -14,6 +14,8 @@ interface Props {
   src: string;
   buttonClass?: string;
   labelClass?: string;
+  /** Called once the canvas editor is opening on the new board (the file viewer closes, or it would cover it). */
+  onOpened?: () => void;
 }
 
 /**
@@ -21,7 +23,7 @@ interface Props {
  * one) and the file becomes a board there. The attachment stays as it was.
  * @param props - The place the canvas belongs to and the file.
  */
-export function OpenOnCanvas({ owner, name, src, buttonClass, labelClass }: Props) {
+export function OpenOnCanvas({ owner, name, src, buttonClass, labelClass, onOpened }: Props) {
   const api = useCanvas();
   const toast = useToast();
   const [open, setOpen] = useState(false);
@@ -33,7 +35,7 @@ export function OpenOnCanvas({ owner, name, src, buttonClass, labelClass }: Prop
     if (!open) return;
     let off = false;
     client
-      .get<CanvasSummary[]>('/canvases', { params: { ownerKind: owner.ownerKind, ownerId: owner.ownerId } })
+      .get<CanvasSummary[]>('/canvases', { params: { owner_kind: owner.ownerKind, owner_id: owner.ownerId } }) // query params are not snake_cased by the client
       .then((r) => !off && setList(r.data))
       .catch(() => !off && setList([]));
     const away = (e: MouseEvent) => {
@@ -78,6 +80,7 @@ export function OpenOnCanvas({ owner, name, src, buttonClass, labelClass }: Prop
         canvasId,
         boardId: out.board.id,
       });
+      onOpened?.();
       toast.success('Added to the canvas', `“${stem}” is a board now. The attachment stays as it was.`);
     } catch (e) {
       toast.error('Could not open it on a canvas', canvasFailure(e).message);

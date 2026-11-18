@@ -21,4 +21,4 @@ These lists are read from the code when the guide is built.
 
 ## AI defaults
 
-A new AI member starts with {fact:ai_parallel} parallel runs, {fact:ai_runs_per_day} scheduled runs a day and a daily budget of {fact:ai_daily_budget} for an API key. Status ceilings: None, Backlog, To Do, In Progress, Review (Testing and Done need confirmation).
+A new AI team starts with {fact:ai_parallel} parallel runs, no limit on scheduled runs a day and no budget. Status ceilings: None, Backlog, To Do, In Progress, Review (Testing and Done need confirmation).

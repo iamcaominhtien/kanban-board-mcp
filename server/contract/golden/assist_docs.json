@@ -133,6 +133,15 @@
       "kind": "page"
      }
     ],
+    "docs_page_seen": [
+     {
+      "id": "p-jobs_page-seen1",
+      "page_id": "p-jobs_page-pg1",
+      "viewer": "An Nguyen",
+      "version": 0,
+      "seen_at": "2025-01-01T00:00:00+00:00"
+     }
+    ],
     "docs_version": [
      {
       "id": "p-jobs_page-v1",
@@ -2623,7 +2632,7 @@
        "args": [
         "<ROOT>/tools/recorder",
         "-p",
-        "An Nguyen is asking.\n\nUse the skill `kanban-assistant:docs-history`.\n\ntask: since_viewed\nproject_id: p-jobs_page",
+        "An Nguyen is asking.\n\nUse the skill `kanban-assistant:docs-history`.\n\ntask: since_viewed\nproject_id: p-jobs_page\npages:\n[\n {\n  \"page_id\": \"p-jobs_page-pg1\",\n  \"title\": \"API\",\n  \"seen_version\": 0\n }\n]",
         "--output-format",
         "stream-json",
         "--verbose",
@@ -2752,6 +2761,17 @@
        "reads": [],
        "steps": [],
        "result": {
+        "pages": [
+         {
+          "page_id": "p-jobs_page-pg1",
+          "title": "API",
+          "kind": "changed",
+          "from_version": 0,
+          "to_version": 1,
+          "line": "changed"
+         }
+        ],
+        "count": 1,
         "lines": [
          {
           "page": "API",
@@ -7542,23 +7562,12 @@
        "parent_id": null
       },
       "preview 0": {
-       "items": [
-        {
-         "kind": "ticket",
-         "label": "KAN-1"
-        },
-        {
-         "kind": "pages",
-         "label": "Pages it links and two or three pages of this space, for the voice"
-        },
-        {
-         "kind": "comments",
-         "label": "The ticket's comments"
-        }
-       ],
-       "tokens": null,
-       "cost": null,
-       "left_out": []
+       "error": {
+        "type": "DocsAiError",
+        "message": "KAN-1 is not a ticket in this project.",
+        "code": "not_found",
+        "status": 404
+       }
       },
       "normalize 1": {
        "error": {
@@ -7585,19 +7594,33 @@
        "parent_id": null
       },
       "preview 2": {
+       "send": {
+        "ticket": null,
+        "description": false,
+        "comments": 0,
+        "pages": [],
+        "code": false,
+        "idea": false,
+        "notes": false,
+        "prompt": true,
+        "style_guide": null
+       },
        "items": [
         {
+         "n": 1,
          "kind": "prompt",
-         "label": "Your text"
-        },
-        {
-         "kind": "pages",
-         "label": "Pages it links and two or three pages of this space, for the voice"
+         "label": "The request"
         }
        ],
-       "tokens": null,
-       "cost": null,
-       "left_out": []
+       "skipped": [],
+       "notes": [],
+       "injections": [],
+       "tokens": 23,
+       "cost": 0.0,
+       "metered": false,
+       "member": "Team 0",
+       "suggested_title": "",
+       "from": "a prompt"
       },
       "normalize 3": {
        "error": {
@@ -7647,19 +7670,12 @@
        "parent_id": null
       },
       "preview 7": {
-       "items": [
-        {
-         "kind": "ticket",
-         "label": "K"
-        },
-        {
-         "kind": "pages",
-         "label": "Pages it links and two or three pages of this space, for the voice"
-        }
-       ],
-       "tokens": null,
-       "cost": null,
-       "left_out": []
+       "error": {
+        "type": "DocsAiError",
+        "message": "K is not a ticket in this project.",
+        "code": "not_found",
+        "status": 404
+       }
       },
       "normalize 8": {
        "source": {
@@ -7676,15 +7692,12 @@
        "parent_id": null
       },
       "preview 8": {
-       "items": [
-        {
-         "kind": "idea",
-         "label": "IDEA-1"
-        }
-       ],
-       "tokens": null,
-       "cost": null,
-       "left_out": []
+       "error": {
+        "type": "DocsAiError",
+        "message": "That idea is not in this project.",
+        "code": "not_found",
+        "status": 404
+       }
       },
       "freshness": [
        {
@@ -7764,24 +7777,35 @@
         {
          "id": "A004-1",
          "title": "Add paging",
-         "project_id": "p-docs_plain"
+         "project_id": "p-docs_plain",
+         "status": "todo",
+         "type": "bug",
+         "assignee": null,
+         "due_date": null
         },
         {
          "id": "A004-2",
          "title": "Second",
-         "project_id": "p-docs_plain"
+         "project_id": "p-docs_plain",
+         "status": "backlog",
+         "type": "task",
+         "assignee": null,
+         "due_date": null
         }
        ],
        "undo_token": "<HEX>",
-       "replaced": false,
-       "linked": true
+       "replaced": 0,
+       "not_replaced": [],
+       "linked": 2,
+       "draft_markdown": null
       },
       "undone": {
+       "deleted": 2,
+       "draft_restored": false,
        "removed": [
         "A004-1",
         "A004-2"
-       ],
-       "restored_text": false
+       ]
       },
       "again": {
        "error": {
@@ -7809,18 +7833,25 @@
         {
          "id": "A004-3",
          "title": "Unlinked",
-         "project_id": "p-docs_plain"
+         "project_id": "p-docs_plain",
+         "status": "backlog",
+         "type": "task",
+         "assignee": null,
+         "due_date": null
         }
        ],
        "undo_token": "<HEX>",
-       "replaced": false,
-       "linked": false
+       "replaced": 0,
+       "not_replaced": [],
+       "linked": 0,
+       "draft_markdown": null
       },
       "undone": {
+       "deleted": 1,
+       "draft_restored": false,
        "removed": [
         "A004-3"
-       ],
-       "restored_text": false
+       ]
       },
       "again": {
        "error": {

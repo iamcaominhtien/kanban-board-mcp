@@ -113,8 +113,8 @@ async fn a_running_job_is_stopped_and_its_cli_is_gone() {
     common::team_of(&pid, "Claude Code · Backend", json!({})).await;
     common::fake(&[("FAKE_CLAUDE_ASSISTANT_WAIT", "30"), ("FAKE_CLAUDE_ASSISTANT_TEXT", "late")]);
     let s = database::session();
-    let mut spec = new_job(&pid, "since_viewed");
-    spec.instruction = "Changes since you last viewed".to_string();
+    let mut spec = new_job(&pid, "ask");
+    spec.instruction = "Which API style?".to_string();
     let started = jobs::start(&s, spec).await.expect("start");
     let end = Instant::now() + Duration::from_secs(15);
     let run = loop {

@@ -457,6 +457,7 @@ pub async fn insert_rows(table: &str, rows: &[serde_json::Value]) {
         "docs_ai_settings" => put::<e::docs_ai_settings::Entity>(rows).await,
         "docs_ai_session" => put::<e::docs_ai_session::Entity>(rows).await,
         "docs_page" => put::<e::docs_page::Entity>(rows).await,
+        "docs_page_seen" => put::<e::docs_page_seen::Entity>(rows).await,
         "idea_ticket" => put::<e::idea_ticket::Entity>(rows).await,
         // Added for kb-assist part 2 (the Docs AI, the editor and the ideas)
         "docs_version" => put::<e::docs_version::Entity>(rows).await,
@@ -523,6 +524,11 @@ pub fn same_text(got: &str, want: &serde_json::Value, blobs: &serde_json::Value,
     // a path written out in the golden file (`/tmp/pictures/...`) may sit under this machine's temporary folder, which
     // `golden_text` replaced on the Rust side: compare both sides in the golden spelling
     let (got, expected) = (golden_text(got), golden_text(expected));
+    // an age said from today ("Done 3 days ago" of a fixture row with a fixed date) grows by one each day after the
+    // golden file was written: ages are compared as "<n> days ago"
+    let age = regex::Regex::new(r"\b\d+ (minute|hour|day|week|month|year)s? ago\b").expect("a valid pattern");
+    let (got, expected) =
+        (age.replace_all(&got, "<n> ${1}s ago").into_owned(), age.replace_all(&expected, "<n> ${1}s ago").into_owned());
     if got == expected {
         return;
     }

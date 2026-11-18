@@ -522,7 +522,9 @@ export function useEditorAi(opts: UseEditorAiOptions): EditorAi {
         draftId: p.draft.id,
         action: p.action,
         req: p.req,
-        cap: adapter.capture('paragraph'),
+        // the place the first draft was written for: by now the selection has moved into the draft's own box, so
+        // capturing again finds nothing and Accept would fail with "The text could not be put in"
+        cap: p.cap ?? adapter.capture('paragraph'),
       });
     } catch (e) {
       fail(e, p.cap);

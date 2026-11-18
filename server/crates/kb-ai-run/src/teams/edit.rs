@@ -253,6 +253,9 @@ pub async fn update(
         member = save_model(session, &member_read, member).await?;
     }
     let profile = save_model(session, &profile_read, profile).await?;
+    if data.contains_key("account_id") {
+        crate::runs::follow_member_account(session, member_id, profile.account_id.as_deref()).await?;
+    }
     session.commit().await?;
     let mut fields: Vec<&str> = data.keys().map(String::as_str).filter(|k| *k != "config").collect();
     fields.sort_unstable();

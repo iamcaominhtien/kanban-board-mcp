@@ -10,6 +10,14 @@ type Subject = Pick<Idea, 'id' | 'title' | 'projectId' | 'tags' | 'body' | 'desc
 
 export type Decision = 'keep' | 'park' | 'merge' | 'archive';
 
+/** What an accepted AI advice brings to a decision. */
+export interface FromAdvice {
+  /** Days the advice suggests parking for (Park opens on that date). */
+  parkDays?: number | null;
+  /** Called once the move is done, to mark the advice accepted. */
+  onAccepted?: () => void;
+}
+
 interface Options {
   /** Promote was asked for (the Building stage is reached through Promote only). */
   onPromote: (idea: Subject) => void;
@@ -28,7 +36,9 @@ export function useIdeaMoves({ onPromote, onChanged }: Options) {
   const move = useMoveIdea();
   const undoMove = useUndoIdeaMove();
   const undoMerge = useUndoMerge();
-  const [dialog, setDialog] = useState<{ kind: Decision | 'skip-checks'; idea: Subject } | null>(null);
+  const [dialog, setDialog] = useState<{ kind: Decision | 'skip-checks'; idea: Subject; advice?: FromAdvice } | null>(
+    null,
+  );
 
   const done = useCallback(
     (message: string, undo?: 'move' | 'merge', targetId?: string, ideaId?: string) => {
@@ -50,7 +60,10 @@ export function useIdeaMoves({ onPromote, onChanged }: Options) {
     [toast, undoMerge, undoMove],
   );
 
-  const decide = useCallback((idea: Subject, decision: Decision) => setDialog({ kind: decision, idea }), []);
+  const decide = useCallback(
+    (idea: Subject, decision: Decision, advice?: FromAdvice) => setDialog({ kind: decision, idea, advice }),
+    [],
+  );
 
   const request = useCallback(
     async (idea: Subject, to: IdeaStage) => {
@@ -82,20 +95,31 @@ export function useIdeaMoves({ onPromote, onChanged }: Options) {
 
   const close = () => setDialog(null);
   const finished =
-    (idea: Subject, decision: string) => (message: string, undo?: 'move' | 'merge', targetId?: string) => {
+    (idea: Subject, decision: string, advice?: FromAdvice) =>
+    (message: string, undo?: 'move' | 'merge', targetId?: string) => {
       close();
+      advice?.onAccepted?.();
       done(message, undo, targetId, idea.id);
       onChanged?.(idea.id, decision);
     };
 
   let dialogs: ReactNode = null;
   if (dialog) {
-    const { kind, idea } = dialog;
-    if (kind === 'keep') dialogs = <KeepDialog idea={idea} onClose={close} onDone={finished(idea, 'keep')} />;
-    else if (kind === 'park') dialogs = <ParkDialog idea={idea} onClose={close} onDone={finished(idea, 'park')} />;
+    const { kind, idea, advice } = dialog;
+    if (kind === 'keep') dialogs = <KeepDialog idea={idea} onClose={close} onDone={finished(idea, 'keep', advice)} />;
+    else if (kind === 'park')
+      dialogs = (
+        <ParkDialog
+          idea={idea}
+          days={advice?.parkDays ?? undefined}
+          onClose={close}
+          onDone={finished(idea, 'park', advice)}
+        />
+      );
     else if (kind === 'archive')
-      dialogs = <ArchiveDialog idea={idea} onClose={close} onDone={finished(idea, 'archive')} />;
-    else if (kind === 'merge') dialogs = <MergeDialog idea={idea} onClose={close} onDone={finished(idea, 'merge')} />;
+      dialogs = <ArchiveDialog idea={idea} onClose={close} onDone={finished(idea, 'archive', advice)} />;
+    else if (kind === 'merge')
+      dialogs = <MergeDialog idea={idea} onClose={close} onDone={finished(idea, 'merge', advice)} />;
     else
       dialogs = (
         <ModalShell

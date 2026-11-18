@@ -211,13 +211,18 @@ def transform(ch: Chapter) -> str:
         )
         return f"\n\n{key}\n\n"
 
-    def preset(m: re.Match) -> str:
-        # a persona from the file the Add AI member dialog reads ("Start from"), so the guide never drifts from the app
-        data = {p["id"]: p for p in json.loads((ROOT / "ui/src/components/ai/memberPresets.json").read_text(encoding="utf-8"))}
-        text = data[m.group(1)][m.group(2)]["en"]
-        ch.facts_used.add(f"preset:{m.group(1)}.{m.group(2)}")
+    def packs(_m: re.Match) -> str:
+        # the role packs the app offers (Settings > AI > Role packs), read from the file the server ships, so the guide
+        # never drifts from the app
+        data = json.loads((ROOT / "server/crates/kb-ai-know/src/text/packs.json").read_text(encoding="utf-8"))
+        ch.facts_used.add("packs")
+        rows = "".join(
+            f"<tr><td><strong>{html.escape(p['name'])}</strong></td><td>{html.escape(p['tagline'])}</td>"
+            f"<td>{html.escape(p['model'].capitalize())}</td></tr>"
+            for p in data
+        )
         key = f"@@PRE{len(placeholders)}@@"
-        placeholders[key] = f'<pre><code>{html.escape(text)}</code></pre><p class="caption">{len(text)} of 1000 characters</p>'
+        placeholders[key] = f"<table><thead><tr><th>Role</th><th>What it does</th><th>Model</th></tr></thead><tbody>{rows}</tbody></table>"
         return f"\n\n{key}\n\n"
 
     def fact(m: re.Match) -> str:
@@ -245,7 +250,7 @@ def transform(ch: Chapter) -> str:
             out.append(seg)
             continue
         seg = re.sub(r"^@figure\s+(\S+)\s+\"([^\"]+)\"((?:\s+(?:markers|width)=[\d.,;]+)*)\s*$", fig, seg, flags=re.M)
-        seg = re.sub(r"^@preset\s+(\w+)\s+(\w+)\s*$", preset, seg, flags=re.M)
+        seg = re.sub(r"^@packs\s*$", packs, seg, flags=re.M)
         seg = re.sub(r"\{fact:([\w]+)\}", fact, seg)
         seg = re.sub(r"\{(ch|Ch|num):([\w-]+)\}", ref, seg)
         seg = re.sub(r"\{menu:([^}]+)\}", lambda m: f'<span class="menu">{html.escape(m.group(1).strip())}</span>', seg)
@@ -267,7 +272,7 @@ def transform(ch: Chapter) -> str:
     for key, value in placeholders.items():
         body = body.replace(f"<p>{key}</p>", value).replace(key, value)
     # a directive that did not turn into anything (for example a figure in the middle of a paragraph) must not reach the page
-    stray = re.search(r"@figure|@preset|\{(?:fact|menu|ch|Ch|num|confirm):", body)
+    stray = re.search(r"@figure|@packs|\{(?:fact|menu|ch|Ch|num|confirm):", body)
     if stray:
         raise BuildError(f"{ch.file}: '{stray.group(0)}' was not understood; a directive must be alone on its line")
 
