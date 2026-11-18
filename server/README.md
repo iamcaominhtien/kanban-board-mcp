@@ -145,8 +145,12 @@ npm run build`) and Playwright installed globally (`NODE_PATH`).
 | 17–18 | file previews (PDF, Word, Excel, PowerPoint, CSV, JSON, Markdown, HTML, audio, ZIP), the Docs editor (slash menu, formatting, table, callout, math, code, find and replace, export) |
 | 19–21 (`ai`) | Docs AI, the AI team (accounts, teams, runs, a question answered, the AI Team pages, Settings > AI, schedules, Board AI), the rest of Idea Space (matrix, evidence, Ask AI chat, settings) |
 | 22 | appearance, workspace, database wizard, MCP integrations, logs, keyboard, follow bell, notification settings |
+| 23–25 | a ticket's details (comments edited, deleted and restored, reopen undo), projects (edit name and colour, delete) and Stories, workspace and branches |
+| 26–28 | Docs page actions (duplicate, move, rename, delete), history, diffs and the search page, comments and live edits, offline |
+| 29–31 | canvases, sketches (`ai`), diagrams (a stand-in draw.io editor served by the scenario) |
+| 32–34 | Idea Space: comments, research log, assumptions and test tickets, delete; capture, triage, merge, park, stages, promote, outcome; the Idea AI (`ai`: triage advice, Shape with AI, Draft with AI) |
 
-Not covered: the draw.io editor (not in the checkout), a real Claude sign-in, the desktop-only windows and OS
+Not covered: the real draw.io editor (not in the checkout), a real Claude sign-in, the desktop-only windows and OS
 notifications.
 
 ```bash
