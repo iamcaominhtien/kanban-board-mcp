@@ -131,7 +131,7 @@ make a test pass; change one only when the behavior was meant to change.
 ## `e2e/`
 
 A Playwright check of the real UI against the server: headless Chromium, one server per scenario on its own temporary
-folders, 39 scenarios and 944 steps. Each server gets a stand-in AI (`fake-claude` behind a `claude` script on its
+folders, 42 scenarios and about 1,020 steps. Each server gets a stand-in AI (`fake-claude` behind a `claude` script on its
 `PATH`, a signed-in account, a sample git repository), so the AI screens run without tokens. It needs the built server
 and stand-in (`cargo build -p kanban-server -p kanban-mcp-stdio -p fake-claude`), the built UI (`cd ui && npm ci &&
 npm run build`) and Playwright installed globally (`NODE_PATH`).
@@ -153,6 +153,8 @@ npm run build`) and Playwright installed globally (`NODE_PATH`).
 | 38 (`ai`) | a ticket's AI activity: the run card and the hand-over of its worktree (outputs to the Workspace, commit, the route changed per ticket, Merge, a conflict with main, discard) |
 | 39–40 | Settings and system (the database move wizard to another SQLite file, a stopped copy and its AI help, the reconnect screen, the data folder, updates and the update notice); notifications (snooze, dismiss, clear, turn a kind off, unmute, the day card) and previews (xlsx charts, pptx shapes, connectors, tables and charts, the image viewer) |
 | 41 | PostgreSQL and MariaDB for real: the move wizard SQLite → PostgreSQL → MariaDB with each card's fields, refused connections, copy, verify, switch; Edit connection; the reconnect screen while the server is down. Skipped unless `KANBAN_TEST_POSTGRES_URL` and `KANBAN_TEST_MYSQL_URL` are set (`scripts/dev-databases.sh start`) |
+| 42 | tablet widths (1024×768, 768×1024) and both looks (Color, Black & white): no sideways page scroll, the key controls reachable, text contrast (WCAG AA) on the main screens |
+| 43 | accessibility: axe (WCAG 2.1 A/AA) on nine screens, a keyboard-only walk (ticket, Docs page, Settings, every dialog with Esc), focus visible, returned and in order |
 
 Not covered: the real draw.io editor (not in the checkout), a real Claude sign-in. The desktop-only parts (OS
 notifications, the dock/taskbar badge, the update flow) have their own check in `desktop/e2e`, run with

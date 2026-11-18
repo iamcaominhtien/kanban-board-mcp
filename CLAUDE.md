@@ -61,7 +61,7 @@ Related means:
   - the app shell (middlewares, `/events`, uploads, the static UI, the route table): `kb-app`;
 - in `ui/`, `npx vitest run <the folders you changed>` plus `npx tsc --noEmit -p .`, eslint and prettier on the files you touched;
 - in `desktop/`, `npm test` when you changed `desktop/`.
-- the real UI (`server/e2e`, Playwright, 39 scenarios; not in CI, so it runs only here):
+- the real UI (`server/e2e`, Playwright, 42 scenarios; not in CI, so it runs only here):
   - **Run only the scenarios of the area** when a change reaches what a screen shows or sends (a UI component, a route's JSON, an event): `cd server/e2e && node run.mjs --target rust --only 15,16`. The scenario names in `server/e2e/scenarios/` say what each covers (`server/README.md` has the table); 19 to 21 are the AI screens, on `fake-claude`. A change inside one crate that no screen sees (a query, a helper with its own tests) needs none.
   - **Never the full run on your own** (about 25 minutes, `node run.mjs --target rust --jobs 3`): the nightly CI (`.github/workflows/e2e-nightly.yml`) runs it, and it can be started by hand there. Run it here only when the user asks. After a change that every screen goes through (the app shell, middlewares, `/events`, the session or the database layer, a shared UI component such as the ticket modal), run the few scenarios that use it most and say in the commit that the nightly run covers the rest.
   - **Add to them**: a new screen or flow gets steps in the scenario of its area (or a new numbered scenario), and a fixed UI-visible bug gets a step that would have caught it.

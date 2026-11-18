@@ -145,6 +145,18 @@ chặn mọi click trong 50 ms sau khi thả, `dragCard` giờ chờ 80 ms. Toà
 desktop app gọi, poll pull request cần PR GitHub thật, vài API không ai gọi); PostgreSQL / MariaDB thật (đang làm,
 scenario 41); thông báo hệ điều hành của desktop app (cần chạy app Electron, xem đợt 7).
 
+Đợt 7 (xuyên suốt): 42 kiểm các màn chính ở 1024×768 và 768×1024 trong hai giao diện (Color, Black & white): không
+cuộn ngang, control chính không bị che, chữ đạt AA. Chữ phụ #9aa8a0 (2.48:1) đổi sang màu chữ phụ của app (5.65:1)
+ở 207 chỗ; số đếm đầu cột giữ màu gốc theo lựa chọn của chủ dự án nên vẫn dưới AA. 43 chạy axe trên chín màn và
+đi bằng bàn phím: New ticket và Members thành dialog thật, đóng bằng Esc, focus trở về chỗ mở; sửa tiêu đề ticket
+bằng Enter hay F2; Esc của menu trạng thái không đóng cả ticket; nhãn cho các ô loại, ưu tiên, ước lượng, hạn; một
+landmark `main`. Desktop app có e2e riêng (`desktop/e2e`, Electron thật dưới Xvfb): thông báo hệ điều hành, giới
+hạn 20 s, số trên icon, click, thông báo thử, giờ yên lặng, luồng cập nhật. CI chạy hàng đêm
+(`.github/workflows/e2e-nightly.yml`) chạy cả bộ e2e, scenario 41 trên PostgreSQL và MariaDB, và e2e desktop.
+Còn lại (cần sửa `.tsx`): màu chữ inline #9AA8A0 trong `TicketModal.tsx`, bảng màu avatar; card kéo thả lồng nút
+"Card options" (nested-interactive); vòng focus thiếu ở vài ô của Docs và mô tả ticket (CSS); thanh công cụ editor
+Docs có khoảng 30 điểm Tab.
+
 ## 6. Những gì đo được đến giờ
 
 - `03-tickets / log a debug-space entry`: test chập chờn. Danh sách hiện entry mới trước khi form kịp đóng nên cùng
