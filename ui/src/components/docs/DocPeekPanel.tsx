@@ -60,6 +60,8 @@ export function DocPeekPanel({ target, projectId, ticketId, onSwitch, onClose, o
   const restore = useRestorePage(projectId);
   const bodyRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  // RichDocsLinks I 53: from a ticket on a phone the page is a full screen whose arrow goes back to the ticket
+  const fromTicket = layout === 'phone' && !!ticketId;
 
   // Esc closes the panel first (a second Esc closes the ticket): capture before the modal sees it.
   useEffect(() => {
@@ -143,7 +145,12 @@ export function DocPeekPanel({ target, projectId, ticketId, onSwitch, onClose, o
   };
 
   return createPortal(
-    <div className="docs-root pk-root" data-layout={layout} data-testid="peek-root">
+    <div
+      className="docs-root pk-root"
+      data-layout={layout}
+      data-from={fromTicket ? 'ticket' : undefined}
+      data-testid="peek-root"
+    >
       <div
         data-testid="peek-scrim"
         onMouseDown={(e) => {
@@ -175,11 +182,13 @@ export function DocPeekPanel({ target, projectId, ticketId, onSwitch, onClose, o
           border: '1px solid #E3E8E5',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
+          // clip, not hidden: scrolling the linked block into view must move the body only, never the head
+          overflow: 'clip',
           boxShadow: '-18px 0 44px rgba(30,42,34,0.22)',
         }}
       >
         <div
+          className="pkv-head"
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -189,8 +198,23 @@ export function DocPeekPanel({ target, projectId, ticketId, onSwitch, onClose, o
             background: '#FFFFFF',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+          <div className="pkv-bar" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {fromTicket && (
+              <button
+                ref={closeRef}
+                type="button"
+                className="dk-icobtn"
+                aria-label="Back to the ticket"
+                data-testid="peek-back"
+                onClick={onClose}
+              >
+                <Icon name="i60" size={20} strokeWidth={2} />
+              </button>
+            )}
+            <div
+              className="pkv-crumbs"
+              style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}
+            >
               {loadingHeader(
                 isLoading && !deleted,
                 crumbs,
@@ -207,26 +231,29 @@ export function DocPeekPanel({ target, projectId, ticketId, onSwitch, onClose, o
                 onClick={() => onOpenInDocs(target.pageId, heading ? heading.slug : null)}
               >
                 <Icon name="i38" size={14} strokeWidth={1.9} />
-                Open in Docs
+                {fromTicket ? <span className="pkv-sr">Open in Docs</span> : 'Open in Docs'}
               </button>
               <button type="button" className="dk-icobtn" aria-label="Copy link" title="Copy link" onClick={shareLink}>
                 <Icon name="link" size={15} strokeWidth={1.9} />
               </button>
-              <button
-                ref={closeRef}
-                type="button"
-                className="dk-icobtn"
-                aria-label="Close panel"
-                title="Close (Esc)"
-                data-testid="peek-close"
-                onClick={onClose}
-              >
-                <Icon name="close" size={15} strokeWidth={2} />
-              </button>
+              {!fromTicket && (
+                <button
+                  ref={closeRef}
+                  type="button"
+                  className="dk-icobtn"
+                  aria-label="Close panel"
+                  title="Close (Esc)"
+                  data-testid="peek-close"
+                  onClick={onClose}
+                >
+                  <Icon name="close" size={15} strokeWidth={2} />
+                </button>
+              )}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div className="pkv-title-row" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span
+              className="pkv-title"
               style={{
                 fontSize: 21,
                 fontWeight: 800,
@@ -260,7 +287,10 @@ export function DocPeekPanel({ target, projectId, ticketId, onSwitch, onClose, o
             )}
           </div>
           {page && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#5B6B60' }}>
+            <div
+              className="pkv-meta"
+              style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#5B6B60' }}
+            >
               <span
                 title={author}
                 style={{

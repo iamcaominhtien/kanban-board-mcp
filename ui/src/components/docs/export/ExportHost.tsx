@@ -304,7 +304,7 @@ export function ExportHost({ projectId, projectName, nodes, canEdit, layout, cur
         ? [node, ...children].some((n) => n?.hasDraft || n?.status === 'draft')
         : !!(node?.hasDraft || node?.status === 'draft' || page?.draft);
   const blocked = !online
-    ? { text: OFFLINE, tone: 'warn' as const }
+    ? { text: OFFLINE, tone: 'off' as const }
     : empty
       ? { text: EMPTY, tone: 'warn' as const }
       : open?.refused

@@ -381,6 +381,76 @@
   min-height: 44px;
 }
 
+/* Reader7 112: tap a highlight on a phone: a 310 px card, who and when first (20 px avatar, 600 12px), then 44 px
+   rows (500 14.5px), the thread's count a 20 px green pill; someone else's says it cannot be recoloured */
+.hl-pop.is-phone {
+  width: min(310px, calc(100vw - 16px));
+}
+.hl-pop-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  font:
+    600 12px 'Plus Jakarta Sans',
+    system-ui,
+    sans-serif;
+  color: #5b6b60;
+}
+.hl-pop-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font:
+    500 14.5px 'Plus Jakarta Sans',
+    system-ui,
+    sans-serif;
+  color: #1e2a22;
+  text-align: left;
+  cursor: pointer;
+}
+.hl-pop-row:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.hl-pop-row-red {
+  color: #c4432a;
+}
+.hl-pop-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  background: #2e6f40;
+  color: #fff;
+  font:
+    700 11px 'Plus Jakarta Sans',
+    system-ui,
+    sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hl-pop-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px 6px;
+  border-top: 1px solid #e3e8e5;
+  font:
+    600 11.5px 'Plus Jakarta Sans',
+    system-ui,
+    sans-serif;
+  color: #5b6b60;
+}
+
 /* ---------- the Highlights button and tabs (78, 95) ---------- */
 .hl-tabs {
   display: flex;
@@ -914,6 +984,62 @@
 .hl-dlg.is-touch .hl-dlg-foot .st-btn {
   min-height: 44px;
 }
+/* Ai3 66: on a phone, Send to the team is a bottom sheet (r20 20 0 0, 0 -10 30 .16, grab 36 x 4), its head 4 16 6
+   with the title 15/700 and no badge or page line, the body 0 16 14, two 44 px buttons (14.5) without a rule */
+@media (max-width: 599px) {
+  .hl-scrim:has(> [data-testid='hl-send-dialog']) {
+    align-items: flex-end;
+    padding: 0;
+  }
+  [data-testid='hl-send-dialog'].hl-dlg {
+    width: 100% !important;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    border: none;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -10px 30px rgba(30, 42, 34, 0.16);
+  }
+  [data-testid='hl-send-dialog'].hl-dlg::before {
+    content: '';
+    display: block;
+    flex: none;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: #c7d2cb;
+    margin: 8px auto 4px;
+  }
+  [data-testid='hl-send-dialog'] .hl-dlg-head {
+    padding: 4px 4px 6px 16px;
+    border-bottom: none;
+  }
+  [data-testid='hl-send-dialog'] :is(.hl-dlg-ico, .hl-dlg-sub) {
+    display: none;
+  }
+  [data-testid='hl-send-dialog'] .hl-dlg-title {
+    font-size: 15px;
+  }
+  [data-testid='hl-send-dialog'] .hl-dlg-x {
+    width: 44px;
+    height: 44px;
+  }
+  [data-testid='hl-send-dialog'] .hl-dlg-body {
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 16px 14px;
+  }
+  [data-testid='hl-send-dialog'] .hl-dlg-foot {
+    padding: 0 16px 16px;
+    border-top: none;
+    background: #fff;
+  }
+  [data-testid='hl-send-dialog'] .hl-dlg-foot .st-btn {
+    min-height: 44px;
+    padding: 0 16px;
+    font-size: 14.5px;
+  }
+}
 .hl-dlg-chips {
   display: flex;
   flex-wrap: wrap;
@@ -1160,6 +1286,10 @@
 /* ---------- choosing highlights for the team (94, 105, 107) ---------- */
 .hl-pick-head {
   border-bottom: 1px solid var(--dp-rule, #e3e8e5);
+}
+/* Reader7 107: choosing on a tablet, the head is 12 12 10 */
+.hl-panel.is-touch .hl-pick-head {
+  padding: 12px 12px 10px;
 }
 .hl-pick-count {
   display: flex;

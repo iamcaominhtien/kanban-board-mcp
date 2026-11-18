@@ -549,6 +549,27 @@
   background: #fdf1ee;
   color: #8e2d1b;
 }
+/* Export3 frames 50-51, 53-54: offline is a grey note, an empty page an amber one, both 8 11 with a rule, r8; on a
+   phone they head the sheet's body */
+.dx-note-off,
+.dx-note-warn {
+  padding: 8px 11px;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+.dx-note-off {
+  background: #f1f3f1;
+  color: #3a4a3e;
+  border: 1px solid #dce3de;
+}
+.dx-note-warn {
+  background: #fdf3e3;
+  color: #8a5a00;
+  border: 1px solid #ebd3a4;
+}
+.dx-phone .dx-body > [data-testid='export-blocked'] {
+  order: -1;
+}
 
 /* progress and endings (board D 14–17): 520 wide, a plain head with a rule, a big round badge in the body */
 .dx-job .dx-head {

@@ -524,5 +524,67 @@ export default {
       await sheet.waitFor({ state: 'detached' });
       await p.setViewportSize({ width: 1440, height: 900 });
     });
+
+    await s.step('phone: a tap on someone else’s highlight shows a 310 px card, who first, 44 px rows 14.5/500, and why it cannot be recoloured (Reader7 112)', async () => {
+      await api('POST', `/docs/pages/${pageId}/highlights`, { block_id: 'b-000006', start: 0, end: 30, quote: 'The log tells you what happened', color: 'yellow' }, 'Hoa Mai');
+      await p.setViewportSize({ width: 390, height: 844 });
+      try {
+        await p.locator('[data-testid="docs-page"][data-layout="phone"]').waitFor();
+        // the new highlight waits behind the chip until Show
+        await p.getByTestId('hl-new-show').click();
+        const marker = p.locator('[data-testid="hl-marker"][aria-label^="Highlighted Yellow by Hoa Mai"]');
+        await marker.waitFor();
+        await marker.click();
+        const pop = p.getByTestId('hl-popover');
+        await pop.waitFor();
+        expect('phone highlight card', await box(pop), { w: 310, radius: '12px' });
+        expect('who made it', await box(pop.getByTestId('hl-popover-who')), { font: '600 12px' });
+        await pop.getByTestId('hl-popover-who').getByText(/^Highlighted Yellow by Hoa Mai · /).waitFor();
+        for (const id of ['hl-comment', 'hl-copy', 'hl-link']) expect(id, await box(pop.getByTestId(id)), { h: 44, font: '500 14.5px' });
+        await pop.getByText('Copy link to this passage').waitFor();
+        await pop.getByText(/^Not yours: you cannot recolour/).waitFor();
+        if (await pop.getByTestId('hl-recolor-yellow').count()) throw new Error('someone else’s highlight offers its colours on a phone');
+        await p.keyboard.press('Escape');
+        await pop.waitFor({ state: 'detached' });
+      } finally {
+        await p.setViewportSize({ width: 1440, height: 900 });
+      }
+    });
+
+    await s.step('tablet: choosing highlights to send is the drawer’s list with 22 px boxes and a 44 px Send (Reader7 107)', async () => {
+      // the page has no AI team in this run: the members list is answered with one for this step
+      const members = /\/projects\/[^/]+\/members$/;
+      await p.route(members, async (r) => {
+        if (r.request().method() !== 'GET') return r.continue();
+        const res = await r.fetch();
+        const j = await res.json();
+        j.push({ id: 'ai-e2e', name: 'Docs team', kind: 'ai', role: 'member' });
+        await r.fulfill({ response: res, json: j });
+      });
+      try {
+        // the members list is read again when the page is opened again
+        await openPage();
+        await p.setViewportSize({ width: 820, height: 1180 });
+        await p.locator('[data-testid="docs-page"][data-layout="tablet"]').waitFor({ timeout: 20000 });
+        await p.getByTestId('highlights-button').click();
+        const drawer = p.getByTestId('hl-drawer');
+        await drawer.getByTestId('hl-panel').waitFor();
+        const send = drawer.getByTestId('hl-send-team');
+        await drawer.getByTestId('hl-list-menu').click();
+        await send.click();
+        const head = drawer.getByTestId('hl-pick-head');
+        await head.waitFor();
+        expect('choose head', await box(head), { padding: '12px 12px 10px' });
+        await drawer.getByText('Send to Docs team').waitFor();
+        await drawer.locator('.hl-row-pick').first().click();
+        await drawer.getByTestId('hl-pick-count').getByText(/^1 of \d+ selected$/).waitFor();
+        expect('its box', await box(drawer.locator('.hl-row-pick .hl-check').first()), { w: 22, h: 22, radius: '6px', bg: 'rgb(46, 111, 64)' });
+        expect('Send', await box(drawer.getByTestId('hl-pick-send')), { h: 44 });
+        await p.keyboard.press('Escape');
+      } finally {
+        await p.unroute(members);
+        await p.setViewportSize({ width: 1440, height: 900 });
+      }
+    });
   },
 };

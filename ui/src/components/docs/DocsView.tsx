@@ -935,7 +935,11 @@ export function DocsView({
       onCollapse={() => (railOpen ? setRailOpen(false) : setCollapsed(true))}
       aiOn={aiOn}
       onAskDocs={onAskDocs}
-      onHealth={() => setHealthOpen(true)}
+      onHealth={() => {
+        setHealthOpen(true);
+        // on a tablet or a phone the tree is a drawer over the page: Docs health shows once it is gone
+        setRailOpen(false);
+      }}
       healthActive={healthOpen}
       healthCount={healthCount}
       renderMenu={(node, close) => (

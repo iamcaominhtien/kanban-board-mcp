@@ -7,7 +7,8 @@
 
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { HighlightColor } from '../../../api/docsHighlights';
-import { HL_FIRST_SIX } from './colors';
+import { colorName, HL_FIRST_SIX } from './colors';
+import { DOCS_PHONE_BELOW, useNarrowWindow } from '../../../hooks/useDocsLayout';
 import { HlIcon } from './hlIcons';
 import { AllColours, Swatch } from './SelectionSwatches';
 import type { HlPerson } from './useHighlightLayer';
@@ -94,6 +95,8 @@ export function HighlightPopover({
   const [all, setAll] = useState(false);
   const mine = h.mine;
   const removable = h.canRemove || mine;
+  // Reader7 112: a tap on a phone shows a 310 px card: who and when first, then 44 px rows (14.5/500)
+  const phone = useNarrowWindow(DOCS_PHONE_BELOW) && touch;
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -104,7 +107,7 @@ export function HighlightPopover({
     let top = rect.top - ht - 8;
     if (top < 8) top = Math.min(window.innerHeight - ht - 8, rect.bottom + 8);
     setPos({ left, top: Math.max(8, top) });
-  }, [rect, all]);
+  }, [rect, all, phone]);
 
   // closes on a click elsewhere and on Esc
   useLayoutEffect(() => {
@@ -123,6 +126,71 @@ export function HighlightPopover({
   }, [onClose]);
 
   const who = mine ? 'you' : person.name;
+  if (phone) {
+    return (
+      <div
+        ref={ref}
+        className="hl-pop is-touch is-phone"
+        style={{ left: pos.left, top: pos.top }}
+        role="dialog"
+        aria-label={`Highlight by ${who}`}
+        data-testid="hl-popover"
+        data-nocomment
+      >
+        <div className="hl-pop-who" data-testid="hl-popover-who">
+          <HlAvatar person={person} size={20} />
+          <span>
+            Highlighted {colorName(h.color)} by {who} · {shortAgo(h.createdAt)}
+          </span>
+        </div>
+        <span className="hl-pop-rule" />
+        {mine && (
+          <div className="hl-sw-row" role="group" aria-label="Colour">
+            {HL_FIRST_SIX.map((c) => (
+              <Swatch key={c} color={c} ring={c === h.color} onApply={onRecolor} testId={`hl-recolor-${c}`} />
+            ))}
+          </div>
+        )}
+        <button
+          type="button"
+          className="hl-pop-row"
+          disabled={noComment && comments === 0}
+          onClick={onComment}
+          data-testid="hl-comment"
+        >
+          <HlIcon name="comment" size={16} color="#3A4A3E" />
+          <span style={{ flex: 1 }}>{comments > 0 ? 'Open the thread' : 'Comment'}</span>
+          {comments > 0 && <span className="hl-pop-count">{comments}</span>}
+        </button>
+        <button type="button" className="hl-pop-row" onClick={onCopy} data-testid="hl-copy">
+          <HlIcon name="copy" size={16} color="#3A4A3E" />
+          <span style={{ flex: 1 }}>Copy</span>
+        </button>
+        <button type="button" className="hl-pop-row" onClick={onLink} data-testid="hl-link">
+          <HlIcon name="link" size={16} color="#3A4A3E" />
+          <span style={{ flex: 1 }}>Copy link to this passage</span>
+        </button>
+        {onToPage && (
+          <button type="button" className="hl-pop-row hl-pop-topage" onClick={onToPage} data-testid="hl-to-page">
+            <HlIcon name="pen" size={16} color="#1F5A31" />
+            <span style={{ flex: 1 }}>Add to the page</span>
+          </button>
+        )}
+        {removable && (
+          <button type="button" className="hl-pop-row hl-pop-row-red" onClick={onRemove} data-testid="hl-remove">
+            <HlIcon name="trash" size={16} color="#C4432A" />
+            <span style={{ flex: 1 }}>Remove highlight</span>
+            {!mine && canEdit && <span className="hl-pop-tag">as editor</span>}
+          </button>
+        )}
+        {!mine && (
+          <div className="hl-pop-note">
+            {removable ? 'Not yours: you cannot recolour it.' : 'Not yours: you cannot recolour or remove it.'}
+          </div>
+        )}
+      </div>
+    );
+  }
   return (
     <div
       ref={ref}

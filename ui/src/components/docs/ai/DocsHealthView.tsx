@@ -12,6 +12,7 @@ import {
   useRunHealth,
   type DocsHealth,
   type HealthBroken,
+  type HealthOutOfDate,
 } from '../../../api/docsAiCare';
 import {
   checkedLabel,
@@ -29,6 +30,8 @@ import '../docs.css';
 import { LineIcon } from '../../ui/LineIcon';
 import { useDocsLayout } from '../../../hooks/useDocsLayout';
 import '../links/links.css';
+import { PageIcon } from '../tree/treeParts';
+import type { DocsTreeNode } from '../../../types/docs';
 
 type Kind = 'out_of_date' | 'missing' | 'broken' | 'overlaps';
 
@@ -74,15 +77,25 @@ function DismissMenu({
   onPick,
   disabled,
   label = 'Dismiss',
+  card = false,
 }: {
   onPick: (l: DismissLevel) => void;
   disabled: boolean;
   label?: string;
+  /** The touch card's look (RichDocsLinks J 60, 62): a 44 px button that shares the card's width. */
+  card?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <span style={{ position: 'relative', display: 'inline-block' }}>
-      <button type="button" style={btn} disabled={disabled} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+    <span style={{ position: 'relative', display: card ? 'flex' : 'inline-block', flex: card ? 1 : undefined }}>
+      <button
+        type="button"
+        className={card ? 'st-btn dh-card-btn' : undefined}
+        style={card ? undefined : btn}
+        disabled={disabled}
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
         {label}
       </button>
       {open && (
@@ -119,7 +132,8 @@ function DismissMenu({
                 textAlign: 'left',
                 border: 'none',
                 background: 'none',
-                padding: '6px 10px',
+                padding: card ? '0 12px' : '6px 10px',
+                minHeight: card ? 44 : undefined,
                 cursor: 'pointer',
                 borderRadius: 6,
               }}
@@ -225,9 +239,12 @@ function Lists({
   onOpenTicket,
   onWritePage,
   dismiss,
+  touch,
 }: {
   data: DocsHealth;
   tab: HealthTab;
+  /** A tablet or a phone: Out of date is one card per page (RichDocsLinks J 60, 62), not a table. */
+  touch: boolean;
   projectId: string;
   onOpenPage: (id: string, anchor?: string) => void;
   onOpenTicket: (id: string) => void;
@@ -235,11 +252,27 @@ function Lists({
   dismiss: (kind: Kind, item: unknown, level: DismissLevel) => void;
 }) {
   const busy = false;
+  const tree = useDocsTree(projectId);
   const createPage = useCreatePage(projectId);
   const restorePage = useRestorePage(projectId);
   const run = useRunHealth(projectId);
   if (tab === 'outOfDate') {
     if (!data.outOfDate.length) return <Empty text="No page looks out of date." />;
+    if (touch) {
+      return (
+        <div className="dh-cards">
+          {data.outOfDate.map((r) => (
+            <OutOfDateCard
+              key={r.pageId}
+              row={r}
+              node={tree.data?.find((n) => n.id === r.pageId)}
+              onReview={(blockId) => onOpenPage(r.pageId, blockId)}
+              onDismiss={(l) => dismiss('out_of_date', r, l)}
+            />
+          ))}
+        </div>
+      );
+    }
     return (
       <Table
         head={
@@ -448,7 +481,65 @@ function Lists({
   );
 }
 
+/**
+ * One page of Out of date on a tablet or a phone (RichDocsLinks J 60, 62): the page's tile, title and where it is,
+ * each reason with the block it compared as a chip, and Review block and Dismiss as 44 px buttons sharing the width.
+ * @param props.row - The page and its reasons.
+ * @param props.node - The page in the tree (its icon), when it is there.
+ * @param props.onReview - Opens the page, at the block of its first reason that names one.
+ * @param props.onDismiss - Dismisses the page's reasons for this time, 30 days or for good.
+ */
+function OutOfDateCard({
+  row,
+  node,
+  onReview,
+  onDismiss,
+}: {
+  row: HealthOutOfDate;
+  node?: DocsTreeNode;
+  onReview: (blockId?: string) => void;
+  onDismiss: (l: DismissLevel) => void;
+}) {
+  const blockId = row.reasons.find((x) => x.blockId)?.blockId ?? undefined;
+  const sub = [row.parent ?? 'Top level', row.editedAt ? relativeTime(row.editedAt) : null].filter(Boolean).join(' · ');
+  return (
+    <div className="dh-card" data-testid="health-out-of-date">
+      <div className="dh-card-head">
+        <span className="dh-card-tile" aria-hidden="true">
+          <PageIcon icon={node?.icon ?? null} kind={node?.kind} size={18} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="dh-card-title">{row.title}</div>
+          <div className="dh-card-sub">{sub}</div>
+        </div>
+      </div>
+      {row.reasons.map((x) => (
+        <div key={x.key}>
+          <div className="dh-card-why">{x.text}</div>
+          {x.blockType || x.blockLabel ? (
+            <div style={{ marginTop: 8 }}>
+              <span className="dh-card-block">
+                {x.blockType && <span className="dh-card-kind">{typeName({ type: x.blockType })}</span>}
+                {x.blockLabel}
+              </span>
+            </div>
+          ) : (
+            <div className="dh-card-compared">Compared: {x.compared ?? x.source ?? 'text in the page'}</div>
+          )}
+        </div>
+      ))}
+      <div className="dh-card-acts">
+        <button type="button" className="st-btn st-btn-primary dh-card-btn" onClick={() => onReview(blockId)}>
+          {blockId ? 'Review block' : 'Review'}
+        </button>
+        <DismissMenu card disabled={false} onPick={onDismiss} />
+      </div>
+    </div>
+  );
+}
+
 /** A broken picture, video or file (its upload is gone), not a link. */
+
 function isBrokenMedia(r: HealthBroken): boolean {
   return r.status === 'image_missing' || r.status === 'video_missing' || r.status === 'file_missing';
 }
@@ -594,6 +685,7 @@ export function DocsHealthView({
             onOpenTicket={onOpenTicket}
             onWritePage={onWritePage}
             dismiss={(kind, item, level) => dismiss.mutate({ kind, id: healthItemId(kind, item), level })}
+            touch={layout !== 'desktop'}
           />
         </>
       )}

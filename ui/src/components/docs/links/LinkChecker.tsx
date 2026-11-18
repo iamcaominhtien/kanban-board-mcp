@@ -4,13 +4,14 @@
  * "Link to a page…" opens Relink, which points every link to the lost target at another page at once.
  */
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Editor } from '@tiptap/core';
 import { client } from '../../../api/client';
 import { useCreatePage, useRestorePage } from '../../../api/docs';
 import type { DocsRefRequest, DocsRefResult, DocsTreeNode } from '../../../types/docs';
 import { useToast } from '../../Toast';
-import { ModalShell, plural } from '../docsShared';
+import { ModalShell, plural, useEscape } from '../docsShared';
+import { DOCS_PHONE_BELOW, useNarrowWindow } from '../../../hooks/useDocsLayout';
 import { PageIcon } from '../tree/treeParts';
 import { KindGlyph } from './BlockKind';
 
@@ -436,101 +437,185 @@ export function RelinkDialog({
   }, [nodes, q]);
   const chosen = list[Math.min(active, list.length - 1)];
   const parent = (n: DocsTreeNode) => nodes.find((p) => p.id === n.parentId)?.title ?? 'Top level';
+  const phone = useNarrowWindow(DOCS_PHONE_BELOW);
+  const title = `Relink “${name}”`;
+  const subtitle = where ?? `${plural(count, 'link')} in this page`;
+  const field = (
+    <input
+      autoFocus={!phone}
+      className="st-input rl-find"
+      aria-label="Find a page"
+      placeholder="Find a page…"
+      value={q}
+      onChange={(e) => {
+        setQ(e.target.value);
+        setActive(0);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowDown') setActive((a) => Math.min(a + 1, list.length - 1));
+        else if (e.key === 'ArrowUp') setActive((a) => Math.max(a - 1, 0));
+        else if (e.key === 'Enter' && chosen) onPick(chosen);
+        else return;
+        e.preventDefault();
+      }}
+      style={phone ? undefined : { height: 38 }}
+    />
+  );
+  const options = (
+    <div
+      className="rl-list"
+      style={phone ? undefined : { border: '1px solid #E3EAE5', borderRadius: 10, padding: '4px 0' }}
+      role="listbox"
+    >
+      {list.length === 0 && <div style={{ padding: '10px 14px', fontSize: 13, color: '#5B6B60' }}>No page</div>}
+      {list.map((n, i) => (
+        <div
+          key={n.id}
+          role="option"
+          aria-selected={n === chosen}
+          data-testid="relink-option"
+          className="rl-opt"
+          onMouseEnter={() => setActive(i)}
+          onClick={() => onPick(n)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 11,
+            minHeight: phone ? 54 : 44,
+            padding: '5px 14px',
+            borderRadius: 9,
+            margin: '0 6px',
+            background: n === chosen ? '#E6F2EA' : 'transparent',
+            cursor: 'pointer',
+          }}
+        >
+          <span
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: n === chosen ? '#FFFFFF' : '#F1F6F2',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flex: 'none',
+            }}
+          >
+            <PageIcon icon={n.icon} kind={n.kind} size={16} />
+          </span>
+          <span
+            style={{
+              flex: 1,
+              minWidth: 0,
+              fontSize: 13.5,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {n.title}
+          </span>
+          <span
+            style={{
+              fontSize: 12,
+              color: '#5B6B60',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: 190,
+            }}
+          >
+            {parent(n)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+  const note = chosen && (
+    <div className="rl-note" style={phone ? undefined : { fontSize: 12.5, color: '#5B6B60', lineHeight: 1.5 }}>
+      {plural(count, 'link')} will point to “{chosen.title}”.{perPage ? ` ${perPage}.` : ''} A link with its own text
+      keeps that text.
+    </div>
+  );
+  const buttons = (
+    <>
+      <button type="button" className="st-btn" onClick={onClose}>
+        Cancel
+      </button>
+      <button
+        type="button"
+        className="st-btn st-btn-primary"
+        disabled={!chosen}
+        data-testid="relink-apply"
+        onClick={() => chosen && onPick(chosen)}
+      >
+        Relink {plural(count, 'link')}
+      </button>
+    </>
+  );
+  if (phone) {
+    // RichDocsLinks G 43: on a phone Relink is a bottom sheet with the same list (54 px rows) and two 48 px buttons
+    return (
+      <RelinkSheet title={title} subtitle={subtitle} onClose={onClose}>
+        <div className="rl-field">{field}</div>
+        {options}
+        {note}
+        <div className="rl-foot">{buttons}</div>
+      </RelinkSheet>
+    );
+  }
   return (
     <ModalShell
       width={520}
-      ariaLabel={`Relink “${name}”`}
-      title={`Relink “${name}”`}
-      subtitle={where ?? `${plural(count, 'link')} in this page`}
+      ariaLabel={title}
+      title={title}
+      subtitle={subtitle}
       icon="link"
       onClose={onClose}
       testId="relink-dialog"
       zIndex={1300}
-      footer={
-        <>
-          <button type="button" className="st-btn" onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="st-btn st-btn-primary"
-            disabled={!chosen}
-            data-testid="relink-apply"
-            onClick={() => chosen && onPick(chosen)}
-          >
-            Relink {plural(count, 'link')}
-          </button>
-        </>
-      }
+      footer={buttons}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-        <input
-          autoFocus
-          className="st-input"
-          aria-label="Find a page"
-          placeholder="Find a page…"
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setActive(0);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowDown') setActive((a) => Math.min(a + 1, list.length - 1));
-            else if (e.key === 'ArrowUp') setActive((a) => Math.max(a - 1, 0));
-            else if (e.key === 'Enter' && chosen) onPick(chosen);
-            else return;
-            e.preventDefault();
-          }}
-          style={{ height: 38 }}
-        />
-        <div style={{ border: '1px solid #E3EAE5', borderRadius: 10, padding: '4px 0' }} role="listbox">
-          {list.length === 0 && <div style={{ padding: '10px 14px', fontSize: 13, color: '#5B6B60' }}>No page</div>}
-          {list.map((n, i) => (
-            <div
-              key={n.id}
-              role="option"
-              aria-selected={n === chosen}
-              data-testid="relink-option"
-              onMouseEnter={() => setActive(i)}
-              onClick={() => onPick(n)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 11,
-                minHeight: 44,
-                padding: '5px 14px',
-                borderRadius: 9,
-                margin: '0 6px',
-                background: n === chosen ? '#E6F2EA' : 'transparent',
-                cursor: 'pointer',
-              }}
-            >
-              <span
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 8,
-                  background: n === chosen ? '#FFFFFF' : '#F1F6F2',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flex: 'none',
-                }}
-              >
-                <PageIcon icon={n.icon} kind={n.kind} size={16} />
-              </span>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600 }}>{n.title}</span>
-              <span style={{ fontSize: 12, color: '#5B6B60' }}>{parent(n)}</span>
-            </div>
-          ))}
-        </div>
-        {chosen && (
-          <div style={{ fontSize: 12.5, color: '#5B6B60', lineHeight: 1.5 }}>
-            {plural(count, 'link')} will point to “{chosen.title}”.{perPage ? ` ${perPage}.` : ''} A link with its own
-            text keeps that text.
-          </div>
-        )}
+        {field}
+        {options}
+        {note}
       </div>
     </ModalShell>
+  );
+}
+
+/**
+ * The phone frame of Relink (RichDocsLinks G 43): a dimmed page and a sheet from the bottom with a grab handle, the
+ * title and the count of links under it; Esc or a tap on the dimmed page closes it.
+ * @param props.title - "Relink “Old rules”".
+ * @param props.subtitle - "3 links in 2 pages".
+ * @param props.onClose - Called by a tap on the dimmed page or Esc.
+ */
+function RelinkSheet({
+  title,
+  subtitle,
+  onClose,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  useEscape(onClose);
+  return (
+    <div className="docs-root rl-overlay">
+      <div className="rl-scrim" aria-hidden="true" onClick={onClose} />
+      <div role="dialog" aria-modal="true" aria-label={title} data-testid="relink-dialog" className="rl-sheet">
+        <div className="rl-grab" aria-hidden="true" />
+        <div className="rl-head">
+          <div className="rl-title">{title}</div>
+          <div className="rl-sub">{subtitle}</div>
+        </div>
+        <div className="rl-body">{children}</div>
+      </div>
+    </div>
   );
 }

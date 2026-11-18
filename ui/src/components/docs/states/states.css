@@ -294,6 +294,20 @@ button.dst-save {
   width: 100%;
 }
 
+/* the phone chooser (frame 36): Yours / theirs / Both share the width as 42 px segments; the foot keeps a rule
+   over one 48 px button (14.5) with the board's 10 18 30 */
+.dst-sheet .dst-seg button {
+  flex: 1;
+  height: 42px;
+}
+.dst-sheet[data-testid='conflict-chooser'] .dst-dialog-foot {
+  border-top: 1px solid #e3e8e5;
+  padding: 10px 18px 30px;
+}
+.dst-sheet[data-testid='conflict-chooser'] .dst-dialog-foot .st-btn {
+  font-size: 14.5px;
+}
+
 /* choice cards (frame 18): 2px link border on the chosen one, r12, pad 11 13, gap 12, 18 px icon */
 .dst-choice {
   display: flex;

@@ -324,6 +324,83 @@ export default {
       s.note('phone', { bar: measured.phoneBar, overlay: measured.phoneOverlay, status: measured.phoneStatus });
     });
 
+    await s.step('phone: a failing save is the slim red overlay with Retry only; session ended and the conflict chooser are sheets (C 17, F 44, E 36)', async () => {
+      const size = p.viewportSize();
+      await p.setViewportSize({ width: 390, height: 844 });
+      const draft = /\/docs\/pages\/[^/]+\/draft$/;
+      try {
+        const edit = p.getByRole('button', { name: /^(Edit|Continue)$/ });
+        if (await edit.count()) await edit.first().click();
+        await content().waitFor();
+        // the last published paragraph: typed into here, then ended differently by Hoa Mai for the conflict
+        const pub = await api('GET', `/docs/pages/${ids.page}`);
+        const pubParas = pub.content.content.filter((b) => b.type === 'paragraph' && (b.content ?? []).length);
+        const was = pubParas[pubParas.length - 1].content.map((t) => t.text).join('');
+        const last = async (words) => {
+          await content().locator('p', { hasText: was }).first().click();
+          await p.keyboard.press('End');
+          await p.keyboard.type(words);
+        };
+        // C 17: the bar is an overlay above the page (10 14, #FDF1EE, 0 8 18 .12) with Retry now and no Keep a copy
+        await p.route(draft, (route) =>
+          route.request().method() === 'PUT'
+            ? route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ detail: { code: 'db_busy', message: 'Database busy' } }) })
+            : route.continue(),
+        );
+        await last(' Phone fail.');
+        const bar = p.getByTestId('save-failed-bar');
+        await bar.getByText("Couldn't save your changes").waitFor({ timeout: 40000 });
+        measured.phoneFailed = await css(bar, ['padding', 'background-color', 'border-bottom-color']);
+        measured.phoneFailedWrap = await css(bar.locator('xpath=..'), ['position', 'box-shadow']);
+        if (measured.phoneFailed.padding !== '10px 14px' || measured.phoneFailed['background-color'] !== 'rgb(253, 241, 238)' || measured.phoneFailedWrap.position !== 'absolute' || measured.phoneFailedWrap['box-shadow'] !== 'rgba(30, 42, 34, 0.12) 0px 8px 18px 0px')
+          throw new Error('the phone save-failed bar is not the board overlay: ' + JSON.stringify(measured));
+        if (await bar.getByRole('button', { name: 'Keep a copy' }).count()) throw new Error('the phone bar keeps Keep a copy');
+        await p.unroute(draft);
+        await bar.getByRole('button', { name: 'Retry now' }).click();
+        await bar.waitFor({ state: 'detached', timeout: 15000 });
+        // F 44: session ended is a sheet: r18 18 0 0, 0 -10 30 .3, a 48 px Sign in again
+        await p.route(draft, (route) =>
+          route.request().method() === 'PUT'
+            ? route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ detail: "This request must come from the board's own window. An AI run changes the board through the kanban MCP tools, not the REST API or a browser." }) })
+            : route.continue(),
+        );
+        await last(' Phone out.');
+        const d = p.getByTestId('session-ended');
+        await d.getByText('Your session ended').waitFor({ timeout: 15000 });
+        measured.phoneSession = await css(d, ['border-radius', 'box-shadow']);
+        measured.phoneSessionBtn = await css(d.locator('.st-btn-primary').first(), ['min-height']);
+        if (measured.phoneSession.width !== 390 || measured.phoneSession['border-radius'] !== '18px 18px 0px 0px' || measured.phoneSessionBtn.height !== 48)
+          throw new Error('session ended is not the phone sheet: ' + JSON.stringify(measured.phoneSession) + JSON.stringify(measured.phoneSessionBtn));
+        await p.keyboard.press('Escape');
+        await d.waitFor({ state: 'detached' });
+        await p.unroute(draft);
+        await p.evaluate(() => window.dispatchEvent(new Event('focus')));
+        await state().and(p.locator('[data-state="saved"]')).waitFor({ timeout: 15000 });
+        // E 36: Hoa Mai ends the same paragraph: the chooser is a sheet, its switch 42 px segments, Apply 48 px 14.5
+        const pg = await api('GET', `/docs/pages/${ids.page}`);
+        await publishAs('Hoa Mai', pg.version, was, `${was} Hoa on the phone.`);
+        await p.getByRole('button', { name: 'Publish', exact: true }).first().click();
+        await p.getByRole('dialog', { name: 'Publish page' }).getByRole('button', { name: /^Publish v\d+/ }).click();
+        await p.getByTestId('conflict-banner').getByRole('button', { name: 'Choose, block by block' }).click({ timeout: 15000 });
+        const ch = p.getByTestId('conflict-chooser');
+        await ch.waitFor();
+        measured.phoneChooser = await css(ch, ['border-radius']);
+        measured.phoneSeg = await css(ch.getByTestId('conflict-choice-theirs'), ['font-size']);
+        measured.phoneApply = await css(ch.getByTestId('conflict-next'), ['font-size']);
+        if (measured.phoneChooser.width !== 390 || measured.phoneChooser['border-radius'] !== '18px 18px 0px 0px' || measured.phoneSeg.height !== 42 || measured.phoneApply.height !== 48 || measured.phoneApply['font-size'] !== '14.5px')
+          throw new Error('the phone chooser is not the board sheet: ' + JSON.stringify({ c: measured.phoneChooser, seg: measured.phoneSeg, apply: measured.phoneApply }));
+        await ch.getByTestId('conflict-choice-theirs').click();
+        await ch.getByTestId('conflict-next').click();
+        await ch.waitFor({ state: 'detached' });
+        await p.getByTestId('joined-toast').waitFor();
+        await state().and(p.locator('[data-state="saved"]')).waitFor({ timeout: 15000 });
+        s.note('phone states', { failed: measured.phoneFailed, wrap: measured.phoneFailedWrap, session: measured.phoneSession, chooser: measured.phoneChooser, seg: measured.phoneSeg, apply: measured.phoneApply });
+      } finally {
+        await p.unroute(draft);
+        await p.setViewportSize(size);
+      }
+    }, { expectConsole: true });
+
     await s.step('a viewer: Edit is off, the role chip says Viewer, and the reason is one tap away (H 57)', async () => {
       await p.evaluate(() => localStorage.setItem('kanbanActor', 'Vy Tran'));
       await p.goto(base);

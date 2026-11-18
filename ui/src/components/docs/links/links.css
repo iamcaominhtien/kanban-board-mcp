@@ -934,3 +934,250 @@
     background: transparent !important;
   }
 }
+
+/* ── G 43: Relink on a phone: a sheet from the bottom (r20 20 0 0, 0 -12 40 .22, scrim .42), grab 40 x 4.5, head
+   4 20 10 with the title 16/700 and the count 12.5; a 44 px field, 54 px rows and two 48 px buttons ── */
+.rl-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+}
+.rl-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 42, 34, 0.42);
+}
+.rl-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 40px rgba(30, 42, 34, 0.22);
+  color: #1e2a22;
+}
+.rl-grab {
+  flex: none;
+  width: 40px;
+  height: 4.5px;
+  border-radius: 3px;
+  background: #cbd5ce;
+  margin: 9px auto 8px;
+}
+.rl-head {
+  flex: none;
+  padding: 4px 20px 10px;
+}
+.rl-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+.rl-sub {
+  font-size: 12.5px;
+  color: #5b6b60;
+  margin-top: 1px;
+}
+.rl-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+.rl-field {
+  padding: 0 14px;
+}
+.rl-sheet .rl-find {
+  width: 100%;
+  height: 44px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  padding: 0 11px;
+  font-size: 13.5px;
+}
+.rl-sheet .rl-list {
+  margin-top: 8px;
+}
+.rl-sheet .rl-note {
+  margin: 8px 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #3a4a3e;
+}
+.rl-foot {
+  display: flex;
+  gap: 10px;
+  padding: 6px 14px 0;
+}
+.rl-overlay .rl-sheet .rl-foot .st-btn {
+  width: 100%;
+  min-height: 48px;
+  justify-content: center;
+}
+
+/* ── J 60, 62: Out of date on a tablet and a phone: one card per page (1px #E3E8E5, r12, 14 16; 14 on a phone), a
+   30 px tile, the title 14.5/700, the reason 13/1.55, the compared block as a 24 px chip, and Review block and
+   Dismiss as 44 px buttons sharing the width; 14 px between cards (12 on a phone, whose page has 14 px sides) ── */
+.dh-root[data-layout='phone'] {
+  padding: 12px 14px !important;
+}
+/* the phone frame has no lead line under the title (62) */
+.dh-root[data-layout='phone'] h1 + p {
+  display: none;
+}
+.dh-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.dh-root[data-layout='phone'] .dh-cards {
+  gap: 12px;
+}
+.dh-card {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 14px 16px;
+  color: #1e2a22;
+}
+.dh-root[data-layout='phone'] .dh-card {
+  padding: 14px;
+}
+.dh-card-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.dh-card-tile {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: #f1f6f2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.dh-card-title {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+.dh-card-sub {
+  font-size: 12px;
+  color: #5b6b60;
+}
+.dh-card-why {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #3a4a3e;
+  margin-top: 8px;
+}
+.dh-card-compared {
+  font-size: 12px;
+  color: #5b6b60;
+  margin-top: 4px;
+}
+.dh-card-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0 9px;
+  border-radius: 7px;
+  background: #f1f6f2;
+  border: 1px solid #dce6df;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dh-card-kind {
+  color: #5b6b60;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.dh-card-acts {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.dh-card-btn {
+  flex: 1;
+  min-height: 44px;
+  justify-content: center;
+}
+.dh-card-acts .st-btn-primary {
+  background: #2e6f40;
+  border-color: #2e6f40;
+  color: #ffffff;
+}
+
+/* ── I 53: the page from a ticket on a phone is a full screen: an 8 10 8 8 bar with the back arrow, the path 13/600
+   and two 44 px buttons over a rule; the title 24/700 and the status line 12 px in 22 px sides ── */
+.pk-root[data-layout='phone'][data-from='ticket'] .pk-panel {
+  top: 0 !important;
+  border-radius: 0;
+  box-shadow: none !important;
+}
+.pk-root[data-from='ticket'] .pkv-head {
+  padding: 0 0 4px !important;
+  gap: 0 !important;
+  border-bottom: none !important;
+}
+.pk-root[data-from='ticket'] .pkv-bar {
+  gap: 4px !important;
+  padding: 8px 10px 8px 8px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.pk-root[data-from='ticket'] .pkv-bar > div:last-child {
+  gap: 0 !important;
+}
+.pk-root[data-from='ticket'] .pkv-crumbs > svg {
+  display: none;
+}
+.pk-root[data-from='ticket'] .pkv-crumbs span {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+.pk-root[data-from='ticket'] .pkv-crumbs > span:last-child > span:first-child {
+  color: #2e6f40 !important;
+}
+.pk-root[data-from='ticket'] [data-testid='peek-open-docs'] {
+  width: 44px;
+  padding: 0;
+  justify-content: center;
+  background: transparent;
+  border-color: transparent;
+  color: #5b6b60;
+}
+.pk-root[data-from='ticket'] .pkv-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.pk-root[data-from='ticket'] .pkv-title-row {
+  padding: 12px 22px 6px;
+  order: 2;
+}
+.pk-root[data-from='ticket'] .pkv-title {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+}
+.pk-root[data-from='ticket'] .pkv-meta {
+  padding: 14px 22px 0;
+  order: 1;
+}
+.pk-root[data-from='ticket'] [data-testid='peek-body'] {
+  padding: 10px 22px 24px !important;
+}

@@ -384,7 +384,7 @@ export interface FormContext {
   /** How many embeds become pictures (PDF, Word); 0 for none. */
   embeds: number;
   /** Why Export is off (offline, empty page, a refused request); null when it is on. */
-  blocked: { text: string; tone: 'warn' | 'err' } | null;
+  blocked: { text: string; tone: 'warn' | 'err' | 'off' } | null;
 }
 
 /**

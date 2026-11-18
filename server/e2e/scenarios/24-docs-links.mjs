@@ -552,5 +552,100 @@ export default {
         await ctx.close();
       }
     });
+
+    await s.step('phone: the page from a ticket is a full screen with a 61 px bar, the back arrow, 44 px buttons and the title 24/700 (I 53)', async () => {
+      const t = await api('POST', `/projects/${pid}/tickets`, { title: 'Show Retry-After in the SDK' });
+      await api('POST', `/tickets/${t.id}/docs`, { page_id: target, block_id: 'b-0000a1' });
+      const ctx = await s.browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1, locale: 'en-US', timezoneId: 'UTC' });
+      ctx.setDefaultTimeout(8000);
+      const tp = await ctx.newPage();
+      try {
+        await tp.goto(`${base}/?proj=${pid}&ticket=${t.id}`);
+        const card = tp.getByTestId('ticket-doc-manual');
+        await card.waitFor({ timeout: 20000 });
+        // the ticket dialog on a phone is not Docs code: open the row by its own click handler
+        await card.evaluate((el) => el.querySelector('.tdoc-main').click());
+        const panel = tp.getByTestId('peek-panel');
+        await panel.waitFor();
+        await tp.locator('[data-testid="peek-root"][data-from="ticket"]').waitFor({ state: 'attached' });
+        expect('page from a ticket', await box(panel), { w: 390, h: 844, radius: '0px' });
+        expect('its bar', await box(panel.locator('.pkv-bar')), { h: 61 });
+        expect('back to the ticket', await box(tp.getByTestId('peek-back')), { w: 44, h: 44 });
+        expect('Open in Docs', await box(tp.getByTestId('peek-open-docs')), { w: 44, h: 44 });
+        expect('its title', await box(panel.locator('.pkv-title')), { font: '700 24px' });
+        if (await tp.getByTestId('peek-close').count()) throw new Error('the full screen keeps a close button beside the back arrow');
+        await tp.getByTestId('peek-back').tap();
+        await panel.waitFor({ state: 'detached' });
+        await tp.getByRole('dialog', { name: /^Ticket / }).waitFor();
+      } finally {
+        await ctx.close();
+      }
+    });
+
+    await s.step('Docs health on touch: Out of date is one card per page (J 60, 62); on a phone Relink is a sheet (G 43)', async () => {
+      const now = new Date().toISOString();
+      const health = {
+        checked_at: now,
+        digest: { on: false, schedule: 'weekly', last_sent: null },
+        out_of_date: [
+          { page_id: target, title: 'Request limits', parent: null, edited_at: now, checked_at: now, reasons: [{ key: 'k1', kind: 'ticket', ref: 'KAN-9', text: 'KAN-9 moved to Done. This table still says 60.', compared: 'ticket KAN-9', block_id: 'b-0000a2', block_label: 'Limits', block_type: 'table' }] },
+        ],
+        missing: [],
+        overlaps: [],
+        broken: [
+          { page_id: notes, title: 'Release notes', ref: 'Old rules', status: 'missing' },
+          { page_id: decision, title: 'Decision log', ref: 'Old rules', status: 'missing' },
+        ],
+        counts: { out_of_date: 1, missing: 0, broken: 2, overlaps: 0, total: 3 },
+      };
+      // Docs health needs Docs AI and a check that has run: both are answered here, the server is not asked
+      const mock = async (tp) => {
+        await tp.route(/\/projects\/[^/]+\/docs\/ai$/, (r) => (r.request().method() === 'GET'
+          ? r.fulfill({ json: { enabled: true, master: true, state: 'ready', member_id: 'm1', member: { id: 'm1', name: 'Docs helper', provider: 'claude', model: null, metered: false }, problem: null, candidates: [] } })
+          : r.continue()));
+        await tp.route(/\/docs\/ai\/health\/count$/, (r) => r.fulfill({ json: { count: 3 } }));
+        await tp.route(/\/docs\/ai\/health$/, (r) => (r.request().method() === 'GET' ? r.fulfill({ json: health }) : r.continue()));
+      };
+      const openHealth = async (tp, tablet) => {
+        await tp.getByRole('button', tablet ? { name: 'Expand page tree' } : { name: 'Pages', exact: true }).first().click();
+        await tp.getByTestId('tree-docs-health').click();
+        // the tree drawer closes once Docs health is chosen
+        await tp.getByTestId('tree-drawer').waitFor({ state: 'detached' });
+        await tp.getByTestId('docs-health').waitFor();
+      };
+      const look = (tp) => tp.locator('[data-testid="health-out-of-date"]').first();
+      for (const [w, h] of [[820, 1180], [390, 844]]) {
+        const { ctx, tp } = await touchPage(w, h);
+        try {
+          await mock(tp);
+          await tp.reload();
+          await tp.getByTestId('page-title').waitFor({ timeout: 20000 });
+          await openHealth(tp, w > 600);
+          const card = look(tp);
+          await card.waitFor();
+          expect(`out of date card ${w}`, await box(card), { radius: '12px', bg: 'rgb(255, 255, 255)', border: '1px solid rgb(227, 232, 229)' });
+          expect(`card title ${w}`, await box(card.locator('.dh-card-title')), { font: '700 14.5px' });
+          expect(`card block chip ${w}`, await box(card.locator('.dh-card-block')), { h: 24, radius: '7px' });
+          const btns = await card.locator('.dh-card-acts .st-btn').evaluateAll((els) => els.map((e) => [e.textContent, Math.round(e.getBoundingClientRect().height)]));
+          if (btns.length !== 2 || btns[0][0] !== 'Review block' || btns.some(([, bh]) => bh !== 44)) throw new Error('card buttons: ' + JSON.stringify(btns));
+          const pad = await card.evaluate((el) => getComputedStyle(el).padding);
+          if (pad !== (w > 600 ? '14px 16px' : '14px')) throw new Error(`card padding ${pad} at ${w}`);
+          if (w < 600) {
+            await tp.getByRole('tab', { name: /^Broken links/ }).click();
+            await tp.getByTestId('broken-relink').first().click();
+            const sheet = tp.getByTestId('relink-dialog');
+            await sheet.waitFor();
+            expect('relink sheet', await box(sheet), { w: 390, radius: '20px 20px 0px 0px' });
+            expect('relink field', await box(sheet.locator('.rl-find')), { h: 44, radius: '8px' });
+            expect('relink row', await box(sheet.getByTestId('relink-option').first()), { h: 54 });
+            expect('relink button', await box(sheet.getByTestId('relink-apply')), { h: 48 });
+            await tp.keyboard.press('Escape');
+            await sheet.waitFor({ state: 'detached' });
+          }
+        } finally {
+          await ctx.close();
+        }
+      }
+    });
   },
 };

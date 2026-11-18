@@ -290,7 +290,7 @@ export function ConflictChooser({
         }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 700 }}>{label(c)} · changed in both versions</div>
+          <div style={{ fontSize: 12.5, color: '#5B6B60' }}>{label(c)} · changed in both versions</div>
           {seg}
           {phoneSide === 'theirs' ? theirCard : mineCard}
           {phoneSide === 'both' && theirCard}
