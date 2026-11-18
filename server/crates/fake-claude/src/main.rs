@@ -899,6 +899,37 @@ fn v2_turn(mode: &str, args: &[String], prompt_text: &str, live: bool, stdin: &m
             {"type": "tool_result", "tool_use_id": "v2agent", "is_error": false, "content": "Looks good."}
         ]},
     }));
+    if let Some(count) = env_set("FAKE_CLAUDE_V2_STEPS") {
+        // a long run: this many more commands (the board shows only the newest steps of a run at first)
+        for i in 0..count.parse::<u32>().unwrap_or(0) {
+            let id = format!("v2more{i}");
+            emit(json!({
+                "type": "assistant",
+                "message": {"content": [
+                    {"type": "tool_use", "id": id, "name": "Bash", "input": {"command": format!("echo step {i}")}}
+                ]},
+            }));
+            emit(json!({
+                "type": "user",
+                "message": {"content": [
+                    {"type": "tool_result", "tool_use_id": id, "is_error": false, "content": format!("step {i}\n")}
+                ]},
+            }));
+        }
+    }
+    // Failure modes of a v2 run, for the UI scenarios. Each only acts when its variable is set:
+    // FAKE_CLAUDE_V2_FAIL (the text of the error) ends the run as the CLI does on an API error, FAKE_CLAUDE_V2_HANG keeps
+    // it "working" with no further output until the board stops it, FAKE_CLAUDE_V2_DELAY (seconds) is a slow run.
+    if let Some(why) = env_set("FAKE_CLAUDE_V2_FAIL") {
+        emit(json!({"type": "result", "subtype": "error_during_execution", "is_error": true, "result": why}));
+        exit(1);
+    }
+    if env_set("FAKE_CLAUDE_V2_HANG").is_some() {
+        sleep(300.0);
+    }
+    if let Some(delay) = env_set("FAKE_CLAUDE_V2_DELAY") {
+        sleep(py_float(&delay));
+    }
     let mut heard = String::new();
     if live && env_set("FAKE_CLAUDE_V2_WAIT_MESSAGE").is_some() {
         let end = now() + py_float(&env_or("FAKE_CLAUDE_WAIT", "10"));
