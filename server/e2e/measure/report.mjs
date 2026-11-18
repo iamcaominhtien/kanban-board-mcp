@@ -64,7 +64,7 @@ const allSrc = sourceFiles(UI_SRC).map((f) => fs.readFileSync(f, 'utf8')).join('
 const uses = new Map();
 const usedName = (fn) => {
   if (!fn) return true;
-  if (!uses.has(fn)) uses.set(fn, (allSrc.match(new RegExp(`\\b${fn.replace(/\$/g, '\\$')}\\b`, 'g')) || []).length);
+  if (!uses.has(fn)) uses.set(fn, (allSrc.match(new RegExp(`\\b${fn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g')) || []).length);
   return uses.get(fn) > 1;
 };
 for (const c of api.calls) c.unused = c.sites.every((st) => !usedName(st.fn));

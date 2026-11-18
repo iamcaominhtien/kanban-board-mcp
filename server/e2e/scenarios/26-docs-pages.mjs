@@ -24,7 +24,7 @@ export default {
     const clip = () => p.evaluate(() => navigator.clipboard.readText());
     const toast = (text) => p.getByText(text).first();
     const menuOf = async (title) => {
-      await row(title.replace(/[()]/g, '\\$&')).hover();
+      await row(title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).hover();
       await p.getByRole('button', { name: `Page actions for ${title}` }).click();
       return p.getByRole('menu', { name: 'Page actions' });
     };
