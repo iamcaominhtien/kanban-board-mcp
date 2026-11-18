@@ -15,6 +15,43 @@ export default {
         await openDocs(s);
         await p.getByRole('heading', { name: 'Write down how Alpha works' }).waitFor();
       });
+      await s.step('files dragged over the space: the drop zone covers the page, not the tree, with a chip per file (Start 4)', async () => {
+        await p.evaluate(() => {
+          const dt = new DataTransfer();
+          dt.items.add(new File(['# Plan'], 'plan.md', { type: 'text/markdown' }));
+          dt.items.add(new File(['<p>x</p>'], 'notes.html', { type: 'text/html' }));
+          window.dispatchEvent(new DragEvent('dragenter', { dataTransfer: dt, bubbles: true }));
+        });
+        const zone = p.getByTestId('docs-dropzone');
+        await zone.getByText('Drop to add 2 files').waitFor();
+        await zone.getByText('Markdown', { exact: true }).waitFor();
+        await zone.getByText('HTML', { exact: true }).waitFor();
+        const tree = await p.getByText('No pages yet').boundingBox();
+        const box = await zone.boundingBox();
+        if (!tree || !box || box.x < tree.x + tree.width) throw new Error('the drop zone covers the tree');
+        await p.evaluate(() => {
+          const dt = new DataTransfer();
+          dt.items.add(new File(['# Plan'], 'plan.md', { type: 'text/markdown' }));
+          window.dispatchEvent(new DragEvent('dragleave', { dataTransfer: dt, bubbles: true }));
+        });
+        await zone.waitFor({ state: 'detached' });
+      });
+      await s.step('phone: Import is a full-screen sheet titled Import, with Place under and one Import button (Start 33)', async () => {
+        const size = p.viewportSize();
+        await p.setViewportSize({ width: 390, height: 760 });
+        try {
+          const rows = p.getByTestId('hero-import-rows');
+          await rows.getByRole('button', { name: /Import Markdown/ }).click();
+          await dlg().getByText('Choose from your device').waitFor();
+          await dlg().getByText('Import', { exact: true }).first().waitFor();
+          await dlg().getByRole('combobox', { name: 'Place under' }).waitFor();
+          if (!(await dlg().getByTestId('import-phone-go').isDisabled())) throw new Error('Import is on before any file');
+          await dlg().getByRole('button', { name: 'Close' }).click();
+          await dlg().waitFor({ state: 'detached' });
+        } finally {
+          await p.setViewportSize(size);
+        }
+      });
       await s.step('open the import dialog and choose two files', async () => {
         await p.getByRole('button', { name: 'Import Markdown' }).click();
         await dlg().waitFor();

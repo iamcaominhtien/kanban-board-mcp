@@ -488,6 +488,27 @@ export default {
       await panel.waitFor({ state: 'detached' });
     });
 
+    await s.step('Page settings: a drop cap, justified text and a large right-aligned title reach the page (Start 12, 15)', async () => {
+      await p.getByRole('button', { name: 'Page actions' }).click();
+      await p.getByRole('menuitem', { name: 'Page settings…' }).click();
+      const panel = p.getByRole('complementary', { name: 'Page settings' });
+      await panel.waitFor();
+      await panel.getByRole('tab', { name: 'Text' }).click();
+      await panel.getByTestId('ps-drop-cap').click();
+      await panel.getByTestId('ps-text-align-justify').click();
+      await p.locator('.dk-paged.dk-page-dropcap.dk-ta-justify').first().waitFor();
+      await panel.getByRole('tab', { name: 'Header' }).click();
+      await panel.getByTestId('ps-title-size-large').click();
+      await panel.getByTestId('ps-title-align-right').click();
+      await p.locator('.dk-ph-right[data-title-size="large"]').first().waitFor();
+      const saved = p.waitForResponse((r) => /\/settings$/.test(r.url()) && r.request().method() === 'PATCH');
+      await panel.getByRole('button', { name: 'Reset' }).click();
+      if ((await saved).status() !== 200) throw new Error('Reset was not saved');
+      await p.locator('.dk-ph-left[data-title-size="standard"]').first().waitFor();
+      await panel.getByRole('button', { name: 'Close page settings' }).click();
+      await panel.waitFor({ state: 'detached' });
+    });
+
     // Rich Docs phase 4: blocks and their properties (images, tables, columns, callouts), on a page of their own
     const fx = makeFixtures();
     // the caret at the end of the page, in its last paragraph: a click in the middle of the page can land on an
@@ -699,6 +720,20 @@ export default {
       await content().locator('.dk-code-wrap.dk-cv-light .dk-cv-edit-gutter').waitFor();
       await content().locator('.dk-code-wrap .dk-cv-edit-back .dk-cv-hl').waitFor();
       await saved();
+    });
+    await s.step('Focus mode: Ctrl Shift F covers the whole window, over the side bar; Esc leaves (Editor 56)', async () => {
+      await content().locator('pre code').last().click();
+      await p.keyboard.press('Control+Shift+F');
+      const root = p.locator('.dk-editor-root.dk-focus-mode');
+      await root.waitFor();
+      // an inline position: relative used to keep it inside its pane, with the app's bars around it
+      const box = await root.boundingBox();
+      const vp = p.viewportSize();
+      if (!box || box.x > 0 || box.y > 0 || box.width < vp.width) throw new Error(`Focus mode leaves the app around it: ${JSON.stringify(box)}`);
+      await p.getByTestId('leave-focus').waitFor();
+      await p.getByTestId('status-typewriter').waitFor();
+      await p.keyboard.press('Escape');
+      await root.waitFor({ state: 'detached' });
     });
     await s.step('file: a CSV attached as a file card, shown as a preview with its rows', async () => {
       await p.keyboard.press('Control+End');
