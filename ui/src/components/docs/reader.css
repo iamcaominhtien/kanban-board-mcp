@@ -2137,3 +2137,8 @@
   border-color: var(--dp-rule) !important;
   color: var(--dp-ink) !important;
 }
+
+/* the path keeps its short parents whole; the page's own title is the one that ends in … (Reader 1, 1) */
+.dk-pagebar .dk-crumb {
+  flex-shrink: 0;
+}
