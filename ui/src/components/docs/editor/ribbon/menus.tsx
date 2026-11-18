@@ -5,7 +5,7 @@
  */
 
 import type { Editor } from '@tiptap/core';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { FONT_FAMILY, FONT_LABEL, type PageFont } from '../../pageSettings';
 import {
   DROP_CAPS,
@@ -18,6 +18,7 @@ import {
   clearFormatting,
   setBlockAttrs,
   setDropCap,
+  setDropCapLook,
   setFontFamily,
   setFontSize,
   setListStart,
@@ -26,6 +27,7 @@ import {
   type StyleId,
 } from './format';
 import { keyLabel } from './parts';
+import { TEXT_COLOR_NAMES, colorLabel, hexOf } from './palette';
 
 interface MenuProps {
   editor: Editor;
@@ -109,13 +111,22 @@ export function FontMenu({ editor, st, onDone, noFocus }: MenuProps) {
   };
   return (
     <div data-testid="font-menu">
-      <input
-        className="dk-rb-search"
-        aria-label="Search fonts"
-        placeholder="Search fonts"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
+      <label className="dk-rb-searchbox">
+        <svg
+          aria-hidden="true"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="M20 20l-3.5-3.5" />
+        </svg>
+        <input aria-label="Search fonts" placeholder="Search fonts" value={q} onChange={(e) => setQ(e.target.value)} />
+      </label>
       <div role="menu" aria-label="Fonts">
         {FONT_GROUPS.map((g) => {
           const fonts = g.fonts.filter(match);
@@ -136,7 +147,26 @@ export function FontMenu({ editor, st, onDone, noFocus }: MenuProps) {
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => pick(f === 'jakarta' ? null : f)}
                   >
-                    <span style={{ flex: 1, fontFamily: FONT_FAMILY[f], fontSize: 14.5 }}>{FONT_LABEL[f]}</span>
+                    <span className="dk-rb-check">
+                      {on && (
+                        <svg
+                          aria-hidden="true"
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#2E6F40"
+                          strokeWidth="2.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M5 12.5L10 17.5L19 7" />
+                        </svg>
+                      )}
+                    </span>
+                    <span style={{ flex: 1, fontFamily: FONT_FAMILY[f], fontSize: f === 'caveat' ? 16 : 14.5 }}>
+                      {FONT_LABEL[f]}
+                    </span>
                     {f === 'jakarta' && <span className="dk-rb-keys">default</span>}
                   </button>
                 );
@@ -166,20 +196,22 @@ export function SizeMenu({ editor, st, onDone, noFocus, styleSize }: MenuProps &
   };
   return (
     <div data-testid="size-menu">
-      <input
-        className="dk-rb-search"
-        aria-label="Font size"
-        inputMode="decimal"
-        value={typed}
-        onChange={(e) => setTyped(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            const n = clampFontSize(typed);
-            if (n !== null) set(n);
-          }
-        }}
-      />
+      <label className="dk-rb-sizefield">
+        <input
+          aria-label="Font size"
+          inputMode="decimal"
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              const n = clampFontSize(typed);
+              if (n !== null) set(n);
+            }
+          }}
+        />
+        <span>px</span>
+      </label>
       <div role="menu" aria-label="Sizes" className="dk-rb-sizes">
         {FONT_SIZES.map((n) => (
           <button
@@ -187,14 +219,32 @@ export function SizeMenu({ editor, st, onDone, noFocus, styleSize }: MenuProps &
             type="button"
             role="menuitemradio"
             aria-checked={cur === n}
-            className={`dk-mi${cur === n ? ' dk-mi-on' : ''}`}
+            className={`dk-mi dk-rb-row${cur === n ? ' dk-mi-on' : ''}`}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => set(n)}
           >
+            <span className="dk-rb-check">
+              {cur === n && (
+                <svg
+                  aria-hidden="true"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#2E6F40"
+                  strokeWidth="2.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 12.5L10 17.5L19 7" />
+                </svg>
+              )}
+            </span>
             {n}
           </button>
         ))}
       </div>
+      <div className="dk-rb-rule" />
       <button
         type="button"
         className="dk-mi dk-rb-row"
@@ -284,72 +334,313 @@ export function SpacingMenu({ editor, st, noFocus, onDone }: MenuProps) {
   );
 }
 
-/**
- * Drop cap of the paragraph: off, 3 or 5 lines (Editor boards 25, 26).
- * @param props.editor - The editor.
- * @param props.st - The format of the selection.
- */
-export function DropCapMenu({ editor, st, noFocus, onDone }: MenuProps) {
+/** A switch drawn as on the Editor board (38 x 22). */
+function Switch({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div role="menu" aria-label="Drop cap" data-testid="dropcap-menu">
-      {DROP_CAPS.map((n) => (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      className={`dk-rb-switch${on ? ' on' : ''}`}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={() => onChange(!on)}
+    />
+  );
+}
+
+/** A grey track of choices with the chosen one raised in white (Editor board, frames 25 and 28). */
+function Track<T extends string | number | null>({
+  label,
+  options,
+  value,
+  onChange,
+  wide,
+}: {
+  label: string;
+  options: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+  wide?: boolean;
+}) {
+  return (
+    <div className={`dk-rb-track${wide ? ' wide' : ''}`} role="radiogroup" aria-label={label}>
+      {options.map((o) => (
         <button
-          key={n}
+          key={String(o.value)}
           type="button"
-          role="menuitemradio"
-          aria-checked={st.dropCap === n}
-          className={`dk-mi dk-rb-row${st.dropCap === n ? ' dk-mi-on' : ''}`}
+          role="radio"
+          aria-checked={o.value === value}
+          className={o.value === value ? 'on' : undefined}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => {
-            setDropCap(editor, n);
-            focus(editor, noFocus);
-            onDone();
-          }}
+          onClick={() => onChange(o.value)}
         >
-          {n === 0 ? 'Off' : `${n} lines`}
+          {o.label}
         </button>
       ))}
-      <div className="dk-rb-note">Applies to the first letter of this paragraph.</div>
     </div>
   );
 }
 
+/** One labelled row of a ribbon panel: the words on the left, the control on the right. */
+function PanelRow({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <div className="dk-rb-prow">
+      <div>
+        <div className="dk-rb-plabel">{label}</div>
+        {hint && <div className="dk-rb-phint">{hint}</div>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** The drop cap colours: the text's own, then the twelve named text colours. */
+const DROP_COLORS = [null, ...TEXT_COLOR_NAMES] as const;
+
 /**
- * The numbered list's start number.
+ * Drop cap of the paragraph (Editor board, frame 25): a switch, how many lines tall (2 to 5), dropped or raised, its
+ * colour and its font.
  * @param props.editor - The editor.
  * @param props.st - The format of the selection.
  */
-export function ListStartMenu({ editor, st, onDone, noFocus }: MenuProps) {
-  const [v, setV] = useState(String(st.listStart));
-  const apply = () => {
-    if (st.list !== 'ordered') editor.chain().toggleOrderedList().run();
-    setListStart(editor, Number(v));
+export function DropCapMenu({ editor, st, noFocus }: MenuProps) {
+  const [colours, setColours] = useState(false);
+  const on = st.dropCap > 0;
+  const lines = on ? st.dropCap : 3;
+  const look = (a: Parameters<typeof setDropCapLook>[1]) => {
+    if (!on) setDropCap(editor, 3);
+    setDropCapLook(editor, a);
     focus(editor, noFocus);
-    onDone();
   };
+  const colourName = st.dropCapColor ? colorLabel(st.dropCapColor) : 'Same as text';
   return (
-    <div className="dk-rb-form" data-testid="list-start-menu">
-      <div className="dk-rb-group">Numbered list</div>
-      <label className="dk-rb-px" style={{ padding: '2px 8px 8px' }}>
-        <span>Start at</span>
-        <input
-          aria-label="Start at"
-          inputMode="numeric"
-          value={v}
-          onChange={(e) => setV(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              apply();
-            }
+    <div className="dk-rb-panel" data-testid="dropcap-menu" aria-label="Drop cap">
+      <div className="dk-rb-phead">
+        <span>Drop cap</span>
+        <Switch
+          label="Drop cap"
+          on={on}
+          onChange={(v) => {
+            setDropCap(editor, v ? 3 : 0);
+            focus(editor, noFocus);
           }}
         />
-      </label>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px 6px' }}>
-        <button type="button" className="st-btn st-btn-sm st-btn-primary" onClick={apply}>
-          Apply
-        </button>
       </div>
+      <PanelRow label="Lines tall" hint="How many lines the letter spans">
+        <Track
+          label="Lines tall"
+          value={lines}
+          onChange={(n) => {
+            setDropCap(editor, n as (typeof DROP_CAPS)[number]);
+            focus(editor, noFocus);
+          }}
+          options={DROP_CAPS.filter((n) => n > 0).map((n) => ({ value: n, label: String(n) }))}
+        />
+      </PanelRow>
+      <PanelRow label="Position">
+        <Track
+          label="Position"
+          wide
+          value={st.dropCapStyle}
+          onChange={(v) => look({ dropCapStyle: v })}
+          options={[
+            { value: null, label: 'Dropped' },
+            { value: 'raised', label: 'Raised' },
+          ]}
+        />
+      </PanelRow>
+      <PanelRow label="Colour" hint="Same as text, or a palette colour">
+        <button
+          type="button"
+          className="dk-rb-colourbtn"
+          aria-expanded={colours}
+          aria-label={`Drop cap colour: ${colourName}`}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setColours((c) => !c)}
+        >
+          <span
+            style={{
+              background: st.dropCapColor ? (hexOf('text', st.dropCapColor, '#FFFFFF') ?? '#1E2A22') : '#1E2A22',
+            }}
+          />
+          {colourName}
+        </button>
+      </PanelRow>
+      {colours && (
+        <div className="dk-rb-dropcolours" role="radiogroup" aria-label="Drop cap colour">
+          {DROP_COLORS.map((c) => (
+            <button
+              key={String(c)}
+              type="button"
+              role="radio"
+              aria-checked={st.dropCapColor === c}
+              aria-label={c ? colorLabel(c) : 'Same as text'}
+              title={c ? colorLabel(c) : 'Same as text'}
+              className={st.dropCapColor === c ? 'on' : undefined}
+              style={{ background: c ? (hexOf('text', c, '#FFFFFF') ?? '#1E2A22') : '#FFFFFF' }}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                look({ dropCapColor: c });
+                setColours(false);
+              }}
+            >
+              {c ? '' : 'A'}
+            </button>
+          ))}
+        </div>
+      )}
+      <PanelRow label="Font">
+        <select
+          className="dk-rb-pselect"
+          aria-label="Drop cap font"
+          value={st.dropCapFont ?? ''}
+          onChange={(e) => look({ dropCapFont: e.target.value || null })}
+        >
+          <option value="">Heading font</option>
+          <option value="body">Body font</option>
+        </select>
+      </PanelRow>
+      <div className="dk-rb-pnote">Applies to the first letter of this paragraph.</div>
+    </div>
+  );
+}
+
+/** The numbered list's styles as the board draws them (Editor board, frame 28). */
+const LIST_LOOKS = [
+  { value: 'decimal', label: '1.' },
+  { value: 'lower-alpha', label: 'a.' },
+  { value: 'lower-roman', label: 'i.' },
+  { value: 'upper-alpha', label: 'A.' },
+  { value: 'upper-roman', label: 'I.' },
+] as const;
+
+/** The ordered list just before the one with the caret, at the same level, if any. */
+function listAbove(editor: Editor): { start: number; count: number } | null {
+  const { $from } = editor.state.selection;
+  for (let d = $from.depth; d > 0; d -= 1) {
+    if ($from.node(d).type.name !== 'orderedList') continue;
+    const index = $from.index(d - 1);
+    const before = index > 0 ? $from.node(d - 1).child(index - 1) : null;
+    if (before?.type.name !== 'orderedList') return null;
+    const start = typeof before.attrs.start === 'number' ? before.attrs.start : 1;
+    return { start, count: before.childCount };
+  }
+  return null;
+}
+
+/**
+ * The numbered list (Editor board, frame 28): its numbering, the number it starts at and whether it carries on from
+ * the list above.
+ * @param props.editor - The editor.
+ * @param props.st - The format of the selection.
+ */
+export function ListStartMenu({ editor, st, noFocus }: MenuProps) {
+  const ensure = () => {
+    if (st.list !== 'ordered') editor.chain().toggleOrderedList().run();
+  };
+  const cur = st.list === 'ordered' ? st.listStart : 1;
+  const style = (editor.getAttributes('orderedList').listStyle as string | null) ?? 'decimal';
+  const above = listAbove(editor);
+  const next = above ? above.start + above.count : null;
+  const start = (n: number) => {
+    ensure();
+    setListStart(editor, n);
+    focus(editor, noFocus);
+  };
+  return (
+    <div className="dk-rb-panel" data-testid="list-start-menu" aria-label="Numbered list">
+      <div className="dk-rb-phead">
+        <span>Numbered list</span>
+      </div>
+      <div className="dk-rb-listlooks" role="radiogroup" aria-label="Numbering">
+        {LIST_LOOKS.map((l) => (
+          <button
+            key={l.value}
+            type="button"
+            role="radio"
+            aria-checked={style === l.value}
+            className={style === l.value ? 'on' : undefined}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              ensure();
+              editor.commands.updateAttributes('orderedList', { listStyle: l.value === 'decimal' ? null : l.value });
+              focus(editor, noFocus);
+            }}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
+      <div className="dk-rb-rule dk-rb-rule-wide" />
+      <PanelRow label="Start at">
+        <span className="dk-rb-stepper">
+          <button
+            type="button"
+            aria-label="Start lower"
+            disabled={cur <= 1}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => start(cur - 1)}
+          >
+            <svg
+              aria-hidden="true"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+            >
+              <path d="M5 12h14" />
+            </svg>
+          </button>
+          <input
+            aria-label="Start at"
+            inputMode="numeric"
+            key={cur}
+            defaultValue={cur}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                start(Number(e.currentTarget.value));
+              }
+            }}
+            onBlur={(e) => {
+              if (Number(e.currentTarget.value) !== cur) start(Number(e.currentTarget.value));
+            }}
+          />
+          <button
+            type="button"
+            aria-label="Start higher"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => start(cur + 1)}
+          >
+            <svg
+              aria-hidden="true"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        </span>
+      </PanelRow>
+      <PanelRow label="Continue from the list above">
+        <Switch
+          label="Continue from the list above"
+          on={next !== null && cur === next}
+          onChange={(v) => {
+            if (next === null) return;
+            start(v ? next : 1);
+          }}
+        />
+      </PanelRow>
     </div>
   );
 }

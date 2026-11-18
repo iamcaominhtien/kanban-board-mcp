@@ -1044,6 +1044,25 @@ mark.docs-find-mark.docs-find-cur {
 .fx-findbtn:hover {
   background: #eaf0ec;
 }
+/* the editor's find and replace (Editor board, frame 46): 34 px buttons with a border, Close without one */
+.fx-find-edit .fx-findbtn {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  box-sizing: border-box;
+  border: 1px solid #e3e8e5;
+  border-radius: 7px;
+  color: #3a4a3e;
+  font-size: 13px;
+  font-weight: 700;
+}
+.fx-find-edit .fx-findbtn-x {
+  border-color: transparent;
+}
+.fx-find-edit {
+  border-radius: 12px;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.18);
+}
 .fx-findbtn-on,
 .fx-findbtn-on:hover {
   background: #dceee1;
@@ -1279,7 +1298,7 @@ mark.docs-find-mark.docs-find-cur {
 .dk-rich .dk-dropcap::first-letter {
   float: left;
   font-weight: 700;
-  color: var(--dp-link, #2e6f40);
+  color: var(--dk-dc, var(--dp-link, #2e6f40));
   line-height: 0.82;
   padding: 3px 7px 0 0;
   margin: 0;
@@ -1289,6 +1308,25 @@ mark.docs-find-mark.docs-find-cur {
 }
 .dk-rich .dk-dropcap-5::first-letter {
   font-size: 5.8em;
+}
+/* Drop cap (Editor board, frame 25): 2 to 5 lines, dropped or raised, its own colour, the heading or body font */
+:is(.dk-editor, .dk-rich) .dk-dropcap::first-letter {
+  font-family: var(--dp-heading-font, inherit);
+  color: var(--dk-dc, var(--dp-link, #2e6f40));
+}
+:is(.dk-editor, .dk-rich) .dk-dropcap-2::first-letter {
+  font-size: 2.4em;
+}
+:is(.dk-editor, .dk-rich) .dk-dropcap-4::first-letter {
+  font-size: 4.7em;
+}
+:is(.dk-editor, .dk-rich) .dk-dropcap.dk-dropcap-body::first-letter {
+  font-family: inherit;
+}
+:is(.dk-editor, .dk-rich) .dk-dropcap.dk-dropcap-raised::first-letter {
+  float: none;
+  line-height: 1;
+  padding: 0 2px 0 0;
 }
 /* quotes and dividers, in the editor and the reader alike (Blocks board, frames 44 to 46); sizes in em of the
    14.5 px body, so a page with its own text size keeps the proportions */

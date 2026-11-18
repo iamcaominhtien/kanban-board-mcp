@@ -212,7 +212,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
         </span>
         <Glyph name="chevron" size={11} strokeWidth={2.2} />
       </button>
-      {pop('font', 'Font', <FontMenu editor={editor} st={st} onDone={close} />, 240)}
+      {pop('font', 'Font', <FontMenu editor={editor} st={st} onDone={close} />, 300)}
       <span className="dk-rb-size" role="group" aria-label="Font size" data-rich-only>
         <button
           type="button"
@@ -246,7 +246,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
           <Glyph name="insert" size={12} strokeWidth={2.2} />
         </button>
       </span>
-      {pop('size', 'Font size', <SizeMenu editor={editor} st={st} onDone={close} styleSize={look.size} />, 200)}
+      {pop('size', 'Font size', <SizeMenu editor={editor} st={st} onDone={close} styleSize={look.size} />, 170)}
     </>
   );
 
@@ -460,7 +460,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
           <Glyph name="chevron" size={9} strokeWidth={2.4} className="dk-rb-chev" />
         </RBtn>
       </span>
-      {pop('olist', 'Numbered list', <ListStartMenu editor={editor} st={st} onDone={close} />, 200)}
+      {pop('olist', 'Numbered list', <ListStartMenu editor={editor} st={st} onDone={close} />, 320)}
       <RBtn
         label="Task list"
         keys="Mod+Shift+9"
@@ -499,7 +499,7 @@ export function Ribbon({ editor, disabled, variant, pageHex, actions, plain }: P
       >
         <Glyph name="dropCap" />
       </RBtn>
-      {pop('drop', 'Drop cap', <DropCapMenu editor={editor} st={st} onDone={close} />, 220)}
+      {pop('drop', 'Drop cap', <DropCapMenu editor={editor} st={st} onDone={close} />, 360)}
     </>
   );
 

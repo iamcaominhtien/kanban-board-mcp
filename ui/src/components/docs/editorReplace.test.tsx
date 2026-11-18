@@ -95,16 +95,16 @@ describe('the find bar on an editor', () => {
     const find = await screen.findByRole('textbox', { name: 'Find' });
     expect(screen.queryByRole('textbox', { name: 'Replace with' })).toBeNull();
     fireEvent.change(find, { target: { value: 'salt' } });
-    await screen.findByText('1/4');
+    await screen.findByText('1 of 4');
     fireEvent.change(find, { target: { value: 'saltt' } });
     await screen.findByText('No results');
     fireEvent.change(find, { target: { value: 'salt' } });
-    await screen.findByText('1/4');
+    await screen.findByText('1 of 4');
     // Ctrl+H shows the replace row of the open bar
     fireEvent.keyDown(window, { key: 'h', ctrlKey: true });
     const replace = await screen.findByRole('textbox', { name: 'Replace with' });
     fireEvent.click(screen.getByRole('button', { name: 'Whole word' }));
-    await screen.findByText('1/3');
+    await screen.findByText('1 of 3');
     fireEvent.change(replace, { target: { value: 'brine' } });
     fireEvent.click(screen.getByRole('button', { name: 'Replace all' }));
     await screen.findByText('Replaced 3 matches');

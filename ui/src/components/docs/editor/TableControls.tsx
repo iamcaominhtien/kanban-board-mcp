@@ -43,6 +43,11 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
   // Rich Docs phase 4: Cell properties / Table properties panels, and the phone's bar under a selected cell
   const [panel, setPanel] = useState<{ kind: 'cell' | 'table' | 'styles'; anchor: DOMRect } | null>(null);
   const layout = useBlockLayout();
+  // a panel closed (Done, Esc): the caret goes back into the table, so typing carries on there
+  const closePanel = useCallback(() => {
+    setPanel(null);
+    if (!editor.isDestroyed) editor.commands.focus();
+  }, [editor]);
   // The overlay fills the editor column (inset 0), which sits below the page header inside the host; positions
   // are measured against it, not against the host.
   const layerRef = useRef<HTMLDivElement>(null);
@@ -249,9 +254,9 @@ export function TableControls({ editor, hostRef }: { editor: Editor; hostRef: Re
         onMouseDown={(e) => e.preventDefault()}
         onClick={(e) => setPanel({ kind: 'table', anchor: e.currentTarget.getBoundingClientRect() })}
       />
-      {panel?.kind === 'table' && <TableProps editor={editor} anchor={panel.anchor} onClose={() => setPanel(null)} />}
-      {panel?.kind === 'cell' && <CellProps editor={editor} anchor={panel.anchor} onClose={() => setPanel(null)} />}
-      {panel?.kind === 'styles' && <TableStyles editor={editor} anchor={panel.anchor} onClose={() => setPanel(null)} />}
+      {panel?.kind === 'table' && <TableProps editor={editor} anchor={panel.anchor} onClose={closePanel} />}
+      {panel?.kind === 'cell' && <CellProps editor={editor} anchor={panel.anchor} onClose={closePanel} />}
+      {panel?.kind === 'styles' && <TableStyles editor={editor} anchor={panel.anchor} onClose={closePanel} />}
       {phone && <PhoneTableBar editor={editor} />}
       {!phone && (
         <button

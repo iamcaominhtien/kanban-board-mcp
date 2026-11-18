@@ -150,11 +150,11 @@ export default {
       await callout.getByTestId('callout-type').click();
       // Callout properties (Blocks board, H 42): the kinds are coloured chips
       const props = p.getByTestId('callout-props');
-      await props.getByRole('radio', { name: 'Warning' }).click();
+      await props.getByRole('radio', { name: 'Warning', exact: true }).click();
       await p.locator('[data-callout="warning"]').getByText('Remember to publish.').waitFor();
-      await props.getByRole('radio', { name: 'Custom' }).click();
+      await props.getByRole('radio', { name: 'Custom', exact: true }).click();
       await props.getByRole('radio', { name: 'Violet' }).waitFor();
-      await props.getByRole('radio', { name: 'Bulb' }).click();
+      await props.getByRole('radio', { name: 'Bulb icon' }).click();
       await p.locator('[data-callout="custom"]').getByText('Remember to publish.').waitFor();
       await props.getByRole('button', { name: 'Done' }).click();
       await props.waitFor({ state: 'detached' });
@@ -187,21 +187,21 @@ export default {
       const bar = p.getByRole('search', { name: 'Find in page' });
       await bar.waitFor();
       await bar.getByRole('textbox', { name: 'Find' }).fill('point');
-      await bar.getByText('1/2').waitFor();
+      await bar.getByText('1 of 2').waitFor();
       await bar.getByRole('button', { name: 'Next match' }).click();
-      await bar.getByText('2/2').waitFor();
+      await bar.getByText('2 of 2').waitFor();
       await bar.getByRole('textbox', { name: 'Find' }).press('Enter');
-      await bar.getByText('1/2').waitFor();
+      await bar.getByText('1 of 2').waitFor();
       await bar.getByRole('textbox', { name: 'Find' }).fill('zzzz');
       await bar.getByText('No results').waitFor();
       await bar.getByRole('textbox', { name: 'Find' }).fill('point');
-      await bar.getByText('1/2').waitFor();
+      await bar.getByText('1 of 2').waitFor();
       await bar.getByRole('button', { name: 'Match case' }).click();
       await bar.getByRole('textbox', { name: 'Find' }).fill('POINT');
       await bar.getByText('No results').waitFor();
       await bar.getByRole('button', { name: 'Match case' }).click();
       await bar.getByRole('textbox', { name: 'Find' }).fill('point');
-      await bar.getByText('1/2').waitFor();
+      await bar.getByText('1 of 2').waitFor();
     });
     await s.step('Find and replace: replace one match, then the rest', async () => {
       const bar = p.getByRole('search', { name: 'Find in page' });
@@ -211,7 +211,7 @@ export default {
       await bar.getByRole('textbox', { name: 'Replace with' }).fill('item');
       await bar.getByRole('button', { name: 'Replace', exact: true }).click();
       await content().getByText('first item').or(content().getByText('second item')).first().waitFor();
-      await bar.getByText('1/1').waitFor();
+      await bar.getByText('1 of 1').waitFor();
       await bar.getByRole('button', { name: 'Replace all' }).click();
       await bar.getByText('Replaced 1 match').waitFor();
       await bar.getByRole('button', { name: 'Undo' }).waitFor();
@@ -255,6 +255,29 @@ export default {
       await p.getByTestId('editor-status').getByText(/Selected: 2 words/).waitFor();
       await saved();
     });
+    await s.step('ribbon: Drop cap opens its panel (lines, position, colour, font); Ctrl K opens the link panel', async () => {
+      // Editor board F 25: the drop cap is a panel, not a list of three heights
+      await tb('Drop cap').click();
+      const drop = p.getByTestId('dropcap-menu');
+      await drop.getByRole('switch', { name: 'Drop cap' }).click();
+      await drop.getByRole('radio', { name: '4' }).click();
+      await drop.getByRole('radio', { name: 'Raised' }).click();
+      await content().locator('p.dk-dropcap-4.dk-dropcap-raised', { hasText: 'Colour line' }).waitFor();
+      await drop.getByRole('switch', { name: 'Drop cap' }).click();
+      await p.waitForFunction(() => !document.querySelector('[aria-label="Page content"] p.dk-dropcap'));
+      await p.keyboard.press('Escape');
+      // F 30: the link panel shows the selected text and offers pages for what is typed; Cancel leaves no link
+      await content().locator('p', { hasText: 'Colour line' }).click();
+      await p.keyboard.press('Shift+Home');
+      await p.keyboard.press('Control+k');
+      const panel = p.getByTestId('link-panel');
+      await panel.getByRole('textbox', { name: 'Link text' }).and(p.locator('[value="Colour line"]')).waitFor();
+      await panel.getByRole('textbox', { name: 'Link URL' }).fill('editor');
+      await panel.getByRole('option', { name: /Editor tour/ }).waitFor();
+      await panel.getByRole('button', { name: 'Cancel' }).click();
+      await panel.waitFor({ state: 'detached' });
+      await saved();
+    });
     await s.step('Find and replace from Ctrl+H: whole word, No results, Replace all keeps the colour', async () => {
       await p.keyboard.press('End');
       await p.keyboard.press('Control+h');
@@ -262,11 +285,11 @@ export default {
       await bar.waitFor();
       const find = bar.getByRole('textbox', { name: 'Find' });
       await find.fill('Colou');
-      await bar.getByText('1/1').waitFor();
+      await bar.getByText('1 of 1').waitFor();
       await bar.getByRole('button', { name: 'Whole word' }).click();
       await bar.getByText('No results').waitFor();
       await find.fill('Colour');
-      await bar.getByText('1/1').waitFor();
+      await bar.getByText('1 of 1').waitFor();
       await bar.getByRole('textbox', { name: 'Replace with' }).fill('Color');
       await bar.getByRole('button', { name: 'Replace all' }).click();
       await bar.getByText('Replaced 1 match').waitFor();
@@ -538,10 +561,28 @@ export default {
       await p.keyboard.press('Shift+ArrowRight');
       const merge = p.getByTestId('merge-cells');
       await merge.waitFor();
+      // Blocks board F 28: the cell bar is white, the selected cells green with a 2 px frame, and the page itself
+      // takes no focus ring (it drew a green frame round the whole page)
+      const look = await p.evaluate(() => {
+        const bar = getComputedStyle(document.querySelector('[data-testid="cell-toolbar"]'));
+        const cell = getComputedStyle(document.querySelector('[aria-label="Page content"] .selectedCell'));
+        const pm = getComputedStyle(document.querySelector('[aria-label="Page content"]'));
+        return { bar: bar.backgroundColor, outline: cell.outlineWidth + ' ' + cell.outlineColor, page: pm.outlineStyle };
+      });
+      if (look.bar !== 'rgb(255, 255, 255)' || look.outline !== '2px rgb(46, 111, 64)' || look.page !== 'none')
+        throw new Error('table selection look: ' + JSON.stringify(look));
       await merge.click();
       await content().locator('td[colspan="2"]').waitFor();
       await p.getByTestId('split-cell').click();
       await p.waitForFunction(() => !document.querySelector('[aria-label="Page content"] td[colspan="2"]'));
+      // Table properties (F 31): banded rows reach the table at once (a new style used to show only after a reload)
+      await p.getByRole('button', { name: 'Table properties' }).click();
+      const props = p.getByTestId('table-props');
+      await props.getByRole('switch', { name: 'Banded rows' }).click({ force: true });
+      await props.getByRole('radiogroup', { name: 'Borders' }).getByRole('radio', { name: 'Rows' }).click();
+      await content().locator('table[data-banded="true"][data-borders="rows"]').waitFor();
+      await props.getByRole('button', { name: 'Done' }).click();
+      await props.waitFor({ state: 'detached' });
       await saved();
     });
     await s.step('columns: two columns, the ratio set to 33 / 67 from the columns toolbar', async () => {
@@ -569,10 +610,10 @@ export default {
       await callout.getByText('Deleting a project cannot be undone.').waitFor();
       await callout.hover();
       await callout.getByTestId('callout-type').click();
-      await p.getByRole('menuitem', { name: 'Custom' }).click();
+      await p.getByTestId('callout-props').getByRole('radio', { name: 'Custom', exact: true }).click();
       const custom = content().locator('[data-callout="custom"]').first();
       await custom.waitFor();
-      await p.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Teal' }).click();
+      await p.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Blue' }).click();
       await p.getByRole('radiogroup', { name: 'Style' }).getByRole('radio', { name: 'Left bar' }).click();
       await content().locator('[data-callout="custom"][data-callout-style="bar"]').waitFor();
       await saved();

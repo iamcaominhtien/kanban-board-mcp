@@ -62,7 +62,7 @@ export const MAX_FONT_SIZE = 160;
 /** The deepest indent of a paragraph (schema.json `indent` max). */
 export const MAX_INDENT = 8;
 /** The drop cap heights a paragraph can have (schema.json `dropCap`). */
-export const DROP_CAPS = [0, 3, 5] as const;
+export const DROP_CAPS = [0, 2, 3, 4, 5] as const;
 
 /** The attributes "Clear paragraph formatting" puts back, with their defaults. */
 const BLOCK_DEFAULTS: Record<string, unknown> = {
@@ -334,6 +334,18 @@ export function setDropCap(editor: Editor, lines: (typeof DROP_CAPS)[number]): b
 }
 
 /**
+ * Sets how the drop cap of the selection's paragraphs looks (Editor board, frame 25).
+ * @param attrs - `dropCapStyle` (null dropped, `raised`), `dropCapColor` (null the text colour, a palette name or
+ *   `#rrggbb`), `dropCapFont` (null the heading font, `body`).
+ */
+export function setDropCapLook(
+  editor: Editor,
+  attrs: { dropCapStyle?: string | null; dropCapColor?: string | null; dropCapFont?: string | null },
+): boolean {
+  return setBlockAttrs(editor, attrs, new Set(['paragraph']));
+}
+
+/**
  * The style of the selection's blocks: one style id, `'mixed'` when they differ, or `null` where no style applies.
  * @param state - The editor state.
  */
@@ -438,6 +450,10 @@ export interface FormatState {
   spaceBefore: number | null;
   spaceAfter: number | null;
   dropCap: number;
+  /** The drop cap's look: position (null = dropped), colour (null = the text's), font (null = heading). */
+  dropCapStyle: string | null;
+  dropCapColor: string | null;
+  dropCapFont: string | null;
   indent: number;
   list: 'bullet' | 'ordered' | 'task' | null;
   listStart: number;
@@ -490,6 +506,9 @@ export function formatState(editor: Editor): FormatState {
     spaceBefore: num(first?.attrs.spaceBefore),
     spaceAfter: num(first?.attrs.spaceAfter),
     dropCap: num(first?.attrs.dropCap) ?? 0,
+    dropCapStyle: typeof first?.attrs.dropCapStyle === 'string' ? first.attrs.dropCapStyle : null,
+    dropCapColor: typeof first?.attrs.dropCapColor === 'string' ? first.attrs.dropCapColor : null,
+    dropCapFont: typeof first?.attrs.dropCapFont === 'string' ? first.attrs.dropCapFont : null,
     indent: num(first?.attrs.indent) ?? 0,
     list,
     listStart: list === 'ordered' ? (num(editor.getAttributes('orderedList').start) ?? 1) : 1,

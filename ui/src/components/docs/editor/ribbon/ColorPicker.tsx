@@ -4,7 +4,7 @@
  * warns and never blocks.
  */
 
-import { useState } from 'react';
+import { useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import {
   HIGHLIGHT_NAMES,
   TEXT_COLOR_NAMES,
@@ -28,6 +28,130 @@ interface Props {
   onPick: (value: string | null) => void;
   /** Larger swatches for a phone sheet. */
   touch?: boolean;
+}
+
+/** `#rrggbb` → hue (0-360), saturation and value (0-1). */
+export function hexToHsv(hex: string): [number, number, number] {
+  const [r, g, b] = hexToRgb(hex).map((x) => x / 255);
+  const max = Math.max(r, g, b);
+  const d = max - Math.min(r, g, b);
+  let h = 0;
+  if (d) h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(h * 60 + 360) % 360, max ? d / max : 0, max];
+}
+
+/** Hue (0-360), saturation and value (0-1) → `#rrggbb`. */
+export function hsvToHex(h: number, sat: number, v: number): string {
+  const f = (n: number) => {
+    const k = (n + h / 60) % 6;
+    return Math.round((v - v * sat * Math.max(0, Math.min(k, 4 - k, 1))) * 255);
+  };
+  return rgbToHex(f(5), f(3), f(1));
+}
+
+/** The eye dropper of the browser (Chrome, Edge), when it has one. */
+type EyeDropperCtor = new () => { open: () => Promise<{ sRGBHex: string }> };
+const eyeDropper = (): EyeDropperCtor | null =>
+  typeof window !== 'undefined' ? ((window as unknown as { EyeDropper?: EyeDropperCtor }).EyeDropper ?? null) : null;
+
+/**
+ * The saturation and value square and the hue slider of Custom colour (Editor board, frame 13).
+ * @param props.hex - The colour now.
+ * @param props.onChange - Called with the colour as it is dragged.
+ */
+function HsvPicker({ hex, onChange }: { hex: string; onChange: (hex: string) => void }) {
+  const [hsv, setHsv] = useState(() => hexToHsv(hex));
+  const last = useRef(hex);
+  if (hex.toLowerCase() !== last.current.toLowerCase()) {
+    // typed in the hex or RGB fields: follow it (keeping the hue of a grey)
+    last.current = hex;
+    const next = hexToHsv(hex);
+    if (next[1] === 0 || next[2] === 0) next[0] = hsv[0];
+    setHsv(next);
+  }
+  const put = (h: number, sat: number, v: number) => {
+    setHsv([h, sat, v]);
+    const out = hsvToHex(h, sat, v);
+    last.current = out;
+    onChange(out);
+  };
+  const drag = (el: HTMLElement, e: RPointerEvent, fn: (x: number, y: number) => void) => {
+    const at = (cx: number, cy: number) => {
+      const r = el.getBoundingClientRect();
+      fn(Math.max(0, Math.min(1, (cx - r.left) / r.width)), Math.max(0, Math.min(1, (cy - r.top) / r.height)));
+    };
+    at(e.clientX, e.clientY);
+    const move = (ev: PointerEvent) => at(ev.clientX, ev.clientY);
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  const [h, sat, v] = hsv;
+  return (
+    <>
+      <div
+        className="dk-cp-sv"
+        role="slider"
+        aria-label="Saturation and brightness"
+        aria-valuetext={hex}
+        style={{
+          background: `linear-gradient(to top, #000, rgba(0,0,0,0)), linear-gradient(to right, #fff, ${hsvToHex(h, 1, 1)})`,
+        }}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          drag(e.currentTarget, e, (x, y) => put(h, x, 1 - y));
+        }}
+      >
+        <span style={{ left: `${sat * 100}%`, top: `${(1 - v) * 100}%`, background: hex }} />
+      </div>
+      <div
+        className="dk-cp-hue"
+        role="slider"
+        aria-label="Hue"
+        aria-valuemin={0}
+        aria-valuemax={360}
+        aria-valuenow={Math.round(h)}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            e.preventDefault();
+            put((h + (e.key === 'ArrowLeft' ? 355 : 5)) % 360, sat, v);
+          }
+        }}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          drag(e.currentTarget, e, (x) => put(Math.min(359.9, x * 360), sat, v));
+        }}
+      >
+        <span style={{ left: `${(h / 360) * 100}%`, background: hsvToHex(h, 1, 1) }} />
+      </div>
+    </>
+  );
+}
+
+/** The green (or amber) box that says how readable a colour is on this page. */
+function ContrastNote({ check }: { check: { ok: boolean; message: string } }) {
+  return (
+    <div className={`dk-cp-contrast${check.ok ? '' : ' dk-cp-warn'}`} role="status" data-testid="color-contrast">
+      <svg
+        aria-hidden="true"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {check.ok ? <path d="M5 12.5L10 17.5L19 7" /> : <path d="M12 3.5L22 20H2ZM12 10V14M12 17.2V17.3" />}
+      </svg>
+      <span>{check.message}</span>
+    </div>
+  );
 }
 
 /**
@@ -63,7 +187,7 @@ export function ColorPicker({ kind, value, pageHex, onPick, touch }: Props) {
             Back to palette
           </button>
         </div>
-        <div className="dk-cp-preview" style={{ background: hex ?? 'transparent' }} aria-hidden="true" />
+        <HsvPicker hex={hex ?? '#2e6f40'} onChange={(h) => setCustom(h)} />
         <div className="dk-cp-custom">
           <label className="dk-cp-field dk-cp-hex">
             <span>HEX</span>
@@ -94,11 +218,7 @@ export function ColorPicker({ kind, value, pageHex, onPick, touch }: Props) {
             </label>
           ))}
         </div>
-        {check && (
-          <div className={`dk-cp-contrast${check.ok ? '' : ' dk-cp-warn'}`} role="status" data-testid="color-contrast">
-            {check.message}
-          </div>
-        )}
+        {check && <ContrastNote check={check} />}
         <div className="dk-cp-actions">
           <button type="button" className="st-btn st-btn-sm" onClick={() => setCustom(null)}>
             Cancel
@@ -158,7 +278,13 @@ export function ColorPicker({ kind, value, pageHex, onPick, touch }: Props) {
     );
   };
   const currentHex = typeof value === 'string' && value !== 'mixed' ? swatch(value) : null;
-  const openCustom = () => setCustom(currentHex ?? '#2e6f40');
+  // the custom box shows the colour in hand, else the kind's first colour (green text, yellow highlight)
+  const shownHex = (
+    currentHex ?? (kind === 'text' ? '#2E6F40' : (hexOf('highlight', 'yellow', pageHex) ?? '#FFE9A8'))
+  ).toUpperCase();
+  const openCustom = () => setCustom(shownHex.toLowerCase());
+  const shownCheck = kind === 'text' && currentHex ? checkContrast(currentHex, pageHex) : null;
+  const Dropper = eyeDropper();
 
   return (
     <div
@@ -252,10 +378,43 @@ export function ColorPicker({ kind, value, pageHex, onPick, touch }: Props) {
             onMouseDown={(e) => e.preventDefault()}
             onClick={openCustom}
           >
-            <span className="dk-cp-chip" style={{ background: currentHex ?? '#2E6F40' }} />
-            {(currentHex ?? '#2E6F40').toUpperCase()}
+            <span className="dk-cp-chip" style={{ background: shownHex }} />
+            {shownHex}
+          </button>
+          <button
+            type="button"
+            className="dk-cp-drop"
+            aria-label="Pick a colour from the screen"
+            title={Dropper ? 'Pick a colour from the screen' : 'Your browser cannot pick from the screen'}
+            disabled={!Dropper}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              if (!Dropper) return;
+              new Dropper()
+                .open()
+                .then((r) => {
+                  const hex = normalizeHex(r.sRGBHex);
+                  if (hex) setCustom(hex);
+                })
+                .catch(() => {});
+            }}
+          >
+            <svg
+              aria-hidden="true"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M14.5 6.5l3 3M4 20l1-4 9.5-9.5 3 3L8 19zM16 5l1.5-1.5a2.1 2.1 0 0 1 3 3L19 8" />
+            </svg>
           </button>
         </div>
+        {shownCheck && <ContrastNote check={shownCheck} />}
       </div>
     </div>
   );

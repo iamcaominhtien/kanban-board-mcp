@@ -374,8 +374,20 @@ export function FindInPage({
 
   const none = dq !== '' && count === 0 && replaced === null;
   const counter = useMemo(
-    () => (dq === '' ? '' : count ? `${cur + 1}/${count}` : replaced !== null ? '0/0' : 'No results'),
-    [dq, count, cur, replaced],
+    // the editor's bar says "3 of 7" (Editor board, frame 46); reading keeps "3/7"
+    () =>
+      dq === ''
+        ? ''
+        : count
+          ? editable
+            ? `${cur + 1} of ${count}`
+            : `${cur + 1}/${count}`
+          : replaced !== null
+            ? editable
+              ? '0 of 0'
+              : '0/0'
+            : 'No results',
+    [dq, count, cur, replaced, editable],
   );
 
   const tbtn = (label: string, on: boolean, onClick: () => void, child: React.ReactNode) => (
@@ -438,9 +450,9 @@ export function FindInPage({
     >
       <div
         // reading (Reader boards, F: frame 47): a 430 px card, 12 px corners, a 36 px field and 36 px buttons
-        className={editable ? 'dk-menu' : 'dk-menu fx-find-read'}
+        className={editable ? 'dk-menu fx-find-edit' : 'dk-menu fx-find-read'}
         style={{
-          width: editable ? 460 : 430,
+          width: editable ? 560 : 430,
           maxWidth: 'calc(100vw - 32px)',
           padding: 8,
           display: 'flex',
@@ -448,26 +460,28 @@ export function FindInPage({
           gap: 6,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: editable ? 6 : 2 }}>
           <div
             style={{
               flex: 1,
               minWidth: 0,
               display: 'flex',
               alignItems: 'center',
-              gap: editable ? 6 : 7,
-              padding: editable ? '0 9px' : '0 10px',
-              height: editable ? 30 : 36,
-              borderRadius: editable ? 7 : 8,
-              border: `1px solid ${none ? '#C4432A' : '#2E6F40'}`,
+              gap: editable ? 8 : 7,
+              padding: '0 10px',
+              height: editable ? 34 : 36,
+              borderRadius: 8,
+              border: `${editable ? 1.5 : 1}px solid ${none ? '#C4432A' : '#2E6F40'}`,
               background: '#FFFFFF',
               boxSizing: 'border-box',
-              boxShadow: none
-                ? '0 0 0 3px rgba(196,67,42,0.14)'
-                : `0 0 0 3px rgba(46,111,64,${editable ? 0.18 : 0.14})`,
+              boxShadow: editable
+                ? undefined
+                : none
+                  ? '0 0 0 3px rgba(196,67,42,0.14)'
+                  : '0 0 0 3px rgba(46,111,64,0.14)',
             }}
           >
-            {!editable && <Icon name="search" size={14} strokeWidth={1.9} style={{ color: '#5B6B60' }} />}
+            <Icon name="search" size={14} strokeWidth={editable ? 2 : 1.9} style={{ color: '#5B6B60', flex: 'none' }} />
             <input
               ref={inputRef}
               value={q}
@@ -482,7 +496,7 @@ export function FindInPage({
                 border: 'none',
                 outline: 'none',
                 background: 'transparent',
-                fontSize: editable ? 13 : 13.5,
+                fontSize: 13.5,
                 fontWeight: 500,
                 color: '#1E2A22',
                 fontFamily: 'inherit',
@@ -491,9 +505,9 @@ export function FindInPage({
             />
             <span
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 11.5,
-                fontWeight: 500,
+                fontFamily: editable ? 'inherit' : "'JetBrains Mono', monospace",
+                fontSize: editable ? 12 : 11.5,
+                fontWeight: editable ? 600 : 500,
                 color: none ? '#C4432A' : '#5B6B60',
                 whiteSpace: 'nowrap',
               }}
@@ -508,7 +522,23 @@ export function FindInPage({
             className="fx-findbtn"
             onClick={() => step(-1)}
           >
-            <Icon name="i34" size={15} strokeWidth={1.9} />
+            {editable ? (
+              <svg
+                aria-hidden="true"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 19V5M6 11l6-6 6 6" />
+              </svg>
+            ) : (
+              <Icon name="i34" size={15} strokeWidth={1.9} />
+            )}
           </button>
           <button
             type="button"
@@ -517,9 +547,25 @@ export function FindInPage({
             className="fx-findbtn"
             onClick={() => step(1)}
           >
-            <Icon name="i06" size={15} strokeWidth={1.9} />
+            {editable ? (
+              <svg
+                aria-hidden="true"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 5v14M6 13l6 6 6-6" />
+              </svg>
+            ) : (
+              <Icon name="i06" size={15} strokeWidth={1.9} />
+            )}
           </button>
-          <div style={{ width: 1, height: 16, background: '#DCE6DF', margin: '0 3px' }} />
+          {!editable && <div style={{ width: 1, height: 16, background: '#DCE6DF', margin: '0 3px' }} />}
           {tbtn('Match case', opts.matchCase, () => setOpts((o) => ({ ...o, matchCase: !o.matchCase })), 'Aa')}
           {tbtn(
             'Whole word',
@@ -540,14 +586,21 @@ export function FindInPage({
             </span>,
           )}
           {canReplace &&
+            !(editable && showReplace) &&
             tbtn(
               showReplace ? 'Hide replace' : 'Replace',
               showReplace,
               () => setShowReplace((v) => !v),
               <Icon name={showReplace ? 'chevronDown' : 'chevronRight'} size={14} strokeWidth={2} />,
             )}
-          <button type="button" aria-label="Close" title="Close (Esc)" className="fx-findbtn" onClick={onClose}>
-            <Icon name="i08" size={15} strokeWidth={1.9} />
+          <button
+            type="button"
+            aria-label="Close"
+            title="Close (Esc)"
+            className="fx-findbtn fx-findbtn-x"
+            onClick={onClose}
+          >
+            <Icon name="i08" size={editable ? 16 : 15} strokeWidth={editable ? 2 : 1.9} />
           </button>
         </div>
         {canReplace && showReplace && (
@@ -558,15 +611,29 @@ export function FindInPage({
                 minWidth: 0,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
-                padding: '0 9px',
-                height: 30,
-                borderRadius: 7,
-                border: '1px solid #C7D2CB',
+                gap: 8,
+                padding: '0 10px',
+                height: 34,
+                borderRadius: 8,
+                border: '1px solid #E3E8E5',
                 background: '#FFFFFF',
                 boxSizing: 'border-box',
               }}
             >
+              <svg
+                aria-hidden="true"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#5B6B60"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ flex: 'none' }}
+              >
+                <path d="M4 8h13l-3-3M20 16H7l3 3" />
+              </svg>
               <input
                 value={replaceWith}
                 onChange={(e) => setReplaceWith(e.target.value)}
@@ -585,7 +652,7 @@ export function FindInPage({
                   border: 'none',
                   outline: 'none',
                   background: 'transparent',
-                  fontSize: 13,
+                  fontSize: 13.5,
                   fontWeight: 500,
                   color: '#1E2A22',
                   fontFamily: 'inherit',
@@ -604,7 +671,7 @@ export function FindInPage({
             </button>
             <button
               type="button"
-              className="st-btn st-btn-sm"
+              className="st-btn st-btn-sm st-btn-primary"
               style={{ height: 30, padding: '0 10px' }}
               disabled={!count}
               onClick={() => doReplace(true)}

@@ -7,6 +7,7 @@
  * chip read.
  */
 
+import { cssColor } from './palette';
 import { Extension, type Editor } from '@tiptap/core';
 import type { Node as PMNode } from '@tiptap/pm/model';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
@@ -101,7 +102,13 @@ export function blockDecoAttrs(node: PMNode): { style?: string; class?: string }
   const after = num(a.spaceAfter);
   if (after != null) css.push(`margin-bottom: ${after}px`);
   const drop = num(a.dropCap);
-  if (drop) cls.push('dk-dropcap', `dk-dropcap-${drop}`);
+  if (drop) {
+    cls.push('dk-dropcap', `dk-dropcap-${drop}`);
+    if (a.dropCapStyle === 'raised') cls.push('dk-dropcap-raised');
+    if (a.dropCapFont === 'body') cls.push('dk-dropcap-body');
+    const dc = cssColor('text', a.dropCapColor);
+    if (dc) css.push(`--dk-dc: ${dc}`);
+  }
   if (a.variant === 'lead' || a.variant === 'small') cls.push(`dk-p-${a.variant}`);
   if (!css.length && !cls.length) return null;
   return { ...(css.length ? { style: css.join('; ') } : null), ...(cls.length ? { class: cls.join(' ') } : null) };

@@ -19,6 +19,7 @@ import {
 import { cssColor, rememberColor } from './ribbon/palette';
 import { ColorGlyph, Glyph, HighlightGlyph, Popover } from './ribbon/parts';
 import { startPainter } from './ribbon/RichFormatting';
+import { LinkPanel, type LinkTargets } from './LinkPanel';
 
 interface Props {
   editor: Editor;
@@ -42,17 +43,11 @@ interface Props {
    * the AI items move into More, the block type and the references stay in the Aa sheet and Insert.
    */
   touch?: boolean;
+  /** Pages and tickets the link panel offers for what is typed in its address. */
+  linkTargets?: LinkTargets;
 }
 
 const SEP = <span className="dk-bubble-sep" />;
-
-function normalizeUrl(raw: string): string {
-  const v = raw.trim();
-  if (!v) return '';
-  if (/^(https?:|mailto:|tel:|\/|#)/i.test(v)) return v;
-  if (/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(v)) return `https://${v}`;
-  return v;
-}
 
 const BLOCKS: { label: string; run: (e: Editor) => void; on: (e: Editor) => boolean }[] = [
   { label: 'Body', run: (e) => e.chain().focus().setParagraph().run(), on: (e) => e.isActive('paragraph') },
@@ -120,6 +115,7 @@ export function BubbleToolbar({
   pageHex = '#FFFFFF',
   plain,
   touch,
+  linkTargets,
 }: Props) {
   const st = useEditorState({
     editor,
@@ -151,30 +147,11 @@ export function BubbleToolbar({
     const anchor = e.currentTarget;
     setPop((p) => (p?.id === id ? null : { id, anchor }));
   };
-  const [url, setUrl] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
-    if (linkOpen) {
-      setUrl(st?.href ?? '');
-      setTimeout(() => inputRef.current?.focus(), 0);
-    }
     // The bar changes width and height between the buttons and the URL field; re-anchor it above the selection.
     editor.view.dispatch(editor.state.tr.setMeta('docsBubble', 'updatePosition'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkOpen]);
-
-  const apply = () => {
-    const href = normalizeUrl(url);
-    const chain = editor.chain().focus();
-    if (!href) chain.extendMarkRange('link').unsetLink().run();
-    else chain.extendMarkRange('link').setLink({ href }).run();
-    setLinkOpen(false);
-  };
-  const cancel = () => {
-    setLinkOpen(false);
-    editor.commands.focus();
-  };
 
   const Btn = ({
     label,
@@ -241,7 +218,7 @@ export function BubbleToolbar({
       shouldShow={({ editor: e, state }) => {
         const { selection } = state;
         if (!e.isEditable) return false;
-        if (selection.empty) return (e.isFocused || linkOpen) && e.isActive('link');
+        if (selection.empty) return linkOpen || (e.isFocused && e.isActive('link'));
         if (selection instanceof CellSelection) return false;
         if (selection instanceof NodeSelection) return false;
         if (e.isActive('codeBlock')) return false;
@@ -250,7 +227,7 @@ export function BubbleToolbar({
     >
       <div
         data-testid="bubble-toolbar"
-        className={`dk-bubble${touch ? ' dk-bubble-touch' : ''}`}
+        className={`dk-bubble${touch ? ' dk-bubble-touch' : ''}${linkOpen ? ' dk-bubble-linkp' : ''}`}
         style={{
           position: 'relative',
           display: 'flex',
@@ -268,73 +245,7 @@ export function BubbleToolbar({
         }}
       >
         {linkOpen ? (
-          <>
-            <span style={{ display: 'flex', color: '#EEF3EF', padding: '0 4px' }}>
-              <Icon name="i11" size={15} />
-            </span>
-            <input
-              ref={inputRef}
-              aria-label="Link URL"
-              value={url}
-              placeholder="Paste or type a link"
-              onChange={(e) => setUrl(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  apply();
-                } else if (e.key === 'Escape') {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  cancel();
-                }
-              }}
-              style={{
-                width: 220,
-                border: 'none',
-                outline: 'none',
-                background: 'transparent',
-                color: '#EEF3EF',
-                fontSize: 12.5,
-                fontFamily: 'inherit',
-                padding: '0 4px',
-                caretColor: '#68BA7F',
-              }}
-            />
-            {SEP}
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={apply}
-              style={{
-                border: 'none',
-                background: 'none',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                fontSize: 12,
-                fontWeight: 700,
-                color: '#CFFFDC',
-                padding: '0 6px',
-              }}
-            >
-              Apply
-            </button>
-            <button
-              type="button"
-              aria-label="Cancel"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={cancel}
-              style={{
-                border: 'none',
-                background: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                color: '#B7C9BE',
-                padding: 0,
-              }}
-            >
-              <Icon name="i08" size={13} />
-            </button>
-          </>
+          <LinkPanel editor={editor} targets={linkTargets} onClose={() => setLinkOpen(false)} />
         ) : st?.caretOnLink ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 1 }} data-testid="bubble-link">
             <span className="dk-bubble-link" title={link}>

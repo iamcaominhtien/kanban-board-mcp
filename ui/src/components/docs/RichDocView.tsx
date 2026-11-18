@@ -597,11 +597,18 @@ function block(node: Node, r: Render, key: string): ReactNode {
     case 'paragraph': {
       const drop = num(a.dropCap);
       const variant = str(a.variant);
-      const cls = [drop ? `dk-dropcap dk-dropcap-${drop}` : '', variant ? `dk-p-${variant}` : '']
+      const cls = [
+        drop ? `dk-dropcap dk-dropcap-${drop}` : '',
+        drop && a.dropCapStyle === 'raised' ? 'dk-dropcap-raised' : '',
+        drop && a.dropCapFont === 'body' ? 'dk-dropcap-body' : '',
+        variant ? `dk-p-${variant}` : '',
+      ]
         .filter(Boolean)
         .join(' ');
+      const dc = drop ? colorOf('c', a.dropCapColor) : undefined;
+      const pStyle = dc ? ({ ...textBlockStyle(a), '--dk-dc': dc } as CSSProperties) : textBlockStyle(a);
       return (
-        <p key={key} {...blockAttrs(node, r, cls || null, textBlockStyle(a))}>
+        <p key={key} {...blockAttrs(node, r, cls || null, pStyle)}>
           {inline(node.content, key)}
         </p>
       );

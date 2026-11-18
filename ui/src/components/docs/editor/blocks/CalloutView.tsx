@@ -240,7 +240,10 @@ export function CalloutView({ node, decorations, updateAttributes, editor }: Nod
               attrs={attrs}
               anchor={open}
               update={updateAttributes}
-              onClose={() => setOpen(null)}
+              onClose={() => {
+                setOpen(null);
+                editor.commands.focus();
+              }}
               onTitle={() => window.setTimeout(() => titleRef.current?.focus(), 0)}
             />
           )}

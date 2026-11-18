@@ -39,8 +39,8 @@ export const CALLOUT_ICON_PATHS: Record<string, ReactNode> = {
 /** The icon names, in the picker's order. */
 export const CALLOUT_ICON_NAMES = Object.keys(CALLOUT_ICON_PATHS);
 
-/** "bulb" → "Bulb" (the icon's accessible name). */
-export const calloutIconLabel = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
+/** "bulb" → "Bulb icon" (the icon's accessible name). */
+export const calloutIconLabel = (name: string) => `${name.charAt(0).toUpperCase()}${name.slice(1)} icon`;
 
 /**
  * A callout icon by name, or null when the name is not one of the twelve.
