@@ -154,8 +154,9 @@ npm run build`) and Playwright installed globally (`NODE_PATH`).
 | 39–40 | Settings and system (the database move wizard to another SQLite file, a stopped copy and its AI help, the reconnect screen, the data folder, updates and the update notice); notifications (snooze, dismiss, clear, turn a kind off, unmute, the day card) and previews (xlsx charts, pptx shapes, connectors, tables and charts, the image viewer) |
 | 41 | PostgreSQL and MariaDB for real: the move wizard SQLite → PostgreSQL → MariaDB with each card's fields, refused connections, copy, verify, switch; Edit connection; the reconnect screen while the server is down. Skipped unless `KANBAN_TEST_POSTGRES_URL` and `KANBAN_TEST_MYSQL_URL` are set (`scripts/dev-databases.sh start`) |
 
-Not covered: the real draw.io editor (not in the checkout), a real Claude sign-in, the desktop-only windows and OS
-notifications.
+Not covered: the real draw.io editor (not in the checkout), a real Claude sign-in. The desktop-only parts (OS
+notifications, the dock/taskbar badge, the update flow) have their own check in `desktop/e2e`, run with
+`xvfb-run -a npm run e2e` from `desktop/` (see `desktop/README.md`).
 
 ```bash
 cd server/e2e

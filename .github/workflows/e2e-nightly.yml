@@ -154,3 +154,53 @@ jobs:
             server/e2e/report
             server/e2e/run.log
           retention-days: 7
+
+  desktop:
+    name: Desktop app (Electron under Xvfb)
+    needs: check
+    if: needs.check.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            server/target
+          key: cargo-desktop-e2e-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-${{ hashFiles('server/Cargo.lock') }}
+          restore-keys: cargo-desktop-e2e-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            ui/package-lock.json
+            desktop/package-lock.json
+      - name: Build the server
+        working-directory: server
+        run: cargo build -p kanban-server
+      - name: Build the UI
+        working-directory: ui
+        run: npm ci && npm run build
+      - name: Install the desktop app and Playwright
+        run: |
+          (cd desktop && npm ci)
+          npm install -g "playwright@$PLAYWRIGHT_VERSION"
+          echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
+      # the app runs for real (it starts the server); the OS notifications, the badge and the update feed are
+      # recorded in its main process (desktop/README.md)
+      - name: Run the desktop e2e
+        working-directory: desktop
+        run: xvfb-run -a npm run e2e
+      - name: Keep the report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-e2e-report
+          path: desktop/e2e/report
+          retention-days: 7
