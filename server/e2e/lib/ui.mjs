@@ -92,6 +92,9 @@ export async function dragCard(p, key, columnName) {
   await p.mouse.move(tx, ty, { steps: 14 });
   await p.waitForTimeout(250);
   await p.mouse.up();
+  // dnd-kit swallows every click for 50 ms after a drop (its document click listener is removed by a setTimeout of
+  // 50 ms), so a question the drop puts up cannot be answered by a click sent at once; a person never clicks that fast
+  await p.waitForTimeout(80);
 }
 
 export async function openDocs(s) {

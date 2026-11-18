@@ -807,13 +807,8 @@ export default {
 
     await s.step('Drag: Move and cancel run cancels the run and moves the card', async () => {
       const ask = await dragAsk(2, 'To Do');
-      // a click that lands while the card of the going run re-renders can be lost (seen in 2 of 12 runs, never
-      // reproduced with the click traced): the question stays up and nothing was sent, so click again
-      for (let attempt = 0; ; attempt++) {
-        await ask.getByTestId('drag-confirm-move').click();
-        if (await ask.waitFor({ state: 'detached', timeout: 3000 }).then(() => true, () => false)) break;
-        if (attempt >= 3) throw new Error('Move and cancel run did not answer the question');
-      }
+      await ask.getByTestId('drag-confirm-move').click();
+      await ask.waitFor({ state: 'detached' });
       await until(async () => (await runningRuns()).length === 0, 'the run cancelled');
       await until(async () => {
         const all = (await api('GET', `/projects/${ids.project}/tickets`)).json;
