@@ -16,6 +16,40 @@
         "full": null
       }
     },
+    "margins": {
+      "default": "normal",
+      "values": [
+        "tight",
+        "normal",
+        "roomy"
+      ],
+      "note": "the room around the text column"
+    },
+    "blockSpacing": {
+      "default": "normal",
+      "values": [
+        "tight",
+        "normal",
+        "roomy"
+      ],
+      "note": "the space between blocks"
+    },
+    "view": {
+      "default": "continuous",
+      "values": [
+        "continuous",
+        "paged"
+      ],
+      "note": "paged adds page breaks for print and PDF; reading stays continuous"
+    },
+    "editorOutline": {
+      "default": true,
+      "values": [
+        true,
+        false
+      ],
+      "note": "the headings beside the page in the editor"
+    },
     "background": {
       "default": "white",
       "values": [
@@ -62,6 +96,11 @@
         "l"
       ]
     },
+    "baseSize": {
+      "default": null,
+      "shape": "number 12..22 (CSS px, steps of 0.5)",
+      "note": "null = the text size step; wins over textSize when set"
+    },
     "lineHeight": {
       "default": 1.6,
       "values": [
@@ -70,6 +109,31 @@
         1.8,
         2.0
       ]
+    },
+    "paragraphs": {
+      "default": "space",
+      "values": [
+        "space",
+        "indent"
+      ],
+      "note": "space between paragraphs, or a first-line indent"
+    },
+    "textAlign": {
+      "default": "left",
+      "values": [
+        "left",
+        "center",
+        "right",
+        "justify"
+      ]
+    },
+    "dropCap": {
+      "default": false,
+      "values": [
+        true,
+        false
+      ],
+      "note": "a drop cap on the first paragraph"
     },
     "showOutline": {
       "default": true,
@@ -81,9 +145,13 @@
     "cover": {
       "default": null,
       "shape": {
-        "src": "string",
+        "src": "string (or none with a colour)",
+        "color": "#rrggbb (a colour cover, instead of a picture)",
+        "positionX": "number 0..100",
         "positionY": "number 0..100",
-        "height": "s|m|l",
+        "height": "s|m|l|full",
+        "fit": "fill|fit",
+        "dim": "number 0..80 (per cent of black over the picture)",
         "titleOnCover": "boolean"
       }
     },
@@ -100,16 +168,32 @@
         "eyebrow"
       ]
     },
+    "titleSize": {
+      "default": "standard",
+      "values": [
+        "standard",
+        "large",
+        "huge"
+      ]
+    },
     "titleAlign": {
       "default": "left",
       "values": [
         "left",
-        "center"
+        "center",
+        "right"
       ]
     },
     "eyebrow": {
       "default": null,
       "note": "the small line above the title (ENGINEERING NOTES)"
+    },
+    "showTitle": {
+      "default": true,
+      "values": [
+        true,
+        false
+      ]
     },
     "showByline": {
       "default": true,
@@ -124,6 +208,22 @@
         true,
         false
       ]
+    },
+    "showEditedBy": {
+      "default": true,
+      "values": [
+        true,
+        false
+      ],
+      "note": "the 'Edited by … · 2h ago' line"
+    },
+    "outlineDepth": {
+      "default": 3,
+      "values": [
+        2,
+        3
+      ],
+      "note": "the deepest heading level in 'On this page'"
     },
     "highlights": {
       "default": "comment",

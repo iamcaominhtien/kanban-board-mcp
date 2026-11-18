@@ -30,16 +30,22 @@ fn allowed(key: &str, value: &Value) -> bool {
     }
     let short_text = |v: &Value| v.as_str().is_some_and(|s| s.chars().count() <= MAX_TEXT);
     match key {
+        // a picture (`src`) or a plain colour (`color`), with where it sits, how high, how it fits and how dim
         "cover" => value.as_object().is_some_and(|o| {
-            o.get("src").is_some_and(short_text)
+            (o.get("src").is_some_and(short_text) || o.get("color").is_some_and(is_hex_colour))
                 && o.iter().all(|(k, v)| match k.as_str() {
                     "src" => short_text(v),
-                    "positionY" => v.as_f64().is_some_and(|n| (0.0..=100.0).contains(&n)),
-                    "height" => matches!(v.as_str(), Some("s" | "m" | "l")),
+                    "color" => is_hex_colour(v),
+                    "positionX" | "positionY" => v.as_f64().is_some_and(|n| (0.0..=100.0).contains(&n)),
+                    "height" => matches!(v.as_str(), Some("s" | "m" | "l" | "full")),
+                    "fit" => matches!(v.as_str(), Some("fill" | "fit")),
+                    "dim" => v.as_f64().is_some_and(|n| (0.0..=80.0).contains(&n)),
                     "titleOnCover" => v.is_boolean(),
                     _ => false,
                 })
         }),
+        // CSS px in steps of half a pixel
+        "baseSize" => half_step(value, 12.0, 22.0),
         "book" => value.as_object().is_some_and(|o| {
             o.iter().all(|(k, v)| matches!(k.as_str(), "isBook" | "numberChapters") && v.is_boolean())
         }),
@@ -54,6 +60,16 @@ fn allowed(key: &str, value: &Value) -> bool {
         }),
         _ => false,
     }
+}
+
+/// Whether `value` is a `#rrggbb` colour.
+fn is_hex_colour(value: &Value) -> bool {
+    value.as_str().is_some_and(|s| s.len() == 7 && s.starts_with('#') && s[1..].bytes().all(|c| c.is_ascii_hexdigit()))
+}
+
+/// Whether `value` is a number from `min` to `max` (both included) in steps of 0.5.
+fn half_step(value: &Value, min: f64, max: f64) -> bool {
+    value.as_f64().is_some_and(|n| (min..=max).contains(&n) && (n * 2.0).fract() == 0.0)
 }
 
 /// A page's settings as stored (an object; `{}` when none or unreadable).
@@ -108,6 +124,20 @@ mod tests {
         assert!(allowed("cover", &json!({"src": "/uploads/a.png", "positionY": 30, "height": "m"})));
         assert!(!allowed("cover", &json!({"positionY": 30})));
         assert!(!allowed("cover", &json!({"src": "/a.png", "other": 1})));
+        assert!(allowed(
+            "cover",
+            &json!({"color": "#2E6F40", "height": "full", "fit": "fit", "dim": 20, "positionX": 0})
+        ));
+        assert!(!allowed("cover", &json!({"color": "green"})));
+        assert!(!allowed("cover", &json!({"src": "/a.png", "dim": 95})));
+        assert!(allowed("baseSize", &json!(17)));
+        assert!(allowed("baseSize", &json!(14.5)));
+        assert!(!allowed("baseSize", &json!(14.2)));
+        assert!(!allowed("baseSize", &json!(40)));
+        assert!(allowed("margins", &json!("roomy")));
+        assert!(allowed("outlineDepth", &json!(2)));
+        assert!(!allowed("outlineDepth", &json!(4)));
+        assert!(allowed("titleAlign", &json!("right")));
         assert!(allowed("book", &json!({"isBook": true})));
         assert!(allowed("eyebrow", &json!("ENGINEERING NOTES")));
         assert!(!allowed("nope", &json!(1)));

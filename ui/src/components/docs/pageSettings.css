@@ -1,0 +1,490 @@
+/* Page settings as the Start board draws it (frames 11-15): a 360 px panel; a 15 px icon over each tab name; pill
+   segments (#EEF3EF, 2 px pad, 28 px white segments); 76 px width cards; a 4 px green slider; 30 px alignment
+   buttons; 44 px switch rows; a foot with "Save as template…" as a green link. Rules over docs.css carry `.dk-ps`. */
+
+.dk-ps-aside {
+  width: 360px;
+}
+.dk-ps .dk-ps-head {
+  align-items: center;
+  padding: 14px 16px 10px;
+}
+.dk-ps .dk-ps-reset-link {
+  min-height: 32px;
+  color: #5b6b60;
+}
+.dk-ps .dk-ps-reset-link:disabled {
+  color: #9aa8a0;
+}
+.dk-ps .dk-ps-close {
+  width: 32px;
+  height: 32px;
+  color: #5b6b60;
+}
+
+/* tabs: each flex 1, 40 px high, a 15 px icon over a 10.5/700 name */
+.dk-ps .dk-ps-tabs {
+  padding: 0;
+}
+.dk-ps .dk-ps-tab {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #5b6b60;
+  border-bottom: 2px solid transparent;
+}
+.dk-ps .dk-ps-tab-on {
+  color: #1f5a31;
+  border-bottom-color: #2e6f40;
+}
+
+.dk-ps .dk-ps-fields {
+  padding: 16px;
+  gap: 16px;
+}
+.dk-ps .dk-ps-fields-text {
+  gap: 15px;
+}
+.dk-ps .dk-ps-fields-cover {
+  gap: 14px;
+}
+.dk-ps .dk-ps-fields-header {
+  gap: 9px;
+}
+.dk-ps-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dk-ps-label .st-field-label {
+  flex: 1;
+}
+.dk-ps-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  color: #1e2a22;
+}
+.dk-ps-hint {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #5b6b60;
+}
+
+/* pill segments */
+.dk-ps .dk-ps-seg {
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: #eef3ef;
+}
+.dk-ps .dk-ps-seg .dk-seg-btn {
+  min-height: 28px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  white-space: nowrap;
+}
+.dk-ps .dk-ps-seg .dk-seg-on {
+  background: #ffffff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.14);
+}
+
+/* page width cards: 76 px, a 58 × 38 page with a white text column */
+.dk-ps .dk-ps-widths {
+  gap: 6px;
+}
+.dk-ps .dk-ps-width {
+  flex: 1;
+  max-width: 76px;
+  gap: 6px;
+  padding: 8px 6px 7px;
+  border: 1px solid #dce3de;
+  border-radius: 10px;
+}
+.dk-ps .dk-ps-width-on {
+  border: 2px solid #2e6f40;
+  padding: 7px 5px 6px;
+  background: #f1f8f3;
+}
+.dk-ps .dk-ps-width-page {
+  width: 58px;
+  height: 38px;
+  border-radius: 4px;
+  border: 1px solid #c7d2cb;
+  background: #f6faf7;
+  align-items: stretch;
+  padding: 5px 0;
+}
+.dk-ps .dk-ps-width-page > span {
+  gap: 2px;
+  padding: 3px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid #dce3de;
+}
+.dk-ps .dk-ps-width-page > span > span {
+  height: 2px;
+  border-radius: 0;
+  background: #dce6df;
+}
+.dk-ps .dk-ps-width-page > span > span:first-child,
+.dk-ps .dk-ps-width-on .dk-ps-width-page > span > span:first-child {
+  background: #9aa8a0;
+}
+.dk-ps .dk-ps-width-on .dk-ps-width-page {
+  border-color: #c7d2cb;
+}
+.dk-ps .dk-ps-width-on .dk-ps-width-page > span > span {
+  background: #dce6df;
+}
+.dk-ps .dk-ps-width-name {
+  font-size: 12px;
+  font-weight: 700;
+}
+.dk-ps .dk-ps-width-px {
+  font-size: 10px;
+}
+
+/* switch rows: 44 px, a 13/600 name over an 11.5 line */
+.dk-ps .dk-switch-row {
+  min-height: 44px;
+  font-size: 13px;
+}
+.dk-ps .dk-switch-text .st-hint {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #5b6b60;
+}
+
+/* font pairing cards (158 px, 24 px Aa) and the two font selects side by side */
+.dk-ps .dk-ps-card {
+  padding: 9px 11px;
+  border-radius: 10px;
+}
+.dk-ps .dk-ps-card-on {
+  border: 2px solid #2e6f40;
+  padding: 8px 10px;
+  box-shadow: none;
+  background: #f1f8f3;
+}
+.dk-ps .dk-ps-card b {
+  margin-top: 2px;
+  font-size: 12.5px;
+}
+.dk-ps-card-note {
+  font-size: 11px;
+  color: #5b6b60;
+}
+.dk-ps .dk-ps-aa {
+  font-size: 24px;
+}
+.dk-ps-pair-row {
+  display: flex;
+  gap: 8px;
+}
+.dk-ps-pair-row > .dk-ps-field {
+  flex: 1;
+  min-width: 0;
+}
+.dk-ps .dk-ps-select {
+  min-height: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border-color: #c7d2cb;
+  font-size: 13.5px;
+}
+
+/* the slider: a 4 px #DCE6DF track filled in green to the value, a 16 px white thumb with a green ring */
+.dk-ps-slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.dk-ps-a-small {
+  font-size: 11px;
+  font-weight: 700;
+}
+.dk-ps-a-big {
+  font-size: 16px;
+  font-weight: 700;
+}
+.dk-ps .dk-ps-range {
+  flex: 1;
+  min-width: 0;
+  height: 16px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+.dk-ps .dk-ps-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 3px;
+  background: linear-gradient(to right, #2e6f40 var(--pct, 0%), #dce6df var(--pct, 0%));
+}
+.dk-ps .dk-ps-range::-moz-range-track {
+  height: 4px;
+  border-radius: 3px;
+  background: linear-gradient(to right, #2e6f40 var(--pct, 0%), #dce6df var(--pct, 0%));
+}
+.dk-ps .dk-ps-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #2e6f40;
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.25);
+  box-sizing: border-box;
+}
+.dk-ps .dk-ps-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #2e6f40;
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.25);
+  box-sizing: border-box;
+}
+.dk-ps fieldset:disabled .dk-ps-range {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* alignment: 30 px icon buttons, on #EAF0EC */
+.dk-ps-aligns {
+  display: flex;
+  gap: 4px;
+}
+.dk-ps-align {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.dk-ps-align:hover {
+  background: #f1f5f2;
+}
+.dk-ps-align-on,
+.dk-ps-align-on:hover {
+  background: #eaf0ec;
+  color: #1e2a22;
+}
+.dk-ps-rule {
+  height: 1px;
+  background: #e3e8e5;
+  flex-shrink: 0;
+}
+.dk-ps-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* the cover: a 118 px preview with a focal point and "Drag to reposition"; sources; a 3 × 3 position grid */
+.dk-ps .dk-ps-cover {
+  position: relative;
+  height: 118px;
+  border-radius: 9px;
+  overflow: hidden;
+  flex-shrink: 0;
+  touch-action: none;
+  cursor: crosshair;
+}
+.dk-ps-cover-dot {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -11px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.dk-ps-cover-tip {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  background: rgba(30, 42, 34, 0.78);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  pointer-events: none;
+}
+.dk-ps .dk-ps-cover-none {
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 24px;
+  text-align: center;
+  border: 1.5px dashed #c7d2cb;
+  background: #f6faf7;
+  color: #5b6b60;
+  font-size: 12px;
+  line-height: 1.45;
+  box-sizing: border-box;
+}
+.dk-ps-source {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 2px;
+}
+.dk-ps-source > .st-btn {
+  align-self: flex-start;
+}
+.dk-ps-thumb-on {
+  outline: 2px solid #2e6f40;
+  outline-offset: 1px;
+}
+.dk-ps-cover-colours {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+.dk-ps-cover-colour {
+  height: 28px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.dk-ps-cover-colour-on {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4px #2e6f40;
+}
+.dk-ps-sub {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.dk-ps-cover-grid-row {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+.dk-ps-cover-fit {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dk-ps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 22px);
+  gap: 4px;
+}
+.dk-ps-grid-cell {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid #dce3de;
+  background: #ffffff;
+  cursor: pointer;
+  padding: 0;
+}
+.dk-ps-grid-cell:hover:not(:disabled) {
+  border-color: #2e6f40;
+}
+.dk-ps-grid-on {
+  border-color: #2e6f40;
+  background: #2e6f40;
+}
+.dk-ps-sub:disabled .dk-ps-grid-cell,
+.dk-ps-grid-cell:disabled {
+  cursor: default;
+}
+.dk-ps-sub:disabled {
+  opacity: 0.55;
+}
+.dk-ps-input {
+  min-height: 34px;
+  font-size: 13px;
+}
+
+/* the foot: "Save as template…" as a green link with its icon, Done at the right */
+.dk-ps .dk-ps-foot {
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+}
+.dk-ps-template {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2e6f40;
+  cursor: pointer;
+  text-align: left;
+}
+.dk-ps-template:hover {
+  text-decoration: underline;
+}
+
+/* a phone sheet keeps its 52 px tabs (Shell 17) and 44 px controls */
+.dk-sheet .dk-ps .dk-ps-tab {
+  height: 52px;
+  gap: 3px;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.dk-sheet .dk-ps .dk-ps-tab-on {
+  color: #1e2a22;
+  font-weight: 700;
+}
+.dk-sheet .dk-ps .dk-ps-seg .dk-seg-btn,
+.dk-drawer .dk-ps .dk-ps-seg .dk-seg-btn {
+  min-height: 40px;
+  height: 40px;
+}
+.dk-sheet .dk-ps .dk-ps-reset-link,
+.dk-sheet .dk-ps .dk-ps-close {
+  min-height: 44px;
+  height: 44px;
+}
+.dk-sheet .dk-ps .dk-ps-close {
+  width: 44px;
+}
+.dk-sheet .dk-ps .dk-ps-head {
+  padding: 6px 12px 8px 20px;
+}

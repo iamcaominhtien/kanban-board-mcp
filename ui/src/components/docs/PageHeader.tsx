@@ -6,8 +6,9 @@
 
 import type { CSSProperties, ReactNode } from 'react';
 import { resolveOrigin } from '../../api/resolveOrigin';
-import { COVER_PX, coverUrl, type PageLook } from './pageSettings';
+import { COVER_PX, coverStyle, type PageLook } from './pageSettings';
 import './docFonts.css';
+import './pageLook.css';
 
 /** The author line under the title. */
 export interface Byline {
@@ -36,7 +37,7 @@ interface Props {
  * @param look - The page's settings.
  */
 export function titleClass(look: PageLook): string {
-  return `dk-ph-title dk-ph-title-${look.titleStyle}`;
+  return `dk-ph-title dk-ph-title-${look.titleStyle}${look.titleSize !== 'standard' ? ` dk-ph-size-${look.titleSize}` : ''}${look.showTitle ? '' : ' dk-ph-title-hidden'}`;
 }
 
 /** "12 Nov 2026". */
@@ -58,7 +59,12 @@ export function PageHeader({ look, title, byline, fallbackEyebrow }: Props) {
   const by = look.showByline && byline ? byline : null;
   const date = by ? bylineDate(by.date) : '';
   const head = (
-    <header className={`dk-ph dk-ph-${look.titleAlign}`} data-testid="page-header" data-title-style={look.titleStyle}>
+    <header
+      className={`dk-ph dk-ph-${look.titleAlign}`}
+      data-testid="page-header"
+      data-title-style={look.titleStyle}
+      data-title-size={look.titleSize}
+    >
       {eyebrow && (
         <div className="dk-ph-eyebrow" data-testid="page-eyebrow">
           {eyebrow}
@@ -97,11 +103,7 @@ export function PageHeader({ look, title, byline, fallbackEyebrow }: Props) {
   );
   const cover = look.cover;
   if (!cover) return head;
-  const style: CSSProperties = {
-    height: COVER_PX[cover.height],
-    backgroundImage: `url("${coverUrl(cover.src, resolveOrigin())}")`,
-    backgroundPosition: `center ${cover.positionY}%`,
-  };
+  const style: CSSProperties = { height: COVER_PX[cover.height], ...coverStyle(cover, resolveOrigin()) };
   return (
     <>
       <div

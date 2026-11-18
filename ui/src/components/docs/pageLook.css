@@ -1,0 +1,88 @@
+/* A page drawn with the Text and Header settings that go beyond fonts and colours (Start board, frames 11-15):
+   title size and alignment, a hidden title, the space between blocks, first-line indents, text alignment and a
+   drop cap on the first paragraph. The values come from lookClass() and lookVars() (pageSettings.ts). */
+
+/* title alignment: right */
+.dk-ph-right {
+  align-items: flex-end;
+  text-align: right;
+}
+
+/* title size: Large and Huge scale each title style (--dp-title-scale is 1.2 or 1.45) */
+.dk-ph-title.dk-ph-size-large,
+.dk-ph-title.dk-ph-size-huge {
+  font-size: calc(var(--dp-size, 14.5px) * 2.2 * var(--dp-title-scale, 1));
+}
+.dk-ph-title-serif.dk-ph-size-large,
+.dk-ph-title-serif.dk-ph-size-huge {
+  font-size: calc(var(--dp-size, 14.5px) * 2.55 * var(--dp-title-scale, 1));
+}
+.dk-ph-title-display.dk-ph-size-large,
+.dk-ph-title-display.dk-ph-size-huge {
+  font-size: calc(var(--dp-size, 14.5px) * 2.5 * var(--dp-title-scale, 1));
+}
+.dk-ph-center[data-title-style='eyebrow'] .dk-ph-title.dk-ph-size-large,
+.dk-ph-center[data-title-style='eyebrow'] .dk-ph-title.dk-ph-size-huge {
+  font-size: calc(var(--dp-size, 14.5px) * 2.29 * var(--dp-title-scale, 1));
+}
+.dk-layout-phone .dk-ph-title.dk-ph-size-large,
+.dk-layout-phone .dk-ph-title.dk-ph-size-huge {
+  font-size: calc(var(--dp-size, 14.5px) * 1.9 * var(--dp-title-scale, 1));
+}
+
+/* "Show the title" off: readers do not see it (screen readers still do); the editor keeps its field, faded */
+h1.dk-ph-title-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.dk-ph-title-hidden.dk-title-input {
+  opacity: 0.5;
+}
+
+/* spacing between blocks: Tight and Roomy (Normal keeps the reader's own) */
+.dk-paged.dk-sp-tight .dk-md p,
+.dk-paged.dk-sp-roomy .dk-md p,
+.dk-paged.dk-sp-tight .dk-md .ProseMirror > *,
+.dk-paged.dk-sp-roomy .dk-md .ProseMirror > *,
+.dk-paged.dk-sp-tight .dk-rich > *,
+.dk-paged.dk-sp-roomy .dk-rich > * {
+  margin-bottom: var(--dp-block-space);
+}
+
+/* paragraphs: a first-line indent instead of a space between paragraphs */
+.dk-paged.dk-para-indent .dk-md p {
+  margin-bottom: 0;
+}
+.dk-paged.dk-para-indent .dk-md p + p {
+  text-indent: 1.6em;
+}
+
+/* text alignment of the paragraphs */
+.dk-paged.dk-ta-center .dk-md p {
+  text-align: center;
+}
+.dk-paged.dk-ta-right .dk-md p {
+  text-align: right;
+}
+.dk-paged.dk-ta-justify .dk-md p {
+  text-align: justify;
+  hyphens: auto;
+}
+
+/* a drop cap on the first paragraph of the page (the paragraph drop cap of the editor: 3 lines, link green) */
+.dk-paged.dk-page-dropcap .dk-rich > p:first-of-type::first-letter,
+.dk-paged.dk-page-dropcap .dk-md:not(.dk-rich) > p:first-of-type::first-letter,
+.dk-paged.dk-page-dropcap .dk-md .ProseMirror > p:first-of-type::first-letter {
+  float: left;
+  font-size: 3.54em;
+  font-weight: 700;
+  font-family: var(--dp-heading-font, inherit);
+  color: var(--dp-link, #2e6f40);
+  line-height: 0.82;
+  padding: 3px 7px 0 0;
+  margin: 0;
+}

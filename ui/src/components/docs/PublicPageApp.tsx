@@ -12,7 +12,7 @@ import { markdownToDoc } from '../../richdoc';
 import type { RichDoc } from '../../types/docs';
 import { BottomSheet } from './DocsSheets';
 import { PageHeader, titleClass } from './PageHeader';
-import { lookClass, lookVars, readPageLook, readingMinutes, TEXT_SIZE_PX } from './pageSettings';
+import { lookClass, lookVars, readPageLook, readingMinutes } from './pageSettings';
 import { shortDate } from './pageStatus';
 import { docHeadings, publicDoc, setRobots } from './publicView';
 import { PlainRefsCtx } from './readerParts';
@@ -146,7 +146,7 @@ function PublicPageView({ page }: { page: PublicPage }) {
     }
   }
 
-  const panel = <ReaderSettingsPanel prefs={prefs} onChange={setPrefs} pagePx={TEXT_SIZE_PX[pageLook.textSize]} />;
+  const panel = <ReaderSettingsPanel prefs={prefs} onChange={setPrefs} pagePx={pageLook.sizePx} />;
   return (
     <div ref={setRootEl} className="dk-public docs-root" data-testid="public-page" data-layout={layout}>
       <style>{readerThemeCss()}</style>
@@ -196,7 +196,7 @@ function PublicPageView({ page }: { page: PublicPage }) {
             <ReaderSettingsPopover
               prefs={prefs}
               onChange={setPrefs}
-              pagePx={TEXT_SIZE_PX[pageLook.textSize]}
+              pagePx={pageLook.sizePx}
               onClose={() => setReaderOpen(false)}
             />
           )}

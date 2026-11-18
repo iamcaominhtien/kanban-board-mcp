@@ -12,6 +12,7 @@ import {
   contrastRatio,
   foldCrumbs,
   isWidePage,
+  lookClass,
   lookVars,
   mergeSettings,
   readPageLook,
@@ -64,7 +65,44 @@ describe('readPageLook', () => {
 
   it('reads a cover and keeps its position within 0..100', () => {
     const look = readPageLook({ cover: { src: '/uploads/a.png', positionY: 140, height: 'l', titleOnCover: true } });
-    expect(look.cover).toEqual({ src: '/uploads/a.png', positionY: 100, height: 'l', titleOnCover: true });
+    expect(look.cover).toEqual({
+      src: '/uploads/a.png',
+      color: null,
+      positionX: 50,
+      positionY: 100,
+      height: 'l',
+      fit: 'fill',
+      dim: 0,
+      titleOnCover: true,
+    });
+  });
+
+  it('reads the Layout, Text and Header settings beyond the look of before', () => {
+    const look = readPageLook({
+      baseSize: 17,
+      textSize: 's',
+      margins: 'roomy',
+      blockSpacing: 'tight',
+      paragraphs: 'indent',
+      textAlign: 'justify',
+      dropCap: true,
+      titleSize: 'huge',
+      titleAlign: 'right',
+      showTitle: false,
+      showEditedBy: false,
+      outlineDepth: 2,
+      editorOutline: false,
+      cover: { color: '#2E6F40', height: 'full' },
+    });
+    expect(look).toMatchObject({ sizePx: 17, margins: 'roomy', titleAlign: 'right', outlineDepth: 2 });
+    expect(look.cover).toMatchObject({ src: '', color: '#2E6F40', height: 'full' });
+    expect(lookVars(look)['--dp-size' as never]).toBe('17px');
+    expect(lookVars(look)['--dp-col' as never]).toBe('584px');
+    expect(lookClass(look)).toContain('dk-sp-tight');
+    expect(lookClass(look)).toContain('dk-para-indent');
+    expect(lookClass(look)).toContain('dk-ta-justify');
+    expect(lookClass(look)).toContain('dk-page-dropcap');
+    expect(readPageLook({ baseSize: 40, textSize: 'l' }).sizePx).toBe(16.5);
   });
 });
 

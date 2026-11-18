@@ -13,16 +13,31 @@ export type PageFont =
   'jakarta' | 'lora' | 'source-serif' | 'merriweather' | 'playfair' | 'inter' | 'jetbrains-mono' | 'caveat';
 export type TextSize = 's' | 'm' | 'l';
 export type TitleStyle = 'plain' | 'serif' | 'display' | 'eyebrow';
-export type TitleAlign = 'left' | 'center';
-export type CoverHeight = 's' | 'm' | 'l';
+export type TitleAlign = 'left' | 'center' | 'right';
+export type TitleSize = 'standard' | 'large' | 'huge';
+export type CoverHeight = 's' | 'm' | 'l' | 'full';
+export type CoverFit = 'fill' | 'fit';
+/** Three steps of room, for the margins and the space between blocks. */
+export type Room = 'tight' | 'normal' | 'roomy';
+export type PageView = 'continuous' | 'paged';
+export type Paragraphs = 'space' | 'indent';
+export type TextAlign = 'left' | 'center' | 'right' | 'justify';
 
-/** The `cover` setting: a picture above the title. */
+/** The `cover` setting: a picture (or a plain colour) above the title. */
 export interface PageCover {
-  /** `/uploads/...` (an upload of this board) or an `https:` link. */
+  /** `/uploads/...` (an upload of this board) or an `https:` link; empty for a colour cover. */
   src: string;
+  /** A colour cover (`#rrggbb`) instead of a picture; null for a picture. */
+  color: string | null;
+  /** Horizontal position of the picture in the frame, 0 (left) to 100 (right). */
+  positionX: number;
   /** Vertical position of the picture in the frame, 0 (top) to 100 (bottom). */
   positionY: number;
   height: CoverHeight;
+  /** `fill` crops the picture to the frame, `fit` shows all of it. */
+  fit: CoverFit;
+  /** Per cent of black laid over the picture, 0 to 80. */
+  dim: number;
   /** The title (and its eyebrow) sits on the picture. */
   titleOnCover: boolean;
 }
@@ -35,16 +50,33 @@ export interface PageLook {
   /** `null`: the body font. */
   headingFont: PageFont | null;
   textSize: TextSize;
+  /** The body text size in CSS px: `baseSize` when the page set one, else its `textSize` step. */
+  sizePx: number;
+  /** The page chose a size in px (`baseSize`). */
+  baseSizeSet: boolean;
   lineHeight: number;
   /** The page chose a line height (a page without one keeps the reader's own, 1.7). */
   lineHeightSet: boolean;
   showOutline: boolean;
+  /** The deepest heading level in "On this page" (2 or 3). */
+  outlineDepth: 2 | 3;
+  /** The headings beside the page in the editor. */
+  editorOutline: boolean;
+  margins: Room;
+  blockSpacing: Room;
+  view: PageView;
+  paragraphs: Paragraphs;
+  textAlign: TextAlign;
+  dropCap: boolean;
   cover: PageCover | null;
   titleStyle: TitleStyle;
+  titleSize: TitleSize;
   titleAlign: TitleAlign;
   eyebrow: string | null;
+  showTitle: boolean;
   showByline: boolean;
   showReadingTime: boolean;
+  showEditedBy: boolean;
 }
 
 /** A change sent to the server: a key with its new value, or `null` to go back to the default. */
@@ -57,14 +89,26 @@ export const LOOK_KEYS = [
   'bodyFont',
   'headingFont',
   'textSize',
+  'baseSize',
   'lineHeight',
   'showOutline',
+  'outlineDepth',
+  'editorOutline',
+  'margins',
+  'blockSpacing',
+  'view',
+  'paragraphs',
+  'textAlign',
+  'dropCap',
   'cover',
   'titleStyle',
+  'titleSize',
   'titleAlign',
   'eyebrow',
+  'showTitle',
   'showByline',
   'showReadingTime',
+  'showEditedBy',
 ] as const;
 export type LookKey = (typeof LOOK_KEYS)[number];
 
@@ -143,6 +187,29 @@ export const TEXT_SIZES: readonly TextSize[] = ['s', 'm', 'l'];
 /** Body text size of each step in CSS pixels; `m` is the reader's own 14.5. */
 export const TEXT_SIZE_PX: Record<TextSize, number> = { s: 13.5, m: 14.5, l: 16.5 };
 
+/** The base size slider: 12 to 22 px in half pixels. */
+export const BASE_SIZE_MIN = 12;
+export const BASE_SIZE_MAX = 22;
+
+export const ROOMS: readonly { value: Room; label: string }[] = [
+  { value: 'tight', label: 'Tight' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'roomy', label: 'Roomy' },
+];
+
+/** The room each Margins step adds to (or takes from) the text column, in CSS px; Full pages change their gutter. */
+const MARGIN_COL_PX: Record<Room, number> = { tight: 64, normal: 0, roomy: -96 };
+const MARGIN_GUTTER_PX: Record<Room, number> = { tight: 24, normal: 48, roomy: 160 };
+/** The space after a paragraph or a block, in em of the text, for each Spacing step. */
+const BLOCK_SPACE_EM: Record<Room, number> = { tight: 0.45, normal: 0.85, roomy: 1.4 };
+
+/** The size of the title against the text for each Title size step. */
+export const TITLE_SIZES: readonly { value: TitleSize; label: string; scale: number }[] = [
+  { value: 'standard', label: 'Standard', scale: 1 },
+  { value: 'large', label: 'Large', scale: 1.2 },
+  { value: 'huge', label: 'Huge', scale: 1.45 },
+];
+
 export const LINE_HEIGHTS: readonly { value: number; label: string }[] = [
   { value: 1.4, label: 'Tight' },
   { value: 1.6, label: 'Normal' },
@@ -158,8 +225,8 @@ export const TITLE_STYLES: readonly { value: TitleStyle; label: string }[] = [
 ];
 
 /** Cover height of each step in CSS pixels. */
-export const COVER_PX: Record<CoverHeight, number> = { s: 160, m: 240, l: 320 };
-export const COVER_LABEL: Record<CoverHeight, string> = { s: 'Short', m: 'Medium', l: 'Tall' };
+export const COVER_PX: Record<CoverHeight, number> = { s: 160, m: 240, l: 320, full: 480 };
+export const COVER_LABEL: Record<CoverHeight, string> = { s: 'Short', m: 'Medium', l: 'Tall', full: 'Full' };
 
 export const TEXT_COLOR_NAMES = [
   'ink',
@@ -308,6 +375,7 @@ const SURFACE: Record<PageBackground, { text: string; muted: string; rule: strin
   night: { text: '#C9D6CD', muted: '#A9B8AE', rule: '#2E3A32', surface: '#1F2C23' },
 };
 
+const HEX = /^#[0-9a-fA-F]{6}$/;
 const pick = <T>(v: unknown, allowed: readonly T[], fallback: T): T => (allowed.includes(v as T) ? (v as T) : fallback);
 const bool = (v: unknown, fallback: boolean) => (typeof v === 'boolean' ? v : fallback);
 
@@ -321,30 +389,53 @@ export function readPageLook(settings?: Record<string, unknown> | null): PageLoo
   const lh = s.lineHeight;
   const lineHeightSet = typeof lh === 'number' && LINE_HEIGHTS.some((l) => l.value === lh);
   const c = s.cover as Partial<PageCover> | null | undefined;
-  const cover =
-    c && typeof c === 'object' && typeof c.src === 'string' && c.src
+  const pos = (v: unknown) => (typeof v === 'number' ? Math.min(100, Math.max(0, v)) : 50);
+  const colour = c && typeof c === 'object' && typeof c.color === 'string' && HEX.test(c.color) ? c.color : null;
+  const cover: PageCover | null =
+    c && typeof c === 'object' && ((typeof c.src === 'string' && c.src) || colour)
       ? {
-          src: c.src,
-          positionY: typeof c.positionY === 'number' ? Math.min(100, Math.max(0, c.positionY)) : 50,
-          height: pick(c.height, ['s', 'm', 'l'] as const, 'm'),
+          src: typeof c.src === 'string' ? c.src : '',
+          color: colour,
+          positionX: pos(c.positionX),
+          positionY: pos(c.positionY),
+          height: pick(c.height, ['s', 'm', 'l', 'full'] as const, 'm'),
+          fit: pick(c.fit, ['fill', 'fit'] as const, 'fill'),
+          dim: typeof c.dim === 'number' ? Math.min(80, Math.max(0, c.dim)) : 0,
           titleOnCover: bool(c.titleOnCover, false),
         }
       : null;
+  const textSize = pick(s.textSize, TEXT_SIZES, 'm');
+  const bs = s.baseSize;
+  const baseSizeSet = typeof bs === 'number' && bs >= BASE_SIZE_MIN && bs <= BASE_SIZE_MAX;
+  const rooms = ['tight', 'normal', 'roomy'] as const;
   return {
     width: pick(s.width, WIDTHS, 'normal'),
     background: pick(s.background, BACKGROUNDS, 'white'),
     bodyFont: pick(s.bodyFont, FONTS, 'jakarta'),
     headingFont: s.headingFont == null ? null : pick(s.headingFont, FONTS, null as PageFont | null),
-    textSize: pick(s.textSize, TEXT_SIZES, 'm'),
+    textSize,
+    sizePx: baseSizeSet ? (bs as number) : TEXT_SIZE_PX[textSize],
+    baseSizeSet,
     lineHeight: lineHeightSet ? (lh as number) : 1.6,
     lineHeightSet,
     showOutline: bool(s.showOutline, true),
+    outlineDepth: s.outlineDepth === 2 ? 2 : 3,
+    editorOutline: bool(s.editorOutline, true),
+    margins: pick(s.margins, rooms, 'normal'),
+    blockSpacing: pick(s.blockSpacing, rooms, 'normal'),
+    view: pick(s.view, ['continuous', 'paged'] as const, 'continuous'),
+    paragraphs: pick(s.paragraphs, ['space', 'indent'] as const, 'space'),
+    textAlign: pick(s.textAlign, ['left', 'center', 'right', 'justify'] as const, 'left'),
+    dropCap: bool(s.dropCap, false),
     cover,
     titleStyle: pick(s.titleStyle, ['plain', 'serif', 'display', 'eyebrow'] as const, 'plain'),
-    titleAlign: pick(s.titleAlign, ['left', 'center'] as const, 'left'),
+    titleSize: pick(s.titleSize, ['standard', 'large', 'huge'] as const, 'standard'),
+    titleAlign: pick(s.titleAlign, ['left', 'center', 'right'] as const, 'left'),
     eyebrow: typeof s.eyebrow === 'string' && s.eyebrow.trim() ? s.eyebrow : null,
+    showTitle: bool(s.showTitle, true),
     showByline: bool(s.showByline, true),
     showReadingTime: bool(s.showReadingTime, true),
+    showEditedBy: bool(s.showEditedBy, true),
   };
 }
 
@@ -384,9 +475,9 @@ export function lookVars(look: PageLook, layout: DocsLayout = 'desktop'): CSSPro
   const sur = SURFACE[look.background];
   const px = WIDTH_PX[look.width];
   const vars: Record<string, string> = {
-    '--dp-col': layout === 'phone' || px === null ? '100%' : `${px}px`,
+    '--dp-col': layout === 'phone' || px === null ? '100%' : `${px + MARGIN_COL_PX[look.margins]}px`,
     // a tablet keeps 60 px each side (Reader 2, Shell 22 at 820): room for the 44 px block handles beside the text
-    '--dp-gutter': layout === 'phone' ? '32px' : layout === 'tablet' ? '120px' : '48px',
+    '--dp-gutter': layout === 'phone' ? '32px' : layout === 'tablet' ? '120px' : `${MARGIN_GUTTER_PX[look.margins]}px`,
     '--dp-page': pal.page,
     '--dp-ink': pal.ink,
     '--dp-text': sur.text,
@@ -396,8 +487,10 @@ export function lookVars(look: PageLook, layout: DocsLayout = 'desktop'): CSSPro
     '--dp-link': pal.text.green,
     '--dp-body-font': FONT_FAMILY[look.bodyFont],
     '--dp-heading-font': FONT_FAMILY[look.headingFont ?? look.bodyFont],
-    '--dp-size': `${TEXT_SIZE_PX[look.textSize]}px`,
+    '--dp-size': `${look.sizePx}px`,
     '--dp-lh': String(look.lineHeightSet ? look.lineHeight : 1.7),
+    '--dp-block-space': `${BLOCK_SPACE_EM[look.blockSpacing]}em`,
+    '--dp-title-scale': String(TITLE_SIZES.find((t) => t.value === look.titleSize)?.scale ?? 1),
   };
   for (const n of TEXT_COLOR_NAMES) vars[`--rd-c-${n}`] = pal.text[n];
   for (const n of HIGHLIGHT_NAMES) vars[`--rd-hl-${n}`] = pal.highlight[n];
@@ -409,7 +502,32 @@ export function lookVars(look: PageLook, layout: DocsLayout = 'desktop'): CSSPro
  * @param look - The page's settings.
  */
 export function lookClass(look: PageLook): string {
-  return `dk-paged dk-bg-${look.background}${look.bodyFont !== 'jakarta' || look.headingFont ? ' dk-fonted' : ''}`;
+  const extra = [
+    look.bodyFont !== 'jakarta' || look.headingFont ? 'dk-fonted' : '',
+    look.blockSpacing !== 'normal' ? `dk-sp-${look.blockSpacing}` : '',
+    look.paragraphs === 'indent' ? 'dk-para-indent' : '',
+    look.textAlign !== 'left' ? `dk-ta-${look.textAlign}` : '',
+    look.dropCap ? 'dk-page-dropcap' : '',
+  ].filter(Boolean);
+  return `dk-paged dk-bg-${look.background}${extra.length ? ' ' + extra.join(' ') : ''}`;
+}
+
+/**
+ * The CSS of a cover frame: its picture (or colour), where the picture sits, how it fits and how dim it is.
+ * @param cover - The page's cover.
+ * @param origin - The server's origin (resolveOrigin()).
+ */
+export function coverStyle(cover: PageCover, origin: string): CSSProperties {
+  if (cover.color && !cover.src) return { backgroundColor: cover.color };
+  const shade =
+    cover.dim > 0 ? `linear-gradient(rgba(0,0,0,${cover.dim / 100}), rgba(0,0,0,${cover.dim / 100})), ` : '';
+  return {
+    backgroundImage: `${shade}url("${coverUrl(cover.src, origin)}")`,
+    backgroundPosition: `${cover.positionX}% ${cover.positionY}%`,
+    backgroundSize: cover.fit === 'fit' ? 'contain' : 'cover',
+    backgroundRepeat: 'no-repeat',
+    backgroundColor: cover.fit === 'fit' ? '#1e2a22' : undefined,
+  };
 }
 
 /** Relative luminance of a `#rrggbb` colour (WCAG 2). */

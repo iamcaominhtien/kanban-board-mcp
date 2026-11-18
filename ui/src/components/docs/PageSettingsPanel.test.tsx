@@ -95,11 +95,11 @@ describe('PageSettingsPanel', () => {
     // the cached page (what the reader draws) changes before anything is sent
     expect(view().settings).toEqual({ status: 'final', width: 'wide' });
     expect(api.patchPageSettings).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByTestId('ps-size-l'));
+    fireEvent.click(screen.getByTestId('ps-margins-roomy'));
     await flushSave();
     expect(api.patchPageSettings).toHaveBeenCalledTimes(1);
-    expect(api.patchPageSettings).toHaveBeenCalledWith('p1', { width: 'wide', textSize: 'l' });
-    expect(view().settings).toEqual({ status: 'final', width: 'wide', textSize: 'l' });
+    expect(api.patchPageSettings).toHaveBeenCalledWith('p1', { width: 'wide', margins: 'roomy' });
+    expect(view().settings).toEqual({ status: 'final', width: 'wide', margins: 'roomy' });
   });
 
   it('writes the right key from each tab', async () => {
@@ -108,13 +108,26 @@ describe('PageSettingsPanel', () => {
       fireEvent.click(screen.getByTestId(testId));
       await flushSave();
     };
-    await pick('ps-outline');
-    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { showOutline: false });
-    fireEvent.change(screen.getByTestId('ps-body-font'), { target: { value: 'lora' } });
-    await flushSave();
-    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { bodyFont: 'lora' });
+    await pick('ps-spacing-tight');
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { blockSpacing: 'tight' });
+    await pick('ps-view-paged');
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { view: 'paged' });
+    await pick('ps-editor-outline');
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { editorOutline: false });
 
     fireEvent.click(screen.getByTestId('ps-tab-text'));
+    fireEvent.change(screen.getByTestId('ps-text-font'), { target: { value: 'lora' } });
+    await flushSave();
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { bodyFont: 'lora' });
+    fireEvent.change(screen.getByTestId('ps-base-size'), { target: { value: '17' } });
+    await flushSave();
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { baseSize: 17, textSize: null });
+    await pick('ps-paragraphs-indent');
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { paragraphs: 'indent' });
+    await pick('ps-text-align-justify');
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { textAlign: 'justify' });
+    await pick('ps-drop-cap');
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { dropCap: true });
     await pick('ps-pair-editorial');
     expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { bodyFont: null, headingFont: 'source-serif' });
     await pick('ps-lh-1.8');
@@ -128,6 +141,16 @@ describe('PageSettingsPanel', () => {
     expect(screen.getByTestId('ps-palette-highlight').textContent).toContain('Yellow');
 
     fireEvent.click(screen.getByTestId('ps-tab-header'));
+    await pick('ps-title-size-huge');
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { titleSize: 'huge' });
+    await pick('ps-show-title');
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { showTitle: false });
+    await pick('ps-edited-by');
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { showEditedBy: false });
+    await pick('ps-outline-depth-2');
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { outlineDepth: 2 });
+    await pick('ps-outline');
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { showOutline: false });
     await pick('ps-title-style-display');
     expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { titleStyle: 'display' });
     await pick('ps-title-align-center');
@@ -145,12 +168,38 @@ describe('PageSettingsPanel', () => {
     fireEvent.change(link, { target: { value: 'https://example.com/cover.jpg' } });
     fireEvent.submit(link.closest('form')!);
     await flushSave();
+    const cover = {
+      src: 'https://example.com/cover.jpg',
+      positionX: 50,
+      positionY: 50,
+      height: 'm',
+      fit: 'fill',
+      dim: 0,
+      titleOnCover: false,
+    };
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { cover });
+    await pick('ps-cover-height-full');
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { cover: { ...cover, height: 'full' } });
+    await pick('ps-cover-pos-100-0');
     expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', {
-      cover: { src: 'https://example.com/cover.jpg', positionY: 50, height: 'm', titleOnCover: false },
+      cover: { ...cover, height: 'full', positionX: 100, positionY: 0 },
     });
-    await pick('ps-cover-height-l');
+    await pick('ps-cover-fit-fit');
     expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', {
-      cover: { src: 'https://example.com/cover.jpg', positionY: 50, height: 'l', titleOnCover: false },
+      cover: { ...cover, height: 'full', positionX: 100, positionY: 0, fit: 'fit' },
+    });
+    fireEvent.click(screen.getByTestId('ps-cover-source-colour'));
+    await pick('ps-cover-colour-teal');
+    expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', {
+      cover: {
+        color: '#0F766E',
+        height: 'full',
+        positionX: 100,
+        positionY: 0,
+        fit: 'fit',
+        dim: 0,
+        titleOnCover: false,
+      },
     });
     await pick('ps-cover-remove');
     expect(api.patchPageSettings).toHaveBeenLastCalledWith('p1', { cover: null });

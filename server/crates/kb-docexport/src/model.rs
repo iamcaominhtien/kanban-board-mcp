@@ -462,6 +462,7 @@ impl Settings {
                 height_px: match c.get("height").and_then(Value::as_str) {
                     Some("s") => 180,
                     Some("l") => 360,
+                    Some("full") => 480,
                     _ => 260,
                 },
                 title_on_cover: c.get("titleOnCover").and_then(Value::as_bool).unwrap_or(false),

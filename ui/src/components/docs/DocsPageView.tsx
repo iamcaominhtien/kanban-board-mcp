@@ -78,16 +78,7 @@ import { useCommentSuggest } from './comments/commentAi';
 import type { DocsLayout } from '../../hooks/useDocsLayout';
 import { BottomSheet, DocsDrawer } from './DocsSheets';
 import { PageHeader, titleClass } from './PageHeader';
-import {
-  coverUrl,
-  foldCrumbs,
-  isWidePage,
-  lookClass,
-  lookVars,
-  readPageLook,
-  readingMinutes,
-  TEXT_SIZE_PX,
-} from './pageSettings';
+import { coverUrl, foldCrumbs, isWidePage, lookClass, lookVars, readPageLook, readingMinutes } from './pageSettings';
 import { blockOfAnchor, noteOpenPage, revealBlock } from './links/blockAnchor';
 
 export type PageAction = PageMenuAction | 'edit' | 'share';
@@ -271,7 +262,8 @@ export function DocsPageView({
   const commentTotal = commentsData ? commentsData.counts.all + commentsData.counts.page : 0;
   const anyUnread = !!commentsData?.threads.some((t) => t.unread);
   const canComment = !offline && !older && commentsData?.role !== 'viewer' && page.version > 0;
-  const headings = page.headings.filter((h) => h.level <= 3);
+  // the page's Outline depth: headings 2, or 2 and 3
+  const headings = page.headings.filter((h) => h.level <= readPageLook(page.settings).outlineDepth);
   // a page converting to the rich format cannot be edited yet; one whose conversion failed stays read-only
   const lock = offline ? null : convertLock(page);
   const editBlocked = offline
@@ -1073,7 +1065,7 @@ export function DocsPageView({
                     <ReaderSettingsPopover
                       prefs={prefs}
                       onChange={setPrefs}
-                      pagePx={TEXT_SIZE_PX[look.textSize]}
+                      pagePx={look.sizePx}
                       onClose={() => setReaderOpen(false)}
                     />
                   )}
@@ -1259,7 +1251,7 @@ export function DocsPageView({
                 {/* the status: a quiet line under the title (Reader boards, D) */}
                 <div className="dk-statusrow">
                   {statusChips}
-                  {pageInfo}
+                  {readPageLook(page.settings).showEditedBy && pageInfo}
                   {/* a phone has no room in the bar: "N references" joins the status line, its list a sheet (Links F 33) */}
                   {phone && !offline && !older && (
                     <RefsButton pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
@@ -1618,7 +1610,7 @@ export function DocsPageView({
         {phone && readerOpen && (
           <BottomSheet label="Reading" onClose={() => setReaderOpen(false)} testId="reader-sheet" hideTitle look="read">
             <div data-popover>
-              <ReaderSettingsPanel prefs={prefs} onChange={setPrefs} pagePx={TEXT_SIZE_PX[look.textSize]} />
+              <ReaderSettingsPanel prefs={prefs} onChange={setPrefs} pagePx={look.sizePx} />
             </div>
           </BottomSheet>
         )}
