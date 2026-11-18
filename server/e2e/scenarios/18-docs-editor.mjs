@@ -17,7 +17,8 @@ export default {
       await p.keyboard.type('/' + filter);
       const menu = p.getByRole('listbox', { name: 'Insert block' });
       await menu.waitFor();
-      await menu.getByRole('option', { name: optionName }).first().waitFor();
+      // Enter inserts the active option: wait until the filtered list has made the wanted one active
+      await menu.getByRole('option', { name: optionName, selected: true }).first().waitFor();
       await p.keyboard.press('Enter');
       await menu.waitFor({ state: 'detached' });
     };
@@ -222,20 +223,32 @@ export default {
       await saved();
     });
     await s.step('ribbon: a text colour by name, a highlight colour and the alignment of a paragraph', async () => {
-      // the start of the line: the middle of it is the formula's node view, which takes the click
-      // the click must leave the caret in that paragraph (a click that lands while the page still scrolls can leave it
-      // in the code block above): click again until it is there
       const euler = content().locator('p', { hasText: /Euler said/ }).first();
-      const inEuler = () =>
+      // End does not always pass the formula's node view (it is not editable), and Enter then splits the line at its
+      // start: put the caret at the end with a click right of the text, and check a new empty line follows the paragraph
+      const atEnd = () =>
         p.evaluate(() => {
-          const n = document.getSelection()?.anchorNode;
+          const sel = document.getSelection();
+          const n = sel?.anchorNode;
           const el = n && (n.nodeType === 1 ? n : n.parentElement);
-          return !!el?.closest('p') && /Euler said/.test(el.closest('p').textContent);
+          const para = el?.closest('p');
+          if (!para || !/Euler said/.test(para.textContent)) return false;
+          const r = document.createRange();
+          r.selectNodeContents(para);
+          r.setStart(n, sel.anchorOffset);
+          return r.toString() === '';
         });
-      for (let i = 0; i < 4 && !(await inEuler()); i++) await euler.click({ position: { x: 4, y: 8 } });
-      if (!(await inEuler())) throw new Error('the caret is not in the Euler paragraph');
-      await p.keyboard.press('End');
+      const box = await euler.boundingBox();
+      for (let i = 0; i < 4 && !(await atEnd()); i++) await euler.click({ position: { x: box.width - 4, y: box.height / 2 } });
+      if (!(await atEnd())) throw new Error('the caret is not at the end of the Euler paragraph');
+      // the editor takes the browser's caret on the next frames
+      await p.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
       await p.keyboard.press('Enter');
+      await p.waitForFunction(() => {
+        const n = document.getSelection()?.anchorNode;
+        const el = n && (n.nodeType === 1 ? n : n.parentElement);
+        return /Euler said/.test(el?.closest('p')?.previousElementSibling?.textContent ?? '');
+      });
       await p.keyboard.type('Colour line');
       await p.keyboard.press('Shift+Home');
       await tb('Text colour').click();

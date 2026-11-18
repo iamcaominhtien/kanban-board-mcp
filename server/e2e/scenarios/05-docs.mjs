@@ -315,7 +315,10 @@ export default {
       ]);
       const sent = JSON.parse(req.postData() ?? '{}');
       if (!sent.anchor?.block_id) throw new Error('the comment must carry its block id: ' + req.postData());
+      // posting opens the new thread in the panel: close it only once that has happened, or it opens again
+      await p.getByTestId('comments-panel').getByText('Say which tool this step needs.').waitFor();
       await p.getByTestId('comments-close').click();
+      await p.getByTestId('comments-panel').waitFor({ state: 'detached' });
       const mark = p.getByTestId('margin-mark').first();
       await mark.waitFor();
       await mark.click();

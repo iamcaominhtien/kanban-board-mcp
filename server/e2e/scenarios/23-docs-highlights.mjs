@@ -511,8 +511,13 @@ export default {
       await p.goto(`${base}/?proj=${pid}&docs=${ch.id}`);
       await p.getByTestId('focus-back').waitFor({ timeout: 20000 });
       // no project sidebar, no app header, no tree: the chapter list and the page
-      if (await p.getByTestId('sidebar-idea-space').isVisible()) throw new Error('the project sidebar should step aside');
-      if (await p.getByTestId('view-docs').isVisible()) throw new Error('the app header should step aside');
+      // the chrome steps aside once the page knows it is a book's chapter: wait for it, then check
+      await p.getByTestId('sidebar-idea-space').waitFor({ state: 'hidden' }).catch(() => {
+        throw new Error('the project sidebar should step aside');
+      });
+      await p.getByTestId('view-docs').waitFor({ state: 'hidden' }).catch(() => {
+        throw new Error('the app header should step aside');
+      });
       if (await p.getByRole('complementary', { name: 'Docs space' }).count()) throw new Error('the tree should step aside');
       await p.getByRole('navigation', { name: 'Chapters' }).waitFor();
       await p.getByTestId('focus-back').click();
