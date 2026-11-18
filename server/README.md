@@ -131,7 +131,7 @@ make a test pass; change one only when the behavior was meant to change.
 ## `e2e/`
 
 A Playwright check of the real UI against the server: headless Chromium, one server per scenario on its own temporary
-folders, 21 scenarios and 375 steps. Each server gets a stand-in AI (`fake-claude` behind a `claude` script on its
+folders, 33 scenarios and 804 steps. Each server gets a stand-in AI (`fake-claude` behind a `claude` script on its
 `PATH`, a signed-in account, a sample git repository), so the AI screens run without tokens. It needs the built server
 and stand-in (`cargo build -p kanban-server -p kanban-mcp-stdio -p fake-claude`), the built UI (`cd ui && npm ci &&
 npm run build`) and Playwright installed globally (`NODE_PATH`).

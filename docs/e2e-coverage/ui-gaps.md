@@ -34,10 +34,9 @@
 
 - never shown: `View ticket` (src/components/ConflictNotice.tsx:31)
 
-## src/components/DebugSpaceSection.tsx (4)
+## src/components/DebugSpaceSection.tsx (3)
 
 - shown: `Formatting` (src/components/DebugSpaceSection.tsx:313, src/components/docs/editor/EditorToolbar.tsx:140)
-- shown: `Code` (src/components/DebugSpaceSection.tsx:337, src/components/MarkdownEditor.tsx:1136, src/components/ideas/IdeaDiscussion.tsx:350)
 - never shown: `Linked branch` (src/components/DebugSpaceSection.tsx:396)
 - never shown: `Confirm delete` (src/components/DebugSpaceSection.tsx:949, src/components/WorkspaceSection.tsx:621)
 
@@ -116,13 +115,12 @@
 
 - shown: `Blocked` (src/components/TicketCard.tsx:243, src/components/icons/StatusMarks.tsx:67)
 
-## src/components/TicketModal.tsx (11)
+## src/components/TicketModal.tsx (10)
 
 - shown: `Ticket or AI activity` (src/components/TicketModal.tsx:1912)
 - shown: `Reopen History` (src/components/TicketModal.tsx:2093)
 - never shown: `Uploading …` (src/components/TicketModal.tsx:2563)
 - shown: `Add attachment` (src/components/TicketModal.tsx:2579)
-- shown: `Ticket` (src/components/TicketModal.tsx:1913)
 - shown: `Open in Flow` (src/components/TicketModal.tsx:1959, src/components/ai/activity/AiActivityDesign.tsx:47)
 - shown: `1 pt` (src/components/TicketModal.tsx:3304)
 - shown: `2 pt` (src/components/TicketModal.tsx:3305)
@@ -232,12 +230,11 @@
 
 - never shown: `Account for these teams` (src/components/ai/accounts/RemoveAccountDialog.tsx:93)
 
-## src/components/ai/accounts/SignInWindow.tsx (4)
+## src/components/ai/accounts/SignInWindow.tsx (3)
 
 - never shown: `Stop signing in?` (src/components/ai/accounts/SignInWindow.tsx:445)
 - never shown: `Cancel sign-in` (src/components/ai/accounts/SignInWindow.tsx:429)
 - never shown: `Keep signing in` (src/components/ai/accounts/SignInWindow.tsx:461)
-- never shown: `Stop` (src/components/ai/accounts/SignInWindow.tsx:465, src/components/ai/code/worktreeUi.tsx:147, src/components/ai/editor/useEditorAi.tsx:632, src/components/aiteam/ResourcesTab.tsx:237, src/components/assist/AnswerBlock.tsx:145, src/components/assist/AnswerBlock.tsx:155, src/components/assist/AnswerBlock.tsx:180, src/components/docs/ai/AskPanel.tsx:275, src/components/ideas/IdeaAiPanel.tsx:540, src/components/sketch/SketchAiPanel.tsx:457, src/components/sketch/SketchAiPanel.tsx:464)
 
 ## src/components/ai/accounts/SignedOutBanners.tsx (1)
 
@@ -318,7 +315,7 @@
 
 - never shown: `Keep it` (src/components/ai/knowledge/MemoryPanel.tsx:133, src/components/ai/knowledge/kbParts.tsx:190, src/components/settings/database/MoveCopyStep.tsx:97, src/components/settings/database/MoveStopped.tsx:361)
 - never shown: `Edit and keep` (src/components/ai/knowledge/MemoryPanel.tsx:141)
-- never shown: `No` (src/components/ai/knowledge/MemoryPanel.tsx:149, src/components/docs/ai/AskPanel.tsx:451, src/components/ideas/IdeaPage.tsx:737)
+- shown: `No` (src/components/ai/knowledge/MemoryPanel.tsx:149, src/components/docs/ai/AskPanel.tsx:451, src/components/ideas/IdeaPage.tsx:737)
 
 ## src/components/ai/knowledge/TokenMeter.tsx (1)
 
@@ -404,14 +401,13 @@
 
 - never shown: `Add…` (src/components/ai/tools/CatalogueTab.tsx:74)
 
-## src/components/ai/tools/InstalledTab.tsx (8)
+## src/components/ai/tools/InstalledTab.tsx (7)
 
 - never shown: `Working` (src/components/ai/tools/InstalledTab.tsx:222)
 - shown: `Search skills and plugins…` (src/components/ai/tools/InstalledTab.tsx:306)
 - shown: `Search installed` (src/components/ai/tools/InstalledTab.tsx:307)
 - shown: `Filter` (src/components/ai/tools/InstalledTab.tsx:313)
 - never shown: `See what changed` (src/components/ai/tools/InstalledTab.tsx:120)
-- never shown: `Unpin` (src/components/ai/tools/InstalledTab.tsx:133, src/components/ideas/IdeaDiscussion.tsx:446)
 - shown: `Check for update` (src/components/ai/tools/InstalledTab.tsx:142, src/components/ai/tools/InstalledTab.tsx:174)
 - never shown: `Roll back` (src/components/ai/tools/InstalledTab.tsx:190)
 
@@ -505,7 +501,7 @@
 - shown: `Widen to 7 days` (src/components/aiteam/TimelineTab.tsx:815)
 - never shown: `Open the map` (src/components/aiteam/TimelineTab.tsx:819)
 - never shown: `Open the run` (src/components/aiteam/TimelineTab.tsx:1535)
-- never shown: `Open the ticket` (src/components/aiteam/TimelineTab.tsx:1540)
+- shown: `Open the ticket` (src/components/aiteam/TimelineTab.tsx:1540)
 
 ## src/components/aiteam/teamUi.tsx (1)
 
@@ -552,11 +548,10 @@
 
 - never shown: `The conversation is … full` (src/components/assist/ContextMeter.tsx:32)
 
-## src/components/assist/DocsAi.tsx (6)
+## src/components/assist/DocsAi.tsx (5)
 
 - never shown: `KAN-154` (src/components/assist/DocsAi.tsx:477)
 - never shown: `Accept all` (src/components/assist/DocsAi.tsx:156)
-- never shown: `Accept` (src/components/assist/DocsAi.tsx:176, src/components/docs/ai/CheckThisPage.tsx:112)
 - never shown: `Summarise this page` (src/components/assist/DocsAi.tsx:408)
 - never shown: `Draft a section from a ticket…` (src/components/assist/DocsAi.tsx:412)
 - never shown: `Suggest [[ ]] links` (src/components/assist/DocsAi.tsx:415)
@@ -865,133 +860,68 @@
 - never shown: `Auto-delete pending` (src/components/icons/WorkspaceMarks.tsx:43)
 - never shown: `Kept forever` (src/components/icons/WorkspaceMarks.tsx:66)
 
-## src/components/ideas/IdeaAiExtras.tsx (3)
+## src/components/ideas/IdeaAiPanel.tsx (1)
 
-- shown: `AI advice in triage` (src/components/ideas/IdeaAiExtras.tsx:228)
-- never shown: `Ask again` (src/components/ideas/IdeaAiExtras.tsx:348)
-- shown: `Open Inbox` (src/components/ideas/IdeaAiExtras.tsx:657, src/components/ideas/IdeaAiExtras.tsx:685)
-
-## src/components/ideas/IdeaAiPanel.tsx (4)
-
-- shown: `Shape with AI` (src/components/ideas/IdeaAiPanel.tsx:450)
-- never shown: `Ask about this idea` (src/components/ideas/IdeaAiPanel.tsx:596)
-- never shown: `Cheapest test for each assumption` (src/components/ideas/IdeaAiPanel.tsx:580)
 - shown: `Open chat` (src/components/ideas/IdeaAiPanel.tsx:636)
 
-## src/components/ideas/IdeaAssumptions.tsx (6)
+## src/components/ideas/IdeaDiscussion.tsx (2)
 
-- never shown: `Assumption text` (src/components/ideas/IdeaAssumptions.tsx:152)
-- never shown: `Close the assumption` (src/components/ideas/IdeaAssumptions.tsx:237)
-- shown: `Open the assumption` (src/components/ideas/IdeaAssumptions.tsx:237)
-- shown: `Edit assumption` (src/components/ideas/IdeaAssumptions.tsx:248)
-- shown: `Delete assumption` (src/components/ideas/IdeaAssumptions.tsx:255)
-- shown: `Create test` (src/components/ideas/IdeaAssumptions.tsx:221)
-
-## src/components/ideas/IdeaCapture.tsx (5)
-
-- never shown: `Add details or paste a picture` (src/components/ideas/IdeaCapture.tsx:333)
-- never shown: `Start with a sketch` (src/components/ideas/IdeaCapture.tsx:344)
-- never shown: `Start with a canvas` (src/components/ideas/IdeaCapture.tsx:356)
-- never shown: `Markdown. Paste a screenshot with Ctrl+V.` (src/components/ideas/IdeaCapture.tsx:372)
-- never shown: `Add to it instead` (src/components/ideas/IdeaCapture.tsx:381)
-
-## src/components/ideas/IdeaDiscussion.tsx (10)
-
-- never shown: `Edit comment` (src/components/ideas/IdeaDiscussion.tsx:97)
-- never shown: `Write a comment` (src/components/ideas/IdeaDiscussion.tsx:126)
 - never shown: `shipped` (src/components/ideas/IdeaDiscussion.tsx:127)
-- never shown: `Comments stay open after shipping.` (src/components/ideas/IdeaDiscussion.tsx:127)
-- never shown: `Kind of entry` (src/components/ideas/IdeaDiscussion.tsx:298)
-- never shown: `Write what you found, tried or decided… (markdown)` (src/components/ideas/IdeaDiscussion.tsx:322)
-- never shown: `Link to assumption` (src/components/ideas/IdeaDiscussion.tsx:379)
-- never shown: `Pin` (src/components/ideas/IdeaDiscussion.tsx:446)
-- never shown: `Use as evidence` (src/components/ideas/IdeaDiscussion.tsx:505)
-- never shown: `Add to log` (src/components/ideas/IdeaDiscussion.tsx:400)
+- shown: `Kind of entry` (src/components/ideas/IdeaDiscussion.tsx:298)
 
-## src/components/ideas/IdeaEvidenceTab.tsx (5)
+## src/components/ideas/IdeaEvidenceTab.tsx (3)
 
 - shown: `link` (src/components/ideas/IdeaEvidenceTab.tsx:119)
 - never shown: `ticket` (src/components/ideas/IdeaEvidenceTab.tsx:119)
-- never shown: `KAN-198` (src/components/ideas/IdeaEvidenceTab.tsx:119)
 - never shown: `note` (src/components/ideas/IdeaEvidenceTab.tsx:119)
-- never shown: `Draw a sketch` (src/components/ideas/IdeaEvidenceTab.tsx:148)
-
-## src/components/ideas/IdeaList.tsx (1)
-
-- never shown: `Assign` (src/components/ideas/IdeaList.tsx:225)
 
 ## src/components/ideas/IdeaMatrix.tsx (2)
 
 - shown: `Assumptions by impact and evidence` (src/components/ideas/IdeaMatrix.tsx:116)
 - shown: `Selected assumption` (src/components/ideas/IdeaMatrix.tsx:160)
 
-## src/components/ideas/IdeaPage.tsx (11)
+## src/components/ideas/IdeaPage.tsx (7)
 
 - shown: `Idea sections` (src/components/ideas/IdeaPage.tsx:373)
 - shown: `Decide` (src/components/ideas/IdeaPage.tsx:418)
 - shown: `Nobody yet` (src/components/ideas/IdeaPage.tsx:474)
 - shown: `Small, medium, big…` (src/components/ideas/IdeaPage.tsx:493)
 - shown: `…: …. Change` (src/components/ideas/IdeaPage.tsx:652)
-- never shown: `Choose a project` (src/components/ideas/IdeaPage.tsx:840, src/components/ideas/IdeaPage.tsx:853)
-- never shown: `Merge into another idea…` (src/components/ideas/IdeaPage.tsx:270)
-- never shown: `Partly` (src/components/ideas/IdeaPage.tsx:734)
 - never shown: `See the evidence` (src/components/ideas/IdeaPage.tsx:803)
-- shown: `Park` (src/components/ideas/IdeaPage.tsx:818, src/components/ideas/TriageDialogs.tsx:292)
 - never shown: `Choose a project…` (src/components/ideas/IdeaPage.tsx:844)
 
-## src/components/ideas/IdeaSpace.tsx (10)
+## src/components/ideas/IdeaSpace.tsx (5)
 
-- shown: `Search ideas` (src/components/ideas/IdeaSpace.tsx:345, src/components/ideas/IdeaSpace.tsx:348, src/components/ideas/TriageDialogs.tsx:511)
-- shown: `Sort` (src/components/ideas/IdeaSpace.tsx:420)
-- shown: `Source: all` (src/components/ideas/IdeaSpace.tsx:400)
-- shown: `Tag: all` (src/components/ideas/IdeaSpace.tsx:408)
 - shown: `Sort: readiness` (src/components/ideas/IdeaSpace.tsx:422)
 - shown: `Sort: updated` (src/components/ideas/IdeaSpace.tsx:423)
 - shown: `Sort: newest` (src/components/ideas/IdeaSpace.tsx:424)
 - shown: `Sort: demand` (src/components/ideas/IdeaSpace.tsx:425)
-- shown: `Sort: title` (src/components/ideas/IdeaSpace.tsx:426)
 - shown: `New idea` (src/components/ideas/IdeaSpace.tsx:448)
 
 ## src/components/ideas/IdeaSpaceSettings.tsx (1)
 
 - shown: `Use the web` (src/components/ideas/IdeaSpaceSettings.tsx:134)
 
-## src/components/ideas/PromoteDialog.tsx (7)
+## src/components/ideas/PromoteDialog.tsx (1)
 
-- never shown: `Ticket title` (src/components/ideas/PromoteDialog.tsx:225)
-- never shown: `Sub-ticket title` (src/components/ideas/PromoteDialog.tsx:290)
-- never shown: `Ticket description` (src/components/ideas/PromoteDialog.tsx:338)
-- never shown: `Ticket description: click to edit` (src/components/ideas/PromoteDialog.tsx:345)
-- never shown: `One ticket` (src/components/ideas/PromoteDialog.tsx:186)
-- never shown: `Ticket with sub-tickets` (src/components/ideas/PromoteDialog.tsx:194)
-- never shown: `+ Add a sub-ticket` (src/components/ideas/PromoteDialog.tsx:305)
+- shown: `Ticket description: click to edit` (src/components/ideas/PromoteDialog.tsx:345)
 
-## src/components/ideas/Triage.tsx (5)
+## src/components/ideas/Triage.tsx (2)
 
-- shown: `Inbox` (src/components/ideas/Triage.tsx:229)
-- shown: `Idea in focus` (src/components/ideas/Triage.tsx:285)
-- never shown: `Park all for a month` (src/components/ideas/Triage.tsx:214)
-- never shown: `Merge into it` (src/components/ideas/Triage.tsx:327)
-- shown: `Open the page` (src/components/ideas/Triage.tsx:365)
+- shown: `Inbox` (src/components/ideas/Triage.tsx:233)
+- never shown: `Park all for a month` (src/components/ideas/Triage.tsx:218)
 
-## src/components/ideas/TriageDialogs.tsx (9)
+## src/components/ideas/TriageDialogs.tsx (3)
 
-- shown: `Project` (src/components/ideas/TriageDialogs.tsx:32)
-- never shown: `Add a tag` (src/components/ideas/TriageDialogs.tsx:123)
 - never shown: `Ask the Idea AI to suggest a problem statement and assumptions` (src/components/ideas/TriageDialogs.tsx:231)
-- never shown: `Pick a date` (src/components/ideas/TriageDialogs.tsx:342)
-- never shown: `Why now is a bad time` (src/components/ideas/TriageDialogs.tsx:352)
 - never shown: `Reason` (src/components/ideas/TriageDialogs.tsx:410)
-- never shown: `Search ideas to merge into` (src/components/ideas/TriageDialogs.tsx:510)
 - never shown: `Idea to merge into` (src/components/ideas/TriageDialogs.tsx:514)
-- never shown: `No project` (src/components/ideas/TriageDialogs.tsx:35)
 
-## src/components/ideas/ideaLinks.tsx (4)
+## src/components/ideas/ideaLinks.tsx (3)
 
-- never shown: `Started as idea …` (src/components/ideas/ideaLinks.tsx:42)
+- shown: `Started as idea …` (src/components/ideas/ideaLinks.tsx:42)
 - never shown: `Started as an idea` (src/components/ideas/ideaLinks.tsx:118)
 - never shown: `Tests an assumption` (src/components/ideas/ideaLinks.tsx:207)
-- never shown: `Idea activity` (src/components/ideas/ideaLinks.tsx:169)
 
 ## src/components/notifications/AllNotificationsPage.tsx (6)
 
@@ -1113,11 +1043,10 @@
 
 - never shown: `All runs` (src/components/schedules/ScheduleTicketBlock.tsx:130)
 
-## src/components/schedules/SchedulesTab.tsx (4)
+## src/components/schedules/SchedulesTab.tsx (3)
 
 - shown: `Show` (src/components/schedules/SchedulesTab.tsx:461)
 - never shown: `Previous week` (src/components/schedules/SchedulesTab.tsx:499)
-- never shown: `Next week` (src/components/schedules/SchedulesTab.tsx:509)
 - never shown: `Today` (src/components/schedules/SchedulesTab.tsx:515)
 
 ## src/components/settings/DiagnosticsPage.tsx (3)
@@ -1223,5 +1152,5 @@
 
 ## Keys pressed outside text fields
 
- , +, -, /, 0, 1, 2, =, Alt+Alt, Alt+n, ArrowLeft, ArrowRight, Ctrl+-, Ctrl+0, Ctrl+A, Ctrl+Control, Ctrl+End, Ctrl+Enter, Ctrl+a, Ctrl+f, Ctrl+j, Ctrl+k, Ctrl+s, Ctrl+y, Ctrl+z, Delete, Enter, Escape, F2, Shift+ArrowRight, Shift+Shift, Tab, a, c, e, f, g, h, i, j, k, m, n, p, t, v
+ , +, -, /, 0, 1, 2, =, Alt+Alt, Alt+n, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Ctrl+-, Ctrl+0, Ctrl+A, Ctrl+Control, Ctrl+End, Ctrl+Enter, Ctrl+a, Ctrl+f, Ctrl+j, Ctrl+k, Ctrl+s, Ctrl+y, Ctrl+z, Delete, Enter, Escape, F2, P, Shift+ArrowRight, Shift+Shift, Tab, a, c, e, f, g, h, i, j, k, l, m, n, p, s, t, v, x, z
 
