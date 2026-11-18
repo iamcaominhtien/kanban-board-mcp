@@ -587,8 +587,14 @@
           "values": [
             null,
             "thin",
+            "medium",
             "thick"
           ]
+        },
+        "borderColor": {
+          "default": null,
+          "type": "string|null",
+          "note": "#rrggbb; null: the light grey line"
         },
         "radius": {
           "default": 0,
@@ -597,6 +603,15 @@
         "shadow": {
           "default": false,
           "type": "boolean"
+        },
+        "shadowStyle": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "soft"
+          ],
+          "note": "with shadow on: null lifted, soft a light one"
         }
       }
     },

@@ -5,11 +5,12 @@
  */
 
 import type { Editor } from '@tiptap/core';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import type { ImageTab } from './bus';
 import { IMAGE_SIZE_RESET, IMAGE_STYLE_RESET, SNAP_STEPS, setNodeAttrs, type Placement } from './commands';
 import { PlacementGlyph } from './ImageView';
 import { Panel, Row, Seg, Tabs, Toggle } from './ui';
+import './imageProps.css';
 
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
@@ -20,6 +21,17 @@ const CORNERS = [
   { value: 6, label: 'Soft' },
   { value: 16, label: 'Round' },
   { value: 999, label: 'Circle' },
+] as const;
+
+/** The border colours (Blocks 7): ink, grey, green, blue, orange, red, violet and pink. */
+const BORDER_COLORS = ['#1E2A22', '#5B6B60', '#2E6F40', '#2F6FB0', '#B4571F', '#C4432A', '#5B4BB5', '#A83E7A'] as const;
+
+/** The four looks in one click (Blocks 7): a thin line, soft corners, a circle, lifted off the page. */
+const PRESETS = [
+  { label: 'Thin', attrs: { border: 'thin', radius: 0, shadow: false, shadowStyle: null } },
+  { label: 'Soft', attrs: { border: null, radius: 6, shadow: false, shadowStyle: null } },
+  { label: 'Circle', attrs: { border: null, radius: 999, shadow: false, shadowStyle: null } },
+  { label: 'Lifted', attrs: { border: null, radius: 0, shadow: true, shadowStyle: null } },
 ] as const;
 
 /** Follows the editor so the panel shows the node's current attributes. */
@@ -111,38 +123,30 @@ export function ImageProps({
       {tab === 'layout' && (
         <>
           <Row label="Position">
-            <Seg
-              label="Position"
-              wrap
-              value={blockFamily ? 'block' : placement}
-              onChange={(v) => set({ placement: v, ...(v !== 'block' && !widthPct ? { widthPct: 40 } : {}) })}
-              options={[
-                {
-                  value: 'block',
-                  label: (
-                    <>
-                      <PlacementGlyph p="block" /> Block
-                    </>
-                  ),
-                },
-                {
-                  value: 'floatLeft',
-                  label: (
-                    <>
-                      <PlacementGlyph p="floatLeft" /> Float left
-                    </>
-                  ),
-                },
-                {
-                  value: 'floatRight',
-                  label: (
-                    <>
-                      <PlacementGlyph p="floatRight" /> Float right
-                    </>
-                  ),
-                },
-              ]}
-            />
+            <div className="dk-ip-tiles" role="radiogroup" aria-label="Position">
+              {(
+                [
+                  ['block', 'Block'],
+                  ['floatLeft', 'Float left'],
+                  ['floatRight', 'Float right'],
+                ] as const
+              ).map(([v, label]) => {
+                const on = v === 'block' ? blockFamily : placement === v;
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    className={on ? 'on' : undefined}
+                    onClick={() => set({ placement: v, ...(v !== 'block' && !widthPct ? { widthPct: 40 } : {}) })}
+                  >
+                    <PlacementGlyph p={v} />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
             {blockFamily && (
               <Seg
                 label="Align"
@@ -164,9 +168,10 @@ export function ImageProps({
               options={SNAP_STEPS.map((s) => ({ value: s as number | null, label: `${s} %` }))}
             />
           </Row>
-          <div className="dk-bp-pair">
-            <Row label="Width">
-              <span className="dk-bp-num">
+          <div className="dk-ip-dims">
+            <label className="dk-ip-dim">
+              <span>Width</span>
+              <span className="dk-ip-box">
                 <input
                   type="number"
                   aria-label="Width in percent"
@@ -178,16 +183,35 @@ export function ImageProps({
                     if (v >= 10 && v <= 100) set({ widthPct: Math.round(v), width: null });
                   }}
                 />
-                %
+                <i>%</i>
               </span>
-            </Row>
-            <Row label="Height">
-              <span className="dk-bp-num dk-bp-muted">Auto · keep shape</span>
-            </Row>
+            </label>
+            <div className="dk-ip-dim">
+              <span>Height</span>
+              <span className="dk-ip-box dk-ip-box-muted">Auto</span>
+            </div>
+            <span className="dk-ip-keep" title="The height follows the width, so the picture keeps its shape">
+              <span className="dk-ip-keep-ico" aria-hidden="true">
+                <svg
+                  width={16}
+                  height={16}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+                  <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+                </svg>
+              </span>
+              Keep shape
+            </span>
           </div>
           {float && (
             <Row label="Wrap distance" hint="Space between the image and the text that flows beside it.">
-              <span className="dk-bp-num">
+              <span className="dk-ip-range">
                 <input
                   type="range"
                   aria-label="Wrap distance"
@@ -195,13 +219,29 @@ export function ImageProps({
                   max={48}
                   step={4}
                   value={num(attrs.wrapGap) ?? 16}
+                  style={{ '--dk-ip-fill': `${((num(attrs.wrapGap) ?? 16) / 48) * 100}%` } as CSSProperties}
                   onChange={(e) => set({ wrapGap: Number(e.target.value) })}
                 />
-                {num(attrs.wrapGap) ?? 16} px
+                <b>{num(attrs.wrapGap) ?? 16} px</b>
               </span>
             </Row>
           )}
-          <p className="dk-bp-note">On phones, a floated image shows full width on its own row, in the same place.</p>
+          <p className="dk-ip-info">
+            <svg
+              aria-hidden="true"
+              width={14}
+              height={14}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.2}
+              strokeLinecap="round"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 11v5M12 8v.01" />
+            </svg>
+            <span>On phones, a floated image shows full width on its own row, in the same place.</span>
+          </p>
         </>
       )}
       {tab === 'style' && (
@@ -214,9 +254,27 @@ export function ImageProps({
               options={[
                 { value: null, label: 'None' },
                 { value: 'thin', label: 'Thin' },
+                { value: 'medium', label: 'Medium' },
                 { value: 'thick', label: 'Thick' },
               ]}
             />
+            <div className="dk-ip-colors" role="radiogroup" aria-label="Border colour">
+              {BORDER_COLORS.map((c) => {
+                const on = (str(attrs.borderColor) || BORDER_COLORS[0]) === c;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    aria-label={`Border colour ${c}`}
+                    className={on ? 'on' : undefined}
+                    style={{ background: c }}
+                    onClick={() => set({ borderColor: c, ...(attrs.border ? {} : { border: 'thin' }) })}
+                  />
+                );
+              })}
+            </div>
           </Row>
           <Row label="Corners">
             <Seg
@@ -229,14 +287,35 @@ export function ImageProps({
           <Row label="Shadow">
             <Seg
               label="Shadow"
-              value={!!attrs.shadow}
-              onChange={(v) => set({ shadow: v })}
+              value={!attrs.shadow ? 'none' : str(attrs.shadowStyle) === 'soft' ? 'soft' : 'lifted'}
+              onChange={(v) => set({ shadow: v !== 'none', shadowStyle: v === 'soft' ? 'soft' : null })}
               options={[
-                { value: false, label: 'None' },
-                { value: true, label: 'Lifted' },
+                { value: 'none', label: 'None' },
+                { value: 'soft', label: 'Soft' },
+                { value: 'lifted', label: 'Lifted' },
               ]}
             />
           </Row>
+          <div className="dk-ip-presets" role="group" aria-label="Looks">
+            {PRESETS.map((p) => {
+              const on =
+                (attrs.border ?? null) === p.attrs.border &&
+                (num(attrs.radius) ?? 0) === p.attrs.radius &&
+                !!attrs.shadow === p.attrs.shadow;
+              return (
+                <button
+                  key={p.label}
+                  type="button"
+                  className={on ? 'on' : undefined}
+                  aria-pressed={on}
+                  onClick={() => set({ ...p.attrs })}
+                >
+                  <span className={`dk-ip-thumb dk-ip-thumb-${p.label.toLowerCase()}`} aria-hidden="true" />
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
         </>
       )}
       {tab === 'text' && (

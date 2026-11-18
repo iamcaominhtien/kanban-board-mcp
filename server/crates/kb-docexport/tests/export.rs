@@ -507,3 +507,18 @@ fn a_missing_browser_is_a_clear_error() {
     let err = render_pdf("<p>x</p>", &opts).unwrap_err();
     assert!(err.to_string().contains("KANBAN_CHROME"), "{err}");
 }
+
+#[test]
+fn a_picture_keeps_its_line_colour_and_its_soft_shadow() {
+    let doc = json!({"type":"doc","content":[
+        {"type":"image","attrs":{"src":"/uploads/a.png","border":"medium","borderColor":"#2F6FB0","shadow":true,"shadowStyle":"soft"}},
+        {"type":"image","attrs":{"src":"/uploads/b.png","border":"thin","borderColor":"red;x","shadow":true}}]});
+    let pages = [page("Pictures", doc)];
+    let out = render_html(&pages, &TestAssets, &HtmlOptions::default());
+    let html = out.index_html();
+    assert!(html.contains("border:2px solid #2F6FB0;"), "the medium line in its colour: {html}");
+    assert!(html.contains("box-shadow:0 2px 8px rgba(0,0,0,.12);"), "the soft shadow");
+    // a colour that is not #rrggbb falls back to the text colour; a shadow without a style is lifted
+    assert!(html.contains("border:1px solid currentColor;"));
+    assert!(html.contains("box-shadow:0 4px 16px rgba(0,0,0,.18);"));
+}

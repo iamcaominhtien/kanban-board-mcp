@@ -881,9 +881,20 @@ impl<'a> HtmlRenderer<'a> {
             let _ = write!(fig_css, "--wrap-gap:{gap}px;");
         }
         let mut img_css = String::new();
+        // the line's own colour when it has one (#rrggbb), else the text colour
+        let line = attr_str(node, "borderColor")
+            .filter(|c| c.len() == 7 && c.starts_with('#') && c[1..].chars().all(|h| h.is_ascii_hexdigit()))
+            .unwrap_or("currentColor");
         match attr_str(node, "border") {
-            Some("thin") => img_css.push_str("border:1px solid currentColor;"),
-            Some("thick") => img_css.push_str("border:4px solid currentColor;"),
+            Some("thin") => {
+                let _ = write!(img_css, "border:1px solid {line};");
+            }
+            Some("medium") => {
+                let _ = write!(img_css, "border:2px solid {line};");
+            }
+            Some("thick") => {
+                let _ = write!(img_css, "border:4px solid {line};");
+            }
             _ => {}
         }
         let radius = attr_int(node, "radius", 0, 0, 200);
@@ -891,7 +902,11 @@ impl<'a> HtmlRenderer<'a> {
             let _ = write!(img_css, "border-radius:{radius}px;");
         }
         if attr_bool(node, "shadow") {
-            img_css.push_str("box-shadow:0 4px 16px rgba(0,0,0,.18);");
+            img_css.push_str(if attr_str(node, "shadowStyle") == Some("soft") {
+                "box-shadow:0 2px 8px rgba(0,0,0,.12);"
+            } else {
+                "box-shadow:0 4px 16px rgba(0,0,0,.18);"
+            });
         }
         let _ = write!(out, "<figure class=\"image place-{placement}\"{}>", style_attr(&fig_css));
         let url = if src.is_empty() { None } else { self.image_url(src) };

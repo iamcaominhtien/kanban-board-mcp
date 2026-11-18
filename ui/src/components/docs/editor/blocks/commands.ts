@@ -46,7 +46,7 @@ export function setNodeAttrs(editor: Editor, pos: number, attrs: Record<string, 
 /** Image attributes a crop, a width and a place reset to (Reset size). */
 export const IMAGE_SIZE_RESET = { widthPct: null, width: null, height: null, crop: null } as const;
 /** Image attributes Reset style puts back. */
-export const IMAGE_STYLE_RESET = { border: null, radius: 0, shadow: false } as const;
+export const IMAGE_STYLE_RESET = { border: null, borderColor: null, radius: 0, shadow: false, shadowStyle: null } as const;
 
 /** A crop frame: fractions (0..1) of the original picture. */
 export interface Crop {

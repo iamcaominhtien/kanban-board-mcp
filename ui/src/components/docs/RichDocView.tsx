@@ -9,6 +9,7 @@
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { Fragment, memo, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { imageLook } from './imageLook';
 import { HeadingLinkHandle } from './links/HeadingLinkHandle';
 import { useResolveRefs } from '../../api/docs';
 import type { DocsRefRequest, RichDoc } from '../../types/docs';
@@ -479,13 +480,10 @@ function RichImage({ node, attrs, inline: isInline }: { node: Node; attrs?: Bloc
   if (!src || src.startsWith('uploading:')) return null;
   const width = num(a.width);
   const widthPct = num(a.widthPct);
-  const radius = num(a.radius);
-  const border = str(a.border);
   const style: CSSProperties = {
     ...(widthPct ? { width: '100%' } : width ? { width } : {}),
-    ...(radius ? { borderRadius: radius } : {}),
-    ...(border ? { border: `${border === 'thick' ? 3 : 1}px solid #D3DBD6` } : {}),
-    ...(a.shadow ? { boxShadow: '0 6px 18px rgba(30,42,34,0.16)' } : {}),
+    // border, corners and shadow as the editor draws them
+    ...imageLook(a),
   };
   const img = <DocsImage src={src} alt={str(a.alt)} style={style} />;
   if (isInline) return img;

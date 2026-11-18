@@ -10,6 +10,7 @@ import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../../Icon';
+import { imageLook } from '../../imageLook';
 import { askBlockUi, type ImageTab } from './bus';
 import { SNAP_STEPS, snapWidth, type Crop, type Placement } from './commands';
 import {
@@ -42,17 +43,6 @@ export function imageOuterAttrs(attrs: Record<string, unknown>): Record<string, 
     class: `react-renderer node-image dk-img dk-img-${placement}`,
     style: style.join(';'),
     ...(typeof attrs.blockId === 'string' ? { 'data-block-id': attrs.blockId } : {}),
-  };
-}
-
-/** The style a picture's border, corners and shadow give it. */
-export function imageLook(attrs: Record<string, unknown>): CSSProperties {
-  const radius = num(attrs.radius) ?? 0;
-  const border = str(attrs.border);
-  return {
-    ...(radius ? { borderRadius: radius >= 999 ? '50%' : radius } : {}),
-    ...(border ? { border: `${border === 'thick' ? 3 : 1}px solid #D3DBD6` } : {}),
-    ...(attrs.shadow ? { boxShadow: '0 6px 18px rgba(30,42,34,0.16)' } : {}),
   };
 }
 

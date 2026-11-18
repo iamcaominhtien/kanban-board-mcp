@@ -1,0 +1,255 @@
+/* Image properties as the board draws it (Blocks 6, 7): position tiles, the width and height boxes with Keep shape,
+   a green wrap slider, the phone note in a blue box; border colours and four looks on the Style tab */
+.dk-ip-tiles {
+  display: flex;
+  gap: 6px;
+}
+.dk-ip-tiles button {
+  flex: 1;
+  height: 56px;
+  box-sizing: border-box;
+  border: 1.5px solid #e3e8e5;
+  border-radius: 10px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #3a4a3e;
+  cursor: pointer;
+}
+.dk-ip-tiles button:hover:not(.on) {
+  background: #f6faf7;
+}
+.dk-ip-tiles button.on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+  color: #2e6f40;
+}
+.dk-ip-dims {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.dk-ip-dim {
+  width: 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5b6b60;
+}
+.dk-ip-box {
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid #c7d2cb;
+  border-radius: 8px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: #1e2a22;
+}
+.dk-ip-box:focus-within {
+  border-color: #2e6f40;
+  box-shadow: 0 0 0 3px rgba(46, 111, 64, 0.14);
+}
+.dk-ip-box input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: none;
+  outline: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  -moz-appearance: textfield;
+}
+.dk-ip-box input::-webkit-inner-spin-button,
+.dk-ip-box input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.dk-ip-box i {
+  font-style: normal;
+  margin-left: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5b6b60;
+}
+.dk-ip-box-muted {
+  color: #5b6b60;
+}
+.dk-ip-keep {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #5b6b60;
+  white-space: nowrap;
+}
+.dk-ip-keep-ico {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  background: #f1f8f3;
+  color: #2e6f40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.dk-ip-range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dk-ip-range input[type='range'] {
+  flex: 1;
+  height: 14px;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.dk-ip-range input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background:
+    linear-gradient(#2e6f40, #2e6f40) 0 / var(--dk-ip-fill, 0%) 100% no-repeat,
+    #dce3de;
+}
+.dk-ip-range input[type='range']::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background:
+    linear-gradient(#2e6f40, #2e6f40) 0 / var(--dk-ip-fill, 0%) 100% no-repeat,
+    #dce3de;
+}
+.dk-ip-range input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #2e6f40;
+  box-sizing: border-box;
+}
+.dk-ip-range input[type='range']::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #2e6f40;
+  box-sizing: border-box;
+}
+.dk-ip-range b {
+  min-width: 34px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 600;
+}
+.dk-ip-info {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 8px 11px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: #e8f1fa;
+  border: 1px solid #c9ddf0;
+  color: #244e78;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.dk-ip-info svg {
+  flex: none;
+  margin-top: 3px;
+}
+.dk-ip-colors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+.dk-ip-colors button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid rgba(30, 42, 34, 0.14);
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.dk-ip-colors button.on {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4px #2e6f40;
+}
+.dk-ip-presets {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.dk-ip-presets button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.dk-ip-thumb {
+  display: block;
+  width: 74px;
+  height: 56px;
+  padding: 6px;
+  box-sizing: border-box;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  position: relative;
+}
+.dk-ip-presets button.on .dk-ip-thumb {
+  border-color: #2e6f40;
+}
+/* a small landscape: sky, sun, hills and water, framed as the look it stands for */
+.dk-ip-thumb::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  background:
+    radial-gradient(circle at 75% 30%, #f2b45a 0 9%, transparent 10%),
+    linear-gradient(170deg, transparent 52%, #6f9e7d 53% 70%, transparent 71%),
+    linear-gradient(190deg, transparent 58%, #4f7f62 59% 74%, transparent 75%),
+    linear-gradient(#f6e7c2 0 70%, #a9c7d8 70%);
+}
+.dk-ip-thumb-thin::after {
+  border: 1px solid #9aa8a0;
+}
+.dk-ip-thumb-soft::after {
+  border-radius: 10px;
+}
+.dk-ip-thumb-circle::after {
+  border-radius: 50%;
+}
+.dk-ip-thumb-lifted::after {
+  box-shadow: 0 8px 14px rgba(30, 42, 34, 0.3);
+}

@@ -83,8 +83,10 @@ export const RichAttrs = Extension.create({
           href: dataAttr('href', null),
           crop: dataAttr('crop', null, 'json'),
           border: dataAttr('border', null),
+          borderColor: dataAttr('borderColor', null),
           radius: dataAttr('radius', 0, 'json'),
           shadow: dataAttr('shadow', false, 'json'),
+          shadowStyle: dataAttr('shadowStyle', null),
         },
       },
       {
