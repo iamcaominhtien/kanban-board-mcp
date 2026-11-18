@@ -141,15 +141,20 @@ export function SelectionSwatches({
   block,
   limit,
   onApply,
+  card = false,
 }: {
   lastColor: HighlightColor;
   block: AddBlock;
   limit: HlLimit;
   onApply: (c: HighlightColor) => void;
+  /** In the reader's card (Reader 75): the foot always says who will see it, when nothing is in the way. */
+  card?: boolean;
 }) {
   const [all, setAll] = useState(false);
   const off = !!block || !!limit;
-  const note = blockText(block, limit);
+  const note =
+    blockText(block, limit) ??
+    (card ? { text: 'Everyone in the project who can read this page will see it.', warn: false } : null);
   return (
     <>
       <span

@@ -67,6 +67,8 @@ import { PrintDialog } from './PrintDialog';
 import { openDocsFind } from './FindInPage';
 import { DEFAULT_PRINT, isPrinting, mountPrintSheet, printPage, type PrintOptions, type PrintParts } from './printPage';
 import { AskAiButton } from '../assist/AssistEntry';
+import { threadPlace } from './comments/blockAnchor';
+import { ThreadCard } from './comments/ThreadCard';
 import { NotificationBellButton } from '../notifications/NotificationsHost';
 import { applyReaderLook, readerClass, readerThemeCss, readerVars, useReaderPrefs } from './readerPrefs';
 import { AaGlyph, ReaderSettingsPanel, ReaderSettingsPopover } from './ReaderSettings';
@@ -460,6 +462,24 @@ export function DocsPageView({
     activateThread: cc.activate,
     startComment: setCompose,
     outlineBeside: inlineOutline && outlineOn,
+    renderThread: (threadId) => {
+      const t = commentsData?.threads.find((x) => x.id === threadId);
+      return t && commentsData ? (
+        <ThreadCard
+          thread={t}
+          projectId={projectId}
+          data={commentsData}
+          actions={cc.actions}
+          active={false}
+          version={page.version}
+          reattaching={false}
+          onActivate={() => undefined}
+          onReattach={cc.setReattachId}
+          suggestMembers={suggest}
+          place={richDoc && !older ? threadPlace(t, richDoc) : undefined}
+        />
+      ) : null;
+    },
   });
   const minutes = useMemo(
     () => readingMinutes(published ? page.markdown : (page.draft?.markdown ?? '')),
@@ -1683,6 +1703,7 @@ export function DocsPageView({
           onPick={onPick}
           hideComment={!canComment}
           lead={hl.selectionLead}
+          card={hl.selectionCard}
           extra={
             aiOn || askable
               ? (pick, close) => (

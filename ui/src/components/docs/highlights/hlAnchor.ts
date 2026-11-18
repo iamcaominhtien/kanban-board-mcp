@@ -203,6 +203,13 @@ export function locate(
   return rangeOf(sm, h.start, em, h.end);
 }
 
+/** A heading's own words, without the section link chip ("#slug") drawn after them. */
+function headingWords(h: HTMLElement): string {
+  const copy = h.cloneNode(true) as HTMLElement;
+  copy.querySelectorAll('.dk-anchor, .dk-hl-handle').forEach((x) => x.remove());
+  return copy.textContent?.trim() ?? '';
+}
+
 /**
  * Where a block sits for a person reading the list: the heading above it ("Write the ticket for a stranger"), else
  * "Paragraph N" for the paragraphs before the first heading.
@@ -212,13 +219,13 @@ export function locate(
 export function placeOf(root: HTMLElement, blockId: string): string {
   const el = blockEl(root, blockId);
   if (!el) return '';
-  if (/^H[1-6]$/.test(el.tagName)) return el.textContent?.trim() ?? '';
+  if (/^H[1-6]$/.test(el.tagName)) return headingWords(el);
   const blocks = Array.from(root.querySelectorAll<HTMLElement>('h1,h2,h3,h4,p,blockquote,li,td,th,figcaption'));
   let heading = '';
   let paras = 0;
   for (const b of blocks) {
     if (b === el || b.contains(el)) break;
-    if (/^H[1-4]$/.test(b.tagName)) heading = b.textContent?.trim() ?? '';
+    if (/^H[1-4]$/.test(b.tagName)) heading = headingWords(b);
     else if (b.tagName === 'P') paras += 1;
   }
   if (heading) return heading;

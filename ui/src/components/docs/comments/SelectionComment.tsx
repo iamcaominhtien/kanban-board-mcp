@@ -79,6 +79,7 @@ export function SelectionToolbar({
   extra,
   hideComment,
   lead,
+  card = false,
 }: {
   root: HTMLElement | null;
   label: string;
@@ -90,8 +91,14 @@ export function SelectionToolbar({
   hideComment?: boolean;
   /** What comes before Comment: the highlight colours (highlights/SelectionSwatches.tsx). `close` hides the bar. */
   lead?: (pick: Pick, close: () => void) => ReactNode;
+  /**
+   * Draw the reader's bubble (Reader 74-75, 96): a 292 px card with the colours on top, then Copy, Comment, Link and
+   * More (`extra`, opened under the card), and who will see it at the foot.
+   */
+  card?: boolean;
 }) {
   const [pick, setPick] = useState<Pick | null>(null);
+  const [more, setMore] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   // with the colours in front the bar is wider and taller: it is centred on the selection by its measured size
@@ -100,7 +107,8 @@ export function SelectionToolbar({
     if (!lead || !el) return;
     const next = { w: el.offsetWidth, h: el.offsetHeight };
     setSize((s) => (s && s.w === next.w && s.h === next.h ? s : next));
-  }, [lead, pick, hideComment, extra]);
+  }, [lead, pick, hideComment, extra, card]);
+  useEffect(() => setMore(false), [pick?.anchor.quote]);
 
   useEffect(() => {
     if (!enabled || !root) return;
@@ -136,6 +144,71 @@ export function SelectionToolbar({
       pick.rect.top - h - 8 > 56 ? pick.rect.top - h - 8 : Math.min(window.innerHeight - h - 8, pick.rect.bottom + 8);
   }
   const close = () => setPick(null);
+  if (card && lead) {
+    const act = (name: 'copy' | 'comment' | 'link' | 'more', text: string, run: () => void, testId: string) => (
+      <button
+        type="button"
+        className="dc-selcard-act"
+        data-testid={testId}
+        aria-expanded={name === 'more' ? more : undefined}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={run}
+      >
+        <SelIcon name={name} />
+        {text}
+      </button>
+    );
+    return (
+      <div
+        ref={barRef}
+        className="dc-selbar dc-selcard"
+        style={{ left, top }}
+        data-testid="selection-toolbar"
+        data-nocomment
+      >
+        {lead(pick, close)}
+        <span className="dc-selcard-rule" aria-hidden="true" />
+        <div className="dc-selcard-acts">
+          {act(
+            'copy',
+            'Copy',
+            () => {
+              void navigator.clipboard?.writeText(pick.anchor.quote).catch(() => undefined);
+              close();
+            },
+            'selection-copy',
+          )}
+          {!hideComment &&
+            act(
+              'comment',
+              label,
+              () => {
+                onPick(pick);
+                setPick(null);
+              },
+              'selection-comment',
+            )}
+          {pick.anchor.blockId &&
+            act(
+              'link',
+              'Link',
+              () => {
+                const url = `${window.location.href.replace(/#.*$/, '')}#block-${pick.anchor.blockId}`;
+                void navigator.clipboard?.writeText(url).catch(() => undefined);
+                close();
+              },
+              'selection-link',
+            )}
+          {extra && act('more', 'More', () => setMore((v) => !v), 'selection-more')}
+        </div>
+        {more && extra && (
+          <div className="dc-selcard-more" role="menu" aria-label="More">
+            {extra(pick, close)}
+          </div>
+        )}
+      </div>
+    );
+  }
   return (
     <div ref={barRef} className="dc-selbar" style={{ left, top }} data-testid="selection-toolbar" data-nocomment>
       {lead && lead(pick, close)}
@@ -243,5 +316,32 @@ export function ComposePopover({
         <span className="dk-kbd">Enter</span> new line · <span className="dk-kbd">Esc</span> to cancel
       </div>
     </div>
+  );
+}
+
+/** The 16 px icons of the bubble's actions (Reader 75): Copy, Comment, Link and More. */
+function SelIcon({ name }: { name: 'copy' | 'comment' | 'link' | 'more' }) {
+  const paths: Record<typeof name, string[]> = {
+    copy: ['M9 9h11v11H9z', 'M5 15H4V4h11v1'],
+    comment: ['M4 5h16v11H9l-5 4z'],
+    link: ['M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1', 'M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1'],
+    more: ['M12 3C12 8 14 10 19 12C14 14 12 16 12 21C12 16 10 14 5 12C10 10 12 8 12 3Z'],
+  };
+  return (
+    <svg
+      aria-hidden="true"
+      width={16}
+      height={16}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#3A4A3E"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {paths[name].map((d) => (
+        <path key={d} d={d} />
+      ))}
+    </svg>
   );
 }

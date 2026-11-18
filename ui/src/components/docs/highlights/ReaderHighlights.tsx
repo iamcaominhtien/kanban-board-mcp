@@ -14,8 +14,8 @@ import type { DocsLayout } from '../../../hooks/useDocsLayout';
 import { pickFromSelection, type Pick } from '../comments/SelectionComment';
 import { personOf as commentPerson } from '../comments/people';
 import { BottomSheet, DocsDrawer } from '../DocsSheets';
-import { HL_INK, colorName, tintOf } from './colors';
-import { HlAvatar } from './HighlightPopover';
+import { HL_INK, HlShape, colorName, tintOf } from './colors';
+import { HlAvatar, shortAgo } from './HighlightPopover';
 import { HlConfirm, HlTip, HlToast, NewChip, PeopleChips, RemovedNote, SaveFailed } from './HighlightDialogs';
 import { HighlightPopover } from './HighlightPopover';
 import { HighlightsPanel, type HlThreadInfo } from './HighlightsPanel';
@@ -64,6 +64,11 @@ export interface ReaderHighlightsOpts {
   outlineBeside: boolean;
   /** Called by the Outline tab (shows the outline again). */
   onOutline?: () => void;
+  /**
+   * Draws a comment thread (its comments, the reply box, Resolve). With it, a highlight's thread opens in the side
+   * panel on a desktop, in place of the list (Reader 114); without it, in the comments panel.
+   */
+  renderThread?: (threadId: string) => ReactNode;
 }
 
 type Confirm =
@@ -99,6 +104,8 @@ export function useReaderHighlights(o: ReaderHighlightsOpts) {
   const canAdd = available && !!data && !block && data.canAdd;
 
   const [panel, setPanel] = useState(false);
+  // the highlight whose thread is open in the side panel (desktop, Reader 114)
+  const [threadFor, setThreadFor] = useState<string | null>(null);
   const [open, setOpen] = useState<{ id: string; rect: DOMRect } | null>(null);
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [laid, setLaid] = useState<{ order: string[]; missing: Set<string> }>({ order: [], missing: new Set() });
@@ -244,6 +251,12 @@ export function useReaderHighlights(o: ReaderHighlightsOpts) {
     (h: HlItem) => {
       setOpen(null);
       if (h.threadId && comments?.threads.some((t) => t.id === h.threadId)) {
+        // desktop: the thread takes the list's place beside the page, with a way back (Reader 114)
+        if (!touch && o.outlineBeside && o.renderThread) {
+          setThreadFor(h.id);
+          setPanel(true);
+          return;
+        }
         setPanel(false);
         o.activateThread(h.threadId);
         return;
@@ -258,7 +271,7 @@ export function useReaderHighlights(o: ReaderHighlightsOpts) {
       pendingComment.current = h.id;
       o.startComment(p);
     },
-    [comments, o, ranges, bodyEl],
+    [comments, o, ranges, bodyEl, touch],
   );
 
   /** DocsPageView tells this when the comment box posted its thread (null: it was cancelled). */
@@ -468,10 +481,54 @@ export function useReaderHighlights(o: ReaderHighlightsOpts) {
     />
   );
 
+  const threadItem = threadFor ? m.items.find((h) => h.id === threadFor && h.threadId) : null;
+  const threadView = (h: HlItem) => {
+    const person = personOf(h.author);
+    return (
+      <div className="hl-thread" data-testid="hl-thread">
+        {tabs('highlights')}
+        <button
+          type="button"
+          className="hl-thread-back"
+          onClick={() => setThreadFor(null)}
+          data-testid="hl-thread-back"
+        >
+          <svg
+            aria-hidden="true"
+            width={14}
+            height={14}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.4}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+          Highlights
+        </button>
+        <div className="hl-thread-quote">
+          <span className="hl-thread-shape">
+            <HlShape color={h.color} size={12} />
+          </span>
+          <span>
+            <span className="hl-row-quote" style={{ background: tintOf(h.color), borderBottomColor: HL_INK[h.color] }}>
+              “{h.quote}”
+            </span>
+            <span className="hl-thread-who">
+              {colorName(h.color)} · {h.mine ? 'You' : person.name} · {shortAgo(h.createdAt)}
+            </span>
+          </span>
+        </div>
+        {h.threadId && o.renderThread?.(h.threadId)}
+      </div>
+    );
+  };
   const rail: ReactNode =
     available && panel && !touch ? (
       <aside className="hl-rail" aria-label="Highlights">
-        {list(o.outlineBeside)}
+        {threadItem ? threadView(threadItem) : list(o.outlineBeside)}
       </aside>
     ) : null;
   const outlineTabs: ReactNode = available && o.outlineBeside ? tabs('outline') : null;
@@ -762,6 +819,7 @@ export function useReaderHighlights(o: ReaderHighlightsOpts) {
             lastColor={m.lastColor}
             block={block}
             limit={m.limit}
+            card
             onApply={(c) => {
               apply(c, pick);
               close();
@@ -769,6 +827,8 @@ export function useReaderHighlights(o: ReaderHighlightsOpts) {
           />
         )
     : undefined;
+  // the colours come in the reader's card (Reader 74-75); re-attaching keeps the slim bar of its one button
+  const selectionCard = selectable && !reattach;
 
   /**
    * The copy of the page body a print takes (93): the reader's markers out and, with "Include highlights" on, the
@@ -793,6 +853,7 @@ export function useReaderHighlights(o: ReaderHighlightsOpts) {
     outlineTabs,
     overlays,
     selectionLead,
+    selectionCard,
     threadCreated,
     printCopy,
   };

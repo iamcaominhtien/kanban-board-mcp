@@ -1584,3 +1584,221 @@
     system-ui,
     sans-serif;
 }
+
+/* ---------- the reader's bubble as a card (74-75, 96): colours, then Copy, Comment, Link and More, then who sees it */
+.dc-selbar.dc-selcard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  width: 292px;
+  box-sizing: border-box;
+  padding: 4px;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.22);
+}
+.dc-selcard .hl-sw-row {
+  display: flex;
+  padding: 4px 4px 4px 6px;
+}
+.dc-selcard .hl-all {
+  order: 5;
+}
+.dc-selcard-rule {
+  order: 1;
+  display: block;
+  height: 1px;
+  margin: 2px 4px;
+  background: #e3e8e5;
+}
+.dc-selcard-acts {
+  order: 2;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+}
+.dc-selbar button.dc-selcard-act {
+  flex: 1;
+  min-height: 50px;
+  height: auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 8px;
+  background: transparent;
+  color: #1e2a22;
+  font:
+    600 11px 'Plus Jakarta Sans',
+    system-ui,
+    sans-serif;
+}
+.dc-selbar button.dc-selcard-act:hover,
+.dc-selbar button.dc-selcard-act[aria-expanded='true'] {
+  background: #f6faf7;
+}
+/* the foot: who will see it, or why adding is off (in the card, not under it) */
+.dc-selcard .hl-selnote {
+  order: 3;
+  position: static;
+  width: auto;
+  max-width: none;
+  margin-top: 2px;
+  padding: 7px 10px 6px;
+  border: none;
+  border-top: 1px solid #e3e8e5;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font:
+    600 11.5px/1.35 'Plus Jakarta Sans',
+    system-ui,
+    sans-serif;
+  color: #5b6b60;
+}
+.dc-selcard .hl-selnote.hl-selnote-warn {
+  margin: 4px 2px 2px;
+  border: 1px solid #ebd3a4;
+  border-radius: 8px;
+  background: #fdf3e3;
+  color: #8a5a00;
+}
+/* More: the Docs AI extras in a menu under the card (96) */
+.dc-selcard-more {
+  order: 6;
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  padding: 6px;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.18);
+}
+.dc-selcard-more > * {
+  justify-content: flex-start;
+}
+.dc-selcard-more .dc-selbar-sep {
+  display: none;
+}
+.dc-selcard-more button {
+  width: 100%;
+  justify-content: flex-start;
+  background: transparent !important;
+  color: #1e2a22 !important;
+  height: 34px !important;
+}
+.dc-selcard-more button:hover {
+  background: #f6faf7 !important;
+}
+
+/* the list as the boards draw it (78, 80, 87): quiet controls, no frames. The colour filters and the row actions
+   are plain words with their shape or icon; the chosen filter is the bold one, underlined in the page's link
+   colour; the tabs stay compact on touch too (36 px) */
+.hl-panel-sub > svg {
+  display: none;
+}
+.hl-chips {
+  gap: 2px 4px;
+}
+.hl-chip,
+.hl-chip.is-on {
+  border-color: transparent;
+  background: transparent;
+  border-radius: 6px;
+  padding: 0 8px;
+}
+.hl-chip:hover {
+  background: var(--dp-surface, #f6faf7);
+}
+.hl-chip.is-on {
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--dp-link, #2e6f40);
+  border-radius: 0;
+}
+.hl-row-acts .hl-btn,
+.hl-panel-foot .hl-btn {
+  border-color: transparent;
+  padding: 0 8px;
+}
+.hl-panel-foot .hl-btn-ico {
+  padding: 0;
+}
+.hl-row-acts .hl-btn:first-child,
+.hl-panel-foot .hl-btn:first-child {
+  margin-left: -8px;
+}
+.hl-panel.is-touch .hl-seg button {
+  height: 36px;
+}
+
+/* ---------- a highlight's thread in the side panel (114): back to the list, the quote, then the thread ---------- */
+.hl-thread {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.hl-thread-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  min-height: 28px;
+  margin: 0 0 10px;
+  padding: 0;
+  border: none;
+  background: none;
+  font:
+    600 12.5px 'Plus Jakarta Sans',
+    system-ui,
+    sans-serif;
+  color: var(--dp-link, #2e6f40);
+  cursor: pointer;
+}
+.hl-thread-quote {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px solid var(--dp-rule, #e3e8e5);
+  border-radius: 8px;
+  background: var(--dp-surface, #fbfcfb);
+  font:
+    14px/1.6 'Source Serif 4',
+    'Lora',
+    Georgia,
+    serif;
+}
+.hl-thread-shape {
+  padding-top: 5px;
+  flex: none;
+}
+.hl-thread-who {
+  display: block;
+  margin-top: 2px;
+  font:
+    600 11px 'Plus Jakarta Sans',
+    system-ui,
+    sans-serif;
+  color: var(--dp-muted, #5b6b60);
+}
+/* the thread under it: no card of its own, its quote is the one above */
+.hl-thread .dc-card {
+  margin-top: 10px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+.hl-thread .dc-head-what {
+  visibility: hidden;
+}
