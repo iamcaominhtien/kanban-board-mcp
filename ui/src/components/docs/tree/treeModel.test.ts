@@ -4,6 +4,8 @@ import {
   affectedPages,
   buildRows,
   chapterNumbers,
+  childrenMap,
+  coverOf,
   describeTarget,
   filterCounts,
   groupByDay,
@@ -185,5 +187,23 @@ describe('keyboard moves', () => {
     );
     expect(placeOf(NODES, 'Data model')).toEqual({ parentId: 'Architecture', afterId: 'API', beforeId: null });
     expect(placeOf(NODES, 'API')).toEqual({ parentId: 'Architecture', afterId: null, beforeId: 'Data model' });
+  });
+});
+
+describe('the picture of a gallery card', () => {
+  it('is the page cover, else the first cover among the pages inside it, else none', () => {
+    const nodes = [
+      node('Blog'),
+      node('Post', { parentId: 'Blog', position: 1, cover: '/uploads/post.png' }),
+      node('Draft', { parentId: 'Blog', position: 0 }),
+      node('Note', { parentId: 'Draft', cover: '/uploads/note.png' }),
+      node('Own', { cover: '/uploads/own.png' }),
+      node('Plain'),
+    ];
+    const kids = childrenMap(nodes);
+    expect(coverOf(nodes[4], kids)).toBe('/uploads/own.png');
+    // the children in order first, then theirs
+    expect(coverOf(nodes[0], kids)).toBe('/uploads/post.png');
+    expect(coverOf(nodes[5], kids)).toBeNull();
   });
 });

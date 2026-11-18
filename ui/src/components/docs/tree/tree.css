@@ -108,6 +108,9 @@
   align-items: center;
   gap: 6px;
   padding: 0 12px 8px;
+  /* a narrow tree (an empty space on a tablet keeps the whole tree beside its start page): the last buttons wrap to
+     a second row instead of running over Filter and out of the pane */
+  flex-wrap: wrap;
 }
 .tr-toolbar-gap {
   flex: 1;
@@ -1895,4 +1898,58 @@
 }
 .dk-bin-phone .dk-bin-tools {
   padding: 2px 14px 8px;
+}
+
+/* inside a book (Tree1 10): 84 px pictures, the number in a white badge over a picture or large on the paper
+   colour, a "Chapter N" tag on top; "Add a chapter" with its plus in a green circle */
+.tr-card-chapter .tr-card-cover {
+  height: 84px;
+  background-color: #efe9d8;
+}
+.tr-card-chapter .tr-card-num {
+  font-size: 35px;
+  font-weight: 400;
+  color: #1e2a22;
+}
+.tr-card-chapter .tr-card-badge {
+  top: 66px;
+  font-weight: 400;
+  color: #1e2a22;
+}
+.tr-card-chtag {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  height: 24px;
+  padding: 0 9px;
+  box-sizing: border-box;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.94);
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #1f5a31;
+  pointer-events: none;
+}
+.tr-card:hover .tr-card-chtag,
+.dk-touch .tr-card-chtag {
+  opacity: 0;
+}
+.tr-card-add {
+  min-height: 170px;
+  border: 1.5px dashed #bfd2c5;
+  font-weight: 700;
+}
+.tr-card-add-ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #e6f2ea;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tr-view-open {
+  flex: none;
 }

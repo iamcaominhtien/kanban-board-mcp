@@ -15,6 +15,7 @@ import { coverUrl } from '../pageSettings';
 import {
   activeFilterCount,
   childrenMap,
+  coverOf,
   filterCounts,
   groupByDay,
   isBook,
@@ -175,6 +176,7 @@ function MoreButton({ node, onMenu }: { node: DocsTreeNode; onMenu?: ViewProps['
 function Card({
   node,
   kids,
+  cover,
   chapter,
   onClick,
   onMenu,
@@ -183,6 +185,8 @@ function Card({
 }: {
   node: DocsTreeNode;
   kids: number;
+  /** The picture on top: the page's cover, or one of the pages inside it ({@link coverOf}). */
+  cover: string | null;
   chapter?: number;
   onClick: () => void;
   onMenu?: ViewProps['onMenu'];
@@ -193,11 +197,12 @@ function Card({
   const status = rowStatus(node, new Date());
   const book = isBook(node);
   // a cover keeps the page's icon in a white badge over its lower edge; no cover shows the colour and the emoji
-  const badge = !!node.cover && !chapter && icon?.kind === 'emoji';
+  // inside a book the number takes the badge's place, with a "Chapter N" tag on the picture (Tree1 10)
+  const badge = !!cover && (chapter ? true : icon?.kind === 'emoji');
   return (
     <div
       role="listitem"
-      className={`tr-card${drag?.over ? ' tr-card-over' : ''}${badge ? ' tr-card-badged' : ''}`}
+      className={`tr-card${drag?.over ? ' tr-card-over' : ''}${badge ? ' tr-card-badged' : ''}${chapter ? ' tr-card-chapter' : ''}`}
       data-testid={`gallery-card-${node.slug}`}
       draggable={!!drag}
       onDragStart={(e) => {
@@ -223,20 +228,25 @@ function Card({
         <div
           className="tr-card-cover"
           style={
-            node.cover
-              ? { backgroundImage: `url("${coverUrl(node.cover, resolveOrigin())}")` }
-              : { background: pageTint(node.id) }
+            cover
+              ? { backgroundImage: `url("${coverUrl(cover, resolveOrigin())}")` }
+              : chapter
+                ? undefined
+                : { background: pageTint(node.id) }
           }
         >
           {chapter ? (
-            <span className="tr-card-num">{chapter}</span>
-          ) : node.cover ? null : icon?.kind === 'emoji' ? (
+            cover ? null : (
+              <span className="tr-card-num">{chapter}</span>
+            )
+          ) : cover ? null : icon?.kind === 'emoji' ? (
             <span className="tr-card-emoji">{icon.value}</span>
           ) : (
             <PageIcon icon={node.icon} kind={node.kind} size={30} />
           )}
         </div>
-        {badge && <span className="tr-card-badge">{icon.value}</span>}
+        {badge && <span className="tr-card-badge">{chapter ?? (icon?.kind === 'emoji' ? icon.value : null)}</span>}
+        {chapter && <span className="tr-card-chtag">Chapter {chapter}</span>}
         <div className="tr-card-body">
           <div className="tr-card-title">{chapter ? `${chapter}. ${node.title}` : node.title}</div>
           <div className="tr-card-meta">
@@ -332,11 +342,13 @@ export function GalleryView(
             <h2>{folderNode.title}</h2>
             <div className="tr-view-sub">
               {inBook
-                ? `Book · ${cards.length} ${cards.length === 1 ? 'chapter' : 'chapters'} · ${cards.filter((c) => c.version > 0).length} published`
+                ? `${folderNode.createdBy ? `${displayName(folderNode.createdBy)} · ` : ''}Book · ${cards.length} ${cards.length === 1 ? 'chapter' : 'chapters'} · ${cards.filter((c) => c.version > 0).length} published`
                 : `${cards.length} ${cards.length === 1 ? 'page' : 'pages'} inside`}
             </div>
           </div>
-          <button type="button" className="st-btn st-btn-sm" onClick={() => onOpen(folderNode.id)}>
+          {inBook && <BookTag />}
+          <button type="button" className="st-btn tr-view-open" onClick={() => onOpen(folderNode.id)}>
+            <Icon name="page" size={14} strokeWidth={2} />
             {inBook ? 'Open book page' : 'Open page'}
           </button>
         </header>
@@ -353,7 +365,10 @@ export function GalleryView(
           {layout !== 'phone' && <SortSelect sort={sort} onSortChange={props.onSortChange} />}
         </header>
       )}
-      <QuickFilters nodes={nodes} filters={filters} onFiltersChange={onFiltersChange} ctx={ctx} />
+      {/* inside a book the chapters are the whole story: no quick filters over them (Tree1 10) */}
+      {!(inBook && !filtering) && (
+        <QuickFilters nodes={nodes} filters={filters} onFiltersChange={onFiltersChange} ctx={ctx} />
+      )}
       {filtering && cards.length === 0 ? (
         <NoMatch filters={filters} onClear={() => onFiltersChange({ only: [], edited: 'any' })} />
       ) : inBook && !filtering && cards.length === 0 ? (
@@ -378,6 +393,7 @@ export function GalleryView(
                 key={n.id}
                 node={n}
                 kids={count}
+                cover={coverOf(n, kids)}
                 chapter={chapter}
                 onMenu={onMenu}
                 renderSuggestions={renderSuggestions}
@@ -410,7 +426,9 @@ export function GalleryView(
           })}
           {inBook && !filtering && onAddChild && (
             <button type="button" className="tr-card tr-card-add" onClick={() => onAddChild(folderNode!.id)}>
-              <Icon name="plus" size={16} strokeWidth={2.2} />
+              <span className="tr-card-add-ico">
+                <Icon name="plus" size={16} strokeWidth={2.4} />
+              </span>
               Add a chapter
             </button>
           )}

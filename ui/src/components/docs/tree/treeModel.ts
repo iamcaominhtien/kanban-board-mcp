@@ -153,6 +153,24 @@ export interface TreeRow {
   dim: boolean;
 }
 
+/**
+ * The picture a gallery card shows (Tree1 7, 10): the page's own cover, else the first cover among the pages inside
+ * it (its children in order, then theirs), so a folder or a book shows a picture of what it holds.
+ * @param node - The page of the card.
+ * @param kids - The tree's children by parent, in order ({@link childrenMap}).
+ * @returns The cover's address, or `null` when no page there has one.
+ */
+export function coverOf(node: DocsTreeNode, kids: Map<string | null, DocsTreeNode[]>): string | null {
+  if (node.cover) return node.cover;
+  const queue = [...(kids.get(node.id) ?? [])];
+  for (let seen = 0; queue.length && seen < 50; seen += 1) {
+    const n = queue.shift()!;
+    if (n.cover) return n.cover;
+    queue.push(...(kids.get(n.id) ?? []));
+  }
+  return null;
+}
+
 /** The pages under each parent (`null`: the top level), in tree order; a page whose parent is gone is top level. */
 export function childrenMap(nodes: DocsTreeNode[]): Map<string | null, DocsTreeNode[]> {
   const ids = new Set(nodes.map((n) => n.id));
