@@ -99,18 +99,22 @@ try {
     ctx.projectId = projects.body[0].id;
   });
 
-  await step('set up: members Me and Ada, six published pages, the notifier has its cursor', async () => {
+  await step('set up: members Me and Ada, seven published pages, quiet hours off, the notifier has its cursor', async () => {
     for (const name of ['Me', 'Ada']) {
       const r = await user('POST', `/projects/${ctx.projectId}/members`, { name });
       assert.ok(r.status < 300, `member ${name}: ${JSON.stringify(r.body)}`);
     }
     ctx.pages = {};
-    for (const name of ['Plans', 'Budget', 'Roadmap', 'Handbook', 'Notes', 'Later']) {
+    for (const name of ['Plans', 'Budget', 'Roadmap', 'Handbook', 'Notes', 'Later', 'Quiet']) {
       const page = (await user('POST', `/projects/${ctx.projectId}/docs/pages`, { title: name, markdown: `# ${name}\n\nBody of ${name}.` })).body;
       const pub = await user('POST', `/docs/pages/${page.id}/publish`, { base_version: 0, note: 'first' });
       assert.equal(pub.status, 200, `publish ${name}: ${JSON.stringify(pub.body)}`);
       ctx.pages[name] = page.id;
     }
+    // quiet hours are on by default (22:00 to 08:00 local time) and hold every notice: off, so the run does not depend
+    // on the hour it runs at (it failed every night before); step 7d checks them on purpose
+    const q = await user('PATCH', '/notifications/settings', { quiet: { on: false } });
+    assert.equal(q.status, 200, JSON.stringify(q.body));
     await notifierReady();
     assert.equal(await noteCount(), 0, 'nothing was shown while setting up');
   });
@@ -283,6 +287,25 @@ try {
     await until(async () => (await lastBadge(app)) === 0, 'the badge to go to 0');
     await sw.click();
     await until(async () => (await user('GET', '/notifications/settings')).body.desktop_on === true, 'the setting to be saved');
+  });
+
+  await step('7d. in quiet hours a mention sends no OS notification, the badge still counts it', async () => {
+    // a window that holds every minute but the last one of the day
+    const on = await user('PATCH', '/notifications/settings', { quiet: { on: true, start: '00:00', end: '23:59' } });
+    assert.equal(on.status, 200, JSON.stringify(on.body));
+    await setFocus(app, false);
+    const before = await noteCount();
+    const from = (await recorded(app)).http.length;
+    await mention('Quiet');
+    await until(async () => (await lastBadge(app)) === 1, 'the badge to show 1');
+    await afterFeed(from);
+    await sleep(500);
+    assert.equal(await noteCount(), before, 'no OS notification in quiet hours');
+    const row = await rowOf('Please look at Quiet');
+    await user('POST', `/notifications/${row.id}/dismiss`);
+    await until(async () => (await lastBadge(app)) === 0, 'the badge to go to 0');
+    const off = await user('PATCH', '/notifications/settings', { quiet: { on: false } });
+    assert.equal(off.status, 200, JSON.stringify(off.body));
   });
 
   // ── the update flow ──

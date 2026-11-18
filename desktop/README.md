@@ -26,6 +26,7 @@ starts the real app (Electron, which starts the real server) and checks:
 | 5a, 5b | The launcher badge (`app.setBadgeCount`) follows the open "needs you" count: reading a row does not clear it (design J), dismissing does |
 | 6a, 6b | A click on the grouped notice brings the window up at the Needs you list; a click on a single notice brings it up at the Docs page |
 | 7, 7b, 7c | Settings › Notifications › Send a test shows the test notice at once, a refusal by the OS is reported, a click on it only focuses the window; with Desktop notifications switched off nothing is sent |
+| 7d | Quiet hours hold every notice; the badge still counts (the other steps run with quiet hours off, which are on from 22:00 to 08:00 by default) |
 | 8a–8d | The update flow: a failed check, up to date, a newer release (page, corner notice, Help menu), a download with a wrong checksum refused, a download that matches |
 | 9 | A notice is withdrawn from the OS when its row is resolved |
 | 10, 11 | The run sent exactly the notices above and left the person's own folders alone; quitting the app stops the server |
