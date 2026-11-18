@@ -9,6 +9,15 @@ export interface DocsSearchMatch {
   slug: string;
   /** HTML-escaped except for `<mark>` around hits. */
   snippet: string;
+  /** The top-level block of a rich page the match sits in: a result opens the page at it. */
+  blockId?: string | null;
+  /** What that block is: `heading`, `text`, `table`, `image`, `code`, `callout`, `list`, `quote`… */
+  kind?: string | null;
+  /** A picture or video matched by its words: `caption`, `alt` (its description) or `title`. */
+  field?: 'caption' | 'alt' | 'title' | null;
+  /** A table match: its row, from 1 (the header row counted), and the row's cells. */
+  row?: number | null;
+  cells?: string[] | null;
 }
 
 export interface DocsSearchPage {
@@ -35,11 +44,16 @@ export interface DocsSearchTicket {
   assignee?: string | null;
 }
 
+/** The search page's Type filter: what a match sits in. */
+export type DocsMatchType = 'page' | 'image' | 'table' | 'file' | 'code' | 'diagram';
+
 export interface DocsSearchFacets {
   authors?: { name: string; count: number }[];
   under?: { pageId: string; title: string; count: number }[];
   edited?: Partial<Record<'any' | 'day' | 'week' | 'month', number>>;
   status?: { name: string; count: number }[];
+  /** Pages per type of match (`facets=kinds`): `page`, `image`, `table`, `file`, `code`, `diagram`. */
+  kinds?: { name: DocsMatchType; count: number }[];
   [key: string]: unknown;
 }
 
@@ -67,6 +81,10 @@ export interface DocsSearchParams {
   hasTickets?: boolean;
   status?: string[];
   sort?: DocsSearchSort;
+  /** Only matches of these types (the Type filter). */
+  kinds?: DocsMatchType[];
+  /** Count pages per type of match (`facets.kinds`). */
+  kindFacets?: boolean;
 }
 
 // ─── Import ───────────────────────────────────────────────────────────────────

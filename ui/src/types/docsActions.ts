@@ -1,4 +1,4 @@
-import type { DocsDeletedEntry, DocsPage } from './docs';
+import type { DocsDeletedEntry, DocsLinkBlock, DocsPage } from './docs';
 
 export interface DocsPageStats {
   words: number;
@@ -34,6 +34,10 @@ export interface BacklinkPageRow {
   excerpt?: string | null;
   /** Section of this page the reference points at (as written), if any. */
   targetAnchor?: string | null;
+  /** The top-level block of the other page the link is written in (Go to link opens it there). */
+  sourceBlockId?: string | null;
+  /** The heading or block of this page the link points at, when it names one. */
+  targetBlock?: DocsLinkBlock | null;
   origin?: string;
   anchor?: string | null;
   section?: string | null;

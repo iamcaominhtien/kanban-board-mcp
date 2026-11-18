@@ -29,6 +29,8 @@ const TOPIC_KEYS: Record<string, QueryKey[]> = {
   ticket_docs: TICKET_DOCS,
   // Docs pages changed: every Docs query (tree, pages, comments, backlinks, a ticket's pages)
   docs: [['docs']],
+  // Shared highlights on a page changed (kb-docs docs_highlights.rs): the pages' highlight lists only
+  docs_highlights: [['docs', 'highlights']],
 };
 
 /** What an SSE message asks to refetch: topic names, or null for everything. */
@@ -40,6 +42,8 @@ export function topicsOf(data: string): string[] | null {
     if (j.type === 'comment_added') return ['comments'];
     // an AI team's suggestions on a page were added, accepted or rejected (kb-docs docs_suggestions.rs)
     if (j.type === 'docs_suggestions') return ['docs'];
+    // someone highlighted, recoloured or removed a passage while reading (kb-docs docs_highlights.rs)
+    if (j.type === 'docs_highlights') return ['docs_highlights'];
     if (j.type !== 'invalidate' || !Array.isArray(j.topics) || j.topics.length === 0) return null;
     return j.topics.filter((t): t is string => typeof t === 'string');
   } catch {

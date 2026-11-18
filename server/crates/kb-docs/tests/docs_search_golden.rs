@@ -27,7 +27,17 @@ fn clean(value: &Value, ids: &HashMap<String, String>) -> Value {
     fn walk(v: Value) -> Value {
         match v {
             Value::Object(m) => Value::Object(
-                m.into_iter().filter(|(k, _)| k != "took_ms" && k != "updated_at").map(|(k, x)| (k, walk(x))).collect(),
+                // the block a match sits in (`block_id`, `kind`, `field`, a table row's `row` and `cells`: rich
+                // pages, after the Python search) is checked by `test_docs_links`; its ids are random here
+                m.into_iter()
+                    .filter(|(k, _)| {
+                        !matches!(
+                            k.as_str(),
+                            "took_ms" | "updated_at" | "block_id" | "kind" | "field" | "row" | "cells"
+                        )
+                    })
+                    .map(|(k, x)| (k, walk(x)))
+                    .collect(),
             ),
             Value::Array(a) => Value::Array(a.into_iter().map(walk).collect()),
             other => other,
@@ -61,6 +71,8 @@ fn params_of(spec: &Value, ids: &HashMap<(String, String), String>) -> SearchPar
             "has_tickets" => p.has_tickets = Some(text(v) == "true"),
             "status" => p.status = Some(text(v)),
             "sort" => p.sort = text(v),
+            "kind" => p.kinds = Some(text(v)),
+            "facets" => p.kind_facets = text(v) == "kinds",
             other => panic!("unknown parameter {other}"),
         }
     }

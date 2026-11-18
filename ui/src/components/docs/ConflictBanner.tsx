@@ -15,6 +15,12 @@ interface Props {
   /** Lines you changed since `baseVersion`; shown once their changes are open. */
   ownLines?: number;
   busy?: boolean;
+  /** Blocks both people changed, once the merge has read the versions (the bar then asks to choose them). */
+  needChoice?: number;
+  /** Opens the block-by-block choice; the button is hidden without it. */
+  onChoose?: () => void;
+  /** A phone: the bar is short and its buttons wrap. */
+  phone?: boolean;
   onKeepMine: () => void;
   onReload: () => void;
 }
@@ -28,6 +34,9 @@ interface Props {
  * @param props.latestAt - ISO time of the newer version.
  * @param props.ownLines - Lines changed by the local edit, mentioned while their changes are shown.
  * @param props.busy - Disable the actions while a save or reload runs.
+ * @param props.needChoice - Blocks that need a choice ("2 blocks need your choice.").
+ * @param props.onChoose - Opens "Choose, block by block" (Docs states E 30).
+ * @param props.phone - Let the buttons wrap under the text.
  * @param props.onKeepMine - Called to overwrite the newer version with the local edit.
  * @param props.onReload - Called to discard the local edit and load the newer version.
  */
@@ -39,6 +48,9 @@ export function ConflictBanner({
   latestAt,
   ownLines,
   busy,
+  needChoice,
+  onChoose,
+  phone,
   onKeepMine,
   onReload,
 }: Props) {
@@ -51,6 +63,7 @@ export function ConflictBanner({
         style={{
           display: 'flex',
           alignItems: 'center',
+          flexWrap: phone ? 'wrap' : undefined,
           gap: 12,
           padding: '11px 16px',
           background: '#FCEFD9',
@@ -73,11 +86,23 @@ export function ConflictBanner({
               <>
                 {who} published v{latestVersion}
                 {latestAt ? ` at ${fmtTimeOnly(latestAt)}` : ''}. You started from v{baseVersion}, so Publish is paused.
+                {needChoice ? ` ${needChoice} block${needChoice === 1 ? ' needs' : 's need'} your choice.` : ''}
               </>
             )}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
+          {onChoose && needChoice ? (
+            <button
+              type="button"
+              className="st-btn st-btn-sm st-btn-primary"
+              disabled={busy}
+              onClick={onChoose}
+              data-testid="conflict-choose"
+            >
+              Choose, block by block
+            </button>
+          ) : null}
           <button
             type="button"
             className="st-btn st-btn-sm"

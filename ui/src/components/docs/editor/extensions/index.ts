@@ -5,6 +5,7 @@ import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { TableKit } from '@tiptap/extension-table';
 import { Callout } from './Callout';
 import { CommentHighlights } from './CommentHighlights';
+import { SharedHighlights } from './SharedHighlights';
 import { CodeBlock } from './CodeBlock';
 import { Diagram } from './Diagram';
 import { DocImage } from './DocImage';
@@ -143,6 +144,8 @@ export function buildExtensions(opts: ExtensionOptions): AnyExtension[] {
     TicketRef.configure({ isTicket: opts.isTicket }),
     HeadingAnchors,
     CommentHighlights.configure({ onSelect: (id) => opts.onCommentSelect?.(id) }),
+    // the readers' shared highlights, as dotted lines while the page is edited (K 101)
+    SharedHighlights,
     TableMethods,
     Placeholder,
     NeedsInput,

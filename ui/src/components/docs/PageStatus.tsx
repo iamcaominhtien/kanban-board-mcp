@@ -4,7 +4,7 @@
  * older version opened from History.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { actorName } from '../../utils/relativeTime';
 import { Icon } from './Icon';
 import { longDateTime, outdatedText, shortDate, type Outdated } from './pageStatus';
@@ -162,51 +162,117 @@ export function OlderVersionBar({
   restoring?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
+  // History board, frame 4: a purple card, the line with its clock, the buttons 26 px under it
+  const btn = (primary: boolean): CSSProperties => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    height: 26,
+    padding: '0 10px',
+    boxSizing: 'border-box',
+    borderRadius: 7,
+    background: primary ? '#2E6F40' : '#FFFFFF',
+    color: primary ? '#FFFFFF' : '#1E2A22',
+    border: `1px solid ${primary ? '#2E6F40' : '#D5DDD8'}`,
+    fontSize: 12,
+    fontWeight: 600,
+    whiteSpace: 'nowrap',
+    flex: 'none',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+  });
   return (
-    <div className="dk-note dk-note-blue" role="status" data-testid="older-version-bar">
-      <span className="dk-note-icon" aria-hidden="true">
-        <Icon name="i39" size={16} strokeWidth={2} />
-      </span>
-      <span className="dk-note-text">
+    <div
+      role="status"
+      data-testid="older-version-bar"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        padding: '10px 14px',
+        borderRadius: 10,
+        background: '#F1ECFB',
+        border: '1px solid #DCD0F3',
+        fontSize: 13,
+        lineHeight: 1.45,
+        color: '#1E2A22',
+        boxSizing: 'border-box',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <svg
+          aria-hidden="true"
+          width={16}
+          height={16}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#5B3AA6"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ flexShrink: 0 }}
+        >
+          <path d="M4 12a8 8 0 1 0 2.5-5.8L4 8.5M4 4v4.5h4.5M12 8v4l3 2" />
+        </svg>
+        <span>
+          {confirming ? (
+            <>
+              Restore v{version}? It becomes v{current + 1}; v{current} stays in History.
+            </>
+          ) : (
+            <>
+              <b>You are reading v{version}.</b>{' '}
+              <span style={{ color: '#5B6B60' }}>
+                The current page is v{current}, published {shortDate(currentAt)}. Edit is off while you read an older
+                version.
+              </span>
+            </>
+          )}
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingLeft: 26 }}>
         {confirming ? (
           <>
-            Restore v{version}? It becomes v{current + 1}; v{current} stays in History.
+            <button
+              type="button"
+              style={btn(true)}
+              disabled={restoring}
+              onClick={onRestore}
+              data-testid="older-restore-yes"
+            >
+              {restoring ? 'Restoring…' : `Restore as v${current + 1}`}
+            </button>
+            <button type="button" style={btn(false)} onClick={() => setConfirming(false)}>
+              Cancel
+            </button>
           </>
         ) : (
           <>
-            <b>You are reading v{version}.</b> The current page is v{current}, published {shortDate(currentAt)}. Edit is
-            off while you read an older version.
+            {onRestore && (
+              <button type="button" style={btn(true)} onClick={() => setConfirming(true)}>
+                <svg
+                  aria-hidden="true"
+                  width={13}
+                  height={13}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2.4}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3" />
+                </svg>
+                Restore this version
+              </button>
+            )}
+            <button type="button" style={btn(!onRestore)} onClick={onBack} data-testid="older-back">
+              Back to the latest
+            </button>
           </>
         )}
-      </span>
-      {confirming ? (
-        <>
-          <button type="button" className="st-btn" onClick={() => setConfirming(false)}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="st-btn st-btn-primary"
-            disabled={restoring}
-            onClick={onRestore}
-            data-testid="older-restore-yes"
-          >
-            {restoring ? 'Restoring…' : `Restore as v${current + 1}`}
-          </button>
-        </>
-      ) : (
-        <>
-          <button type="button" className="st-btn st-btn-primary" onClick={onBack} data-testid="older-back">
-            Back to the latest
-          </button>
-          {onRestore && (
-            <button type="button" className="st-btn" onClick={() => setConfirming(true)}>
-              <Icon name="i40" size={14} strokeWidth={1.9} />
-              Restore this version
-            </button>
-          )}
-        </>
-      )}
+      </div>
     </div>
   );
 }

@@ -160,10 +160,11 @@ describe('DocsPageView on a phone', () => {
     const edit = screen.getByTestId('edit-page');
     expect(edit.closest('[data-testid="page-bar"]')).toBeTruthy();
     expect(edit.textContent).toBe('Edit');
-    // the bottom bar: Outline, Find, Text, Share
+    // the bottom bar: Outline, Find, Highlights (the middle of five, Reader K 95), Text, Share
     expect(Array.from(screen.getByTestId('read-bar').querySelectorAll('button')).map((b) => b.textContent)).toEqual([
       'Outline',
       'Find',
+      'Highlights',
       'AaText',
       'Share',
     ]);

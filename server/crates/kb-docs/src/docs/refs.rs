@@ -291,6 +291,11 @@ fn str_of<'a>(r: &'a Value, key: &str) -> Option<&'a str> {
 /// slug of its title or its id. A `[[Title]]` reference matches by title only, so renaming a page away still breaks
 /// it. With `from_ticket` the references are written in a ticket, which links by page id: the old title of a
 /// renamed page still resolves. One result per request: status, title, path and, for tickets, their state.
+///
+/// A link of a rich page also sends the ids it stores (`page_id`, `block_id`): the page is then found by its id
+/// whatever its title is now, and the result names the heading or block (`block`: `{block_id, kind, label, detail,
+/// slug?}`); a heading link follows the heading when it was renamed (`anchor`, `section` are its current ones). A
+/// block that is gone gives the status `block_missing` (with `block_id`).
 pub async fn resolve_refs(
     session: &Session,
     project_id: &str,
@@ -313,7 +318,25 @@ pub async fn resolve_refs(
         };
         anchored.push((title, str_of(r, "anchor"), r.get("by_slug").is_some_and(pyjson::truthy)));
     }
+    // a link that stores its page's id follows the page, whatever its title is now
+    let by_id: HashMap<&str, &docs_page::Model> = pages.iter().map(|p| (p.id.as_str(), p)).collect();
+    let gone_by_id: HashMap<&str, &docs_page::Model> = deleted.iter().map(|p| (p.id.as_str(), p)).collect();
+    let live_title =
+        |r: &Value| -> Option<String> { str_of(r, "page_id").and_then(|id| by_id.get(id)).map(|p| p.title.clone()) };
+    let titles: Vec<Option<String>> = refs.iter().map(live_title).collect();
+    for (i, r) in refs.iter().enumerate().filter(|(_, r)| str_of(r, "kind") != Some("ticket")) {
+        if let Some(t) = &titles[i] {
+            anchored.push((t.as_str(), str_of(r, "anchor"), false));
+        }
+    }
     let headings = anchor_headings(session, &pages, &deleted, &anchored, Some(&aliases), renamed.as_ref()).await?;
+    // the documents of the pages that block links point at
+    let block_pages: Vec<docs_page::Model> = refs
+        .iter()
+        .filter(|r| str_of(r, "block_id").is_some_and(|b| !b.is_empty()))
+        .filter_map(|r| str_of(r, "page_id").and_then(|id| by_id.get(id)).map(|p| (*p).clone()))
+        .collect();
+    let docs = docs_search::rich_docs(session, &block_pages).await?;
     let keys: Vec<String> = refs
         .iter()
         .filter(|r| str_of(r, "kind") == Some("ticket"))
@@ -349,10 +372,28 @@ pub async fn resolve_refs(
                 Some(Value::String(s)) => s.as_str(),
                 Some(_) => return Err(Error::Other("title is not a string".to_string())),
             };
+            let i = out.len();
+            let stored_id = str_of(r, "page_id").filter(|id| !id.is_empty());
+            if let (None, Some(gone)) = (&titles[i], stored_id.and_then(|id| gone_by_id.get(id))) {
+                // the page the link stores is in the Recycle Bin
+                let mut m = Map::new();
+                m.insert("kind".into(), json!("page"));
+                m.insert("status".into(), json!("in_bin"));
+                m.insert("title".into(), json!(title));
+                m.insert("page_id".into(), json!(gone.id));
+                m.insert("deleted_at".into(), opt(&gone.deleted_at));
+                m.insert("deleted_by".into(), opt(&gone.deleted_by));
+                out.push(Value::Object(m));
+                continue;
+            }
+            let title = titles[i].as_deref().unwrap_or(title);
             let request =
                 PageRef { title, anchor: str_of(r, "anchor"), by_slug: r.get("by_slug").is_some_and(pyjson::truthy) };
-            let res =
+            let mut res =
                 resolve_page_ref(&pages, &deleted, &request, &headings, Some(&aliases), renamed.as_ref(), Some(&index));
+            if let Some(block_id) = str_of(r, "block_id").filter(|b| !b.is_empty()) {
+                resolve_block(&mut res, block_id, &docs);
+            }
             let mut m = Map::new();
             m.insert("kind".into(), json!("page"));
             m.extend(res);
@@ -362,8 +403,51 @@ pub async fn resolve_refs(
     Ok(out)
 }
 
+/// Names the heading or block a resolved page link points at (`block`), or marks it `block_missing`; `docs` holds
+/// the documents of the pages block links point at. A heading link takes the heading's current text and slug.
+fn resolve_block(res: &mut Map<String, Value>, block_id: &str, docs: &HashMap<String, Value>) {
+    if !matches!(str_of_map(res, "status"), Some("ok" | "section_missing" | "ambiguous")) {
+        return;
+    }
+    let Some(page_id) = str_of_map(res, "page_id") else { return };
+    let Some(doc) = docs.get(page_id) else { return };
+    match super::blocks::describe_target(doc, block_id) {
+        Some(target) => {
+            if target.get("kind").and_then(Value::as_str) == Some("heading") {
+                if res.get("section").and_then(Value::as_str) != target.get("label").and_then(Value::as_str)
+                    && res.contains_key("anchor")
+                {
+                    res.insert("anchor_renamed".into(), json!(true));
+                }
+                res.insert("anchor".into(), target.get("slug").cloned().unwrap_or(Value::Null));
+                res.insert("section".into(), target.get("label").cloned().unwrap_or(Value::Null));
+                if str_of_map(res, "status") == Some("section_missing") {
+                    res.insert("status".into(), json!("ok"));
+                }
+            }
+            res.insert("block".into(), target);
+        }
+        None => {
+            res.insert("status".into(), json!("block_missing"));
+            res.insert("block_id".into(), json!(block_id));
+        }
+    }
+}
+
 /// Rebuild a page's outgoing reference rows from its Markdown.
 pub async fn reindex_links(session: &Session, page: &docs_page::Model, markdown: &str) -> Result<()> {
+    reindex_links_of(session, page, markdown, None).await
+}
+
+/// Rebuild a page's outgoing reference rows from its Markdown and, for a rich page, its document: each row then
+/// names the top-level block it is written in (`source_block_id`), and a link that stores ids points at its page by
+/// id and at its heading or block (`target_block_id`).
+pub async fn reindex_links_of(
+    session: &Session,
+    page: &docs_page::Model,
+    markdown: &str,
+    doc: Option<&Value>,
+) -> Result<()> {
     docs_link::Entity::delete_many()
         .filter(docs_link::Column::SourcePageId.eq(page.id.as_str()))
         .filter(docs_link::Column::Origin.eq("page"))
@@ -373,11 +457,39 @@ pub async fn reindex_links(session: &Session, page: &docs_page::Model, markdown:
     if refs.is_empty() {
         return Ok(());
     }
-    let requests: Vec<Value> = refs.iter().map(|r| serde_json::to_value(r).unwrap_or(Value::Null)).collect();
+    let mut requests: Vec<Value> = refs.iter().map(|r| serde_json::to_value(r).unwrap_or(Value::Null)).collect();
+    let sites = match doc {
+        Some(doc) => {
+            let keys: Vec<(bool, String)> = requests
+                .iter()
+                .map(|r| {
+                    let page_ref = str_of(r, "kind") != Some("ticket");
+                    let key = if page_ref { str_of(r, "title") } else { str_of(r, "key") };
+                    (page_ref, key.unwrap_or("").to_string())
+                })
+                .collect();
+            super::blocks::match_sites(doc, &keys)
+        }
+        None => vec![None; requests.len()],
+    };
+    for (r, site) in requests.iter_mut().zip(sites.iter()) {
+        if let (Some(obj), Some(super::blocks::SiteTarget::Page { page_id, block_id, .. })) =
+            (r.as_object_mut(), site.as_ref().map(|s| &s.target))
+        {
+            if let Some(id) = page_id {
+                obj.insert("page_id".into(), json!(id));
+            }
+            if let Some(id) = block_id {
+                obj.insert("block_id".into(), json!(id));
+            }
+        }
+    }
     let resolved = resolve_refs(session, &page.project_id, &requests, false).await?;
-    for (r, res) in requests.iter().zip(resolved.iter()) {
+    for ((r, res), site) in requests.iter().zip(resolved.iter()).zip(sites.iter()) {
         let mut row = docs_link::new();
         row.source_page_id = Set(page.id.clone());
+        row.source_block_id = Set(site.as_ref().and_then(|s| s.block_id.clone()));
+        row.target_block_id = Set(str_of(r, "block_id").map(str::to_string));
         row.source_section = Set(str_of(r, "section").map(str::to_string));
         row.snippet = Set(str_of(r, "snippet").unwrap_or("").to_string());
         if str_of(r, "kind") == Some("ticket") {
@@ -424,7 +536,13 @@ pub async fn refresh_link_targets(session: &Session, project_id: &str) -> Result
             by_slug: false,
         };
         let res = resolve_page_ref(&pages, &deleted, &request, &headings, Some(&aliases), None, Some(&index));
-        let new_target = str_of_map(&res, "page_id").map(str::to_string);
+        let mut new_target = str_of_map(&res, "page_id").map(str::to_string);
+        // a link to a heading or block of a rich page stores its page's id: it follows the page, whatever its title
+        let by_id = link.target_block_id.is_some()
+            && link.target_page_id.as_deref().is_some_and(|id| pages.iter().any(|p| p.id == id));
+        if by_id {
+            new_target = link.target_page_id.clone();
+        }
         if new_target != link.target_page_id {
             let mut row = kb_db::edit(link);
             row.target_page_id = Set(new_target);

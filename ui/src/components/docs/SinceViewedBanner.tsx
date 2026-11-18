@@ -1,9 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { usePageSettled } from './pageSettled';
-import { useDocsDiff, useDocsSeen, useDocsStepDiffs, useDocsVersions, useMarkDocsSeen } from '../../api/docs';
+import {
+  useDocsDiff,
+  useDocsSeen,
+  useDocsStepDiffs,
+  useDocsVersion,
+  useDocsVersions,
+  useMarkDocsSeen,
+} from '../../api/docs';
 import type { DocsPage } from '../../types/docs';
 import { Icon } from './Icon';
 import { Avatar, agoText, displayName, fmtDateTime, plural } from './docsShared';
+import { diffBlocks } from './history/blockDiff';
+import { blockName, typeName } from './suggestions/describe';
+import { publishedDoc } from './richPage';
+import type { RichDoc } from '../../types/docs';
+import './states/states.css';
 
 /** The last viewed version used to live in the browser; read it once so nobody loses their place. */
 const legacyKey = (pageId: string) => `docsSeen:${pageId}`;
@@ -138,7 +150,15 @@ function MarksToggle({ on, onChange }: { on: boolean; onChange: (on: boolean) =>
       aria-label="Mark changed paragraphs in the page"
       aria-pressed={on}
       title={on ? 'Hide change markers in the page' : 'Show change markers in the page'}
-      style={{ width: 26, height: 26, color: '#2F6FB0' }}
+      style={{
+        width: 26,
+        height: 26,
+        color: '#5B6B60',
+        border: '1px solid #B9D3EE',
+        background: '#FFFFFF',
+        borderRadius: 7,
+        boxSizing: 'border-box',
+      }}
       onClick={() => onChange(!on)}
     >
       <svg
@@ -158,6 +178,25 @@ function MarksToggle({ on, onChange }: { on: boolean; onChange: (on: boolean) =>
       </svg>
     </button>
   );
+}
+
+/**
+ * The blocks that changed since a version, named as the banner chips name them (AI board H 43): "Paragraph 2",
+ * "Heading 2", "Image", "New: pull quote". Empty when either version is not rich.
+ * @param before - The page as last viewed.
+ * @param after - The page now.
+ */
+export function changedBlockChips(before: RichDoc | null | undefined, after: RichDoc | null | undefined): string[] {
+  if (!before?.content || !after?.content) return [];
+  const out: string[] = [];
+  for (const c of diffBlocks(before, after)) {
+    if (c.kind === 'added' && c.after) out.push(`New: ${typeName(c.after).toLowerCase()}`);
+    else if (c.kind === 'changed' && c.after) {
+      const t = c.after.type;
+      out.push(t === 'heading' || t === 'image' || t === 'table' ? typeName(c.after) : blockName(c.after, after));
+    }
+  }
+  return [...new Set(out)];
 }
 
 interface SinceViewedBannerProps {
@@ -184,57 +223,49 @@ export function SinceViewedBanner({ page, since, onCompare }: SinceViewedBannerP
   const diffQ = useDocsDiff(behind ? page.id : null, behind ? seen : null, behind ? page.version : null);
   const sectionNames = (diffQ.data?.sections ?? []).map((s) => s.heading.replace(/^#+\s*/, '').trim() || 'Top of page');
   const seenVersion = (versionsQ.data ?? []).find((v) => v.version === seen);
+  const seenDetail = useDocsVersion(behind && settled ? page.id : null, behind && settled ? seen : null).data;
+  const blockChips = useMemo(
+    () => changedBlockChips(seenDetail?.format === 'rich' ? (seenDetail.content ?? null) : null, publishedDoc(page)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [seenDetail, page.content],
+  );
 
   if (!behind || seen == null) return null;
 
   const authors = Array.from(new Set(edits.map((e) => displayName(e.author))));
   const count = edits.length || page.version - seen;
 
+  const lastSeen = seenVersion ? `${fmtDateTime(seenVersion.createdAt)}, v${seen}` : `v${seen}`;
+  const summary = (
+    <>
+      {plural(count, 'edit')}
+      {authors.length > 0 && ` by ${listNames(authors)}`}
+      {sectionNames.length > 0 && `, ${plural(sectionNames.length, 'section')}`} (v{page.version})
+    </>
+  );
+  const chips = blockChips.length ? blockChips : sectionNames;
+
   return (
-    <div
-      data-testid="since-viewed-banner"
-      className="docs-root"
-      style={{ padding: '11px 14px', borderRadius: 10, background: '#E8F1FB', border: '1px solid #B9D3EE' }}
-    >
-      <div style={{ display: 'flex', alignItems: open ? 'flex-start' : 'center', gap: 10 }}>
-        <span style={{ display: 'flex', color: '#2F6FB0', marginTop: 1 }}>
-          <Icon name="i44" size={17} />
-        </span>
-        {open ? (
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ fontSize: 13, lineHeight: 1.45, color: '#1E2A22' }}>
-              <b style={{ fontWeight: 700 }}>Changes since you last viewed</b>{' '}
-              <span style={{ color: '#5B6B60' }}>
-                ({seenVersion ? `${fmtDateTime(seenVersion.createdAt)}, ` : ''}v{seen})
-              </span>
+    <div data-testid="since-viewed-banner" className="docs-root dsv-banner">
+      <div className="dsv-row">
+        <div className="dsv-body">
+          <div className="dsv-line">
+            <b>Changes since you last viewed</b> <span className="dsv-sum">· {summary}</span>
+          </div>
+          {chips.length > 0 && (
+            <div className="dsv-chips" data-testid="since-chips">
+              {chips.map((n) => (
+                <span key={n} className="dsv-chip">
+                  {n}
+                </span>
+              ))}
             </div>
-            {sectionNames.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {sectionNames.map((n) => (
-                  <span
-                    key={n}
-                    className="mc-chip"
-                    style={{ background: '#FFFFFF', border: '1px solid #B9D3EE', color: '#1F5A8E' }}
-                  >
-                    {n}
-                  </span>
-                ))}
-              </div>
-            )}
+          )}
+          {open && (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: 12, color: '#5B6B60', paddingBottom: 6 }}>Last viewed {lastSeen}</div>
               {edits.map((e) => (
-                <div
-                  key={e.version}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '6px 0',
-                    fontSize: 12.5,
-                    color: '#1E2A22',
-                    borderTop: '1px solid #CFE0F2',
-                  }}
-                >
+                <div key={e.version} className="dsv-edit">
                   <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700 }}>
                     v{e.version}
                   </span>
@@ -247,39 +278,30 @@ export function SinceViewedBanner({ page, since, onCompare }: SinceViewedBannerP
                 </div>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                type="button"
-                className="st-btn st-btn-sm st-btn-primary"
-                onClick={() => onCompare(seen, page.version)}
-              >
+          )}
+          <div className="dsv-btns">
+            {open ? (
+              <button type="button" className="dsv-btn dsv-btn-primary" onClick={() => onCompare(seen, page.version)}>
                 <Icon name="i40" size={13} strokeWidth={2} />
                 Compare v{seen} to v{page.version}
               </button>
-              <button type="button" className="st-btn st-btn-sm" onClick={markSeen}>
-                Mark as seen
+            ) : (
+              <button type="button" className="dsv-btn dsv-btn-primary" onClick={() => setOpen(true)}>
+                <Icon name="i40" size={13} strokeWidth={2} />
+                Show changes
               </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.45, color: '#1E2A22' }}>
-              <b style={{ fontWeight: 700 }}>Changes since you last viewed</b> · {plural(count, 'edit')}
-              {authors.length > 0 && ` by ${listNames(authors)}`}
-              {sectionNames.length > 0 && `, ${plural(sectionNames.length, 'section')}`}
-            </div>
-            <button type="button" className="st-btn st-btn-sm" onClick={() => setOpen(true)}>
-              <Icon name="i40" size={13} strokeWidth={2} />
-              Show changes
+            )}
+            <button type="button" className="dsv-btn" onClick={markSeen}>
+              Mark as seen
             </button>
-          </>
-        )}
+          </div>
+        </div>
         <MarksToggle on={marks} onChange={setMarks} />
         <button
           type="button"
           className="dk-icobtn"
           aria-label="Dismiss"
-          style={{ width: 26, height: 26 }}
+          style={{ width: 26, height: 26, color: '#5B6B60' }}
           onClick={markSeen}
         >
           <Icon name="i08" size={14} strokeWidth={2} />

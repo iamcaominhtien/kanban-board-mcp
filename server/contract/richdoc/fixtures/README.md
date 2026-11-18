@@ -87,7 +87,7 @@ Writing plain Markdown from a rich page (json fixtures):
   column layout. Two highlights of different colours side by side are written `==a====b==` and read back as two
   default highlights.
 - Dropped entirely: image `caption` (it is in `.txt`), blockquote and pullQuote `source`, callout `color`, `icon`,
-  `style`, pageCard `pageId`, docRef `pageId` and `targetBlockId`, diagram `version` and `widthPct`.
+  `style`, pageCard `pageId`, docRef `pageId`, `targetBlockId` and `targetLabel`, diagram `version` and `widthPct`.
 - A pullQuote reads back as a blockquote, a fileCard as a link in a paragraph, a pageCard as a docRef and a
   ticketCard as a ticketRef in a paragraph, a `custom` callout as `info`, and a placeholder line as a paragraph of
   text (written `\[embed: …\]` the next time).

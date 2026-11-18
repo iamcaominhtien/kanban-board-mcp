@@ -5,7 +5,8 @@ import { useDocsSearch } from '../../api/docsFx';
 import { docsErrorDetail, useDocsTree } from '../../api/docs';
 import { useDocsOnline, searchDocsCache } from './useDocsOffline';
 import { Avatar, Snip, StatusDot, TICKET_KEY, ancestors, highlight, sectionLabelStyle, timeAgo } from './searchShared';
-import type { DocsSearchPage, DocsSearchParams, DocsSearchResponse } from '../../types/docsFx';
+import type { DocsMatchType, DocsSearchPage, DocsSearchParams, DocsSearchResponse } from '../../types/docsFx';
+import { MatchMarker, TableRowSnip, markerWords, matchAnchor } from './links/MatchMarker';
 
 export interface SearchResultsProps {
   projectId: string;
@@ -14,6 +15,79 @@ export interface SearchResultsProps {
   onOpenPage: (id: string, anchor?: string) => void;
   onOpenTicket: (id: string) => void;
   onBack: () => void;
+  /** The page open behind the results: the "This page" scope searches it alone (RichDocsLinks B 11). */
+  currentPage?: { id: string; title: string } | null;
+}
+
+/** The Type filter (RichDocsLinks B 7): what a match sits in, with its 20 px tile. */
+const TYPES: { id: DocsMatchType; label: string; bg: string; fg: string; svg: string }[] = [
+  {
+    id: 'page',
+    label: 'Pages',
+    bg: '#E6F2EA',
+    fg: '#2E6F40',
+    svg: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/>',
+  },
+  {
+    id: 'image',
+    label: 'Images',
+    bg: '#F0E8FA',
+    fg: '#6B3FA8',
+    svg: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M4 18l5-5 4 4 3-3 4 4"/>',
+  },
+  {
+    id: 'table',
+    label: 'Tables',
+    bg: '#E3EFFA',
+    fg: '#2F6FB0',
+    svg: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M3 15h18M9 5v14"/>',
+  },
+  {
+    id: 'file',
+    label: 'Files',
+    bg: '#EEF0EF',
+    fg: '#5B6B60',
+    svg: '<path d="M20 11l-8.5 8.5a5 5 0 0 1-7-7L13 4a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4L14 7.5"/>',
+  },
+  { id: 'code', label: 'Code', bg: '#1E2A22', fg: '#9FE0B2', svg: '<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 5l-4 14"/>' },
+  {
+    id: 'diagram',
+    label: 'Diagrams',
+    bg: '#FCEFD9',
+    fg: '#8A5A00',
+    svg: '<rect x="3" y="3" width="7" height="6" rx="1.5"/><rect x="14" y="15" width="7" height="6" rx="1.5"/><path d="M6.5 9v4a2 2 0 0 0 2 2H14"/>',
+  },
+];
+
+function TypeTile({ t }: { t: (typeof TYPES)[number] }) {
+  return (
+    <span
+      style={{
+        width: 20,
+        height: 20,
+        borderRadius: 6,
+        background: t.bg,
+        color: t.fg,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flex: 'none',
+      }}
+    >
+      <svg
+        aria-hidden="true"
+        width={10}
+        height={10}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        dangerouslySetInnerHTML={{ __html: t.svg }}
+      />
+    </span>
+  );
 }
 
 type Edited = 'any' | 'day' | 'week' | 'month' | 'custom';
@@ -166,11 +240,13 @@ export function SearchResults({
   onOpenPage,
   onOpenTicket,
   onBack,
+  currentPage,
 }: SearchResultsProps) {
   const online = useDocsOnline();
   const [input, setInput] = useState(initialQuery);
   const [q, setQ] = useState(initialQuery);
-  const [scope, setScope] = useState<'space' | 'all' | 'tickets'>('space');
+  const [scope, setScope] = useState<'page' | 'space' | 'all' | 'tickets'>('space');
+  const [types, setTypes] = useState<DocsMatchType[]>([]);
   const [sort, setSort] = useState<'relevance' | 'edited_at'>('relevance');
   const [authors, setAuthors] = useState<string[]>([]);
   const [edited, setEdited] = useState<Edited>('month');
@@ -194,7 +270,7 @@ export function SearchResults({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onBack]);
-  useEffect(() => setLimit(PAGE_SIZE), [q, scope, sort, authors, edited, customFrom, under, hasTickets, status]);
+  useEffect(() => setLimit(PAGE_SIZE), [q, scope, sort, authors, edited, customFrom, under, hasTickets, status, types]);
 
   const editedSince = useMemo(() => {
     if (edited === 'any') return null;
@@ -204,7 +280,10 @@ export function SearchResults({
 
   const params: DocsSearchParams = {
     q,
-    scope: scope === 'tickets' ? 'tickets' : scope,
+    scope: scope === 'page' ? 'space' : scope,
+    pageId: scope === 'page' ? (currentPage?.id ?? null) : null,
+    kinds: types,
+    kindFacets: scope !== 'tickets',
     mode: q.trim().startsWith('#') ? 'headings' : undefined,
     limit,
     sort,
@@ -243,6 +322,7 @@ export function SearchResults({
     setQ(input.trim());
   };
   const clearAll = () => {
+    setTypes([]);
     setAuthors([]);
     setEdited('any');
     setUnder('');
@@ -333,8 +413,8 @@ export function SearchResults({
                 key={i}
                 role="link"
                 tabIndex={0}
-                onClick={() => onOpenPage(p.pageId, m.slug || undefined)}
-                onKeyDown={(e) => e.key === 'Enter' && onOpenPage(p.pageId, m.slug || undefined)}
+                onClick={() => onOpenPage(p.pageId, matchAnchor(m))}
+                onKeyDown={(e) => e.key === 'Enter' && onOpenPage(p.pageId, matchAnchor(m))}
                 style={{
                   display: 'flex',
                   gap: 10,
@@ -345,7 +425,7 @@ export function SearchResults({
                 }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
-                  {m.section && (
+                  {(m.section || markerWords(m)) && (
                     <div
                       style={{
                         display: 'flex',
@@ -356,22 +436,31 @@ export function SearchResults({
                         color: '#2E6F40',
                       }}
                     >
-                      <Icon name="i04" size={11} strokeWidth={2.2} />
-                      {m.section}
+                      {m.section && (
+                        <>
+                          <Icon name="i04" size={11} strokeWidth={2.2} />
+                          {m.section}
+                        </>
+                      )}
+                      {m.kind !== 'heading' && <MatchMarker match={m} />}
                     </div>
                   )}
-                  <Snip
-                    html={m.snippet}
-                    style={{
-                      fontSize: 13.5,
-                      lineHeight: 1.5,
-                      color: '#3A4A3E',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}
-                  />
+                  {m.cells?.length ? (
+                    <TableRowSnip cells={m.cells} terms={q.split(/\s+/).filter((w) => !w.startsWith('-'))} />
+                  ) : (
+                    <Snip
+                      html={m.snippet}
+                      style={{
+                        fontSize: 13.5,
+                        lineHeight: 1.5,
+                        color: '#3A4A3E',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             ))}
@@ -570,13 +659,19 @@ export function SearchResults({
             <div className="st-input" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ display: 'flex', color: '#2E6F40' }}>
                 <Icon
-                  name={scope === 'all' ? 'i21' : scope === 'tickets' ? 'i13' : 'i07'}
+                  name={scope === 'all' ? 'i21' : scope === 'tickets' ? 'i13' : scope === 'page' ? 'i00' : 'i07'}
                   size={15}
                   strokeWidth={1.9}
                 />
               </span>
               <span style={{ flex: 1, minWidth: 0, fontWeight: 600 }}>
-                {scope === 'all' ? 'All projects' : scope === 'tickets' ? 'Tickets' : 'This space'}
+                {scope === 'all'
+                  ? 'All projects'
+                  : scope === 'tickets'
+                    ? 'Tickets'
+                    : scope === 'page'
+                      ? 'This page'
+                      : 'This space'}
               </span>
               <Icon name="i06" size={12} strokeWidth={2} style={{ color: '#9AA8A0' }} />
             </div>
@@ -586,6 +681,7 @@ export function SearchResults({
               onChange={(e) => setScope(e.target.value as typeof scope)}
               style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', cursor: 'pointer' }}
             >
+              {currentPage && <option value="page">This page</option>}
               <option value="space">This space</option>
               <option value="all">All projects</option>
               <option value="tickets">Tickets</option>
@@ -713,6 +809,24 @@ export function SearchResults({
               Clear all
             </button>
           </div>
+          {scope !== 'tickets' &&
+            filterSection(
+              'Type',
+              TYPES.map((t) => {
+                const n = f?.kinds?.find((k) => k.name === t.id)?.count;
+                return (
+                  <Check
+                    key={t.id}
+                    on={types.includes(t.id)}
+                    onChange={() => setTypes((l) => (l.includes(t.id) ? l.filter((x) => x !== t.id) : [...l, t.id]))}
+                    count={n}
+                  >
+                    <TypeTile t={t} />
+                    <span data-testid={`type-filter-${t.id}`}>{t.label}</span>
+                  </Check>
+                );
+              }),
+            )}
           {filterSection(
             'Author',
             f?.authors?.length ? (

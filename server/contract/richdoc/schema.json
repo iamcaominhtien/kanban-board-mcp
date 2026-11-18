@@ -876,6 +876,10 @@
         "targetBlockId": {
           "default": null,
           "type": "string|null"
+        },
+        "targetLabel": {
+          "default": null,
+          "type": "string|null"
         }
       }
     },

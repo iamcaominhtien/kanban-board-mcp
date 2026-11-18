@@ -243,6 +243,19 @@ async fn highlights_follow_their_words_and_respect_roles() {
     let list = as_(&c, "Vera").get(&format!("/docs/pages/{page_id}/highlights")).await.json();
     assert_eq!(list["highlights"][0]["quote"], "ferry");
     assert_eq!(list["can_add"], false);
+    // anyone who may comment links the first thread written on someone else's highlight, but changes nothing else
+    member(&c, &pid, "Lu", "member").await;
+    let r = as_(&c, "Lu").patch(&format!("/docs/highlights/{hid}"), json!({"color": "blue"})).await;
+    assert_eq!(r.status, 403);
+    let r = as_(&c, "Lu").patch(&format!("/docs/highlights/{hid}"), json!({"thread_id": "t-1"})).await;
+    assert_eq!(r.json()["thread_id"], "t-1", "{:?}", r.json());
+    let r = as_(&c, "Vera").patch(&format!("/docs/highlights/{hid}"), json!({"thread_id": "t-2"})).await;
+    assert_eq!(r.status, 403);
+    // clearing everybody's is for admins
+    assert_eq!(as_(&c, "Mia").get(&format!("/docs/pages/{page_id}/highlights")).await.json()["can_clear"], false);
+    assert_eq!(c.get(&format!("/docs/pages/{page_id}/highlights")).await.json()["can_clear"], true);
+    let r = as_(&c, "Mia").post(&format!("/docs/pages/{page_id}/highlights/clear"), json!({"scope": "all"})).await;
+    assert_eq!(r.status, 403);
     // no version for a highlight
     assert_eq!(c.get(&format!("/docs/pages/{page_id}")).await.json()["version"], 1);
     // the words move inside the block: the highlight follows them
@@ -270,6 +283,58 @@ async fn highlights_follow_their_words_and_respect_roles() {
     c.patch(&format!("/docs/pages/{page_id}/settings"), json!({"settings": {"highlights": "off"}})).await;
     let r = as_(&c, "Mia").post(&format!("/docs/pages/{page_id}/highlights"), body).await;
     assert_eq!(r.status, 409);
+}
+
+#[tokio::test]
+async fn a_highlight_added_to_the_page_becomes_page_text_on_publish() {
+    if !skip_unless_available("a_highlight_added_to_the_page_becomes_page_text_on_publish") {
+        return;
+    }
+    let s = Server::start().await;
+    let c = s.client();
+    let (pid, page_id) = rich_page(&c, doc(json!([para("b-000001", "The ferry left at dawn.")]))).await;
+    member(&c, &pid, "Vera", "viewer").await;
+    member(&c, &pid, "Mia", "member").await;
+    let body = json!({"block_id": "b-000001", "start": 4, "end": 9, "quote": "ferry", "color": "pink"});
+    let hid = id(&as_(&c, "Mia").post(&format!("/docs/pages/{page_id}/highlights"), body.clone()).await.json());
+    // people who can only read do not get it
+    let r = as_(&c, "Vera").post(&format!("/docs/highlights/{hid}/to-page"), json!({})).await;
+    assert_eq!(r.status, 403);
+    // an editor: the words get a highlight mark in their draft, the shared one is "becoming" page text
+    let r = as_(&c, "Mia").post(&format!("/docs/highlights/{hid}/to-page"), json!({})).await;
+    assert_eq!(r.status, 200, "{:?}", r.json());
+    assert_eq!(r.json()["state"], "becoming");
+    let draft = as_(&c, "Mia").get(&format!("/docs/pages/{page_id}")).await.json()["draft"]["content"].clone();
+    let texts = &draft["content"][0]["content"];
+    assert_eq!(texts[1]["text"], "ferry");
+    assert_eq!(texts[1]["marks"], json!([{"type": "highlight", "attrs": {"color": "pink"}}]));
+    assert_eq!((texts[0]["text"].clone(), texts[2]["text"].clone()), (json!("The "), json!(" left at dawn.")));
+    // discarding the draft makes it a plain shared highlight again
+    as_(&c, "Mia").delete(&format!("/docs/pages/{page_id}/draft")).await;
+    let list = c.get(&format!("/docs/pages/{page_id}/highlights")).await.json();
+    assert_eq!(list["highlights"][0]["state"], "ok");
+    // added again and published: the page text carries it and the shared highlight goes
+    as_(&c, "Mia").post(&format!("/docs/highlights/{hid}/to-page"), json!({})).await.assert_status(200);
+    let r = as_(&c, "Mia").post(&format!("/docs/pages/{page_id}/publish"), json!({"base_version": 1})).await;
+    assert_eq!(r.status, 200, "{:?}", r.json());
+    let list = c.get(&format!("/docs/pages/{page_id}/highlights")).await.json();
+    assert_eq!(list["highlights"], json!([]));
+    // it is reported as removed, with who made it and who removed it ("removed while you read")
+    assert_eq!(list["removed"][0]["id"], json!(hid));
+    assert_eq!((list["removed"][0]["author"].clone(), list["removed"][0]["by"].clone()), (json!("Mia"), json!("Mia")));
+    // words that are gone cannot be added
+    let other = id(&as_(&c, "Mia")
+        .post(
+            &format!("/docs/pages/{page_id}/highlights"),
+            json!({"block_id": "b-000001", "start": 0, "end": 3, "quote": "The", "color": "blue"}),
+        )
+        .await
+        .json());
+    c.put(&format!("/docs/pages/{page_id}/draft"), json!({"content": doc(json!([para("b-000001", "Nothing here.")]))}))
+        .await;
+    let r = c.post(&format!("/docs/highlights/{other}/to-page"), json!({})).await;
+    assert_eq!(r.status, 409);
+    assert_eq!(r.json()["detail"]["code"], "passage_changed");
 }
 
 #[tokio::test]

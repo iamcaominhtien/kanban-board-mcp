@@ -78,6 +78,7 @@ export function SelectionToolbar({
   onPick,
   extra,
   hideComment,
+  lead,
 }: {
   root: HTMLElement | null;
   label: string;
@@ -87,8 +88,19 @@ export function SelectionToolbar({
   extra?: (pick: Pick, close: () => void) => ReactNode;
   /** Show only `extra` (a person who cannot comment can still use AI). */
   hideComment?: boolean;
+  /** What comes before Comment: the highlight colours (highlights/SelectionSwatches.tsx). `close` hides the bar. */
+  lead?: (pick: Pick, close: () => void) => ReactNode;
 }) {
   const [pick, setPick] = useState<Pick | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  // with the colours in front the bar is wider and taller: it is centred on the selection by its measured size
+  useLayoutEffect(() => {
+    const el = barRef.current;
+    if (!lead || !el) return;
+    const next = { w: el.offsetWidth, h: el.offsetHeight };
+    setSize((s) => (s && s.w === next.w && s.h === next.h ? s : next));
+  }, [lead, pick, hideComment, extra]);
 
   useEffect(() => {
     if (!enabled || !root) return;
@@ -113,10 +125,21 @@ export function SelectionToolbar({
   );
 
   if (!enabled || !pick) return null;
-  const left = Math.max(8, Math.min(window.innerWidth - 130, (pick.rect.left + pick.rect.right) / 2 - 55));
-  const top = pick.rect.top > 56 ? pick.rect.top - 44 : pick.rect.bottom + 8;
+  let left = Math.max(8, Math.min(window.innerWidth - 130, (pick.rect.left + pick.rect.right) / 2 - 55));
+  let top = pick.rect.top > 56 ? pick.rect.top - 44 : pick.rect.bottom + 8;
+  if (lead) {
+    const w = size?.w ?? 300;
+    const h = size?.h ?? 42;
+    left = Math.max(8, Math.min(window.innerWidth - w - 8, (pick.rect.left + pick.rect.right) / 2 - w / 2));
+    // above the selection; below it when there is no room above, never out of sight (K 88: a long selection)
+    top =
+      pick.rect.top - h - 8 > 56 ? pick.rect.top - h - 8 : Math.min(window.innerHeight - h - 8, pick.rect.bottom + 8);
+  }
+  const close = () => setPick(null);
   return (
-    <div className="dc-selbar" style={{ left, top }} data-testid="selection-toolbar" data-nocomment>
+    <div ref={barRef} className="dc-selbar" style={{ left, top }} data-testid="selection-toolbar" data-nocomment>
+      {lead && lead(pick, close)}
+      {lead && (!hideComment || extra) && <span className="dc-selbar-sep" aria-hidden="true" />}
       {!hideComment && (
         <button
           type="button"
@@ -133,7 +156,7 @@ export function SelectionToolbar({
         </button>
       )}
       {!hideComment && extra && <span className="dc-selbar-sep" aria-hidden="true" />}
-      {extra?.(pick, () => setPick(null))}
+      {extra?.(pick, close)}
     </div>
   );
 }

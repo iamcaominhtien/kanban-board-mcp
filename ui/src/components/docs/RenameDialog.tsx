@@ -10,6 +10,7 @@ import { PageIcon } from './tree/treeParts';
 import { useToast } from '../Toast';
 import { Icon } from './Icon';
 import { FooterNote, ModalShell, Spacer, plural } from './docsShared';
+import { RenameLinkGroups } from './links/RenameGroups';
 
 interface RenameDialogProps {
   projectId: string;
@@ -151,7 +152,8 @@ export function RenameDialog({
         <>
           {hasLinks ? (
             <FooterNote>
-              Creates a version on each of the {affected.length} {affected.length === 1 ? 'page' : 'pages'}
+              Updates {plural(links, 'link')} written as text · creates a version on{' '}
+              {affected.length === 1 ? 'that page' : `those ${affected.length} pages`}
             </FooterNote>
           ) : (
             <FooterNote>Links to this page keep working.</FooterNote>
@@ -160,16 +162,6 @@ export function RenameDialog({
           <button type="button" className="st-btn" onClick={onClose}>
             Cancel
           </button>
-          {hasLinks && (
-            <button
-              type="button"
-              className="st-btn"
-              disabled={!trimmed || unchanged || !!problem || rename.isPending}
-              onClick={() => void run(false)}
-            >
-              Rename only
-            </button>
-          )}
           <button
             type="button"
             className="st-btn st-btn-primary"
@@ -178,7 +170,7 @@ export function RenameDialog({
             onClick={() => void run(hasLinks)}
           >
             <Icon name="i10" size={14} />
-            {rename.isPending ? 'Renaming…' : hasLinks ? 'Rename and update links' : 'Rename'}
+            {rename.isPending ? 'Renaming…' : 'Rename'}
           </button>
         </>
       }
@@ -241,120 +233,9 @@ export function RenameDialog({
           onPick={(v) => void saveIcon(v)}
         />
       )}
-      {hasLinks && (
-        <>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 12px',
-              borderRadius: 8,
-              background: '#FCEFD9',
-              border: '1px solid #EBD3A6',
-              fontSize: 13,
-              color: '#1E2A22',
-              lineHeight: 1.45,
-            }}
-          >
-            <span style={{ color: '#B4791E', display: 'flex' }}>
-              <Icon name="i11" size={16} strokeWidth={2} />
-            </span>
-            <span>
-              <b>
-                {plural(links, 'link')} on {plural(affected.length, 'page')}
-              </b>{' '}
-              will be updated so they keep pointing here.
-            </span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div
-              style={{
-                paddingBottom: 6,
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: '#5B6B60',
-              }}
-            >
-              Affected pages
-            </div>
-            <div style={{ border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' }}>
-              {affected.map((a, i) => (
-                <div
-                  key={a.pageId}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 10,
-                    padding: '9px 12px',
-                    borderBottom: i < affected.length - 1 ? '1px solid #EEF3EF' : undefined,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: 4,
-                      background: '#2E6F40',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      marginTop: 3,
-                      color: '#fff',
-                    }}
-                  >
-                    <Icon name="i10" size={11} strokeWidth={3} />
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: '#1E2A22',
-                      }}
-                    >
-                      {a.title}
-                      {a.space && <span style={{ fontSize: 11.5, fontWeight: 500, color: '#9AA8A0' }}>{a.space}</span>}
-                      <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 600, color: '#5B6B60' }}>
-                        {plural(a.count, 'link')}
-                      </span>
-                    </div>
-                    <div
-                      style={{ ...mono, fontSize: 11.5, lineHeight: 1.55, color: '#5B6B60', overflowWrap: 'anywhere' }}
-                    >
-                      [[
-                      <span
-                        style={{
-                          background: 'rgba(196,67,42,0.14)',
-                          color: '#A5321E',
-                          borderRadius: 2,
-                          textDecoration: 'line-through',
-                        }}
-                      >
-                        {page.title}
-                      </span>
-                      ]] <span style={{ color: '#2E6F40' }}>→</span> [[
-                      <span style={{ background: 'rgba(46,111,64,0.16)', color: '#1F5A31', borderRadius: 2 }}>
-                        {trimmed}
-                      </span>
-                      ]]
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.5, paddingTop: 8 }}>
-              Links with your own display text keep that text. Tickets mentioning the page are not rewritten: they link
-              by page id and show the new title.
-            </div>
-          </div>
-        </>
+      {/* what happens to the links (RichDocsLinks H 44): they follow; links with their own text keep it */}
+      {!unchanged && trimmed && !problem && (
+        <RenameLinkGroups pageId={page.id} oldTitle={page.title} newTitle={trimmed} />
       )}
       {error && (
         <div role="alert" style={{ fontSize: 12.5, color: '#A5321E' }}>

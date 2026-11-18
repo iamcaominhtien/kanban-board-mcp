@@ -343,11 +343,15 @@ export default {
       await h.getByRole('tab', { name: /^Broken links 1/ }).waitFor({ timeout: 15000 });
       await h.getByRole('tab', { name: /^Out of date 0/ }).waitFor();
       await h.getByRole('tab', { name: /^Broken links/ }).click();
-      const row = h.getByTestId('health-broken');
-      await row.getByText('Nowhere page').waitFor();
+      // grouped by the link's target (board Links G 40): the missing page heads the group, each row is a page that
+      // links to it, with Go to link and Dismiss
+      const group = h.getByTestId('health-broken-group');
+      await group.getByText('Nowhere page').first().waitFor();
+      await group.getByRole('button', { name: 'Create “Nowhere page”' }).waitFor();
+      const row = group.getByTestId('health-broken');
       await row.getByText('Release notes').waitFor();
-      await row.getByRole('button', { name: 'Review' }).waitFor();
-      await row.getByRole('button').last().click();
+      await row.getByRole('button', { name: 'Go to link' }).waitFor();
+      await row.getByRole('button', { name: 'Dismiss' }).click();
       await p.getByRole('menuitem').first().click();
       await row.waitFor({ state: 'detached' });
       await h.getByText('Every link and section resolves.').waitFor();

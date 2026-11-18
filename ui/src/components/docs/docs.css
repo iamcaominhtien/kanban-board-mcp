@@ -613,7 +613,7 @@ input:is([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type
 /* "Changed in vN": paragraphs edited since the reader last looked (design/screens/docs-actions.md F) */
 .dk-md .dk-changed {
   position: relative;
-  margin-top: 22px;
+  margin-top: 24px;
 }
 .dk-md .dk-changed::before {
   content: '';

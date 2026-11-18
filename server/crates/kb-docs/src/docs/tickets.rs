@@ -243,8 +243,14 @@ pub async fn backlinks(session: &Session, page_id: &str) -> Result<Map<String, V
         .filter(docs_link::Column::Origin.eq("page"))
         .all(session)
         .await?;
-    let mut seen: HashSet<(String, Option<String>)> = HashSet::new();
+    let mut seen: HashSet<(String, Option<String>, Option<String>)> = HashSet::new();
     let mut pages_out: Vec<Value> = Vec::new();
+    // the headings and blocks of this page that links point at, named as the link checker names them
+    let own_doc = if rows.iter().any(|l| l.target_block_id.is_some()) {
+        docs_search::rich_docs(session, std::slice::from_ref(&page)).await?.remove(&page.id)
+    } else {
+        None
+    };
     let wanted: HashSet<String> =
         rows.iter().map(|link| link.target_title.clone().unwrap_or_default().to_lowercase()).collect();
     // each source page is read and parsed once, not once per link (a long page links to the same page many times),
@@ -256,7 +262,7 @@ pub async fn backlinks(session: &Session, page_id: &str) -> Result<Map<String, V
         let Some(src) = src.filter(|s| s.deleted_at.as_deref().is_none_or(str::is_empty) && s.id != page.id) else {
             continue;
         };
-        let key = (src.id.clone(), link.source_section.clone());
+        let key = (src.id.clone(), link.source_section.clone(), link.target_block_id.clone());
         if !seen.insert(key) {
             continue;
         }
@@ -298,11 +304,84 @@ pub async fn backlinks(session: &Session, page_id: &str) -> Result<Map<String, V
             "context": context,
             "excerpt": excerpt,
             "target_anchor": link.target_anchor,
+            "source_block_id": link.source_block_id,
+            "target_block": link
+                .target_block_id
+                .as_deref()
+                .and_then(|b| own_doc.as_ref().and_then(|d| super::blocks::describe_target(d, b))),
         }));
     }
     let mut out = Map::new();
     out.insert("pages".into(), Value::Array(pages_out));
     out.insert("tickets".into(), Value::Array(ticket_backlinks(session, &page).await?));
+    Ok(out)
+}
+
+/// What a link can point at in a page (`[[Page#` in the editor, "Link a doc" on a ticket): `{page_id, title,
+/// headings, blocks, inbound}`. `headings` are `{block_id, level, text, slug, under}` and `blocks` `{block_id, kind,
+/// label, detail, section}`, in reading order; `inbound` counts, per heading or block, the live pages whose links
+/// point at it (the badge on a block others link to). A page stored as Markdown only has none of them.
+///
+/// # Errors
+/// 404 `page_not_found` for a page that does not exist, is in the Recycle Bin or cannot be read.
+pub async fn link_targets(session: &Session, page_id: &str) -> Result<Map<String, Value>> {
+    let page = get_page(session, page_id, false, false).await?;
+    let doc = docs_search::rich_docs(session, std::slice::from_ref(&page)).await?.remove(&page.id);
+    let (headings, blocks) = doc.as_ref().map(super::blocks::link_targets).unwrap_or_default();
+    let rows = docs_link::Entity::find()
+        .filter(docs_link::Column::TargetPageId.eq(page.id.as_str()))
+        .filter(docs_link::Column::Origin.eq("page"))
+        .filter(docs_link::Column::TargetBlockId.is_not_null())
+        .all(session)
+        .await?;
+    let mut inbound: HashMap<String, HashSet<String>> = HashMap::new();
+    let sources: HashSet<String> = rows.iter().map(|r| r.source_page_id.clone()).collect();
+    let live: HashSet<String> = if sources.is_empty() {
+        HashSet::new()
+    } else {
+        docs_page::Entity::find()
+            .filter(docs_page::Column::Id.is_in(sources.into_iter().collect::<Vec<_>>()))
+            .all(session)
+            .await?
+            .into_iter()
+            .filter(|p| p.deleted_at.as_deref().is_none_or(str::is_empty) && p.id != page.id)
+            .map(|p| p.id)
+            .collect()
+    };
+    for r in rows {
+        if let (Some(b), true) = (r.target_block_id, live.contains(&r.source_page_id)) {
+            inbound.entry(b).or_default().insert(r.source_page_id);
+        }
+    }
+    let mut out = Map::new();
+    out.insert("page_id".into(), json!(page.id));
+    out.insert("title".into(), json!(page.title));
+    out.insert(
+        "headings".into(),
+        Value::Array(
+            headings
+                .iter()
+                .map(|h| {
+                    json!({"block_id": h.block_id, "level": h.level, "text": h.text, "slug": h.slug, "under": h.under})
+                })
+                .collect(),
+        ),
+    );
+    out.insert(
+        "blocks".into(),
+        Value::Array(
+            blocks
+                .iter()
+                .map(|b| {
+                    json!({"block_id": b.block_id, "kind": b.kind, "label": b.label, "detail": b.detail,
+                           "section": b.section})
+                })
+                .collect(),
+        ),
+    );
+    let mut counts: Vec<(String, usize)> = inbound.into_iter().map(|(b, s)| (b, s.len())).collect();
+    counts.sort();
+    out.insert("inbound".into(), Value::Object(counts.into_iter().map(|(b, n)| (b, json!(n))).collect()));
     Ok(out)
 }
 

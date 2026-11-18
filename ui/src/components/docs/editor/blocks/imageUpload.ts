@@ -13,8 +13,8 @@ import { resolveOrigin } from '../../../../api/resolveOrigin';
 import { blockKitOf } from './bus';
 import type { Placement } from './commands';
 
-/** Where one upload is. */
-export type UploadStatus = 'uploading' | 'failed' | 'tooLarge';
+/** Where one upload is; `waiting`: offline, sent by itself when the connection returns (Docs states C 14). */
+export type UploadStatus = 'uploading' | 'failed' | 'tooLarge' | 'waiting';
 
 /** One picture on its way to the server. */
 export interface PendingUpload {
@@ -28,6 +28,8 @@ export interface PendingUpload {
   /** The image limit in MB the file was checked against. */
   limitMb: number;
   abort?: AbortController;
+  /** The editor the picture is in (a waiting upload is sent there when the connection returns). */
+  editor?: Editor;
 }
 
 const pending = new Map<string, PendingUpload>();
@@ -135,6 +137,10 @@ export function startImageUpload(editor: Editor, file: File, opts: StartOptions)
 async function send(editor: Editor, id: string) {
   const u = pending.get(id);
   if (!u) return;
+  if (!navigator.onLine) {
+    update(id, { status: 'waiting', editor, abort: undefined });
+    return;
+  }
   const abort = new AbortController();
   update(id, { status: 'uploading', loaded: 0, abort });
   const projectId = blockKitOf(editor)?.projectId;
@@ -167,9 +173,24 @@ async function send(editor: Editor, id: string) {
     if (abort.signal.aborted) return;
     // the server's own limit (it may be lower than the one this page knew)
     const status = (err as { response?: { status?: number } })?.response?.status;
-    update(id, { status: status === 413 ? 'tooLarge' : 'failed', abort: undefined });
+    // the connection went while it was on its way: it waits and goes when the browser is back online
+    const waits = status == null && !navigator.onLine;
+    update(id, { status: status === 413 ? 'tooLarge' : waits ? 'waiting' : 'failed', abort: undefined, editor });
   }
 }
+
+/** The pictures that wait for the connection (the list of changes waiting, Docs states D 24). */
+export function waitingUploads(): { name: string; size: number }[] {
+  return [...pending.values()]
+    .filter((u) => u.status === 'waiting')
+    .map((u) => ({ name: u.file.name, size: u.file.size }));
+}
+
+if (typeof window !== 'undefined')
+  window.addEventListener('online', () => {
+    for (const u of pending.values())
+      if (u.status === 'waiting' && u.editor && !u.editor.isDestroyed) void send(u.editor, u.id);
+  });
 
 /** Sends a failed upload again. */
 export function retryUpload(editor: Editor, id: string): void {

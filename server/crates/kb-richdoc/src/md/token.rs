@@ -183,13 +183,14 @@ pub enum Inline {
     Del(Vec<ITok>),
     /// `==…==`.
     Highlight(Vec<ITok>),
-    /// `[[Page#Section|label]]` (annotated: `{page-id=… target=…}` after it).
+    /// `[[Page#Section|label]]` (annotated: `{page-id=… target=… target-label=…}` after it).
     DocRef {
         page: String,
         section: Option<String>,
         label: Option<String>,
         page_id: Option<String>,
         target: Option<String>,
+        target_label: Option<String>,
     },
     /// An annotated span `[text]{.underline color=teal}`: the marks it adds.
     Span { marks: Vec<serde_json::Value>, tokens: Vec<ITok> },

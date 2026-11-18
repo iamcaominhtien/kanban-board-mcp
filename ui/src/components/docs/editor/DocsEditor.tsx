@@ -31,6 +31,7 @@ import { EditorToc } from './EditorToc';
 import { EditorToolbar, type ToolbarVariant } from './EditorToolbar';
 import { buildExtensions } from './extensions';
 import { commentHighlightKey, type HighlightThread } from './extensions/CommentHighlights';
+import { sharedHighlightKey, type EditHighlight } from './extensions/SharedHighlights';
 import { useCommentShortcut, type Pick } from '../comments/SelectionComment';
 import { editorCommentPick } from '../comments/editorAnchor';
 import { tiptapAdapter } from '../../ai/editor/adapters';
@@ -62,6 +63,8 @@ import type { Placement } from './blocks/commands';
 import { cleanEditorMarkdown } from '../../../utils/docsMarkdown';
 import { compactMarkdown } from './compactMarkdown';
 import { markdownToPaste } from './pasteMarkdown';
+import { parsePastedPageLink } from '../links/pastedLink';
+import { HashTicketMenu } from '../links/HashTicketMenu';
 import { openDocsFind } from '../FindInPage';
 import { openInsertMenu } from './ribbon/format';
 import { PainterBar } from './ribbon/PainterBar';
@@ -129,6 +132,8 @@ interface Props {
   onUserInput?: () => void;
   readOnly?: boolean;
   comments?: EditorComments;
+  /** The readers' shared highlights, drawn as dotted lines with their markers (K 101); empty or absent: none. */
+  sharedHighlights?: EditHighlight[];
   /** Board AI: the toolbar "Ask AI" and the selection's Summarise / Rewrite / Ask AI… */
   ai?: {
     onAsk: () => void;
@@ -184,6 +189,7 @@ function markdownOf(ed: Editor): string {
  * @param props.onUserInput - Called on the first real keystroke, paste or drop (tells edits from load-time normalisation).
  * @param props.readOnly - Disable editing.
  * @param props.comments - Inline comments: highlights, Comment button and shortcut.
+ * @param props.sharedHighlights - The readers' shared highlights to draw as dotted lines (K 101).
  * @param props.ai - Board AI entry points (toolbar Ask AI, selection actions).
  * @param props.inlineAi - AI in the text: `/ai`, Ctrl+J, the selection bar and drafts (a Docs page or an idea page).
  * @param props.surface - The page's look (Page settings): class names and CSS variables of the scrolling page.
@@ -215,6 +221,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     surface,
     toolbarVariant,
     hidden,
+    sharedHighlights,
   },
   ref,
 ) {
@@ -234,6 +241,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   const slashHost = useMemo(() => new MenuHost(), []);
   const refHost = useMemo(() => new MenuHost(), []);
   const keyHost = useMemo(() => new MenuHost(), []);
+  const hashHost = useMemo(() => new MenuHost(), []);
   const resolver = useMemo(() => new RefResolver(projectId), [projectId]);
   const hostRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -481,7 +489,18 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           ]);
         else if (p.kind === 'page')
           insert([
-            { type: 'docRef', attrs: { page: p.page, section: p.section, label: p.label } },
+            {
+              type: 'docRef',
+              attrs: {
+                page: p.page,
+                section: p.section,
+                label: p.label,
+                // the ids make the link follow its page, heading or block (RichDocsLinks C)
+                pageId: p.pageId ?? null,
+                targetBlockId: p.targetBlockId ?? null,
+                targetLabel: p.targetLabel ?? null,
+              },
+            },
             { type: 'text', text: ' ' },
           ]);
         else {
@@ -536,6 +555,40 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           .run();
       },
     });
+    // "#" after a space lists the project's tickets (RichDocsLinks C 18); "#" at the start of a line stays a heading
+    const hashTicket = createSuggest({
+      name: 'hashTicketMenu',
+      char: '',
+      host: hashHost,
+      accept: () => live.current.tickets.length > 0,
+      find: ({ $position }) => {
+        const text = $position.nodeBefore?.isText ? ($position.nodeBefore.text ?? '') : '';
+        const m = /\s#([A-Za-z0-9-]{0,24})$/.exec(text);
+        if (!m) return null;
+        const before = text.slice(0, m.index);
+        if (before.lastIndexOf('[[') > before.lastIndexOf(']]')) return null; // a [[Page# section
+        const len = m[1].length + 1;
+        return { range: { from: $position.pos - len, to: $position.pos }, query: m[1], text: `#${m[1]}` };
+      },
+      command: ({ editor, range, payload }) => {
+        const p = payload as RefPayload;
+        editor
+          .chain()
+          .focus()
+          .insertContentAt(
+            range,
+            p.kind === 'ticket'
+              ? [
+                  { type: 'ticketRef', attrs: { key: p.key } },
+                  { type: 'text', text: ' ' },
+                ]
+              : p.kind === 'text'
+                ? p.text
+                : '',
+          )
+          .run();
+      },
+    });
     return [
       ...withBlockViews(
         buildExtensions({
@@ -548,12 +601,13 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       slash,
       ref,
       bareKey,
+      hashTicket,
       RichFormatting.configure({
         onFocusMode: () => live.current.toggleFocus?.(),
         onShortcuts: () => live.current.openShortcuts?.(),
       }),
     ];
-  }, [slashHost, refHost, keyHost, pickImage, openAi, projectId, qc, resolver]);
+  }, [slashHost, refHost, keyHost, hashHost, pickImage, openAi, projectId, qc, resolver]);
 
   // push the edits since the last call to the caller (nothing while the text is as it was loaded)
   const emit = useCallback(() => {
@@ -642,9 +696,53 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           })();
           return true;
         }
+        const pastedText = (event.clipboardData?.getData('text/plain') ?? '').trim();
+        // a link to a page (or a block) of this space becomes a chip; "Keep as a link" in the toast undoes it
+        // (RichDocsLinks D 24)
+        const own = rich && editorRef.current ? parsePastedPageLink(pastedText, window.location.origin) : null;
+        const ownNode = own ? live.current.nodes.find((n) => n.id === own.pageId) : undefined;
+        if (own && ownNode && editorRef.current && !view.state.selection.$from.parent.type.spec.code) {
+          const ed = editorRef.current;
+          const from = view.state.selection.from;
+          ed.chain()
+            .insertContent([
+              {
+                type: 'docRef',
+                attrs: {
+                  page: ownNode.title,
+                  section: null,
+                  label: null,
+                  pageId: ownNode.id,
+                  targetBlockId: own.blockId,
+                  targetLabel: null,
+                },
+              },
+              { type: 'text', text: ' ' },
+            ])
+            .run();
+          live.current.toast.showToast({
+            variant: 'success',
+            title: own.blockId ? 'You pasted a link to a block' : 'You pasted a link to a page',
+            message: 'It is a chip now: it follows the page when it is renamed.',
+            duration: 6000,
+            action: {
+              label: 'Keep as a link',
+              onClick: () => {
+                const node = ed.state.doc.nodeAt(from);
+                if (!node || node.type.name !== 'docRef') return;
+                ed.chain()
+                  .insertContentAt(
+                    { from, to: from + node.nodeSize },
+                    { type: 'text', text: pastedText, marks: [{ type: 'link', attrs: { href: pastedText } }] },
+                  )
+                  .run();
+              },
+            },
+          });
+          return true;
+        }
         // a bare address pasted on an empty line: it goes in as a link, and a small menu asks whether it becomes a
         // card or a player (Rich Docs phase 5, "Embed from a link")
-        const pastedText = (event.clipboardData?.getData('text/plain') ?? '').trim();
         const { $from: at, empty } = view.state.selection;
         if (
           rich &&
@@ -794,6 +892,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
   const slashState = useSyncExternalStore(slashHost.subscribe, slashHost.getSnapshot);
   const refState = useSyncExternalStore(refHost.subscribe, refHost.getSnapshot);
   const keyState = useSyncExternalStore(keyHost.subscribe, keyHost.getSnapshot);
+  const hashState = useSyncExternalStore(hashHost.subscribe, hashHost.getSnapshot);
 
   const env = useMemo<EditorEnv>(
     () => ({ projectId, currentPageId, resolver, onOpenPage, onOpenTicket }),
@@ -809,6 +908,12 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
       editor.state.tr.setMeta(commentHighlightKey, { threads: commentThreads ?? [], activeId: commentActive }),
     );
   }, [editor, commentThreads, commentActive]);
+
+  // the readers' shared highlights follow the page's list (and its Hide)
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    editor.view.dispatch(editor.state.tr.setMeta(sharedHighlightKey, sharedHighlights ?? []));
+  }, [editor, sharedHighlights]);
 
   const startComment = useCallback(() => {
     const ed = editorRef.current;
@@ -1148,6 +1253,9 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             currentPageId={currentPageId}
             onClose={() => undefined}
           />
+        )}
+        {hashState && !refState && !keyState && (
+          <HashTicketMenu host={hashHost} state={hashState} tickets={tickets} projectName={project.data?.name} />
         )}
         {keyState && !refState && (
           <RefSuggester

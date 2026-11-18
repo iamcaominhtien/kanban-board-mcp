@@ -122,11 +122,23 @@ export interface HealthBroken {
   pageId: string;
   title: string;
   ref: string;
-  status: 'missing' | 'in_bin' | 'section_missing';
+  status: 'missing' | 'in_bin' | 'section_missing' | 'block_missing';
+  /** The block of the page the link sits in (a rich page): Go to link opens it there. */
+  blockId?: string | null;
+  /** The page in the Recycle Bin the link points at (status `in_bin`): Restore. */
+  targetPageId?: string | null;
+}
+/** One side of two alike blocks. */
+export interface OverlapBlock {
+  blockId: string;
+  kind: string;
+  label: string;
 }
 export interface HealthOverlap {
   pages: { pageId: string; title: string }[];
   why: string;
+  /** Rich pages: their blocks that say much the same, most alike first (RichDocsLinks I 61). */
+  blocks?: { a: OverlapBlock; b: OverlapBlock; percent: number }[];
 }
 export interface DocsHealth {
   checkedAt: string | null;

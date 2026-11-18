@@ -325,7 +325,7 @@ export function FormatOptions({
           )}
           <SwitchRow
             title="Include highlights"
-            hint="Off by default. Adds everyone’s highlights with a marker."
+            hint="Off by default. Adds everyone’s highlights, with their colour and who made them."
             on={o.includeHighlights}
             onChange={(v) => set('includeHighlights', v)}
             testId="export-highlights"

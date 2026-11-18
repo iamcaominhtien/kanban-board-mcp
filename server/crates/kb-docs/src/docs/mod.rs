@@ -9,6 +9,7 @@
 //! (aliases, resolving references, link rows), `tickets` 1659-2209 (ticket mentions, backlinks, stats, ticket
 //! docs), `rename` 2212-2427 (rename and delete previews).
 
+pub mod blocks;
 pub mod body;
 pub mod gallery;
 pub mod pages;

@@ -516,6 +516,23 @@ export function ImageView({ node, selected, editor, getPos, updateAttributes, de
           {name} is {formatBytes(pendingUp.file.size)}. An image can be {pendingUp.limitMb} MB at most.
         </StateCard>
       );
+    } else if (pendingUp.status === 'waiting') {
+      body = (
+        <div className="dk-imgv-failed" data-testid="image-waiting">
+          <img src={pendingUp.preview} alt="" style={{ ...look, width: '100%' }} />
+          <StateCard
+            tone="muted"
+            title={`${name} waits for the connection`}
+            actions={
+              <button type="button" className="dk-btn-ghost" onClick={() => cancelUpload(editor, pendingUp.id)}>
+                Remove
+              </button>
+            }
+          >
+            It uploads when you are back online. {formatBytes(pendingUp.file.size)}
+          </StateCard>
+        </div>
+      );
     } else if (pendingUp.status === 'failed') {
       body = (
         <div className="dk-imgv-failed">

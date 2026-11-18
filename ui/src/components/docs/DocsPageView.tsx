@@ -12,6 +12,7 @@ import { DocsMarkdown, type DocsMarkdownProps } from './DocsMarkdown';
 import { RichDocView } from './RichDocView';
 import { ConvertBar, ConvertedNotice } from './ConvertBanners';
 import { convertLock, convertLockTip, draftDoc, publishedDoc } from './richPage';
+import { ViewerNote } from './states/ViewerNote';
 import { OfflineBanner } from './DocsStates';
 import { DocsAiBanners } from './ai/DocsAiBanners';
 import { ExplainCard } from './ai/ExplainCard';
@@ -51,6 +52,8 @@ import {
 } from './suggestions';
 import { notForAi } from './suggestions/pageAi';
 import { ReferencedBy } from './ReferencedBy';
+import { BlockRefBadges, RefsButton } from './links/RefsButton';
+import { ArrivalBanner } from './links/ArrivalBanner';
 import { SharePopover } from './SharePopover';
 import { AiChangedBar, aiWriter } from './AiChangedBar';
 import { useToast } from '../Toast';
@@ -66,6 +69,7 @@ import { DEFAULT_PRINT, isPrinting, mountPrintSheet, printPage, type PrintOption
 import { applyReaderLook, readerClass, readerThemeCss, readerVars, useReaderPrefs } from './readerPrefs';
 import { AaGlyph, ReaderSettingsPanel, ReaderSettingsPopover } from './ReaderSettings';
 import { useWideBlocks } from './wideBlocks';
+import { useReaderHighlights } from './highlights/ReaderHighlights';
 import './reader.css';
 import { SinceViewedBanner, useSinceViewed } from './SinceViewedBanner';
 import { useCommentSuggest } from './comments/commentAi';
@@ -82,6 +86,7 @@ import {
   readingMinutes,
   TEXT_SIZE_PX,
 } from './pageSettings';
+import { blockOfAnchor, noteOpenPage, revealBlock } from './links/blockAnchor';
 
 export type PageAction = PageMenuAction | 'edit' | 'share';
 
@@ -94,6 +99,8 @@ interface Props {
   offline?: { savedAt: string; version?: number | null } | null;
   /** Why the reader can't edit this space (the edit policy), shown on the disabled Edit button. */
   readOnly?: string | null;
+  /** The reader's role and the project admins, for the role chip beside a greyed Edit (Docs states H 57). */
+  viewer?: { role: 'viewer' | 'member' | 'admin'; admins: string[] } | null;
   onTryAgain?: () => void;
   onAction: (action: PageAction) => void;
   onOpenPage: (pageId: string, anchor?: string | null) => void;
@@ -164,6 +171,7 @@ function CrumbSep() {
  * @param props.narrow - Use the compact layout (no side panel).
  * @param props.offline - Set when showing a saved copy while offline; editing is off.
  * @param props.readOnly - Set when the space's edit policy doesn't let the reader edit; the text explains why.
+ * @param props.viewer - The reader's role and the admins: a read-only reader gets the role chip and its note.
  * @param props.onTryAgain - Called to retry loading the live page.
  * @param props.onAction - Called with the chosen page menu action.
  * @param props.onOpenPage - Called with page id and anchor when a page reference is opened.
@@ -189,6 +197,7 @@ export function DocsPageView({
   narrow,
   offline,
   readOnly,
+  viewer,
   onTryAgain,
   onAction,
   onOpenPage,
@@ -296,6 +305,10 @@ export function DocsPageView({
   }
 
   // close popovers on outside click
+  // a link followed from this page names it in the other page's arrival banner (RichDocsLinks D 25)
+  useEffect(() => {
+    noteOpenPage(page.title);
+  }, [page.title]);
   useEffect(() => {
     if (!menu && !toc && !share && !info) return;
     const close = (e: MouseEvent) => {
@@ -347,6 +360,12 @@ export function DocsPageView({
   }, [activeSlug]);
 
   function jump(slug: string) {
+    // a link to a heading or block of a rich page (`#block-b-…`): scroll to the block and mark it
+    const linked = blockOfAnchor(slug);
+    if (linked) {
+      revealBlock(linked);
+      return;
+    }
     // a heading further down a long page may not be on it yet (it comes in piece by piece): look again for ~3 s
     let tries = 0;
     const go = () => {
@@ -422,6 +441,24 @@ export function DocsPageView({
   const inlineOutline = layout === 'desktop' && !narrow && !isWidePage(readerLook) && !cc.open;
   // with fewer than two headings a page has no outline at all
   const outlineOn = look.showOutline && headings.length >= 2;
+  // shared highlights while reading (highlights/): the layer, the colours in the selection bar, the list
+  const hl = useReaderHighlights({
+    page,
+    bodyEl,
+    scrollEl,
+    layout,
+    rich: !!richDoc && !translated && (published || !!older),
+    older: !!older,
+    offline: !!offline,
+    revision: `${richKey}:${renderedKey ?? ''}`,
+    comments: commentsData,
+    canEdit: !readOnly && !offline,
+    commentsOpen: cc.open,
+    setCommentsOpen: cc.setOpen,
+    activateThread: cc.activate,
+    startComment: setCompose,
+    outlineBeside: inlineOutline && outlineOn,
+  });
   const minutes = useMemo(
     () => readingMinutes(published ? page.markdown : (page.draft?.markdown ?? '')),
     [published, page.markdown, page.draft?.markdown],
@@ -669,7 +706,13 @@ export function DocsPageView({
 
   // the phone's bottom bar: the four things a reader reaches for (Reader boards, A: Outline, Find, Text, Share)
   const readBar = phone ? (
-    <nav className="dk-readbar" aria-label="Reading" data-testid="read-bar">
+    // full width of the phone (Reader boards K 78: five 78 px items on 390), out of the board's 28 px side gutter
+    <nav
+      className="dk-readbar"
+      aria-label="Reading"
+      data-testid="read-bar"
+      style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', boxSizing: 'border-box' }}
+    >
       {outlineOn && (
         <button
           type="button"
@@ -686,6 +729,7 @@ export function DocsPageView({
         <Icon name="search" size={20} strokeWidth={1.8} />
         Find
       </button>
+      {hl.readBarButton}
       <button
         type="button"
         className="dk-readbar-btn"
@@ -808,7 +852,7 @@ export function DocsPageView({
             data-reader-theme={prefs.theme}
           >
             {/* The page bar: where you are, the status and the page actions; it stays while the page scrolls */}
-            <div className="dk-pagebar" data-testid="page-bar">
+            <div className="dk-pagebar" data-testid="page-bar" role="banner" aria-label="Page header">
               {onOpenSidebar && (
                 <button
                   type="button"
@@ -874,6 +918,15 @@ export function DocsPageView({
                 <span className="dk-crumb-here">{page.title}</span>
               </nav>
               <div className="dk-pagebar-actions">
+                {readOnly && viewer && !phone && !older && (
+                  <ViewerNote
+                    projectId={projectId}
+                    projectName={projectName}
+                    role={viewer.role}
+                    reason={readOnly}
+                    admins={viewer.admins}
+                  />
+                )}
                 {book && !chapterSide && book.chapters.length > 0 && (
                   <button
                     type="button"
@@ -909,6 +962,10 @@ export function DocsPageView({
                     onEdit={() => onAction('edit')}
                     onOpenTicket={onOpenTicket}
                   />
+                )}
+                {!offline && hl.headerButton}
+                {!phone && !offline && !older && (
+                  <RefsButton pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
                 )}
                 {!phone && !offline && plan.comments !== 'more' && (
                   <button
@@ -1052,8 +1109,16 @@ export function DocsPageView({
                 <i style={{ width: `${readPct}%` }} />
               </div>
             </div>
+            {hl.strips}
             {touch && outlineButton}
-            <div className="dk-doc-col" data-testid="page-column">
+            <div
+              className="dk-doc-col"
+              data-testid="page-column"
+              id="dk-page-main"
+              role="main"
+              aria-label="The page"
+              tabIndex={-1}
+            >
               {older && (
                 <OlderVersionBar
                   version={older.version}
@@ -1130,6 +1195,7 @@ export function DocsPageView({
                   />
                 </div>
               )}
+              <ArrivalBanner />
               <div ref={setBody} data-testid="page-body" style={{ position: 'relative' }}>
                 {!published && !older && (
                   <div
@@ -1233,6 +1299,9 @@ export function DocsPageView({
                     )}
                   </div>
                 )}
+                {!older && !offline && published && richDoc && !translated && (
+                  <BlockRefBadges root={bodyEl} pageId={page.id} revision={richKey} onOpenPage={onOpenPage} />
+                )}
                 {!older && !offline && published && commentsData && (
                   <MarginMarks
                     root={bodyEl}
@@ -1275,7 +1344,8 @@ export function DocsPageView({
               doc={!older && published && !translated ? richDoc : null}
             />
           )}
-          {inlineOutline && outlineOn && (
+          {hl.rail}
+          {!hl.rail && inlineOutline && outlineOn && (
             <nav
               aria-label="On this page"
               className="dk-toc"
@@ -1283,6 +1353,7 @@ export function DocsPageView({
               // as tall as the pane (a flex child of it): a list taller than that scrolls here, so its end can be reached
             >
               <div>
+                {hl.outlineTabs}
                 <span className="dk-toc-head">On this page</span>
                 {tocList}
                 <div className="dk-toc-foot">
@@ -1483,7 +1554,9 @@ export function DocsPageView({
             inBook={!!book && book.index >= 0}
             onPrint={(opts) => {
               setPrintOpen(false);
-              printPage(opts, printParts.current());
+              const parts = printParts.current();
+              // shared highlights print only with "Include highlights" (highlights/hlPrint.ts)
+              printPage(opts, { ...parts, body: hl.printCopy(parts.body, opts.highlights) });
             }}
             onClose={() => setPrintOpen(false)}
           />
@@ -1491,9 +1564,10 @@ export function DocsPageView({
         <SelectionToolbar
           root={bodyEl}
           label={cc.reattachId ? 'Attach here' : 'Comment'}
-          enabled={(canComment || aiOn || askable) && !compose}
+          enabled={(canComment || aiOn || askable || hl.selectable) && !compose}
           onPick={onPick}
           hideComment={!canComment}
+          lead={hl.selectionLead}
           extra={
             aiOn || askable
               ? (pick, close) => (
@@ -1512,13 +1586,17 @@ export function DocsPageView({
           }
         />
         {aiOn && <ExplainCard view={aiView} />}
+        {hl.overlays}
         {compose && (
           <ComposePopover
             pick={compose}
             projectId={projectId}
             members={suggest}
             me={commentsData ? personOf(commentsData.me, commentsData.members, commentsData.me) : undefined}
-            onCancel={() => setCompose(null)}
+            onCancel={() => {
+              setCompose(null);
+              hl.threadCreated(null);
+            }}
             onSubmit={async (text) => {
               const t = await cc.actions.createThread.mutateAsync({
                 kind: 'inline',
@@ -1528,6 +1606,7 @@ export function DocsPageView({
               setCompose(null);
               window.getSelection()?.removeAllRanges();
               cc.created(t);
+              hl.threadCreated(t.id);
             }}
           />
         )}

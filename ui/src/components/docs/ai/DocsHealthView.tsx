@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import { useDocsTree } from '../../../api/docs';
+import { useCreatePage, useDocsTree, useRestorePage } from '../../../api/docs';
+import { BrokenGroups } from '../links/BrokenGroups';
+import { OverlapBlocks } from '../links/OverlapBlocks';
 import { docsAiError } from '../../../api/docsAi';
 import {
   healthItemId,
@@ -211,12 +213,6 @@ function AddToPage({ ticketId, projectId }: { ticketId: string; projectId: strin
   );
 }
 
-const BROKEN_WHY: Record<string, string> = {
-  missing: 'No page with this title',
-  in_bin: 'The page is in the Recycle Bin',
-  section_missing: 'The section no longer exists',
-};
-
 function Lists({
   data,
   tab,
@@ -229,12 +225,15 @@ function Lists({
   data: DocsHealth;
   tab: HealthTab;
   projectId: string;
-  onOpenPage: (id: string) => void;
+  onOpenPage: (id: string, anchor?: string) => void;
   onOpenTicket: (id: string) => void;
   onWritePage?: (ticketId: string) => void;
   dismiss: (kind: Kind, item: unknown, level: DismissLevel) => void;
 }) {
   const busy = false;
+  const createPage = useCreatePage(projectId);
+  const restorePage = useRestorePage(projectId);
+  const run = useRunHealth(projectId);
   if (tab === 'outOfDate') {
     if (!data.outOfDate.length) return <Empty text="No page looks out of date." />;
     return (
@@ -258,7 +257,15 @@ function Lists({
               {r.reasons.map((x) => (
                 <div key={x.key} style={{ marginBottom: 4 }}>
                   {x.text}
-                  <div style={{ fontSize: 11.5, color: '#9AA8A0' }}>Compared: {x.compared}</div>
+                  <div style={{ fontSize: 11.5, color: '#9AA8A0' }}>
+                    Compared: {x.compared}
+                    {x.blockLabel && (
+                      <>
+                        {' '}
+                        · on the page: <b style={{ color: '#5B6B60' }}>{x.blockLabel}</b>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
             </td>
@@ -267,7 +274,11 @@ function Lists({
             </td>
             <td style={{ ...td, whiteSpace: 'nowrap', textAlign: 'right' }}>
               <span style={{ display: 'inline-flex', gap: 6 }}>
-                <button type="button" style={accent} onClick={() => onOpenPage(r.pageId)}>
+                <button
+                  type="button"
+                  style={accent}
+                  onClick={() => onOpenPage(r.pageId, r.reasons.find((x) => x.blockId)?.blockId ?? undefined)}
+                >
                   Review
                 </button>
                 <DismissMenu disabled={busy} onPick={(l) => dismiss('out_of_date', r, l)} />
@@ -323,35 +334,15 @@ function Lists({
   }
   if (tab === 'broken') {
     if (!data.broken.length) return <Empty text="Every link and section resolves." />;
+    // grouped by what the links point at (RichDocsLinks G 40): one fix can mend them all
     return (
-      <Table
-        head={
-          <>
-            <th style={th}>PAGE</th>
-            <th style={th}>LINK</th>
-            <th style={th} />
-          </>
-        }
-      >
-        {data.broken.map((r) => (
-          <tr key={`${r.pageId}|${r.ref}`} data-testid="health-broken">
-            <td style={{ ...td, width: '28%' }}>
-              <b style={{ fontSize: 13 }}>{r.title}</b>
-            </td>
-            <td style={td}>
-              <code>{r.ref}</code> <span style={{ color: '#5B6B60' }}>· {BROKEN_WHY[r.status] ?? r.status}</span>
-            </td>
-            <td style={{ ...td, textAlign: 'right' }}>
-              <span style={{ display: 'inline-flex', gap: 6 }}>
-                <button type="button" style={accent} onClick={() => onOpenPage(r.pageId)}>
-                  Review
-                </button>
-                <DismissMenu disabled={busy} onPick={(l) => dismiss('broken', r, l)} />
-              </span>
-            </td>
-          </tr>
-        ))}
-      </Table>
+      <BrokenGroups
+        items={data.broken}
+        onOpenPage={onOpenPage}
+        onCreate={(title) => void createPage.mutateAsync({ title }).then(() => run.mutate())}
+        onRestore={(id) => void restorePage.mutateAsync(id).then(() => run.mutate())}
+        dismiss={(r) => <DismissMenu disabled={busy} onPick={(l) => dismiss('broken', r, l)} />}
+      />
     );
   }
   if (!data.overlaps.length) return <Empty text="No pages overlap." />;
@@ -388,7 +379,12 @@ function Lists({
               </div>
             ))}
           </td>
-          <td style={{ ...td, color: '#5B6B60' }}>{r.why}</td>
+          <td style={{ ...td, color: '#5B6B60' }}>
+            {r.why}
+            {r.blocks && r.blocks.length > 0 && (
+              <OverlapBlocks pages={r.pages} blocks={r.blocks} onOpenPage={onOpenPage} />
+            )}
+          </td>
           <td style={{ ...td, textAlign: 'right' }}>
             <DismissMenu disabled={busy} onPick={(l) => dismiss('overlaps', r, l)} />
           </td>
@@ -427,7 +423,7 @@ export function DocsHealthView({
   onWritePage,
 }: {
   projectId: string;
-  onOpenPage: (id: string) => void;
+  onOpenPage: (id: string, anchor?: string) => void;
   onOpenTicket: (id: string) => void;
   onClose: () => void;
   /** "Write a page" on a Done ticket that no page mentions (opens the new-page dialog from that ticket). */

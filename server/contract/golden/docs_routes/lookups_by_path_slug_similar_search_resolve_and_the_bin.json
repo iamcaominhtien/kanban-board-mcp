@@ -595,7 +595,9 @@
             {
               "section": "Layers",
               "slug": "layers",
-              "snippet": "<mark>Rate</mark> limiting lives in the API layer."
+              "snippet": "<mark>Rate</mark> limiting lives in the API layer.",
+              "block_id": "<bid:1>",
+              "kind": "text"
             }
           ]
         }
@@ -785,7 +787,9 @@
             {
               "section": "Layers",
               "slug": "layers",
-              "snippet": "<mark>Layers</mark>"
+              "snippet": "<mark>Layers</mark>",
+              "block_id": "<bid:1>",
+              "kind": "heading"
             }
           ]
         }
@@ -918,7 +922,9 @@
             {
               "section": "Layers",
               "slug": "layers",
-              "snippet": "<mark>Rate</mark> <mark>limiting</mark> lives in the API layer."
+              "snippet": "<mark>Rate</mark> <mark>limiting</mark> lives in the API layer.",
+              "block_id": "<bid:1>",
+              "kind": "text"
             }
           ]
         }

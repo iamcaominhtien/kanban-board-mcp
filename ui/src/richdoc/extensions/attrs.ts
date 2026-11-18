@@ -67,7 +67,7 @@ export const RichAttrs = Extension.create({
         types: ['diagram'],
         attributes: { version: dataAttr('version', null, 'json'), widthPct: dataAttr('widthPct', null, 'json') },
       },
-      { types: ['docRef'], attributes: nullable('pageId', 'targetBlockId') },
+      { types: ['docRef'], attributes: nullable('pageId', 'targetBlockId', 'targetLabel') },
     ];
   },
 });

@@ -92,6 +92,7 @@ An unknown key or a value of the wrong type is a syntax error.
 | `style` (rule, table, callout) | `style` | | `runScripts` (htmlEmbed) | `scripts` |
 | `width` (table), `ratio`, `gap`, `line` (columns) | same | | `pageId` | `page-id` |
 | `kind`, `color`, `icon`, `title` (callout) | same | | `targetBlockId` | `target` |
+| | | | `targetLabel` (docRef: the heading's or block's name when the link was made, shown when it is gone) | `target-label` |
 
 Every other attribute keeps its schema name (`placement`, `caption`, `href`, `crop`, `border`, `radius`, `shadow`,
 `version`, `fragment`, `poster`, `loop`, `muted`, `size`, `mime`, `preview`, `site`…). A callout's `title` is always
@@ -102,7 +103,7 @@ text).
 default one stays `==text==`), `font=` (a `fontFamily` key), `size=` (px), classes first:
 `[**all of them**]{.underline color=teal font=caveat size=24}`. A span sits inside a link and outside every other mark
 (`[[x]{.sup}](url)`, `[**x**]{.sub}`). A page reference's ids follow it: `[[Spec#Fields]]{page-id=pg_9
-target=b-00ab12}`.
+target=b-00ab12 target-label=Fields}`.
 
 **Columns.** `<!-- #b-… columns ratio=1:2 gap=32 line=true -->`, then `<!-- #b-… column -->` before each column's
 blocks (each with its own marker), then `<!-- /columns -->`.

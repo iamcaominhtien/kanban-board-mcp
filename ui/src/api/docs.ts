@@ -6,6 +6,7 @@ import type {
   DocsDeletedEntry,
   DocsDiff,
   DocsErrorDetail,
+  DocsLinkTargets,
   DocsPage,
   DocsRefRequest,
   DocsRefResult,
@@ -53,6 +54,16 @@ export function useDocsTree(projectId: string) {
     queryKey: docsKeys.tree(projectId),
     queryFn: async () => (await client.get<DocsTreeNode[]>(`/projects/${projectId}/docs/tree`)).data,
     enabled: !!projectId,
+  });
+}
+
+/** Query what a link can point at in a page: its headings and the blocks worth linking (disabled while null). */
+export function useDocsLinkTargets(pageId: string | null) {
+  return useQuery({
+    queryKey: ['docs', 'link-targets', pageId ?? ''] as const,
+    queryFn: async () => (await client.get<DocsLinkTargets>(`/docs/pages/${pageId}/link-targets`)).data,
+    enabled: !!pageId,
+    staleTime: 30_000,
   });
 }
 

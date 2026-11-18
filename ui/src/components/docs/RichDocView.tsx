@@ -174,7 +174,13 @@ function collectRefs(doc: Node): DocsRefRequest[] {
     const a = node.attrs ?? {};
     switch (node.type) {
       case 'docRef':
-        if (str(a.page)) add({ kind: 'page', title: str(a.page), anchor: str(a.section) || null });
+        if (str(a.page) || str(a.pageId))
+          add({
+            kind: 'page',
+            title: str(a.page),
+            anchor: str(a.section) || null,
+            ...(str(a.pageId) ? { pageId: str(a.pageId), blockId: str(a.targetBlockId) || null } : {}),
+          });
         return;
       case 'pageCard':
         if (str(a.page)) add({ kind: 'page', title: str(a.page), anchor: null });
@@ -423,6 +429,8 @@ function inline(nodes: Node[] | undefined, key: string): ReactNode[] {
       case 'docRef': {
         const page = str(a.page);
         const section = str(a.section) || null;
+        const pageId = str(a.pageId) || null;
+        const blockId = pageId ? str(a.targetBlockId) || null : null;
         const dflt = section ? `${page} › ${section}` : page;
         const label = str(a.label) || dflt;
         out.push(
@@ -431,8 +439,10 @@ function inline(nodes: Node[] | undefined, key: string): ReactNode[] {
             label={label}
             pageTitle={page}
             anchor={section}
-            custom={label !== dflt}
-            refKey={page ? pageRefKey({ title: page, anchor: section }) : null}
+            blockId={blockId}
+            blockLabel={str(a.targetLabel) || null}
+            custom={!!str(a.label) && label !== dflt}
+            refKey={page || pageId ? pageRefKey({ title: page, anchor: section, pageId, blockId }) : null}
           />,
         );
         break;

@@ -1,3 +1,4 @@
+import { SkipLink } from './states/SkipLink';
 import { docToMarkdown } from '../../richdoc';
 import { convertLock, convertLockTip, publishedDoc, replaceSectionRefs } from './richPage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -85,6 +86,7 @@ export const OPEN_RECYCLE_BIN_EVENT = 'kb:open-recycle-bin';
 import { isWidePage, readPageLook } from './pageSettings';
 import { sketchesAsImages } from '../sketch/sketchRefs';
 import { canvasesAsImages } from '../canvas/canvasRefs';
+import { blockOfAnchor, revealBlock } from './links/blockAnchor';
 
 interface Props {
   projectId: string;
@@ -143,6 +145,12 @@ function download(name: string, text: string) {
 
 /** Scroll a heading into view once its page has rendered (waits up to ~3 s for it) and flash it. */
 function scrollToSection(slug: string) {
+  // a link to a heading or block of a rich page opens at the block, marked for a few seconds
+  const linked = blockOfAnchor(slug);
+  if (linked) {
+    revealBlock(linked);
+    return;
+  }
   let tries = 0;
   const tick = () => {
     const el = document.getElementById(`docs-${slug}`);
@@ -923,6 +931,7 @@ export function DocsView({
         onOpenSettings={onOpenSettings}
         onBack={onBack}
         isAdmin={!disabledRole || disabledRole === 'admin'}
+        admin={access.data?.admins?.[0]}
       />
     );
   } else if (noAccess) {
@@ -939,9 +948,10 @@ export function DocsView({
     content = (
       <DocsHealthView
         projectId={projectId}
-        onOpenPage={(id) => {
+        onOpenPage={(id, anchor) => {
           setHealthOpen(false);
           select(id);
+          if (anchor) scrollToSection(anchor);
         }}
         onOpenTicket={onOpenTicket}
         onWritePage={(ticketId) => {
@@ -1113,6 +1123,7 @@ export function DocsView({
         narrow={narrow || history !== null}
         offline={offlineCopy ? { savedAt: cachedPage!.savedAt, version: cachedPage!.version } : null}
         readOnly={readOnly}
+        viewer={access.data?.role ? { role: access.data.role, admins: access.data.admins } : null}
         onTryAgain={() => {
           void pageQuery.refetch();
           void tree.refetch();
@@ -1163,6 +1174,7 @@ export function DocsView({
         }}
         onOpenTicket={onOpenTicket}
         onBack={() => onCloseResults?.()}
+        currentPage={selectedId ? { id: selectedId, title: nodes.find((n) => n.id === selectedId)?.title ?? '' } : null}
       />
     );
   }
@@ -1264,12 +1276,14 @@ export function DocsView({
           background: '#FFFFFF',
         }}
       >
+        {/* the first Tab stop of the space: past the tree to the page text (Docs states J 69) */}
+        {page && !editing && <SkipLink />}
         {left}
         {content}
         {settingsPanel}
         {treeDrawer}
         {!editing && !empty && !docsDisabled && (
-          <SinceViewedDigest projectId={projectId} nodes={nodes} onOpenPage={select} />
+          <SinceViewedDigest projectId={projectId} nodes={nodes} onOpenPage={select} phone={layout === 'phone'} />
         )}
 
         {dragFiles != null && (

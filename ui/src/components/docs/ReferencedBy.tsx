@@ -6,6 +6,7 @@ import { useToast } from '../Toast';
 import { Icon } from './Icon';
 import { plural } from './docsShared';
 import { pageUrl } from './SharePopover';
+import { kindWord } from './links/BlockKind';
 
 interface ReferencedByProps {
   pageId: string;
@@ -102,6 +103,20 @@ const goLink: React.CSSProperties = {
   cursor: 'pointer',
   fontFamily: 'inherit',
   padding: 0,
+};
+/* RichDocsLinks F 31: "to Limits · table", the heading or block of this page the link points at */
+const toPill: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  height: 20,
+  padding: '0 7px',
+  borderRadius: 5,
+  background: '#F1F6F2',
+  fontSize: 11,
+  fontWeight: 700,
+  color: '#3A4A3E',
+  whiteSpace: 'nowrap',
 };
 const ctxBox: React.CSSProperties = {
   fontSize: 12.5,
@@ -255,7 +270,9 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
               <div style={groupLabel}>Pages · {pageCount}</div>
               {pages.map((p, i) => {
                 const section = p.section ?? p.in;
-                const anchor = p.anchor ?? (section ? slugify(section) : undefined);
+                // a rich page's link knows the block it is written in: Go to link opens the page there
+                const anchor = p.sourceBlockId ?? p.anchor ?? (section ? slugify(section) : undefined);
+                const target = p.targetBlock;
                 return (
                   <div key={`${p.pageId}-${i}`} style={rowBox}>
                     <div style={rowHead}>
@@ -264,8 +281,13 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
                       </span>
                       {p.title}
                       {p.in && <span style={{ fontSize: 11.5, fontWeight: 500, color: '#9AA8A0' }}>{p.in}</span>}
+                      {target && (
+                        <span style={toPill} data-testid="backlink-to">
+                          to {target.label} · {kindWord(target.kind)}
+                        </span>
+                      )}
                       <button type="button" style={goLink} onClick={() => onOpenPage(p.pageId, anchor)}>
-                        {anchor ? 'Go to section' : 'Open page'}
+                        {p.sourceBlockId ? 'Go to link' : anchor ? 'Go to section' : 'Open page'}
                         <Icon name="i29" size={12} strokeWidth={2.2} />
                       </button>
                     </div>

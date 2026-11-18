@@ -42,6 +42,7 @@ pub fn short_name(node_type: &str, attr_name: &str) -> String {
         (_, "runScripts") => "scripts",
         (_, "pageId") => "page-id",
         (_, "targetBlockId") => "target",
+        (_, "targetLabel") => "target-label",
         (_, other) => other,
     };
     s.to_string()

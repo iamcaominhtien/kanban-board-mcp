@@ -49,6 +49,8 @@ fn canonical(dump: &Value, names: &HashMap<String, String>, keep: &dyn Fn(&str) 
                         Value::String(s) if column == "id" && table != "docs_page" => json!("<id>"),
                         // format 1: the block ids inside a rich page are random
                         Value::String(s) if column == "content" => json!(tidy(&block_ids(s))),
+                        // the block a link sits in or points at (`docs_link`): random as well
+                        Value::String(_) if column.ends_with("_block_id") => json!("<bid>"),
                         Value::String(s) => json!(tidy(s)),
                         other => other.clone(),
                     };

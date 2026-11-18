@@ -979,6 +979,9 @@ impl Writer {
                     if let Value::String(v) = attr(node, "targetBlockId") {
                         extra.push(format!("target={}", crate::annotated::quote(v)));
                     }
+                    if let Value::String(v) = attr(node, "targetLabel") {
+                        extra.push(format!("target-label={}", crate::annotated::quote(v)));
+                    }
                     if !extra.is_empty() {
                         s.push_str(&format!("{{{}}}", extra.join(" ")));
                     }

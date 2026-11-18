@@ -22,7 +22,10 @@ export const EditorEnvContext = createContext<EditorEnv | null>(null);
 export const useEditorEnv = () => useContext(EditorEnvContext);
 
 /** Return a stable cache key for a reference request. */
-export const refKey = (r: DocsRefRequest) => (r.kind === 'page' ? `p:${r.title}#${r.anchor ?? ''}` : `t:${r.key}`);
+export const refKey = (r: DocsRefRequest) =>
+  r.kind === 'page'
+    ? `p:${r.title}#${r.anchor ?? ''}${r.pageId ? `@${r.pageId}/${r.blockId ?? ''}` : ''}`
+    : `t:${r.key}`;
 
 /** Batches [[page]] / ticket-key resolution for all chips of one editor into single requests. */
 export class RefResolver {

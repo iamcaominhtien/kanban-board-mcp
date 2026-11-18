@@ -86,12 +86,18 @@ export function PageRefChip({
   label,
   pageTitle,
   anchor,
+  blockId,
+  blockLabel,
   custom,
   refKey,
 }: {
   label: string;
   pageTitle?: string;
   anchor?: string | null;
+  /** The heading or block a rich page's link stores. */
+  blockId?: string | null;
+  /** The block's name stored with the link (shown when the block is gone). */
+  blockLabel?: string | null;
   custom: boolean;
   refKey: string | null;
 }) {
@@ -104,6 +110,8 @@ export function PageRefChip({
       label={label}
       pageTitle={pageTitle}
       anchor={anchor}
+      blockId={blockId}
+      blockLabel={blockLabel}
       custom={custom}
       result={refKey != null ? c.pages.get(refKey) : undefined}
       projectId={c.projectId}

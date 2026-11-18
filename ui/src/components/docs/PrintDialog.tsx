@@ -20,7 +20,7 @@ const ROWS: readonly { key: BoolKey; title: string; hint: string }[] = [
   {
     key: 'highlights',
     title: 'Include highlights',
-    hint: 'Off by default. Prints everyone’s highlights with a marker.',
+    hint: 'Off by default. Prints everyone’s highlights with a marker, and a list at the foot with who made them.',
   },
   { key: 'headerFooter', title: 'Header and footer', hint: 'Page title, date and page count.' },
   { key: 'chapterBreak', title: 'Start chapters on a new page', hint: 'Only for pages in a book.' },

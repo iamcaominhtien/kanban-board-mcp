@@ -519,12 +519,38 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved, onChoos
             onClick={() => void confirm()}
           >
             <Icon name="i35" size={14} />
-            {move.isPending ? 'Moving…' : 'Move'}
+            {move.isPending ? 'Moving…' : error ? 'Try again' : 'Move'}
           </button>
         </>
       }
     >
       <style>{`.mv-gap:hover .mv-line{opacity:1!important}`}</style>
+      {error && (
+        // Tree5 G 64: what went wrong first, in a red box; nothing was moved and Move becomes Try again
+        <div
+          role="alert"
+          data-testid="move-error"
+          style={{
+            display: 'flex',
+            gap: 8,
+            alignItems: 'flex-start',
+            padding: '8px 11px',
+            borderRadius: 8,
+            background: '#FDF1EE',
+            color: '#C4432A',
+            border: '1px solid #F0C4B8',
+            fontSize: 12.5,
+            lineHeight: 1.5,
+          }}
+        >
+          <span style={{ display: 'flex', marginTop: 2 }}>
+            <Icon name="i14" size={14} />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <b>Couldn’t move “{page.title}”.</b> {error.replace(/\.?$/, '.')} Nothing was moved.
+          </div>
+        </div>
+      )}
       <div
         className="st-input"
         style={{
@@ -700,11 +726,6 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved, onChoos
         Click a page to move under it, or a gap between pages to choose the exact position. Grayed pages can't be
         chosen: a page can't go inside itself.
       </div>
-      {error && (
-        <div role="alert" style={{ fontSize: 12.5, color: '#A5321E' }}>
-          {error}
-        </div>
-      )}
     </ModalShell>
   );
 }

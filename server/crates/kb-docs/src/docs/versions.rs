@@ -14,7 +14,7 @@ use serde_json::{Map, Value, json};
 
 use super::body::{BodyInput, PageBody};
 use super::pages::{check_markdown, clean_title, draft_for, get_page, latest_version, opt, page_detail, project};
-use super::refs::{refresh_link_targets, reindex_links};
+use super::refs::{refresh_link_targets, reindex_links_of};
 use crate::util::{Tag, opcodes, word_count};
 use crate::{Result, docs_comments, docs_err, docs_search, hooks};
 
@@ -189,6 +189,8 @@ pub async fn discard_draft(session: &Session, page_id: &str) -> Result<Map<Strin
     if let Some(draft) = draft_for(session, &page.id, &activity::current_actor()).await? {
         draft.delete(session).await?;
         session.commit().await?;
+        // highlights that were becoming page text in that draft are plain shared highlights again
+        crate::docs_highlights::cancel_becoming(session, &page.id).await?;
     }
     page_detail(session, page_id).await
 }
@@ -280,7 +282,7 @@ pub async fn commit_version(
         draft.delete(session).await?;
     }
     update_aliases(session, page, previous.as_ref().map(|p| p.markdown.as_str()).unwrap_or(""), markdown).await?;
-    reindex_links(session, page, markdown).await?;
+    reindex_links_of(session, page, markdown, body.content.as_ref()).await?;
     if renamed {
         // Where a [[link]] leads depends on the pages' titles and places, not on their content: other pages' links
         // only move when a page appears or changes title. (It reads every link of the project, while this

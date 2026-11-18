@@ -13,6 +13,7 @@ import { publishedDoc } from './richPage';
 import { closestHeading, RefChip } from './RefChip';
 import { Icon } from './Icon';
 import type { PeekHint } from './DocsRefsContext';
+import { blockOfAnchor, revealBlock } from './links/blockAnchor';
 
 export interface PeekTarget {
   pageId: string;
@@ -70,7 +71,9 @@ export function DocPeekPanel({ target, projectId, ticketId, onSwitch, onClose, o
   }, [onClose]);
   useEffect(() => closeRef.current?.focus(), [target.pageId]);
 
-  const slug = target.anchor ? slugify(target.anchor) : null;
+  // a link to a heading or block of a rich page opens the panel at that block (by its id)
+  const linkedBlock = blockOfAnchor(target.anchor);
+  const slug = target.anchor && !linkedBlock ? slugify(target.anchor) : null;
   const heading = page && slug ? page.headings.find((h) => h.slug === slug) : null;
   const sectionMissing = !!(page && slug && !heading);
   const closest = page && sectionMissing ? closestHeading(page.headings, target.anchor ?? '') : null;
@@ -104,6 +107,12 @@ export function DocPeekPanel({ target, projectId, ticketId, onSwitch, onClose, o
       wrap.remove();
     };
   }, [page, heading, forcedTop]);
+
+  useEffect(() => {
+    const root = bodyRef.current;
+    if (!root || !page || !linkedBlock) return;
+    return revealBlock(linkedBlock, root);
+  }, [page, linkedBlock]);
 
   const rows = useMemo(() => {
     const out = new Map<string, { pageId: string; title: string; section: string | null; origins: string[] }>();

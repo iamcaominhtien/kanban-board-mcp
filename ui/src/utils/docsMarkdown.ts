@@ -85,9 +85,19 @@ export function internalPageLink(href: string): { title: string; anchor: string 
   return title ? { title, anchor: anchor || null } : null;
 }
 
-/** The key a page reference's resolve result is kept under (a Markdown link and a [[Title]] resolve apart). */
-export function pageRefKey(ref: { title: string; anchor?: string | null; bySlug?: boolean }): string {
-  return `${ref.bySlug ? 'link:' : ''}${ref.title}#${ref.anchor ?? ''}`;
+/**
+ * The key a page reference's resolve result is kept under (a Markdown link and a [[Title]] resolve apart, and a
+ * rich page's link that stores its page and block ids apart from both).
+ */
+export function pageRefKey(ref: {
+  title: string;
+  anchor?: string | null;
+  bySlug?: boolean;
+  pageId?: string | null;
+  blockId?: string | null;
+}): string {
+  const ids = ref.pageId ? `@${ref.pageId}${ref.blockId ? `/${ref.blockId}` : ''}` : '';
+  return `${ref.bySlug ? 'link:' : ''}${ref.title}#${ref.anchor ?? ''}${ids}`;
 }
 
 /**

@@ -336,7 +336,7 @@
       "display_text": null,
       "snippet": "Every route requires a bearer token; rotation rules live in Auth.",
       "origin": "page",
-      "source_block_id": null,
+      "source_block_id": "<bid>",
       "target_block_id": null
     },
     {

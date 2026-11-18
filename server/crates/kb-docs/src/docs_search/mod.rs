@@ -13,7 +13,7 @@ pub mod query;
 pub mod search;
 
 pub use index::{
-    CREATE_FTS, backfill_sync, contents, create_fts_sync, ensure_fts, index_fields, rebuild_index, reindex,
+    CREATE_FTS, backfill_sync, contents, create_fts_sync, ensure_fts, index_fields, rebuild_index, reindex, rich_docs,
     set_fts_broken, unindex,
 };
 pub use query::{MAX_QUERY, MAX_TERMS, Marker, Query, build_matches, count_matches, highlight};

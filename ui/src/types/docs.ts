@@ -200,11 +200,41 @@ export interface DocsTicketDoc {
 
 /** A reference to resolve; `bySlug` (from a Markdown link) also matches a page's slug, the slug of its title, or its id. */
 export type DocsRefRequest =
-  { kind: 'page'; title: string; anchor?: string | null; bySlug?: boolean } | { kind: 'ticket'; key: string };
+  | {
+      kind: 'page';
+      title: string;
+      anchor?: string | null;
+      bySlug?: boolean;
+      /** A rich page's link stores its page's id: the page is found by it, whatever its title is now. */
+      pageId?: string | null;
+      /** …and the heading or block it points at. */
+      blockId?: string | null;
+    }
+  | { kind: 'ticket'; key: string };
+
+/** A heading or block a link points at, as the server names it (`Limits` · `table` · `Table · 3 columns, 3 rows`). */
+export interface DocsLinkBlock {
+  blockId: string;
+  kind: string;
+  label: string;
+  detail: string;
+  /** A heading's anchor slug. */
+  slug?: string;
+}
+
+/** What a link can point at in a page (`[[Page#`), and how many pages link to each heading or block. */
+export interface DocsLinkTargets {
+  pageId: string;
+  title: string;
+  headings: { blockId: string; level: number; text: string; slug: string; under: string | null }[];
+  blocks: { blockId: string; kind: string; label: string; detail: string; section: string | null }[];
+  /** Block id → the number of pages whose links point at it. */
+  inbound: Record<string, number>;
+}
 
 export interface DocsRefResult {
   kind: 'page' | 'ticket';
-  status: 'ok' | 'missing' | 'section_missing' | 'in_bin' | 'ambiguous';
+  status: 'ok' | 'missing' | 'section_missing' | 'in_bin' | 'ambiguous' | 'block_missing';
   pageId?: string;
   title?: string;
   slug?: string;
@@ -214,6 +244,10 @@ export interface DocsRefResult {
   section?: string;
   key?: string;
   ticketStatus?: string;
+  /** The heading or block a link stores, when it is there (a heading link takes its current text as `section`). */
+  block?: DocsLinkBlock;
+  /** The block a `block_missing` link stored. */
+  blockId?: string;
   /** Set when status is in_bin. */
   deletedAt?: string | null;
   deletedBy?: string | null;

@@ -80,6 +80,7 @@ pub fn routes() -> Routes {
         .post("/docs/pages/{page_id}/highlights/restore", post_restore_highlights)
         .patch("/docs/highlights/{highlight_id}", patch_highlight)
         .delete("/docs/highlights/{highlight_id}", del_highlight)
+        .post("/docs/highlights/{highlight_id}/to-page", post_highlight_to_page)
         .get("/docs/pages/{page_id}/suggestions", get_suggestions)
         .post("/docs/convert", post_convert)
         .post("/projects/{project_id}/docs/exports", post_export)
@@ -109,6 +110,7 @@ pub fn routes() -> Routes {
         .get("/docs/pages/{page_id}/versions/{version}/diff/{b}", get_diff)
         .post("/docs/pages/{page_id}/versions/{version}/restore", post_restore_version)
         .get("/docs/pages/{page_id}/backlinks", get_backlinks)
+        .get("/docs/pages/{page_id}/link-targets", get_link_targets)
         .get("/docs/pages/{page_id}/work", get_page_work)
         .post("/docs/pages/{page_id}/assign", post_page_assign)
         .get("/tickets/{ticket_id}/docs", get_ticket_docs)
@@ -256,6 +258,8 @@ async fn get_search(
         has_tickets: query_opt_bool(&pairs, "has_tickets")?,
         status: query_opt(&pairs, "status"),
         sort: query_str(&pairs, "sort", "relevance"),
+        kinds: query_opt(&pairs, "kind"),
+        kind_facets: query_str(&pairs, "facets", "").split(',').any(|f| f.trim() == "kinds"),
     };
     let q = query_str(&pairs, "q", "");
     let session = kb_db::session();
@@ -597,6 +601,12 @@ async fn patch_highlight(
     Ok(Json(done(&headers, crate::docs_highlights::update(&session, &highlight_id, &body).await)?))
 }
 
+/// "Add to the page": the highlight's words get a highlight mark in the caller's draft (editors).
+async fn post_highlight_to_page(headers: HeaderMap, Path(highlight_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(Json(done(&headers, crate::docs_highlights::to_page(&session, &highlight_id).await)?))
+}
+
 /// Remove a highlight.
 async fn del_highlight(headers: HeaderMap, Path(highlight_id): Path<String>) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
@@ -906,6 +916,12 @@ async fn post_restore_version(
 async fn get_backlinks(headers: HeaderMap, Path(page_id): Path<String>) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
     Ok(obj(done(&headers, docs::backlinks(&session, &page_id).await)?))
+}
+
+/// List the headings and blocks of a page a link can point at, and how many pages link to each.
+async fn get_link_targets(headers: HeaderMap, Path(page_id): Path<String>) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(obj(done(&headers, docs::link_targets(&session, &page_id).await)?))
 }
 
 /// The tickets tied to a page and what the AI on each is doing now (#268).

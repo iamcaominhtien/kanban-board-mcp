@@ -9046,6 +9046,40 @@
        "default": "relevance",
        "title": "Sort"
       }
+     },
+     {
+      "name": "kind",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Kind"
+      },
+      "description": "Only matches of these types, comma separated: page, image, table, file, code, diagram."
+     },
+     {
+      "name": "facets",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Facets"
+      },
+      "description": "`kinds` adds facets.kinds (pages per match type)."
      }
     ],
     "responses": {
@@ -10377,6 +10411,51 @@
          "type": "object",
          "additionalProperties": true,
          "title": "Response Get Backlinks Docs Pages  Page Id  Backlinks Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/link-targets": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Get Link Targets",
+    "description": "List the headings and blocks of a page a link can point at, and how many pages link to each.",
+    "operationId": "get_link_targets_docs_pages__page_id__link_targets_get",
+    "parameters": [
+     {
+      "name": "page_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Page Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Get Link Targets Docs Pages  Page Id  Link Targets Get"
         }
        }
       }
@@ -25647,6 +25726,19 @@
     }
    },
    "patch": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/highlights/{highlight_id}/to-page": {
+   "post": {
     "tags": [
      "docs"
     ],

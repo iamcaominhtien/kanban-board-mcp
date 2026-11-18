@@ -104,7 +104,9 @@ pub async fn get_docs_page(page_id: &str, section: Option<&str>) -> ToolResult {
         out.insert("headings".into(), page.detail.get("headings").cloned().unwrap_or(Value::Null));
         return Ok(Value::Object(out));
     }
-    let links = docs::backlinks(&session, page_id).await.map_err(docs_error)?;
+    let mut links = docs::backlinks(&session, page_id).await.map_err(docs_error)?;
+    // the blocks a link sits in and points at (the UI's Referenced by) are not part of the tool's answer
+    without_keys(links.get_mut("pages"), &["source_block_id", "target_block"]);
     let keep = [
         "id",
         "project_id",
@@ -345,7 +347,24 @@ pub async fn search_docs(project_id: &str, query: &str, scope: &str, limit: i64)
             out.insert(key.into(), value.clone());
         }
     }
+    // the block of each match (the UI opens a result at it) is not part of the tool's answer
+    if let Some(Value::Array(pages)) = out.get_mut("pages") {
+        for page in pages {
+            without_keys(page.get_mut("matches"), &["block_id", "kind", "field", "row", "cells"]);
+        }
+    }
     Ok(Value::Object(out))
+}
+
+/// Removes `keys` from each object of a JSON array (anything else is left as it is).
+fn without_keys(rows: Option<&mut Value>, keys: &[&str]) {
+    if let Some(Value::Array(rows)) = rows {
+        for row in rows.iter_mut().filter_map(Value::as_object_mut) {
+            for key in keys {
+                row.remove(*key);
+            }
+        }
+    }
 }
 
 /// The Markdown files below `root`, as `sorted(root.rglob("*"))` lists them (by path parts), as `(relative name,

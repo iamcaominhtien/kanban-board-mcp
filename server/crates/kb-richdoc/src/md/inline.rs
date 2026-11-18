@@ -383,11 +383,12 @@ impl<'a> InlineLexer<'a> {
                 let mut len = len;
                 if self.annotated && c.get(p + len) == Some(&'{') {
                     if let Some((extra, pairs)) = spec_at(c, p + len) {
-                        if let Inline::DocRef { page_id, target, .. } = &mut tok {
+                        if let Inline::DocRef { page_id, target, target_label, .. } = &mut tok {
                             for (k, v) in pairs {
                                 match k.as_str() {
                                     "page-id" | "pageId" => *page_id = Some(v),
                                     "target" | "targetBlockId" => *target = Some(v),
+                                    "target-label" | "targetLabel" => *target_label = Some(v),
                                     _ => self.errors.push(format!("unknown page reference attribute {k}")),
                                 }
                             }
@@ -1793,6 +1794,7 @@ fn doc_ref(c: &[char], p: usize, t: &Tables) -> Option<(usize, Inline)> {
             label: clean(label),
             page_id: None,
             target: None,
+            target_label: None,
         },
     ))
 }

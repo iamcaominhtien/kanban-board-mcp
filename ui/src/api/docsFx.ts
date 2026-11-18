@@ -37,6 +37,8 @@ export async function searchDocs(
   if (p.hasTickets) params.has_tickets = true;
   if (p.status?.length) params.status = p.status.join(',');
   if (p.sort) params.sort = p.sort;
+  if (p.kinds?.length) params.kind = p.kinds.join(',');
+  if (p.kindFacets) params.facets = 'kinds';
   const res = await client.get<DocsSearchResponse>(`/projects/${projectId}/docs/search`, { params, signal });
   return res.data;
 }

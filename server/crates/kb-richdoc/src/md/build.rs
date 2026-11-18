@@ -551,9 +551,10 @@ impl Builder<'_> {
                 }
                 Inline::Br => out.push(json!({"type": "hardBreak"})),
                 Inline::Image { .. } => out.push(self.image(&t.kind)),
-                Inline::DocRef { page, section, label, page_id, target } => out.push(node(
+                Inline::DocRef { page, section, label, page_id, target, target_label } => out.push(node(
                     "docRef",
-                    Some(json!({"page": page, "section": section, "label": label, "pageId": page_id, "targetBlockId": target})),
+                    Some(json!({"page": page, "section": section, "label": label, "pageId": page_id,
+                                "targetBlockId": target, "targetLabel": target_label})),
                     None,
                 )),
                 Inline::Span { marks, tokens: c } => {

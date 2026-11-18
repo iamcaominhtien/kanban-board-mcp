@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { docsErrorDetail, useDiscardDraft, useMarkDocsSeen, usePublishPage, useSaveDraft } from '../../api/docs';
 import { extractError } from '../../api/extractError';
 import type { DocsPage, DocsTreeNode, RichDoc } from '../../types/docs';
@@ -22,6 +31,7 @@ import { EditorTeamHost } from './suggestions/EditorTeamHost';
 import { createEditorReplaceAdapter, setActiveReplaceAdapter } from './editorReplace';
 import { Icon } from './Icon';
 import { BackOnlineBanner, OfflineBanner, useOnline } from './OfflineBanners';
+import { StIcon } from './states/stIcons';
 import { PublishDialog } from './PublishDialog';
 import { lineDiffCounts } from '../../utils/lineDiff';
 import './docs.css';
@@ -39,6 +49,32 @@ import { PageHeader, titleClass } from './PageHeader';
 import { RichDocView } from './RichDocView';
 import { BottomSheet, DocsDrawer } from './DocsSheets';
 import { isWidePage, lookClass, lookVars, readPageLook } from './pageSettings';
+import { client } from '../../api/client';
+import { canonicalDoc, docToText } from '../../richdoc';
+import { applyChoices, changedBlocks, type BlockChoice } from '../../richdoc/merge';
+import { displayName } from './docsShared';
+import { StateBar, StateBars } from './states/StateBar';
+import { SaveStatus, type SaveView } from './states/SaveStatus';
+import { KeepCopyDialog } from './states/KeepCopyDialog';
+import { WaitingList, waitingRows } from './states/WaitingList';
+import { MergedDialog } from './states/MergedDialog';
+import { ConflictChooser, JoinedToast, KeepMineConfirm } from './states/ConflictChooser';
+import {
+  fmtSize,
+  PAGE_SIZE_WARN,
+  PAGE_SIZE_LIMIT,
+  pageBytes,
+  SizeWarningBar,
+  SpaceList,
+  TooLargeDialog,
+} from './states/PageSize';
+import { reconcile, type Reconciled } from './states/reconcile';
+import { isSessionEnded, SessionEnded } from './states/SessionEnded';
+import { fixColour, ReadabilityCheck, readabilityIssues } from './states/Readability';
+import { isNoConnection, useQueuedWrites } from './states/offlineQueue';
+import { subscribeUploads, uploadsVersion, waitingUploads } from './editor/blocks/imageUpload';
+import { LinkCheckerPanel } from './links/LinkChecker';
+import { useEditHighlights } from './highlights/EditHighlights';
 
 interface Props {
   projectId: string;
@@ -61,6 +97,26 @@ interface Props {
 
 type SaveState = 'saved' | 'saving' | 'error' | 'dirty';
 const AUTOSAVE_MS = 3000;
+/** A failed save is tried again after this long; after three tries the bar says "Not saved" (Docs states, C 13). */
+const RETRY_MS = 3000;
+const RETRY_SLOW_MS = 10000;
+const TRIES_BEFORE_NOT_SAVED = 3;
+
+/** A newer version found while editing, and (rich pages) the draft merged with it block by block. */
+interface ConflictState {
+  latestVersion: number;
+  latestAuthor?: string | null;
+  latestAt?: string | null;
+  /** Null when a version is not rich (only Keep mine / Reload then). */
+  rec?: Reconciled | null;
+}
+
+/** Coming back online or publishing over a newer version: merging, joined by itself, or a choice to make. */
+type SyncState =
+  | { kind: 'merging' }
+  | { kind: 'synced' }
+  | { kind: 'joined'; rec: Reconciled; doc: RichDoc; reason: 'online' | 'publish' }
+  | { kind: 'same'; rec: Reconciled };
 
 /**
  * Full-screen page editor with Publish, Discard and conflict handling.
@@ -115,7 +171,7 @@ export function DocsEditScreen({
   const [content, setContent] = useState<RichDoc>(() => localDraft?.content ?? editableDoc(page));
   const [markdown, setMarkdown] = useState(() => docToMarkdown(content));
   const [title, setTitle] = useState(localDraft ? localDraft.title : (page.draft?.title ?? page.title));
-  const [baseVersion] = useState(page.draft?.baseVersion ?? page.version);
+  const [baseVersion, setBaseVersion] = useState(page.draft?.baseVersion ?? page.version);
   const [saveState, setSaveState] = useState<SaveState>(localDraft ? 'dirty' : 'saved');
   const [savedAt, setSavedAt] = useState<Date | null>(page.draft ? new Date(page.draft.updatedAt) : null);
   const [publishOpen, setPublishOpen] = useState(false);
@@ -126,6 +182,8 @@ export function DocsEditScreen({
   const commentsData = cc.query.data;
   const commentTotal = commentsData ? commentsData.counts.all + commentsData.counts.page : 0;
   const canComment = commentsData?.role !== 'viewer';
+  // the readers' shared highlights stay visible while editing, as dotted lines (highlights/EditHighlights.tsx)
+  const sharedHl = useEditHighlights(page.id, page.version > 0 && online, commentsData);
   const highlightThreads = useMemo(
     () =>
       (commentsData?.threads ?? []).flatMap((t) =>
@@ -164,6 +222,7 @@ export function DocsEditScreen({
   // the page as readers will see it (Preview): the text at the moment Preview was turned on
   const [preview, setPreview] = useState<RichDoc | null>(null);
   const [more, setMore] = useState(false);
+  const [linksOpen, setLinksOpen] = useState(false);
   const phone = layout === 'phone';
   const look = readPageLook(page.settings);
   const settingsKey = JSON.stringify(page.settings ?? {});
@@ -173,11 +232,22 @@ export function DocsEditScreen({
     [settingsKey, layout],
   );
   const keyboard = useKeyboardInset(phone);
-  const [conflict, setConflict] = useState<{
-    latestVersion: number;
-    latestAuthor?: string | null;
-    latestAt?: string | null;
-  } | null>(null);
+  const [conflict, setConflict] = useState<ConflictState | null>(null);
+  // the states of saving, offline and merging (Docs states, C-G)
+  const [failures, setFailures] = useState(0);
+  const [tooLarge, setTooLarge] = useState<number | null>(null);
+  const [sync, setSync] = useState<SyncState | null>(null);
+  const [dialog, setDialog] = useState<null | 'keep-copy' | 'merged' | 'choose' | 'keep-mine' | 'too-large'>(null);
+  const [waitingOpen, setWaitingOpen] = useState(false);
+  const [spaceOpen, setSpaceOpen] = useState(false);
+  const [sizeHidden, setSizeHidden] = useState(false);
+  const [bytes, setBytes] = useState(() => pageBytes(content));
+  // the server stopped taking this window's changes (F 38): 'open' shows the dialog, 'later' only the bar
+  const [sessionEnded, setSessionEnded] = useState<null | 'open' | 'later'>(null);
+  const [joinedToast, setJoinedToast] = useState<{ version: number; undo: () => void } | null>(null);
+  // the draft as the server last stored it: what is queued is what differs from it
+  const savedDoc = useRef<RichDoc>(localDraft ? editableDoc(page) : content);
+  const savedTitle = useRef(page.draft?.title ?? page.title);
 
   const editor = useRef<DocsEditorHandle>(null);
   const mountedAt = useRef(Date.now());
@@ -216,16 +286,33 @@ export function DocsEditScreen({
       });
       // what the server cleaned out of HTML embeds is said on each embed ("Saved. N things were removed…")
       reportSavedEmbeds(sent, (saved as DocsPage | undefined)?.draft?.content);
-      dirty.current = false;
-      clearLocalDraft(page.id);
+      savedDoc.current = sent;
+      savedTitle.current = latest.current.title;
+      setSessionEnded(null);
+      // a change typed while this save was on its way is still to be sent
+      dirty.current = latest.current.content !== sent;
+      if (!dirty.current) clearLocalDraft(page.id);
       setSavedAt(new Date());
-      setSaveState('saved');
+      setSaveState(dirty.current ? 'dirty' : 'saved');
+      setFailures(0);
+      setTooLarge(null);
+      setBytes(pageBytes(sent));
       setOnline(true);
       return true;
     } catch (err) {
       keepLocal();
       setSaveState('error');
-      if (!docsErrorDetail(err)) setOnline(false);
+      setFailures((n) => n + 1);
+      const d = docsErrorDetail(err);
+      if (isSessionEnded(err)) {
+        // signed out: the draft waits in this browser; the dialog says so once (F 38)
+        setSessionEnded((cur) => cur ?? 'open');
+      } else if (d?.code === 'too_large') {
+        const size = pageBytes(latest.current.content);
+        setTooLarge(size);
+        setBytes(size);
+        setDialog((cur) => cur ?? 'too-large');
+      } else if (isNoConnection(err)) setOnline(false);
       return false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -288,18 +375,108 @@ export function DocsEditScreen({
     return () => setActiveReplaceAdapter(undefined);
   }, []);
 
-  // reconnect: push the locally kept draft
+  // a failed save is tried again every few seconds while the browser has a connection (C 15: "We keep trying")
   useEffect(() => {
-    if (online && dirty.current && saveState === 'error') void flush();
-  }, [online, saveState, flush]);
+    if (saveState !== 'error' || tooLarge != null || conflict || sync?.kind === 'merging' || sessionEnded)
+      return undefined;
+    if (!navigator.onLine) return undefined;
+    const t = setTimeout(() => void flush(), failures < TRIES_BEFORE_NOT_SAVED ? RETRY_MS : RETRY_SLOW_MS);
+    return () => clearTimeout(t);
+  }, [saveState, failures, tooLarge, conflict, sync, flush, sessionEnded]);
 
-  async function doPublish(note: string, notify: boolean, base = baseVersion) {
+  // signed out: try again whenever this window comes back to the front (after signing in in the other tab)
+  useEffect(() => {
+    if (!sessionEnded) return undefined;
+    const again = () => {
+      if (document.visibilityState === 'visible') void flush();
+    };
+    window.addEventListener('focus', again);
+    document.addEventListener('visibilitychange', again);
+    return () => {
+      window.removeEventListener('focus', again);
+      document.removeEventListener('visibilitychange', again);
+    };
+  }, [sessionEnded, flush]);
+
+  /** Put a page into the editor as an edit of its own (a merge, a choice, Undo): it is saved like typing. */
+  const applyDoc = useCallback(
+    (doc: RichDoc) => {
+      userInput.current = true;
+      settle(doc);
+      touch();
+    },
+    [settle, touch],
+  );
+
+  /** Merge the draft with a newer version: joined by itself, or the blocks both changed are left to choose. */
+  const joinNewer = useCallback(
+    async (
+      meta: { latestVersion: number; latestAuthor?: string | null; latestAt?: string | null },
+      reason: 'online' | 'publish',
+    ) => {
+      const doc = editor.current?.flushContent() ?? latest.current.content;
+      const rec = await reconcile(page.id, latest.current.baseVersion, meta.latestVersion, doc).catch(() => null);
+      if (rec && rec.merge.conflicts.length === 0) {
+        const merged = applyChoices(rec.merge, {}) as RichDoc;
+        setBaseVersion(rec.theirs.version);
+        latest.current = { ...latest.current, baseVersion: rec.theirs.version };
+        applyDoc(merged);
+        setConflict(null);
+        setSync({ kind: 'joined', rec, doc: merged, reason });
+        return;
+      }
+      setConflict({ ...meta, rec });
+      setSync(rec && reason === 'online' ? { kind: 'same', rec } : null);
+    },
+    [page.id, applyDoc],
+  );
+
+  /** Back online with changes queued: read the page, merge with what others published meanwhile, then save. */
+  const syncBack = useCallback(async () => {
+    editor.current?.flushContent();
+    if (!dirty.current) {
+      setSync((cur) => (cur && cur.kind !== 'synced' ? cur : { kind: 'synced' }));
+      return;
+    }
+    setSync({ kind: 'merging' });
+    try {
+      const live = (await client.get<DocsPage>(`/docs/pages/${page.id}`)).data;
+      if (live.version > latest.current.baseVersion) {
+        await joinNewer(
+          { latestVersion: live.version, latestAuthor: live.updatedBy, latestAt: live.updatedAt },
+          'online',
+        );
+        return;
+      }
+      setSync(null);
+      if (await flush()) setSync({ kind: 'synced' });
+    } catch {
+      setSync(null);
+      setSaveState('error');
+    }
+  }, [page.id, joinNewer, flush]);
+
+  // reconnect (and opening a page whose changes were kept in this browser): send what is queued
+  const syncRef = useRef(syncBack);
+  syncRef.current = syncBack;
+  useEffect(() => {
+    // syncBack takes the editor's last keystrokes first: they may not have reached the screen yet
+    if (!justBack) return;
+    clearJustBack();
+    void syncRef.current();
+  }, [justBack, clearJustBack]);
+  useEffect(() => {
+    if (localDraft && navigator.onLine) void syncRef.current();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function doPublish(note: string, notify: boolean, base = baseVersion, override?: RichDoc) {
     setError(null);
     if (!title.trim()) {
       setError('Give the page a title before publishing.');
       return;
     }
-    const doc = editor.current?.flushContent() ?? latest.current.content;
+    const doc = override ?? editor.current?.flushContent() ?? latest.current.content;
     try {
       const updated = await publish.mutateAsync({
         pageId: page.id,
@@ -320,10 +497,16 @@ export function DocsEditScreen({
       const d = docsErrorDetail(err);
       if (d?.code === 'conflict') {
         setPublishOpen(false);
-        setConflict({ latestVersion: d.latestVersion ?? base + 1, latestAuthor: d.latestAuthor, latestAt: d.latestAt });
+        const meta = { latestVersion: d.latestVersion ?? base + 1, latestAuthor: d.latestAuthor, latestAt: d.latestAt };
+        // shown at once; the block-by-block merge fills in when the versions are read
+        setConflict(meta);
+        void joinNewer(meta, 'publish');
+      } else if (isSessionEnded(err)) {
+        setPublishOpen(false);
+        setSessionEnded('open');
       } else {
         setError(d?.message ?? extractError(err));
-        if (!d) setOnline(false);
+        if (isNoConnection(err)) setOnline(false);
       }
     }
   }
@@ -350,7 +533,7 @@ export function DocsEditScreen({
     : undefined;
 
   const openPublish = () => {
-    if (conflict || !online) return;
+    if (conflict || !online || sync?.kind === 'merging') return;
     void flush().then(async () => {
       // comments whose text the edits removed would be orphaned: warn first
       try {
@@ -405,60 +588,161 @@ export function DocsEditScreen({
     setPreview((cur) => (cur ? null : (editor.current?.flushContent() ?? latest.current.content)));
   }
 
-  const saveLabel =
-    saveState === 'saving' || saveState === 'dirty'
-      ? 'Saving…'
-      : saveState === 'error'
-        ? 'Not saved — will retry'
-        : 'Saved';
+  // the readability check (J 74): what may be hard to read, checked as the page changes; it never blocks Publish
+  const pageHex = (lookVars(look, layout) as Record<string, string>)['--dp-page'] ?? '#FFFFFF';
+  const readIssues = useMemo(() => readabilityIssues(content, pageHex), [content, pageHex]);
+  const [readOpen, setReadOpen] = useState(false);
 
-  const saveStatus = !online ? (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        height: 26,
-        padding: '0 10px',
-        borderRadius: 999,
-        background: '#FCEFD9',
-        fontSize: 12,
-        fontWeight: 700,
-        color: '#7A4F08',
-        whiteSpace: 'nowrap',
-      }}
-      data-testid="save-state"
-    >
-      <Icon name="i37" size={13} />
-      Offline — changes kept locally
-    </span>
-  ) : (
-    <span
-      role="status"
-      data-testid="save-state"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        fontSize: 12.5,
-        fontWeight: 600,
-        whiteSpace: 'nowrap',
-        color: saveState === 'error' ? '#C4432A' : saveState === 'saved' ? '#2E6F40' : '#5B6B60',
-      }}
-    >
-      {saveState === 'saving' || saveState === 'dirty' ? (
-        <span className="mc-spin" />
-      ) : saveState === 'saved' ? (
-        <Icon name="check" size={13} strokeWidth={2.4} />
-      ) : null}
-      {saveLabel}
-      {saveState === 'saved' && savedAt && (
-        <span style={{ fontWeight: 500, color: '#5B6B60' }}>
-          {savedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-        </span>
+  // what waits in this browser: the blocks that differ from the draft the server has, and the title
+  const queued = !online || saveState === 'error';
+  const waitingBlocks = useMemo(
+    () => (queued ? changedBlocks(canonicalDoc(savedDoc.current), canonicalDoc(content)) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queued, content, savedAt],
+  );
+  const titleChanged = queued && title !== savedTitle.current;
+  // pictures that wait to upload, and the page's other writes kept in this browser (highlights…)
+  useSyncExternalStore(subscribeUploads, uploadsVersion);
+  const upWaiting = waitingUploads();
+  const writes = useQueuedWrites(page.id);
+  const writeRows = Object.entries(
+    writes.reduce<Record<string, number>>((m, w) => ({ ...m, [w.label]: (m[w.label] ?? 0) + 1 }), {}),
+  ).map(([label, count]) => ({ label, count }));
+  const waiting =
+    Math.max(waitingBlocks.length + (titleChanged ? 1 : 0), dirty.current ? 1 : 0) + upWaiting.length + writes.length;
+
+  const saveView: SaveView = conflict
+    ? { kind: 'paused' }
+    : sync?.kind === 'merging'
+      ? { kind: 'merging' }
+      : !online
+        ? { kind: 'offline', waiting }
+        : // a retry on its way does not hide "Not saved" (the bar would jump away under the pointer)
+          saveState !== 'saved' && (failures >= TRIES_BEFORE_NOT_SAVED || tooLarge != null || sessionEnded)
+          ? { kind: 'error' }
+          : saveState === 'saved'
+            ? { kind: 'saved', at: savedAt }
+            : { kind: 'saving' };
+  const notSaved = saveView.kind === 'error';
+  const retryNow = () => {
+    setFailures(0);
+    void flush().then((ok) => ok && setOnline(true));
+  };
+
+  const readButton =
+    readIssues.length > 0 && !phone ? (
+      <span style={{ position: 'relative', display: 'inline-flex' }}>
+        <button
+          type="button"
+          className="dst-read-btn"
+          data-testid="readability-button"
+          aria-expanded={readOpen}
+          onClick={() => setReadOpen((v) => !v)}
+        >
+          <StIcon name="eye" size={12} sw={2} />
+          {readIssues.length} to look at
+        </button>
+        {readOpen && (
+          <ReadabilityCheck
+            issues={readIssues}
+            pageHex={pageHex}
+            onFix={(x) => {
+              if (!x.suggestion) return;
+              applyDoc(
+                fixColour(editor.current?.flushContent() ?? latest.current.content, x.blockId, x.hex, x.suggestion),
+              );
+            }}
+            onAdd={(x) => {
+              setReadOpen(false);
+              goToBlock(x.blockId);
+            }}
+            onClose={() => setReadOpen(false)}
+          />
+        )}
+      </span>
+    ) : null;
+
+  const saveStatus = (
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      {readButton}
+      <SaveStatus
+        view={saveView}
+        compact={phone}
+        onRetry={retryNow}
+        onOpenWaiting={() => setWaitingOpen((v) => !v)}
+        waitingOpen={waitingOpen}
+      />
+      {waitingOpen && !online && !phone && (
+        <WaitingList
+          total={waiting}
+          rows={waitingRows(waitingBlocks)}
+          titleChanged={titleChanged}
+          uploads={upWaiting.map((u) => ({ name: u.name, size: fmtSize(u.size) }))}
+          writes={writeRows}
+          onRetry={retryNow}
+          onClose={() => setWaitingOpen(false)}
+        />
       )}
     </span>
   );
+  const goToBlock = (id: string) => {
+    setDialog(null);
+    setSpaceOpen(false);
+    window.requestAnimationFrame(() => {
+      const root = editor.current?.getRoot();
+      const el = root?.querySelector<HTMLElement>(`[data-block-id="${CSS.escape(id)}"]`);
+      const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      el?.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+    });
+  };
+  const keepMineNow = () => {
+    const c = conflict;
+    if (!c) return;
+    setDialog(null);
+    if (!c.rec) {
+      void doPublish('', false, c.latestVersion);
+      return;
+    }
+    const all = Object.fromEntries(c.rec.merge.conflicts.map((x) => [x.id, 'mine' as BlockChoice]));
+    const merged = applyChoices(c.rec.merge, all) as RichDoc;
+    applyDoc(merged);
+    void doPublish('', false, c.latestVersion, merged);
+  };
+  const applyChosen = (choices: Record<string, BlockChoice>) => {
+    const c = conflict;
+    if (!c?.rec) return;
+    const before = { doc: latest.current.content, base: latest.current.baseVersion, conflict: c };
+    const merged = applyChoices(c.rec.merge, choices) as RichDoc;
+    setBaseVersion(c.rec.theirs.version);
+    latest.current = { ...latest.current, baseVersion: c.rec.theirs.version };
+    applyDoc(merged);
+    setConflict(null);
+    setSync(null);
+    setDialog(null);
+    setJoinedToast({
+      version: c.rec.theirs.version,
+      undo: () => {
+        setBaseVersion(before.base);
+        latest.current = { ...latest.current, baseVersion: before.base };
+        applyDoc(before.doc);
+        setConflict(before.conflict);
+      },
+    });
+  };
+  const dismissSync = useCallback(() => setSync(null), []);
+  // signing in happens in a new tab, so this page and its kept changes stay as they are (F 38)
+  const signInAgain = () => {
+    window.open(window.location.href, '_blank', 'noopener');
+    setSessionEnded('later');
+  };
+  const copyText = () => {
+    const text = docToText(editor.current?.flushContent() ?? latest.current.content);
+    void navigator.clipboard?.writeText(text).then(
+      () => toast.success('Text copied', title || page.title),
+      () => toast.error('Could not copy the text', 'Use Keep a copy to download it instead.'),
+    );
+  };
+  const sizeWarn = !tooLarge && !sizeHidden && bytes >= PAGE_SIZE_LIMIT * PAGE_SIZE_WARN;
 
   return (
     <div
@@ -498,7 +782,7 @@ export function DocsEditScreen({
               type="button"
               className="st-btn st-btn-primary"
               style={{ height: 40, boxSizing: 'border-box', margin: '0 2px' }}
-              disabled={Boolean(conflict) || !online}
+              disabled={Boolean(conflict) || !online || sync?.kind === 'merging'}
               onClick={openPublish}
               data-testid="publish"
             >
@@ -581,6 +865,16 @@ export function DocsEditScreen({
                 {commentTotal}
               </span>
             </button>
+            <button
+              type="button"
+              className="st-btn"
+              aria-pressed={linksOpen}
+              data-testid="check-links"
+              onClick={() => setLinksOpen((v) => !v)}
+            >
+              <Icon name="link" size={13} strokeWidth={1.9} />
+              Check links
+            </button>
             {onOpenSettings && (
               <button
                 type="button"
@@ -614,7 +908,7 @@ export function DocsEditScreen({
             <button
               type="button"
               className="st-btn st-btn-primary"
-              disabled={Boolean(conflict) || !online}
+              disabled={Boolean(conflict) || !online || sync?.kind === 'merging'}
               onClick={openPublish}
               data-testid="publish"
             >
@@ -624,21 +918,110 @@ export function DocsEditScreen({
           </header>
         )}
 
-        {conflict && (
-          <ConflictBanner
-            pageId={page.id}
-            baseVersion={baseVersion}
-            latestVersion={conflict.latestVersion}
-            latestAuthor={conflict.latestAuthor}
-            latestAt={conflict.latestAt}
-            ownLines={ownLines}
-            busy={publish.isPending}
-            onKeepMine={() => void doPublish('', false, conflict.latestVersion)}
-            onReload={() => void doDiscard()}
-          />
-        )}
-        {!online && <OfflineBanner onRetry={() => void flush().then((ok) => ok && setOnline(true))} />}
-        {online && justBack && <BackOnlineBanner onDismiss={clearJustBack} />}
+        <StateBars phone={phone}>
+          {conflict && sync?.kind !== 'same' && (
+            <ConflictBanner
+              pageId={page.id}
+              baseVersion={baseVersion}
+              latestVersion={conflict.latestVersion}
+              latestAuthor={conflict.latestAuthor ?? conflict.rec?.theirs.author}
+              latestAt={conflict.latestAt ?? conflict.rec?.theirs.at}
+              ownLines={ownLines}
+              busy={publish.isPending}
+              needChoice={conflict.rec?.merge.conflicts.length}
+              onChoose={conflict.rec ? () => setDialog('choose') : undefined}
+              onKeepMine={() => (conflict.rec ? setDialog('keep-mine') : keepMineNow())}
+              onReload={() => void doDiscard()}
+              phone={phone}
+            />
+          )}
+          {!online && <OfflineBanner phone={phone} onRetry={retryNow} />}
+          {online && sessionEnded && (
+            <StateBar
+              tone="amber"
+              icon="warn"
+              role="alert"
+              testId="session-ended-bar"
+              title="Your session ended"
+              text="Your changes are kept in this browser and saved when you sign in again."
+              actions={
+                <button type="button" className="st-btn st-btn-sm st-btn-primary" onClick={signInAgain}>
+                  <StIcon name="person" size={13} sw={2} />
+                  Sign in again
+                </button>
+              }
+            />
+          )}
+          {online && notSaved && tooLarge == null && !sessionEnded && (
+            <StateBar
+              tone="red"
+              icon="warn"
+              role="alert"
+              testId="save-failed-bar"
+              title="Couldn't save your changes"
+              text={
+                phone
+                  ? 'Your text is still here and a copy is kept in this browser.'
+                  : 'Your text is still here, and a copy is kept in this browser. We keep trying every few seconds.'
+              }
+              actions={
+                <>
+                  <button type="button" className="st-btn st-btn-sm st-btn-primary" onClick={retryNow}>
+                    <StIcon name="retry" size={13} sw={2} />
+                    Retry now
+                  </button>
+                  {!phone && (
+                    <button type="button" className="st-btn st-btn-sm" onClick={() => setDialog('keep-copy')}>
+                      <StIcon name="download" size={13} sw={2} />
+                      Keep a copy
+                    </button>
+                  )}
+                </>
+              }
+            />
+          )}
+          {online && tooLarge != null && (
+            <StateBar
+              tone="red"
+              icon="storage"
+              role="alert"
+              testId="too-large-bar"
+              title="This page is too large to save"
+              text="Your text is kept in this browser. Make the page smaller and it saves by itself."
+              actions={
+                <button type="button" className="st-btn st-btn-sm st-btn-primary" onClick={() => setSpaceOpen(true)}>
+                  See what takes space
+                </button>
+              }
+            />
+          )}
+          {online && sync && (
+            <BackOnlineBanner
+              state={sync.kind}
+              who={sync.kind === 'joined' || sync.kind === 'same' ? displayName(sync.rec.theirs.author) : undefined}
+              count={
+                sync.kind === 'joined'
+                  ? sync.rec.merge.joined.filter((j) => j.by !== 'mine').length
+                  : sync.kind === 'same'
+                    ? sync.rec.merge.conflicts.length
+                    : 0
+              }
+              publish={sync.kind === 'joined' && sync.reason === 'publish'}
+              version={sync.kind === 'joined' || sync.kind === 'same' ? sync.rec.theirs.version : undefined}
+              onReview={() => setDialog('merged')}
+              onChoose={() => setDialog('choose')}
+              onDismiss={dismissSync}
+            />
+          )}
+          {sizeWarn && (
+            <SizeWarningBar bytes={bytes} onShow={() => setSpaceOpen(true)} onClose={() => setSizeHidden(true)} />
+          )}
+          {spaceOpen && (
+            <div style={{ position: 'relative', height: 0 }}>
+              <SpaceList doc={content} onShow={goToBlock} onClose={() => setSpaceOpen(false)} />
+            </div>
+          )}
+        </StateBars>
         <HeadingRenameNote pageId={page.id} published={page.headings} markdown={markdown} />
         {docsAiOn && page.draft?.aiSource && (
           <div style={{ padding: '8px 24px', borderBottom: '1px solid #E3E8E5' }}>
@@ -674,6 +1057,7 @@ export function DocsEditScreen({
                     ? { threads: highlightThreads, activeId: cc.activeId, onSelect: cc.activate, onPick }
                     : undefined
                 }
+                sharedHighlights={sharedHl.items}
                 onBlur={() => void flush()}
                 onUserInput={() => {
                   userInput.current = true;
@@ -726,6 +1110,7 @@ export function DocsEditScreen({
                         setMarkdown: replaceWithMarkdown,
                       }}
                     />
+                    {sharedHl.strip}
                   </div>
                 }
               />
@@ -819,6 +1204,14 @@ export function DocsEditScreen({
         <EditorRootBridge editor={editor} onEditorRoot={onEditorRoot} />
       </div>
 
+      {linksOpen && (
+        <LinkCheckerPanel
+          getEditor={() => editor.current?.getEditor() ?? null}
+          projectId={projectId}
+          nodes={nodes}
+          onClose={() => setLinksOpen(false)}
+        />
+      )}
       {more && (
         <BottomSheet label="Page" onClose={() => setMore(false)} testId="edit-more-sheet">
           <div className="dk-menu-sheet" role="menu" aria-label="Page">
@@ -939,6 +1332,79 @@ export function DocsEditScreen({
             cc.created(t);
           }}
         />
+      )}
+      {dialog === 'keep-copy' && (
+        <KeepCopyDialog
+          pageTitle={title || page.title}
+          sheet={phone}
+          getHtml={() => editor.current?.getEditor()?.getHTML() ?? ''}
+          getText={() => docToText(editor.current?.flushContent() ?? latest.current.content)}
+          onClose={() => setDialog(null)}
+          onDone={(what) => toast.success(what === 'download' ? 'Copy downloaded' : 'Text copied', title || page.title)}
+        />
+      )}
+      {dialog === 'too-large' && tooLarge != null && (
+        <TooLargeDialog
+          bytes={tooLarge}
+          onClose={() => setDialog(null)}
+          onShowSpace={() => {
+            setDialog(null);
+            setSpaceOpen(true);
+          }}
+          onKeepCopy={() => setDialog('keep-copy')}
+        />
+      )}
+      {dialog === 'merged' && sync?.kind === 'joined' && (
+        <MergedDialog
+          joined={sync.rec.merge.joined}
+          baseOf={(id) => sync.rec.base.content.content?.find((b) => b.attrs?.blockId === id) ?? null}
+          doc={sync.doc}
+          fromVersion={sync.rec.base.version}
+          toVersion={sync.rec.theirs.version}
+          author={sync.rec.theirs.author}
+          me={commentsData?.me}
+          sheet={phone}
+          onGoTo={goToBlock}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'choose' && conflict?.rec && conflict.rec.merge.conflicts.length > 0 && (
+        <ConflictChooser
+          conflicts={conflict.rec.merge.conflicts}
+          joined={conflict.rec.merge.joined}
+          theirs={conflict.rec.theirs}
+          baseVersion={conflict.rec.base.version}
+          mineAt={savedAt}
+          me={commentsData?.me}
+          doc={applyChoices(conflict.rec.merge, {})}
+          layout={layout}
+          onApply={applyChosen}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'keep-mine' && conflict?.rec && (
+        <KeepMineConfirm
+          count={conflict.rec.merge.conflicts.length}
+          joinedCount={conflict.rec.merge.joined.length}
+          who={conflict.rec.theirs.author}
+          version={conflict.rec.theirs.version}
+          pageTitle={title || page.title}
+          sheet={phone}
+          onConfirm={keepMineNow}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {sessionEnded === 'open' && (
+        <SessionEnded
+          waiting={waiting}
+          sheet={phone}
+          onSignIn={signInAgain}
+          onCopy={copyText}
+          onClose={() => setSessionEnded('later')}
+        />
+      )}
+      {joinedToast && (
+        <JoinedToast version={joinedToast.version} onUndo={joinedToast.undo} onClose={() => setJoinedToast(null)} />
       )}
       {discardOpen && (
         <DiscardDialog

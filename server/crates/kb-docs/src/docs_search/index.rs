@@ -4,9 +4,11 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use kb_db::Session;
-use kb_db::entities::{canvas, docs_draft, docs_page};
+use kb_db::entities::{canvas, docs_draft, docs_page, docs_version};
 use kb_db::sea_orm::sea_query::{Alias, Expr, ExprTrait, Query};
-use kb_db::sea_orm::{ColumnTrait, ConnectionTrait, DbBackend, DbErr, EntityTrait, QueryFilter, QueryOrder, Value};
+use kb_db::sea_orm::{
+    ColumnTrait, Condition, ConnectionTrait, DbBackend, DbErr, EntityTrait, QueryFilter, QueryOrder, Value,
+};
 use kb_db::sql::statement;
 use kb_doctext::docs_text::heading_anchors;
 
@@ -159,6 +161,56 @@ pub async fn contents(session: &Session, pages: &[docs_page::Model]) -> Result<H
     Ok(out)
 }
 
+/// The rich document per page, read as `contents` reads the Markdown: the latest published version, else the oldest
+/// draft. Pages stored as Markdown only (or whose content does not parse) are left out.
+pub async fn rich_docs(
+    session: &Session,
+    pages: &[docs_page::Model],
+) -> Result<HashMap<String, serde_json::Value>, DbErr> {
+    let mut out: HashMap<String, serde_json::Value> = HashMap::new();
+    let published: Vec<&docs_page::Model> = pages.iter().filter(|p| p.version > 0).collect();
+    if !published.is_empty() {
+        let mut any = Condition::any();
+        for p in &published {
+            any = any.add(
+                Condition::all()
+                    .add(docs_version::Column::PageId.eq(p.id.as_str()))
+                    .add(docs_version::Column::Version.eq(p.version)),
+            );
+        }
+        for v in docs_version::Entity::find().filter(any).all(session).await? {
+            if let Some(doc) = parse_rich(&v.format, v.content.as_deref()) {
+                out.insert(v.page_id, doc);
+            }
+        }
+    }
+    let missing: Vec<String> = pages.iter().filter(|p| !out.contains_key(&p.id)).map(|p| p.id.clone()).collect();
+    if !missing.is_empty() {
+        let drafts = docs_draft::Entity::find()
+            .filter(docs_draft::Column::PageId.is_in(missing))
+            .order_by_asc(docs_draft::Column::UpdatedAt)
+            .all(session)
+            .await?;
+        for d in drafts {
+            if out.contains_key(&d.page_id) {
+                continue;
+            }
+            if let Some(doc) = parse_rich(&d.format, d.content.as_deref()) {
+                out.insert(d.page_id, doc);
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// A `content` column as a document, when the row is stored in the rich format.
+fn parse_rich(format: &str, content: Option<&str>) -> Option<serde_json::Value> {
+    if format != "rich" {
+        return None;
+    }
+    content.filter(|c| !c.is_empty()).and_then(|c| serde_json::from_str(c).ok())
+}
+
 /// A canvas page has the boards of its canvas as sections, so `[[Settings flow#Sign in]]` and the `[[` suggester
 /// ("INSIDE A CANVAS: Login redesign > Sign in") find them like headings.
 async fn canvas_outline(
@@ -208,11 +260,25 @@ pub async fn reindex(session: &Session, page_ids: &[String]) -> Result<(), DbErr
     }
     unindex(session, page_ids).await?;
     let contents = contents(session, &pages).await?;
+    let docs = rich_docs(session, &pages).await?;
     for page in &pages {
-        let fields = index_fields(&page.title, contents.get(&page.id).map(String::as_str).unwrap_or(""));
+        let fields =
+            rich_fields(&page.title, contents.get(&page.id).map(String::as_str).unwrap_or(""), docs.get(&page.id));
         insert_row(session, &page.id, &page.project_id, fields).await?;
     }
     Ok(())
+}
+
+/// `index_fields` of a page, with the words of a rich page that its Markdown leaves out (picture captions, video
+/// titles and descriptions, embed titles) added to the body.
+fn rich_fields(title: &str, markdown: &str, doc: Option<&serde_json::Value>) -> (String, String, String) {
+    let (title, headings, mut body) = index_fields(title, markdown);
+    let extras = doc.map(crate::docs::blocks::search_extras).unwrap_or_default();
+    if !extras.is_empty() {
+        body.push('\n');
+        body.push_str(&extras);
+    }
+    (title, headings, body)
 }
 
 /// Remove pages from the search index.
@@ -233,8 +299,10 @@ pub async fn rebuild_index(session: &Session) -> Result<(), DbErr> {
     session.execute_unprepared("DELETE FROM docs_fts").await?;
     let pages = docs_page::Entity::find().filter(docs_page::Column::DeletedAt.is_null()).all(session).await?;
     let contents = contents(session, &pages).await?;
+    let docs = rich_docs(session, &pages).await?;
     for page in &pages {
-        let fields = index_fields(&page.title, contents.get(&page.id).map(String::as_str).unwrap_or(""));
+        let fields =
+            rich_fields(&page.title, contents.get(&page.id).map(String::as_str).unwrap_or(""), docs.get(&page.id));
         insert_row(session, &page.id, &page.project_id, fields).await?;
     }
     Ok(())

@@ -145,6 +145,7 @@ npm run build`) and Playwright installed globally (`NODE_PATH`).
 | 17–18 | file previews (PDF, Word, Excel, PowerPoint, CSV, JSON, Markdown, HTML, audio, ZIP), the Docs editor (slash menu, formatting, table, callout, math, code, find and replace, export) |
 | 19–21 (`ai`) | Docs AI, the AI team (accounts, teams, runs, a question answered, the AI Team pages, Settings > AI, schedules, Board AI), the rest of Idea Space (matrix, evidence, Ask AI chat, settings) |
 | 22 | appearance, workspace, database wizard, MCP integrations, logs, keyboard, follow bell, notification settings |
+| 24 | Docs links on rich pages: links to headings and blocks, the block hover card, the arrival mark, a gone block, Referenced by per block, `[[Page#` headings and blocks, search markers |
 
 Not covered: the draw.io editor (not in the checkout), a real Claude sign-in, the desktop-only windows and OS
 notifications.

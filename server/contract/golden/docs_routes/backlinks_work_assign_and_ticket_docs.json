@@ -45,7 +45,9 @@
           "origin": "page",
           "context": "We follow Spec here.",
           "excerpt": "We follow [[Spec#Design]] here. Tracked in KAN-1.",
-          "target_anchor": "Design"
+          "target_anchor": "Design",
+          "source_block_id": "<bid:1>",
+          "target_block": null
         }
       ],
       "tickets": [
@@ -85,7 +87,9 @@
           "origin": "page",
           "context": "We follow Spec here.",
           "excerpt": "We follow [[Spec#Design]] here. Tracked in KAN-1.",
-          "target_anchor": "Design"
+          "target_anchor": "Design",
+          "source_block_id": "<bid:1>",
+          "target_block": null
         }
       ],
       "tickets": [

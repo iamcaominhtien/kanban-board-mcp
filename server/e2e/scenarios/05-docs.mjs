@@ -414,7 +414,10 @@ export default {
       await g.getByRole('button', { name: 'Clear search' }).click();
       await g.getByTestId('template-blog-post').click();
       await g.getByTestId('template-preview').getByText(/Preview · Blog post/).waitFor();
-      await g.getByRole('textbox', { name: 'Title' }).fill('');
+      // the chosen template names the page; wait for that before clearing it, or the name lands after the clear
+      const title = g.getByRole('textbox', { name: 'Title' });
+      await p.waitForFunction((el) => el.value === 'Blog post', await title.elementHandle());
+      await title.fill('');
       await g.getByRole('button', { name: 'Create page' }).click();
       await g.getByText('Give the page a title to create it.').waitFor();
       await g.getByRole('textbox', { name: 'Title' }).fill('Field notes');

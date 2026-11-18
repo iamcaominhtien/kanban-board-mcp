@@ -543,7 +543,7 @@
       "display_text": null,
       "snippet": "Rate limits are not enforced yet. See HBK-1.",
       "origin": "page",
-      "source_block_id": null,
+      "source_block_id": "<bid:31>",
       "target_block_id": null
     },
     {
@@ -557,7 +557,7 @@
       "display_text": null,
       "snippet": "See Handbook.",
       "origin": "page",
-      "source_block_id": null,
+      "source_block_id": "<bid:32>",
       "target_block_id": null
     },
     {
@@ -895,7 +895,7 @@
       "diagram_versions": "{}",
       "with_ai": 0,
       "format": "rich",
-      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:31>\"}}]}",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:33>\"}}]}",
       "text": ""
     },
     {
@@ -910,7 +910,7 @@
       "diagram_versions": "{}",
       "with_ai": 0,
       "format": "rich",
-      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:2>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Overview\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:3>\"},\"content\":[{\"type\":\"text\",\"text\":\"The API is REST.\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:4>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Endpoints\"}]},{\"type\":\"table\",\"attrs\":{\"blockId\":\"<bid:5>\"},\"content\":[{\"type\":\"tableRow\",\"attrs\":{\"blockId\":\"<bid:6>\"},\"content\":[{\"type\":\"tableHeader\",\"attrs\":{\"blockId\":\"<bid:7>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:8>\"},\"content\":[{\"type\":\"text\",\"text\":\"Method\"}]}]},{\"type\":\"tableHeader\",\"attrs\":{\"blockId\":\"<bid:9>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:10>\"},\"content\":[{\"type\":\"text\",\"text\":\"Path\"}]}]}]},{\"type\":\"tableRow\",\"attrs\":{\"blockId\":\"<bid:11>\"},\"content\":[{\"type\":\"tableCell\",\"attrs\":{\"blockId\":\"<bid:12>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:13>\"},\"content\":[{\"type\":\"text\",\"text\":\"GET\"}]}]},{\"type\":\"tableCell\",\"attrs\":{\"blockId\":\"<bid:14>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:15>\"},\"content\":[{\"type\":\"text\",\"text\":\"/tickets\"}]}]}]}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:16>\",\"level\":3},\"content\":[{\"type\":\"text\",\"text\":\"Errors\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:17>\"},\"content\":[{\"type\":\"text\",\"text\":\"401 when the token is missing.\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:18>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Limits\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:32>\"},\"content\":[{\"type\":\"text\",\"text\":\"Rate limits are not enforced yet. See \"},{\"type\":\"ticketRef\",\"attrs\":{\"key\":\"HBK-1\"}},{\"type\":\"text\",\"text\":\".\"}]}]}",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:2>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Overview\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:3>\"},\"content\":[{\"type\":\"text\",\"text\":\"The API is REST.\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:4>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Endpoints\"}]},{\"type\":\"table\",\"attrs\":{\"blockId\":\"<bid:5>\"},\"content\":[{\"type\":\"tableRow\",\"attrs\":{\"blockId\":\"<bid:6>\"},\"content\":[{\"type\":\"tableHeader\",\"attrs\":{\"blockId\":\"<bid:7>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:8>\"},\"content\":[{\"type\":\"text\",\"text\":\"Method\"}]}]},{\"type\":\"tableHeader\",\"attrs\":{\"blockId\":\"<bid:9>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:10>\"},\"content\":[{\"type\":\"text\",\"text\":\"Path\"}]}]}]},{\"type\":\"tableRow\",\"attrs\":{\"blockId\":\"<bid:11>\"},\"content\":[{\"type\":\"tableCell\",\"attrs\":{\"blockId\":\"<bid:12>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:13>\"},\"content\":[{\"type\":\"text\",\"text\":\"GET\"}]}]},{\"type\":\"tableCell\",\"attrs\":{\"blockId\":\"<bid:14>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:15>\"},\"content\":[{\"type\":\"text\",\"text\":\"/tickets\"}]}]}]}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:16>\",\"level\":3},\"content\":[{\"type\":\"text\",\"text\":\"Errors\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:17>\"},\"content\":[{\"type\":\"text\",\"text\":\"401 when the token is missing.\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:18>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Limits\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:31>\"},\"content\":[{\"type\":\"text\",\"text\":\"Rate limits are not enforced yet. See \"},{\"type\":\"ticketRef\",\"attrs\":{\"key\":\"HBK-1\"}},{\"type\":\"text\",\"text\":\".\"}]}]}",
       "text": "Overview\nThe API is REST.\nEndpoints\nMethod | Path\nGET | /tickets\nErrors\n401 when the token is missing.\nLimits\nRate limits are not enforced yet. See HBK-1."
     },
     {
@@ -955,7 +955,7 @@
       "diagram_versions": "{}",
       "with_ai": 0,
       "format": "rich",
-      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:2>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Overview\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:3>\"},\"content\":[{\"type\":\"text\",\"text\":\"The API is REST.\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:4>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Endpoints\"}]},{\"type\":\"table\",\"attrs\":{\"blockId\":\"<bid:5>\"},\"content\":[{\"type\":\"tableRow\",\"attrs\":{\"blockId\":\"<bid:6>\"},\"content\":[{\"type\":\"tableHeader\",\"attrs\":{\"blockId\":\"<bid:7>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:8>\"},\"content\":[{\"type\":\"text\",\"text\":\"Method\"}]}]},{\"type\":\"tableHeader\",\"attrs\":{\"blockId\":\"<bid:9>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:10>\"},\"content\":[{\"type\":\"text\",\"text\":\"Path\"}]}]}]},{\"type\":\"tableRow\",\"attrs\":{\"blockId\":\"<bid:11>\"},\"content\":[{\"type\":\"tableCell\",\"attrs\":{\"blockId\":\"<bid:12>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:13>\"},\"content\":[{\"type\":\"text\",\"text\":\"GET\"}]}]},{\"type\":\"tableCell\",\"attrs\":{\"blockId\":\"<bid:14>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:15>\"},\"content\":[{\"type\":\"text\",\"text\":\"/tickets\"}]}]}]}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:16>\",\"level\":3},\"content\":[{\"type\":\"text\",\"text\":\"Errors\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:17>\"},\"content\":[{\"type\":\"text\",\"text\":\"401 when the token is missing.\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:18>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Limits\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:32>\"},\"content\":[{\"type\":\"text\",\"text\":\"Rate limits are not enforced yet. See \"},{\"type\":\"ticketRef\",\"attrs\":{\"key\":\"HBK-1\"}},{\"type\":\"text\",\"text\":\".\"}]}]}",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:2>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Overview\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:3>\"},\"content\":[{\"type\":\"text\",\"text\":\"The API is REST.\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:4>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Endpoints\"}]},{\"type\":\"table\",\"attrs\":{\"blockId\":\"<bid:5>\"},\"content\":[{\"type\":\"tableRow\",\"attrs\":{\"blockId\":\"<bid:6>\"},\"content\":[{\"type\":\"tableHeader\",\"attrs\":{\"blockId\":\"<bid:7>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:8>\"},\"content\":[{\"type\":\"text\",\"text\":\"Method\"}]}]},{\"type\":\"tableHeader\",\"attrs\":{\"blockId\":\"<bid:9>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:10>\"},\"content\":[{\"type\":\"text\",\"text\":\"Path\"}]}]}]},{\"type\":\"tableRow\",\"attrs\":{\"blockId\":\"<bid:11>\"},\"content\":[{\"type\":\"tableCell\",\"attrs\":{\"blockId\":\"<bid:12>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:13>\"},\"content\":[{\"type\":\"text\",\"text\":\"GET\"}]}]},{\"type\":\"tableCell\",\"attrs\":{\"blockId\":\"<bid:14>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:15>\"},\"content\":[{\"type\":\"text\",\"text\":\"/tickets\"}]}]}]}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:16>\",\"level\":3},\"content\":[{\"type\":\"text\",\"text\":\"Errors\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:17>\"},\"content\":[{\"type\":\"text\",\"text\":\"401 when the token is missing.\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:18>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Limits\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:31>\"},\"content\":[{\"type\":\"text\",\"text\":\"Rate limits are not enforced yet. See \"},{\"type\":\"ticketRef\",\"attrs\":{\"key\":\"HBK-1\"}},{\"type\":\"text\",\"text\":\".\"}]}]}",
       "text": "Overview\nThe API is REST.\nEndpoints\nMethod | Path\nGET | /tickets\nErrors\n401 when the token is missing.\nLimits\nRate limits are not enforced yet. See HBK-1."
     },
     {
@@ -970,7 +970,7 @@
       "diagram_versions": "{}",
       "with_ai": 0,
       "format": "rich",
-      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:33>\"},\"content\":[{\"type\":\"text\",\"text\":\"hello\"}]}]}",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:34>\"},\"content\":[{\"type\":\"text\",\"text\":\"hello\"}]}]}",
       "text": "hello"
     },
     {
@@ -985,7 +985,7 @@
       "diagram_versions": "{}",
       "with_ai": 0,
       "format": "rich",
-      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:34>\"},\"content\":[{\"type\":\"text\",\"text\":\"See \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"Handbook\"}},{\"type\":\"text\",\"text\":\".\"}]}]}",
+      "content": "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:32>\"},\"content\":[{\"type\":\"text\",\"text\":\"See \"},{\"type\":\"docRef\",\"attrs\":{\"page\":\"Handbook\"}},{\"type\":\"text\",\"text\":\".\"}]}]}",
       "text": "See Handbook."
     },
     {

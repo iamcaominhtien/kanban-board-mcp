@@ -150,7 +150,8 @@ async fn missing(session: &Session, project_id: &str, readable: &HashSet<String>
     Ok(out)
 }
 
-/// `_broken`: `[[links]]` that point at a missing page, a page in the bin or a missing section.
+/// `_broken`: `[[links]]` that point at a missing page, a page in the bin, a missing section or (a rich page's
+/// link by id) a missing heading or block.
 async fn broken(session: &Session, project_id: &str, pages: &[docs_page::Model]) -> Result<Vec<Value>, Error> {
     let ids: Vec<String> = pages.iter().map(|p| p.id.clone()).collect();
     if ids.is_empty() {
@@ -164,14 +165,21 @@ async fn broken(session: &Session, project_id: &str, pages: &[docs_page::Model])
     if links.is_empty() {
         return Ok(Vec::new());
     }
-    let refs: Vec<Value> =
-        links.iter().map(|lk| json!({"kind": "page", "title": lk.target_title, "anchor": lk.target_anchor})).collect();
+    // a link to a heading or block of a rich page is checked by its ids: its block may be gone
+    let refs: Vec<Value> = links
+        .iter()
+        .map(|lk| match (&lk.target_block_id, &lk.target_page_id) {
+            (Some(block), Some(page)) => json!({"kind": "page", "title": lk.target_title, "anchor": lk.target_anchor,
+                                                "page_id": page, "block_id": block}),
+            _ => json!({"kind": "page", "title": lk.target_title, "anchor": lk.target_anchor}),
+        })
+        .collect();
     let results = kb_docs::docs::refs::resolve_refs(session, project_id, &refs, false).await?;
     let mut out = Vec::new();
     let mut seen: HashSet<(String, String)> = HashSet::new();
     for (lk, res) in links.iter().zip(results.iter()) {
         let status = res.get("status").and_then(Value::as_str).unwrap_or("");
-        if !matches!(status, "missing" | "in_bin" | "section_missing") {
+        if !matches!(status, "missing" | "in_bin" | "section_missing" | "block_missing") {
             continue;
         }
         let anchor = lk.target_anchor.as_deref().filter(|a| !a.is_empty());
@@ -184,7 +192,21 @@ async fn broken(session: &Session, project_id: &str, pages: &[docs_page::Model])
             continue;
         }
         let title = pages.iter().find(|p| p.id == lk.source_page_id).map(|p| p.title.clone()).unwrap_or_default();
-        out.push(json!({"page_id": lk.source_page_id, "title": title, "ref": reference, "status": status}));
+        let mut item = json!({"page_id": lk.source_page_id, "title": title, "ref": reference, "status": status});
+        if status == "block_missing" {
+            // where the link sits, so Review opens the page at it
+            item["block_id"] = json!(lk.source_block_id);
+        } else if let Some(block) = &lk.source_block_id {
+            // a rich page's link: Go to link opens the page at its block
+            item["block_id"] = json!(block);
+        }
+        if status == "in_bin" {
+            // the page in the bin, so Docs health can offer Restore
+            if let Some(target) = res.get("page_id").filter(|v| !v.is_null()) {
+                item["target_page_id"] = target.clone();
+            }
+        }
+        out.push(item);
     }
     Ok(out)
 }
@@ -209,8 +231,10 @@ pub fn shingles(words: &[String], n: usize) -> HashSet<String> {
     (0..count).map(|i| words[i..i + n].join(" ")).collect()
 }
 
-/// `_overlaps`: pages whose titles are almost the same, or whose text is.
-async fn overlaps(_session: &Session, pages: &[docs_page::Model]) -> Result<Vec<Value>, Error> {
+/// `_overlaps`: pages whose titles are almost the same, or whose text is. When both pages are rich, the item also
+/// lists their blocks that say much the same (`blocks`: `[{a: {block_id, kind, label}, b: {…}, percent}]`), so
+/// Docs health shows the overlap block by block (RichDocsLinks I 61).
+async fn overlaps(session: &Session, pages: &[docs_page::Model]) -> Result<Vec<Value>, Error> {
     let pages = &pages[..pages.len().min(MAX_PAIR_PAGES)];
     let mut by_page: std::collections::HashMap<&str, HashSet<String>> = std::collections::HashMap::new();
     for p in pages {
@@ -248,6 +272,28 @@ async fn overlaps(_session: &Session, pages: &[docs_page::Model]) -> Result<Vec<
                     "why": why,
                 }));
             }
+        }
+    }
+    if out.is_empty() {
+        return Ok(out);
+    }
+    let involved: Vec<docs_page::Model> = pages
+        .iter()
+        .filter(|p| {
+            out.iter().any(|o| o["pages"].as_array().is_some_and(|ps| ps.iter().any(|x| x["page_id"] == p.id.as_str())))
+        })
+        .cloned()
+        .collect();
+    let docs = kb_docs::docs_search::rich_docs(session, &involved).await?;
+    let side = |b: &(String, &str, String)| json!({"block_id": b.0, "kind": b.1, "label": b.2});
+    for item in out.iter_mut() {
+        let id = |i: usize| item["pages"][i]["page_id"].as_str().unwrap_or("").to_string();
+        let (Some(da), Some(db)) = (docs.get(&id(0)), docs.get(&id(1))) else { continue };
+        let alike = kb_docs::docs::blocks::alike_blocks(da, db, TEXT_SIMILARITY);
+        if !alike.is_empty() {
+            item["blocks"] = Value::Array(
+                alike.iter().map(|x| json!({"a": side(&x.a), "b": side(&x.b), "percent": x.percent})).collect(),
+            );
         }
     }
     Ok(out)
