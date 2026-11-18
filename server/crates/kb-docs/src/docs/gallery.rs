@@ -91,7 +91,8 @@ pub fn builtins() -> Vec<Builtin> {
         "Cover, centred title, pull quote",
         BLOG_POST,
         json!({"width": "narrow", "titleAlign": "center", "titleStyle": "serif", "eyebrow": "BLOG", "bodyFont": "source-serif"}),
-        Vec::new(),
+        // the opening paragraph starts with a large first letter (Reader 1, 1)
+        vec![(1, json!({"dropCap": 3}))],
     ));
     out.push(new(
         "book-chapter",

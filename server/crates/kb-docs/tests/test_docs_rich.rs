@@ -195,6 +195,12 @@ async fn templates_are_saved_listed_and_used() {
         .await
         .json();
     assert_eq!(page["draft"]["content"]["content"][0]["attrs"]["dropCap"], 3);
+    let page = c
+        .post(&format!("/projects/{pid}/docs/pages/from-template"), json!({"title": "Post", "template": "blog-post"}))
+        .await
+        .json();
+    // a blog post opens with a large first letter, after its first heading
+    assert_eq!(page["draft"]["content"]["content"][1]["attrs"]["dropCap"], 3);
     let r = c.delete(&format!("/docs/templates/{}", tpl["id"].as_str().unwrap())).await;
     assert_eq!(r.status, 200);
 }
