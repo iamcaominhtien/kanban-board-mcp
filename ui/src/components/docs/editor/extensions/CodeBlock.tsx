@@ -2,7 +2,16 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react';
 import { common, createLowlight } from 'lowlight';
 import { useRef, useState } from 'react';
-import { CopyButton, copyText, diffLine, parseLineRanges } from '../../embeds/CodeView';
+import {
+  CopyButton,
+  LONG_CODE_LINES,
+  ShowAllButton,
+  copyText,
+  diffLine,
+  languageName,
+  parseLineRanges,
+} from '../../embeds/CodeView';
+import { EmbIcon } from '../../embeds/embIcons';
 import { Panel, Row, Seg, Toggle } from '../blocks/ui';
 
 /** Shared lowlight instance with the common languages. */
@@ -76,33 +85,25 @@ function CodeSettings({
   onClose: () => void;
 }) {
   return (
-    <Panel
-      title="Code block"
-      anchor={anchor}
-      onClose={onClose}
-      testId="code-settings"
-      footer={
-        <button type="button" className="dk-btn-primary" onClick={onClose}>
-          Done
-        </button>
-      }
-    >
-      <Row label="Language">
-        <LangSelect
-          className="dk-bp-input"
-          lang={(attrs.language as string) ?? ''}
-          onChange={(v) => update({ language: v })}
-        />
-      </Row>
-      <Row label="File name">
-        <input
-          className="dk-bp-input"
-          aria-label="File name"
-          placeholder="tokens.py"
-          value={(attrs.filename as string) ?? ''}
-          onChange={(e) => update({ filename: e.target.value || null })}
-        />
-      </Row>
+    <Panel title="Code block" anchor={anchor} onClose={onClose} testId="code-settings">
+      <div className="dk-bp-pair dk-cs-pair">
+        <Row label="Language">
+          <LangSelect
+            className="dk-bp-input"
+            lang={(attrs.language as string) ?? ''}
+            onChange={(v) => update({ language: v })}
+          />
+        </Row>
+        <Row label="File name">
+          <input
+            className="dk-bp-input dk-cs-mono"
+            aria-label="File name"
+            placeholder="tokens.py"
+            value={(attrs.filename as string) ?? ''}
+            onChange={(e) => update({ filename: e.target.value || null })}
+          />
+        </Row>
+      </div>
       <Toggle label="Line numbers" checked={!!attrs.lineNumbers} onChange={(v) => update({ lineNumbers: v })} />
       <Toggle
         label="Wrap long lines"
@@ -136,6 +137,11 @@ function CodeSettings({
         checked={!!attrs.diff}
         onChange={(v) => update({ diff: v })}
       />
+      <div className="dk-emb-sz-done">
+        <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={onClose}>
+          Done
+        </button>
+      </div>
     </Panel>
   );
 }
@@ -152,6 +158,8 @@ function CodeBlockView({ node, updateAttributes, editor }: NodeViewProps) {
   const tinted = diff || marked.size > 0;
   const editable = editor.isEditable;
   const [settings, setSettings] = useState<DOMRect | null | false>(false);
+  const [all, setAll] = useState(false);
+  const long = lines.length > LONG_CODE_LINES;
   const wrapRef = useRef<HTMLDivElement>(null);
   const theme = a.theme === 'light' ? 'light' : 'dark';
   const lineCls = (l: string, i: number) => {
@@ -168,60 +176,107 @@ function CodeBlockView({ node, updateAttributes, editor }: NodeViewProps) {
     >
       <div ref={wrapRef} className="dk-cv-head dk-cv-head-edit" contentEditable={false}>
         {editable ? (
-          <input
-            className="dk-cv-file dk-cv-file-input"
-            aria-label="File name"
-            placeholder="File name"
-            value={filename}
-            size={Math.max(8, filename.length + 1)}
-            onChange={(e) => updateAttributes({ filename: e.target.value || null })}
-          />
+          <span className="dk-cv-file">
+            <EmbIcon name="page" size={12} />
+            <input
+              className="dk-cv-file-input"
+              aria-label="File name"
+              placeholder="File name"
+              value={filename}
+              size={Math.max(8, filename.length + 1)}
+              onChange={(e) => updateAttributes({ filename: e.target.value || null })}
+            />
+          </span>
         ) : (
-          filename && <span className="dk-cv-file">{filename}</span>
+          filename && (
+            <span className="dk-cv-file">
+              <EmbIcon name="page" size={12} />
+              {filename}
+            </span>
+          )
         )}
-        <LangSelect
-          className="dk-cv-lang-pick"
-          lang={lang}
-          disabled={!editable}
-          onChange={(v) => updateAttributes({ language: v })}
-        />
-        {editable && (
+        <span style={{ flex: 1 }} />
+        {editable ? (
+          // the language opens the block's settings (Embeds 33: "from the language picker")
           <button
             type="button"
-            className="dk-cv-copy"
+            className="dk-cv-lang dk-cv-lang-btn"
             aria-label="Code block settings"
+            title="Language and settings"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => setSettings(wrapRef.current?.getBoundingClientRect() ?? null)}
           >
-            Settings
+            {diff ? 'Diff' : languageName(lang)}
+            <EmbIcon name="chevDown" size={11} sw={2.4} />
           </button>
+        ) : (
+          <span className="dk-cv-lang">{diff ? 'Diff' : languageName(lang)}</span>
+        )}
+        {editable && (
+          <>
+            <button
+              type="button"
+              className={`dk-cv-ico${a.lineNumbers ? ' dk-cv-ico-on' : ''}`}
+              aria-label="Line numbers"
+              aria-pressed={!!a.lineNumbers}
+              title="Line numbers"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => updateAttributes({ lineNumbers: !a.lineNumbers })}
+            >
+              <EmbIcon name="hash" size={14} />
+            </button>
+            <button
+              type="button"
+              className={`dk-cv-ico${a.wrap ? ' dk-cv-ico-on' : ''}`}
+              aria-label="Wrap long lines"
+              aria-pressed={!!a.wrap}
+              title="Wrap long lines"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => updateAttributes({ wrap: !a.wrap })}
+            >
+              <EmbIcon name="wrap" size={14} />
+            </button>
+            <button
+              type="button"
+              className="dk-cv-ico"
+              aria-label={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+              title={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => updateAttributes({ theme: theme === 'dark' ? 'light' : 'dark' })}
+            >
+              <EmbIcon name={theme === 'dark' ? 'moon' : 'sun'} size={14} />
+            </button>
+          </>
         )}
         <CopyButton text={copyText(text, diff)} />
       </div>
-      <div className="dk-cv-edit-body">
-        {gutter && (
-          <div className="dk-cv-edit-gutter" contentEditable={false} aria-hidden="true">
-            {lines.map((l, i) => (
-              <div key={i} className={lineCls(l, i)}>
-                {diff ? diffLine(l).sign.trim() || ' ' : i + 1}
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="dk-cv-edit-main">
-          {tinted && !a.wrap && (
-            <div className="dk-cv-edit-back" contentEditable={false} aria-hidden="true">
+      <div className="dk-cv-frame">
+        <div className={`dk-cv-edit-body${long && !all ? ' dk-cv-clip' : ''}`}>
+          {gutter && (
+            <div className="dk-cv-edit-gutter" contentEditable={false} aria-hidden="true">
               {lines.map((l, i) => (
                 <div key={i} className={lineCls(l, i)}>
-                  {' '}
+                  {diff ? diffLine(l).sign.trim() || ' ' : i + 1}
                 </div>
               ))}
             </div>
           )}
-          <pre className="dk-code" spellCheck={false}>
-            <NodeViewContent as={'code' as 'div'} />
-          </pre>
+          <div className="dk-cv-edit-main">
+            {tinted && !a.wrap && (
+              <div className="dk-cv-edit-back" contentEditable={false} aria-hidden="true">
+                {lines.map((l, i) => (
+                  <div key={i} className={lineCls(l, i)}>
+                    {' '}
+                  </div>
+                ))}
+              </div>
+            )}
+            <pre className="dk-code" spellCheck={false}>
+              <NodeViewContent as={'code' as 'div'} />
+            </pre>
+          </div>
         </div>
+        {long && <ShowAllButton all={all} lines={lines.length} onToggle={() => setAll((v) => !v)} />}
       </div>
       {settings !== false && (
         <CodeSettings attrs={a} update={updateAttributes} anchor={settings} onClose={() => setSettings(false)} />

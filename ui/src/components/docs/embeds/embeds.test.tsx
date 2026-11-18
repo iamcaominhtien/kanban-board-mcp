@@ -163,14 +163,28 @@ describe('video', () => {
     expect(playableInBrowser('/uploads/demo.avi')).toBe(false);
   });
 
-  it('never starts a file by itself: no player until Play, and no autoplay on it', () => {
+  it('never starts a file by itself: its first frame and the bar until Play, no autoplay, then the controls', () => {
     const { container } = render(<VideoPlayer src="/uploads/demo.mp4" title="Sprint demo" />);
-    expect(container.querySelector('video')).toBeNull();
+    // only the metadata loads (the length, the first frame); the player's own controls wait for Play
+    let v = container.querySelector('video')!;
+    expect(v.getAttribute('preload')).toBe('metadata');
+    expect(v.getAttribute('src')).toBe('/uploads/demo.mp4#t=0.1');
+    expect(v.hasAttribute('autoplay')).toBe(false);
+    expect(v.controls).toBe(false);
+    fireEvent(v, new Event('loadedmetadata'));
+    expect(screen.getByText(/^0:00 \//)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Play Sprint demo' }));
-    const v = container.querySelector('video')!;
+    v = container.querySelector('video')!;
     expect(v.autoplay).toBe(false);
     expect(v.hasAttribute('autoplay')).toBe(false);
     expect(v.controls).toBe(true);
+  });
+
+  it('says a missing file cannot be played before anyone presses Play', () => {
+    const { container } = render(<VideoPlayer src="/uploads/missing.mp4" title="Sprint demo" />);
+    fireEvent(container.querySelector('video')!, new Event('error'));
+    expect(screen.getByText('This video could not be played')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
   });
 
   it('loads nothing from YouTube before Play, then its no-cookie player', () => {

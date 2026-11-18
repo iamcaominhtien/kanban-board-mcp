@@ -1088,14 +1088,16 @@
   margin: 0;
   flex: 1;
 }
-.dk-seg {
+/* the keyboard switch of the shortcut sheet only: a bare .dk-seg here drew every segmented choice of the editor
+   (the code block's Theme, Page settings) as a bordered row bunched to the left */
+.dk-keys-top .dk-seg {
   display: inline-flex;
   border: 1px solid #c7d2cb;
   border-radius: 7px;
   overflow: hidden;
   flex: none;
 }
-.dk-seg button {
+.dk-keys-top .dk-seg button {
   border: none;
   background: #ffffff;
   padding: 6px 12px;
@@ -1105,7 +1107,7 @@
   color: #3a4a3e;
   cursor: pointer;
 }
-.dk-seg button[aria-checked='true'] {
+.dk-keys-top .dk-seg button[aria-checked='true'] {
   background: #eaf0ec;
   color: #1e2a22;
 }

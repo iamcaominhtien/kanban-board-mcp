@@ -57,6 +57,7 @@ export function ReaderVideo({ attrs, block }: Props) {
         title={title}
         loop={!!attrs.loop}
         muted={!!attrs.muted}
+        description={str(attrs.description) || undefined}
       />
     );
   else {

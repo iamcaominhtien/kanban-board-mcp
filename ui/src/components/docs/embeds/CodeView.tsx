@@ -10,8 +10,34 @@ import { highlight } from '../docsHighlight';
 import { EmbIcon } from './embIcons';
 import './embeds.css';
 
-/** Lines shown before "Show all". */
-export const LONG_CODE_LINES = 30;
+/** A block longer than this many lines scrolls inside a 236 px frame with "Show all N lines" (Embeds 35). */
+export const LONG_CODE_LINES = 12;
+
+/**
+ * The "Show all N lines" pill over the fade at the foot of a long block, or "Show less" under an opened one.
+ * @param props.all - The block is open in full.
+ * @param props.lines - How many lines it has.
+ * @param props.onToggle - Opens or folds the block.
+ */
+export function ShowAllButton({ all, lines, onToggle }: { all: boolean; lines: number; onToggle: () => void }) {
+  return (
+    <div className={all ? 'dk-cv-less' : 'dk-cv-more'} contentEditable={false}>
+      {!all && <span className="dk-cv-fade" aria-hidden="true" />}
+      <button
+        type="button"
+        className="dk-cv-all"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={onToggle}
+        data-testid="code-show-all"
+      >
+        <span style={all ? { transform: 'rotate(180deg)', display: 'inline-flex' } : { display: 'inline-flex' }}>
+          <EmbIcon name="chevDown" size={13} sw={2.4} />
+        </span>
+        {all ? 'Show less' : `Show all ${lines} lines`}
+      </button>
+    </div>
+  );
+}
 
 /**
  * The line numbers of a "5-6,9" list (1-based). Ranges may be written either way round; anything else is skipped.
@@ -186,12 +212,10 @@ export function CodeView({ code, options, blockId, className, changedIn }: CodeV
         <span className="dk-cv-lang">{diff ? 'Diff' : languageName(lang)}</span>
         <CopyButton text={copyText(code, diff)} />
       </div>
-      <div className={`dk-cv-body${long && !all ? ' dk-cv-clip' : ''}`}>{rows}</div>
-      {long && (
-        <button type="button" className="dk-cv-all" onClick={() => setAll((v) => !v)}>
-          {all ? 'Show less' : `Show all ${lines.length} lines`}
-        </button>
-      )}
+      <div className="dk-cv-frame">
+        <div className={`dk-cv-body${long && !all ? ' dk-cv-clip' : ''}`}>{rows}</div>
+        {long && <ShowAllButton all={all} lines={lines.length} onToggle={() => setAll((v) => !v)} />}
+      </div>
     </div>
   );
 }

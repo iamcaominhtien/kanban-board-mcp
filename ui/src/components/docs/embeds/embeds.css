@@ -2237,9 +2237,36 @@ a.dk-link-card:hover {
   padding: 10px 0;
   overflow-x: auto;
 }
+.dk-cv-frame {
+  position: relative;
+}
+/* long code (frame 35): 236 px high, scrolls inside; a 70 px fade and a "Show all N lines" pill over its foot */
 .dk-cv-clip {
-  max-height: calc(30 * 1.7em + 20px);
+  max-height: 236px;
   overflow-y: auto;
+}
+.dk-cv-more {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 70px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 8px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.dk-cv-fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(30, 42, 34, 0), #1e2a22);
+}
+.dk-cv-less {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 10px;
 }
 .dk-cv-line {
   display: flex;
@@ -2286,18 +2313,74 @@ a.dk-link-card:hover {
   font-style: italic;
 }
 .dk-cv-all {
-  display: block;
-  width: 100%;
+  position: relative;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
   border: none;
-  border-top: 1px solid #33443a;
-  background: #26352b;
-  color: #c9d8ce;
-  font: inherit;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1e2a22;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px;
-  font-weight: 600;
-  padding: 7px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   cursor: pointer;
+}
+.dk-cv-less .dk-cv-all {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+/* the header's language (it opens the settings in the editor) and the line numbers, wrap and theme switches */
+.dk-cv-lang-btn {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.dk-cv-lang-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.dk-cv-ico {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border: none;
+  border-radius: 7px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #c9d8ce;
+  cursor: pointer;
+}
+.dk-cv-ico:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.dk-cv-ico-on,
+.dk-cv-ico-on:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+.dk-cv-light .dk-cv-ico,
+.dk-cv-light .dk-cv-lang-btn {
+  color: #5b6b60;
+}
+.dk-cv-light .dk-cv-ico:hover,
+.dk-cv-light .dk-cv-lang-btn:hover {
+  background: #e3e8e5;
+}
+.dk-cv-light .dk-cv-ico-on {
+  background: #dce3de;
+  color: #1e2a22;
+}
+.dk-cv-light .dk-cv-fade {
+  background: linear-gradient(180deg, rgba(246, 250, 247, 0), #f6faf7);
 }
 /* light theme (frame 32) */
 .dk-cv-light,
@@ -2333,9 +2416,7 @@ a.dk-link-card:hover {
   color: #5b6b60;
 }
 .dk-cv-light .dk-cv-all {
-  background: #eef3ef;
-  color: #2e6f40;
-  border-top-color: #dce3de;
+  box-shadow: 0 4px 12px rgba(30, 42, 34, 0.18);
 }
 .dk-md .dk-cv-light .mc-k,
 .dk-editor .dk-cv-light .hljs-keyword,
@@ -2392,14 +2473,24 @@ a.dk-link-card:hover {
   white-space: pre;
 }
 .dk-cv-head-edit {
-  gap: 8px;
+  gap: 2px;
+}
+.dk-cv-head-edit > .dk-cv-lang {
+  margin-left: 0;
+}
+.dk-editor .dk-cv-edit-body.dk-cv-clip {
+  overflow-y: auto;
 }
 .dk-cv-file-input {
   border: none;
   outline: none;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   font-size: 12px;
   min-width: 70px;
-  max-width: 50%;
+  max-width: 260px;
 }
 .dk-cv-file-input::placeholder {
   color: #6b8a76;
@@ -2460,6 +2551,7 @@ a.dk-link-card:hover {
 @media (max-width: 600px) {
   /* phone: the header shrinks to the name and Copy */
   .dk-cv-lang,
+  .dk-cv-ico,
   .dk-cv-head-edit button[aria-label='Code block settings'] {
     display: none;
   }
@@ -2905,4 +2997,290 @@ a.dk-link-card:hover {
 }
 .dk-layout-tablet .dk-html-embed .dk-emb-split > .dk-ca {
   flex: 1.15;
+}
+
+/* the code block settings (frame 33): language and file name side by side, the file name in mono */
+.dk-cs-pair {
+  align-items: end;
+}
+.dk-cs-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+}
+
+/* ---------- a video file before Play (Embeds B 12, 19): the poster or first frame, Play and the player's bar ---------- */
+.dk-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.dk-vid-file {
+  container-type: inline-size;
+}
+.dk-vid-file::after {
+  content: none;
+}
+.dk-vid-file > .dk-vid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.dk-vid-file.dk-vid-playing > .dk-vid {
+  object-fit: contain;
+}
+.dk-vid-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.55));
+  pointer-events: none;
+}
+.dk-vid-bar {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffffff;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.dk-vid-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+}
+span.dk-vid-bar-btn {
+  cursor: default;
+}
+.dk-vid-time {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.dk-vid-track {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.35);
+}
+.dk-vid-bar-flex {
+  display: none;
+}
+.dk-vid-speed {
+  white-space: nowrap;
+}
+/* a phone's player (frame 19): 44 px cells on a dark band, the time, then volume and full screen at the right */
+@container (max-width: 440px) {
+  .dk-vid-bar {
+    padding: 0;
+    gap: 0;
+    background: rgba(0, 0, 0, 0.6);
+    font-size: 12px;
+  }
+  .dk-vid-bar-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .dk-vid-track,
+  .dk-vid-speed {
+    display: none;
+  }
+  .dk-vid-bar-flex {
+    display: block;
+    flex: 1;
+  }
+}
+.dk-vid-fig figcaption .dk-vid-cap {
+  font-style: italic;
+}
+
+/* ---------- the video block while editing (frame 12): the toolbar floats over it, centred; 8 handles; the size ---------- */
+.dk-vid-wrap {
+  position: relative;
+}
+.dk-vid-block .dk-emb-toolbar {
+  position: absolute;
+  z-index: 6;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  flex-wrap: nowrap;
+}
+.dk-vid-block .dk-emb-toolbar .dk-btb.wide {
+  min-width: 38px;
+  padding: 0 6px;
+}
+.dk-vid-block.dk-emb-selected .dk-vid-frame,
+.dk-vid-block.dk-emb-selected .dk-vid,
+.dk-vid-block.dk-emb-selected .dk-vid-ratio {
+  outline: none;
+}
+.dk-vid-stage {
+  position: relative;
+}
+.dk-vid-stage-on {
+  outline: 2px solid #2e6f40;
+  outline-offset: 0;
+}
+.dk-vid-handle {
+  position: absolute;
+  z-index: 3;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  background: #ffffff;
+  border: 2px solid #2e6f40;
+  box-sizing: border-box;
+  border-radius: 2px;
+  touch-action: none;
+}
+.dk-vid-size {
+  position: absolute;
+  z-index: 3;
+  left: 8px;
+  top: 8px;
+  background: #1e2a22;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* uploading (frame 16): the dark place of the video with a white card over its foot */
+.dk-vid-up {
+  position: relative;
+  aspect-ratio: 1.78;
+  background: #26332b;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.dk-vid-up-card {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.dk-vid-up-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e2a22;
+  margin-bottom: 7px;
+}
+.dk-vid-up-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dk-vid-up-pct {
+  color: #5b6b60;
+  white-space: nowrap;
+}
+.dk-vid-up-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: #e3e8e5;
+  overflow: hidden;
+}
+.dk-vid-up-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: #2e6f40;
+  transition: width 0.3s;
+}
+.dk-vid-up-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 7px;
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+/* Video properties: the poster frame slider and its time */
+.dk-vprops-frame {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dk-vprops-time {
+  min-width: 34px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+.dk-vprops-range {
+  flex: 1;
+  min-width: 0;
+  height: 14px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+.dk-vprops-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, #2e6f40 var(--pct, 0%), #dce3de var(--pct, 0%));
+}
+.dk-vprops-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #2e6f40;
+  box-sizing: border-box;
+}
+.dk-vprops-range::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, #2e6f40 var(--pct, 0%), #dce3de var(--pct, 0%));
+}
+.dk-vprops-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #2e6f40;
+  box-sizing: border-box;
+}
+/* the dark states keep white words inside the editor too (where .dk-md strong is ink) */
+.dk-vid-state > strong,
+.dk-md .dk-vid-state > strong {
+  color: #ffffff;
+}
+.dk-vid-state a.st-btn,
+.dk-md .dk-vid-state a.st-btn {
+  color: #1e2a22;
+}
+.dk-vprops-file video.dk-vid-poster-thumb {
+  width: 64px;
+  object-fit: cover;
 }
