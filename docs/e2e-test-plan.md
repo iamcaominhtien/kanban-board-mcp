@@ -87,6 +87,7 @@ quyết định số phận 8 call code chết.
 | Đợt 3 (29, 30, 31) | 30 / 713 | 69.8 % | 46.3 % | 58.0 % | 52.3 % |
 | Đợt 4 (32, 33, 34) | 33 / 804 | 75.6 % | 51.7 % | 60.6 % | 54.3 % |
 | Đợt 5 (35, 36, 37) | 36 / 895 | 90.4 % | 57.4 % | 65.8 % | 58.0 % |
+| Đợt 6 (38, 39, 40) | 39 / 944 | 93.9 % | 59.5 % | 68.8 % | 61.0 % |
 
 Đợt 1: `api/tickets.ts` còn 1 call chưa phủ (từ 10), call duy nhất còn lại thuộc Docs / Idea (đợt 2, 4). Các component
 gốc (board, ticket) tăng từ 60.4 % lên 67.2 % function. Bug đã sửa: trang vẫn gọi API của project đã xoá (`App.tsx`);
@@ -132,6 +133,17 @@ gửi một câu trả lời của trợ lý thành comment hai lần tạo comm
 Board AI không có số vì server không ghi; đề xuất lệnh của AI khi quét repository (`fake-claude` chưa trả lời được
 lời gọi một lần không có session); cú bấm "Move and cancel run" thỉnh thoảng không ăn (2 / 12 lần, chưa rõ do test
 hay do app).
+
+Đợt 6 (Settings & hệ thống) và các việc kèm theo: màn hình AI của ticket chạy trên dữ liệu thật, công tắc
+`MOCK_AI_ACTIVITY` đã bỏ và thẻ bàn giao worktree hiện lại (scenario 38; `GET /tickets/:id/ai/worktree` trả thêm
+`route`, golden sửa tay); 39 đi hết wizard chuyển database sang một file SQLite khác, màn hình kết nối lại, thư mục
+dữ liệu, cập nhật app; 40 notifications và preview (biểu đồ xlsx, hình và đường nối pptx). Bug đã sửa: menu "Turn
+this kind off" của một thông báo bị dòng dưới che; đồng hồ context của Board AI không bao giờ có số (`kb-assist`
+không giữ kích thước context Claude Code báo). Cú bấm "Move and cancel run" thỉnh thoảng mất là do test: dnd-kit
+chặn mọi click trong 50 ms sau khi thả, `dragCard` giờ chờ 80 ms. Toàn bộ unit test UI xanh lại (851 / 851, trước
+đó hơn 50 test hỏng từ AI v2). Còn chưa phủ: phần lớn call còn lại không có màn hình gọi (`GET /ai/power` chỉ
+desktop app gọi, poll pull request cần PR GitHub thật, vài API không ai gọi); PostgreSQL / MariaDB thật (đang làm,
+scenario 41); thông báo hệ điều hành của desktop app (cần chạy app Electron, xem đợt 7).
 
 ## 6. Những gì đo được đến giờ
 

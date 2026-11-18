@@ -113,25 +113,21 @@
 
 - shown: `Blocked` (src/components/TicketCard.tsx:243, src/components/icons/StatusMarks.tsx:67)
 
-## src/components/TicketModal.tsx (10)
+## src/components/TicketModal.tsx (9)
 
-- shown: `Ticket or AI activity` (src/components/TicketModal.tsx:1912)
-- shown: `Reopen History` (src/components/TicketModal.tsx:2093)
-- never shown: `Uploading …` (src/components/TicketModal.tsx:2563)
-- shown: `Add attachment` (src/components/TicketModal.tsx:2579)
-- shown: `Open in Flow` (src/components/TicketModal.tsx:1959, src/components/ai/activity/AiActivityDesign.tsx:47)
-- shown: `1 pt` (src/components/TicketModal.tsx:3304)
-- shown: `2 pt` (src/components/TicketModal.tsx:3305)
-- shown: `3 pt` (src/components/TicketModal.tsx:3306)
-- shown: `8 pt` (src/components/TicketModal.tsx:3308)
-- shown: `13 pt` (src/components/TicketModal.tsx:3309)
+- shown: `Ticket or AI activity` (src/components/TicketModal.tsx:1910)
+- shown: `Reopen History` (src/components/TicketModal.tsx:2053)
+- never shown: `Uploading …` (src/components/TicketModal.tsx:2523)
+- shown: `Add attachment` (src/components/TicketModal.tsx:2539)
+- shown: `1 pt` (src/components/TicketModal.tsx:3264)
+- shown: `2 pt` (src/components/TicketModal.tsx:3265)
+- shown: `3 pt` (src/components/TicketModal.tsx:3266)
+- shown: `8 pt` (src/components/TicketModal.tsx:3268)
+- shown: `13 pt` (src/components/TicketModal.tsx:3269)
 
-## src/components/UpdateNotice.tsx (4)
+## src/components/UpdateNotice.tsx (1)
 
 - never shown: `Download progress` (src/components/UpdateNotice.tsx:95)
-- never shown: `Later` (src/components/UpdateNotice.tsx:120)
-- never shown: `Skip this version` (src/components/UpdateNotice.tsx:123)
-- never shown: `What's new` (src/components/UpdateNotice.tsx:129)
 
 ## src/components/ai/AddTeamModal.tsx (3)
 
@@ -187,15 +183,11 @@
 
 ## src/components/ai/RunPanel.tsx (1)
 
-- shown: `Run options` (src/components/ai/RunPanel.tsx:97)
-
-## src/components/ai/RunResources.tsx (1)
-
-- never shown: `RAM of this run, last 5 minutes` (src/components/ai/RunResources.tsx:81)
+- shown: `Run options` (src/components/ai/RunPanel.tsx:95)
 
 ## src/components/ai/RunView.tsx (1)
 
-- never shown: `It reads this when it takes its next turn…` (src/components/ai/RunView.tsx:141)
+- never shown: `It reads this when it takes its next turn…` (src/components/ai/RunView.tsx:139)
 
 ## src/components/ai/accounts/AccountPicker.tsx (4)
 
@@ -225,21 +217,15 @@
 - never shown: `Stop signing in?` (src/components/ai/accounts/SignInWindow.tsx:445)
 - never shown: `Keep signing in` (src/components/ai/accounts/SignInWindow.tsx:461)
 
-## src/components/ai/activity/AiActivityDesign.tsx (2)
+## src/components/ai/activity/AiActivity.tsx (3)
 
-- shown: `What to show` (src/components/ai/activity/AiActivityDesign.tsx:98)
-- shown: `One run` (src/components/ai/activity/AiActivityDesign.tsx:99)
+- shown: `What to show` (src/components/ai/activity/AiActivity.tsx:117)
+- shown: `Open in Flow` (src/components/ai/activity/AiActivity.tsx:56)
+- shown: `One run` (src/components/ai/activity/AiActivity.tsx:118)
 
 ## src/components/ai/activity/Resources.tsx (1)
 
-- shown: `RAM of the run over the last 5 minutes` (src/components/ai/activity/Resources.tsx:68)
-
-## src/components/ai/activity/design/designBlocks.tsx (4)
-
-- never shown: `RAM of each run over the last 5 minutes` (src/components/ai/activity/design/designBlocks.tsx:1841)
-- never shown: `Undo run’s changes` (src/components/ai/activity/design/designBlocks.tsx:1028)
-- never shown: `Raise limit` (src/components/ai/activity/design/designBlocks.tsx:1981)
-- never shown: `Raise limit to 3 GB` (src/components/ai/activity/design/designBlocks.tsx:2035)
+- shown: `RAM of the run over the last 5 minutes` (src/components/ai/activity/Resources.tsx:71)
 
 ## src/components/ai/code/RepoCommands.tsx (3)
 
@@ -259,11 +245,10 @@
 
 - shown: `Guessed from the repository` (src/components/ai/code/RepositoriesSection.tsx:186)
 
-## src/components/ai/code/TicketHandover.tsx (3)
+## src/components/ai/code/TicketHandover.tsx (2)
 
-- never shown: `Hand the work over by` (src/components/ai/code/TicketHandover.tsx:114)
-- never shown: `Pull request` (src/components/ai/code/TicketHandover.tsx:167)
-- never shown: `Commit the code` (src/components/ai/code/TicketHandover.tsx:229)
+- never shown: `Use the project&rsquo;s` (src/components/ai/code/TicketHandover.tsx:262)
+- never shown: `Pull request` (src/components/ai/code/TicketHandover.tsx:345)
 
 ## src/components/ai/editor/useEditorAi.tsx (13)
 
@@ -430,14 +415,14 @@
 - shown: `Detailed` (src/components/aiteam/TimelineTab.tsx:518)
 - shown: `Compact time` (src/components/aiteam/TimelineTab.tsx:523)
 - shown: `Real time` (src/components/aiteam/TimelineTab.tsx:526)
-- shown: `Widen to 7 days` (src/components/aiteam/TimelineTab.tsx:815)
+- never shown: `Widen to 7 days` (src/components/aiteam/TimelineTab.tsx:815)
 - never shown: `Open the map` (src/components/aiteam/TimelineTab.tsx:819)
 - never shown: `Open the run` (src/components/aiteam/TimelineTab.tsx:1535)
 - shown: `Open the ticket` (src/components/aiteam/TimelineTab.tsx:1540)
 
 ## src/components/aiteam/teamUi.tsx (1)
 
-- never shown: `The conversation is …% full` (src/components/aiteam/teamUi.tsx:162)
+- shown: `The conversation is …% full` (src/components/aiteam/teamUi.tsx:162)
 
 ## src/components/assist/AnswerBlock.tsx (6)
 
@@ -471,7 +456,7 @@
 
 ## src/components/assist/ContextMeter.tsx (1)
 
-- never shown: `The conversation is … full` (src/components/assist/ContextMeter.tsx:32)
+- shown: `The conversation is … full` (src/components/assist/ContextMeter.tsx:32)
 
 ## src/components/assist/DocsAi.tsx (5)
 
@@ -851,20 +836,17 @@
 - shown: `Last 30 days` (src/components/notifications/AllNotificationsPage.tsx:179)
 - shown: `Last 90 days` (src/components/notifications/AllNotificationsPage.tsx:180)
 
-## src/components/notifications/NotificationPanel.tsx (2)
+## src/components/notifications/NotificationPanel.tsx (1)
 
 - never shown: `Needs you` (src/components/notifications/NotificationPanel.tsx:167)
-- never shown: `Updates` (src/components/notifications/NotificationPanel.tsx:176)
 
-## src/components/notifications/NotificationRow.tsx (7)
+## src/components/notifications/NotificationRow.tsx (5)
 
 - shown: `Unread` (src/components/notifications/NotificationRow.tsx:154)
 - never shown: `Type your answer…` (src/components/notifications/NotificationRow.tsx:300)
 - never shown: `Your answer` (src/components/notifications/NotificationRow.tsx:301)
 - never shown: `Mute this ticket` (src/components/notifications/NotificationRow.tsx:446)
 - never shown: `Send answer` (src/components/notifications/NotificationRow.tsx:305)
-- never shown: `Turn this kind off` (src/components/notifications/NotificationRow.tsx:476)
-- never shown: `Bring back now` (src/components/notifications/NotificationRow.tsx:612)
 
 ## src/components/notifications/NotificationStates.tsx (1)
 
@@ -880,10 +862,9 @@
 
 - never shown: `HTML view` (src/components/preview/HtmlReader.tsx:35)
 
-## src/components/preview/ImageReader.tsx (2)
+## src/components/preview/ImageReader.tsx (1)
 
 - never shown: `Image controls` (src/components/preview/ImageReader.tsx:319)
-- never shown: `Rotate` (src/components/preview/ImageReader.tsx:342)
 
 ## src/components/preview/JsonReader.tsx (1)
 
@@ -894,31 +875,25 @@
 - never shown: `Markdown view` (src/components/preview/MarkdownReader.tsx:25)
 - never shown: `Rendered` (src/components/preview/MarkdownReader.tsx:26)
 
-## src/components/preview/OfficeReader.tsx (2)
+## src/components/preview/OfficeReader.tsx (1)
 
-- never shown: `Slides` (src/components/preview/OfficeReader.tsx:229)
-- never shown: `Slide …: …` (src/components/preview/OfficeReader.tsx:236)
+- shown: `Slides` (src/components/preview/OfficeReader.tsx:229)
 
 ## src/components/preview/PdfReader.tsx (1)
 
 - never shown: `PDF pages` (src/components/preview/PdfReader.tsx:325)
 
-## src/components/preview/PreviewViewer.tsx (10)
+## src/components/preview/PreviewViewer.tsx (9)
 
-- shown: `Preview of …` (src/components/preview/PreviewViewer.tsx:380)
-- never shown: `File … of …` (src/components/preview/PreviewViewer.tsx:422)
+- shown: `File … of …` (src/components/preview/PreviewViewer.tsx:422)
 - never shown: `Draw on it` (src/components/preview/PreviewViewer.tsx:437)
-- never shown: `Download and open` (src/components/preview/PreviewViewer.tsx:472)
+- shown: `Download and open` (src/components/preview/PreviewViewer.tsx:472)
 - never shown: `Open in app` (src/components/preview/PreviewViewer.tsx:487, src/components/preview/PreviewViewer.tsx:286)
 - never shown: `Show in folder` (src/components/preview/PreviewViewer.tsx:498)
-- never shown: `Full screen` (src/components/preview/PreviewViewer.tsx:518)
-- never shown: `Previous file` (src/components/preview/PreviewViewer.tsx:537)
+- shown: `Full screen` (src/components/preview/PreviewViewer.tsx:518)
+- shown: `Previous file` (src/components/preview/PreviewViewer.tsx:537)
 - never shown: `Close details` (src/components/preview/PreviewViewer.tsx:566)
-- never shown: `Files in this place` (src/components/preview/PreviewViewer.tsx:621)
-
-## src/components/preview/SlideCanvas.tsx (1)
-
-- never shown: `Slide` (src/components/preview/SlideCanvas.tsx:326)
+- shown: `Files in this place` (src/components/preview/PreviewViewer.tsx:621)
 
 ## src/components/preview/TableReader.tsx (1)
 
@@ -973,7 +948,7 @@
 - shown: `Warnings and errors` (src/components/settings/DiagnosticsPage.tsx:109)
 - shown: `Errors only` (src/components/settings/DiagnosticsPage.tsx:110)
 
-## src/components/settings/NotificationsSettings.tsx (7)
+## src/components/settings/NotificationsSettings.tsx (6)
 
 - shown: `Days of the day card` (src/components/settings/NotificationsSettings.tsx:592)
 - shown: `send a test` (src/components/settings/NotificationsSettings.tsx:253)
@@ -981,7 +956,6 @@
 - never shown: `Send a test` (src/components/settings/NotificationsSettings.tsx:273, src/components/settings/NotificationsSettings.tsx:454, src/components/settings/NotificationsSettings.tsx:469)
 - never shown: `Open System Settings` (src/components/settings/NotificationsSettings.tsx:451)
 - shown: `Play` (src/components/settings/NotificationsSettings.tsx:549)
-- shown: `Unmute` (src/components/settings/NotificationsSettings.tsx:672)
 
 ## src/components/settings/ProjectRepoRow.tsx (1)
 
@@ -997,11 +971,9 @@
 - shown: `On this page (narrow window)` (src/components/settings/SettingsPage.tsx:610)
 - shown: `Theme` (src/components/settings/SettingsPage.tsx:669)
 
-## src/components/settings/StoragePage.tsx (5)
+## src/components/settings/StoragePage.tsx (3)
 
-- shown: `Data folder path` (src/components/settings/StoragePage.tsx:149)
 - never shown: `Loading…` (src/components/settings/StoragePage.tsx:150)
-- shown: `/Users/you/kanban-data` (src/components/settings/StoragePage.tsx:150)
 - never shown: `Confirm import` (src/components/settings/StoragePage.tsx:220)
 - never shown: `Replace my data` (src/components/settings/StoragePage.tsx:233)
 
@@ -1009,11 +981,9 @@
 
 - shown: `Workspace root path` (src/components/settings/WorkspaceSettingsSection.tsx:105)
 
-## src/components/settings/database/ConnectionForm.tsx (3)
+## src/components/settings/database/ConnectionForm.tsx (1)
 
-- never shown: `…://user:password@host:…/kanban` (src/components/settings/database/ConnectionForm.tsx:152)
-- never shown: `fill in the fields` (src/components/settings/database/ConnectionForm.tsx:275)
-- shown: `paste a connection string` (src/components/settings/database/ConnectionForm.tsx:282)
+- shown: `fill in the fields` (src/components/settings/database/ConnectionForm.tsx:275)
 
 ## src/components/settings/database/DatabaseCard.tsx (1)
 
@@ -1023,19 +993,13 @@
 
 - never shown: `What goes into the new database` (src/components/settings/database/MoveCheckStep.tsx:216)
 
-## src/components/settings/database/MoveCopyStep.tsx (3)
+## src/components/settings/database/MoveCopyStep.tsx (1)
 
-- never shown: `Cancel the copy` (src/components/settings/database/MoveCopyStep.tsx:86, src/components/settings/database/MoveStopped.tsx:354)
 - never shown: `Copy progress` (src/components/settings/database/MoveCopyStep.tsx:318)
-- never shown: `Start again` (src/components/settings/database/MoveCopyStep.tsx:169)
-
-## src/components/settings/database/MoveStopped.tsx (1)
-
-- never shown: `Would TEXT be enough instead of LONGTEXT?` (src/components/settings/database/MoveStopped.tsx:318)
 
 ## src/components/settings/database/MoveVerifyStep.tsx (1)
 
-- never shown: `Same` (src/components/settings/database/MoveVerifyStep.tsx:139)
+- shown: `Same` (src/components/settings/database/MoveVerifyStep.tsx:139)
 
 ## src/components/settings/database/MoveWhereStep.tsx (2)
 
@@ -1046,10 +1010,9 @@
 
 - shown: `Steps` (src/components/settings/database/dbUi.tsx:371)
 
-## src/components/sketch/NewSketchDialog.tsx (2)
+## src/components/sketch/NewSketchDialog.tsx (1)
 
 - never shown: `New sketch` (src/components/sketch/NewSketchDialog.tsx:29)
-- shown: `Background` (src/components/sketch/NewSketchDialog.tsx:53)
 
 ## src/components/sketch/SketchAiPanel.tsx (4)
 
@@ -1070,5 +1033,5 @@
 
 ## Keys pressed outside text fields
 
- , +, -, /, 0, 1, 2, =, Alt+Alt, Alt+n, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Ctrl+-, Ctrl+0, Ctrl+A, Ctrl+Control, Ctrl+End, Ctrl+Enter, Ctrl+a, Ctrl+f, Ctrl+j, Ctrl+k, Ctrl+s, Ctrl+y, Ctrl+z, Delete, Enter, Escape, F2, Shift+ArrowRight, Shift+Shift, Tab, a, c, e, f, g, h, i, j, k, m, n, p, t, v, x, z
+ , +, -, /, 0, 1, 2, =, Alt+Alt, Alt+n, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Ctrl+-, Ctrl+0, Ctrl+A, Ctrl+Control, Ctrl+End, Ctrl+Enter, Ctrl+a, Ctrl+f, Ctrl+j, Ctrl+k, Ctrl+s, Ctrl+y, Ctrl+z, Delete, Enter, Escape, F2, P, Shift+ArrowRight, Shift+Shift, Tab, a, c, e, f, g, h, i, j, k, m, n, p, r, s, t, v, x, z
 
