@@ -538,7 +538,7 @@ export function ConvertImport({
         position: 'fixed',
         inset: 0,
         zIndex: 1000,
-        background: 'rgba(37,61,44,0.5)',
+        background: 'rgba(30,42,34,0.42)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -549,35 +549,38 @@ export function ConvertImport({
       <div
         style={{
           position: 'relative',
-          width: phone ? '100%' : 612,
+          width: phone ? '100%' : 520,
           height: phone ? '100%' : undefined,
           maxWidth: '100%',
           maxHeight: '100%',
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: phone ? 0 : 12,
+          borderRadius: phone ? 0 : 16,
           border: phone ? 'none' : '1px solid #E3E8E5',
-          boxShadow: '0 24px 64px rgba(30,42,34,0.28)',
+          boxShadow: '0 24px 60px rgba(30,42,34,0.22)',
           background: '#FFFFFF',
           overflow: 'hidden',
           boxSizing: 'border-box',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '16px 22px 10px' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#1E2A22' }}>{title}</div>
-            <div style={{ fontSize: 12, color: '#5B6B60', marginTop: 2 }}>{subtitle}</div>
+        <div className="dk-np-head">
+          <div className="dk-np-badge">
+            <Icon name="i26" size={17} strokeWidth={1.9} />
           </div>
-          <button type="button" className="dk-icobtn" aria-label="Close" onClick={onClose}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="dk-np-title">{title}</div>
+            <div className="dk-np-sub">{subtitle}</div>
+          </div>
+          <button type="button" className="dk-np-x" aria-label="Close" onClick={onClose}>
             <Icon name="close" size={16} strokeWidth={1.9} />
           </button>
         </div>
         <div
           style={{
-            padding: '6px 22px 16px',
+            padding: '18px 22px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 12,
+            gap: 14,
             overflowY: 'auto',
             minHeight: 0,
             flex: phone ? 1 : undefined,

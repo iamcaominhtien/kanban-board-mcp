@@ -71,7 +71,7 @@ describe('diffBlocks: each kind of change', () => {
     const [c] = diffBlocks(doc(p('b-1', 'The board has three columns')), doc(p('b-1', 'The board has four columns')));
     expect(c.kind).toBe('changed');
     expect(c.draw).toBe('text');
-    expect(changeLabel(c)).toBe('Text edited');
+    expect(changeLabel(c)).toBe('Changed');
     const w = changeWords(c);
     expect(w.filter((s) => s.kind === 'del').map((s) => s.text.trim())).toEqual(['three']);
     expect(w.filter((s) => s.kind === 'add').map((s) => s.text.trim())).toEqual(['four']);
@@ -80,7 +80,7 @@ describe('diffBlocks: each kind of change', () => {
   it('names an attributes-only change as Format, in words', () => {
     const [c] = diffBlocks(doc(h('b-1', 'What changed')), doc(h('b-1', 'What changed', { textAlign: 'center' })));
     expect(c.draw).toBe('format');
-    expect(changeLabel(c)).toBe('Format');
+    expect(changeLabel(c)).toBe('Changed');
     expect(c.changes.map(formatWords)).toEqual(['Alignment: left → centre']);
   });
 
@@ -139,7 +139,7 @@ describe('diffBlocks: each kind of change', () => {
       doc(img('b-1', { caption: 'Planning night in Hanoi', placement: 'floatRight' })),
     );
     expect(c.draw).toBe('whole');
-    expect(changeLabel(c)).toBe('Format');
+    expect(changeLabel(c)).toBe('Changed');
     expect(c.changes.map(formatWords)).toEqual([
       'Image: centre → float right',
       'Caption: Planning night → Planning night in Hanoi',
@@ -194,7 +194,7 @@ describe('labels in words', () => {
       content: [p('b-4', 'Rate limits')],
     });
     const c = diffBlocks(a, b);
-    expect(c.map((x) => changeLabel(x))).toEqual(['Format', 'Removed block', 'New block']);
+    expect(c.map((x) => changeLabel(x))).toEqual(['Changed', 'Removed', 'Added']);
     expect(jumpLabel(c[0], b)).toEqual({ name: '“What changed”', what: 'Heading 2 · format' });
     expect(jumpLabel(c[1], a).what).toBe('Removed');
     expect(changeDetail(c[2])).toBe('Callout');

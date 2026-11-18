@@ -293,7 +293,7 @@ export function NewPageDialog({
   const titleBorder = empty
     ? { borderColor: '#C4432A', boxShadow: '0 0 0 3px rgba(196,67,42,0.14)' }
     : titleFocus
-      ? { borderColor: '#2E6F40', boxShadow: '0 0 0 3px rgba(46,111,64,0.18)' }
+      ? { borderColor: '#2E6F40', boxShadow: '0 0 0 3px rgba(46,111,64,0.14)' }
       : clash
         ? { borderColor: '#E3C27A' }
         : null;
@@ -400,48 +400,30 @@ export function NewPageDialog({
 
   const preview = (
     <div className="dk-np-preview" data-testid="template-preview">
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          color: '#5B6B60',
-          marginBottom: 6,
-        }}
-      >
-        Preview · {tpl?.name ?? ''}
+      <div className="st-field-label">Preview · {tpl?.name ?? ''}</div>
+      <div className="dk-np-stage">
+        <div className="dk-np-sheet">
+          {tpl && tpl.preview ? (
+            tpl.source === 'builtin' ? (
+              <TemplatePreview markdown={tpl.preview} />
+            ) : (
+              <div style={{ ...previewText, whiteSpace: 'pre-wrap' }}>{tpl.preview}</div>
+            )
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 12, color: '#9AA8A0' }}>
+              <span className="dk-caret" style={{ height: 13, background: '#9AA8A0' }} />
+              {tpl?.id === 'canvas' ? 'Boards on one large plane' : 'Type / to start'}
+            </div>
+          )}
+        </div>
       </div>
-      {tpl?.description && (
-        <div style={{ fontSize: 12.5, color: '#3A4A3E', lineHeight: 1.45, marginBottom: 6 }}>{tpl.description}</div>
-      )}
+      {tpl?.description && <div className="dk-np-pdesc">{tpl.description}</div>}
       {tpl && settingsLine(tpl.settings) && (
-        <div style={{ fontSize: 11.5, fontWeight: 600, color: '#2E6F40', marginBottom: 4 }}>
+        <div className="dk-np-pset">
+          <Icon name="i42" size={13} strokeWidth={2} />
           {settingsLine(tpl.settings)}
         </div>
       )}
-      {tpl && tpl.preview ? (
-        tpl.source === 'builtin' ? (
-          <TemplatePreview markdown={tpl.preview} />
-        ) : (
-          <div style={{ ...previewText, whiteSpace: 'pre-wrap' }}>{tpl.preview}</div>
-        )
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 10, fontSize: 12, color: '#9AA8A0' }}>
-          <span className="dk-caret" style={{ height: 13, background: '#9AA8A0' }} />
-          {tpl?.id === 'canvas' ? 'Boards on one large plane' : 'Type / to start'}
-        </div>
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 46,
-          background: 'linear-gradient(rgba(255,255,255,0),#FFFFFF)',
-        }}
-      />
     </div>
   );
 
@@ -502,13 +484,13 @@ export function NewPageDialog({
     <>
       <div className="dk-np-fields">
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <label className="st-field-label" htmlFor="docs-new-title" style={{ fontSize: 11 }}>
+          <label className="st-field-label" htmlFor="docs-new-title">
             Title
           </label>
           <input
             id="docs-new-title"
             autoFocus={!phone}
-            className="st-input"
+            className="st-input dk-np-title-input"
             value={title}
             placeholder="Page title"
             aria-label="Title"
@@ -551,15 +533,14 @@ export function NewPageDialog({
             </div>
           )}
         </div>
-        <div style={{ width: phone ? '100%' : 250, flexShrink: 0 }}>
+        <div style={{ width: phone ? '100%' : 330, flexShrink: 0 }}>
           <ParentPicker nodes={nodes} parentId={parentId} onChange={setParentId} onOpenChange={setPickOpen} />
         </div>
       </div>
       {!aiOn && (
-        <div style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.5 }}>
-          The new page will be placed at the end of{' '}
-          {parentNode ? <b style={{ color: '#1E2A22', fontWeight: 700 }}>{parentNode.title}</b> : 'the top level'}. You
-          can drag it elsewhere later.
+        <div className="dk-np-where">
+          The new page will be placed at the end of {parentNode ? <b>{parentNode.title}</b> : 'the top level'}. You can
+          drag it elsewhere later.
         </div>
       )}
     </>
@@ -615,7 +596,7 @@ export function NewPageDialog({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(37,61,44,0.5)',
+        background: 'rgba(30,42,34,0.42)',
       }}
     >
       <div
@@ -624,7 +605,7 @@ export function NewPageDialog({
         aria-label="New page"
         className={`dk-np${layout === 'tablet' ? ' dk-np-tablet' : phone ? ' dk-np-phone' : ''}`}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '16px 22px 12px' }}>
+        <div className="dk-np-head">
           {phone && step === 'name' && chip !== 'ai' ? (
             <button
               type="button"
@@ -635,28 +616,16 @@ export function NewPageDialog({
               <Icon name="chevronRight" size={16} strokeWidth={1.9} style={{ transform: 'rotate(180deg)' }} />
             </button>
           ) : (
-            <div
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: '50%',
-                background: chip === 'ai' ? '#F1EAFF' : '#DCEEE1',
-                color: chip === 'ai' ? '#5B3AA6' : '#2E6F40',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              {chip === 'ai' ? <AiSpark size={16} /> : <Icon name="i23" size={16} strokeWidth={1.8} />}
+            <div className={`dk-np-badge${chip === 'ai' ? ' dk-np-badge-ai' : ''}`}>
+              {chip === 'ai' ? <AiSpark size={17} /> : <Icon name="i23" size={17} strokeWidth={1.9} />}
             </div>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#1E2A22' }}>
+            <div className="dk-np-title">
               {phone && step === 'name' && chip !== 'ai' ? (tpl?.name ?? 'New page') : 'New page'}
             </div>
             {!phone && (
-              <div style={{ fontSize: 12, color: '#5B6B60', marginTop: 2 }}>
+              <div className="dk-np-sub">
                 {chip === 'ai'
                   ? 'Write with AI'
                   : chip === 'yours'
@@ -665,24 +634,8 @@ export function NewPageDialog({
               </div>
             )}
           </div>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 6,
-              border: 'none',
-              background: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: '#9AA8A0',
-            }}
-          >
-            <Icon name="close" size={16} strokeWidth={1.8} />
+          <button type="button" aria-label="Close" onClick={onClose} className="dk-np-x">
+            <Icon name="close" size={16} strokeWidth={1.9} />
           </button>
         </div>
         <div className="dk-np-body">
@@ -726,7 +679,7 @@ export function NewPageDialog({
         </div>
         <div className="dk-np-foot">
           {(!phone || step === 'name') && (
-            <span style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.45 }}>
+            <span className="dk-np-note">
               {writing
                 ? (job.data?.steps[(job.data?.steps.length ?? 1) - 1]?.text ?? 'Starting…')
                 : aiOn
@@ -734,7 +687,6 @@ export function NewPageDialog({
                   : 'Created as a draft. Only you can see it until you publish.'}
             </span>
           )}
-          {!phone && <div style={{ flex: 1 }} />}
           {!phone && (
             <button
               type="button"

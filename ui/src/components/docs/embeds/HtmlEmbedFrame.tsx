@@ -6,7 +6,8 @@
  */
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Dialog } from '../editor/blocks/ui';
+import { Panel } from '../editor/blocks/ui';
+import { EmbIcon } from './embIcons';
 import { useDocsSpaceSettings } from './embedApi';
 import {
   DEFAULT_EMBED_HEIGHT,
@@ -25,52 +26,70 @@ import './embeds.css';
 /** How long a frame may take to load before it counts as blocked (ms). */
 const LOAD_TIMEOUT_MS = 10_000;
 
-/** What the sandbox allows and blocks (frame 3), opened from the note. */
-export function SandboxSheet({ onClose }: { onClose: () => void }) {
+/** What the sandbox allows (frame 3). */
+const ALLOWED = [
+  'HTML and CSS',
+  'Scripts that change this embed only',
+  'Images and fonts the page links to (loaded, never sent anything)',
+  'Forms that stay inside the embed',
+];
+/** What the sandbox blocks (frame 3). */
+const BLOCKED = [
+  'Reading this board, your login or cookies',
+  'Network requests from scripts',
+  'Pop-ups and new windows',
+  'Sending you to another page',
+  'Camera, microphone and location',
+];
+
+/**
+ * What the sandbox allows and blocks (frame 3), opened from the note: a 320 px popover under it on a desktop, a
+ * sheet on a phone.
+ * @param props.anchor - The rect of the note's link, where the popover points.
+ */
+export function SandboxSheet({ onClose, anchor }: { onClose: () => void; anchor: DOMRect | null }) {
   return (
-    <Dialog
-      title="The sandbox"
-      onClose={onClose}
-      width={440}
-      testId="sandbox-sheet"
-      footer={
-        <button type="button" className="dk-btn-primary" onClick={onClose}>
-          Done
-        </button>
-      }
-    >
+    <Panel title="The sandbox" anchor={anchor} onClose={onClose} width={320} testId="sandbox-sheet">
       <p className="dk-emb-sheet-lead">
         An HTML embed is a small web page that lives in its own box. It cannot see or touch anything else on the board.
       </p>
-      <div className="dk-emb-sheet-head">Allowed</div>
-      <ul className="dk-emb-sheet-list dk-emb-ok">
-        <li>HTML and CSS</li>
-        <li>Scripts that change this embed only</li>
-        <li>Images and fonts the page links to (loaded, never sent anything)</li>
-        <li>Forms that stay inside the embed</li>
-      </ul>
-      <div className="dk-emb-sheet-head">Blocked</div>
-      <ul className="dk-emb-sheet-list dk-emb-no">
-        <li>Reading this board, your login or cookies</li>
-        <li>Network requests from scripts</li>
-        <li>Pop-ups and new windows</li>
-        <li>Sending you to another page</li>
-        <li>Camera, microphone and location</li>
-      </ul>
-    </Dialog>
+      <div className="dk-emb-sheet-group dk-emb-ok">
+        <div className="dk-emb-sheet-head">Allowed</div>
+        <ul className="dk-emb-sheet-list">
+          {ALLOWED.map((t) => (
+            <li key={t}>
+              <EmbIcon name="check" size={13} sw={2.6} />
+              <span>{t}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="dk-emb-sheet-group dk-emb-no">
+        <div className="dk-emb-sheet-head">Blocked</div>
+        <ul className="dk-emb-sheet-list">
+          {BLOCKED.map((t) => (
+            <li key={t}>
+              <EmbIcon name="x" size={13} sw={2.6} />
+              <span>{t}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Panel>
   );
 }
 
 /** The always-visible note above an embed: what the sandbox is, and the sheet that says what it blocks. */
 export function SandboxNote() {
-  const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
   return (
     <div className="dk-emb-note" contentEditable={false}>
+      <EmbIcon name="shield" size={14} sw={2.2} />
       <span>Runs in a sandbox: no access to this board.</span>
-      <button type="button" className="dk-emb-link" onClick={() => setOpen(true)}>
+      <button type="button" className="dk-emb-link" onClick={(e) => setAnchor(e.currentTarget.getBoundingClientRect())}>
         What is blocked?
       </button>
-      {open && <SandboxSheet onClose={() => setOpen(false)} />}
+      {anchor && <SandboxSheet anchor={anchor} onClose={() => setAnchor(null)} />}
     </div>
   );
 }
@@ -168,7 +187,8 @@ export function HtmlEmbedFrame({
   }, [srcDoc, attempt, tooLarge]);
   if (tooLarge) {
     return (
-      <div className="dk-emb-state" role="status" data-testid="html-embed-too-large">
+      <div className="dk-emb-fail dk-emb-fail-big" role="status" data-testid="html-embed-too-large">
+        <EmbIcon name="warn" size={24} />
         <strong>Too large to embed</strong>
         <span>
           This HTML is {kbOrMb(bytes)}. An embed can be 512 KB at most. Move images out, or attach the file instead.
@@ -179,13 +199,14 @@ export function HtmlEmbedFrame({
   }
   if (failed) {
     return (
-      <div className="dk-emb-state" role="status" data-testid="html-embed-failed">
+      <div className="dk-emb-fail" role="status" data-testid="html-embed-failed">
+        <EmbIcon name="offline" size={24} />
         <strong>This embed could not load</strong>
         <span>Your browser may be offline, or it blocked the frame. The page itself is fine.</span>
         <div className="dk-emb-actions">
           <button
             type="button"
-            className="dk-btn-ghost"
+            className="st-btn st-btn-primary st-btn-sm"
             onClick={() => {
               setFailed(false);
               setAttempt((a) => a + 1);
@@ -194,7 +215,7 @@ export function HtmlEmbedFrame({
             Retry
           </button>
           {onViewSource && (
-            <button type="button" className="dk-btn-ghost" onClick={onViewSource}>
+            <button type="button" className="st-btn st-btn-sm" onClick={onViewSource}>
               View source
             </button>
           )}
@@ -208,20 +229,25 @@ export function HtmlEmbedFrame({
     <div className="dk-emb-frame-wrap">
       {wantsScripts && scriptsOff && (
         <div className="dk-emb-bar dk-emb-bar-muted" role="note">
-          Scripts are turned off for this project, so this embed shows without them. Ask a project admin to turn them on
-          in Settings.
+          <EmbIcon name="lock" size={15} sw={2.2} />
+          <span>
+            Scripts are turned off for this project, so this embed shows without them. Ask a project admin to turn them
+            on in Settings.
+          </span>
         </div>
       )}
       {wantsScripts && !scriptsOff && !ran && (
         <div className="dk-emb-bar" role="note">
+          <EmbIcon name="code" size={15} sw={2.2} />
           <span>This embed has scripts. They run inside the sandbox only.</span>
-          <button type="button" className="dk-btn-primary dk-emb-run" onClick={() => setRan(true)}>
+          <button type="button" className="st-btn st-btn-primary st-btn-sm dk-emb-run" onClick={() => setRan(true)}>
             Run it
           </button>
         </div>
       )}
       {blocked.length > 0 && (
         <div className="dk-emb-bar dk-emb-bar-warn" role="status">
+          <EmbIcon name="warn" size={15} sw={2.2} />
           <span>
             <strong>{blocked.length === 1 ? '1 thing was blocked.' : `${blocked.length} things were blocked.`}</strong>{' '}
             {details ? `${listWords(blocked).replace(/^./, (c) => c.toUpperCase())}. ` : ''}The rest ran.

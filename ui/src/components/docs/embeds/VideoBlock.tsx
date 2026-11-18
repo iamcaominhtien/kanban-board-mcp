@@ -7,6 +7,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { uploadUrl } from '../../../api/tickets';
+import { EmbIcon } from './embIcons';
 import { fileNameOf, playableInBrowser, providerName, type VideoEmbed } from './videoEmbed';
 import './embeds.css';
 
@@ -14,17 +15,38 @@ import './embeds.css';
 function PlayButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button type="button" className="dk-vid-play" aria-label={label} onClick={onClick}>
-      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M8 5v14l11-7z" fill="currentColor" />
+      <svg
+        width="23"
+        height="23"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        style={{ marginLeft: 3 }}
+      >
+        <path d="M7 5L19 12L7 19Z" />
       </svg>
     </button>
   );
 }
 
-/** A card in the place of a video that cannot play. */
-function VideoState({ title, text, children }: { title: string; text: string; children?: ReactNode }) {
+/** A dark 16:9 panel in the place of a video that cannot play (frames 17-18). */
+function VideoState({
+  title,
+  text,
+  icon,
+  children,
+}: {
+  title: string;
+  text: string;
+  icon: 'warn' | 'film';
+  children?: ReactNode;
+}) {
   return (
-    <div className="dk-emb-state dk-vid-state" role="status">
+    <div className="dk-vid-state" role="status">
+      <EmbIcon name={icon} size={26} />
       <strong>{title}</strong>
       <span>{text}</span>
       {children && <div className="dk-emb-actions">{children}</div>}
@@ -87,19 +109,23 @@ export function VideoPlayer({
   if (!playableInBrowser(src)) {
     const name = fileNameOf(src);
     return (
-      <VideoState title={`${name} cannot play in a browser`} text="Convert it to MP4 or WebM, or keep it as a file.">
+      <VideoState
+        icon="film"
+        title={`${name} cannot play in a browser`}
+        text="Convert it to MP4 or WebM, or keep it as a file."
+      >
         {onAttachAsFile && (
-          <button type="button" className="dk-btn-ghost" onClick={onAttachAsFile}>
+          <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={onAttachAsFile}>
             Attach as a file
           </button>
         )}
         {onChooseAnother && (
-          <button type="button" className="dk-btn-ghost" onClick={onChooseAnother}>
+          <button type="button" className="st-btn st-btn-sm" onClick={onChooseAnother}>
             Choose another
           </button>
         )}
         {!onAttachAsFile && (
-          <a className="dk-btn-ghost" href={downloadHref(src)} download>
+          <a className="st-btn st-btn-sm" href={downloadHref(src)} download>
             Download
           </a>
         )}
@@ -108,10 +134,10 @@ export function VideoPlayer({
   }
   if (failed) {
     return (
-      <VideoState title="This video could not be played" text="The file may be missing or damaged.">
+      <VideoState icon="warn" title="This video could not be played" text="The file may be missing or damaged.">
         <button
           type="button"
-          className="dk-btn-ghost"
+          className="st-btn st-btn-primary st-btn-sm"
           onClick={() => {
             setFailed(false);
             setAttempt((a) => a + 1);
@@ -119,11 +145,11 @@ export function VideoPlayer({
         >
           Retry
         </button>
-        <a className="dk-btn-ghost" href={downloadHref(src)} download>
+        <a className="st-btn st-btn-sm" href={downloadHref(src)} download>
           Download
         </a>
         {onReplace && (
-          <button type="button" className="dk-btn-ghost" onClick={onReplace}>
+          <button type="button" className="st-btn st-btn-sm" onClick={onReplace}>
             Replace
           </button>
         )}
@@ -158,52 +184,94 @@ export function VideoPlayer({
   );
 }
 
+/** The board's colour of each site's mark (frame 61). */
+const MARK: Record<string, string> = { youtube: '#D93025', vimeo: '#0B6F96', loom: '#625DF5' };
+
+/**
+ * The square mark of a site: its first letter on its colour.
+ * @param props.size - Width and height in px (20 in a footer, 30 in a menu).
+ */
+export function ProviderMark({ provider, name, size }: { provider?: string; name: string; size: number }) {
+  return (
+    <span
+      className="dk-vid-mark"
+      aria-hidden="true"
+      style={{
+        width: size,
+        height: size,
+        fontSize: size >= 30 ? 15 : size >= 26 ? 13 : 10,
+        background: (provider && MARK[provider]) || '#5B6B60',
+      }}
+    >
+      {name.charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
 /** Props of {@link ProviderPlayer}. */
 export interface ProviderPlayerProps {
   embed: VideoEmbed;
   poster?: string;
   title?: string;
-  /** "youtube.com · 6:12" under the title. */
+  /** "youtube.com · 6:12" at the end of the footer. */
   site?: string;
 }
 
 /**
- * A YouTube, Vimeo or Loom video: a picture until Play, then the site's player in a 16:9 frame. Nothing is loaded from
- * the site before that.
+ * A YouTube, Vimeo or Loom video (frame 60): a card with a picture until Play, then the site's player in a 16:9
+ * frame, and a footer with the site's mark, the title and the site. Nothing is loaded from the site before Play.
  */
 export function ProviderPlayer({ embed, poster, title, site }: ProviderPlayerProps) {
   const [playing, setPlaying] = useState(false);
   const name = providerName(embed.provider);
-  if (playing) {
-    return (
-      <div className="dk-vid-ratio">
-        <iframe
-          className="dk-vid-iframe"
-          src={`${embed.embedUrl}?autoplay=1`}
-          title={title || `${name} video`}
-          allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-          allowFullScreen
-          referrerPolicy="strict-origin-when-cross-origin"
-          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
-          data-testid="video-player-frame"
-        />
-      </div>
-    );
-  }
+  const color = MARK[embed.provider] || '#1E2A22';
   return (
-    <div
-      className="dk-vid-frame"
-      style={poster ? ({ backgroundImage: `url("${poster}")` } as CSSProperties) : undefined}
-      data-testid="video-poster"
-    >
-      <PlayButton label={`Play ${title || `${name} video`}`} onClick={() => setPlaying(true)} />
-      <span className="dk-vid-provider">
-        <span className="dk-vid-provider-mark">{name.charAt(0)}</span>
-        <span className="dk-vid-provider-text">
-          {title && <strong>{title}</strong>}
-          <span>{site || name}</span>
-        </span>
-      </span>
+    <div className="dk-vid-pcard">
+      {playing ? (
+        <div className="dk-vid-ratio">
+          <iframe
+            className="dk-vid-iframe"
+            src={`${embed.embedUrl}?autoplay=1`}
+            title={title || `${name} video`}
+            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+            data-testid="video-player-frame"
+          />
+        </div>
+      ) : (
+        <div
+          className="dk-vid-frame dk-vid-frame-site"
+          style={poster ? ({ backgroundImage: `url("${poster}")` } as CSSProperties) : undefined}
+          data-testid="video-poster"
+        >
+          <button
+            type="button"
+            className="dk-vid-play-site"
+            style={{ background: color }}
+            aria-label={`Play ${title || `${name} video`}`}
+            onClick={() => setPlaying(true)}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="#fff"
+              stroke="#fff"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <path d="M7 5L19 12L7 19Z" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      )}
+      <div className="dk-vid-pfoot">
+        <ProviderMark provider={embed.provider} name={name} size={20} />
+        {title && <span className="dk-vid-ptitle">{title}</span>}
+        <span className="dk-vid-psite">{site || name}</span>
+      </div>
     </div>
   );
 }

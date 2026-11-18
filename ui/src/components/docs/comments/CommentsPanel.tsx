@@ -79,7 +79,7 @@ export function CommentsPanel({
   doc,
 }: Props) {
   const [showActivity, setShowActivity] = useState(false);
-  const panel = useResizablePanel('doc-comments', 392, { min: 280 });
+  const panel = useResizablePanel('doc-comments', 372, { min: 280 });
   const sizing = panelSizing(panel);
   const events = useDocsCommentEvents(projectId);
   const inline = useMemo(() => (data?.threads ?? []).filter((t) => t.kind === 'inline'), [data]);

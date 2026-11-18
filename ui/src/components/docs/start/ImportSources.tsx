@@ -3,6 +3,7 @@
  * kind of file brings in and leaves out (design "Starting and shaping a page", frames 27, 53 and 54).
  */
 
+import type { ReactNode } from 'react';
 import type { ImportSource } from './importConvert';
 import './start.css';
 
@@ -46,6 +47,19 @@ export function ImportSourceTiles({
           data-testid={`import-source-${s.id}`}
           onClick={() => onChange(s.id)}
         >
+          <svg
+            width="19"
+            height="19"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            {TILE_ICON[s.id]}
+          </svg>
           <b>{s.label}</b>
           <span>{s.ext}</span>
         </button>
@@ -53,6 +67,29 @@ export function ImportSourceTiles({
     </div>
   );
 }
+
+/** The board's icon of each source (frame 27): 19 px, stroke 1.8. */
+const TILE_ICON: Record<ImportSource, ReactNode> = {
+  markdown: (
+    <>
+      <rect x="2.5" y="6" width="19" height="12" rx="2" />
+      <path d="M6 15V9l3 3 3-3v6M17 9v6M15 13l2 2 2-2" />
+    </>
+  ),
+  word: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <path d="M7 8l2 8 3-6 3 6 2-8" />
+    </>
+  ),
+  html: <path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 5l-4 14" />,
+  paste: (
+    <>
+      <rect x="6" y="5" width="12" height="16" rx="2" />
+      <path d="M9 5V4h6v1M9 11h6M9 15h4" />
+    </>
+  ),
+};
 
 /** The line under the drop zone: which files the source takes. */
 export function sourceHint(source: ImportSource): string {

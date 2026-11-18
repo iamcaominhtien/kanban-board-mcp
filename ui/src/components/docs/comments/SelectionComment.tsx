@@ -127,11 +127,12 @@ export function SelectionToolbar({
             setPick(null);
           }}
         >
-          <Icon name="comment" size={14} strokeWidth={1.9} />
+          <Icon name="comment" size={13} strokeWidth={2} />
           {label}
           <kbd>{SHORTCUT_LABEL}</kbd>
         </button>
       )}
+      {!hideComment && extra && <span className="dc-selbar-sep" aria-hidden="true" />}
       {extra?.(pick, () => setPick(null))}
     </div>
   );

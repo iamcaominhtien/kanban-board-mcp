@@ -7,8 +7,9 @@
 
 import type { ReactNode } from 'react';
 import { siteAllowed, useDocsSpaceSettings, useLinkPreview } from './embedApi';
-import { ProviderPlayer } from './VideoBlock';
-import { videoEmbedOf, youtubePoster } from './videoEmbed';
+import { EmbIcon } from './embIcons';
+import { ProviderMark, ProviderPlayer } from './VideoBlock';
+import { providerName, videoEmbedOf, youtubePoster } from './videoEmbed';
 import './embeds.css';
 
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
@@ -40,22 +41,21 @@ export function LinkSkeleton() {
       aria-label="Reading the link"
       data-testid="link-skeleton"
     >
-      <span className="dk-skel dk-skel-img" />
       <span className="dk-link-text">
-        <span className="dk-skel dk-skel-line" style={{ width: '60%' }} />
-        <span className="dk-skel dk-skel-line" style={{ width: '90%' }} />
-        <span className="dk-skel dk-skel-line" style={{ width: '30%' }} />
+        <span className="dk-skel" style={{ height: 10, width: '30%' }} />
+        <span className="dk-skel" style={{ height: 14, width: '70%' }} />
+        <span className="dk-skel" style={{ height: 10, width: '90%' }} />
       </span>
+      <span className="dk-skel dk-skel-img" />
     </div>
   );
 }
 
-/** A link card: picture, title, description and site; a click opens the link in a new tab. */
+/** A link card: site, title and description, the picture on the right; a click opens the link in a new tab. */
 export function LinkCard({ data, children }: { data: LinkCardData; children?: ReactNode }) {
   const site = str(data.site) || hostOf(data.url);
   return (
     <a className="dk-link-card" href={data.url} target="_blank" rel="noopener noreferrer" data-testid="link-card">
-      {str(data.image) && <img src={str(data.image)} alt="" loading="lazy" referrerPolicy="no-referrer" />}
       <span className="dk-link-text">
         <span className="dk-link-site">
           <span className="dk-link-mark" aria-hidden="true">
@@ -66,6 +66,11 @@ export function LinkCard({ data, children }: { data: LinkCardData; children?: Re
         <strong>{str(data.title) || data.url}</strong>
         {str(data.description) && <span className="dk-link-desc">{str(data.description)}</span>}
       </span>
+      {str(data.image) && (
+        <span className="dk-link-img">
+          <img src={str(data.image)} alt="" loading="lazy" referrerPolicy="no-referrer" />
+        </span>
+      )}
       {children}
     </a>
   );
@@ -74,12 +79,14 @@ export function LinkCard({ data, children }: { data: LinkCardData; children?: Re
 /** The card of a link that could not be read: its address and an Open button (frame 64). */
 export function LinkUnread({ url }: { url: string }) {
   return (
-    <div className="dk-link-card dk-link-unread" role="status" data-testid="link-unread">
+    <div className="dk-link-unread" role="status" data-testid="link-unread">
+      <EmbIcon name="globe" size={20} />
       <span className="dk-link-text">
-        <strong className="dk-link-url">{url}</strong>
-        <span className="dk-link-desc">Could not read this link. It may need a login.</span>
+        <span className="dk-link-url">{url}</span>
+        <span className="dk-link-why">Could not read this link. It may need a login.</span>
       </span>
-      <a className="dk-btn-ghost" href={url} target="_blank" rel="noopener noreferrer">
+      <a className="st-btn st-btn-sm" href={url} target="_blank" rel="noopener noreferrer">
+        <EmbIcon name="open" size={12} sw={2.2} />
         Open
       </a>
     </div>
@@ -88,16 +95,24 @@ export function LinkUnread({ url }: { url: string }) {
 
 /** A video link that will not show here (frame 65). */
 export function LinkRefused({ url, onShowAsCard }: { url: string; onShowAsCard?: () => void }) {
+  const embed = videoEmbedOf(url);
+  const name = embed ? providerName(embed.provider) : hostOf(url);
   return (
-    <div className="dk-emb-state" role="status" data-testid="link-refused">
-      <strong>{hostOf(url)} refused to show this video here</strong>
-      <span>The owner may have turned off embedding, or the site is not on this project&apos;s list.</span>
-      <div className="dk-emb-actions">
-        <a className="dk-btn-ghost" href={url} target="_blank" rel="noopener noreferrer">
+    <div className="dk-link-refused" role="status" data-testid="link-refused">
+      <div className="dk-link-refused-top">
+        <ProviderMark provider={embed?.provider} name={name} size={30} />
+        <span>
+          <strong>{hostOf(url)} refused to show this video here</strong>
+          <span>The owner may have turned off embedding, or the site is not on this project&apos;s list.</span>
+        </span>
+      </div>
+      <div className="dk-link-refused-btns">
+        <a className="st-btn st-btn-primary st-btn-sm" href={url} target="_blank" rel="noopener noreferrer">
+          <EmbIcon name="open" size={12} sw={2.2} />
           Open original
         </a>
         {onShowAsCard && (
-          <button type="button" className="dk-btn-ghost" onClick={onShowAsCard}>
+          <button type="button" className="st-btn st-btn-sm" onClick={onShowAsCard}>
             Show as link card
           </button>
         )}

@@ -7,6 +7,7 @@
 import type { ReactNode } from 'react';
 import type { DocsTreeNode } from '../../../types/docs';
 import { Switch } from '../../settings/settingsUi';
+import { Icon } from '../Icon';
 import { EXPORT_FORMATS } from '../docsExport';
 import { FormatBadge } from './ExportFrame';
 import {
@@ -46,7 +47,7 @@ export function Seg<T extends string>({
   testId?: string;
 }) {
   return (
-    <div className="dk-seg" role="group" aria-label={label} data-testid={testId}>
+    <div className="dx-seg" role="group" aria-label={label} data-testid={testId}>
       {choices.map(([v, text]) => (
         <button
           key={v}
@@ -63,10 +64,11 @@ export function Seg<T extends string>({
   );
 }
 
-function OptRow({ label, children }: { label: string; children: ReactNode }) {
+/** One option: its label over its choices (design A 1). */
+function OptRow({ label, children, grow }: { label: string; children: ReactNode; grow?: number }) {
   return (
-    <div className="dx-opt-row">
-      <span>{label}</span>
+    <div className="dx-opt-row" style={grow ? { flex: grow } : undefined}>
+      <span className="dx-field-label">{label}</span>
       {children}
     </div>
   );
@@ -92,7 +94,7 @@ export function SwitchRow({
   testId?: string;
 }) {
   return (
-    <div className="dk-rs-switch" style={disabled ? { opacity: 0.5 } : undefined}>
+    <div className="dk-rs-switch dx-switch" style={disabled ? { opacity: 0.5 } : undefined}>
       <span>
         <b>{title}</b>
         <span>{hint}</span>
@@ -156,32 +158,34 @@ export function FormatOptions({
       <div className="dx-opts">
         {isPaged(format) && (
           <>
-            <OptRow label="Page size">
-              <Seg
-                label="Page size"
-                testId="export-pagesize"
-                value={o.pageSize}
-                onChange={(v) => set('pageSize', v)}
-                choices={[
-                  ['a4', 'A4'],
-                  ['letter', 'Letter'],
-                  ['fit', 'Fit to content'],
-                ]}
-              />
-            </OptRow>
-            <OptRow label="Orientation">
-              <Seg
-                label="Orientation"
-                testId="export-orientation"
-                value={optionDisabled(o, 'orientation') ? 'portrait' : o.orientation}
-                disabled={optionDisabled(o, 'orientation')}
-                onChange={(v) => set('orientation', v)}
-                choices={[
-                  ['portrait', 'Portrait'],
-                  ['landscape', 'Landscape'],
-                ]}
-              />
-            </OptRow>
+            <div className="dx-opt-pair">
+              <OptRow label="Page size" grow={1.7}>
+                <Seg
+                  label="Page size"
+                  testId="export-pagesize"
+                  value={o.pageSize}
+                  onChange={(v) => set('pageSize', v)}
+                  choices={[
+                    ['a4', 'A4'],
+                    ['letter', 'Letter'],
+                    ['fit', 'Fit to content'],
+                  ]}
+                />
+              </OptRow>
+              <OptRow label="Orientation" grow={1}>
+                <Seg
+                  label="Orientation"
+                  testId="export-orientation"
+                  value={optionDisabled(o, 'orientation') ? 'portrait' : o.orientation}
+                  disabled={optionDisabled(o, 'orientation')}
+                  onChange={(v) => set('orientation', v)}
+                  choices={[
+                    ['portrait', 'Portrait'],
+                    ['landscape', 'Landscape'],
+                  ]}
+                />
+              </OptRow>
+            </div>
             <OptRow label="Margins">
               <Seg
                 label="Margins"
@@ -203,39 +207,6 @@ export function FormatOptions({
                 The page’s styles stay styles: Title, Heading 1 to 4, Quote and Caption become Word styles you can
                 change.
               </p>
-            )}
-            {format === 'pdf' && (
-              <SwitchRow
-                title="Cover page"
-                hint="The page cover and title on a first page."
-                on={o.coverPage}
-                onChange={(v) => set('coverPage', v)}
-                testId="export-cover"
-              />
-            )}
-            <SwitchRow
-              title="Header and footer"
-              hint="Page title on top, page numbers at the bottom."
-              on={optionDisabled(o, 'pageNumbers') ? false : o.pageNumbers}
-              disabled={optionDisabled(o, 'pageNumbers')}
-              onChange={(v) => set('pageNumbers', v)}
-              testId="export-pagenumbers"
-            />
-            <SwitchRow
-              title="Table of contents"
-              hint={format === 'pdf' ? 'Headings 1 to 3, with page numbers.' : 'A Word contents list you can update.'}
-              on={o.contents}
-              onChange={(v) => set('contents', v)}
-              testId="export-contents"
-            />
-            {format === 'docx' && (
-              <SwitchRow
-                title="Cover page"
-                hint="The page cover and title on a first page."
-                on={o.coverPage}
-                onChange={(v) => set('coverPage', v)}
-                testId="export-cover"
-              />
             )}
           </>
         )}
@@ -314,13 +285,52 @@ export function FormatOptions({
             </p>
           </>
         )}
-        <SwitchRow
-          title="Include highlights"
-          hint="Off by default. Adds everyone’s highlights with a marker."
-          on={o.includeHighlights}
-          onChange={(v) => set('includeHighlights', v)}
-          testId="export-highlights"
-        />
+        <div className="dx-switches">
+          {isPaged(format) && (
+            <>
+              {format === 'pdf' && (
+                <SwitchRow
+                  title="Cover page"
+                  hint="The page cover and title on a first page."
+                  on={o.coverPage}
+                  onChange={(v) => set('coverPage', v)}
+                  testId="export-cover"
+                />
+              )}
+              <SwitchRow
+                title="Header and footer"
+                hint="Page title on top, page numbers at the bottom."
+                on={optionDisabled(o, 'pageNumbers') ? false : o.pageNumbers}
+                disabled={optionDisabled(o, 'pageNumbers')}
+                onChange={(v) => set('pageNumbers', v)}
+                testId="export-pagenumbers"
+              />
+              <SwitchRow
+                title="Table of contents"
+                hint={format === 'pdf' ? 'Headings 1 to 3, with page numbers.' : 'A Word contents list you can update.'}
+                on={o.contents}
+                onChange={(v) => set('contents', v)}
+                testId="export-contents"
+              />
+              {format === 'docx' && (
+                <SwitchRow
+                  title="Cover page"
+                  hint="The page cover and title on a first page."
+                  on={o.coverPage}
+                  onChange={(v) => set('coverPage', v)}
+                  testId="export-cover"
+                />
+              )}
+            </>
+          )}
+          <SwitchRow
+            title="Include highlights"
+            hint="Off by default. Adds everyone’s highlights with a marker."
+            on={o.includeHighlights}
+            onChange={(v) => set('includeHighlights', v)}
+            testId="export-highlights"
+          />
+        </div>
       </div>
     </div>
   );
@@ -499,8 +509,9 @@ export function ExportFormBody({ form, onChange, ctx }: { form: Form; onChange: 
           the zip is ready.
         </div>
       ) : isPaged(form.format) && ctx.embeds > 0 ? (
-        <p className="dx-line" data-testid="export-embeds-note">
-          {ctx.embeds === 1 ? '1 embed is' : `${ctx.embeds} embeds are`} exported as pictures.
+        <p className="dx-line dx-line-note" data-testid="export-embeds-note">
+          <Icon name="i54" size={14} strokeWidth={2} />
+          <span>{ctx.embeds === 1 ? '1 embed is' : `${ctx.embeds} embeds are`} exported as pictures.</span>
         </p>
       ) : form.format === 'md' && zip ? (
         <p className="dx-line">Pictures go into an images folder, so this exports as a zip.</p>

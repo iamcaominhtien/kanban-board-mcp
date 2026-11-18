@@ -7,7 +7,9 @@
 import type { Editor } from '@tiptap/core';
 import { useEffect, useRef, useState } from 'react';
 import { useLinkPreview, type LinkPreview } from '../../embeds/embedApi';
+import { EmbIcon } from '../../embeds/embIcons';
 import { hostOf } from '../../embeds/LinkEmbedBlock';
+import { ProviderMark } from '../../embeds/VideoBlock';
 import { providerName } from '../../embeds/videoEmbed';
 import { Dialog } from './ui';
 
@@ -58,9 +60,11 @@ function LinkSummary({ url, preview, loading }: { url: string; preview?: LinkPre
   if (loading) return <div className="dk-plm-sum dk-bp-muted">Reading the link…</div>;
   return (
     <div className="dk-plm-sum">
-      <span className="dk-link-mark" aria-hidden="true">
-        {(preview?.provider ? providerName(preview.provider) : site).charAt(0).toUpperCase()}
-      </span>
+      <ProviderMark
+        provider={preview?.provider ?? undefined}
+        name={preview?.provider ? providerName(preview.provider) : site}
+        size={30}
+      />
       <span className="dk-plm-text">
         <strong>
           {preview?.kind === 'video' && preview.provider ? `${providerName(preview.provider)} video` : site}
@@ -158,7 +162,7 @@ export function PasteLinkMenu({
       aria-label="Paste link as"
       data-testid="paste-link-menu"
       data-block-ui=""
-      style={{ position: 'fixed', top, left: Math.max(8, Math.min(left, window.innerWidth - 300)), width: 280 }}
+      style={{ position: 'fixed', top, left: Math.max(8, Math.min(left, window.innerWidth - 338)), width: 330 }}
       onMouseDown={(e) => e.preventDefault()}
     >
       <LinkSummary url={url} preview={q.data} loading={q.isLoading} />
@@ -171,11 +175,16 @@ export function PasteLinkMenu({
           onMouseEnter={() => setActive(i)}
           onClick={() => choose(c.id)}
         >
+          <span className="dk-plm-ic">
+            <EmbIcon name={c.id === 'video' ? 'video' : c.id === 'card' ? 'card' : 'link'} size={15} />
+          </span>
           <span>{c.label}</span>
-          {i === 0 && <span className="dk-kbd">Enter</span>}
+          {i === 0 && <span className="dk-plm-key">Enter</span>}
         </button>
       ))}
-      <div className="dk-plm-foot">Esc keeps the plain link</div>
+      <div className="dk-plm-foot">
+        <kbd>Esc</kbd> keeps the plain link
+      </div>
     </div>
   );
 }

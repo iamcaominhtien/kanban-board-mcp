@@ -69,15 +69,14 @@ function VersionPick({
   const v = versions.find((x) => x.version === value);
   return (
     <span className="hx-pick">
-      <span className="hx-pick-v">v{value}</span>
-      {v && <Avatar name={v.author} />}
-      {v && <span className="hx-pick-who">{displayName(v.author)}</span>}
-      {value === current ? (
-        <span className="hx-pick-when">Current</span>
-      ) : (
-        v && <span className="hx-pick-when">{when(v)}</span>
+      <b className="hx-pick-v">v{value}</b>
+      {v && (
+        <span className="hx-pick-who">
+          {displayName(v.author)}
+          <span className="hx-pick-when">, {value === current ? 'current' : when(v)}</span>
+        </span>
       )}
-      <Icon name="i06" size={12} strokeWidth={2.3} />
+      <Icon name="i06" size={12} strokeWidth={2.4} />
       <select aria-label={label} value={value} onChange={(e) => onChange(Number(e.target.value))}>
         {versions
           .filter((x) => x.version !== other)
@@ -246,8 +245,8 @@ export function CompareView({
   const aroundConversion = lines && isRich(newerD) && !isRich(olderD);
   const restoreV = fromV && from !== page.version ? fromV : null;
   const restoreBtn = restoreV && (
-    <button type="button" className="st-btn st-btn-primary" onClick={() => onRestore(restoreV)}>
-      <Icon name="i19" size={14} strokeWidth={2} />
+    <button type="button" className="st-btn st-btn-primary hx-head-btn" onClick={() => onRestore(restoreV)}>
+      <Icon name="i19" size={phone ? 15.5 : 13} strokeWidth={2.4} />
       Restore v{from}
     </button>
   );
@@ -261,25 +260,66 @@ export function CompareView({
     </div>
   );
 
+  const pickers = (
+    <span className="hx-pair-pick">
+      <VersionPick
+        label="From version"
+        value={from}
+        other={to}
+        versions={versions}
+        current={page.version}
+        onChange={(v) => onPair(v, to)}
+      />
+      <button
+        type="button"
+        className="hx-iconbtn"
+        aria-label="Swap the versions"
+        title="Swap"
+        data-testid="hx-swap"
+        onClick={() => onPair(to, from)}
+      >
+        <Icon name="i29" size={14} strokeWidth={2} />
+      </button>
+      <VersionPick
+        label="To version"
+        value={to}
+        other={from}
+        versions={versions}
+        current={page.version}
+        onChange={(v) => onPair(from, v)}
+      />
+    </span>
+  );
+
   let body: ReactNode;
   if (loading) {
     body = (
       <div className="hx-state" data-testid="hx-loading">
-        <span className="hx-spin" />
-        Loading diff…
+        <span className="hx-state-text">Loading diff…</span>
+        {[60, 92, 84, 70].map((w) => (
+          <span key={w} className="skel hx-skel" style={{ width: `${w}%` }} />
+        ))}
       </div>
     );
   } else if (failed) {
     body = (
       <div className="hx-state" role="alert" data-testid="hx-error">
-        <b>Could not compare</b>
-        <span>
-          Could not compare v{from} and v{to}. The page is still readable. Check your connection and try again.
-        </span>
-        <span className="hx-state-detail">{docsErrorDetail(err)?.message ?? extractError(err)}</span>
-        <button type="button" className="st-btn st-btn-sm" onClick={retry}>
-          Retry
-        </button>
+        <div className="hx-state-error">
+          <Icon name="i22" size={14} strokeWidth={2.2} />
+          <div>
+            <b>
+              Could not compare v{from} and v{to}.
+            </b>{' '}
+            The page is still readable. Check your connection and try again.
+            <div className="hx-state-detail">{docsErrorDetail(err)?.message ?? extractError(err)}</div>
+          </div>
+        </div>
+        <div>
+          <button type="button" className="st-btn hx-btn" onClick={retry}>
+            <Icon name="i41" size={13} strokeWidth={2.4} />
+            Retry
+          </button>
+        </div>
       </div>
     );
   } else if (lines) {
@@ -309,11 +349,17 @@ export function CompareView({
   } else if (noDifference(counts)) {
     body = (
       <div className="hx-state" data-testid="hx-same">
-        <Icon name="i17" size={22} strokeWidth={1.7} />
-        <b>These versions look the same</b>
-        <span>
-          v{from} and v{to} have the same blocks.
-        </span>
+        <div className="hx-state-same">
+          <span className="hx-state-ico">
+            <Icon name="check" size={18} strokeWidth={2.4} />
+          </span>
+          <div>
+            <b>These versions look the same</b>
+            <div className="hx-state-sub">
+              v{from} and v{to} have the same blocks.
+            </div>
+          </div>
+        </div>
       </div>
     );
   } else {
@@ -327,17 +373,39 @@ export function CompareView({
           </div>
         )}
         {total > LARGE && limit !== Infinity && (
-          <div className="hx-large" data-testid="hx-large">
+          <div className="hx-state hx-large" data-testid="hx-large">
             <b>{total} blocks changed</b>
-            <span>Showing the first {limit}. The rest are folded so the page stays quick.</span>
-            <button type="button" className="st-btn st-btn-sm" onClick={() => setLimit(Infinity)}>
-              Show all {total}
-            </button>
-            {limit + STEP < total && (
-              <button type="button" className="st-btn st-btn-sm" onClick={() => setLimit(limit + STEP)}>
-                Next {STEP}
+            <span className="hx-state-sub">
+              Showing the first {limit}. The rest are folded so the page stays quick.
+            </span>
+            <div className="hx-state-btns">
+              <button type="button" className="st-btn hx-btn" onClick={() => setLimit(Infinity)}>
+                Show all {total}
               </button>
-            )}
+              {limit + STEP < total && (
+                <button type="button" className="st-btn hx-btn" onClick={() => setLimit(limit + STEP)}>
+                  Next {STEP}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        {mode === 'side-by-side' && fromV && toV && (
+          <div className="hx-cols-head">
+            {[fromV, toV].map((v) => (
+              <div key={v.version}>
+                <b className="hx-pick-v">v{v.version}</b>
+                <Avatar name={v.author} />
+                <span>
+                  {displayName(v.author)}, {when(v)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        {phone && (
+          <div className="hx-phone-counts">
+            <CountsLine counts={counts} words={false} />
           </div>
         )}
         <div className={`hx-page hx-mode-${mode}`} data-testid="hx-page">
@@ -388,48 +456,37 @@ export function CompareView({
       data-testid="history-compare"
     >
       <header className="hx-compare-head">
-        <button type="button" className="st-btn st-btn-sm" onClick={onBack}>
-          <Icon name="i60" size={13} strokeWidth={2} />
-          {phone ? 'History' : 'Back to page'}
-        </button>
-        {!phone && <span className="hx-compare-title">{page.title}</span>}
-        <span className="hx-pair-pick">
-          <VersionPick
-            label="From version"
-            value={from}
-            other={to}
-            versions={versions}
-            current={page.version}
-            onChange={(v) => onPair(v, to)}
-          />
-          <button
-            type="button"
-            className="dk-icobtn"
-            aria-label="Swap the versions"
-            title="Swap"
-            data-testid="hx-swap"
-            onClick={() => onPair(to, from)}
-          >
-            <Icon name="i29" size={14} strokeWidth={2} />
-          </button>
-          <VersionPick
-            label="To version"
-            value={to}
-            other={from}
-            versions={versions}
-            current={page.version}
-            onChange={(v) => onPair(from, v)}
-          />
-        </span>
-        {fromV && toV && (isConversion(fromV) || isConversion(toV)) && <span className="hx-conv-chip">Converted</span>}
-        <span style={{ flex: 1 }} />
-        {phone && !lines && !loading && !failed && <CountsLine counts={counts} />}
-        {modeToggle}
-        {!phone && restoreBtn}
-        <button type="button" aria-label="Close" className="dk-icobtn" onClick={onClose}>
-          <Icon name="i08" size={16} strokeWidth={1.8} />
-        </button>
+        {phone ? (
+          <>
+            <button type="button" className="hx-iconbtn" aria-label="Back to the version list" onClick={onBack}>
+              <Icon name="i60" size={20} strokeWidth={2} />
+            </button>
+            <span className="hx-compare-title">Compare</span>
+            <button type="button" aria-label="Close" className="hx-iconbtn" onClick={onClose}>
+              <Icon name="i08" size={18} strokeWidth={2} />
+            </button>
+          </>
+        ) : (
+          <>
+            <button type="button" className="st-btn st-btn-sm" onClick={onBack}>
+              <Icon name="i60" size={13} strokeWidth={2} />
+              Back to page
+            </button>
+            <span className="hx-compare-title">{page.title}</span>
+            {pickers}
+            {fromV && toV && (isConversion(fromV) || isConversion(toV)) && (
+              <span className="hx-conv-chip">Converted</span>
+            )}
+            <span style={{ flex: 1 }} />
+            {modeToggle}
+            {restoreBtn}
+            <button type="button" aria-label="Close" className="hx-iconbtn" onClick={onClose}>
+              <Icon name="i08" size={16} strokeWidth={2} />
+            </button>
+          </>
+        )}
       </header>
+      {phone && <div className="hx-phone-pick">{pickers}</div>}
       {tablet && jumpList}
       <div className="hx-compare-main">
         <div ref={bodyRef} className="hx-compare-body">
@@ -443,22 +500,22 @@ export function CompareView({
             <>
               <button
                 type="button"
-                className="dk-icobtn"
+                className="hx-iconbtn hx-step"
                 aria-label="Previous change"
                 onClick={() => jump(Math.max(0, active - 1))}
               >
-                <Icon name="i60" size={16} strokeWidth={2} />
+                <Icon name="i60" size={15} strokeWidth={2} />
               </button>
-              <span>
+              <span className="hx-step-text">
                 {Math.min(active + 1, listed.length)} of {listed.length}
               </span>
               <button
                 type="button"
-                className="dk-icobtn"
+                className="hx-iconbtn hx-step"
                 aria-label="Next change"
                 onClick={() => jump(Math.min(listed.length - 1, active + 1))}
               >
-                <Icon name="i29" size={16} strokeWidth={2} />
+                <Icon name="i29" size={15} strokeWidth={2} />
               </button>
             </>
           )}

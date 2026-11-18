@@ -82,9 +82,9 @@ export function ProgressSteps({ job }: { job: ExportJob }) {
   const { step, percent } = progressAt(steps.length, now - job.startedAt);
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600 }}>
-        <span style={{ flex: 1 }}>Exporting…</span>
-        <span style={{ color: '#5B6B60' }}>{percent} %</span>
+      <div className="dx-bar-line">
+        <span>Exporting…</span>
+        <span className="dx-bar-pct">{percent} %</span>
       </div>
       <div
         className="dx-bar"
@@ -99,7 +99,7 @@ export function ProgressSteps({ job }: { job: ExportJob }) {
       <ol className="dx-steps" aria-live="polite">
         {steps.map((s, i) => (
           <li key={s} data-state={i < step ? 'done' : i === step ? 'now' : 'later'}>
-            <span className="dx-dot">{i < step && <Svg d={ICONS.check} size={11} width={3} />}</span>
+            <span className="dx-dot">{i < step && <Svg d={ICONS.check} size={12} width={3.2} />}</span>
             {i === step && job.row.step && i === 0 ? job.row.step : s}
           </li>
         ))}
@@ -111,7 +111,7 @@ export function ProgressSteps({ job }: { job: ExportJob }) {
 function FileBox({ job, sub }: { job: ExportJob; sub: string }) {
   return (
     <div className="dx-file">
-      <FormatBadge format={job.body.format} size={32} />
+      <FormatBadge format={job.body.format} size={40} />
       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
         <b data-testid="export-job-file">{job.row.fileName}</b>
         <span>{sub}</span>
@@ -137,6 +137,7 @@ export function JobDialog({ job, layout, actions }: { job: ExportJob; layout: Do
         label="Export"
         title="Export"
         subtitle={job.title}
+        job="plain"
         onClose={actions.onKeepWorking}
         footer={
           <>
@@ -179,6 +180,7 @@ export function JobDialog({ job, layout, actions }: { job: ExportJob; layout: Do
         title="Export"
         subtitle={job.title}
         icon={ICONS.check}
+        job="hero"
         onClose={actions.onClose}
         footer={
           <>
@@ -193,13 +195,9 @@ export function JobDialog({ job, layout, actions }: { job: ExportJob; layout: Do
         }
       >
         <div data-testid="export-ready" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700 }}>
-              Your {job.row.fileName?.endsWith('.zip') ? 'zip' : f} is ready
-            </div>
-            <p className="dx-line" style={{ marginTop: 2 }}>
-              The download started. If it did not, press Download.
-            </p>
+          <div className="dx-hero-text">
+            <div className="dx-hero-title">Your {job.row.fileName?.endsWith('.zip') ? 'zip' : f} is ready</div>
+            <p className="dx-hero-sub">The download started. If it did not, press Download.</p>
           </div>
           <FileBox
             job={job}
@@ -224,7 +222,7 @@ export function JobDialog({ job, layout, actions }: { job: ExportJob; layout: Do
             </button>
           </div>
           {isPaged(job.body.format) && job.embeds > 0 && (
-            <p className="dx-line">
+            <p className="dx-line dx-line-note">
               {job.embeds === 1 ? '1 embed is' : `${job.embeds} embeds are`} exported as pictures.
             </p>
           )}
@@ -242,6 +240,7 @@ export function JobDialog({ job, layout, actions }: { job: ExportJob; layout: Do
         subtitle={job.title}
         tone="amber"
         icon={ICONS.stop}
+        job="hero"
         onClose={actions.onClose}
         footer={
           <>
@@ -258,9 +257,9 @@ export function JobDialog({ job, layout, actions }: { job: ExportJob; layout: Do
           </>
         }
       >
-        <div data-testid="export-cancelled">
-          <div style={{ fontSize: 15, fontWeight: 700 }}>Export cancelled</div>
-          <p className="dx-line" style={{ marginTop: 4 }}>
+        <div data-testid="export-cancelled" className="dx-hero-text">
+          <div className="dx-hero-title">Export cancelled</div>
+          <p className="dx-hero-msg">
             Nothing was downloaded and your pages are not changed. It is listed in History as cancelled.
           </p>
         </div>
@@ -279,6 +278,7 @@ export function JobDialog({ job, layout, actions }: { job: ExportJob; layout: Do
       subtitle={job.title}
       tone="red"
       icon={ICONS.alert}
+      job="hero"
       onClose={actions.onClose}
       footer={
         <>
@@ -301,8 +301,10 @@ export function JobDialog({ job, layout, actions }: { job: ExportJob; layout: Do
       }
     >
       <div data-testid="export-failed" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ fontSize: 15, fontWeight: 700 }}>The export did not finish</div>
-        <p className="dx-line">It stopped {where}. Nothing was downloaded and your pages are not changed.</p>
+        <div className="dx-hero-text">
+          <div className="dx-hero-title">The export did not finish</div>
+          <p className="dx-hero-msg">It stopped {where}. Nothing was downloaded and your pages are not changed.</p>
+        </div>
         {job.row.error && (
           <details className="dx-details">
             <summary>Details</summary>
@@ -349,6 +351,7 @@ export function TooBigDialog({
       subtitle={title}
       tone="amber"
       icon={ICONS.alert}
+      job="hero"
       onClose={onCancel}
       footer={
         <>
@@ -371,11 +374,13 @@ export function TooBigDialog({
       }
     >
       <div data-testid="export-too-big" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ fontSize: 15, fontWeight: 700 }}>This is too big to export in one go</div>
-        <p className="dx-line">
-          With pictures and videos it comes to about {fmtSize(size)}. The limit is {fmtSize(limit)}. Pick a way to make
-          it smaller.
-        </p>
+        <div className="dx-hero-text">
+          <div className="dx-hero-title">This is too big to export in one go</div>
+          <p className="dx-hero-msg">
+            With pictures and videos it comes to about {fmtSize(size)}. The limit is {fmtSize(limit)}. Pick a way to
+            make it smaller.
+          </p>
+        </div>
         <div className="dx-sizes">
           <div className="dx-over">
             <b data-testid="export-size">{fmtSize(size)}</b>
@@ -436,66 +441,69 @@ export function ExportCards({
     <div className={`dx-cards docs-root${phone ? ' dx-cards-phone' : ''}`} data-testid="export-cards">
       {jobs.map((j) => (
         <div key={j.row.id} className="dx-card" role="status" data-testid="export-card" data-state={j.row.state}>
-          <FormatBadge format={j.body.format} size={30} />
+          {j.row.state === 'running' ? (
+            <FormatBadge format={j.body.format} size={36} />
+          ) : (
+            <span className={`dx-card-ico${j.row.state === 'ready' ? '' : ' dx-card-ico-red'}`}>
+              <Svg
+                d={j.row.state === 'ready' ? ICONS.check : ICONS.alert}
+                size={18}
+                width={j.row.state === 'ready' ? 2.6 : 2.2}
+              />
+            </span>
+          )}
           <div className="dx-card-main">
             {j.row.state === 'running' ? (
               <>
-                <div>
-                  <b>Exporting {j.title}</b>
+                <b>Exporting {j.title}</b>
+                <span className="dx-card-sub">
                   {j.pages} {j.pages === 1 ? 'page' : 'pages'}. You can keep working.
-                </div>
+                </span>
                 <CardBar job={j} />
-                <div>
-                  <button
-                    type="button"
-                    className="st-btn st-btn-sm"
-                    onClick={() => onStop(j)}
-                    data-testid="export-card-stop"
-                  >
-                    Stop
-                  </button>
-                </div>
               </>
             ) : j.row.state === 'ready' ? (
               <>
-                <div>
-                  <b>Your export is ready</b>
+                <b>Your export is ready</b>
+                <span className="dx-card-sub">
                   {phone && j.row.fileName?.endsWith('.zip') ? 'The zip' : j.row.fileName} · {fmtSize(j.row.size)}
-                </div>
-                <div>
-                  <button
-                    type="button"
-                    className="st-btn st-btn-sm st-btn-primary"
-                    onClick={() => onDownload(j)}
-                    data-testid="export-card-download"
-                  >
-                    <Svg d={ICONS.download} size={13} /> Download
-                  </button>
-                </div>
+                </span>
               </>
             ) : (
               <>
-                <div>
-                  <b>The export did not finish</b>
+                <b>The export did not finish</b>
+                <span className="dx-card-sub">
                   {j.row.step
                     ? `It stopped while ${j.row.step.toLowerCase()}.`
                     : 'It stopped before the file was ready.'}
-                </div>
-                <div>
-                  <button
-                    type="button"
-                    className="st-btn st-btn-sm"
-                    onClick={() => onExportAgain(j)}
-                    data-testid="export-card-again"
-                  >
-                    Export again
-                  </button>
-                </div>
+                </span>
               </>
             )}
           </div>
+          {j.row.state === 'running' ? (
+            <button type="button" className="dx-card-stop" onClick={() => onStop(j)} data-testid="export-card-stop">
+              Stop
+            </button>
+          ) : j.row.state === 'ready' ? (
+            <button
+              type="button"
+              className="st-btn st-btn-primary dx-card-btn"
+              onClick={() => onDownload(j)}
+              data-testid="export-card-download"
+            >
+              <Svg d={ICONS.download} size={14} /> Download
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="st-btn dx-card-btn"
+              onClick={() => onExportAgain(j)}
+              data-testid="export-card-again"
+            >
+              Export again
+            </button>
+          )}
           {j.row.state !== 'running' && (
-            <button type="button" className="dk-icobtn" aria-label="Dismiss" onClick={() => onDismiss(j)}>
+            <button type="button" className="dk-icobtn dx-card-x" aria-label="Dismiss" onClick={() => onDismiss(j)}>
               <Svg d={ICONS.close} size={14} />
             </button>
           )}

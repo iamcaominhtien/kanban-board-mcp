@@ -301,7 +301,7 @@ describe('suggestions on the page', () => {
     expect(screen.getByTestId('sg-count').textContent).toBe('3 of 3');
   });
 
-  it('a whole object has a Before / After switch', async () => {
+  it('a whole object shows Before and After side by side', async () => {
     const embed = (html: string): RichDoc => ({
       type: 'htmlEmbed',
       attrs: { blockId: 'b-2', html, title: 'Countdown' },
@@ -310,10 +310,8 @@ describe('suggestions on the page', () => {
     setup();
     const [block] = await screen.findAllByTestId('sg-block');
     expect(within(block).getByTestId('sg-label').textContent).toBe('Embed replaced');
-    const after = within(block).getByRole('button', { name: 'After' });
-    expect(after.getAttribute('aria-pressed')).toBe('true');
-    fireEvent.click(within(block).getByRole('button', { name: 'Before' }));
-    expect(within(block).getByRole('button', { name: 'Before' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(block).getByTestId('sg-side-before').textContent).toContain('Before');
+    expect(within(block).getByTestId('sg-side-after').textContent).toContain('After');
   });
 
   it('phone: a Review chip per block opens its sheet', async () => {

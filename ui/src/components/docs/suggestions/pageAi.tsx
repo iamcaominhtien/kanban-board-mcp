@@ -14,6 +14,7 @@ import { useToast } from '../../Toast';
 import { Icon } from '../Icon';
 import { mergeSettings } from '../pageSettings';
 import { useSetTeamApply, useTeamApply, type AiApply } from './api';
+import { SgIcon, Spark } from './sgIcons';
 import './suggestions.css';
 
 /** The page's own `aiApply`: null when the team's setting applies. */
@@ -109,13 +110,12 @@ export function AiChangesItems({
         onClick={() => setOpen((v) => !v)}
         style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', fontFamily: 'inherit' }}
       >
-        <span style={{ color: '#5B6B60', display: 'flex' }}>
-          <Icon name="i28" size={15} strokeWidth={1.8} />
+        <span style={{ color: '#5B6B60', display: 'inline-flex', width: 18, justifyContent: 'center' }}>
+          <SgIcon name="wand" size={15} />
         </span>
-        <span>AI changes</span>
-        <span style={{ marginLeft: 'auto', fontSize: 12, color: '#5B6B60' }}>
-          {own ? APPLY_LABEL[own] : 'Team default'}
-        </span>
+        <span style={{ flex: 1 }}>AI changes</span>
+        <span style={{ fontSize: 12, color: '#5B6B60' }}>{own ? APPLY_LABEL[own] : 'Team default'}</span>
+        <SgIcon name={open ? 'chevDown' : 'chevRight'} size={12} sw={2.4} color="#5B6B60" />
       </button>
       {open && (
         <div className="sg-menu-sub" role="group" aria-label="When a team changes this page">
@@ -128,8 +128,11 @@ export function AiChangesItems({
             data-testid="ai-apply-suggest"
             onClick={() => choose('suggest')}
           >
-            Suggest first
-            <small>Changes wait for you to accept them.</small>
+            <span className="sg-radio" aria-hidden="true" />
+            <span>
+              <span className="sg-menu-opt-label">Suggest first</span>
+              <small>Changes wait for you to accept them.</small>
+            </span>
           </button>
           <button
             type="button"
@@ -139,19 +142,24 @@ export function AiChangesItems({
             data-testid="ai-apply-direct"
             onClick={() => choose('direct')}
           >
-            Apply directly
-            <small>Saved at once. Undo is in History.</small>
+            <span className="sg-radio" aria-hidden="true" />
+            <span>
+              <span className="sg-menu-opt-label">Apply directly</span>
+              <small>Saved at once. Undo is in History.</small>
+            </span>
           </button>
           <button
             type="button"
             role="menuitemradio"
             aria-checked={own === null}
-            className="sg-menu-opt"
+            className="sg-menu-opt sg-menu-default"
             data-testid="ai-apply-default"
             onClick={() => choose(null)}
           >
-            Team default: {APPLY_LABEL[dflt]}
-            <small>Change it in Settings › Docs.</small>
+            <span className="sg-radio" aria-hidden="true" />
+            <span>
+              Team default: {APPLY_LABEL[dflt]} · <span className="sg-menu-link">Change in Settings</span>
+            </span>
           </button>
         </div>
       )}
@@ -168,8 +176,8 @@ export function AiChangesItems({
         }}
         style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', fontFamily: 'inherit' }}
       >
-        <span style={{ color: '#5B6B60', display: 'flex' }}>
-          <Icon name="lock" size={15} strokeWidth={1.8} />
+        <span style={{ color: '#5B6B60', display: 'inline-flex', width: 18, justifyContent: 'center' }}>
+          <SgIcon name="lock" size={15} />
         </span>
         <span>Not for AI teams</span>
         {kept && (
@@ -203,10 +211,10 @@ export function TeamApplySettings({
   if (!teams.length) return null;
   const map = q.data?.aiApply ?? {};
   return (
-    <div data-testid="sg-team-apply" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div data-testid="sg-team-apply" style={{ display: 'flex', flexDirection: 'column' }}>
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#1E2A22' }}>How teams change pages</div>
-        <div style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.5 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22' }}>How teams change pages</div>
+        <div style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.5, margin: '2px 0 4px' }}>
           Suggest first: a team’s edits wait for you to accept them. Apply directly: they are saved at once and Undo is
           in History. A page can override this in its menu. Pages a team wrote itself are always applied directly.
         </div>
@@ -214,9 +222,15 @@ export function TeamApplySettings({
       {teams.map((t) => {
         const v: AiApply = map[t.id] ?? 'suggest';
         return (
-          <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: '#1E2A22', fontWeight: 600 }}>{t.name}</span>
-            <span className="sg-switch" role="radiogroup" aria-label={`How ${t.name} changes pages`}>
+          <div key={t.id} className="sg-team-row">
+            <span className="sg-team-badge" aria-hidden="true">
+              <SgIcon name="agent" size={15} />
+              <span className="sg-team-badge-ai">
+                <Spark size={9} color="#fff" />
+              </span>
+            </span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: '#1E2A22', fontWeight: 700 }}>{t.name}</span>
+            <span className="sg-switch sg-switch-team" role="radiogroup" aria-label={`How ${t.name} changes pages`}>
               {(['suggest', 'direct'] as const).map((k) => (
                 <button
                   key={k}
@@ -306,6 +320,10 @@ export function BlockLockProvider({
 
 const SAFE_ID = /^[\w-]{1,64}$/;
 
+/** The board's white lock (11 px, stroke 2.4) as a data URI for the chip of a locked block. */
+const LOCK_SVG =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='9' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E";
+
 /**
  * The small "Locked for teams" mark on locked blocks, in the reader and in the editor (a style keyed by block id).
  * @param props.ids - The locked block ids.
@@ -313,10 +331,12 @@ const SAFE_ID = /^[\w-]{1,64}$/;
 export function LockMarks({ ids }: { ids: readonly string[] }) {
   const sel = ids.filter((id) => SAFE_ID.test(id)).map((id) => `[data-block-id="${id}"]`);
   if (!sel.length) return null;
-  const on = sel.join(',');
+  // inside the reader or the editor, so the frame's margin wins over the text's own margins
+  const on = sel.map((x) => `:is(.dk-rich, .ProseMirror) ${x}`).join(',');
   const mark = sel.map((s) => `${s}:not(.dk-changed)::after`).join(',');
+  // the board's frame around a locked block (1px #C7D2CB, radius 10, padding 12, #FBFCFB) and its dark chip
   return (
-    <style data-testid="sg-lock-marks">{`${on}{position:relative;box-shadow:-10px 0 0 -7px #C7D2CB}
-${mark}{content:'Locked for teams';position:absolute;top:-8px;right:0;font:700 10px/16px var(--font-ui,'Plus Jakarta Sans',sans-serif);padding:0 6px;border-radius:5px;background:#F1F3F1;color:#5B6B60;pointer-events:none}`}</style>
+    <style data-testid="sg-lock-marks">{`${on}{position:relative;box-sizing:border-box;border:1px solid #C7D2CB;border-radius:10px;padding:12px;background:#FBFCFB;margin-top:18px}
+${mark}{content:'Locked for teams';position:absolute;left:10px;top:-11px;height:22px;box-sizing:border-box;display:inline-flex;align-items:center;font:700 11px/22px var(--font-ui,'Plus Jakarta Sans',sans-serif);font-style:normal;padding:0 8px 0 24px;border-radius:6px;background:#1E2A22 url("${LOCK_SVG}") no-repeat 8px center/11px 11px;color:#fff;letter-spacing:0;text-transform:none;pointer-events:none;z-index:2}`}</style>
   );
 }

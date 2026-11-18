@@ -1083,7 +1083,6 @@ export function DocsPageView({
                   onCompare={onCompare}
                 />
               )}
-              <ReviewBar />
               {!offline && !older && (
                 <div style={{ marginBottom: 16 }}>
                   <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />
@@ -1113,6 +1112,7 @@ export function DocsPageView({
                 {pageInfo}
                 <SuggestionChip />
               </div>
+              <ReviewBar />
               {!offline && !older && aiOn && (
                 <div style={{ marginTop: 16 }}>
                   <SummaryBlock view={aiView} />

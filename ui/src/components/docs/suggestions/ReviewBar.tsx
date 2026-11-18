@@ -5,27 +5,55 @@
  * list sheet and the sheet of one suggestion.
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { absoluteTime, relativeTime } from '../../../utils/relativeTime';
-import { LineIcon } from '../../ui/LineIcon';
 import { BottomSheet } from '../DocsSheets';
-import { ModalShell, Spacer } from '../docsShared';
+import { DOCS_SCRIM, useEscape } from '../docsShared';
 import type { DocsSuggestion } from './api';
 import { authorsOf, chipLine, describeSuggestion, placeName, suggestionsWord } from './describe';
-import { ChangeChip, ChangeTags, STALE_NOTE, StaleNote, SuggestionActions, SuggestionBody } from './SuggestionFrame';
+import { SgIcon, Spark, rowIcon, type SgIconName } from './sgIcons';
+import { ChangeTags, ErrorMsg, StaleMsg, StaleNote, SuggestionActions, SuggestionBody } from './SuggestionFrame';
 import { useReview, type Review } from './useSuggestionReview';
 import './suggestions.css';
 
 const latest = (list: DocsSuggestion[]) => list.reduce((a, s) => (s.createdAt > a ? s.createdAt : a), '');
 
-/** The header chip: what the team suggested and when; quiet once nothing waits. */
+/**
+ * The header chip: what the team suggested and when; quiet once nothing waits. Once everything was settled while
+ * the page is open, the quiet chip opens a card with what was decided, the run's Report and the changes.
+ */
 export function SuggestionChip() {
   const review = useReview();
+  const settled = review?.settled ?? null;
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLSpanElement>(null);
+  // a fresh settlement opens its card once
+  useEffect(() => setOpen(!!settled), [settled]);
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e: MouseEvent) => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown, true);
+    return () => document.removeEventListener('mousedown', onDown, true);
+  }, [open]);
   if (!review) return null;
   if (!review.list.length) {
     return (
-      <span className="sg-chip sg-chip-quiet" data-testid="sg-chip-quiet">
-        <span>No suggestions waiting</span>
+      <span className="sg-hchip-wrap" ref={wrap}>
+        <button
+          type="button"
+          className="sg-hchip sg-hchip-quiet"
+          data-testid="sg-chip-quiet"
+          aria-expanded={settled ? open : undefined}
+          disabled={!settled}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <Spark size={13} color="#5B6B60" />
+          <span>No suggestions waiting</span>
+          {settled && <SgIcon name={open ? 'chevUp' : 'chevDown'} size={12} sw={2.6} color="#5B6B60" />}
+        </button>
+        {settled && open && <SettledNote review={review} />}
       </span>
     );
   }
@@ -33,7 +61,7 @@ export function SuggestionChip() {
   return (
     <button
       type="button"
-      className="sg-chip"
+      className={`sg-hchip${review.layout === 'phone' ? ' sg-hchip-touch' : ''}`}
       data-testid="sg-chip"
       title={when ? absoluteTime(when) : undefined}
       onClick={() => {
@@ -41,28 +69,84 @@ export function SuggestionChip() {
         else review.focus(review.list[review.current]?.id ?? review.list[0].id);
       }}
     >
-      <LineIcon name="sparkle" size={13} />
+      <Spark size={13} color="#5B3AA6" />
       <span>
         {chipLine(review.list)}
-        {when ? ` · ${relativeTime(when)}` : ''}
+        {when && review.layout !== 'phone' ? ` · ${relativeTime(when)}` : ''}
       </span>
+      <SgIcon name="chevDown" size={12} sw={2.6} color="#5B3AA6" />
     </button>
   );
 }
 
-/** One row of a list of suggestions: where it is and what it does. */
-function Row({ s, review }: { s: DocsSuggestion; review: Review }) {
+/** What a row says a suggestion does: its first formatting change ("Alignment: left → centre") or its label. */
+function rowWhat(s: DocsSuggestion): { icon: SgIconName; what: string; change: string } {
   const view = describeSuggestion(s);
+  const c = view.changes[0];
+  const type = (view.after ?? view.before)?.type;
+  const icon = rowIcon(view.label === 'Text edited' ? null : (c?.what ?? null), type);
+  const change = c
+    ? `${c.what}: ${c.from} → ${c.to}`
+    : view.label === 'New block' && view.detail
+      ? `New ${view.detail.toLowerCase()}`
+      : view.label;
+  return { icon, what: view.label === 'Format' && c ? c.what : view.label, change };
+}
+
+/** One row of a confirmation: the block's icon, where it is, and what it does (or that it changed since). */
+function Row({ s, review }: { s: DocsSuggestion; review: Review }) {
+  const r = rowWhat(s);
   return (
-    <>
-      <b>{placeName(s, review.doc)}</b>
+    <li className="sg-row">
+      <SgIcon name={r.icon} size={14} color="#5B3AA6" />
+      <span className="sg-row-place">{placeName(s, review.doc)}</span>
       {s.stale ? (
         <span className="sg-tag sg-tag-stale">Changed since the team wrote it</span>
-      ) : view.changes[0] ? (
-        <ChangeChip change={view.changes[0]} />
-      ) : null}
-      <span className="sg-row-what">{view.detail && view.label === 'New block' ? view.detail : view.label}</span>
-    </>
+      ) : (
+        <span className="sg-row-what">{r.what}</span>
+      )}
+    </li>
+  );
+}
+
+/**
+ * The small card of a confirmation over the page (Accept all, Reject all): a title, a line under it, the rows and
+ * the two buttons; Escape or a click outside cancels.
+ */
+function ConfirmCard({
+  label,
+  title,
+  sub,
+  testId,
+  onClose,
+  children,
+  footer,
+}: {
+  label: string;
+  title: string;
+  sub: ReactNode;
+  testId: string;
+  onClose: () => void;
+  children: ReactNode;
+  footer: ReactNode;
+}) {
+  useEscape(onClose);
+  return (
+    <div className="sg-confirm-scrim docs-root" style={{ background: DOCS_SCRIM }} onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        className="sg-confirm"
+        data-testid={testId}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sg-confirm-title">{title}</div>
+        <div className="sg-confirm-sub">{sub}</div>
+        {children}
+        <div className="sg-confirm-foot">{footer}</div>
+      </div>
+    </div>
   );
 }
 
@@ -71,26 +155,25 @@ function ConfirmAcceptAll({ review }: { review: Review }) {
   const fresh = review.list.filter((s) => !s.stale);
   const stale = review.list.length - fresh.length;
   return (
-    <ModalShell
-      width={460}
-      ariaLabel="Accept all suggestions"
+    <ConfirmCard
+      label="Accept all suggestions"
       title={`Accept ${fresh.length} of ${suggestionsWord(review.list.length)}?`}
-      subtitle={`They are saved as v${review.page.version + 1}. Undo is in History.`}
+      sub={`They are saved as v${review.page.version + 1}. Undo is in History.`}
       onClose={() => review.setConfirm(null)}
       testId="sg-confirm-accept"
       footer={
         <>
-          <Spacer />
-          <button type="button" className="st-btn" onClick={() => review.setConfirm(null)}>
+          <button type="button" className="sg-btn sg-btn-dlg" onClick={() => review.setConfirm(null)}>
             Cancel
           </button>
           <button
             type="button"
-            className="st-btn st-btn-primary"
+            className="sg-btn sg-btn-dlg sg-btn-primary"
             disabled={!fresh.length || review.busy === 'all'}
             data-testid="sg-confirm-accept-yes"
             onClick={() => void review.acceptAll()}
           >
+            <SgIcon name="check" size={14} sw={2.4} />
             {review.busy === 'all' ? 'Accepting…' : `Accept ${fresh.length}`}
           </button>
         </>
@@ -98,18 +181,19 @@ function ConfirmAcceptAll({ review }: { review: Review }) {
     >
       <ul className="sg-rows">
         {review.list.map((s) => (
-          <li key={s.id} className="sg-row">
-            <Row s={s} review={review} />
-          </li>
+          <Row key={s.id} s={s} review={review} />
         ))}
       </ul>
       {stale > 0 && (
-        <p className="sg-msg sg-msg-stale" data-testid="sg-confirm-stale">
-          {stale} changed since the team wrote it. {stale === 1 ? 'That one stays' : 'Those stay'} as a suggestion for
-          you to look at.
-        </p>
+        <div className="sg-msg sg-msg-stale" data-testid="sg-confirm-stale">
+          <SgIcon name="warning" size={14} sw={2.2} color="#8A5A00" />
+          <div>
+            <b>{stale} changed since the team wrote it.</b> {stale === 1 ? 'That one stays' : 'Those stay'} as a
+            suggestion for you to look at.
+          </div>
+        </div>
       )}
-    </ModalShell>
+    </ConfirmCard>
   );
 }
 
@@ -117,68 +201,85 @@ function ConfirmAcceptAll({ review }: { review: Review }) {
 function ConfirmRejectAll({ review }: { review: Review }) {
   const ticket = review.ticketOf(review.list[0]?.runId ?? null);
   return (
-    <ModalShell
-      width={460}
-      ariaLabel="Reject all suggestions"
-      iconTone="red"
+    <ConfirmCard
+      label="Reject all suggestions"
       title={`Reject all ${suggestionsWord(review.list.length)}?`}
+      sub={`The page stays as it is. The team’s changes are discarded; its run and Report stay on ${ticket ?? 'its ticket'}. To keep one, accept it first, then reject the rest.`}
       onClose={() => review.setConfirm(null)}
       testId="sg-confirm-reject"
       footer={
         <>
-          <Spacer />
-          <button type="button" className="st-btn" onClick={() => review.setConfirm(null)}>
+          <button type="button" className="sg-btn sg-btn-dlg" onClick={() => review.setConfirm(null)}>
             Cancel
           </button>
           <button
             type="button"
-            className="st-btn st-btn-danger"
+            className="sg-btn sg-btn-dlg sg-btn-danger"
             disabled={review.busy === 'all'}
             data-testid="sg-confirm-reject-yes"
             onClick={() => void review.rejectAll()}
           >
+            <SgIcon name="close" size={14} sw={2.4} />
             {review.busy === 'all' ? 'Rejecting…' : 'Reject all'}
           </button>
         </>
       }
     >
-      <p style={{ margin: 0, fontSize: 13.5, color: '#3A4A3E', lineHeight: 1.5 }}>
-        The page stays as it is. The team’s changes are discarded; its run and Report stay on {ticket ?? 'its ticket'}.
-        To keep one, accept it first, then reject the rest.
-      </p>
       <ul className="sg-rows">
         {review.list.map((s) => (
-          <li key={s.id} className="sg-row">
-            <Row s={s} review={review} />
-          </li>
+          <Row key={s.id} s={s} review={review} />
         ))}
       </ul>
-    </ModalShell>
+    </ConfirmCard>
+  );
+}
+
+/** The head of a phone sheet: its title and a green text button (Done, Cancel) or a count. */
+export function SheetHead({ title, action, onAction }: { title: string; action: string; onAction?: () => void }) {
+  return (
+    <div className="sg-sheet-head">
+      <span>{title}</span>
+      {onAction ? (
+        <button type="button" className="sg-sheet-act" onClick={onAction}>
+          {action}
+        </button>
+      ) : (
+        <span className="sg-sheet-act">{action}</span>
+      )}
+    </div>
   );
 }
 
 /** Phone: every suggestion in a list; a tap jumps to it. */
 function ListSheet({ review }: { review: Review }) {
+  const label = `${review.list.length} change${review.list.length === 1 ? '' : 's'}`;
   return (
-    <BottomSheet
-      label={`${review.list.length} change${review.list.length === 1 ? '' : 's'}`}
-      onClose={() => review.setListOpen(false)}
-      testId="sg-list"
-    >
-      <div className="sg-rows" style={{ marginTop: 0 }}>
-        {review.list.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            className="sg-row"
-            onClick={() => {
-              review.setListOpen(false);
-              review.focus(s.id);
-            }}
-          >
-            <Row s={s} review={review} />
-          </button>
-        ))}
+    <BottomSheet label={label} onClose={() => review.setListOpen(false)} testId="sg-list" hideTitle>
+      <SheetHead title={label} action="Done" onAction={() => review.setListOpen(false)} />
+      <div className="sg-list">
+        {review.list.map((s) => {
+          const r = rowWhat(s);
+          return (
+            <button
+              key={s.id}
+              type="button"
+              className="sg-list-row"
+              onClick={() => {
+                review.setListOpen(false);
+                review.focus(s.id);
+              }}
+            >
+              <span className="sg-list-icon">
+                <SgIcon name={r.icon} size={16} />
+              </span>
+              <span className="sg-list-main">
+                <span className="sg-list-place">{placeName(s, review.doc)}</span>
+                <span className="sg-list-change">{s.stale ? 'Changed since the team wrote it' : r.change}</span>
+              </span>
+              <SgIcon name="chevRight" size={16} sw={2.2} color="#5B6B60" />
+            </button>
+          );
+        })}
       </div>
     </BottomSheet>
   );
@@ -191,41 +292,56 @@ function SuggestionSheet({ review, id }: { review: Review; id: string }) {
   if (!s) return null;
   const view = describeSuggestion(s);
   const error = review.errors[s.id];
+  const label = `Suggestion ${index + 1} of ${review.list.length}`;
   return (
-    <BottomSheet
-      label={`Suggestion ${index + 1} of ${review.list.length}`}
-      onClose={() => review.setSheet(null)}
-      testId="sg-sheet"
-    >
-      <div className="sg-sheet-body sg-touch">
-        <div className="sg-head">
-          <ChangeTags s={s} view={view} />
+    <BottomSheet label={label} onClose={() => review.setSheet(null)} testId="sg-sheet" hideTitle>
+      <SheetHead title={label} action="Done" onAction={() => review.setSheet(null)} />
+      <div className="sg-sheet-body sg-touch sg-phone">
+        <div className="sg-sheet-tags">
+          <ChangeTags s={s} view={view} big />
         </div>
-        <SuggestionBody view={view} rendered={null} sheet />
-        {s.stale && !review.looked.has(s.id) ? (
-          <div className="sg-msg sg-msg-stale">{STALE_NOTE}</div>
-        ) : (
-          <StaleNote s={s} view={view} review={review} />
+        <div className={view.mode === 'diff' ? 'sg-sheet-box' : undefined}>
+          <SuggestionBody view={view} rendered={null} sheet />
+        </div>
+        {s.stale && !review.looked.has(s.id) ? <StaleMsg /> : <StaleNote s={s} view={view} review={review} />}
+        {s.stale && !review.looked.has(s.id) && (
+          <button
+            type="button"
+            className="sg-btn sg-btn-look"
+            disabled={!review.canEdit}
+            data-testid="sg-look"
+            onClick={() => review.lookAt(s.id)}
+          >
+            <SgIcon name="eye" size={15.5} sw={2.4} />
+            Look at it
+          </button>
         )}
-        {error && (
-          <div className="sg-msg sg-msg-error" role="alert">
-            {error}
-          </div>
-        )}
+        {error && <ErrorMsg text={error} />}
         <div className="sg-sheet-actions">
           <SuggestionActions s={s} review={review} />
         </div>
         {review.list.length > 1 && (
-          <button type="button" className="sg-btn" onClick={() => review.step(1)}>
-            Next suggestion
-          </button>
+          <div className="sg-sheet-nav">
+            <button
+              type="button"
+              className="sg-nav-btn"
+              aria-label="Previous suggestion"
+              onClick={() => review.step(-1)}
+            >
+              <SgIcon name="chevLeft" size={18} />
+            </button>
+            <span>Swipe or tap for the next</span>
+            <button type="button" className="sg-nav-btn" aria-label="Next suggestion" onClick={() => review.step(1)}>
+              <SgIcon name="chevRight" size={18} />
+            </button>
+          </div>
         )}
       </div>
     </BottomSheet>
   );
 }
 
-/** Once everything is settled: what was decided, the run's Report and the changes. */
+/** Once everything is settled: what was decided, the run's Report and the changes (the quiet chip's card). */
 function SettledNote({ review }: { review: Review }) {
   const st = review.settled;
   if (!st) return null;
@@ -236,25 +352,27 @@ function SettledNote({ review }: { review: Review }) {
   const from = st.fromVersion;
   return (
     <div className="sg-settled docs-root" data-testid="sg-settled" role="status">
-      <LineIcon name="checkCircle" size={15} />
-      <span>
-        <b>No suggestions waiting.</b> Settled just now: {parts}. The last run was {st.author}
+      <div className="sg-settled-title">No suggestions waiting</div>
+      <div className="sg-settled-text">
+        Settled just now: {parts}. The last run was {st.author}
         {ticket ? ` on ${ticket}` : ''}.
-      </span>
-      {ticket && review.onOpenTicket && (
-        <button type="button" className="sg-btn" onClick={() => review.onOpenTicket?.(ticket)}>
-          Read its Report
-        </button>
-      )}
-      {from != null && st.accepted > 0 && review.onCompare ? (
-        <button type="button" className="sg-btn" onClick={() => review.onCompare?.(from, review.page.version)}>
-          See changes
-        </button>
-      ) : review.onHistory ? (
-        <button type="button" className="sg-btn" onClick={() => review.onHistory?.()}>
-          History
-        </button>
-      ) : null}
+      </div>
+      <div className="sg-settled-actions">
+        {ticket && review.onOpenTicket && (
+          <button type="button" className="sg-btn" onClick={() => review.onOpenTicket?.(ticket)}>
+            Read its Report
+          </button>
+        )}
+        {from != null && st.accepted > 0 && review.onCompare ? (
+          <button type="button" className="sg-btn" onClick={() => review.onCompare?.(from, review.page.version)}>
+            See changes
+          </button>
+        ) : review.onHistory ? (
+          <button type="button" className="sg-btn" onClick={() => review.onHistory?.()}>
+            History
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -267,7 +385,7 @@ export function ReviewBar() {
   const review = useReview();
   const stale = useMemo(() => review?.list.filter((s) => s.stale).length ?? 0, [review?.list]);
   if (!review) return null;
-  if (!review.list.length) return <SettledNote review={review} />;
+  if (!review.list.length) return null;
   const n = review.list.length;
   const phone = review.layout === 'phone';
   const touch = review.layout !== 'desktop';
@@ -282,28 +400,29 @@ export function ReviewBar() {
       >
         {!phone && (
           <span className="sg-bar-text">
-            <span style={{ display: 'flex', color: '#5B3AA6' }}>
-              <LineIcon name="sparkle" size={14} />
-            </span>
-            <span>
+            <Spark size={14} color="#5B3AA6" />
+            <span className="sg-bar-words">
               <b>{suggestionsWord(n)}</b> from {authorsOf(review.list)}
+              {stale > 0 && (
+                <>
+                  {' '}
+                  <span className="sg-tag sg-tag-stale" data-testid="sg-bar-stale">
+                    {stale} changed since the team wrote it
+                  </span>
+                </>
+              )}
             </span>
-            {stale > 0 && (
-              <span className="sg-bar-stale" data-testid="sg-bar-stale">
-                {stale} changed since the team wrote it
-              </span>
-            )}
           </span>
         )}
         <span className="sg-stepper">
           <button
             type="button"
-            className="sg-step"
+            className="sg-nav-btn"
             aria-label="Previous suggestion"
             disabled={n < 2}
             onClick={() => review.step(-1)}
           >
-            <LineIcon name="chevronLeft" size={14} />
+            <SgIcon name="chevLeft" size={15} />
           </button>
           <button
             type="button"
@@ -316,12 +435,12 @@ export function ReviewBar() {
           </button>
           <button
             type="button"
-            className="sg-step"
+            className="sg-nav-btn"
             aria-label="Next suggestion"
             disabled={n < 2}
             onClick={() => review.step(1)}
           >
-            <LineIcon name="chevronRight" size={14} />
+            <SgIcon name="chevRight" size={15} />
           </button>
         </span>
         {phone && <span style={{ flex: 1 }} />}
@@ -343,7 +462,7 @@ export function ReviewBar() {
               data-testid="sg-accept-all"
               onClick={() => review.setConfirm('accept-all')}
             >
-              <LineIcon name="check" size={13} />
+              {!phone && <SgIcon name="check" size={13} sw={2.4} />}
               Accept all
             </button>
           </>

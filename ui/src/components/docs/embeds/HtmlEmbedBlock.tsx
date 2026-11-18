@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { EmbIcon } from './embIcons';
 import { HtmlEmbedFrame, SandboxNote } from './HtmlEmbedFrame';
 import './embeds.css';
 
@@ -17,7 +18,7 @@ export function SourceView({ html }: { html: string }) {
         <span>Source · read only</span>
         <button
           type="button"
-          className="dk-emb-link"
+          className="st-btn st-btn-sm"
           onClick={() => {
             void navigator.clipboard?.writeText(html).then(() => {
               setCopied(true);
@@ -25,6 +26,7 @@ export function SourceView({ html }: { html: string }) {
             });
           }}
         >
+          <EmbIcon name="copy" size={12} sw={2.2} />
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
@@ -40,13 +42,23 @@ export function SourceView({ html }: { html: string }) {
   );
 }
 
+/** The "HTML" kind chip of the header. */
+export function HtmlKind() {
+  return (
+    <span className="dk-emb-kind">
+      <EmbIcon name="html" size={12} sw={2.2} />
+      HTML
+    </span>
+  );
+}
+
 /** The "HTML · title" header label. */
 export function HtmlChip({ title }: { title: string }) {
   return (
-    <span className="dk-emb-head-label">
-      <span className="dk-emb-kind">HTML</span>
+    <>
+      <HtmlKind />
       <span className="dk-emb-title">{title || 'HTML embed'}</span>
-    </span>
+    </>
   );
 }
 
@@ -74,19 +86,22 @@ export function HtmlEmbedBlock({ attrs, projectId, blockProps }: HtmlEmbedBlockP
     >
       <div className="dk-emb-head">
         <HtmlChip title={title} />
-        <button type="button" className="dk-emb-link" aria-pressed={source} onClick={() => setSource((v) => !v)}>
+        <button type="button" className="st-btn st-btn-sm" aria-pressed={source} onClick={() => setSource((v) => !v)}>
+          <EmbIcon name="code" size={12} sw={2.2} />
           {source ? 'Hide source' : 'View source'}
         </button>
       </div>
       <SandboxNote />
-      <HtmlEmbedFrame
-        html={html}
-        title={title}
-        height={height}
-        runScripts={!!attrs.runScripts}
-        projectId={projectId}
-        onViewSource={() => setSource(true)}
-      />
+      <div className="dk-emb-body">
+        <HtmlEmbedFrame
+          html={html}
+          title={title}
+          height={height}
+          runScripts={!!attrs.runScripts}
+          projectId={projectId}
+          onViewSource={() => setSource(true)}
+        />
+      </div>
       {source && <SourceView html={html} />}
     </div>
   );

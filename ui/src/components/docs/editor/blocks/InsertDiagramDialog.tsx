@@ -58,12 +58,13 @@ export function InsertDiagramDialog({
       title={replacing ? 'Replace diagram' : 'Insert diagram'}
       onClose={onClose}
       testId="insert-diagram"
+      width={400}
       footer={
         <>
-          <button type="button" className="dk-btn-ghost" onClick={onClose}>
+          <button type="button" className="st-btn st-btn-sm" onClick={onClose}>
             Cancel
           </button>
-          <button type="button" className="dk-btn-primary" disabled={!chosen} onClick={() => insert()}>
+          <button type="button" className="st-btn st-btn-primary st-btn-sm" disabled={!chosen} onClick={() => insert()}>
             {replacing ? 'Replace diagram' : 'Insert diagram'}
           </button>
         </>

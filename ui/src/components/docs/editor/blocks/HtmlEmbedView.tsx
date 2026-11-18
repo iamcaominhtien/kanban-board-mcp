@@ -11,12 +11,13 @@ import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { clearRemoved, useRemoved } from '../../embeds/cleanedHtml';
-import { HtmlChip, SourceView } from '../../embeds/HtmlEmbedBlock';
+import { HtmlChip, HtmlKind, SourceView } from '../../embeds/HtmlEmbedBlock';
+import { EmbIcon } from '../../embeds/embIcons';
 import { HtmlEmbedFrame, SandboxNote } from '../../embeds/HtmlEmbedFrame';
 import { HTML_EMBED_LIMIT, byteSize, kbOrMb, linesWith, listWords } from '../../embeds/htmlSandbox';
 import { useEditorEnv } from '../context';
 import { startDocUpload } from './docUpload';
-import { Seg, Toggle, useBlockLayout } from './ui';
+import { Panel, Seg, Toggle, useBlockLayout } from './ui';
 import '../../embeds/embeds.css';
 
 /** How long typing must stop before the preview (and the page) take the code (ms). */
@@ -109,6 +110,9 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
   const [shown, setShown] = useState(html);
   const [fullScreen, setFullScreen] = useState(false);
   const [source, setSource] = useState(false);
+  const [sizeAt, setSizeAt] = useState<DOMRect | null>(null);
+  const [menu, setMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const sent = useRef(html);
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const removed = useRemoved(blockId);
@@ -122,6 +126,23 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
     setDraft(html);
     setShown(html);
   }, [html]);
+
+  // the More menu closes on Esc or a click outside it
+  useEffect(() => {
+    if (!menu) return undefined;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Element | null;
+      if (menuRef.current?.contains(t) || t?.closest?.('[aria-haspopup="menu"]')) return;
+      setMenu(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenu(false);
+    document.addEventListener('mousedown', onDown, true);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown, true);
+      document.removeEventListener('keydown', onKey, true);
+    };
+  }, [menu]);
 
   // the preview and the page take the code once typing stops
   useEffect(() => {
@@ -171,12 +192,12 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
           <>
             <button
               type="button"
-              className="dk-btn-ghost"
+              className="st-btn st-btn-sm"
               onClick={() => (phone ? setFullScreen(true) : setTab('code'))}
             >
               Edit code
             </button>
-            <button type="button" className="dk-btn-ghost" onClick={attachAsFile}>
+            <button type="button" className="st-btn st-btn-sm" onClick={attachAsFile}>
               Attach as a file
             </button>
           </>
@@ -187,6 +208,7 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
 
   const removedNote = removed && editable && (
     <div className="dk-emb-bar dk-emb-bar-warn" role="status" data-testid="html-embed-removed">
+      <EmbIcon name="warn" size={15} sw={2.2} />
       <span>
         <strong>
           Saved. {removed.things.length === 1 ? '1 thing was' : `${removed.things.length} things were`} removed from the
@@ -218,56 +240,114 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
         aria-label="Close the note"
         onClick={() => blockId && clearRemoved(blockId)}
       >
-        ×
+        <EmbIcon name="x" size={14} />
       </button>
     </div>
   );
 
+  const sizeLabel = height == null ? 'Height: Auto' : `Height: ${height} px`;
   const footer = editable && (
     <div className="dk-emb-foot">
-      <span className="dk-emb-foot-group">
-        Height
-        <Seg
-          label="Height"
-          value={height == null ? 'auto' : 'fixed'}
-          onChange={(v) => updateAttributes({ height: v === 'auto' ? null : (height ?? 320) })}
-          options={[
-            { value: 'auto', label: 'Auto' },
-            { value: 'fixed', label: 'Fixed' },
-          ]}
-        />
-        {height != null && (
-          <input
-            className="dk-bp-input dk-emb-px"
-            type="number"
-            min={60}
-            max={4000}
-            aria-label="Height in px"
-            value={height}
-            onChange={(e) => {
-              const n = Math.round(Number(e.target.value));
-              if (Number.isFinite(n) && n >= 60) updateAttributes({ height: Math.min(4000, n) });
-            }}
-          />
-        )}
-      </span>
-      <Toggle label="Run scripts" checked={!!attrs.runScripts} onChange={(v) => updateAttributes({ runScripts: v })} />
+      {tab === 'code' && !phone ? (
+        <>
+          {draft === shown && (
+            <>
+              <EmbIcon name="check" size={12} sw={2.6} />
+              <span className="dk-emb-foot-ok">Saved</span>
+              <span aria-hidden="true">·</span>
+            </>
+          )}
+          <span>Preview updates when you stop typing</span>
+        </>
+      ) : (
+        <>
+          <EmbIcon name="size" size={12} />
+          <span>{sizeLabel}</span>
+          {!!attrs.runScripts && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>Scripts on</span>
+            </>
+          )}
+        </>
+      )}
       <span className={`dk-emb-size${bytes > HTML_EMBED_LIMIT ? ' over' : ''}`}>
         {lineCount} lines · {kbOrMb(bytes)} of 512 KB
       </span>
     </div>
   );
 
+  const sizePanel = sizeAt && (
+    <Panel title="Embed size" anchor={sizeAt} onClose={() => setSizeAt(null)} width={320} testId="html-embed-size">
+      <div className="dk-emb-sz">
+        <div className="dk-emb-sz-row">
+          <div className="dk-bp-label">Height</div>
+          <Seg
+            label="Height"
+            value={height == null ? 'auto' : 'fixed'}
+            onChange={(v) => updateAttributes({ height: v === 'auto' ? null : (height ?? 320) })}
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: 'fixed', label: 'Fixed' },
+            ]}
+          />
+          {height != null && (
+            <div className="dk-emb-sz-px">
+              <label className="dk-emb-px">
+                <input
+                  type="number"
+                  min={60}
+                  max={4000}
+                  aria-label="Height in px"
+                  value={height}
+                  onChange={(e) => {
+                    const n = Math.round(Number(e.target.value));
+                    if (Number.isFinite(n) && n >= 60) updateAttributes({ height: Math.min(4000, n) });
+                  }}
+                />
+                <small>px</small>
+              </label>
+              <span>Scrolls inside when taller</span>
+            </div>
+          )}
+        </div>
+        <Toggle
+          label="Run scripts"
+          checked={!!attrs.runScripts}
+          onChange={(v) => updateAttributes({ runScripts: v })}
+        />
+      </div>
+      <div className="dk-emb-sz-done">
+        <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={() => setSizeAt(null)}>
+          Done
+        </button>
+      </div>
+    </Panel>
+  );
+
+  const body =
+    tab === 'code' && editable && !phone ? (
+      <div className="dk-emb-split">
+        <CodeArea value={draft} onChange={setDraft} crossed={crossed} label="HTML code" areaRef={areaRef} />
+        <div className="dk-emb-live">
+          <div className="dk-emb-live-head">Live preview</div>
+          {frame}
+        </div>
+      </div>
+    ) : (
+      <div className="dk-emb-body">{frame}</div>
+    );
+
   return (
     <NodeViewWrapper
-      className={`dk-emb dk-html-embed dk-emb-edit${selected ? ' dk-emb-selected' : ''}`}
+      className={`dk-emb dk-html-embed dk-emb-edit${phone ? ' dk-emb-phone' : ''}${selected ? ' dk-emb-selected' : ''}`}
       data-testid="html-embed"
       contentEditable={false}
     >
       <div className="dk-emb-head" data-drag-handle="">
         {editable ? (
-          <span className="dk-emb-head-label">
-            <span className="dk-emb-kind">HTML</span>
+          <>
+            <HtmlKind />
             <input
               className="dk-emb-title-input"
               aria-label="Embed title"
@@ -275,12 +355,12 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
               value={title}
               onChange={(e) => updateAttributes({ title: e.target.value || null })}
             />
-          </span>
+          </>
         ) : (
           <HtmlChip title={title} />
         )}
         {editable && !phone && (
-          <div className="dk-bp-tabs dk-emb-tabs" role="tablist" aria-label="HTML embed">
+          <div className="dk-emb-tabs" role="tablist" aria-label="HTML embed">
             {(
               [
                 ['code', 'Code'],
@@ -300,56 +380,104 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
             ))}
           </div>
         )}
-        {editable && phone && (
-          <button type="button" className="dk-emb-link" onClick={() => setFullScreen(true)}>
-            Edit code
-          </button>
-        )}
         {!editable && (
-          <button type="button" className="dk-emb-link" onClick={() => setSource((v) => !v)}>
+          <button type="button" className="st-btn st-btn-sm" onClick={() => setSource((v) => !v)}>
+            <EmbIcon name="code" size={12} sw={2.2} />
             {source ? 'Hide source' : 'View source'}
           </button>
         )}
         {editable && (
-          <button type="button" className="dk-emb-link dk-emb-del" aria-label="Delete the embed" onClick={deleteNode}>
-            Delete
-          </button>
+          <div className="dk-emb-icons">
+            {!phone && (
+              <button
+                type="button"
+                className="dk-emb-ib"
+                aria-label="Embed size"
+                title="Embed size"
+                aria-expanded={!!sizeAt}
+                data-block-ui=""
+                onClick={(e) => setSizeAt(sizeAt ? null : e.currentTarget.getBoundingClientRect())}
+              >
+                <EmbIcon name="size" />
+              </button>
+            )}
+            <button
+              type="button"
+              className="dk-emb-ib"
+              aria-label="More"
+              title="More"
+              aria-haspopup="menu"
+              aria-expanded={menu}
+              onClick={() => setMenu((v) => !v)}
+            >
+              <EmbIcon name="more" size={phone ? 18 : 14} />
+            </button>
+          </div>
+        )}
+        {menu && (
+          <div ref={menuRef} className="dk-emb-menu" role="menu" aria-label="HTML embed">
+            {phone && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={(e) => {
+                  setMenu(false);
+                  setSizeAt(e.currentTarget.getBoundingClientRect());
+                }}
+              >
+                Embed size
+              </button>
+            )}
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setMenu(false);
+                attachAsFile();
+              }}
+            >
+              Attach as a file
+            </button>
+            <button type="button" role="menuitem" className="dk-emb-del" onClick={deleteNode}>
+              <EmbIcon name="trash" /> Delete the embed
+            </button>
+          </div>
         )}
       </div>
       <SandboxNote />
       {removedNote}
-      {tab === 'code' && editable && !phone ? (
-        <div className="dk-emb-split">
-          <CodeArea value={draft} onChange={setDraft} crossed={crossed} label="HTML code" areaRef={areaRef} />
-          <div className="dk-emb-live">
-            <div className="dk-emb-live-head">Live preview</div>
-            {frame}
-          </div>
-        </div>
-      ) : (
-        frame
-      )}
-      {tab === 'code' && editable && !phone && <div className="dk-emb-hint">Preview updates when you stop typing</div>}
+      {body}
       {footer}
+      {sizePanel}
       {source && <SourceView html={html} />}
+      {editable && phone && (
+        <div className="dk-emb-under">
+          <button type="button" className="st-btn" onClick={() => setFullScreen(true)}>
+            <EmbIcon name="code" size={15} sw={2.2} />
+            Edit code
+          </button>
+        </div>
+      )}
       {fullScreen &&
         createPortal(
           <div className="dk-emb-full" role="dialog" aria-label="Edit HTML" data-block-ui="">
             <div className="dk-emb-full-head">
               <strong>Edit HTML</strong>
-              <button type="button" className="dk-btn-primary" onClick={() => setFullScreen(false)}>
+              <button type="button" className="st-btn st-btn-primary" onClick={() => setFullScreen(false)}>
                 Done
               </button>
             </div>
-            <CodeArea
-              value={draft}
-              onChange={setDraft}
-              crossed={crossed}
-              label="HTML code"
-              areaRef={areaRef}
-              autoFocus
-            />
-            <SandboxNote />
+            <div className="dk-emb-full-body">
+              <CodeArea
+                value={draft}
+                onChange={setDraft}
+                crossed={crossed}
+                label="HTML code"
+                areaRef={areaRef}
+                autoFocus
+              />
+              <SandboxNote />
+            </div>
             <div className="dk-emb-symbols" role="toolbar" aria-label="Symbols">
               {SYMBOLS.map((s) => (
                 <button key={s} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => insert(s)}>

@@ -491,6 +491,13 @@ export default {
       await p.getByTestId('menu-ai-changes').click();
       await p.getByText('WHEN A TEAM CHANGES THIS PAGE').waitFor();
       await p.getByRole('menuitemradio', { name: /Team default: Suggest first/, checked: true }).waitFor();
+      // the board's radio rows (RichDocsAi1 frame 9): 8px 10px, a 16 px radio, the chosen one on #F1F8F3
+      const opt = await p.getByTestId('ai-apply-suggest').evaluate((el) => {
+        const cs = getComputedStyle(el); const r = el.querySelector('.sg-radio').getBoundingClientRect();
+        return { padding: cs.padding, radio: r.width };
+      });
+      s.note('AI changes option', JSON.stringify(opt));
+      if (opt.padding !== '8px 10px' || opt.radio !== 16) throw new Error('AI changes rows: ' + JSON.stringify(opt));
       await Promise.all([saved(), p.getByTestId('ai-apply-direct').click()]);
       if ((await settingsOf()).aiApply !== 'direct') throw new Error('aiApply was not saved: ' + JSON.stringify(await settingsOf()));
       await p.getByTestId('page-menu').click();
@@ -506,7 +513,7 @@ export default {
       await Promise.all([saved(), p.getByTestId('menu-not-for-ai').click()]);
       if ('notForAi' in (await settingsOf())) throw new Error('notForAi should be off again');
     });
-    await s.step('Ask the team on a selection: one purple button; the verbs, then Format this as…, Change tone, Translate', async () => {
+    await s.step('Ask the team on a selection: one purple button; the verbs, Change tone, Translate, Format this as…, the Ask line', async () => {
       const para = p.getByTestId('page-body').locator('.dk-rich p').first();
       await para.scrollIntoViewIfNeeded();
       const box = await para.boundingBox();
@@ -514,16 +521,28 @@ export default {
       await p.mouse.down();
       await p.mouse.move(box.x + 80, box.y + box.height / 2, { steps: 6 });
       await p.mouse.up();
+      const btn = await p.getByTestId('ask-team').evaluate((el) => ({ bg: getComputedStyle(el).backgroundColor, h: el.getBoundingClientRect().height }));
       await p.getByTestId('ask-team').click();
       const m = p.getByTestId('ask-team-menu');
       await m.getByText('Docs helper', { exact: true }).waitFor();
       await m.getByText('Changes arrive as suggestions here').waitFor();
-      for (const t of ['Improve', 'Shorten', 'Fix spelling', 'Ask…', 'Format this as…', 'Change tone', 'Translate']) {
+      for (const t of ['Rewrite', 'Shorten', 'Change tone', 'Fix grammar', 'Translate', 'Make a table', 'Format this as…']) {
         await m.getByRole('menuitem', { name: t, exact: true }).waitFor();
       }
+      await m.getByRole('textbox', { name: 'Ask the team to…' }).waitFor();
+      await m.getByText('This page is set to suggest first').waitFor();
       s.note('ask the team menu', await m.innerText());
+      // the board's numbers (RichDocsAi2 frames 28-29): a light purple button, a 260 px menu of 34 px rows
+      const look = await m.evaluate((el) => {
+        const row = el.querySelector('.sg-ask-item').getBoundingClientRect();
+        return { width: el.getBoundingClientRect().width, row: row.height, radius: getComputedStyle(el).borderRadius };
+      });
+      look.btn = btn.bg;
+      look.btnHeight = btn.h;
+      s.note('ask the team look', JSON.stringify(look));
+      if (look.width !== 260 || look.row !== 34 || look.btn !== 'rgb(239, 232, 251)' || look.radius !== '12px') throw new Error('Ask the team look: ' + JSON.stringify(look));
       await m.getByTestId('ask-team-format').click();
-      for (const t of ['Table', 'Bulleted list', 'Numbered list', 'Callout', 'Pull quote']) await m.getByRole('menuitem', { name: t, exact: true }).waitFor();
+      for (const t of ['Heading 2', 'Pull quote', 'Callout', 'Bulleted list', 'Numbered list', 'Task list', 'Two columns']) await m.getByRole('menuitem', { name: t, exact: true }).waitFor();
       await m.getByRole('menuitem', { name: '‹ Back' }).click();
       await m.getByTestId('ask-team-tone').click();
       for (const t of ['Friendly', 'Formal', 'Plain', 'Confident', 'Shorter sentences']) await m.getByRole('menuitem', { name: t, exact: true }).waitFor();
@@ -538,6 +557,10 @@ export default {
       await p.getByRole('navigation', { name: 'Settings pages' }).getByRole('button', { name: 'Docs', exact: true }).click();
       const g = p.getByRole('radiogroup', { name: 'How Docs helper changes pages' });
       await g.getByRole('radio', { name: 'Suggest first', checked: true }).waitFor();
+      // the board's segmented switch (RichDocsAi1 frame 10): a #EEF3EF track 250 px wide, 26 px buttons
+      const sw = await g.evaluate((el) => ({ bg: getComputedStyle(el).backgroundColor, width: el.getBoundingClientRect().width, h: el.querySelector('button').getBoundingClientRect().height }));
+      s.note('team switch', JSON.stringify(sw));
+      if (sw.bg !== 'rgb(238, 243, 239)' || sw.width !== 250 || sw.h !== 26) throw new Error('team switch: ' + JSON.stringify(sw));
       const saved = () => p.waitForResponse((r) => r.request().method() === 'PATCH' && /\/docs\/settings$/.test(r.url()), { timeout: 8000 });
       const [res] = await Promise.all([saved(), g.getByRole('radio', { name: 'Apply directly' }).click()]);
       s.note('team setting saved', `${res.status()} ${(await res.text()).slice(0, 300)}`);

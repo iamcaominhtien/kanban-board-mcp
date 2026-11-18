@@ -19,34 +19,44 @@
   cursor: pointer;
   font: inherit;
 }
+/* the board puts the mark 25 px past the text in a 34 px column; the page's right gutter here is 36 px, so the
+   mark sits 8 px past the text to stay inside it (and clear of an open drawer) */
 .dc-mark {
-  left: calc(100% + 14px);
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 11px;
-  background: #fbefc6;
-  color: #6b500c;
-  font-size: 11.5px;
-  font-weight: 700;
-  box-shadow: 0 0 0 1px #f0dba8;
-}
-.dc-mark.is-active {
+  left: calc(100% + 8px);
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 50%;
   background: #1e2a22;
   color: #fff;
-  box-shadow: none;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px #fff;
 }
+.dc-mark.is-active {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px #e8b93a;
+}
+/* two threads on one block: one mark with a small count on its corner */
 .dc-mark-count {
-  font-size: 10px;
-  font-weight: 600;
-  opacity: 0.8;
+  position: absolute;
+  right: -6px;
+  top: -8px;
+  padding: 0 4px;
+  border-radius: 999px;
+  border: 1.5px solid #fff;
+  background: #8a5a00;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.4;
 }
 .dc-marks-edge .dc-mark {
   left: auto;
   right: -8px;
-  min-width: 28px;
+  width: 28px;
   height: 28px;
-  border-radius: 14px;
 }
 .dc-mark-add {
   right: 8px;
@@ -65,29 +75,69 @@
 
 /* thread states */
 .dc-chip-amber {
-  background: #fef6e7;
+  padding: 1px 7px;
+  border-radius: 5px;
+  border: 1px solid #ebd3a4;
+  background: #fdf3e3;
   color: #8a5a00;
+  font-size: 11px;
 }
 .dc-quote.is-edited span {
-  border-bottom: 1.5px dashed #b4791e;
+  border-bottom: 1.5px dashed #e8b93a;
 }
 .dc-quote-now {
   font-size: 12px;
   color: #5b6b60;
   padding: 0 12px 4px 32px;
 }
+/* a whole-block comment: a 34 × 24 picture of the block, its kind and where (design D 18) */
+.dc-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.dc-block-thumb {
+  width: 34px;
+  height: 24px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1px solid #e3e8e5;
+  background: #eef3ef;
+  color: #5b6b60;
+}
+.dc-block-thumb.is-table {
+  border-color: #cbd5ce;
+  background: #e6f2ea;
+  color: #2e6f40;
+}
+.dc-block-thumb.is-embed {
+  border-color: #c9ddf0;
+  background: #f4f9fe;
+  color: #2f6fb0;
+}
 .dc-block-label {
-  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.35;
+  min-width: 0;
+}
+.dc-block-label > span {
+  color: #5b6b60;
 }
 .dc-state-note {
-  margin: 6px 12px 0;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: #fef6e7;
-  border: 1px solid #f0dba8;
-  font-size: 12px;
+  display: flex;
+  gap: 6px;
+  font-size: 11.5px;
   line-height: 1.45;
-  color: #3a4a3e;
+  color: #5b6b60;
+}
+.dc-state-note > svg {
+  flex: none;
+  margin-top: 1px;
 }
 
 /* phone: the list sheet and the full-screen thread */

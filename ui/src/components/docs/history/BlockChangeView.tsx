@@ -8,8 +8,8 @@
 
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import type { RichDoc } from '../../../types/docs';
+import { Icon } from '../Icon';
 import { RichBlocks } from '../RichDocView';
-import { blockText } from '../suggestions/describe';
 import {
   changeDetail,
   changeLabel,
@@ -31,15 +31,25 @@ export interface SideLabels {
 /** The colour class of a change's bar: green added, red removed, blue changed, grey moved. */
 const tone = (c: BlockChange) => (c.kind === 'changed' && c.moved ? 'changed' : c.kind);
 
+/** The mark before a formatting change: alignment, colour or highlight, style, the rest. */
+function chipIcon(what: string): string {
+  const w = what.toLowerCase();
+  if (w.includes('align') || w.includes('float') || w.includes('image')) return 'i42';
+  if (w.includes('colour') || w.includes('color') || w.includes('highlight')) return 'i15';
+  if (w.includes('style') || w.includes('heading')) return 'i47';
+  return 'i15';
+}
+
 /** One formatting change in words: "Alignment: left → centre". */
 function Chip({ what, from, to }: { what: string; from: string; to: string }) {
   return (
     <span className="hx-chip">
+      <Icon name={chipIcon(what)} size={12} strokeWidth={2} />
       {what}: <span className="hx-from">{from}</span>
       <span className="hx-arrow" aria-label="to">
         →
       </span>
-      <b>{to}</b>
+      <span className="hx-to">{to}</span>
     </span>
   );
 }
@@ -105,16 +115,44 @@ function Side({ node, empty = 'Not in this version' }: { node: RichDoc | null; e
   return <RichBlocks nodes={[node]} />;
 }
 
-/** Two columns, each with its version's label. */
-function Pair({ left, right, labels }: { left: ReactNode; right: ReactNode; labels: SideLabels }) {
+/**
+ * Before and after of one block. Inline (a table, an embed or an image changed as a whole): two cards, each with its
+ * version's tag, an arrow between them. Side by side: two plain cards in the page's two columns.
+ */
+function Pair({
+  left,
+  right,
+  labels,
+  columns,
+}: {
+  left: ReactNode;
+  right: ReactNode;
+  labels: SideLabels;
+  columns?: boolean;
+}) {
+  if (columns) {
+    return (
+      <div className="hx-pair hx-pair-cols">
+        <div className="hx-side hx-side-from">{left}</div>
+        <div className="hx-side hx-side-to">{right}</div>
+      </div>
+    );
+  }
   return (
     <div className="hx-pair">
-      <div>
-        <span className="hx-side-label">{labels.from}</span>
+      <div className="hx-side hx-side-from">
+        <div>
+          <span className="hx-vtag hx-side-label">{labels.from}</span>
+        </div>
         {left}
       </div>
-      <div>
-        <span className="hx-side-label">{labels.to}</span>
+      <span className="hx-pair-arrow" aria-hidden="true">
+        <Icon name="i29" size={18} strokeWidth={2.4} />
+      </span>
+      <div className="hx-side hx-side-to">
+        <div>
+          <span className="hx-vtag hx-vtag-to hx-side-label">{labels.to}</span>
+        </div>
         {right}
       </div>
     </div>
@@ -132,12 +170,23 @@ function InlineBody({ c, rendered, labels }: { c: BlockChange; rendered: ReactNo
 
 /** The block as the side-by-side comparison draws it: before on the left, after on the right. */
 function SideBody({ c, rendered, labels }: { c: BlockChange; rendered: ReactNode; labels: SideLabels }) {
-  if (c.kind === 'added') return <Pair labels={labels} left={<Side node={null} />} right={rendered} />;
-  if (c.kind === 'removed') return <Pair labels={labels} left={rendered} right={<Side node={null} />} />;
-  if (c.kind === 'changed' && c.draw === 'text') {
-    return <Pair labels={labels} left={<DiffText c={c} side="before" />} right={<DiffText c={c} side="after" />} />;
+  if (c.kind === 'added') return <Pair columns labels={labels} left={<Side node={null} />} right={rendered} />;
+  if (c.kind === 'removed') {
+    return (
+      <Pair
+        columns
+        labels={labels}
+        left={<div className="hx-removed-body">{rendered}</div>}
+        right={<Side node={null} />}
+      />
+    );
   }
-  return <Pair labels={labels} left={<Side node={c.before} />} right={rendered} />;
+  if (c.kind === 'changed' && c.draw === 'text') {
+    return (
+      <Pair columns labels={labels} left={<DiffText c={c} side="before" />} right={<DiffText c={c} side="after" />} />
+    );
+  }
+  return <Pair columns labels={labels} left={<Side node={c.before} />} right={rendered} />;
 }
 
 /** A phone card's body: Changes (as inline), Before or After. */
@@ -145,7 +194,7 @@ function PhoneBody({ c, rendered, labels }: { c: BlockChange; rendered: ReactNod
   const [tab, setTab] = useState<'changes' | 'before' | 'after'>('changes');
   return (
     <>
-      <div className="hx-switch" role="group" aria-label="Changes, before or after">
+      <div className="hx-switch hx-seg" role="group" aria-label="Changes, before or after">
         {(['changes', 'before', 'after'] as const).map((k) => (
           <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)}>
             {k === 'changes' ? 'Changes' : k === 'before' ? 'Before' : 'After'}
@@ -187,7 +236,7 @@ export function BlockChangeView({
   name?: string;
 }) {
   if (c.kind === 'same' && mode !== 'side-by-side') return <>{rendered}</>;
-  if (c.kind === 'same') return <Pair labels={labels} left={rendered} right={rendered} />;
+  if (c.kind === 'same') return <Pair columns labels={labels} left={rendered} right={rendered} />;
   return (
     <div
       className={`hx-block hx-${tone(c)}${active ? ' is-active' : ''}${mode === 'phone' ? ' hx-card' : ''}`}
@@ -195,11 +244,26 @@ export function BlockChangeView({
       data-testid="hx-change"
       data-kind={c.kind}
     >
-      {mode === 'phone' && name && <div className="hx-card-name">{name}</div>}
-      <ChangeTags c={c} />
+      {mode === 'phone' ? (
+        <div className="hx-card-head">
+          <span className="hx-card-name">{name}</span>
+          <span className={`hx-tag hx-tag-${tone(c)}`} data-testid="hx-label">
+            {changeLabel(c)}
+          </span>
+        </div>
+      ) : (
+        <ChangeTags c={c} />
+      )}
       {mode === 'inline' && <InlineBody c={c} rendered={rendered} labels={labels} />}
       {mode === 'side-by-side' && <SideBody c={c} rendered={rendered} labels={labels} />}
       {mode === 'phone' && <PhoneBody c={c} rendered={rendered} labels={labels} />}
+      {mode === 'phone' && c.changes.length > 0 && (
+        <div className="hx-tags hx-tags-after">
+          {c.changes.map((f, i) => (
+            <Chip key={i} {...f} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -214,12 +278,10 @@ export function FoldRow({ blocks, onShow }: { blocks: BlockChange[]; onShow: () 
   ]
     .filter(Boolean)
     .join(' · ');
-  const first = blocks.find((b) => b.after ?? b.before);
-  const peek = first ? blockText(first.after ?? first.before).split('\n')[0] : '';
   return (
     <div className="hx-fold" data-testid="hx-fold">
+      <Icon name="i06" size={13} strokeWidth={2.4} />
       <span>{text}</span>
-      {peek && <span className="hx-fold-peek">{peek}</span>}
       <button type="button" className="hx-link" onClick={onShow}>
         Show
       </button>
@@ -228,18 +290,18 @@ export function FoldRow({ blocks, onShow }: { blocks: BlockChange[]; onShow: () 
 }
 
 /** "5 changed · 2 added · 1 removed blocks" (moved too when there are any). */
-export function CountsLine({ counts }: { counts: ChangeCounts }) {
+export function CountsLine({ counts, words = true }: { counts: ChangeCounts; words?: boolean }) {
+  const one = (n: number, tone: string, label: string) => (
+    <span className="hx-count">
+      <b className={`hx-c-${tone}`}>{n}</b> <span className="hx-count-word">{label}</span>
+    </span>
+  );
   return (
     <span className="hx-counts" data-testid="hx-counts">
-      <b className="hx-c-changed">{counts.changed}</b> changed <b className="hx-c-added">{counts.added}</b> added{' '}
-      <b className="hx-c-removed">{counts.removed}</b> removed
-      {counts.moved > 0 && (
-        <>
-          {' '}
-          <b className="hx-c-moved">{counts.moved}</b> moved
-        </>
-      )}{' '}
-      blocks
+      {one(counts.changed, 'changed', 'changed')} {one(counts.added, 'added', 'added')}{' '}
+      {one(counts.removed, 'removed', 'removed')}
+      {counts.moved > 0 && <> {one(counts.moved, 'moved', 'moved')}</>}
+      {words && <span className="hx-count-word"> blocks</span>}
     </span>
   );
 }

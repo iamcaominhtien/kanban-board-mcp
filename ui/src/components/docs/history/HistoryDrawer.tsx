@@ -119,6 +119,8 @@ export function HistoryDrawer({
     if (comparing || dialogOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
+      // an open row menu takes this Escape (it closes itself); the drawer closes on the next one
+      if (drawerRef.current?.querySelector('[role="menu"]')) return;
       e.stopPropagation();
       handleClose();
     };
@@ -278,6 +280,7 @@ export function HistoryDrawer({
         selected={selected.includes(v.version)}
         onToggle={() => toggle(v.version)}
         touch={touch}
+        phone={phone}
         actions={{
           onView: prev != null ? () => setComparing({ from: prev, to: v.version }) : undefined,
           onOpen: onRead && v.version !== page.version ? () => onRead(v.version) : undefined,
@@ -361,21 +364,32 @@ export function HistoryDrawer({
       aria-label="Page history"
       className="hx-panel"
     >
-      <div className="hx-panel-head">
-        <span className="hx-panel-icon">
-          <Icon name="i39" size={18} />
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
+      {phone ? (
+        <div className="hx-panel-head hx-phone-head">
+          <button type="button" className="hx-close" aria-label="Close" onClick={handleClose}>
+            <Icon name="i60" size={20} strokeWidth={2} />
+          </button>
           <div className="hx-panel-title">Page history</div>
-          <div className="hx-panel-sub">
-            {page.title} · {plural(versions.length || page.version, 'version')}
-          </div>
         </div>
-        <button type="button" className="dk-icobtn" aria-label="Close" onClick={handleClose}>
-          <Icon name="i08" size={16} strokeWidth={1.8} />
-        </button>
-      </div>
-      <div className="hx-panel-hint">Select two versions to compare them, or one to see what it changed.</div>
+      ) : (
+        <>
+          <div className="hx-panel-head">
+            <span className="hx-panel-icon">
+              <Icon name="i39" size={18} strokeWidth={2} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="hx-panel-title">Page history</div>
+              <div className="hx-panel-sub">
+                {page.title} · {plural(versions.length || page.version, 'version')}
+              </div>
+            </div>
+            <button type="button" className="hx-close" aria-label="Close" onClick={handleClose}>
+              <Icon name="i08" size={16} strokeWidth={2} />
+            </button>
+          </div>
+          <div className="hx-panel-hint">Select two versions to compare them, or one to see what it changed.</div>
+        </>
+      )}
       {!phone && (
         <HistorySummary
           projectId={projectId}
@@ -389,7 +403,7 @@ export function HistoryDrawer({
         <span className="hx-foot-text">
           <b>{selected.length} selected</b>{' '}
           {pair.length === 2 && (
-            <span className="hx-mono">
+            <span className="hx-foot-pair">
               v{pair[0]} → v{pair[1]}
             </span>
           )}
@@ -400,7 +414,7 @@ export function HistoryDrawer({
           </button>
         )}
         <button type="button" className="st-btn st-btn-primary" onClick={compareSelected} disabled={!canCompare}>
-          <Icon name="i40" size={14} />
+          <Icon name="i40" size={phone ? 15.5 : 14} strokeWidth={2.4} />
           Compare
         </button>
       </div>

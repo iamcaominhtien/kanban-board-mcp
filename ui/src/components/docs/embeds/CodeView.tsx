@@ -7,7 +7,7 @@
 
 import { useState, type ReactNode } from 'react';
 import { highlight } from '../docsHighlight';
-import { Icon } from '../Icon';
+import { EmbIcon } from './embIcons';
 import './embeds.css';
 
 /** Lines shown before "Show all". */
@@ -120,6 +120,7 @@ export function CopyButton({ text }: { text: string }) {
       type="button"
       className="dk-cv-copy"
       aria-label="Copy code"
+      data-copied={copied ? '' : undefined}
       onClick={() => {
         void navigator.clipboard?.writeText(text).then(() => {
           setCopied(true);
@@ -127,7 +128,7 @@ export function CopyButton({ text }: { text: string }) {
         });
       }}
     >
-      <Icon name={copied ? 'check' : 'i24'} size={12} strokeWidth={2} />
+      {copied ? <EmbIcon name="check" size={13} sw={2.4} /> : <EmbIcon name="copy" size={13} sw={2.4} />}
       {copied ? 'Copied' : 'Copy'}
     </button>
   );
@@ -176,7 +177,12 @@ export function CodeView({ code, options, blockId, className, changedIn }: CodeV
       data-testid="code-view"
     >
       <div className="dk-cv-head">
-        {options.filename && <span className="dk-cv-file">{options.filename}</span>}
+        {options.filename && (
+          <span className="dk-cv-file">
+            <EmbIcon name="page" size={12} />
+            {options.filename}
+          </span>
+        )}
         <span className="dk-cv-lang">{diff ? 'Diff' : languageName(lang)}</span>
         <CopyButton text={copyText(code, diff)} />
       </div>

@@ -28,38 +28,41 @@ type Kind = 'out_of_date' | 'missing' | 'broken' | 'overlaps';
 
 const th: CSSProperties = {
   textAlign: 'left',
-  fontSize: 11,
+  fontSize: 10.5,
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
   color: '#5B6B60',
   fontWeight: 700,
-  padding: '9px 16px',
-  background: '#FBFCFB',
+  padding: '9px 14px',
 };
 const td: CSSProperties = {
-  padding: '11px 16px',
+  padding: '11px 14px',
   fontSize: 12.5,
-  lineHeight: 1.5,
+  lineHeight: 1.45,
   color: '#1E2A22',
   verticalAlign: 'middle',
-  borderTop: '1px solid #EEF3EF',
+  borderTop: '1px solid #E3E8E5',
 };
+// the board's 26 px buttons (RichDocsAi2 frame 47): plain, and the purple Review
 const btn: CSSProperties = {
   font: 'inherit',
   fontSize: 12,
   fontWeight: 600,
-  padding: '5px 10px',
-  borderRadius: 8,
-  border: '1px solid #E3E8E5',
+  height: 26,
+  padding: '0 10px',
+  boxSizing: 'border-box',
+  borderRadius: 7,
+  border: '1px solid #D5DDD8',
   background: '#fff',
   color: '#1E2A22',
   cursor: 'pointer',
   whiteSpace: 'nowrap',
   display: 'inline-flex',
   alignItems: 'center',
-  gap: 6,
+  justifyContent: 'center',
+  gap: 5,
 };
-const accent: CSSProperties = { ...btn, color: '#5B3AA6', borderColor: '#C9B6FF', background: '#FAF7FF' };
+const accent: CSSProperties = { ...btn, color: '#5B3AA6', borderColor: '#D9CCF7', background: '#EFE8FB' };
 
 function DismissMenu({
   onPick,
@@ -147,7 +150,7 @@ function TicketKey({ id, onOpen }: { id: string; onOpen: (id: string) => void })
 
 function Table({ head, children }: { head: ReactNode; children: ReactNode }) {
   return (
-    <div style={{ border: '1px solid #E3E8E5', borderRadius: 12, background: '#fff', overflow: 'hidden' }}>
+    <div style={{ border: '1px solid #E3E8E5', borderRadius: 10, background: '#fff', overflow: 'hidden' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         {head && (
           <thead>
@@ -333,7 +336,7 @@ function Lists({
         {data.broken.map((r) => (
           <tr key={`${r.pageId}|${r.ref}`} data-testid="health-broken">
             <td style={{ ...td, width: '28%' }}>
-              <b>{r.title}</b>
+              <b style={{ fontSize: 13 }}>{r.title}</b>
             </td>
             <td style={td}>
               <code>{r.ref}</code> <span style={{ color: '#5B6B60' }}>· {BROKEN_WHY[r.status] ?? r.status}</span>
@@ -484,7 +487,13 @@ export function DocsHealthView({
         <>
           <div
             role="tablist"
-            style={{ display: 'flex', gap: 18, margin: '16px 0 14px', borderBottom: '1px solid #E3E8E5' }}
+            style={{
+              display: 'flex',
+              gap: 22,
+              margin: '16px 0 12px',
+              padding: '0 4px',
+              borderBottom: '1px solid #E3E8E5',
+            }}
           >
             {healthTabs(data.counts).map((t) => (
               <button
@@ -501,7 +510,7 @@ export function DocsHealthView({
                   background: 'none',
                   border: 'none',
                   borderBottom: `2px solid ${active === t.id ? '#2E6F40' : 'transparent'}`,
-                  padding: '9px 2px',
+                  padding: '9px 0 7px',
                   cursor: 'pointer',
                   marginBottom: -1,
                 }}

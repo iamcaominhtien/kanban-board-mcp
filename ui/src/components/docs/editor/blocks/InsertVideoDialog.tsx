@@ -12,7 +12,8 @@ import { VIDEO_ACCEPT, fileNameOf, playableInBrowser, providerName, videoEmbedOf
 import { setNodeAttrs } from './commands';
 import { startDocUpload } from './docUpload';
 import { insertLinkEmbed } from './LinkDialogs';
-import { Dialog, Tabs } from './ui';
+import { EmbIcon } from '../../embeds/embIcons';
+import { Dialog } from './ui';
 
 type Tab = 'upload' | 'link';
 
@@ -82,105 +83,125 @@ export function InsertVideoDialog({
   };
 
   return (
-    <Dialog
-      title={replacing ? 'Replace video' : 'Insert video'}
-      onClose={onClose}
-      testId="insert-video"
-      footer={
-        tab === 'link' ? (
-          <>
-            <button type="button" className="dk-btn-ghost" onClick={onClose}>
-              Cancel
-            </button>
+    <Dialog title={replacing ? 'Replace video' : 'Insert video'} onClose={onClose} testId="insert-video" width={340}>
+      <div className="dk-ins">
+        <div className="dk-ins-tabs" role="tablist" aria-label="Where from">
+          {(
+            [
+              ['upload', 'Upload', 'upload'],
+              ['link', 'Link', 'link'],
+            ] as const
+          ).map(([v, label, icon]) => (
             <button
+              key={v}
               type="button"
-              className="dk-btn-primary"
-              disabled={!valid || busy}
-              onClick={() => void insertLink()}
+              role="tab"
+              aria-selected={tab === v}
+              className={tab === v ? 'on' : undefined}
+              onClick={() => setTab(v)}
             >
-              {replacing ? 'Replace video' : 'Insert video'}
+              <EmbIcon name={icon} />
+              {label}
             </button>
-          </>
-        ) : undefined
-      }
-    >
-      <Tabs
-        tabs={[
-          ['upload', 'Upload'],
-          ['link', 'Link'],
-        ]}
-        value={tab}
-        onChange={setTab}
-      />
-      {tab === 'upload' ? (
-        <div
-          className={`dk-drop${over ? ' over' : ''}`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setOver(true);
-          }}
-          onDragLeave={() => setOver(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setOver(false);
-            upload(Array.from(e.dataTransfer.files));
-          }}
-        >
-          <div className="dk-drop-title">Drop a file here</div>
-          <button type="button" className="dk-btn-primary" onClick={() => fileRef.current?.click()}>
-            Choose file
-          </button>
-          <p className="dk-bp-muted">MP4, WebM or MOV, up to {limitMb} MB.</p>
-          <p className="dk-bp-muted">Video is never played automatically.</p>
-          <input
-            ref={fileRef}
-            type="file"
-            accept={VIDEO_ACCEPT}
-            hidden
-            aria-label="Choose a video file"
-            onChange={(e) => {
-              const list = Array.from(e.target.files ?? []);
-              e.target.value = '';
-              upload(list);
-            }}
-          />
+          ))}
         </div>
-      ) : (
-        <div className="dk-bp-col">
-          <label className="dk-bp-label" htmlFor="dk-video-url">
-            Video address
-          </label>
-          <input
-            id="dk-video-url"
-            className="dk-bp-input"
-            type="url"
-            placeholder="https://cdn.example.com/demo.mp4"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+        {tab === 'upload' ? (
+          <>
+            <div
+              className={`dk-ins-drop${over ? ' over' : ''}`}
+              onDragOver={(e) => {
                 e.preventDefault();
-                void insertLink();
-              }
-            }}
-          />
-          {valid && site && (
-            <p className="dk-bp-note">
-              A {providerName(site.provider)} video. It is placed as an embed from a link: a picture whose player loads
-              from {host} only after Play.
-            </p>
-          )}
-          {valid && !site && (
-            <div className="dk-link-prev">
-              <strong>{fileNameOf(clean)}</strong>
-              <span className="dk-bp-muted">
-                {playableInBrowser(clean) ? 'Direct file' : 'This format may not play in a browser'} · {host}
-              </span>
+                setOver(true);
+              }}
+              onDragLeave={() => setOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setOver(false);
+                upload(Array.from(e.dataTransfer.files));
+              }}
+            >
+              <EmbIcon name="upload" size={22} />
+              <div className="dk-ins-drop-title">Drop a file here</div>
+              <button type="button" className="st-btn st-btn-sm" onClick={() => fileRef.current?.click()}>
+                Choose file
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept={VIDEO_ACCEPT}
+                hidden
+                aria-label="Choose a video file"
+                onChange={(e) => {
+                  const list = Array.from(e.target.files ?? []);
+                  e.target.value = '';
+                  upload(list);
+                }}
+              />
             </div>
-          )}
-          <p className="dk-bp-muted">For YouTube, Vimeo and Loom, Embed from link works the same way.</p>
-        </div>
-      )}
+            <p className="dk-ins-hint">
+              MP4, WebM or MOV, up to {limitMb} MB.
+              <br />
+              Video is never played automatically.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="dk-ins-field">
+              <label className="dk-ins-label" htmlFor="dk-video-url">
+                Video address
+              </label>
+              <input
+                id="dk-video-url"
+                className="dk-ins-input"
+                type="url"
+                placeholder="https://cdn.example.com/demo.mp4"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void insertLink();
+                  }
+                }}
+              />
+            </div>
+            {valid && site && (
+              <p className="dk-ins-note">
+                A {providerName(site.provider)} video. It is placed as an embed from a link: a picture whose player
+                loads from {host} only after Play.
+              </p>
+            )}
+            {valid && !site && (
+              <div className="dk-ins-prev">
+                <span className="dk-ins-thumb" aria-hidden="true" />
+                <span className="dk-ins-prev-text">
+                  <b>{fileNameOf(clean)}</b>
+                  <br />
+                  <span>
+                    {playableInBrowser(clean) ? 'Direct file' : 'This format may not play in a browser'} · {host}
+                  </span>
+                </span>
+              </div>
+            )}
+            <p className="dk-ins-note">
+              For YouTube, Vimeo and Loom, <b>Embed from link</b> works the same way.
+            </p>
+            <div className="dk-ins-foot">
+              <button type="button" className="st-btn st-btn-sm" onClick={onClose}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="st-btn st-btn-primary st-btn-sm"
+                disabled={!valid || busy}
+                onClick={() => void insertLink()}
+              >
+                {replacing ? 'Replace video' : 'Insert video'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </Dialog>
   );
 }

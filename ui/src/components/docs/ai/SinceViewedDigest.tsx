@@ -4,9 +4,9 @@ import { useStartSinceViewed, type SinceViewedPage } from '../../../api/docsAiWr
 import { aiGate, costLabel } from '../../../utils/docsAiRules';
 import { pagesLabel } from '../../../utils/writeRules';
 import type { DocsTreeNode } from '../../../types/docs';
-import { Icon } from '../Icon';
 import { AiSpark } from './AiSpark';
 import { SuggestionsWaiting } from '../suggestions/extras';
+import { SgIcon, Spark } from '../suggestions/sgIcons';
 
 const key = (projectId: string) => `docsLastVisit:${projectId}`;
 
@@ -78,67 +78,116 @@ export function SinceViewedDigest({ projectId, nodes, onOpenPage }: Props) {
         position: 'absolute',
         bottom: 16,
         right: 16,
-        width: 340,
+        width: 370,
+        maxWidth: 'calc(100% - 32px)',
         zIndex: 4, // under the history / comments drawers, which have their own footers
-        borderRadius: 10,
+        borderRadius: 12,
         border: '1px solid #E3E8E5',
         background: '#FFFFFF',
         boxShadow: '0 8px 28px rgba(30,42,34,0.14)',
-        padding: 12,
+        padding: '12px 14px 10px',
         boxSizing: 'border-box',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ display: 'flex', color: '#2E6F40' }}>
-          <Icon name="eye" size={16} strokeWidth={1.8} />
-        </span>
+        <SgIcon name="eye" size={16} sw={1.8} color="#2E6F40" />
         <span style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22', flex: 1 }}>Changes since you last viewed</span>
-        <span className="mc-chip" style={{ background: '#E6F2EA', color: '#1F5A31' }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            height: 20,
+            padding: '0 8px',
+            borderRadius: 999,
+            background: '#E6F2EA',
+            color: '#1F5A31',
+            fontSize: 11,
+            fontWeight: 700,
+          }}
+        >
           {pagesLabel(done ? pages.length : changed)}
         </span>
         <button
           type="button"
-          className="dk-icobtn"
+          className="sg-ending-x"
           aria-label="Dismiss"
           style={{ width: 24, height: 24 }}
           onClick={() => setDismissed(true)}
         >
-          <Icon name="close" size={13} strokeWidth={2} />
+          <SgIcon name="close" size={13} />
         </button>
       </div>
       <SuggestionsWaiting nodes={nodes} onOpenPage={onOpenPage} />
       {done ? (
-        <div
-          style={{
-            marginTop: 8,
-            padding: 10,
-            borderRadius: 10,
-            border: '1px solid #d9ccf3',
-            background: '#faf7ff',
-          }}
-        >
+        <div style={{ marginTop: 8 }}>
           {pages.map((p) => (
-            <div key={p.pageId} style={{ fontSize: 12.5, lineHeight: 1.6, color: '#1E2A22' }}>
-              <button
-                type="button"
-                onClick={() => onOpenPage(p.pageId)}
+            <button
+              key={p.pageId}
+              type="button"
+              onClick={() => onOpenPage(p.pageId)}
+              style={{
+                display: 'block',
+                width: '100%',
+                textAlign: 'left',
+                border: 'none',
+                borderTop: '1px solid #E3E8E5',
+                background: 'none',
+                padding: '9px 0',
+                font: 'inherit',
+                cursor: 'pointer',
+                color: '#1E2A22',
+              }}
+            >
+              <span
                 style={{
-                  border: 'none',
-                  background: 'none',
-                  padding: 0,
-                  font: 'inherit',
+                  display: 'block',
+                  fontSize: 13,
                   fontWeight: 700,
-                  cursor: 'pointer',
-                  color: '#1E2A22',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               >
                 {p.title}
-              </button>
-              : {p.line ?? (p.kind === 'new' ? 'a new page' : 'changed')}
-            </div>
+              </span>
+              <span style={{ display: 'block', fontSize: 12, color: '#5B6B60', marginTop: 2 }}>
+                {p.line ?? (p.kind === 'new' ? 'A new page' : 'Changed')}
+              </span>
+            </button>
           ))}
-          <div style={{ fontSize: 11, color: '#5B6B60', marginTop: 4 }}>
-            Summary by AI · open a page to see the diff · {costLabel(done.cost, done.metered).replace('About ', '')}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              borderTop: '1px solid #E3E8E5',
+              paddingTop: 8,
+              fontSize: 11.5,
+              color: '#5B6B60',
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                height: 18,
+                padding: '0 8px',
+                borderRadius: 999,
+                background: '#EFE8FB',
+                border: '1px solid #D9CCF7',
+                color: '#5B3AA6',
+                fontSize: 10.5,
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+                flex: 'none',
+                boxSizing: 'border-box',
+              }}
+            >
+              <Spark size={10.5} color="#5B3AA6" />
+              Summary by AI
+            </span>
+            <span>Open a page to see the diff · {costLabel(done.cost, done.metered).replace('About ', '')}</span>
           </div>
         </div>
       ) : (

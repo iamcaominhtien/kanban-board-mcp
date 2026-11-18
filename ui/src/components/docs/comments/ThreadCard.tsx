@@ -134,7 +134,7 @@ const AI_RUN_FOLD: React.CSSProperties = {
   fontWeight: 700,
 };
 
-function Avatar({ p, size = 28 }: { p: CommentPerson; size?: number }) {
+function Avatar({ p, size = 24 }: { p: CommentPerson; size?: number }) {
   return (
     <span
       className="dc-avatar"
@@ -144,12 +144,39 @@ function Avatar({ p, size = 28 }: { p: CommentPerson; size?: number }) {
         height: size,
         background: p.bg,
         color: p.color,
-        fontSize: size < 26 ? 10 : 11,
+        fontSize: size < 24 ? 9 : size < 26 ? 10 : 11,
         borderRadius: p.ai ? Math.round(size / 4) : undefined,
       }}
     >
       {p.initials}
     </span>
+  );
+}
+
+/** The small picture of a commented block's kind: an image, a table, an embed. */
+function blockThumb(kind: string): { icon: string; cls: string } {
+  const k = kind.toLowerCase();
+  if (k.startsWith('table')) return { icon: 'i52', cls: 'is-table' };
+  if (k.startsWith('image') || k.startsWith('picture')) return { icon: 'i54', cls: 'is-image' };
+  return { icon: 'i53', cls: 'is-embed' };
+}
+
+/** What a whole-block comment is on: a small picture of the block, its kind in bold and where ("Image · Float right"). */
+function BlockLabel({ label }: { label: string }) {
+  const at = label.indexOf(' · ');
+  const kind = at < 0 ? label : label.slice(0, at);
+  const rest = at < 0 ? '' : label.slice(at);
+  const t = blockThumb(kind);
+  return (
+    <div className="dc-block" data-testid="thread-block">
+      <span className={`dc-block-thumb ${t.cls}`} aria-hidden="true">
+        <Icon name={t.icon} size={14} strokeWidth={2} />
+      </span>
+      <span className="dc-block-label">
+        <b>{kind}</b>
+        {rest && <span>{rest}</span>}
+      </span>
+    </div>
   );
 }
 
@@ -498,11 +525,7 @@ export function ThreadCard({
       {!page && (
         <header className="dc-card-head">
           {orphaned && !resolved ? (
-            <span className="dc-chip dc-chip-red">{blockGone ? 'Block deleted' : 'Text removed'}</span>
-          ) : resolved ? (
-            <span className="dc-chip dc-chip-green">
-              <Icon name="check" size={12} strokeWidth={2.4} /> Resolved
-            </span>
+            <span className="dc-chip dc-chip-amber">{blockGone ? 'Block deleted' : 'Text removed'}</span>
           ) : (
             <span className="dc-num" data-testid="thread-number">
               {thread.number ?? '·'}
@@ -510,7 +533,19 @@ export function ThreadCard({
           )}
           {quoteEdited && !resolved && <span className="dc-chip dc-chip-amber">Quote edited</span>}
           {thread.unread && <span className="dc-unread" data-testid="unread-dot" title="Unread" />}
-          <span style={{ flex: 1 }} />
+          {/* what the thread is on sits in the head, beside its number (design D 18, 22) */}
+          <div className="dc-head-what">
+            {place?.label ? (
+              <BlockLabel label={place.label} />
+            ) : (
+              thread.anchor?.quote && (
+                <div className={`dc-quote${quoteEdited ? ' is-edited' : ''}`} data-testid="thread-quote">
+                  <Icon name="comment" size={12} strokeWidth={2} />
+                  <span>“{thread.anchor.quote}”</span>
+                </div>
+              )
+            )}
+          </div>
           {resolved && thread.canResolve && (
             <button
               type="button"
@@ -521,7 +556,7 @@ export function ThreadCard({
                 void run(actions.setStatus.mutateAsync({ threadId: thread.id, status: 'open' }));
               }}
             >
-              <Icon name="reopen" size={13} strokeWidth={1.9} /> Reopen
+              Reopen
             </button>
           )}
           {!resolved && !orphaned && thread.canResolve && (
@@ -541,21 +576,10 @@ export function ThreadCard({
           )}
         </header>
       )}
-      {!page && place?.label && (
-        <div className="dc-quote" data-testid="thread-block">
-          <Icon name="comment" size={13} strokeWidth={1.8} />
-          <span className="dc-block-label">{place.label}</span>
-        </div>
-      )}
-      {!page && !place?.label && thread.anchor?.quote && (
-        <div className={`dc-quote${quoteEdited ? ' is-edited' : ''}`} data-testid="thread-quote">
-          <Icon name="comment" size={13} strokeWidth={1.8} />
-          <span>“{thread.anchor.quote}”</span>
-        </div>
-      )}
       {quoteEdited && !resolved && (
         <div className="dc-state-note" data-testid="thread-quote-edited">
-          The text changed since. The thread follows its block and keeps the words it was written on.
+          <Icon name="i28" size={13} strokeWidth={2} />
+          <span>The text changed since. The thread follows its block and keeps the words it was written on.</span>
         </div>
       )}
       {thread.aiSummary && (
@@ -650,7 +674,7 @@ export function ThreadCard({
                     onReattach(thread.id);
                   }}
                 >
-                  <Icon name="link" size={13} strokeWidth={1.9} /> Re-attach to selection
+                  Re-attach to selection
                 </button>
               )}
               {thread.canResolve && (
@@ -672,8 +696,7 @@ export function ThreadCard({
       )}
       {resolved && thread.resolvedBy && (
         <div className="dc-resolved-by" data-testid="resolved-by">
-          <Icon name="i17" size={14} strokeWidth={1.8} /> Resolved by{' '}
-          <b>{personOf(thread.resolvedBy, members, me).name}</b>
+          Resolved by {personOf(thread.resolvedBy, members, me).name}
           {thread.resolvedAt && <> · {relativeTime(thread.resolvedAt)}</>}
         </div>
       )}
@@ -687,7 +710,7 @@ export function ThreadCard({
         <div id={`dc-reply-${thread.id}`} className="dc-reply" onClick={(e) => e.stopPropagation()}>
           {thread.canReply ? (
             <>
-              <Avatar p={personOf(me, members, me)} size={26} />
+              <Avatar p={personOf(me, members, me)} size={22} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <CommentBox
                   projectId={projectId}

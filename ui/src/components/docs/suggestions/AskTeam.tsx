@@ -1,10 +1,11 @@
 /**
  * "Ask the team" on a selection (design "AI teams on rich pages", F 28–34): one purple button on the selection bar
- * that asks the page's AI team to do a small job on the selected passage. Its menu has the verbs first (Improve,
- * Shorten, Fix spelling, Explain, Ask…), then "Format this as…", "Change tone" and "Translate" (the languages the
- * board already offers). A job goes to the team the way "Give to an AI team" does (a ticket linked to the page and its
- * run, with the passage quoted); the answer comes back as suggestions, the block shows "Docs team has it" while the
- * run works, and the page stays editable. Explain stays a local answer.
+ * that asks the page's AI team to do a small job on the selected passage. Its menu follows the board: Rewrite,
+ * Shorten, Change tone ›, Fix grammar, Translate › (the languages the board already offers), Make a table, Format this
+ * as… ›, then Explain (a local answer, when the view has one) and the "Ask the team to…" line. A job goes to the team
+ * the way "Give to an AI team" does (a ticket linked to the page and its run, with the passage quoted); the answer
+ * comes back as suggestions, the block shows "Docs team is rewriting this · KAN-172" while the run works, and the page
+ * stays editable.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -17,11 +18,12 @@ import type { DocsLayout } from '../../../hooks/useDocsLayout';
 import type { DocsPage } from '../../../types/docs';
 import { LANGUAGES } from '../../../utils/pageAiRules';
 import { useToast } from '../../Toast';
-import { LineIcon } from '../../ui/LineIcon';
 import { BottomSheet } from '../DocsSheets';
 import { usePageSettled } from '../pageSettled';
 import { useTeamApply } from './api';
 import { notForAi, pageApply } from './pageAi';
+import { SheetHead } from './ReviewBar';
+import { SgIcon, Spark, type SgIconName } from './sgIcons';
 import './suggestions.css';
 
 /** What the person selected: the passage, the top-level block it is in, and where the button is on screen. */
@@ -33,14 +35,59 @@ export interface AskCapture {
   explain?: () => void;
 }
 
-/** The verbs of the menu, in its order. */
+/** The verbs of the menu that send a job at once; `doing` names the job on the block while the team has it. */
 export const VERBS = [
-  { id: 'improve', label: 'Improve', task: 'Improve this passage: clearer and easier to read, with the same meaning.' },
-  { id: 'shorten', label: 'Shorten', task: 'Make this passage shorter and keep what matters.' },
-  { id: 'fix', label: 'Fix spelling', task: 'Fix the spelling and grammar of this passage. Change nothing else.' },
+  {
+    id: 'improve',
+    label: 'Rewrite',
+    icon: 'wand',
+    doing: 'rewriting',
+    task: 'Improve this passage: clearer and easier to read, with the same meaning.',
+  },
+  {
+    id: 'shorten',
+    label: 'Shorten',
+    icon: 'shorten',
+    doing: 'shortening',
+    task: 'Make this passage shorter and keep what matters.',
+  },
+  {
+    id: 'fix',
+    label: 'Fix grammar',
+    icon: 'check',
+    doing: 'fixing',
+    task: 'Fix the spelling and grammar of this passage. Change nothing else.',
+  },
+  { id: 'table', label: 'Make a table', icon: 'table', doing: 'formatting', task: 'Format this passage as a table.' },
+] as const satisfies readonly { id: string; label: string; icon: SgIconName; doing: string; task: string }[];
+/** "Format this as…": what the passage can become, with the board's icon of each. */
+export const FORMATS = [
+  'Heading 2',
+  'Pull quote',
+  'Callout',
+  'Bulleted list',
+  'Numbered list',
+  'Task list',
+  'Two columns',
 ] as const;
-/** "Format this as…": what the passage can become. */
-export const FORMATS = ['Table', 'Bulleted list', 'Numbered list', 'Callout', 'Pull quote'] as const;
+const FORMAT_ICON: Record<(typeof FORMATS)[number], SgIconName> = {
+  'Heading 2': 'heading',
+  'Pull quote': 'quote',
+  Callout: 'callout',
+  'Bulleted list': 'bullets',
+  'Numbered list': 'numbered',
+  'Task list': 'tasks',
+  'Two columns': 'columns',
+};
+const FORMAT_TASK: Record<(typeof FORMATS)[number], string> = {
+  'Heading 2': 'Turn this passage into a level 2 heading.',
+  'Pull quote': 'Format this passage as a pull quote.',
+  Callout: 'Format this passage as a callout.',
+  'Bulleted list': 'Format this passage as a bulleted list.',
+  'Numbered list': 'Format this passage as a numbered list.',
+  'Task list': 'Format this passage as a task list.',
+  'Two columns': 'Lay this passage out in two columns.',
+};
 /** "Change tone": plain choices. */
 export const TONES = ['Friendly', 'Formal', 'Plain', 'Confident', 'Shorter sentences'] as const;
 
@@ -60,12 +107,16 @@ interface Hold {
   ticketId: string;
   team: string;
   at: string;
+  /** What the team is doing to it ("rewriting"); older holds have none. */
+  doing?: string;
 }
 
 /** What the selection bars ask for. */
 export interface AskTeam {
   /** The team that gets the jobs. */
   team: { id: string; name: string };
+  /** "Changes arrive as suggestions here" (false) or "saved on the page at once" (true). */
+  direct: boolean;
   /** Opens the menu for a selection. */
   open: (capture: AskCapture) => void;
 }
@@ -96,7 +147,7 @@ function writeHolds(pageId: string, holds: Hold[]) {
   }
 }
 
-type Sub = null | 'format' | 'tone' | 'translate' | 'ask';
+type Sub = null | 'format' | 'tone' | 'translate';
 
 /**
  * Offers "Ask the team" to the selection bars inside it, draws its menu and marks the blocks a team holds.
@@ -156,7 +207,7 @@ export function AskTeamProvider({
   }, [work, holds, page.id]);
 
   const send = useCallback(
-    async (task: string, capture: AskCapture) => {
+    async (task: string, capture: AskCapture, doing = 'working on') => {
       if (!team) return;
       setMenu(null);
       try {
@@ -168,7 +219,13 @@ export function AskTeamProvider({
         if (capture.blockId) {
           const next = [
             ...holds.filter((h) => h.blockId !== capture.blockId),
-            { blockId: capture.blockId, ticketId: out.ticket.id, team: team.name, at: new Date().toISOString() },
+            {
+              blockId: capture.blockId,
+              ticketId: out.ticket.id,
+              team: team.name,
+              at: new Date().toISOString(),
+              doing,
+            },
           ];
           setHolds(next);
           writeHolds(page.id, next);
@@ -191,8 +248,8 @@ export function AskTeamProvider({
   );
 
   const value = useMemo<AskTeam | null>(
-    () => (offered && team ? { team, open: (capture) => setMenu({ capture, sub: null }) } : null),
-    [offered, team],
+    () => (offered && team ? { team, direct, open: (capture) => setMenu({ capture, sub: null }) } : null),
+    [offered, team, direct],
   );
 
   return (
@@ -207,7 +264,7 @@ export function AskTeamProvider({
           sub={menu.sub}
           layout={layout}
           onSub={(sub) => setMenu((m) => (m ? { ...m, sub } : m))}
-          onSend={(task) => void send(task, menu.capture)}
+          onSend={(task, doing) => void send(task, menu.capture, doing)}
           onClose={() => setMenu(null)}
         />
       )}
@@ -217,24 +274,46 @@ export function AskTeamProvider({
 
 const SAFE_ID = /^[\w-]{1,64}$/;
 
-/** "Docs team has it · KAN-172" on the blocks a team holds; the page stays editable. */
+const HOLD_FONT = "700 11.5px 'Plus Jakarta Sans', sans-serif";
+
+/** The width in px of a hold's label, to place its ticket chip after it (the label is a pseudo-element). */
+function labelWidth(text: string): number {
+  try {
+    const ctx = document.createElement('canvas').getContext('2d');
+    if (ctx) {
+      ctx.font = HOLD_FONT;
+      return Math.ceil(ctx.measureText(text).width);
+    }
+  } catch {
+    /* no canvas (tests): an estimate */
+  }
+  return Math.ceil(text.length * 6.4);
+}
+
+/**
+ * "Docs team is rewriting this · KAN-172" on the blocks a team holds (board F 31): the block in a dashed purple frame,
+ * a pulsing dot, the words and the ticket in a small chip; the page stays editable.
+ */
 function HoldMarks({ holds }: { holds: Hold[] }) {
   const safe = holds.filter((h) => SAFE_ID.test(h.blockId) && SAFE_ID.test(h.ticketId));
   if (!safe.length) return null;
   const css = safe
     .map((h) => {
       const sel = `[data-block-id="${h.blockId}"]`;
-      const label = `${h.team.replace(/["\\\n]/g, '')} has it · ${h.ticketId}`;
-      return `${sel}{position:relative;outline:2px dashed #CDBEF2;outline-offset:4px;border-radius:2px}
-${sel}:not(.dk-changed)::before{content:"${label}";position:absolute;left:0;top:-14px;font:700 10px/16px var(--font-ui,'Plus Jakarta Sans',sans-serif);padding:0 6px;border-radius:5px;background:#EFE8FB;color:#5B3AA6;pointer-events:none;z-index:1}`;
+      const label = `${h.team.replace(/["\\\n]/g, '')} is ${h.doing ?? 'working on'} this`;
+      const chipLeft = 12 + 14 + labelWidth(label) + 7;
+      return `${sel}{position:relative;box-sizing:border-box;border:1.5px dashed #7C5CD6;border-radius:9px;background:#F9F7FE;padding:31px 12px 10px}
+${sel}:not(.dk-changed)::before{content:"${label}";position:absolute;left:12px;top:8px;height:18px;display:inline-flex;align-items:center;font:700 11.5px/18px var(--font-ui,'Plus Jakarta Sans',sans-serif);font-style:normal;letter-spacing:0;text-transform:none;padding-left:14px;color:#5B3AA6;background:radial-gradient(circle at 3.5px 50%,#7C5CD6 3.5px,transparent 4px) no-repeat;pointer-events:none;z-index:1}
+${sel}:not(.dk-changed)::after{content:"${h.ticketId}";position:absolute;left:${chipLeft}px;top:8px;font:700 11.5px/16px 'JetBrains Mono',monospace;font-style:normal;letter-spacing:0;text-transform:none;border:1px solid #DDD3F5;background:#fff;border-radius:6px;padding:0 8px;color:#1E2A22;pointer-events:none;z-index:1}`;
     })
     .join('\n');
   return <style data-testid="sg-hold-marks">{css}</style>;
 }
 
 /**
- * The menu of "Ask the team": the verbs, then Format this as…, Change tone and Translate, each opening its choices
- * in place; Ask… takes the job in words.
+ * The menu of "Ask the team" (board F 29–30, 34): the team and how its changes arrive, the verbs with their icons,
+ * Change tone, Translate and Format this as… opening their choices in place, and the "Ask the team to…" line that
+ * takes the job in words. On a phone it is a sheet with 48 px rows.
  */
 function AskTeamMenu({
   team,
@@ -252,7 +331,7 @@ function AskTeamMenu({
   sub: Sub;
   layout: DocsLayout;
   onSub: (s: Sub) => void;
-  onSend: (task: string) => void;
+  onSend: (task: string, doing: string) => void;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -277,74 +356,71 @@ function AskTeamMenu({
     };
   }, [onClose, phone]);
 
-  const item = (label: string, onClick: () => void, more = false, testId?: string) => (
+  const iconSize = phone ? 18 : 15;
+  const item = (label: string, onClick: () => void, o: { icon?: SgIconName; more?: boolean; testId?: string } = {}) => (
     <button
       key={label}
       type="button"
       role="menuitem"
       className="sg-ask-item"
-      data-testid={testId}
+      data-testid={o.testId}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
     >
-      <span>{label}</span>
-      {more && (
+      {o.icon && (
+        <span className="sg-ask-ico">
+          <SgIcon name={o.icon} size={iconSize} />
+        </span>
+      )}
+      <span className="sg-ask-label">{label}</span>
+      {o.more && (
         <span className="sg-ask-more" aria-hidden="true">
-          ›
+          <SgIcon name="chevRight" size={phone ? 16 : 12} sw={phone ? 2.2 : 2.4} />
         </span>
       )}
     </button>
   );
   const back = item('‹ Back', () => onSub(null));
-  const choices = (list: readonly string[], task: (v: string) => string) => (
+  const choices = (
+    list: readonly string[],
+    task: (v: string) => string,
+    doing: string,
+    icons?: Record<string, SgIconName>,
+  ) => (
     <>
       {back}
-      {list.map((v) => item(v, () => onSend(task(v)), false, `ask-team-${v}`))}
+      {list.map((v) => item(v, () => onSend(task(v), doing), { icon: icons?.[v], testId: `ask-team-${v}` }))}
     </>
   );
+  const verb = (id: (typeof VERBS)[number]['id']) => {
+    const v = VERBS.find((x) => x.id === id)!;
+    return item(v.label, () => onSend(v.task, v.doing), { icon: v.icon, testId: `ask-team-${v.id}` });
+  };
 
   let body: ReactNode;
   if (sub === 'format') {
-    body = choices(FORMATS, (v) => `Format this passage as a ${v.toLowerCase()}.`);
+    body = choices(FORMATS, (v) => FORMAT_TASK[v as (typeof FORMATS)[number]], 'formatting', FORMAT_ICON);
   } else if (sub === 'tone') {
-    body = choices(TONES, (v) =>
-      v === 'Shorter sentences'
-        ? 'Rewrite this passage with shorter sentences.'
-        : `Rewrite this passage in a ${v.toLowerCase()} tone.`,
+    body = choices(
+      TONES,
+      (v) =>
+        v === 'Shorter sentences'
+          ? 'Rewrite this passage with shorter sentences.'
+          : `Rewrite this passage in a ${v.toLowerCase()} tone.`,
+      'rewriting',
     );
   } else if (sub === 'translate') {
-    body = choices(LANGUAGES, (v) => `Translate this passage into ${v}.`);
-  } else if (sub === 'ask') {
-    body = (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (text.trim()) onSend(text.trim());
-        }}
-        style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 6 }}
-      >
-        {back}
-        <label className="sg-label-small" htmlFor="sg-ask-text">
-          Ask the team to…
-        </label>
-        <textarea
-          id="sg-ask-text"
-          autoFocus
-          rows={3}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Add a short example after this paragraph"
-          style={{ font: 'inherit', fontSize: 13, padding: 8, borderRadius: 8, border: '1px solid #C7D2CB' }}
-        />
-        <button type="submit" className="st-btn st-btn-primary" disabled={!text.trim()} data-testid="ask-team-send">
-          Send to {team}
-        </button>
-      </form>
-    );
+    body = choices(LANGUAGES, (v) => `Translate this passage into ${v}.`, 'translating');
   } else {
     body = (
       <>
-        {VERBS.map((v) => item(v.label, () => onSend(v.task), false, `ask-team-${v.id}`))}
+        {verb('improve')}
+        {verb('shorten')}
+        {item('Change tone', () => onSub('tone'), { icon: 'tone', more: true, testId: 'ask-team-tone' })}
+        {verb('fix')}
+        {item('Translate', () => onSub('translate'), { icon: 'translate', more: true, testId: 'ask-team-translate' })}
+        {verb('table')}
+        {item('Format this as…', () => onSub('format'), { icon: 'palette', more: true, testId: 'ask-team-format' })}
         {capture.explain &&
           item(
             'Explain',
@@ -352,37 +428,63 @@ function AskTeamMenu({
               onClose();
               capture.explain?.();
             },
-            false,
-            'ask-team-explain',
+            { icon: 'info', testId: 'ask-team-explain' },
           )}
-        {item('Ask…', () => onSub('ask'), true, 'ask-team-ask')}
-        <div className="sg-ask-sep" />
-        {item('Format this as…', () => onSub('format'), true, 'ask-team-format')}
-        {item('Change tone', () => onSub('tone'), true, 'ask-team-tone')}
-        {item('Translate', () => onSub('translate'), true, 'ask-team-translate')}
+        <form
+          className="sg-ask-input"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (text.trim()) onSend(text.trim(), 'working on');
+          }}
+        >
+          <input
+            aria-label="Ask the team to…"
+            placeholder="Ask the team to…"
+            value={text}
+            data-testid="ask-team-ask"
+            onChange={(e) => setText(e.target.value)}
+          />
+          <button type="submit" aria-label={`Send to ${team}`} disabled={!text.trim()} data-testid="ask-team-send">
+            <SgIcon name="send" size={14} color="#5B3AA6" />
+          </button>
+        </form>
       </>
     );
   }
 
   const head = (
     <div className="sg-ask-head">
-      <b>{team}</b>
-      <span>{direct ? 'Changes are saved on the page at once' : 'Changes arrive as suggestions here'}</span>
+      <span className="sg-ask-badge" aria-hidden="true">
+        <SgIcon name="agent" size={11} />
+        <span className="sg-ask-badge-ai">
+          <Spark size={6} color="#fff" />
+        </span>
+      </span>
+      <span className="sg-ask-who">
+        <b>{team}</b>
+        <span>{direct ? 'Changes are saved on the page at once' : 'Changes arrive as suggestions here'}</span>
+      </span>
+    </div>
+  );
+  const foot = !sub && (
+    <div className="sg-ask-foot">
+      {direct ? 'This page is set to apply directly' : 'This page is set to suggest first'}
     </div>
   );
   if (phone) {
     return (
-      <BottomSheet label={`Ask ${team}`} onClose={onClose} testId="ask-team-sheet">
-        <div className="sg-ask-touch" role="menu" aria-label={`Ask ${team}`}>
-          {head}
+      <BottomSheet label={`Ask ${team}`} onClose={onClose} testId="ask-team-sheet" hideTitle>
+        <SheetHead title={`Ask ${team}`} action="Cancel" onAction={onClose} />
+        <div className="sg-ask-touch sg-ask-phone" role="menu" aria-label={`Ask ${team}`}>
           {body}
+          {foot}
         </div>
       </BottomSheet>
     );
   }
   const left = Math.max(8, Math.min(capture.rect.left, window.innerWidth - 268));
   const below = capture.rect.bottom + 6;
-  const top = below + 380 > window.innerHeight ? Math.max(8, capture.rect.top - 386) : below;
+  const top = below + 400 > window.innerHeight ? Math.max(8, capture.rect.top - 406) : below;
   return createPortal(
     <div
       ref={ref}
@@ -393,8 +495,9 @@ function AskTeamMenu({
       style={{ left, top }}
     >
       {head}
+      <div className="sg-ask-sep" />
       {body}
-      {!sub && <div className="sg-ask-foot">Nothing is written into your text while you wait.</div>}
+      {foot}
     </div>,
     document.body,
   );
@@ -432,8 +535,9 @@ export function AskTeamButton({
         onOpened?.();
       }}
     >
-      <LineIcon name="sparkle" size={12} />
+      <Spark size={13} color="#5B3AA6" />
       Ask the team
+      <SgIcon name="chevDown" size={12} sw={2.6} />
     </button>
   );
 }

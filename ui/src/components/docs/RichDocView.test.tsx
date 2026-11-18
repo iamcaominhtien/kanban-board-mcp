@@ -182,10 +182,11 @@ describe('RichDocView: references and embeds', () => {
 
   it('draws upload links as file cards, web links as external links, and the drawings', () => {
     const { container, getAllByTestId, getByTestId } = show(doc);
-    expect(getAllByTestId('file-card').map((e) => e.textContent)).toEqual([
-      'report.pdf@/uploads/report_ab.pdf',
-      'a.xlsx@/uploads/a_1.xlsx',
-    ]);
+    expect(getAllByTestId('file-card').map((e) => e.textContent)).toEqual(['report.pdf@/uploads/report_ab.pdf']);
+    // a file card block is the docs' own card (board "Embeds" frame 38): badge, name, type and size, Download
+    const card = getByTestId('doc-file-card');
+    expect(card.querySelector('.dk-fc-name')?.textContent).toBe('a.xlsx');
+    expect(card.querySelector('a[download]')?.getAttribute('download')).toBe('a.xlsx');
     const ext = container.querySelector('a.dk-ext')!;
     expect(ext.getAttribute('href')).toBe('https://example.com');
     expect(ext.getAttribute('target')).toBe('_blank');

@@ -54,12 +54,19 @@ export function NewPageMenu({
     <span
       style={{
         marginLeft: 'auto',
-        fontSize: 10.5,
+        display: 'inline-flex',
+        alignItems: 'center',
+        height: 22,
+        boxSizing: 'border-box',
+        padding: '0 9px',
+        fontSize: 9.5,
         fontWeight: 700,
-        color: '#2E6F40',
-        background: '#DCEEE1',
+        color: '#244E78',
+        background: '#E8F1FA',
+        border: '1px solid #C9DDF0',
         borderRadius: 999,
-        padding: '1px 7px',
+        whiteSpace: 'nowrap',
+        flex: 'none',
       }}
     >
       New
@@ -76,7 +83,7 @@ export function NewPageMenu({
       style={{ width: '100%', border: 'none', background: 'none', textAlign: 'left', fontFamily: 'inherit', ...row }}
     >
       <span style={{ color: '#5B6B60', display: 'flex' }}>
-        <Icon name={icon} size={15} strokeWidth={1.8} />
+        <Icon name={icon} size={14} strokeWidth={1.9} />
       </span>
       <span>{label}</span>
       {extra}
@@ -88,7 +95,7 @@ export function NewPageMenu({
       className="dk-menu docs-root"
       role="menu"
       aria-label="New page"
-      style={{ position: 'absolute', left: 0, bottom: 'calc(100% + 6px)', width: 260, padding: 6, zIndex: 60 }}
+      style={{ position: 'absolute', left: 0, bottom: 'calc(100% + 6px)', width: 260, zIndex: 60 }}
     >
       {item(
         'Blank page',
@@ -106,15 +113,15 @@ export function NewPageMenu({
       {item('Paste from the clipboard', 'i18', { kind: 'paste' }, newTag, 'new-menu-paste')}
       {recent.length > 0 && (
         <>
-          <div style={{ height: 1, background: '#EEF3EF', margin: '4px 6px' }} />
+          <div style={{ height: 1, background: '#E3E8E5', margin: '4px 6px' }} />
           <div
             style={{
-              fontSize: 10.5,
+              fontSize: 10,
               fontWeight: 700,
               textTransform: 'uppercase',
-              letterSpacing: '0.06em',
+              letterSpacing: '0.08em',
               color: '#9AA8A0',
-              padding: '6px 10px 2px',
+              padding: '5px 10px 2px',
             }}
           >
             Recent templates

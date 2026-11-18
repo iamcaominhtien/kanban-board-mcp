@@ -196,10 +196,10 @@ describe('a version row counts the blocks it changed', () => {
     );
     fireEvent.click(screen.getByTestId('version-menu-12'));
     expect(screen.getAllByRole('menuitem').map((b) => b.textContent)).toEqual([
-      'Open',
+      'View this version',
       'Compare with previous',
       'Compare with current',
-      'Restore as v16…',
+      'Restore as v16',
       'Copy as new page',
     ]);
     fireEvent.click(screen.getByTestId('menu-copy'));
@@ -241,7 +241,10 @@ describe('restore asks first', () => {
     expect(counts).toContain('1added back');
     expect(counts).toContain('2removed');
     expect(screen.getByTestId('hx-restore-comments').textContent).toBe(
-      'Comments stay with the page, not with a version. 2 comments are on blocks that v12 does not have. They stay in the Comments panel as orphaned threads; nothing is deleted.',
+      'Comments stay with the page, not with a version.',
+    );
+    expect(screen.getByTestId('hx-restore-orphans').textContent).toBe(
+      '2 comments are on blocks that v12 does not have. They stay in the Comments panel as orphaned threads; nothing is deleted.',
     );
     fireEvent.click(screen.getByTestId('hx-restore-confirm'));
     expect(onConfirm).toHaveBeenCalledWith('Restored from v12');
@@ -326,11 +329,7 @@ describe('compare two versions block by block', () => {
     versionData.set(13, detail(13, doc(p('b-1', 'The board has three columns'), p('b-2', 'Gone'))));
     versionData.set(15, detail(15, doc(p('b-1', 'The board has four columns'), p('b-3', 'Fresh'))));
     view(13, 15);
-    expect(screen.getAllByTestId('hx-label').map((e) => e.textContent)).toEqual([
-      'Text edited',
-      'Removed block',
-      'New block',
-    ]);
+    expect(screen.getAllByTestId('hx-label').map((e) => e.textContent)).toEqual(['Changed', 'Removed', 'Added']);
     expect(screen.getByTestId('hx-diff').querySelector('del')?.textContent?.trim()).toBe('three');
     expect(screen.getByTestId('hx-counts').textContent).toContain('1 changed 1 added 1 removed');
     const jump = screen.getByRole('navigation', { name: 'Jump to a change' });

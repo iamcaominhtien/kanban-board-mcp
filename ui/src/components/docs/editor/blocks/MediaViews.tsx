@@ -7,7 +7,7 @@
  */
 
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
-import { useRef, useState, useSyncExternalStore } from 'react';
+import { Fragment, useRef, useState, useSyncExternalStore } from 'react';
 import { uploadUrl } from '../../../../api/tickets';
 import { getFileTypeMeta } from '../../../../utils/fileIcons';
 import { itemFromUpload, usePreview } from '../../../preview/PreviewContext';
@@ -16,7 +16,7 @@ import { uploadDocsFile, uploadPath } from '../../embeds/embedApi';
 import { FilePreview } from '../../embeds/FileBlock';
 import { ProviderPlayer, VideoCaption, VideoPlayer } from '../../embeds/VideoBlock';
 import { VIDEO_ACCEPT, fileNameOf, videoEmbedOf, youtubePoster } from '../../embeds/videoEmbed';
-import { Icon } from '../../Icon';
+import { EmbIcon, type EmbIconName } from '../../embeds/embIcons';
 import { askBlockUi, blockKitOf } from './bus';
 import { SNAP_STEPS } from './commands';
 import { docUploadFor, docUploadsVersion, startDocUpload, subscribeDocUploads } from './docUpload';
@@ -27,6 +27,15 @@ import '../../embeds/embeds.css';
 
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
 const posOf = (getPos: NodeViewProps['getPos']) => (typeof getPos === 'function' ? (getPos() ?? null) : null);
+
+/** "Video file · cdn.example.com" or "Video file" under the name in the properties panel. */
+function provider(src: string): string {
+  try {
+    return /^https?:/i.test(src) ? `Video file · ${new URL(src).hostname}` : 'Video file';
+  } catch {
+    return 'Video file';
+  }
+}
 
 /** The video properties panel (frame 15). */
 function VideoProps({
@@ -47,31 +56,31 @@ function VideoProps({
   const [busy, setBusy] = useState(false);
   const src = str(attrs.src);
   return (
-    <Panel
-      title="Video properties"
-      anchor={anchor}
-      onClose={onClose}
-      testId="video-props"
-      footer={
-        <button type="button" className="dk-btn-primary" onClick={onClose}>
-          Done
-        </button>
-      }
-    >
-      <div className="dk-bp-muted">{fileNameOf(src)}</div>
+    <Panel title="Video properties" anchor={anchor} onClose={onClose} testId="video-props">
+      <div className="dk-vprops-file">
+        {str(attrs.poster) ? (
+          <img className="dk-vid-poster-thumb" src={str(attrs.poster)} alt="" />
+        ) : (
+          <span className="dk-vid-poster-thumb" aria-hidden="true" />
+        )}
+        <span>
+          <b>{fileNameOf(src)}</b>
+          <br />
+          <span>{provider(src)}</span>
+        </span>
+      </div>
       <Row label="Poster image" hint="The picture shown before play.">
-        {str(attrs.poster) && <img className="dk-vid-poster-thumb" src={str(attrs.poster)} alt="" />}
         <div className="dk-bp-row-inline">
           <button
             type="button"
-            className="dk-btn-ghost"
+            className="st-btn st-btn-sm"
             disabled={busy || !projectId}
             onClick={() => pick.current?.click()}
           >
             {busy ? 'Uploading…' : 'Choose image'}
           </button>
           {str(attrs.poster) && (
-            <button type="button" className="dk-btn-ghost" onClick={() => update({ poster: null })}>
+            <button type="button" className="st-btn st-btn-sm" onClick={() => update({ poster: null })}>
               Remove poster
             </button>
           )}
@@ -131,6 +140,11 @@ function VideoProps({
           onChange={(e) => update({ description: e.target.value || null })}
         />
       </Row>
+      <div className="dk-emb-sz-done">
+        <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={onClose}>
+          Done
+        </button>
+      </div>
     </Panel>
   );
 }
@@ -167,7 +181,7 @@ export function VideoView({ node, selected, editor, getPos, updateAttributes, de
       <div className="dk-emb-state">
         <strong>No video yet</strong>
         <div className="dk-emb-actions">
-          <button type="button" className="dk-btn-primary" onClick={replace}>
+          <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={replace}>
             Choose a video
           </button>
         </div>
@@ -283,10 +297,12 @@ export function FileCardView({ node, selected, editor, getPos, updateAttributes,
     if (v && v !== name) updateAttributes({ name: v });
     setRenaming(null);
   };
-  const items: [string, () => void, boolean?][] = [
+  const items: [string, () => void, boolean, EmbIconName][] = [
     [
       'Open in viewer',
       () => viewer.open([itemFromUpload(path, name, typeof attrs.size === 'number' ? attrs.size : undefined)], 0),
+      false,
+      'eye',
     ],
     [
       'Download',
@@ -297,13 +313,15 @@ export function FileCardView({ node, selected, editor, getPos, updateAttributes,
         a.rel = 'noopener';
         a.click();
       },
+      false,
+      'download',
     ],
     ...(editable
       ? ([
-          [preview ? 'Show as card' : 'Show as preview', () => updateAttributes({ preview: !preview })],
-          ['Rename', () => setRenaming(name)],
-          ['Replace file', () => pick.current?.click()],
-        ] as [string, () => void][])
+          [preview ? 'Show as card' : 'Show as preview', () => updateAttributes({ preview: !preview }), false, 'eye'],
+          ['Rename', () => setRenaming(name), false, 'pen'],
+          ['Replace file', () => pick.current?.click(), false, 'swap'],
+        ] as [string, () => void, boolean, EmbIconName][])
       : []),
     [
       'Copy link',
@@ -312,22 +330,66 @@ export function FileCardView({ node, selected, editor, getPos, updateAttributes,
           ?.writeText(download)
           .then(() => toast.success('Link copied'))
           .catch(() => toast.error('Could not copy the link', download)),
+      false,
+      'link',
     ],
-    ...(editable ? ([['Delete', deleteNode, true]] as [string, () => void, boolean][]) : []),
+    ...(editable ? ([['Delete', deleteNode, true, 'trash']] as [string, () => void, boolean, EmbIconName][]) : []),
   ];
+  const more = (
+    <span className="dk-fc-more">
+      <button
+        type="button"
+        className="dk-fc-ib"
+        aria-label="More"
+        aria-haspopup="menu"
+        aria-expanded={menu}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => setMenu((m) => !m)}
+      >
+        <EmbIcon name="more" size={16} />
+      </button>
+      {menu && (
+        <div className="dk-fc-menu" role="menu" aria-label={name} onMouseLeave={() => setMenu(false)}>
+          <div className="dk-fc-menu-head">{name}</div>
+          {items.map(([label, fn, danger, icon]) => (
+            <Fragment key={label}>
+              {(label === 'Show as card' || label === 'Show as preview' || danger) && (
+                <div className="dk-fc-menu-sep" />
+              )}
+              <button
+                type="button"
+                role="menuitem"
+                className={danger ? 'dk-fc-menu-danger' : undefined}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setMenu(false);
+                  fn();
+                }}
+              >
+                <span className="dk-fc-menu-ic">
+                  <EmbIcon name={icon} size={15} />
+                </span>
+                {label}
+              </button>
+            </Fragment>
+          ))}
+        </div>
+      )}
+    </span>
+  );
   return (
     <NodeViewWrapper
       className={`dk-fc-block${selected ? ' dk-emb-selected' : ''}`}
       contentEditable={false}
       data-testid="file-block"
     >
-      <div className="dk-fc" data-drag-handle="">
+      <div className={`dk-fc${showPreview ? ' dk-fc-open' : ''}`} data-drag-handle="">
         <div className="dk-fc-row">
           <FileBadge name={name} />
           <span className="dk-fc-text">
             {renaming != null ? (
               <input
-                className="dk-bp-input dk-fc-rename"
+                className="dk-fc-rename"
                 aria-label="File name"
                 autoFocus
                 value={renaming}
@@ -343,52 +405,29 @@ export function FileCardView({ node, selected, editor, getPos, updateAttributes,
             )}
             <span className="dk-fc-meta">{fileMeta(name, attrs.size)}</span>
           </span>
-          <span className="dk-fc-actions">
-            {preview && (
-              <button type="button" className="dk-btn-ghost" onClick={() => setOpen(!showPreview)}>
-                {showPreview ? 'Collapse preview' : 'Preview'}
-              </button>
-            )}
-            <a className="dk-btn-ghost" href={download} download={name}>
-              Download
-            </a>
-            <span className="dk-fc-more">
-              <button
-                type="button"
-                className="dk-btb"
-                aria-label="More"
-                aria-haspopup="menu"
-                aria-expanded={menu}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setMenu((m) => !m)}
-              >
-                <Icon name="more" size={15} />
-              </button>
-              {menu && (
-                <div className="dk-menu dk-btb-more" role="menu" aria-label={name} onMouseLeave={() => setMenu(false)}>
-                  {items.map(([label, fn, danger]) => (
-                    <button
-                      key={label}
-                      type="button"
-                      role="menuitem"
-                      className="dk-mi"
-                      style={danger ? { color: '#C4432A' } : undefined}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        setMenu(false);
-                        fn();
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+          {!showPreview && (
+            <span className="dk-fc-actions">
+              {preview && (
+                <button type="button" className="st-btn st-btn-sm" onClick={() => setOpen(true)}>
+                  Preview
+                </button>
               )}
+              <a className="st-btn st-btn-sm" href={download} download={name}>
+                <EmbIcon name="download" size={12} sw={2.2} />
+                Download
+              </a>
+              {more}
             </span>
-          </span>
+          )}
+          {showPreview && <span className="dk-fc-actions">{more}</span>}
         </div>
         {showPreview && src && (
-          <FilePreview src={path} name={name} size={typeof attrs.size === 'number' ? attrs.size : undefined} />
+          <FilePreview
+            src={path}
+            name={name}
+            size={typeof attrs.size === 'number' ? attrs.size : undefined}
+            onCollapse={() => setOpen(false)}
+          />
         )}
         <input
           ref={pick}

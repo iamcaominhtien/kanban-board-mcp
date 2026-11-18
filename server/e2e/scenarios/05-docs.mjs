@@ -62,7 +62,7 @@ export default {
       await p.getByLabel('Select version 2').check({ force: true });
       await p.getByRole('button', { name: 'Compare', exact: true }).click();
       const cmp = p.getByTestId('history-compare');
-      await cmp.getByTestId('hx-label').filter({ hasText: 'Text edited' }).first().waitFor();
+      await cmp.getByTestId('hx-label').filter({ hasText: 'Changed' }).first().waitFor();
       await cmp.getByRole('navigation', { name: 'Jump to a change' }).waitFor();
       // any two versions: swapping them compares the other way round
       await cmp.getByTestId('hx-swap').click();
@@ -71,6 +71,15 @@ export default {
       await p.getByTestId('history-drawer').waitFor();
       await p.getByLabel('Select version 1').uncheck({ force: true });
       await p.getByLabel('Select version 2').uncheck({ force: true });
+    });
+    await s.step("history: Escape closes a row's menu, not the whole drawer", async () => {
+      await p.getByTestId('version-row-1').hover();
+      await p.getByTestId('version-menu-1').click();
+      const menu = p.getByTestId('history-drawer').getByRole('menu');
+      await menu.waitFor();
+      await p.keyboard.press('Escape');
+      await menu.waitFor({ state: 'detached' });
+      await p.getByTestId('history-drawer').getByTestId('version-row-1').waitFor();
     });
     await s.step('history: Copy as new page makes a draft from version 1', async () => {
       // on desktop a row's actions show on hover; the rows keep their height, so a click is not moved onto another row
@@ -136,9 +145,10 @@ export default {
     await s.step('the Published badge opens its version, and History reads an older version read-only', async () => {
       await p.getByTestId('status-badge').click();
       await p.getByRole('dialog', { name: 'Version 3' }).getByRole('button', { name: /Page history/ }).click();
-      // a row's buttons show on hover
-      await p.locator('.hd-row', { has: p.getByTestId('read-version-2') }).hover();
-      await p.getByTestId('read-version-2').click();
+      // a row's buttons show on hover; "View this version" in its menu opens it to read
+      await p.getByTestId('version-row-2').hover();
+      await p.getByTestId('version-menu-2').click();
+      await p.getByTestId('menu-open').click();
       await p.getByText('You are reading v2.').waitFor();
       if (!(await p.getByTestId('edit-page').isDisabled())) throw new Error('Edit must be off on an older version');
       await p.getByRole('button', { name: 'Back to the latest' }).click();

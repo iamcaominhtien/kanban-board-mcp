@@ -9,17 +9,22 @@
 
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import type { RichDoc } from '../../../types/docs';
-import { LineIcon } from '../../ui/LineIcon';
 import { RichBlocks } from '../RichDocView';
 import type { DocsSuggestion } from './api';
 import { describeSuggestion, textDiff, type FormatChange, type SuggestionView } from './describe';
+import { SgIcon, Spark, changeIcon } from './sgIcons';
 import { ACCEPT_FAILED, useReview, type Review } from './useSuggestionReview';
 import './suggestions.css';
 
-/** One formatting change in words: "Alignment: left → centre". */
-export function ChangeChip({ change }: { change: FormatChange }) {
+/**
+ * One formatting change in words with its icon: "Alignment: left → centre".
+ * @param props.change - The change.
+ * @param props.big - The phone sheet's taller chip.
+ */
+export function ChangeChip({ change, big }: { change: FormatChange; big?: boolean }) {
   return (
-    <span className="sg-change">
+    <span className={`sg-change${big ? ' sg-change-big' : ''}`}>
+      <SgIcon name={changeIcon(change.what)} size={12} color="#5B3AA6" />
       {change.what}: <span className="sg-from">{change.from}</span>
       <span className="sg-arrow" aria-label="to">
         →
@@ -29,20 +34,50 @@ export function ChangeChip({ change }: { change: FormatChange }) {
   );
 }
 
-/** The kind of change, its detail and the formatting it changes, as chips. */
-export function ChangeTags({ s, view, compact }: { s: DocsSuggestion; view: SuggestionView; compact?: boolean }) {
+/** The tone of a label: green for a new block, red for a removal, blue for a whole object replaced. */
+export function labelTone(label: string): string {
+  if (label === 'New block') return ' sg-tag-ok';
+  if (label === 'Removed block') return ' sg-tag-del';
+  if (/ replaced$|^Replaced$/.test(label)) return ' sg-tag-blue';
+  return '';
+}
+
+/**
+ * The kind of change, its detail and the formatting it changes, as chips.
+ * @param props.compact - The phone page: no formatting chips, a short stale tag.
+ * @param props.big - The phone sheet: taller formatting chips.
+ */
+export function ChangeTags({
+  s,
+  view,
+  compact,
+  big,
+}: {
+  s: DocsSuggestion;
+  view: SuggestionView;
+  compact?: boolean;
+  big?: boolean;
+}) {
+  // the phone page names one thing: that the block changed since, or else what the change is
+  if (compact && s.stale) {
+    return (
+      <span className="sg-tag sg-tag-stale" data-testid="sg-stale">
+        Changed since
+      </span>
+    );
+  }
   return (
     <>
-      <span className="sg-tag" data-testid="sg-label">
+      <span className={`sg-tag${labelTone(view.label)}`} data-testid="sg-label">
         {view.label}
       </span>
-      {view.detail && <span className="sg-tag sg-tag-muted">{view.detail}</span>}
+      {view.detail && !compact && <span className="sg-tag sg-tag-muted">{view.detail}</span>}
       {s.stale && (
         <span className="sg-tag sg-tag-stale" data-testid="sg-stale">
           {compact ? 'Changed since' : 'Changed since the team wrote it'}
         </span>
       )}
-      {!compact && view.changes.map((c, i) => <ChangeChip key={i} change={c} />)}
+      {!compact && view.changes.map((c, i) => <ChangeChip key={i} change={c} big={big} />)}
     </>
   );
 }
@@ -88,13 +123,47 @@ function Block({ node }: { node: RichDoc | null }) {
   );
 }
 
-/** Before / After of a suggestion, one at a time. */
+/**
+ * Before and After of a whole object side by side (desktop) or one above the other (tablet), each in its card.
+ * @param props.view - The suggestion in words.
+ * @param props.stacked - One above the other, with a down arrow.
+ */
+export function BeforeAfterCards({ view, stacked }: { view: SuggestionView; stacked?: boolean }) {
+  const card = (side: 'before' | 'after') => {
+    const node = side === 'before' ? view.before : view.after;
+    const removed = side === 'after' && !node;
+    return (
+      <div
+        className={`sg-side${node ? '' : ' sg-side-none'}${side === 'after' ? (removed ? ' sg-side-gone' : ' sg-side-after') : ''}`}
+        data-testid={`sg-side-${side}`}
+      >
+        <div>
+          <span className={`sg-tag ${side === 'before' ? 'sg-tag-muted' : removed ? 'sg-tag-del' : 'sg-tag-ok'}`}>
+            {side === 'before' ? 'Before' : removed ? 'Removed' : 'After'}
+          </span>
+        </div>
+        {node ? <Block node={node} /> : <div className="sg-side-empty">No block here</div>}
+      </div>
+    );
+  };
+  return (
+    <div className={`sg-sides${stacked ? ' sg-sides-stacked' : ''}`}>
+      {card('before')}
+      <span className="sg-sides-arrow" aria-hidden="true">
+        <SgIcon name={stacked ? 'arrowDown' : 'chevRight'} size={18} sw={2.4} color="#5B3AA6" />
+      </span>
+      {card('after')}
+    </div>
+  );
+}
+
+/** Before / After of a suggestion, one at a time (the phone sheet). */
 export function BeforeAfter({ view, initial = 'after' }: { view: SuggestionView; initial?: 'before' | 'after' }) {
   const [side, setSide] = useState<'before' | 'after'>(initial);
   const node = side === 'before' ? view.before : view.after;
   return (
     <div>
-      <div className="sg-switch" role="group" aria-label="Before or after">
+      <div className="sg-switch sg-switch-wide" role="group" aria-label="Before or after">
         {(['before', 'after'] as const).map((k) => (
           <button key={k} type="button" aria-pressed={side === k} onClick={() => setSide(k)}>
             {k === 'before' ? 'Before' : 'After'}
@@ -115,25 +184,44 @@ export function BeforeAfter({ view, initial = 'after' }: { view: SuggestionView;
  * @param props.view - The suggestion in words.
  * @param props.rendered - The block as it is on the page now (a removal shows it struck through).
  * @param props.sheet - In the phone sheet: formatting and objects get the Before / After switch.
+ * @param props.stacked - A whole object's Before and After one above the other (tablet).
  */
 export function SuggestionBody({
   view,
   rendered,
   sheet,
+  stacked,
 }: {
   view: SuggestionView;
   rendered: ReactNode;
   sheet?: boolean;
+  stacked?: boolean;
 }) {
   if (view.mode === 'diff') return <DiffText view={view} />;
   if (view.mode === 'removed') return <>{rendered ?? <Block node={view.before} />}</>;
-  if (view.mode === 'whole' || (sheet && view.before)) return <BeforeAfter view={view} />;
+  if (sheet && (view.mode === 'whole' || view.before)) return <BeforeAfter view={view} />;
+  if (view.mode === 'whole') return <BeforeAfterCards view={view} stacked={stacked} />;
   return <Block node={view.after} />;
 }
 
-/** The words under a block that changed since the team wrote it. */
-export const STALE_NOTE =
-  'Someone changed this block after the team wrote it. Accept waits until you have looked at what changed. Reject keeps their version.';
+/** The first, bold sentence of the note under a block that changed since the team wrote it. */
+export const STALE_LEAD = 'Someone changed this block after the team wrote it.';
+/** The rest of that note. */
+export const STALE_REST = 'Accept waits until you have looked at what changed. Reject keeps their version.';
+/** The whole note, in words. */
+export const STALE_NOTE = `${STALE_LEAD} ${STALE_REST}`;
+
+/** The amber note "Someone changed this block after the team wrote it." with its warning sign. */
+export function StaleMsg() {
+  return (
+    <div className="sg-msg sg-msg-stale" data-testid="sg-stale-note">
+      <SgIcon name="warning" size={14} sw={2.2} color="#8A5A00" />
+      <div>
+        <b>{STALE_LEAD}</b> {STALE_REST}
+      </div>
+    </div>
+  );
+}
 
 /**
  * Reject and Accept (or Look at it, or Retry) of one suggestion.
@@ -149,35 +237,34 @@ export function SuggestionActions({ s, review }: { s: DocsSuggestion; review: Re
     <>
       <button
         type="button"
-        className="sg-btn"
+        className="sg-btn sg-btn-reject"
         disabled={off}
         data-testid="sg-reject"
         onClick={() => void review.reject(s)}
       >
-        <LineIcon name="close" size={13} />
+        <SgIcon name="close" size={13} sw={2.4} />
         Reject
       </button>
       {needsLook ? (
         <button
           type="button"
-          className="sg-btn sg-btn-look"
-          disabled={!review.canEdit}
-          data-testid="sg-look"
-          title="Shows the block as it is now next to the team's version"
-          onClick={() => review.lookAt(s.id)}
+          className="sg-btn sg-btn-accept"
+          disabled
+          data-testid="sg-accept-wait"
+          title="Look at what changed first"
         >
-          <LineIcon name="eye" size={13} />
-          Look at it
+          <SgIcon name="check" size={13} sw={2.4} />
+          Accept
         </button>
       ) : (
         <button
           type="button"
-          className="sg-btn sg-btn-primary"
+          className="sg-btn sg-btn-primary sg-btn-accept"
           disabled={off}
           data-testid="sg-accept"
           onClick={() => void review.accept(s)}
         >
-          <LineIcon name={failed ? 'refresh' : 'check'} size={13} />
+          <SgIcon name="check" size={13} sw={2.4} />
           {busy ? 'Saving…' : failed ? 'Retry' : 'Accept'}
         </button>
       )}
@@ -185,27 +272,65 @@ export function SuggestionActions({ s, review }: { s: DocsSuggestion; review: Re
   );
 }
 
-/** "Changed since the team wrote it", and once looked at, the block as it is now next to the team's version. */
+/**
+ * "Changed since the team wrote it" with "Look at it", and once looked at, the block as it is now next to the team's
+ * version.
+ */
 export function StaleNote({ s, view, review }: { s: DocsSuggestion; view: SuggestionView; review: Review }) {
   if (!s.stale) return null;
   if (!review.looked.has(s.id)) {
     return (
-      <div className="sg-msg sg-msg-stale" data-testid="sg-stale-note">
-        <LineIcon name="warning" size={14} />
-        <span>{STALE_NOTE}</span>
+      <div className="sg-stale-wrap">
+        <StaleMsg />
+        <div className="sg-look-row">
+          <button
+            type="button"
+            className="sg-btn sg-btn-look"
+            disabled={!review.canEdit}
+            data-testid="sg-look"
+            onClick={() => review.lookAt(s.id)}
+          >
+            <SgIcon name="eye" size={13} sw={2.4} />
+            Look at it
+          </button>
+          <span className="sg-look-hint">Shows their edit next to the team's</span>
+        </div>
       </div>
     );
   }
   const now = s.blockId ? (review.doc?.content ?? []).find((b) => b.attrs?.blockId === s.blockId) : null;
   return (
-    <div className="sg-compare" data-testid="sg-compare">
-      <div>
-        <span className="sg-label-small">On the page now</span>
+    <div className="sg-sides sg-compare" data-testid="sg-compare">
+      <div className="sg-side">
+        <div>
+          <span className="sg-tag sg-tag-muted">On the page now</span>
+        </div>
         <Block node={now ?? null} />
       </div>
-      <div>
-        <span className="sg-label-small">The team’s version</span>
+      <div className="sg-side sg-side-after">
+        <div>
+          <span className="sg-tag sg-tag-ok">The team’s version</span>
+        </div>
         <Block node={view.after} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The red note under a block whose Accept did not go through: the first sentence bold.
+ * @param props.text - The error ("Couldn’t accept this change. The page was not saved. …").
+ */
+export function ErrorMsg({ text }: { text: string }) {
+  const cut = text.indexOf('. ');
+  const lead = cut > 0 ? text.slice(0, cut + 1) : text;
+  const rest = cut > 0 ? text.slice(cut + 2) : '';
+  return (
+    <div className="sg-msg sg-msg-error" role="alert" data-testid="sg-error">
+      <SgIcon name="warning" size={14} sw={2.2} color="#C4432A" />
+      <div>
+        <b>{lead}</b>
+        {rest ? ` ${rest}` : ''}
       </div>
     </div>
   );
@@ -227,6 +352,7 @@ export function SuggestionFrame({ s, rendered }: { s: DocsSuggestion; rendered: 
   const cls = [
     'sg-block',
     touch ? 'sg-touch' : '',
+    phone ? 'sg-phone' : '',
     index === review.current ? 'sg-current' : '',
     s.stale ? 'sg-stale' : '',
     view.mode === 'removed' ? 'sg-removed' : '',
@@ -240,9 +366,9 @@ export function SuggestionFrame({ s, rendered }: { s: DocsSuggestion; rendered: 
       data-testid="sg-block"
       aria-label={`Suggestion ${index + 1} of ${review.list.length}`}
     >
-      <div className="sg-head">
+      <div className="sg-bhead">
         <span className="sg-team">
-          <LineIcon name="sparkle" size={12} />
+          <Spark size={12} />
           {s.author}
         </span>
         <ChangeTags s={s} view={view} compact={phone} />
@@ -250,7 +376,7 @@ export function SuggestionFrame({ s, rendered }: { s: DocsSuggestion; rendered: 
           {phone ? (
             <button
               type="button"
-              className="sg-btn sg-review-chip"
+              className="sg-review-chip"
               data-testid="sg-review"
               onClick={() => {
                 review.focus(s.id);
@@ -258,27 +384,18 @@ export function SuggestionFrame({ s, rendered }: { s: DocsSuggestion; rendered: 
               }}
             >
               Review
+              <SgIcon name="chevRight" size={14} sw={2.6} />
             </button>
           ) : (
             <SuggestionActions s={s} review={review} />
           )}
         </span>
       </div>
-      <SuggestionBody view={view} rendered={rendered} />
+      <SuggestionBody view={view} rendered={rendered} stacked={touch} />
       {!phone && <StaleNote s={s} view={view} review={review} />}
-      {phone && s.stale && (
-        <div className="sg-msg sg-msg-stale">Someone changed this block after the team wrote it.</div>
-      )}
-      {s.note && !phone && (
-        <div className="sg-msg" style={{ color: '#5B6B60', padding: '2px 0' }}>
-          {s.note}
-        </div>
-      )}
-      {error && (
-        <div className="sg-msg sg-msg-error" role="alert" data-testid="sg-error">
-          {error}
-        </div>
-      )}
+      {phone && s.stale && <div className="sg-stale-line">{STALE_LEAD}</div>}
+      {s.note && !phone && <div className="sg-note">{s.note}</div>}
+      {error && <ErrorMsg text={error} />}
     </div>
   );
 }

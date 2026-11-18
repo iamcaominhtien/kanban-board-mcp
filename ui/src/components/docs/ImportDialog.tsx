@@ -826,7 +826,7 @@ function MarkdownImport({
         position: 'fixed',
         inset: 0,
         zIndex: 1000,
-        background: 'rgba(37,61,44,0.5)',
+        background: 'rgba(30,42,34,0.42)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -837,68 +837,32 @@ function MarkdownImport({
       <div
         style={{
           position: 'relative',
-          width: 612,
+          width: 520,
           maxWidth: '100%',
           maxHeight: '100%',
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: 12,
+          borderRadius: 16,
           border: '1px solid #E3E8E5',
-          boxShadow: '0 24px 64px rgba(30,42,34,0.28)',
+          boxShadow: '0 24px 60px rgba(30,42,34,0.22)',
           background: '#FFFFFF',
           overflow: 'hidden',
           boxSizing: 'border-box',
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 12,
-            padding: '16px 22px',
-            borderBottom: '1px solid #E3E8E5',
-          }}
-        >
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: '50%',
-              background: '#DCEEE1',
-              color: '#2E6F40',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="i26" size={16} strokeWidth={1.9} />
+        <div className="dk-np-head">
+          <div className="dk-np-badge">
+            <Icon name="i26" size={17} strokeWidth={1.9} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#1E2A22' }}>Import Markdown</div>
-            <div style={{ fontSize: 12, color: '#5B6B60', marginTop: 2 }}>
+            <div className="dk-np-title">Import Markdown</div>
+            <div className="dk-np-sub">
               {projectName}
               {entries.length > 0 &&
                 ` · ${entries.length} ${entries.length === 1 ? 'file' : 'files'}, ${fmtSize(totalBytes)}`}
             </div>
           </div>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 6,
-              border: 'none',
-              background: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: '#9AA8A0',
-            }}
-          >
+          <button type="button" aria-label="Close" onClick={onClose} className="dk-np-x">
             <Icon name="i08" size={16} strokeWidth={1.9} />
           </button>
         </div>
@@ -935,34 +899,24 @@ function MarkdownImport({
           <div
             style={{
               width: '100%',
-              height: 178,
+              minHeight: 178,
+              padding: '18px 16px',
               borderRadius: 12,
-              border: drag.dragging ? '2px dashed #2E6F40' : '1.5px dashed #C7D2CB',
-              background: drag.dragging ? '#F1F8F3' : '#FBFCFB',
+              border: drag.dragging ? '2px dashed #2E6F40' : '1.5px dashed #BFD2C5',
+              background: drag.dragging ? '#F1F8F3' : '#F6FAF7',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 8,
+              gap: 10,
+              textAlign: 'center',
               boxSizing: 'border-box',
             }}
           >
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                background: drag.dragging ? '#DCEEE1' : '#EEF3EF',
-                color: drag.dragging ? '#2E6F40' : '#5B6B60',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Icon name="i26" size={22} strokeWidth={1.9} />
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>
+            <span style={{ display: 'flex', color: drag.dragging ? '#2E6F40' : '#5B6B60' }}>
+              <Icon name="i26" size={24} strokeWidth={1.8} />
+            </span>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: '#1E2A22' }}>
               {drag.dragging
                 ? drag.count
                   ? `Drop to add ${drag.count} ${drag.count === 1 ? 'file' : 'files'}`
@@ -972,34 +926,22 @@ function MarkdownImport({
             {!drag.dragging && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#5B6B60' }}>
                 or
-                <button type="button" className="st-btn st-btn-sm" onClick={() => filesInput.current?.click()}>
+                <button type="button" className="st-btn" onClick={() => filesInput.current?.click()}>
                   Choose files…
                 </button>
-                <button type="button" className="st-btn st-btn-sm" onClick={() => dirInput.current?.click()}>
+                <button type="button" className="st-btn" onClick={() => dirInput.current?.click()}>
                   Choose folder…
                 </button>
               </div>
             )}
-            <div style={{ fontSize: drag.dragging ? 12 : 11.5, color: drag.dragging ? '#2E6F40' : '#9AA8A0' }}>
+            <div style={{ fontSize: 12, lineHeight: 1.5, color: drag.dragging ? '#2E6F40' : '#5B6B60', maxWidth: 380 }}>
               {drag.dragging ? '' : `.md and .markdown, up to ${IMPORT_MAX_FILES} files, 2 MB each`}
             </div>
           </div>
           {notice && <div style={{ fontSize: 12, color: '#A5321E' }}>{notice}</div>}
         </div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '14px 22px',
-            borderTop: '1px solid #E3E8E5',
-            background: '#FBFCFB',
-          }}
-        >
-          <span style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.45 }}>
-            Imported pages start as drafts for you to review.
-          </span>
-          <div style={{ flex: 1 }} />
+        <div className="dk-np-foot">
+          <span className="dk-np-note">Imported pages start as drafts for you to review.</span>
           <button type="button" className="st-btn" onClick={onClose}>
             Cancel
           </button>

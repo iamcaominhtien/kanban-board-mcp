@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DocsLayout } from '../../../hooks/useDocsLayout';
 import { useExportHistory, type ExportRow } from './exportApi';
-import { ICONS, Svg } from './ExportFrame';
+import { FormatBadge, ICONS, Svg } from './ExportFrame';
 import { FORMAT_LABEL, fmtSize, scopeText, whenText } from './exportModel';
 
 /** What the rows' buttons do. */
@@ -21,10 +21,10 @@ export interface HistoryActions {
 }
 
 const STATE_TAG: Partial<Record<ExportRow['state'], [string, string]>> = {
-  running: ['Exporting', 'dx-tag-blue'],
-  cancelled: ['Cancelled', 'dx-tag-grey'],
-  failed: ['Did not finish', 'dx-tag-red'],
-  expired: ['Expired', 'dx-tag-grey'],
+  running: ['Exporting', 'dx-pill dx-pill-green'],
+  cancelled: ['Cancelled', 'dx-pill'],
+  failed: ['Did not finish', 'dx-pill dx-pill-red'],
+  expired: ['Expired', 'dx-pill'],
 };
 
 function RowMenu({ row, actions }: { row: ExportRow; actions: HistoryActions }) {
@@ -67,7 +67,7 @@ function RowMenu({ row, actions }: { row: ExportRow; actions: HistoryActions }) 
     <div className="dx-row-menu" ref={ref}>
       <button
         type="button"
-        className="dk-icobtn"
+        className="dk-icobtn dx-row-more"
         aria-label={`More for ${row.fileName ?? 'this export'}`}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -134,6 +134,7 @@ export function ExportHistory({
             .join(' · ');
           return (
             <div key={r.id} className="dx-row" data-testid="export-row" data-state={r.state}>
+              {!phone && <FormatBadge format={r.format} size={36} />}
               <div className="dx-row-main">
                 <div className="dx-row-name">
                   <span>{r.fileName ?? 'Export'}</span>
@@ -147,16 +148,16 @@ export function ExportHistory({
               {r.state === 'ready' ? (
                 <button
                   type="button"
-                  className="st-btn st-btn-sm"
+                  className="st-btn dx-row-btn"
                   onClick={() => actions.onDownload(r)}
                   data-testid="export-row-download-btn"
                 >
-                  Download
+                  <Svg d={ICONS.download} size={14} /> Download
                 </button>
               ) : r.state === 'running' ? (
                 <button
                   type="button"
-                  className="st-btn st-btn-sm"
+                  className="st-btn st-btn-danger-outline dx-row-btn"
                   onClick={() => actions.onStop(r)}
                   data-testid="export-row-stop"
                 >
@@ -165,7 +166,7 @@ export function ExportHistory({
               ) : (
                 <button
                   type="button"
-                  className="st-btn st-btn-sm"
+                  className="st-btn dx-row-btn"
                   onClick={() => actions.onExportAgain(r)}
                   data-testid="export-row-again-btn"
                 >

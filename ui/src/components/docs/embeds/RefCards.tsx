@@ -6,14 +6,14 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { useDocsPage } from '../../../api/docs';
 import { getTicket } from '../../../api/tickets';
 import type { DocsRefResult } from '../../../types/docs';
 import { actorInitials, actorName, relativeTime } from '../../../utils/relativeTime';
 import { avatarColors } from '../docsUi';
-import { Icon } from '../Icon';
 import { excerptOf } from '../RefChip';
+import { EmbIcon } from './embIcons';
 import './embeds.css';
 
 const STATUS: Record<string, string> = {
@@ -38,13 +38,39 @@ function Avatar({ who }: { who: string }) {
 
 const Bar = () => <span className="dk-ref-bar">|</span>;
 
-/** A card in its "cannot be found" state. */
-function GoneCard({ kind, title, text, actions }: { kind: string; title: string; text: string; actions?: ReactNode }) {
+/** The colour of a status dot (frame 56). */
+const DOT: Record<string, string> = {
+  backlog: '#9AA8A0',
+  todo: '#5B6B60',
+  'in-progress': '#2F6FB0',
+  review: '#8A5A00',
+  testing: '#7C5BD6',
+  done: '#2E6F40',
+  wont_do: '#9AA8A0',
+};
+
+/** A card in its "cannot be found" state (frame 57): a dashed box with an icon, what happened and what to do. */
+function GoneCard({
+  kind,
+  title,
+  text,
+  icon,
+  actions,
+}: {
+  kind: string;
+  title: string;
+  text: string;
+  icon: 'trash' | 'search';
+  actions?: ReactNode;
+}) {
   return (
-    <div className="dk-ref-card dk-ref-gone" role="note" data-testid={`${kind}-card-gone`}>
-      <div className="dk-ref-title">{title}</div>
-      <div className="dk-ref-text">{text}</div>
-      {actions && <div className="dk-emb-actions">{actions}</div>}
+    <div className="dk-ref-gone" role="note" data-testid={`${kind}-card-gone`}>
+      <EmbIcon name={icon} size={20} />
+      <div className="dk-ref-gone-text">
+        <div className="dk-ref-gone-title">{title}</div>
+        <div className="dk-ref-gone-why">{text}</div>
+        {actions && <div className="dk-ref-gone-btns">{actions}</div>}
+      </div>
     </div>
   );
 }
@@ -78,12 +104,13 @@ export function PageCardView({ page, result, onOpen, onPeek, onCreate, onRestore
     return (
       <GoneCard
         kind="page"
+        icon="trash"
         title="In Recycle Bin"
         text={`${page}: deleted by ${who}${when ? ` on ${when}` : ''}. Restore brings the page back at the same place and this card works again.`}
         actions={
           <>
             {onRestore && result.pageId && (
-              <button type="button" className="dk-btn-ghost" onClick={() => onRestore(result.pageId!)}>
+              <button type="button" className="dk-emb-link" onClick={() => onRestore(result.pageId!)}>
                 Restore
               </button>
             )}
@@ -97,12 +124,13 @@ export function PageCardView({ page, result, onOpen, onPeek, onCreate, onRestore
     return (
       <GoneCard
         kind="page"
+        icon="search"
         title="Page not found"
         text={`No page has the title “${page}”.`}
         actions={
           <>
             {onCreate && page && (
-              <button type="button" className="dk-btn-ghost" onClick={() => onCreate(page)}>
+              <button type="button" className="dk-emb-link" onClick={() => onCreate(page)}>
                 Create it
               </button>
             )}
@@ -118,48 +146,70 @@ export function PageCardView({ page, result, onOpen, onPeek, onCreate, onRestore
   const who = data?.updatedBy ?? '';
   return (
     <div className="dk-ref-card dk-page-card" data-testid="page-card">
-      <div className="dk-ref-where">
-        <Icon name="page" size={13} strokeWidth={1.8} />
-        {path.length ? path.join(' › ') : result?.path || 'Docs'}
-      </div>
-      <div className="dk-ref-title">
-        {result?.title || page}
-        {result?.section && <span className="dk-ref-section"> › # {result.section}</span>}
-      </div>
-      {result === undefined || (ok && q.isLoading) ? (
-        <div className="dk-skel dk-skel-line" style={{ width: '80%' }} />
-      ) : (
-        excerpt && <div className="dk-ref-text">{excerpt}</div>
-      )}
-      <div className="dk-ref-foot">
-        {who && (
-          <span className="dk-ref-who">
-            <Avatar who={who} />
-            {actorName(who)}
+      <div className="dk-ref-body">
+        <div className="dk-ref-where">
+          <EmbIcon name="folder" size={13} />
+          {path.length ? (
+            path.map((t, i) => (
+              <Fragment key={i}>
+                {i > 0 && <span>›</span>}
+                {i === path.length - 1 ? <b>{t}</b> : <span>{t}</span>}
+              </Fragment>
+            ))
+          ) : (
+            <b>{result?.path || 'Docs'}</b>
+          )}
+        </div>
+        <div className="dk-ref-title">
+          <EmbIcon name="page" size={16} />
+          <span>
+            {result?.title || page}
+            {result?.section && <span className="dk-ref-section"> › # {result.section}</span>}
           </span>
+        </div>
+        {result === undefined || (ok && q.isLoading) ? (
+          <div className="dk-skel dk-skel-line" style={{ width: '80%' }} />
+        ) : (
+          excerpt && <div className="dk-ref-text">{excerpt}</div>
         )}
-        {data && (
-          <>
-            <Bar />
-            <span>edited {relativeTime(data.updatedAt)}</span>
-            <Bar />
-            <span>v{data.version}</span>
-          </>
-        )}
-        <span className="dk-ref-actions">
+        <div className="dk-ref-foot">
+          {who && (
+            <span className="dk-ref-who">
+              <Avatar who={who} />
+              {actorName(who)}
+            </span>
+          )}
+          {data && (
+            <>
+              {who && <Bar />}
+              <span>edited {relativeTime(data.updatedAt)}</span>
+              <Bar />
+              <span>v{data.version}</span>
+            </>
+          )}
+        </div>
+      </div>
+      {((onOpen && result?.pageId) || (onPeek && result?.pageId) || extra) && (
+        <div className="dk-ref-btns">
           {onOpen && result?.pageId && (
-            <button type="button" className="dk-btn-ghost" onClick={() => onOpen(result.pageId!, result.anchor)}>
+            <button
+              type="button"
+              className="st-btn st-btn-primary st-btn-sm"
+              onClick={() => onOpen(result.pageId!, result.anchor)}
+            >
+              <EmbIcon name="open" size={12} sw={2.2} />
               Open
             </button>
           )}
           {onPeek && result?.pageId && (
-            <button type="button" className="dk-btn-ghost" onClick={() => onPeek(result.pageId!)}>
+            <button type="button" className="st-btn st-btn-sm" onClick={() => onPeek(result.pageId!)}>
+              <EmbIcon name="panel" size={12} sw={2.2} />
               Open in side panel
             </button>
           )}
           {extra}
-        </span>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -188,6 +238,7 @@ export function TicketCardView({ ticketKey, result, onOpen, extra }: TicketCardV
     return (
       <GoneCard
         kind="ticket"
+        icon="search"
         title="Ticket not found, or in another project"
         text={`${ticketKey} may have been deleted, or it belongs to a project you cannot see.`}
         actions={extra}
@@ -201,48 +252,55 @@ export function TicketCardView({ ticketKey, result, onOpen, extra }: TicketCardV
   const desc = (t?.description ?? '').replace(/[#*_`>[\]]/g, '').trim();
   return (
     <div className="dk-ref-card dk-ticket-card" data-testid="ticket-card">
-      <div className="dk-ref-where">
-        <span className="dk-ref-key">{ticketKey}</span>
-        {status && <span className={`dk-ref-status dk-ref-status-${status}`}>{STATUS[status] ?? status}</span>}
-      </div>
-      <div className="dk-ref-title">{t?.title ?? result?.title ?? ticketKey}</div>
-      {desc && <div className="dk-ref-text">{desc.length > 200 ? `${desc.slice(0, 200)}…` : desc}</div>}
-      <div className="dk-ref-foot">
-        {t?.assignee && (
-          <span className="dk-ref-who">
-            <Avatar who={t.assignee} />
-            {actorName(t.assignee)}
+      <div className="dk-ref-body">
+        <div className="dk-ref-head">
+          <span className="dk-ref-key">
+            <EmbIcon name="ticket" size={14} />
+            {ticketKey}
           </span>
-        )}
-        {t?.dueDate && (
-          <>
-            {t.assignee && <Bar />}
+          <span className="dk-ref-gap" />
+          {status && (
+            <span className={`dk-ref-status dk-ref-status-${status}`}>
+              <span className="dk-ref-dot" style={{ background: DOT[status] ?? '#5B6B60' }} />
+              {STATUS[status] ?? status}
+            </span>
+          )}
+        </div>
+        <div className="dk-ref-title">{t?.title ?? result?.title ?? ticketKey}</div>
+        {desc && <div className="dk-ref-text">{desc.length > 200 ? `${desc.slice(0, 200)}…` : desc}</div>}
+        <div className="dk-ref-foot dk-ref-foot-t">
+          {t?.assignee && (
+            <span className="dk-ref-who">
+              <Avatar who={t.assignee} />
+              {actorName(t.assignee)}
+            </span>
+          )}
+          {t?.dueDate && (
             <span>{new Date(t.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
-          </>
-        )}
-        {ac.length > 0 && (
-          <>
-            {(t?.assignee || t?.dueDate) && <Bar />}
+          )}
+          {ac.length > 0 && (
             <span>
               {done} / {ac.length} AC
             </span>
-          </>
-        )}
-        <span className="dk-ref-actions">
-          {onOpen && (
-            <button type="button" className="dk-btn-ghost" onClick={() => onOpen(ticketKey)}>
-              Open ticket
-            </button>
           )}
-          <button
-            type="button"
-            className="dk-btn-ghost"
-            onClick={() => void navigator.clipboard?.writeText(ticketKey).catch(() => undefined)}
-          >
-            Copy key
+        </div>
+      </div>
+      <div className="dk-ref-btns">
+        {onOpen && (
+          <button type="button" className="st-btn st-btn-primary st-btn-sm" onClick={() => onOpen(ticketKey)}>
+            <EmbIcon name="open" size={12} sw={2.2} />
+            Open ticket
           </button>
-          {extra}
-        </span>
+        )}
+        <button
+          type="button"
+          className="st-btn st-btn-sm"
+          onClick={() => void navigator.clipboard?.writeText(ticketKey).catch(() => undefined)}
+        >
+          <EmbIcon name="copy" size={12} sw={2.2} />
+          Copy key
+        </button>
+        {extra}
       </div>
     </div>
   );

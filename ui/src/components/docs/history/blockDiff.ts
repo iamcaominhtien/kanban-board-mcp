@@ -401,21 +401,24 @@ export function countsPhrase(counts: ChangeCounts): string {
     .join(', ');
 }
 
-/** A change's label in words: "Text edited", "Format", "New block", "Removed block", "Moved", "Changed as a whole". */
+/**
+ * A change's label in words, as the comparison's tag says it (design B 7–9): "Changed" for edited text and for a
+ * formatting change (the chips beside it name the formatting), "Changed as a whole" for a table or an embed, "Added",
+ * "Removed", "Moved".
+ */
 export function changeLabel(c: BlockChange): string {
   switch (c.kind) {
     case 'added':
-      return 'New block';
+      return 'Added';
     case 'removed':
-      return 'Removed block';
+      return 'Removed';
     case 'moved':
       return 'Moved';
     case 'same':
       return 'Unchanged';
     default:
-      if (c.draw === 'text') return 'Text edited';
-      if (c.draw === 'format') return 'Format';
-      return c.after?.type === 'image' && c.changes.length ? 'Format' : 'Changed as a whole';
+      if (c.draw === 'text' || c.draw === 'format') return 'Changed';
+      return c.after?.type === 'image' && c.changes.length ? 'Changed' : 'Changed as a whole';
   }
 }
 

@@ -177,8 +177,26 @@ export function GalleryCard({
         style={{ width: '100%' }}
       >
         <GalleryThumb item={item} />
-        <span className="dk-gal-name">{item.name}</span>
-        {mark ? <span className="dk-gal-mark">{mark}</span> : <span className="dk-gal-desc">{item.description}</span>}
+        {selected && !item.saved?.mine && (
+          <span className="dk-gal-check" aria-hidden="true">
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12.5L10 17.5L19 7" />
+            </svg>
+          </span>
+        )}
+        <span className="dk-gal-text">
+          <span className="dk-gal-name">{item.name}</span>
+          {mark ? <span className="dk-gal-mark">{mark}</span> : <span className="dk-gal-desc">{item.description}</span>}
+        </span>
       </button>
       {item.saved?.mine && (
         <button

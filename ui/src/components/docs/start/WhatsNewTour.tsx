@@ -93,23 +93,39 @@ export function WhatsNewTour({ layout = 'desktop', onClose }: { layout?: DocsLay
         aria-label="What is new"
         data-testid="whats-new-tour"
       >
-        <div className="dk-tour-step">
-          NEW · {step + 1} OF {TOUR_STEPS.length}
+        <div className="dk-tour-head">
+          <span className="dk-tour-step">
+            NEW · {step + 1} OF {TOUR_STEPS.length}
+          </span>
+          <button type="button" className="dk-tour-x" aria-label="Close the tour" onClick={close}>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M6 6L18 18M18 6L6 18" />
+            </svg>
+          </button>
         </div>
         <h2>{s.title}</h2>
         <p>{phone && s.phoneText ? s.phoneText : s.text}</p>
         <div className="dk-tour-foot">
-          <button type="button" className="dk-tour-skip" onClick={close}>
-            Skip tour
-          </button>
           <span className="dk-tour-dots" aria-hidden="true">
             {TOUR_STEPS.map((_, i) => (
               <span key={i} data-on={i === step} />
             ))}
           </span>
+          <button type="button" className="dk-tour-skip" onClick={close}>
+            Skip tour
+          </button>
           <button
             type="button"
-            className="st-btn st-btn-sm st-btn-primary"
+            className="st-btn st-btn-primary dk-tour-next"
             onClick={() => (last ? close() : setStep(step + 1))}
           >
             {last ? 'Done' : 'Next'}

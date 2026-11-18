@@ -190,7 +190,7 @@ export function MarginMarks({
             }}
           >
             {m.number}
-            {extra > 0 && <span className="dc-mark-count">+{extra}</span>}
+            {extra > 0 && <span className="dc-mark-count">{extra + 1}</span>}
           </button>
         );
       })}

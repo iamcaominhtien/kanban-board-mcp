@@ -5,8 +5,8 @@ import type { Member } from '../../types/ticket';
 import type { DocsPage } from '../../types/docs';
 import { absoluteTime, relativeTime } from '../../utils/relativeTime';
 import { useToast } from '../Toast';
-import { LineIcon } from '../ui/LineIcon';
-import { Icon } from './Icon';
+import { SgIcon, Spark } from './suggestions/sgIcons';
+import './suggestions/suggestions.css';
 
 const key = (pageId: string, version: number) => `docsAiChanged:${pageId}:${version}`;
 
@@ -74,7 +74,7 @@ export function AiChangedBar({ page, projectId, members, canEdit, onCompare }: P
   };
 
   const cancel = (
-    <button type="button" className="st-btn st-btn-sm" onClick={() => setConfirming(false)}>
+    <button type="button" className="sg-btn" onClick={() => setConfirming(false)}>
       Cancel
     </button>
   );
@@ -86,7 +86,7 @@ export function AiChangedBar({ page, projectId, members, canEdit, onCompare }: P
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
-        padding: '7px 12px',
+        padding: '6px 10px 6px 12px',
         marginBottom: 16,
         borderRadius: 10,
         background: '#F1ECFB',
@@ -95,10 +95,8 @@ export function AiChangedBar({ page, projectId, members, canEdit, onCompare }: P
         color: '#1E2A22',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 10px' }}>
-        <span style={{ display: 'flex', color: '#6B4FBB' }}>
-          <LineIcon name="sparkle" size={15} />
-        </span>
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 8px' }}>
+        <Spark size={14} color="#5B3AA6" />
         <span style={{ flex: 1, minWidth: 0 }}>
           <b style={{ fontWeight: 700 }}>{writer.name}</b> changed this page{' '}
           <span style={{ color: '#5B6B60' }} title={absoluteTime(page.updatedAt)}>
@@ -108,7 +106,7 @@ export function AiChangedBar({ page, projectId, members, canEdit, onCompare }: P
         {!confirming && onCompare && (
           <button
             type="button"
-            className="st-btn st-btn-sm"
+            className="sg-btn"
             onClick={() => onCompare(previous, page.version)}
             data-testid="ai-changed-diff"
           >
@@ -116,28 +114,23 @@ export function AiChangedBar({ page, projectId, members, canEdit, onCompare }: P
           </button>
         )}
         {!confirming && canEdit && (
-          <button
-            type="button"
-            className="st-btn st-btn-sm"
-            onClick={() => setConfirming(true)}
-            data-testid="ai-changed-undo"
-          >
+          <button type="button" className="sg-btn" onClick={() => setConfirming(true)} data-testid="ai-changed-undo">
             Undo
           </button>
         )}
-        <button type="button" className="dk-icobtn" aria-label="Hide" style={{ width: 26, height: 26 }} onClick={close}>
-          <Icon name="i08" size={14} strokeWidth={2} />
+        <button type="button" className="sg-ending-x" aria-label="Hide" onClick={close}>
+          <SgIcon name="close" size={14} />
         </button>
       </div>
       {confirming && (
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 10px', paddingLeft: 25 }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 8px', paddingLeft: 22 }}>
           <span style={{ color: '#5B6B60', flex: 1, minWidth: 0 }}>
             Go back to v{previous}? It is kept as a new version.
           </span>
           {cancel}
           <button
             type="button"
-            className="st-btn st-btn-sm st-btn-primary"
+            className="sg-btn sg-btn-primary"
             disabled={restore.isPending}
             onClick={() => void undo()}
             data-testid="ai-changed-undo-yes"

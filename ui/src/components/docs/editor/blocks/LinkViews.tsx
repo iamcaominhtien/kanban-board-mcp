@@ -93,7 +93,7 @@ function ShowAsChip({ editor, getPos }: Pick<NodeViewProps, 'editor' | 'getPos'>
   return (
     <button
       type="button"
-      className="dk-btn-ghost"
+      className="st-btn st-btn-sm"
       onClick={() => {
         const p = posOf(getPos);
         if (p != null) cardToChip(editor, p);
@@ -200,16 +200,16 @@ function DiagramVersions({
             <span className="dk-dg-ver">v{v.version}</span>
             <span className="dk-dg-vtext">
               <strong>{v.note || (i === (list.data?.length ?? 0) - 1 ? 'First draft' : 'No note')}</strong>
-              <span className="dk-bp-muted">
+              <span>
                 {actorName(v.author)} · {relativeTime(v.createdAt)}
               </span>
             </span>
             {i === 0 ? (
-              <span className="dk-bp-muted">Current</span>
+              <span className="dk-dg-current">Current</span>
             ) : (
               <button
                 type="button"
-                className="dk-btn-ghost"
+                className="dk-emb-link"
                 disabled={busy != null}
                 onClick={() => void restore(v.version)}
               >

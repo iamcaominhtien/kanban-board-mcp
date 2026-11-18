@@ -117,7 +117,7 @@ describe('margin marks', () => {
       />,
     );
     const marks = screen.getAllByTestId('margin-mark');
-    expect(marks.map((m) => m.textContent)).toEqual(['2', '3+1', '4']);
+    expect(marks.map((m) => m.textContent)).toEqual(['2', '32', '4']);
     fireEvent.click(marks[1]);
     expect(onSelect).toHaveBeenCalledWith('t-tab');
   });

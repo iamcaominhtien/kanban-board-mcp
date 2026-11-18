@@ -7,10 +7,10 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { LIVE_STATES, usePageWork } from '../../../api/docsWork';
 import type { DocsPage, DocsTreeNode } from '../../../types/docs';
-import { LineIcon } from '../../ui/LineIcon';
 import { usePageSettled } from '../pageSettled';
 import { useSuggestions } from './api';
 import { suggestionsWord } from './describe';
+import { SgIcon } from './sgIcons';
 import './suggestions.css';
 
 /** How a run on the page ended. */
@@ -98,17 +98,22 @@ export function TeamRunEndings({
   return (
     <div className="docs-root" data-testid="sg-run-endings">
       {list.map((s) => {
-        const report = (
-          <button type="button" className="sg-btn" onClick={() => onOpenTicket(s.ticketId)}>
-            {s.ending === 'nothing' ? 'Read its Report' : s.ending === 'needs' ? 'Answer' : 'Report'}
-          </button>
-        );
+        const report =
+          s.ending === 'failed' ? null : (
+            <button
+              type="button"
+              className={`sg-btn${s.ending === 'needs' ? ' sg-btn-primary' : ''}`}
+              onClick={() => onOpenTicket(s.ticketId)}
+            >
+              {s.ending === 'nothing' ? 'Read its Report' : s.ending === 'needs' ? 'Answer' : 'Report'}
+            </button>
+          );
         let text: ReactNode;
         let action: ReactNode = null;
         if (s.ending === 'suggested') {
           text = (
             <>
-              <b>{s.team}</b> finished: {suggestionsWord(s.count)}.
+              <b>{s.team}</b> finished: <b>{suggestionsWord(s.count)}</b>.
             </>
           );
           action = onReview && (
@@ -139,10 +144,16 @@ export function TeamRunEndings({
               <b>{s.team}</b> stopped before it changed anything.
             </>
           );
+          action = (
+            <button type="button" className="sg-btn" onClick={() => onOpenTicket(s.ticketId)}>
+              Open run
+            </button>
+          );
         } else {
           text = (
             <>
-              <b>{s.team}</b> needs you{s.doing ? <span style={{ color: '#5B6B60' }}> · {s.doing}</span> : null}
+              <b>{s.team}</b> <span className="sg-ending-needs-word">needs you</span>
+              {s.doing ? <span style={{ color: '#5B6B60' }}> {s.doing}</span> : null}
             </>
           );
         }
@@ -153,18 +164,23 @@ export function TeamRunEndings({
             role="status"
             data-ending={s.ending}
           >
-            <LineIcon name={s.ending === 'failed' ? 'warning' : 'sparkle'} size={14} />
+            {s.ending === 'failed' ? (
+              <SgIcon name="warning" size={15} sw={2.4} color="#C4432A" />
+            ) : s.ending === 'needs' ? (
+              <SgIcon name="pause" size={15} sw={2.4} color="#34455A" />
+            ) : (
+              <SgIcon name="check" size={15} sw={2.6} color="#2E6F40" />
+            )}
             <span>{text}</span>
             {action}
             {report}
             <button
               type="button"
-              className="dk-icobtn"
+              className="sg-ending-x"
               aria-label="Dismiss"
-              style={{ width: 26, height: 26 }}
               onClick={() => setHidden((h) => new Set(h).add(s.runId))}
             >
-              <LineIcon name="close" size={13} />
+              <SgIcon name="close" size={14} />
             </button>
           </div>
         );

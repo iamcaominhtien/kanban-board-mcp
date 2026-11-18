@@ -95,6 +95,11 @@ interface FrameProps {
   children: ReactNode;
   /** The body scrolls itself (book mode's columns). */
   rawBody?: boolean;
+  /**
+   * A running export or its ending (board D 14–17): 520 wide, a plain head with a rule under it, and, when set to
+   * `hero`, the round badge large and centred at the top of the body instead of in the head.
+   */
+  job?: 'plain' | 'hero';
   className?: string;
 }
 
@@ -117,12 +122,31 @@ export function ExportFrame({
   children,
   rawBody,
   className = '',
+  job,
 }: FrameProps) {
+  if (job) {
+    className = `dx-job ${className}`.trim();
+    if (width === 680) width = 520;
+    if (job === 'hero') {
+      children = (
+        <>
+          <div className="dx-hero">
+            <span className={`dx-hero-ico${tone === 'green' ? '' : ` dx-hero-ico-${tone}`}`}>
+              <Svg d={icon} size={tone === 'green' ? 26 : 24} width={tone === 'green' ? 2.6 : 2.2} />
+            </span>
+          </div>
+          {children}
+        </>
+      );
+    }
+  }
   const head = (
     <div className="dx-head">
-      <span className={`dx-head-ico${tone === 'green' ? '' : ` dx-head-ico-${tone}`}`}>
-        <Svg d={icon} size={17} />
-      </span>
+      {!job && (
+        <span className={`dx-head-ico${tone === 'green' ? '' : ` dx-head-ico-${tone}`}`}>
+          <Svg d={icon} size={17} />
+        </span>
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="dx-title">{title}</div>
         {subtitle && <div className="dx-sub">{subtitle}</div>}

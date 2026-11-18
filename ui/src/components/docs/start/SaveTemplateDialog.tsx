@@ -122,7 +122,7 @@ export function SaveTemplateDialog({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(37,61,44,0.5)',
+        background: 'rgba(30,42,34,0.42)',
       }}
     >
       <div
@@ -131,130 +131,100 @@ export function SaveTemplateDialog({
         aria-label="Save as a template"
         className={`dk-st${layout === 'tablet' ? ' dk-st-tablet' : phone ? ' dk-st-phone' : ''}`}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '16px 22px 12px' }}>
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: '50%',
-              background: '#DCEEE1',
-              color: '#2E6F40',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="i24" size={16} strokeWidth={1.8} />
+        <div className="dk-np-head">
+          <div className="dk-np-badge">
+            <Icon name="i24" size={17} strokeWidth={1.9} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#1E2A22' }}>Save as a template</div>
-            <div style={{ fontSize: 12, color: '#5B6B60', marginTop: 2 }}>Use this page as the start of new pages</div>
+            <div className="dk-np-title">Save as a template</div>
+            <div className="dk-np-sub">Use this page as the start of new pages</div>
           </div>
-          <button type="button" className="dk-icobtn" aria-label="Close" onClick={onClose}>
-            <Icon name="close" size={16} strokeWidth={1.8} />
+          <button type="button" className="dk-np-x" aria-label="Close" onClick={onClose}>
+            <Icon name="close" size={16} strokeWidth={1.9} />
           </button>
         </div>
-        <div style={{ padding: '4px 22px 16px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
-          <div
-            style={{
-              borderRadius: 10,
-              border: '1px solid #E3E8E5',
-              background: '#FBFCFB',
-              padding: '10px 14px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 3,
-            }}
-          >
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: '#1E2A22' }}>{page.title}</div>
-            {firstWords(page) && (
-              <div
-                style={{
-                  fontSize: 12,
-                  color: '#5B6B60',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {firstWords(page)}
+        <div className="dk-st-body">
+          <div className="dk-st-top">
+            <div className="dk-st-thumb" aria-hidden="true">
+              <div className="dk-st-paper">
+                <div className="dk-st-paper-title">{page.title}</div>
+                {firstWords(page) && <div className="dk-st-paper-text">{firstWords(page)}</div>}
               </div>
-            )}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label className="st-field-label" htmlFor="docs-tpl-name" style={{ fontSize: 11 }}>
-              Name
-            </label>
-            <input
-              id="docs-tpl-name"
-              ref={nameRef}
-              autoFocus
-              className="st-input"
-              value={name}
-              aria-invalid={isTaken || state === 'too_long'}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && void save()}
-              style={nameBorder}
-            />
-            {state === 'too_long' && (
-              <div data-testid="name-too-long" style={{ display: 'flex', gap: 6, fontSize: 12, color: '#7A4F08' }}>
-                <span style={{ flex: 1 }}>Names can have up to {MAX_TEMPLATE_NAME} characters.</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                  {length} / {MAX_TEMPLATE_NAME}
-                </span>
-              </div>
-            )}
-            {isTaken && (
-              <div
-                role="alert"
-                data-testid="name-taken"
-                style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12, color: '#A5321E' }}
-              >
-                <span>
-                  A template named <b>{taken}</b> already exists. Choose another name, or replace it.
-                </span>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    type="button"
-                    className="st-btn st-btn-sm"
-                    onClick={() => {
-                      setTaken(null);
-                      nameRef.current?.focus();
-                      nameRef.current?.select();
-                    }}
+            </div>
+            <div className="dk-st-fields">
+              <div className="dk-st-field">
+                <label className="st-field-label" htmlFor="docs-tpl-name">
+                  Name
+                </label>
+                <input
+                  id="docs-tpl-name"
+                  ref={nameRef}
+                  autoFocus
+                  className="st-input dk-st-input"
+                  value={name}
+                  aria-invalid={isTaken || state === 'too_long'}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && void save()}
+                  style={nameBorder}
+                />
+                {state === 'too_long' && (
+                  <div data-testid="name-too-long" style={{ display: 'flex', gap: 6, fontSize: 12, color: '#7A4F08' }}>
+                    <span style={{ flex: 1 }}>Names can have up to {MAX_TEMPLATE_NAME} characters.</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                      {length} / {MAX_TEMPLATE_NAME}
+                    </span>
+                  </div>
+                )}
+                {isTaken && (
+                  <div
+                    role="alert"
+                    data-testid="name-taken"
+                    style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12, color: '#A5321E' }}
                   >
-                    Use another name
-                  </button>
-                  <button
-                    type="button"
-                    className="st-btn st-btn-sm st-btn-danger"
-                    disabled={saving}
-                    onClick={() => void save(true)}
-                  >
-                    Replace
-                  </button>
-                </div>
+                    <span>
+                      A template named <b>{taken}</b> already exists. Choose another name, or replace it.
+                    </span>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        type="button"
+                        className="st-btn st-btn-sm"
+                        onClick={() => {
+                          setTaken(null);
+                          nameRef.current?.focus();
+                          nameRef.current?.select();
+                        }}
+                      >
+                        Use another name
+                      </button>
+                      <button
+                        type="button"
+                        className="st-btn st-btn-sm st-btn-danger"
+                        disabled={saving}
+                        onClick={() => void save(true)}
+                      >
+                        Replace
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+              <div className="dk-st-field">
+                <label className="st-field-label" htmlFor="docs-tpl-desc">
+                  Short description
+                </label>
+                <input
+                  id="docs-tpl-desc"
+                  className="st-input dk-st-input"
+                  value={description}
+                  maxLength={200}
+                  placeholder="What a page made from it starts with"
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label className="st-field-label" htmlFor="docs-tpl-desc" style={{ fontSize: 11 }}>
-              Short description
-            </label>
-            <input
-              id="docs-tpl-desc"
-              className="st-input"
-              value={description}
-              maxLength={200}
-              placeholder="What a page made from it starts with"
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span className="st-field-label" style={{ fontSize: 11 }}>
-              What the template keeps
-            </span>
+          <div className="dk-st-field">
+            <span className="st-field-label">What the template keeps</span>
             <div className="dk-keeps" role="radiogroup" aria-label="What the template keeps">
               {KEEPS.map((k) => (
                 <button
@@ -266,19 +236,17 @@ export function SaveTemplateDialog({
                   onClick={() => setKeeps(k.id)}
                 >
                   <span className="dk-keep-dot" />
-                  <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <b style={{ fontSize: 13, color: '#1E2A22' }}>{k.label}</b>
-                    <span style={{ fontSize: 12, color: '#5B6B60' }}>{k.text}</span>
+                  <span style={{ display: 'flex', flexDirection: 'column' }}>
+                    <b className="dk-keep-label">{k.label}</b>
+                    <span className="dk-keep-text">{k.text}</span>
                   </span>
                 </button>
               ))}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span className="st-field-label" style={{ fontSize: 11 }}>
-                Who can use it
-              </span>
+          <div className="dk-st-segs">
+            <div className="dk-st-field dk-st-segcol">
+              <span className="st-field-label">Who can use it</span>
               <div className="dks-seg" role="group" aria-label="Who can use it">
                 <button type="button" aria-pressed={scope === 'me'} onClick={() => setScope('me')}>
                   Only me
@@ -288,10 +256,8 @@ export function SaveTemplateDialog({
                 </button>
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span className="st-field-label" style={{ fontSize: 11 }}>
-                Listed under
-              </span>
+            <div className="dk-st-field dk-st-segcol">
+              <span className="st-field-label">Listed under</span>
               <div className="dks-seg" role="group" aria-label="Listed under">
                 {CATEGORIES.map((c) => (
                   <button key={c.id} type="button" aria-pressed={category === c.id} onClick={() => setCategory(c.id)}>
@@ -309,14 +275,13 @@ export function SaveTemplateDialog({
         </div>
         <div className="dk-np-foot">
           {!phone && (
-            <span style={{ fontSize: 12, color: '#5B6B60' }}>
+            <span className="dk-np-note">
               {scope === 'project'
                 ? 'Everyone in this project can start a page from it. '
                 : 'Only you see it in the gallery. '}
               The page itself does not change.
             </span>
           )}
-          {!phone && <div style={{ flex: 1 }} />}
           {!phone && (
             <button type="button" className="st-btn" onClick={onClose}>
               Cancel
@@ -330,6 +295,7 @@ export function SaveTemplateDialog({
             onClick={() => void save()}
             data-testid="save-template"
           >
+            <Icon name="i10" size={14} strokeWidth={2} />
             {saving ? 'Saving…' : 'Save template'}
           </button>
         </div>

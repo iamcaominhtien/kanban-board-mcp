@@ -599,13 +599,18 @@ export default {
       await embed.getByRole('button', { name: 'What is blocked?' }).click();
       const sheet = p.getByTestId('sandbox-sheet');
       await sheet.getByText('Network requests from scripts').waitFor();
-      await sheet.getByRole('button', { name: 'Done' }).click();
+      await sheet.getByRole('button', { name: 'Close' }).click();
       await sheet.waitFor({ state: 'detached' });
       await saved();
     });
     await s.step('HTML embed: scripts run only after Run it, and saving says what was cleaned out', async () => {
       const embed = content().locator('.dk-html-embed').first();
-      await embed.getByRole('switch', { name: 'Run scripts' }).check();
+      // Run scripts sits in the Embed size popover, opened from the block's header
+      await embed.getByRole('button', { name: 'Embed size' }).click();
+      const size = p.getByTestId('html-embed-size');
+      await size.getByRole('switch', { name: 'Run scripts' }).check();
+      await size.getByRole('button', { name: 'Done' }).click();
+      await size.waitFor({ state: 'detached' });
       await p.getByRole('textbox', { name: 'HTML code' }).fill('<div onclick="track()" id="t">Team</div>\n<script>document.getElementById("t").textContent = "Ran"</script>');
       const run = embed.getByRole('button', { name: 'Run it' });
       await run.waitFor();

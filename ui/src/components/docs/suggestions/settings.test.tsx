@@ -188,20 +188,30 @@ describe('Ask the team', () => {
       b.textContent?.replace('›', '').trim(),
     );
     expect(rows).toEqual([
-      'Improve',
+      'Rewrite',
       'Shorten',
-      'Fix spelling',
-      'Explain',
-      'Ask…',
-      'Format this as…',
       'Change tone',
+      'Fix grammar',
       'Translate',
+      'Make a table',
+      'Format this as…',
+      'Explain',
     ]);
+    // the job in words, on its own line under the verbs
+    expect(menu.querySelector('input[aria-label="Ask the team to…"]')).toBeTruthy();
     expect(menu.textContent).toContain('Docs team');
     // the team is set to Apply directly in Settings, and the page has no setting of its own
     expect(menu.textContent).toContain('Changes are saved on the page at once');
     fireEvent.click(screen.getByTestId('ask-team-format'));
-    for (const f of ['Table', 'Bulleted list', 'Numbered list', 'Callout', 'Pull quote'])
+    for (const f of [
+      'Heading 2',
+      'Pull quote',
+      'Callout',
+      'Bulleted list',
+      'Numbered list',
+      'Task list',
+      'Two columns',
+    ])
       expect(screen.getByText(f)).toBeTruthy();
     fireEvent.click(screen.getByText('‹ Back'));
     fireEvent.click(screen.getByTestId('ask-team-tone'));
@@ -232,7 +242,8 @@ describe('Ask the team', () => {
     );
     expect(body.instruction).toContain('“The first month was the hard one.”');
     expect(await screen.findByText(/Sent to Docs team · KAN-172/)).toBeTruthy();
-    expect(screen.getByTestId('sg-hold-marks').textContent).toContain('Docs team has it · KAN-172');
+    expect(screen.getByTestId('sg-hold-marks').textContent).toContain('Docs team is shortening this');
+    expect(screen.getByTestId('sg-hold-marks').textContent).toContain('content:"KAN-172"');
   });
 
   it('says changes arrive as suggestions when the page is set to Suggest first', async () => {
