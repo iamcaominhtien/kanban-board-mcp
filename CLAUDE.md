@@ -45,7 +45,7 @@ Pick the model and effort for each subagent from the task, not by default:
 
 Three rules, for every change:
 
-1. **Never run a whole suite on your own**: not the whole Cargo workspace, not all of vitest, not the full e2e run. The full runs happen in CI: `ci.yml` on each pull request, `e2e-nightly.yml` (the whole real-UI suite, PostgreSQL and MariaDB, the desktop app) once a night on main. Run a full suite only when the user asks for it in so many words.
+1. **Never run a whole suite on your own**: not the whole Cargo workspace, not all of vitest, not the full e2e run. The full runs belong to CI: `e2e-nightly.yml` runs the whole real-UI suite, PostgreSQL and MariaDB and the desktop app once a night on main; `ci.yml` checks each pull request (lint, types, builds; its test jobs are switched off with `if: false` at the moment). Run a full suite only when the user asks for it in so many words.
 2. **Always add to or change the automated tests with the code**: a new behaviour gets a test, a changed behaviour gets its tests changed, a fixed bug gets a test that would have caught it, at each level the change reaches (a Rust test in the crate, a vitest next to the component, a step in the e2e scenario of the screen). A change with no test change says why in its commit.
 3. **Run only the suites related to the change**, as listed below.
 
