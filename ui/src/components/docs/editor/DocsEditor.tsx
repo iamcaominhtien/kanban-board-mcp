@@ -125,6 +125,8 @@ interface Props {
   header?: ReactNode;
   /** Right rail: undefined = built-in "On this page", null = none, node = custom. */
   toc?: ReactNode | null;
+  /** The save state shown at the top of Focus mode ("Saved", "Saving…"); none when left out. */
+  focusStatus?: string;
   onOpenPage?: (pageId: string, anchor?: string | null) => void;
   onOpenTicket?: (ticketId: string) => void;
   onBlur?: () => void;
@@ -210,6 +212,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     pageTitle,
     header,
     toc,
+    focusStatus,
     onOpenPage,
     onOpenTicket,
     onBlur,
@@ -945,6 +948,12 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
     setLinkOpen(true);
   }, []);
 
+  // focus mode covers the app's own side bar too (ribbon.css lowers it while the class is on)
+  useEffect(() => {
+    if (!focusMode) return undefined;
+    document.body.classList.add('dk-focus-on');
+    return () => document.body.classList.remove('dk-focus-on');
+  }, [focusMode]);
   // focus mode: Esc leaves; the line being typed stays near the middle of the screen
   useEffect(() => {
     if (!focusMode || !editor) return undefined;
@@ -1000,8 +1009,13 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           minHeight: 0,
           display: hidden ? 'none' : 'flex',
           flexDirection: 'column',
-          position: 'relative',
+          // Focus mode covers the whole window (ribbon.css); an inline `relative` would keep it in the pane
+          position: focusMode ? 'fixed' : 'relative',
           ...(focusMode ? surface?.style : null),
+          // a white page is written on the board's paper in Focus mode (Editor 56)
+          ...(focusMode && pageHex.toUpperCase() === '#FFFFFF'
+            ? ({ background: '#FBF8F1', '--dp-page': '#FBF8F1' } as CSSProperties)
+            : null),
         }}
         className={`dk-editor-root${focusMode ? ' dk-focus-mode' : ''}${painting ? ' dk-painting' : ''}`}
         data-focus-mode={focusMode || undefined}
@@ -1034,15 +1048,22 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
           </div>
         )}
         {focusMode && (
-          <button
-            type="button"
-            className="dk-focus-pill"
-            data-testid="leave-focus"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => setFocusMode(false)}
-          >
-            Leave Focus mode <span className="dk-kbd">Esc</span>
-          </button>
+          <div className="dk-focus-top">
+            {focusStatus && (
+              <span className="dk-focus-status" data-testid="focus-status">
+                {focusStatus}
+              </span>
+            )}
+            <button
+              type="button"
+              className="dk-focus-pill"
+              data-testid="leave-focus"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setFocusMode(false)}
+            >
+              Leave Focus mode <span className="dk-kbd">Esc</span>
+            </button>
+          </div>
         )}
         {!readOnly && <PainterBar editor={editor} touch={phoneBar} />}
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
@@ -1180,6 +1201,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             editor={editor}
             linkOpen={linkOpen}
             setLinkOpen={setLinkOpen}
+            linkTargets={{ nodes: nodes ?? [], tickets: tickets ?? [] }}
             ticketPrefix={ticketPrefix}
             onComment={comments ? startComment : undefined}
             // the selection bar of the AI layer (Improve, Shorten, Fix spelling, Explain, Ask…) replaces these three;

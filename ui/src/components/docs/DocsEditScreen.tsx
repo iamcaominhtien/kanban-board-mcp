@@ -1098,6 +1098,17 @@ export function DocsEditScreen({
                 hidden={!!preview}
                 // "On this page" beside the text only on a desktop, for a page that has it and is not Wide or Full
                 toc={layout !== 'desktop' || isWidePage(look) || !look.editorOutline ? null : undefined}
+                focusStatus={
+                  saveView.kind === 'saved'
+                    ? 'Saved'
+                    : saveView.kind === 'saving'
+                      ? 'Saving…'
+                      : saveView.kind === 'error'
+                        ? 'Not saved'
+                        : saveView.kind === 'offline'
+                          ? 'Offline'
+                          : undefined
+                }
                 header={
                   <div className="dk-edit-titlebox">
                     <PageHeader

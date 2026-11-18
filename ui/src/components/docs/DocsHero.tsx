@@ -3,7 +3,7 @@ import { useDocsGallery } from '../../api/docsGallery';
 import type { DocsLayout } from '../../hooks/useDocsLayout';
 import { Icon } from './Icon';
 import { GalleryThumb } from './start/GalleryThumb';
-import { IMPORT_SOURCES } from './start/ImportSources';
+import { IMPORT_SOURCES, SourceIcon } from './start/ImportSources';
 import type { ImportSource } from './start/importConvert';
 import './start/start.css';
 
@@ -198,8 +198,15 @@ export function DocsHero({
         {/* tablet (frame 2): the collage stays, 230 wide, 20 px from the words */}
         <div className={desktop ? 'dk-hero-top' : tablet ? 'dk-hero-top dk-hero-top-tablet' : undefined}>
           <div className={desktop ? 'dk-hero-text' : tablet ? 'dk-hero-text dk-hero-text-tablet' : undefined}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="page" size={15} strokeWidth={1.9} style={{ color: '#2E6F40' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: phone ? 14 : 8 }}>
+              {phone ? (
+                // a phone puts the page icon in a 44 px tile beside the eyebrow (Start 3)
+                <span className="dk-hero-tile" aria-hidden="true">
+                  <Icon name="page" size={22} strokeWidth={1.8} />
+                </span>
+              ) : (
+                <Icon name="page" size={15} strokeWidth={1.9} style={{ color: '#2E6F40' }} />
+              )}
               <span
                 style={{
                   fontSize: phone ? 11 : 11.5,
@@ -261,6 +268,8 @@ export function DocsHero({
                   fontSize: 14,
                   borderRadius: 10,
                   minHeight: phone ? 48 : tablet ? 44 : undefined,
+                  // a phone's buttons are full width with their words in the middle (Start 3)
+                  justifyContent: phone ? 'center' : undefined,
                 }}
                 onClick={() => onCreate('blank')}
                 data-testid="create-first-page"
@@ -276,6 +285,7 @@ export function DocsHero({
                   fontSize: 14,
                   borderRadius: 10,
                   minHeight: phone ? 48 : tablet ? 44 : undefined,
+                  justifyContent: phone ? 'center' : undefined,
                 }}
                 onClick={() => onImport?.()}
                 data-testid="docs-import"
@@ -386,13 +396,9 @@ export function DocsHero({
           <div className="dk-hero-rows" style={{ marginTop: 20 }} data-testid="hero-import-rows">
             {IMPORT_SOURCES.map((s) => (
               <button key={s.id} type="button" onClick={() => onImport?.(s.id)}>
-                <Icon
-                  name={s.id === 'paste' ? 'i24' : 'i26'}
-                  size={16}
-                  strokeWidth={1.9}
-                  style={{ color: '#2E6F40' }}
-                />
-                {s.title}
+                <SourceIcon source={s.id} size={18} sw={1.9} />
+                <span className="dk-hero-row-name">{s.title}</span>
+                <Icon name="chevronRight" size={15} strokeWidth={2} style={{ color: '#9AA8A0' }} />
               </button>
             ))}
           </div>

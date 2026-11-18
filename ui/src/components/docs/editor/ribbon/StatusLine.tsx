@@ -66,6 +66,8 @@ export function StatusLine({ editor, onFocusMode, onShortcuts, quiet }: Props) {
         {words.toLocaleString('en-GB')} {words === 1 ? 'word' : 'words'}
       </span>
       <span>{minutes} min read</span>
+      {/* Focus mode keeps the line being typed in the middle of the screen (Editor 56) */}
+      {quiet && <span data-testid="status-typewriter">Typewriter scroll on</span>}
       {!!selected && (
         <span className="dk-status-sel" data-testid="status-selected">
           Selected: {selected} {selected === 1 ? 'word' : 'words'}

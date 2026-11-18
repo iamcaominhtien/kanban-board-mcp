@@ -855,7 +855,9 @@ function MarkdownImport({
             <Icon name="i26" size={17} strokeWidth={1.9} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="dk-np-title">{phase === 'importing' ? 'Importing' : 'Import Markdown'}</div>
+            <div className="dk-np-title">
+              {phase === 'importing' ? 'Importing' : phone && idle ? 'Import' : 'Import Markdown'}
+            </div>
             <div className="dk-np-sub">
               {phase === 'importing' ? 'Markdown files into ' : ''}
               {projectName}
@@ -922,11 +924,13 @@ function MarkdownImport({
                 ? drag.count
                   ? `Drop to add ${drag.count} ${drag.count === 1 ? 'file' : 'files'}`
                   : 'Drop to add files'
-                : 'Drag .md files or a folder here'}
+                : phone
+                  ? 'Choose from your device'
+                  : 'Drag .md files or a folder here'}
             </div>
             {!drag.dragging && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#5B6B60' }}>
-                or
+                {!phone && 'or'}
                 <button type="button" className="st-btn" onClick={() => filesInput.current?.click()}>
                   Choose files…
                 </button>
@@ -936,16 +940,49 @@ function MarkdownImport({
               </div>
             )}
             <div style={{ fontSize: 12, lineHeight: 1.5, color: drag.dragging ? '#2E6F40' : '#5B6B60', maxWidth: 380 }}>
-              {drag.dragging ? '' : `.md and .markdown, up to ${IMPORT_MAX_FILES} files, 2 MB each`}
+              {drag.dragging ? (
+                ''
+              ) : phone ? (
+                // a phone has no dragging: the line says what the files become (Start 33)
+                <>
+                  Markdown files: .md and .markdown. Folders become a page tree and{' '}
+                  <span className="st-code">[[links]]</span> are resolved by title.
+                </>
+              ) : (
+                `.md and .markdown, up to ${IMPORT_MAX_FILES} files, 2 MB each`
+              )}
             </div>
           </div>
+          {phone && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <span className="st-field-label">Place under</span>
+              <div className="dk-imp-place">
+                {sel(
+                  'Place under',
+                  'i27',
+                  parentId ?? '',
+                  (v) => setParentId(v || null),
+                  placeOptions.map((o) => (o.value ? o : { ...o, label: 'Top level (no parent)' })),
+                  false,
+                )}
+              </div>
+            </div>
+          )}
           {notice && <div style={{ fontSize: 12, color: '#A5321E' }}>{notice}</div>}
         </div>
         <div className="dk-np-foot">
           <span className="dk-np-note">Imported pages start as drafts for you to review.</span>
-          <button type="button" className="st-btn" onClick={onClose}>
-            Cancel
-          </button>
+          {phone ? (
+            // one 48 px Import at the foot; it waits for the files (the close is at the top)
+            <button type="button" className="st-btn st-btn-primary" disabled data-testid="import-phone-go">
+              <Icon name="i26" size={15} strokeWidth={2} />
+              Import
+            </button>
+          ) : (
+            <button type="button" className="st-btn" onClick={onClose}>
+              Cancel
+            </button>
+          )}
         </div>
       </>,
     );

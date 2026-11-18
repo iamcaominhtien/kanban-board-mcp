@@ -140,6 +140,16 @@ const EDGE_PX = 24;
 /** How far it has to move (px). */
 const SWIPE_PX = 60;
 
+/** The kind of a file being dragged in, from its type ("Markdown", "Word", "HTML"; a folder or an unknown type is
+ * a "File"). */
+function dragKindOf(type: string): string {
+  if (/markdown/.test(type)) return 'Markdown';
+  if (/wordprocessingml|msword/.test(type)) return 'Word';
+  if (/html/.test(type)) return 'HTML';
+  if (/^text\//.test(type)) return 'Text';
+  return 'File';
+}
+
 function download(name: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown' }));
   const a = document.createElement('a');
@@ -418,6 +428,10 @@ export function DocsView({
   const qc = useQueryClient();
   const [treeCollapsed, setTreeCollapsed] = useState(() => localStorage.getItem('docsTreeCollapsed') === '1');
   const [dragFiles, setDragFiles] = useState<number | null>(null);
+  // what is dragged ("Markdown", "Word", "HTML": a browser does not tell the names before the drop) and where the
+  // page area starts (the drop zone covers the page, not the tree beside it: Start 4)
+  const [dragKinds, setDragKinds] = useState<string[]>([]);
+  const [dropLeft, setDropLeft] = useState(0);
   const [failedAt, setFailedAt] = useState(() => new Date());
 
   const restore = useRestorePage(projectId);
@@ -814,7 +828,17 @@ export function DocsView({
     const enter = (e: DragEvent) => {
       if (!hasFiles(e)) return;
       depth += 1;
-      setDragFiles(Math.max(1, Array.from(e.dataTransfer?.items ?? []).filter((i) => i.kind === 'file').length));
+      const items = Array.from(e.dataTransfer?.items ?? []).filter((i) => i.kind === 'file');
+      setDragFiles(Math.max(1, items.length));
+      setDragKinds(items.map((i) => dragKindOf(i.type)));
+      if (rootEl) {
+        const box = rootEl.getBoundingClientRect();
+        const side = Array.from(rootEl.children).find((c) => {
+          const r = c.getBoundingClientRect();
+          return r.width > 0 && r.left <= box.left + 1 && r.width < box.width / 2 && r.height > box.height / 2;
+        });
+        setDropLeft(side ? Math.round(side.getBoundingClientRect().right - box.left) : 0);
+      }
     };
     const over = (e: DragEvent) => {
       if (!hasFiles(e)) return;
@@ -843,7 +867,7 @@ export function DocsView({
       window.removeEventListener('dragleave', leave);
       window.removeEventListener('drop', drop);
     };
-  }, [onDropFiles, editing]);
+  }, [onDropFiles, editing, rootEl]);
 
   const firstPage = () => nodes.filter((n) => !n.parentId).sort((a, b) => a.position - b.position)[0];
   const goOverview = () => {
@@ -1364,43 +1388,25 @@ export function DocsView({
         )}
 
         {dragFiles != null && (
-          <div
-            role="presentation"
-            style={{
-              position: 'absolute',
-              inset: 12,
-              zIndex: 150,
-              borderRadius: 12,
-              border: '2px dashed #2E6F40',
-              background: 'rgba(241,248,243,0.94)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              pointerEvents: 'none',
-            }}
-          >
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                background: '#DCEEE1',
-                color: '#2E6F40',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Icon name="i26" size={22} strokeWidth={1.8} />
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>
+          <div role="presentation" className="dk-dropzone" style={{ left: dropLeft + 14 }} data-testid="docs-dropzone">
+            <span className="dk-dropzone-icon">
+              <Icon name="i26" size={26} strokeWidth={2} />
+            </span>
+            <div className="dk-dropzone-title">
               Drop to add {dragFiles} file{dragFiles === 1 ? '' : 's'}
             </div>
-            <div style={{ fontSize: 12.5, color: '#2E6F40' }}>
-              Markdown, Word and HTML files. Folders become a page tree.
-            </div>
+            <div className="dk-dropzone-text">Markdown, Word and HTML files. Folders become a page tree.</div>
+            {dragKinds.length > 0 && (
+              <div className="dk-dropzone-files">
+                {dragKinds.slice(0, 4).map((k, i) => (
+                  <span key={i} className="dk-dropzone-file">
+                    <Icon name="i18" size={13} strokeWidth={1.9} />
+                    {k}
+                  </span>
+                ))}
+                {dragKinds.length > 4 && <span className="dk-dropzone-file">+{dragKinds.length - 4}</span>}
+              </div>
+            )}
           </div>
         )}
 

@@ -923,22 +923,24 @@
   gap: 6px;
   flex-wrap: wrap;
 }
+/* a phone's import list (Start 3): a dashed box, 48 px rows with the source's icon, the name and a chevron */
 .dk-hero-rows {
   display: flex;
   flex-direction: column;
-  border: 1px solid #e3e8e5;
-  border-radius: 10px;
-  overflow: hidden;
+  padding: 4px;
+  border: 1px dashed #bfd2c5;
+  border-radius: 12px;
+  background: #f6faf7;
 }
 .dk-hero-rows button {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-height: 48px;
-  padding: 0 14px;
+  padding: 0 12px;
   border: none;
-  border-bottom: 1px solid #eef3ef;
-  background: #ffffff;
+  border-top: 1px solid #e3e8e5;
+  background: transparent;
   font: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -946,8 +948,27 @@
   text-align: left;
   cursor: pointer;
 }
-.dk-hero-rows button:last-child {
-  border-bottom: none;
+.dk-hero-rows button:first-child {
+  border-top: none;
+}
+.dk-hero-rows button > svg:first-child {
+  color: #3a4a3e;
+  flex: none;
+}
+.dk-hero-row-name {
+  flex: 1;
+  min-width: 0;
+}
+.dk-hero-tile {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #e6f2ea;
+  color: #2e6f40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
 }
 .dk-hero-tpls {
   display: flex;
@@ -1442,4 +1463,69 @@ div.dk-imp-name {
 }
 .dk-imp-phone .dk-np-foot .st-btn {
   width: 100%;
+}
+
+/* files dragged over the Docs space (Start 4): over the page area, not the tree; a 56 px green disc, a 20/800 title,
+   and a chip for each file */
+.dk-dropzone {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  bottom: 14px;
+  z-index: 150;
+  border: 2px dashed #2e6f40;
+  border-radius: 14px;
+  background: rgba(241, 248, 243, 0.94);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: none;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: #1e2a22;
+}
+.dk-dropzone-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #2e6f40;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dk-dropzone-title {
+  font-size: 20px;
+  font-weight: 800;
+}
+.dk-dropzone-text {
+  font-size: 13.5px;
+  color: #4a5a4f;
+}
+.dk-dropzone-files {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.dk-dropzone-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 7px;
+  background: #ffffff;
+  border: 1px solid #bfdcc7;
+  font-size: 12px;
+  font-weight: 600;
+}
+/* the phone's Place under (Start 33): a 44 px field with the home icon */
+.dk-imp-place .st-input {
+  min-height: 44px;
+  box-sizing: border-box;
+  font-size: 13.5px;
+}
+.dk-imp-place .st-input > span:nth-child(2) {
+  font-weight: 400 !important;
 }

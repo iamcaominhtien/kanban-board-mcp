@@ -68,6 +68,28 @@ export function ImportSourceTiles({
   );
 }
 
+/**
+ * The board's icon of a source (Markdown, Word, HTML, Paste).
+ * @param props.size - Width and height in px (19 on a tile, 18 in the phone's import list).
+ */
+export function SourceIcon({ source, size = 19, sw = 1.8 }: { source: ImportSource; size?: number; sw?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={sw}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {TILE_ICON[source]}
+    </svg>
+  );
+}
+
 /** The board's icon of each source (frame 27): 19 px, stroke 1.8. */
 const TILE_ICON: Record<ImportSource, ReactNode> = {
   markdown: (
