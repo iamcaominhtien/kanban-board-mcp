@@ -48,10 +48,43 @@ export interface AskResult {
   feedback?: { rating: 'up' | 'down'; reason: string };
 }
 
-/** The typed result of a finished ask job (null while it runs or when it failed). */
+/** A citation as the docs-ask skill gives it (AI v2): the page and the section, without a quote. */
+interface SkillCitation {
+  n: number;
+  pageId?: string | null;
+  title?: string;
+  section?: string | null;
+}
+
+/**
+ * The typed result of a finished ask job (null while it runs or when it failed).
+ * The AI v2 server words the verdict `answered | not_covered | conflict` and cites a page and a section only: those are
+ * read as `answer | not_covered | disagree`, and a citation becomes a source (on a conflict, the cited pages are its
+ * sides when the server lists none).
+ */
 export function askResult(job: DocsAiJob | undefined): AskResult | null {
   if (!job || job.state !== 'finished' || !job.result || !('verdict' in job.result)) return null;
-  return job.result as unknown as AskResult;
+  const raw = job.result as unknown as Omit<AskResult, 'verdict'> & { verdict: string };
+  const verdict: AskVerdict =
+    raw.verdict === 'answered' ? 'answer' : raw.verdict === 'conflict' ? 'disagree' : (raw.verdict as AskVerdict);
+  const citations = (raw.citations ?? []).map((c) => {
+    const s = c as Partial<AskSource> & SkillCitation;
+    const title = s.title ?? '';
+    return {
+      ...s,
+      n: s.n,
+      pageId: s.pageId ?? '',
+      projectId: s.projectId ?? '',
+      title,
+      path: s.path ?? [title],
+      heading: s.heading ?? s.section ?? title,
+      anchor: s.anchor ?? null,
+      quote: s.quote ?? '',
+      editedAt: s.editedAt ?? '',
+    };
+  });
+  const conflicts = raw.conflicts?.length ? raw.conflicts : verdict === 'disagree' ? citations : [];
+  return { ...raw, verdict, citations, closest: raw.closest ?? [], conflicts };
 }
 
 export const askDocsApi = {

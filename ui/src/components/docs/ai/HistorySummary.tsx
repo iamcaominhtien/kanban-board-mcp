@@ -51,7 +51,9 @@ export function HistorySummary({ projectId, pageId, versions, selected }: Props)
     : job.data?.state === 'failed'
       ? job.data.error.message
       : null;
-  const line = done && typeof done.result.line === 'string' ? done.result.line : null;
+  // the assistant's docs-history answer is kept as `summary`; `line` is how the first version of this job said it
+  const said = done ? (done.result.summary ?? done.result.line) : null;
+  const line = typeof said === 'string' && said.trim() ? said : null;
 
   return (
     <div
