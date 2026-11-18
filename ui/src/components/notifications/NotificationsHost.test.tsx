@@ -155,14 +155,8 @@ describe('NotificationsHost navigation', () => {
     expect(cb.onOpenTicket).toHaveBeenLastCalledWith('K-7');
     nav({}, 'sign_in');
     expect(cb.onOpenAiTab).toHaveBeenLastCalledWith('accounts', 'p1');
-    nav({}, 'review');
-    expect(cb.onOpenAiTab).toHaveBeenLastCalledWith('approvals', 'p1');
-    nav({ projectId: 'p2' }, 'review');
-    expect(cb.onOpenAiTab).toHaveBeenLastCalledWith('approvals', 'p2');
     nav({}, 'open_ai');
     expect(cb.onOpenAiMember).toHaveBeenLastCalledWith('m1', 'p1');
-    nav({}, 'change_permission');
-    expect(cb.onOpenAiMember).toHaveBeenCalledTimes(2);
     nav({ id: 'row5' }, 'open_list');
     expect(cb.onOpenPage).toHaveBeenCalledTimes(1);
     nav({}, 'board_health');

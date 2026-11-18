@@ -196,7 +196,7 @@ describe('NotificationRow branches', () => {
         onAction={vi.fn()}
       />,
     );
-    expect(screen.getByText('3 members')).toBeTruthy();
+    expect(screen.getByText('3 teams')).toBeTruthy();
     expect(screen.getByText(/Done — signed in again/)).toBeTruthy();
     unmount();
     const onAction = vi.fn();
@@ -445,9 +445,9 @@ describe('AllNotificationsPage branches', () => {
     click(screen.getByRole('checkbox', { name: /Mobile App/ }));
     click(screen.getByRole('checkbox', { name: /All projects/ }));
     expect(screen.getByText('AAA')).toBeTruthy();
-    click(screen.getByRole('checkbox', { name: 'From AI members' }));
+    click(screen.getByRole('checkbox', { name: 'From AI teams' }));
     await waitFor(() => expect(lastParams()).toMatchObject({ family: 'ai' }));
-    click(screen.getByRole('checkbox', { name: 'From AI members' }));
+    click(screen.getByRole('checkbox', { name: 'From AI teams' }));
     await waitFor(() => expect(lastParams().family).toBeUndefined());
     for (const f of ['Unread', 'Snoozed', 'Done', 'Cleared', 'All'])
       click(screen.getByRole('button', { name: new RegExp(`^${f}`) }));
@@ -461,7 +461,7 @@ describe('AllNotificationsPage branches', () => {
       .getAllByRole('checkbox')
       .map((c) => c.closest('label')?.textContent ?? '')
       .filter((t) => !/project|Mobile|Kanban/i.test(t) && !/\d/.test(t));
-    expect(kinds).toEqual(['Needs you', 'For information', 'From AI members', 'From people', 'Docs', 'Schedules']);
+    expect(kinds).toEqual(['Needs you', 'For information', 'From AI teams', 'From people', 'Docs', 'Schedules']);
     click(screen.getByRole('checkbox', { name: 'Needs you' }));
     await waitFor(() => expect(lastParams()).toMatchObject({ family: 'needs' }));
     click(screen.getByRole('checkbox', { name: 'Docs' }));

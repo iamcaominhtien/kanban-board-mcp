@@ -10,6 +10,12 @@
   box-sizing: border-box;
 }
 
+/* A row with a menu open sits above the rows that follow it: the actions line is a container (its own stacking
+   context), so without this the next row paints over the menu and a click on "Turn this kind off" misses it. */
+.row:has(.menu) {
+  z-index: 6;
+}
+
 .needsOpen {
   border-color: #f0dba8;
 }
