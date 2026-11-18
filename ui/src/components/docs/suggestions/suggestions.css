@@ -210,6 +210,11 @@
   border-radius: 0;
   background: #fff;
 }
+/* while suggestions wait, the review bar takes the place of the reading bar (Ai1 frames 4-5): both sit at the
+   bottom of the screen and the reading bar covered the review */
+body:has(.sg-bar-phone) .dk-readbar {
+  display: none;
+}
 .sg-bar-phone .sg-btn {
   padding: 0 16px;
   font-size: 14.5px;

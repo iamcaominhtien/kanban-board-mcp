@@ -680,6 +680,54 @@ export default {
       await p.getByRole('button', { name: 'Docs', exact: true }).click();
       await p.getByTestId('tree-ask-docs').waitFor();
     });
+    await s.step('phone: suggestions waiting put the review bar at the bottom in place of the reading bar (RichDocsAi1 frames 4-5)', async () => {
+      // a team writes through the board's MCP with its run's token: a run row for the AI team, made on this throwaway
+      // server's database, gives one (the stand-in CLI never calls the board's tools)
+      const { DatabaseSync } = await import('node:sqlite');
+      const crypto = await import('node:crypto');
+      const base = s.server.base;
+      const call = async (method, url, body) => {
+        const r = await p.request.fetch(`${base}${url}`, { method, data: body });
+        if (!r.ok()) throw new Error(`${method} ${url}: ${r.status()} ${await r.text()}`);
+        return r.json();
+      };
+      const pid = (await call('GET', '/projects'))[0].id;
+      const team = (await call('GET', `/projects/${pid}/members`)).find((m) => m.kind === 'ai');
+      const token = 'kbr_e2e_docs_review';
+      const db = new DatabaseSync(path.join(s.server.dirs.root, 'data/kanban.db'));
+      db.exec('PRAGMA busy_timeout=10000');
+      const now = new Date().toISOString();
+      const run = { id: 'run_e2e_review', kind: 'team', number: 99, mode: 'work', trigger: 'assign', state: 'running', started_by: 'You', instruction: '', queued_at: now, report: '{}', files: '[]', tokens_in: 0, tokens_out: 0, cost_usd: 0.0, metered: 0, paused: 0, restarts: '[]', retries: '[]', steps_count: 0, live: 0, depth: 0, token_hash: crypto.createHash('sha256').update(token).digest('hex'), member_id: team.id, project_id: pid };
+      db.prepare(`INSERT INTO ai_run (${Object.keys(run).map((k) => `"${k}"`).join(',')}) VALUES (${Object.keys(run).map(() => '?').join(',')})`).run(...Object.values(run));
+      db.close();
+      const page = await call('POST', `/projects/${pid}/docs/pages`, { title: 'Roadmap notes' });
+      await call('PUT', `/docs/pages/${page.id}/draft`, { markdown: 'We kept the roadmap in slides.\n\nEvery sprint someone forgot to update it.\n', base_version: 0 });
+      await call('POST', `/docs/pages/${page.id}/publish`, { base_version: 0 });
+      const blocks = (await call('GET', `/docs/pages/${page.id}`)).content.content.map((b) => b.attrs.blockId);
+      const r = await p.request.fetch(`${base}/mcp/`, {
+        method: 'POST',
+        headers: { accept: 'application/json, text/event-stream', 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        data: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'docs_write', arguments: { action: 'edit', page_id: page.id, items: [{ block_id: blocks[0], markdown: 'We kept the roadmap in a slide deck for two years.' }, { block_id: blocks[1], markdown: 'Every sprint somebody forgot to update it.' }] } } },
+      });
+      if (!r.ok()) throw new Error('MCP edit: ' + r.status());
+      if (!(await call('GET', `/docs/pages/${page.id}/suggestions`)).suggestions?.length) throw new Error('the team edit made no suggestion');
+      const ctx = await p.context().browser().newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      try {
+        const t = await ctx.newPage();
+        await t.goto(`${base}/?proj=${pid}&docs=${page.id}`);
+        const bar = t.getByTestId('sg-bar');
+        await bar.getByText('1 of 2').waitFor({ timeout: 20000 });
+        await t.locator('#kb-splash').waitFor({ state: 'detached', timeout: 20000 });
+        const box = await bar.boundingBox();
+        if (!box || box.y + box.height > 844 || box.width !== 390) throw new Error('the review bar is not at the bottom of the screen: ' + JSON.stringify(box));
+        // nothing covers it: the reading bar steps aside while suggestions wait
+        if (await t.getByTestId('read-bar').isVisible()) throw new Error('the reading bar still shows over the review bar');
+        const hit = await t.evaluate(({ x, y }) => { const e = document.elementFromPoint(x, y); return e?.closest('[data-testid="sg-bar"]') ? '' : (e?.outerHTML ?? 'nothing').slice(0, 200); }, { x: box.x + box.width - 40, y: box.y + box.height / 2 });
+        if (hit) throw new Error('something covers Accept all: ' + hit);
+      } finally {
+        await ctx.close();
+      }
+    });
     await s.step('turn Docs AI off: the AI entries disappear', async () => {
       await p.getByRole('button', { name: 'Settings', exact: true }).click(); // not the page's Reading settings
       await p.getByRole('navigation', { name: 'Settings pages' }).getByRole('button', { name: 'Docs', exact: true }).click();
