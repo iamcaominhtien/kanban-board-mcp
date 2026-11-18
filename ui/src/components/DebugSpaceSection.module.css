@@ -21,7 +21,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .tcAddBtn {
@@ -102,7 +102,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .dbgPinRow {
@@ -126,7 +126,7 @@
 
 .pinMeta {
   font-size: 10.5px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   white-space: nowrap;
 }
 
@@ -236,7 +236,7 @@
 
 .timestamp {
   font-size: 10.5px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   white-space: nowrap;
 }
 
@@ -373,7 +373,7 @@
   cursor: pointer;
   border: 1px solid #e3e8e5;
   background: #f6faf7;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   transition: all 0.12s;
 }
 
@@ -449,7 +449,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   padding-right: 4px;
 }
 
@@ -526,7 +526,7 @@
 .emptyMsg {
   padding: 24px;
   text-align: center;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   font-size: 13px;
 }
 
@@ -581,7 +581,7 @@
 }
 .attSize {
   font-size: 10px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .attLink {
   text-decoration: none;
@@ -595,7 +595,7 @@
 .chipRemove {
   border: none;
   background: none;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   font-size: 14px;
   line-height: 1;
   cursor: pointer;

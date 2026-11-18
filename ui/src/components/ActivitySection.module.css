@@ -21,7 +21,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .filterList {
@@ -69,7 +69,7 @@
   height: 36px;
   border-radius: 50%;
   background: #f6faf7;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -83,7 +83,7 @@
 
 .emptyDesc {
   font-size: 12px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   text-align: center;
   max-width: 300px;
   line-height: 1.5;
@@ -113,7 +113,7 @@
   font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .acList {
@@ -171,7 +171,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .acChange {
@@ -250,7 +250,7 @@
   position: relative;
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   white-space: nowrap;
   cursor: default;
   flex-shrink: 0;

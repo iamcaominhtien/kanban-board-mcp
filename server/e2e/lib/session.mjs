@@ -28,7 +28,8 @@ export class Session {
 
   async open() {
     this.context = await this.browser.newContext({
-      viewport: { width: 1440, height: 900 },
+      // a scenario may pick its own size (`viewport: { width, height }` on the scenario object); the default stays 1440x900
+      viewport: this.scenario.viewport || { width: 1440, height: 900 },
       deviceScaleFactor: 1,
       acceptDownloads: true,
       permissions: ['clipboard-read', 'clipboard-write'],

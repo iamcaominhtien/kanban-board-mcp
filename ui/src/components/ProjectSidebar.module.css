@@ -74,7 +74,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6e8676;
+  color: #9fb3a6;
   padding: 0 8px 4px;
   opacity: 0;
   max-height: 0;
@@ -168,7 +168,7 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   font-weight: 700;
-  color: #8fa396;
+  color: #9fb3a6;
   background: rgba(255, 255, 255, 0.06);
   padding: 0;
   border-radius: 3px;
@@ -185,7 +185,7 @@
 }
 
 .projectItemActive .prefixBadge {
-  color: #cfffdc;
+  color: #ffffff;
   background: rgba(255, 255, 255, 0.12);
 }
 
@@ -204,7 +204,7 @@
   justify-content: center;
   background: transparent;
   border: none;
-  color: #8fa396;
+  color: #9fb3a6;
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
@@ -249,7 +249,7 @@
   font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 600;
-  color: #8fa396;
+  color: #9fb3a6;
   width: 100%;
   box-sizing: border-box;
   text-align: left;
@@ -410,7 +410,7 @@
 }
 
 .ideaIcon {
-  color: #8fa396;
+  color: #9fb3a6;
   flex-shrink: 0;
   transition: color 0.15s ease;
 }

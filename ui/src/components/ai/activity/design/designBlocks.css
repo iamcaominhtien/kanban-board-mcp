@@ -101,7 +101,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   flex-shrink: 0;
 }
 .dz-tw .mm-input {
@@ -142,7 +142,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .dz-tw .mm-divider {
   height: 1px;
@@ -362,7 +362,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .dz-tw .dt-view-btn {
   display: inline-flex;
@@ -614,7 +614,7 @@
   font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .dz-tw .ac-list {
   position: relative;
@@ -660,7 +660,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .dz-tw .ac-change {
   display: flex;
@@ -684,7 +684,7 @@
 .dz-tw .ac-time {
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -1320,7 +1320,7 @@
   width: 42px;
   padding-right: 12px;
   text-align: right;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   user-select: none;
 }
 .dz-tl .pv-k {
@@ -2366,7 +2366,7 @@
   width: 42px;
   padding-right: 12px;
   text-align: right;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   user-select: none;
 }
 .dz-rs .pv-k {
