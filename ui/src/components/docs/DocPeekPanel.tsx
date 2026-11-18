@@ -8,6 +8,8 @@ import { actorInitials, actorName, relativeTime } from '../../utils/relativeTime
 import { useToast } from '../Toast';
 import { avatarColors } from './docsUi';
 import { DocsMarkdown } from './DocsMarkdown';
+import { useDocsLayout } from '../../hooks/useDocsLayout';
+import './links/links.css';
 import { RichDocView } from './RichDocView';
 import { publishedDoc } from './richPage';
 import { closestHeading, RefChip } from './RefChip';
@@ -52,6 +54,7 @@ const ORIGIN_WORDS: Record<string, string> = {
  */
 export function DocPeekPanel({ target, projectId, ticketId, onSwitch, onClose, onOpenInDocs, onOpenTicket }: Props) {
   const toast = useToast();
+  const layout = useDocsLayout(null);
   const { data: page, isLoading, isError, refetch } = useDocsPage(target.hint?.deleted ? null : target.pageId);
   const strip = useTicketDocs(ticketId ?? '');
   const restore = useRestorePage(projectId);
@@ -140,25 +143,32 @@ export function DocPeekPanel({ target, projectId, ticketId, onSwitch, onClose, o
   };
 
   return createPortal(
-    <div className="docs-root" data-testid="peek-root">
+    <div className="docs-root pk-root" data-layout={layout} data-testid="peek-root">
       <div
         data-testid="peek-scrim"
         onMouseDown={(e) => {
           e.stopPropagation();
           onClose();
         }}
-        style={{ position: 'fixed', inset: 0, background: 'rgba(30,42,34,0.28)', zIndex: 1400 }}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: layout === 'desktop' ? 'rgba(30,42,34,0.28)' : 'rgba(30,42,34,0.42)',
+          zIndex: 1400,
+        }}
       />
       <aside
         role="complementary"
         aria-label="Doc preview"
         data-testid="peek-panel"
+        className="pk-panel"
         style={{
           position: 'fixed',
           top: 0,
           right: 0,
           bottom: 0,
-          width: 'min(480px, 100vw)',
+          // RichDocsLinks G 29-30: a 560 px side sheet on a tablet; on a phone a tall sheet from 46 px down
+          width: layout === 'tablet' ? 'min(560px, 100vw)' : 'min(480px, 100vw)',
           zIndex: 1401,
           boxSizing: 'border-box',
           background: '#FFFFFF',

@@ -55,6 +55,19 @@ const TABS: { id: SettingsTab; label: string }[] = [
   { id: 'access', label: 'Access' },
 ];
 
+/** The 15 px icons over the tab names on a phone (Shell 17; Book and Access, which the board does not draw, use the
+ * app's book and lock). */
+const TAB_ICON: Record<SettingsTab, string> = {
+  layout: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/>',
+  text: '<path d="M5 7V5h14v2M12 5v14M9 19h6"/>',
+  colour: '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+  cover:
+    '<rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-5 4 4 3-3 4 4"/>',
+  header: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  book: '<path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10"/>',
+  access: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8A4 4 0 0 1 16 8V11"/>',
+};
+
 interface Props {
   page: DocsPage;
   layout: DocsLayout;
@@ -694,23 +707,21 @@ export function PageSettingsPanel({
     <div className="dk-ps docs-root" data-testid="page-settings">
       <div className="dk-ps-head">
         <div style={{ flex: 1, minWidth: 0 }}>
-          {layout !== 'phone' && <h2 className="dk-ps-title">Page settings</h2>}
+          <h2 className="dk-ps-title">Page settings</h2>
           <span className="st-hint">Applies to this page only.</span>
         </div>
         <button
           type="button"
-          className="st-btn st-btn-sm"
+          className={layout === 'phone' ? 'dk-ps-reset-link' : 'st-btn st-btn-sm'}
           disabled={!!readOnly || !anySet}
           data-testid="ps-reset"
           onClick={() => set(Object.fromEntries(LOOK_KEYS.map((k) => [k, null])))}
         >
           Reset
         </button>
-        {layout !== 'phone' && (
-          <button type="button" className="dk-icobtn" aria-label="Close page settings" onClick={onClose}>
-            <Icon name="close" size={16} strokeWidth={2} />
-          </button>
-        )}
+        <button type="button" className="dk-icobtn" aria-label="Close page settings" onClick={onClose}>
+          <Icon name="close" size={16} strokeWidth={layout === 'phone' ? 1.8 : 2} />
+        </button>
       </div>
       {readOnly && (
         <div className="dk-ps-readonly" role="note">
@@ -731,6 +742,20 @@ export function PageSettingsPanel({
             data-testid={`ps-tab-${t.id}`}
             onClick={() => setTab(t.id)}
           >
+            {layout === 'phone' && (
+              <svg
+                aria-hidden="true"
+                width={15}
+                height={15}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                dangerouslySetInnerHTML={{ __html: TAB_ICON[t.id] }}
+              />
+            )}
             {t.label}
           </button>
         ))}
@@ -767,7 +792,7 @@ export function PageSettingsPanel({
 
   if (layout === 'phone') {
     return (
-      <BottomSheet label="Page settings" onClose={onClose} testId="page-settings-sheet">
+      <BottomSheet label="Page settings" onClose={onClose} testId="page-settings-sheet" hideTitle>
         {body}
       </BottomSheet>
     );

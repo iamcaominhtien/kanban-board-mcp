@@ -338,12 +338,9 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
       <div className="dk-emb-body">{frame}</div>
     );
 
-  return (
-    <NodeViewWrapper
-      className={`dk-emb dk-html-embed dk-emb-edit${phone ? ' dk-emb-phone' : ''}${selected ? ' dk-emb-selected' : ''}`}
-      data-testid="html-embed"
-      contentEditable={false}
-    >
+  const cardClass = `dk-emb dk-html-embed dk-emb-edit${phone ? ' dk-emb-phone' : ''}${selected ? ' dk-emb-selected' : ''}`;
+  const card = (
+    <>
       <div className="dk-emb-head" data-drag-handle="">
         {editable ? (
           <>
@@ -450,14 +447,57 @@ export function HtmlEmbedView({ node, selected, editor, getPos, updateAttributes
       {footer}
       {sizePanel}
       {source && <SourceView html={html} />}
+    </>
+  );
+  // on a phone the Edit code and View source buttons sit under the card, outside its frame (Embeds board, frame 10)
+  return phone ? (
+    <NodeViewWrapper className="dk-emb-phone-wrap" data-testid="html-embed" contentEditable={false}>
+      <div className={cardClass}>{card}</div>
       {editable && phone && (
         <div className="dk-emb-under">
           <button type="button" className="st-btn" onClick={() => setFullScreen(true)}>
             <EmbIcon name="code" size={15} sw={2.2} />
             Edit code
           </button>
+          <button type="button" className="st-btn" aria-pressed={source} onClick={() => setSource((v) => !v)}>
+            View source
+          </button>
         </div>
       )}
+      {fullScreen &&
+        createPortal(
+          <div className="dk-emb-full" role="dialog" aria-label="Edit HTML" data-block-ui="">
+            <div className="dk-emb-full-head">
+              <strong>Edit HTML</strong>
+              <button type="button" className="st-btn st-btn-primary" onClick={() => setFullScreen(false)}>
+                Done
+              </button>
+            </div>
+            <div className="dk-emb-full-body">
+              <CodeArea
+                value={draft}
+                onChange={setDraft}
+                crossed={crossed}
+                label="HTML code"
+                areaRef={areaRef}
+                autoFocus
+              />
+              <SandboxNote />
+            </div>
+            <div className="dk-emb-symbols" role="toolbar" aria-label="Symbols">
+              {SYMBOLS.map((s) => (
+                <button key={s} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => insert(s)}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>,
+          document.body,
+        )}
+    </NodeViewWrapper>
+  ) : (
+    <NodeViewWrapper className={cardClass} data-testid="html-embed" contentEditable={false}>
+      {card}
       {fullScreen &&
         createPortal(
           <div className="dk-emb-full" role="dialog" aria-label="Edit HTML" data-block-ui="">

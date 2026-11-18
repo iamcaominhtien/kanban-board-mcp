@@ -717,5 +717,155 @@ export default {
       await preview.waitFor({ state: 'detached' });
       cleanFixtures(fx5);
     });
+
+    // Touch frames of the Rich Docs boards (Editor 2, 6-10, 18; Blocks 59, 63; Embeds 10): the same page at the real
+    // tablet (820) and phone (390) widths, checked by the sizes the boards give (44 px targets and the like).
+    const near = (v, want, what) => {
+      if (Math.abs(v - want) > 1)
+        throw new Error(`${what}: ${v} px, the board says ${want}`);
+    };
+    const bbox = async (loc) => {
+      const b = await loc.boundingBox();
+      if (!b) throw new Error("no box for " + loc);
+      return b;
+    };
+    await s.step(
+      "tablet 820: the strip has 44 px buttons; Insert opens a 660 px palette with 44 px chips and 48 px rows",
+      async () => {
+        await p.setViewportSize({ width: 820, height: 1180 });
+        const strip = p.locator(".dk-ribbon-strip");
+        await strip.waitFor();
+        near((await bbox(strip)).height, 52, "strip height");
+        near(
+          (await bbox(strip.getByRole("button", { name: "Bold", exact: true })))
+            .height,
+          44,
+          "strip button",
+        );
+        await content().locator("p").last().click();
+        await strip.getByTestId("ribbon-insert").click();
+        const pal = p.getByRole("listbox", { name: "Insert block" });
+        await pal.waitFor();
+        near((await bbox(pal)).width, 660, "palette width");
+        near(
+          (await bbox(pal.getByRole("tab", { name: "All" }))).height,
+          44,
+          "group chip",
+        );
+        near(
+          (await bbox(pal.locator(".dk-cat-row").first())).height,
+          48,
+          "palette row",
+        );
+        await pal.getByRole("button", { name: "Close" }).click();
+        await pal.waitFor({ state: "detached" });
+      },
+    );
+    await s.step(
+      "phone 390: eight 44 px buttons over the keyboard; Aa, More and Text colour open their sheets",
+      async () => {
+        await p.setViewportSize({ width: 390, height: 844 });
+        const bar = p.getByTestId("phone-bar");
+        await bar.waitFor();
+        near((await bbox(bar)).height, 52, "phone bar");
+        const buttons = bar.getByRole("button");
+        if ((await buttons.count()) !== 8)
+          throw new Error("the phone bar should hold eight buttons");
+        near((await bbox(buttons.first())).width, 44, "phone bar button");
+        await content().locator("p").last().click();
+        await p.getByTestId("phone-format").click();
+        const fmt = p.getByTestId("phone-sheet-format");
+        await fmt.getByRole("menuitemradio", { name: "Body" }).waitFor();
+        near(
+          (await bbox(fmt.getByRole("menuitemradio", { name: "Body" }))).height,
+          40,
+          "style chip",
+        );
+        near(
+          (
+            await bbox(
+              fmt
+                .getByRole("group", { name: "Character" })
+                .getByRole("button", { name: "Bold" }),
+            )
+          ).height,
+          44,
+          "mark button",
+        );
+        await fmt.getByRole("group", { name: "Alignment" }).waitFor();
+        await fmt.getByRole("group", { name: "Lists and indent" }).waitFor();
+        await fmt.getByRole("button", { name: "Close" }).click();
+        await fmt.waitFor({ state: "detached" });
+        await p.getByTestId("phone-more").click();
+        const more = p.getByTestId("phone-sheet-more");
+        const find = more.getByRole("menuitem", { name: "Find and replace" });
+        await find.waitFor();
+        near((await bbox(find)).height, 44, "More row");
+        await more.getByRole("menuitem", { name: "Indent" }).waitFor();
+        await more.getByRole("button", { name: "Close" }).click();
+        await more.waitFor({ state: "detached" });
+        await bar.getByRole("button", { name: "Text colour" }).click();
+        const colour = p.getByTestId("phone-sheet-color");
+        await colour.getByText("Automatic").waitFor();
+        near(
+          (await bbox(colour.locator(".dk-cp-dot").first())).width,
+          36,
+          "colour swatch",
+        );
+        await colour.getByRole("button", { name: "Close" }).click();
+        await colour.waitFor({ state: "detached" });
+      },
+    );
+    await s.step(
+      "phone: Insert is a sheet with a 44 px search and 84 px tiles four across",
+      async () => {
+        await p
+          .getByTestId("phone-bar")
+          .getByRole("button", { name: "Insert" })
+          .click();
+        const sheet = p.getByRole("listbox", { name: "Insert block" });
+        await sheet.waitFor();
+        near(
+          (
+            await bbox(
+              sheet
+                .getByRole("searchbox", { name: "Search blocks" })
+                .locator("xpath=.."),
+            )
+          ).height,
+          44,
+          "search",
+        );
+        const cells = sheet.locator(".dk-cat-cell");
+        near((await bbox(cells.first())).height, 84, "tile");
+        const y = async (i) => (await bbox(cells.nth(i))).y;
+        if ((await y(3)) !== (await y(0)) || (await y(4)) === (await y(0)))
+          throw new Error("the tiles are not four across");
+        await p.mouse.click(195, 60);
+        await sheet.waitFor({ state: "detached" });
+      },
+    );
+    await s.step(
+      "phone: the HTML embed has no footer; Edit code and View source are 44 px under the card",
+      async () => {
+        const embed = content().getByTestId("html-embed");
+        const under = embed.locator(".dk-emb-under");
+        await under.scrollIntoViewIfNeeded();
+        const card = await bbox(embed.locator(".dk-emb").first());
+        const edit = await bbox(
+          under.getByRole("button", { name: "Edit code" }),
+        );
+        near(edit.height, 44, "Edit code");
+        near(edit.y, card.y + card.height + 10, "Edit code under the card");
+        await under.getByRole("button", { name: "View source" }).waitFor();
+        if (await embed.locator(".dk-emb-foot").isVisible())
+          throw new Error("the phone card still shows its footer");
+        // the phone header (Editor board, frame 3): back and Preview are 44 px
+        near((await bbox(p.getByTestId("edit-back"))).width, 44, "back button");
+        near((await bbox(p.getByTestId("preview-toggle-head"))).width, 44, "Preview button");
+        await p.setViewportSize({ width: 1440, height: 900 });
+        await toolbar().waitFor();
+      },
+    );
   },
 };

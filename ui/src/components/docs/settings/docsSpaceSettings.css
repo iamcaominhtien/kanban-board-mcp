@@ -332,3 +332,25 @@
   font-weight: 700;
   color: #2e6f40;
 }
+
+/* Settings › Docs on a touch screen (Tree4 50-57): 42 px segments, 44 px fields and rows; a phone stacks the
+   choices full width (51, 54, 57) */
+@media (max-width: 959px) {
+  .ds-seg button {
+    height: 42px;
+  }
+  .ds-select {
+    height: 44px;
+  }
+  .ds-root .st-toggle-track {
+    margin: 5px 0;
+  }
+}
+@media (max-width: 599px) {
+  .ds-select {
+    width: 100%;
+  }
+  .ds-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

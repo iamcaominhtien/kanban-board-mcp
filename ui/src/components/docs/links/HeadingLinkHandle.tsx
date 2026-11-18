@@ -5,7 +5,7 @@
  * Page › Heading".
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { blockLink } from '../editor/blocks/commands';
 import './links.css';
@@ -27,6 +27,24 @@ const TOAST_MS = 3200;
  */
 export function HeadingLinkHandle({ blockId, text }: { blockId: string; text: string }) {
   const [copied, setCopied] = useState<string | null>(null);
+  const btn = useRef<HTMLButtonElement>(null);
+  // D 22: touch has no hover, so a tap on the heading shows its handle for a few seconds
+  useEffect(() => {
+    const heading = btn.current?.parentElement;
+    if (!heading) return;
+    let t = 0;
+    const onUp = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch' || e.target === btn.current) return;
+      heading.setAttribute('data-hl-on', '');
+      window.clearTimeout(t);
+      t = window.setTimeout(() => heading.removeAttribute('data-hl-on'), 4000);
+    };
+    heading.addEventListener('pointerup', onUp);
+    return () => {
+      heading.removeEventListener('pointerup', onUp);
+      window.clearTimeout(t);
+    };
+  }, []);
   useEffect(() => {
     if (!copied) return;
     const t = window.setTimeout(() => setCopied(null), TOAST_MS);
@@ -48,6 +66,7 @@ export function HeadingLinkHandle({ blockId, text }: { blockId: string; text: st
           reads, finds and anchors as before; the block menu's "Copy link to block" is the keyboard way */}
       <button
         type="button"
+        ref={btn}
         className="dk-hl-handle"
         data-testid="heading-link-handle"
         aria-hidden="true"

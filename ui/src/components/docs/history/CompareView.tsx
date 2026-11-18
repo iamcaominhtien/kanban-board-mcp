@@ -365,7 +365,7 @@ export function CompareView({
   } else {
     body = (
       <>
-        {!phone && (
+        {!phone && !tablet && (
           <div className="hx-intro">
             <Icon name="i28" size={14} />
             <span>Comparing the published versions as the page looks. Changes are shown block by block.</span>
@@ -466,6 +466,22 @@ export function CompareView({
               <Icon name="i08" size={18} strokeWidth={2} />
             </button>
           </>
+        ) : tablet ? (
+          <>
+            <button type="button" className="hx-iconbtn" aria-label="Back to page" onClick={onBack}>
+              <Icon name="i60" size={20} strokeWidth={2} />
+            </button>
+            <span className="hx-compare-title">{page.title}</span>
+            <span className="hx-compare-sep" aria-hidden="true">
+              ›
+            </span>
+            <span className="hx-compare-what">
+              Compare v{from} and v{to}
+            </span>
+            <button type="button" aria-label="Close" className="hx-iconbtn" onClick={onClose}>
+              <Icon name="i08" size={18} strokeWidth={2} />
+            </button>
+          </>
         ) : (
           <>
             <button type="button" className="st-btn st-btn-sm" onClick={onBack}>
@@ -487,6 +503,16 @@ export function CompareView({
         )}
       </header>
       {phone && <div className="hx-phone-pick">{pickers}</div>}
+      {tablet && (
+        // History2 frame 12: the pair, the counts, Inline / Side by side and Restore in one bar under the head
+        <div className="hx-subbar" data-testid="hx-subbar">
+          {pickers}
+          {!loading && !lines && <CountsLine counts={counts} />}
+          <span style={{ flex: 1 }} />
+          {modeToggle}
+          {restoreBtn}
+        </div>
+      )}
       {tablet && jumpList}
       <div className="hx-compare-main">
         <div ref={bodyRef} className="hx-compare-body">

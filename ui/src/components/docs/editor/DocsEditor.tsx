@@ -1186,6 +1186,7 @@ export const DocsEditor = forwardRef<DocsEditorHandle, Props>(function DocsEdito
             // it opens from the bar's "AI" item, so one bar shows at a time
             onAi={hasTextAi || askTeam ? undefined : ai?.onSelection}
             onAiBar={inlineAi && hasTextAi && !askTeam ? () => setAiBarOpen(true) : undefined}
+            touch={phoneBar}
             askTeam={
               askTeam ? (
                 <AskTeamButton

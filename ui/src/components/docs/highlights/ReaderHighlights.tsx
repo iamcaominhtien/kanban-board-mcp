@@ -694,12 +694,20 @@ export function useReaderHighlights(o: ReaderHighlightsOpts) {
         />
       )}
       {panel && touch && !phone && (
-        <DocsDrawer side="right" width={380} label="Highlights" onClose={() => setPanel(false)} testId="hl-drawer">
+        // Reader 80: a 400 px drawer from the right over a light scrim
+        <DocsDrawer
+          side="right"
+          width={400}
+          label="Highlights"
+          onClose={() => setPanel(false)}
+          testId="hl-drawer"
+          look="read"
+        >
           {list(false)}
         </DocsDrawer>
       )}
       {panel && phone && (
-        <BottomSheet label="Highlights" hideTitle onClose={() => setPanel(false)} testId="hl-sheet">
+        <BottomSheet label="Highlights" hideTitle onClose={() => setPanel(false)} testId="hl-sheet" look="read">
           {list(false)}
         </BottomSheet>
       )}

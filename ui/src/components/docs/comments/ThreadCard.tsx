@@ -31,6 +31,8 @@ interface Props {
   suggestMembers: SuggestMember[];
   /** Where the thread stands on a rich page (quote edited, block deleted) and what its block is called. */
   place?: ThreadPlace;
+  /** The phone's full-screen thread (History3 frame 27): the reply field is a bar docked at the bottom with @ and send. */
+  dockedReply?: boolean;
 }
 
 const FOLD_AFTER = 4;
@@ -210,6 +212,7 @@ export function ThreadCard({
   onReattach,
   suggestMembers,
   place,
+  dockedReply,
 }: Props) {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -707,7 +710,11 @@ export function ThreadCard({
       )}
       {!resolved && thread.canReply && <ThreadSendButton pageId={thread.pageId} threadId={thread.id} />}
       {!resolved && (
-        <div id={`dc-reply-${thread.id}`} className="dc-reply" onClick={(e) => e.stopPropagation()}>
+        <div
+          id={`dc-reply-${thread.id}`}
+          className={dockedReply ? 'dc-reply dc-reply-docked' : 'dc-reply'}
+          onClick={(e) => e.stopPropagation()}
+        >
           {thread.canReply ? (
             <>
               <Avatar p={personOf(me, members, me)} size={22} />
@@ -716,6 +723,7 @@ export function ThreadCard({
                   projectId={projectId}
                   members={replyMembers}
                   compact
+                  docked={dockedReply}
                   placeholder="Reply…"
                   submitLabel="Reply"
                   testId="reply-input"

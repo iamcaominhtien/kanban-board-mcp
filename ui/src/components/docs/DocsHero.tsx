@@ -179,7 +179,7 @@ export function DocsHero({
         flex: 1,
         minWidth: 0,
         overflowY: 'auto',
-        padding: phone ? '24px 16px 0' : tablet ? '32px 28px 0' : '22px 40px 0',
+        padding: phone ? '20px 18px 0' : tablet ? '30px 36px 0' : '22px 40px 0',
         boxSizing: 'border-box',
         position: 'relative',
       }}
@@ -195,16 +195,17 @@ export function DocsHero({
         }}
       >
         {/* desktop (frame 1): the words on the left, three page drawings on the right (280 × 322) */}
-        <div className={desktop ? 'dk-hero-top' : undefined}>
-          <div className={desktop ? 'dk-hero-text' : undefined}>
+        {/* tablet (frame 2): the collage stays, 230 wide, 20 px from the words */}
+        <div className={desktop ? 'dk-hero-top' : tablet ? 'dk-hero-top dk-hero-top-tablet' : undefined}>
+          <div className={desktop ? 'dk-hero-text' : tablet ? 'dk-hero-text dk-hero-text-tablet' : undefined}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="page" size={15} strokeWidth={1.9} style={{ color: '#2E6F40' }} />
               <span
                 style={{
-                  fontSize: desktop ? 11.5 : 11,
+                  fontSize: phone ? 11 : 11.5,
                   fontWeight: 700,
                   textTransform: 'uppercase',
-                  letterSpacing: desktop ? '0.08em' : '0.06em',
+                  letterSpacing: '0.08em',
                   color: '#5B6B60',
                 }}
               >
@@ -213,11 +214,11 @@ export function DocsHero({
             </div>
             <h1
               style={{
-                margin: desktop ? '14px 0 0' : '10px 0 0',
-                fontSize: phone ? 26 : 34,
+                margin: desktop || tablet ? '14px 0 0' : '18px 0 0',
+                fontSize: desktop ? 34 : 26,
                 fontWeight: 800,
                 lineHeight: desktop ? 1.12 : 1.15,
-                letterSpacing: desktop ? '-0.02em' : '-0.01em',
+                letterSpacing: '-0.02em',
                 color: '#1E2A22',
                 maxWidth: 640,
               }}
@@ -226,10 +227,10 @@ export function DocsHero({
             </h1>
             <p
               style={{
-                margin: desktop ? '14px 0 0' : '12px 0 0',
-                fontSize: 15,
-                lineHeight: desktop ? 1.6 : 1.65,
-                color: desktop ? '#4A5A4F' : '#5B6B60',
+                margin: desktop || tablet ? '14px 0 0' : '18px 0 0',
+                fontSize: phone ? 14.5 : 15,
+                lineHeight: 1.6,
+                color: '#4A5A4F',
                 maxWidth: desktop ? undefined : 600,
               }}
             >
@@ -249,13 +250,18 @@ export function DocsHero({
                 flexDirection: phone ? 'column' : 'row',
                 alignItems: phone ? 'stretch' : 'center',
                 gap: 10,
-                marginTop: desktop ? 18 : 22,
+                marginTop: 18,
               }}
             >
               <button
                 type="button"
                 className="st-btn st-btn-primary"
-                style={{ padding: '11px 18px', fontSize: 14, borderRadius: 10, minHeight: phone ? 48 : undefined }}
+                style={{
+                  padding: '11px 18px',
+                  fontSize: 14,
+                  borderRadius: 10,
+                  minHeight: phone ? 48 : tablet ? 44 : undefined,
+                }}
                 onClick={() => onCreate('blank')}
                 data-testid="create-first-page"
               >
@@ -265,7 +271,12 @@ export function DocsHero({
               <button
                 type="button"
                 className="st-btn"
-                style={{ padding: '11px 16px', fontSize: 14, borderRadius: 10, minHeight: phone ? 48 : undefined }}
+                style={{
+                  padding: '11px 16px',
+                  fontSize: 14,
+                  borderRadius: 10,
+                  minHeight: phone ? 48 : tablet ? 44 : undefined,
+                }}
                 onClick={() => onImport?.()}
                 data-testid="docs-import"
               >
@@ -273,13 +284,13 @@ export function DocsHero({
                 Import…
               </button>
             </div>
-            {!phone && (
+            {desktop && (
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  marginTop: desktop ? 18 : 12,
+                  marginTop: 18,
                   fontSize: 12.5,
                   lineHeight: desktop ? 1.9 : undefined,
                   color: '#5B6B60',
@@ -293,7 +304,7 @@ export function DocsHero({
               </div>
             )}
           </div>
-          {desktop && <HeroPages />}
+          {!phone && <HeroPages />}
         </div>
         {desktop ? (
           <div style={{ height: 1, background: '#E3E8E5', margin: '20px 0 18px' }} />
@@ -301,7 +312,7 @@ export function DocsHero({
           <div style={{ height: 1, background: '#E3E8E5', margin: phone ? '24px 0 18px' : '30px 0 22px' }} />
         )}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12 }}>
-          <span style={{ fontSize: desktop ? 15 : 14, fontWeight: 700, color: '#1E2A22' }}>Start from a template</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#1E2A22' }}>Start from a template</span>
           {!phone && (
             <span style={{ fontSize: 12.5, color: '#5B6B60', flex: desktop ? 1 : undefined }}>
               You can edit everything after creating the page.
@@ -342,9 +353,9 @@ export function DocsHero({
                 flexShrink: 0,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: phone ? 9 : 7,
-                padding: phone ? '9px 9px 12px' : '7px 7px 9px',
-                borderRadius: phone ? 12 : 11,
+                gap: 7,
+                padding: '7px 7px 9px',
+                borderRadius: 11,
                 border: '1px solid #E3E8E5',
                 background: '#FFFFFF',
                 boxSizing: 'border-box',
@@ -364,8 +375,8 @@ export function DocsHero({
                   settings: {},
                 }}
               />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: phone ? 3 : 1, padding: '0 3px' }}>
-                <div style={{ fontSize: phone ? 13 : 12.5, fontWeight: 700, color: '#1E2A22' }}>{t.name}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, padding: '0 3px' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1E2A22' }}>{t.name}</div>
                 {!phone && <div style={{ fontSize: 11.5, lineHeight: 1.4, color: '#5B6B60' }}>{t.text}</div>}
               </div>
             </button>

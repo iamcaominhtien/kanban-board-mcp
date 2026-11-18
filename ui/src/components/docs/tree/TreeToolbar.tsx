@@ -274,9 +274,11 @@ export function FilterButton({
       </button>
       {open &&
         (phone ? (
-          <BottomSheet label="Filter pages" onClose={() => setOpen(false)} testId="tree-filter-sheet">
-            <div className="st-hint" style={{ padding: '0 16px 6px' }}>
-              Choices combine: a page must match all of them.
+          <BottomSheet label="Filter pages" onClose={() => setOpen(false)} testId="tree-filter-sheet" hideTitle>
+            {/* Tree1 16: a 16 px title over a muted line, 48 px choices, two 48 px buttons */}
+            <div className="tr-fsheet-head">
+              <div className="tr-fsheet-title">Filter pages</div>
+              <div className="tr-fsheet-sub">Choices combine: a page must match all of them.</div>
             </div>
             {choices}
           </BottomSheet>

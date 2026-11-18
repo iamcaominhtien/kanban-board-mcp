@@ -488,6 +488,11 @@ export default {
       await p.getByTestId('highlights-button').click();
       const drawer = p.getByTestId('hl-drawer');
       await drawer.getByTestId('hl-panel').waitFor();
+      // Reader 80: a 400 px drawer from the right edge, the whole height of the screen
+      await p.waitForFunction(() => document.querySelector('[data-testid="hl-drawer"]')?.getAnimations().length === 0);
+      const dr = await drawer.evaluate((el) => el.getBoundingClientRect().toJSON());
+      if (Math.round(dr.width) !== 400 || Math.round(dr.right) !== 820 || Math.round(dr.top) !== 0)
+        throw new Error('highlights drawer: ' + JSON.stringify(dr));
       expect('Go to passage (tablet)', await box(drawer.getByTestId('hl-go').first()), { h: 44 });
       await p.keyboard.press('Escape');
       await drawer.waitFor({ state: 'detached' });
@@ -512,6 +517,8 @@ export default {
       await bar.getByTestId('read-highlights').click();
       const sheet = p.getByTestId('hl-sheet');
       await sheet.getByTestId('hl-panel').waitFor();
+      // Reader 82: the reading view's sheet, 18 px corners
+      expect('highlights sheet', await box(sheet), { radius: '18px 18px 0px 0px', w: 390 });
       expect('Go to passage (phone)', await box(sheet.getByTestId('hl-go').first()), { h: 44 });
       await sheet.getByTestId('hl-go').first().click();
       await sheet.waitFor({ state: 'detached' });

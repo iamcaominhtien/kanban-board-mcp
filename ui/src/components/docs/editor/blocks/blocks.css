@@ -741,29 +741,48 @@
   margin-top: 10px;
   flex-wrap: wrap;
 }
+/* the phone's strip under a selected image (Blocks board, frame 9): white, a hairline on top, 62×54 buttons with a
+   20 px icon over a 10 px label; the first one (Position) tinted */
 .dk-img-strip {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 70;
+  border-top: 1px solid #e3e8e5;
+  background: #ffffff;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.dk-img-strip-row {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 0;
+  padding: 4px 6px;
   overflow-x: auto;
-  padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0));
-  background: #1e2a22;
+  scrollbar-width: none;
 }
 .dk-img-strip button {
   flex: none;
   width: 62px;
   height: 54px;
-  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 10px;
   border: none;
-  background: rgba(255, 255, 255, 0.08);
-  color: #eef3ef;
+  background: transparent;
+  color: #3a4a3e;
   font: inherit;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dk-img-strip button:first-child,
+.dk-img-strip button:active {
+  background: #f1f8f3;
+  color: #2e6f40;
 }
 
 /* crop */
@@ -1010,6 +1029,8 @@
   background: #2e6f40;
   border-color: #2e6f40;
 }
+/* the bar under a selected cell on a phone (Blocks board, frame 34): white, a hairline on top, 64×56 buttons with a
+   20 px icon over a 10 px word, Delete in red */
 .dk-table-phonebar {
   position: fixed;
   left: 0;
@@ -1018,32 +1039,43 @@
   z-index: 70;
   background: #ffffff;
   border-top: 1px solid #e3e8e5;
-  box-shadow: 0 -6px 18px rgba(30, 42, 34, 0.12);
-  padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0));
+  padding: 0 0 env(safe-area-inset-bottom, 0);
 }
 .dk-table-phonebar-where {
   display: block;
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 12px;
   color: #5b6b60;
-  padding: 2px 2px 4px;
+  padding: 6px 12px 0;
 }
 .dk-table-phonebar-btns {
   display: flex;
-  gap: 4px;
+  gap: 0;
+  padding: 4px 6px;
   overflow-x: auto;
+  scrollbar-width: none;
 }
 .dk-table-phonebar-btns button {
   flex: none;
-  min-width: 56px;
-  height: 44px;
+  width: 64px;
+  height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   border: none;
-  border-radius: 8px;
-  background: #f6faf7;
+  border-radius: 10px;
+  background: transparent;
   font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  color: #1e2a22;
+  font-size: 10px;
+  font-weight: 600;
+  color: #3a4a3e;
+}
+.dk-table-phonebar-btns button:active {
+  background: #f1f8f3;
+}
+.dk-table-phonebar-btns button.dk-table-phonebar-danger {
+  color: #c4432a;
 }
 .dk-table-phonebar-btns button:disabled {
   color: #9aa8a0;
@@ -1667,12 +1699,81 @@
   background: #e3e8e5;
   margin: 5px 0;
 }
+.dk-bm-item {
+  gap: 9px;
+}
+.dk-bm-ico {
+  width: 18px;
+  flex: none;
+  display: inline-flex;
+  justify-content: center;
+  color: #5b6b60;
+}
+.dk-bm-ico svg {
+  width: 15px;
+  height: 15px;
+}
+.dk-bm-item.dk-bm-danger,
+.dk-bm-item.dk-bm-danger .dk-bm-ico {
+  color: #c4432a;
+}
+.dk-bm-label {
+  flex: 1;
+  white-space: nowrap;
+}
+.dk-bm-more {
+  flex: none;
+  color: #7a8a80;
+}
+/* tablet (Blocks board, frame 64): a 270 px menu with 44 px rows, 15 px text and no shortcuts */
+.dk-bm-touch .dk-bm-head {
+  font-size: 11px;
+  padding: 2px 12px 6px;
+}
 .dk-bm-touch .dk-bm-item {
   min-height: 44px;
-  font-size: 14px;
+  font-size: 15px;
 }
+.dk-bm-touch .dk-bm-kbd:not([data-testid]) {
+  display: none;
+}
+/* phone (frame 54): a sheet, 52 px rows split by hairlines, 20 px icons in a 24 px cell */
 .dk-bm.dk-bp-sheet {
-  padding: 0 8px 8px;
+  width: auto;
+  padding: 0 16px 14px;
+  border: none;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -10px 30px rgba(30, 42, 34, 0.16);
+}
+.dk-bm.dk-bp-sheet .dk-bp-grab {
+  margin: 8px auto 4px;
+}
+.dk-bm.dk-bp-sheet .dk-bm-head {
+  padding: 4px 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+  color: #1e2a22;
+}
+.dk-bm.dk-bp-sheet .dk-bm-item {
+  min-height: 52px;
+  height: 52px;
+  gap: 14px;
+  padding: 0 6px;
+  border-radius: 0;
+  border-top: 1px solid #f0f3f1;
+  font-size: 15px;
+}
+.dk-bm.dk-bp-sheet .dk-bm-ico {
+  width: 24px;
+}
+.dk-bm.dk-bp-sheet .dk-bm-ico svg {
+  width: 20px;
+  height: 20px;
+}
+.dk-bm.dk-bp-sheet .dk-bm-sep {
+  display: none;
 }
 .dk-bm-list {
   display: flex;
@@ -1949,58 +2050,310 @@
   gap: 5px;
   align-items: center;
 }
-.dk-cat-tablet {
-  width: min(680px, calc(100vw - 32px));
-  max-height: min(640px, calc(100vh - 48px));
+/* tablet (Blocks board, frame 63): a 660 px dialog near the top, a 56 px search row with a 44 px close, a row of
+   44 px group chips and two columns of 48 px rows */
+.dk-bp-overlay-center:has(> .dk-cat-tablet) {
+  align-items: flex-start;
+  padding-top: 28px;
+  box-sizing: border-box;
 }
-.dk-cat-tablet .dk-cat-list {
-  padding: 4px 10px 10px;
+.dk-bp-overlay:has(> .dk-cat-tablet, > .dk-cat-phone, > .dk-bm) > .dk-bp-scrim {
+  background: rgba(30, 42, 34, 0.22);
 }
-.dk-cat-phone {
+.dk-cat.dk-cat-tablet {
+  width: min(660px, calc(100vw - 32px));
+  height: min(480px, calc(100vh - 56px));
+  border: 1px solid #e3e8e5;
+  border-radius: 16px;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.2);
+  padding: 0;
+  overflow: hidden;
+}
+.dk-cat-tablet .dk-cat-search {
+  height: 56px;
+  padding: 0 18px;
+  gap: 10px;
+  box-sizing: border-box;
+}
+.dk-cat-tablet .dk-cat-search > svg {
+  width: 18px;
+  height: 18px;
+}
+.dk-cat-tablet .dk-cat-search input {
+  font-size: 15px;
+}
+.dk-cat-x {
+  width: 44px;
+  height: 44px;
+  margin-right: -10px;
+  border: none;
+  background: none;
+  border-radius: 7px;
+  color: #3a4a3e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: none;
+}
+.dk-cat-tablet .dk-cat-chips,
+.dk-cat-phone .dk-cat-chips {
+  padding: 10px 16px 0;
+  scrollbar-width: none;
+}
+.dk-cat-tablet .dk-cat-chips button,
+.dk-cat-phone .dk-cat-chips button {
+  height: 44px;
+  padding: 0 14px;
+  background: #ffffff;
+  border-color: #e3e8e5;
+  color: #5b6b60;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.dk-cat-tablet .dk-cat-chips button.on,
+.dk-cat-phone .dk-cat-chips button.on {
+  background: #f1f8f3;
+  color: #2e6f40;
+  border-color: #bfdcc7;
+}
+.dk-cat-tablet .dk-cat-list.dk-cat-two {
+  padding: 0 12px 12px;
+}
+.dk-cat-tablet .dk-cat-row {
+  min-height: 48px;
+  height: auto;
+  padding: 8px 10px;
+}
+/* phone (frame 59): a sheet with a 44 px search, 44 px chips and 84 px tiles four across */
+.dk-cat.dk-cat-phone {
   max-height: 80vh;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -10px 30px rgba(30, 42, 34, 0.16);
+  border: none;
+  padding: 0 0 14px;
+}
+.dk-cat-phone .dk-bp-grab {
+  margin: 8px auto 4px;
+}
+.dk-cat-phone .dk-bp-head {
+  padding: 4px 16px 6px;
+  font-size: 15px;
 }
 .dk-cat-phone .dk-cat-search {
-  margin: 0 14px;
-  border: 1px solid #d3dbd6;
-  border-radius: 10px;
-  padding: 4px 12px;
+  margin: 0 16px;
+  height: 44px;
+  border: 1px solid #c7d2cb;
+  border-radius: 12px;
+  padding: 0 12px;
+  gap: 8px;
+  box-sizing: border-box;
+}
+.dk-cat-phone .dk-cat-search input {
+  font-size: 14px;
+}
+.dk-cat-phone .dk-cat-chips {
+  padding: 12px 16px 0;
+}
+.dk-cat-phone .dk-cat-chips button {
+  padding: 0 16px;
+  font-size: 13px;
+}
+.dk-cat-phone > .dk-cat-head {
+  padding: 12px 16px 0;
 }
 .dk-cat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
-  padding: 6px 14px 10px;
+  padding: 12px 16px 0;
   overflow-y: auto;
   min-height: 0;
 }
 .dk-cat-cell {
-  border: none;
-  background: none;
+  height: 84px;
+  box-sizing: border-box;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 6px 2px;
-  border-radius: 10px;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 4px;
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
+  line-height: 1.2;
   color: #1e2a22;
   text-align: center;
-  min-height: 72px;
+  cursor: pointer;
 }
-.dk-cat-cell.on,
-.dk-cat-cell:active {
+.dk-cat-cell .dk-cat-tile {
+  background: none;
+}
+.dk-cat-cell:active,
+.dk-cat-cell:focus-visible {
   background: #f1f8f3;
+  border-color: #bfdcc7;
 }
 .dk-cat-more {
-  margin: 0 14px 12px;
-  height: 44px;
-  border-radius: 10px;
-  border: 1px solid #e3e8e5;
-  background: #ffffff;
+  margin: 12px 16px 0;
+  padding: 4px 0;
+  border: none;
+  background: none;
   font: inherit;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   color: #2e6f40;
   flex: none;
+  cursor: pointer;
+}
+
+/* ---------- block properties as a phone sheet and a tablet side panel (Blocks board, frames 10, 35 and 62) ---------- */
+.dk-bp.dk-bp-sheet {
+  border: none;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -10px 30px rgba(30, 42, 34, 0.16);
+}
+.dk-bp-overlay:has(> .dk-bp-sheet) > .dk-bp-scrim {
+  background: rgba(30, 42, 34, 0.22);
+}
+.dk-bp-sheet > .dk-bp-grab {
+  margin: 8px auto 4px;
+}
+.dk-bp-sheet > .dk-bp-head {
+  padding: 4px 8px 6px 16px;
+  font-size: 15px;
+}
+.dk-bp-sheet > .dk-bp-head .dk-bp-x {
+  width: 44px;
+  height: 44px;
+}
+:is(.dk-bp-sheet, .dk-bp-side) > .dk-bp-body {
+  padding: 0 16px 2px;
+  gap: 14px;
+}
+:is(.dk-bp-sheet, .dk-bp-side) .dk-bp-tabs {
+  gap: 0;
+  margin: -2px 0 0;
+  padding: 0;
+}
+:is(.dk-bp-sheet, .dk-bp-side) .dk-bp-tabs button {
+  padding: 8px 0;
+  margin-right: 16px;
+  font-size: 12.5px;
+}
+:is(.dk-bp-sheet, .dk-bp-side) .dk-bp-tabs button.on {
+  color: #1e2a22;
+  font-weight: 700;
+}
+:is(.dk-bp-sheet, .dk-bp-side) .dk-bp-label {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+}
+/* a choice of words: a tinted pill with 40 px segments */
+:is(.dk-bp-sheet, .dk-bp-side) .dk-seg {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: none;
+  border-radius: 8px;
+  background: #eef3ef;
+}
+:is(.dk-bp-sheet, .dk-bp-side) .dk-seg button {
+  flex: 1;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 6px;
+  color: #5b6b60;
+  white-space: nowrap;
+}
+:is(.dk-bp-sheet, .dk-bp-side) .dk-seg button.on {
+  background: #ffffff;
+  color: #1e2a22;
+  box-shadow: 0 1px 3px rgba(30, 42, 34, 0.18);
+}
+/* a choice drawn with pictures (Position): 64 px tiles, the picture over the word */
+:is(.dk-bp-sheet, .dk-bp-side) .dk-seg:has(> button > svg) {
+  gap: 6px;
+  padding: 0;
+  background: none;
+}
+:is(.dk-bp-sheet, .dk-bp-side) .dk-seg > button:has(> svg) {
+  flex-direction: column;
+  gap: 4px;
+  height: 64px;
+  border: 1.5px solid #e3e8e5;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #3a4a3e;
+  font-size: 11.5px;
+  box-shadow: none;
+}
+:is(.dk-bp-sheet, .dk-bp-side) .dk-seg > button:has(> svg).on {
+  border-color: #2e6f40;
+  background: #f1f8f3;
+  color: #2e6f40;
+}
+:is(.dk-bp-sheet, .dk-bp-side) .dk-bp-num input[type='number'] {
+  width: 90px;
+  min-height: 44px;
+  box-sizing: border-box;
+  border-color: #c7d2cb;
+  border-radius: 8px;
+  padding: 0 10px;
+}
+:is(.dk-bp-sheet, .dk-bp-side) .dk-bp-input {
+  min-height: 44px;
+}
+:is(.dk-bp-sheet, .dk-bp-side) .dk-bp-note {
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: #e8f1fa;
+  color: #244e78;
+  border: 1px solid #c9ddf0;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+:is(.dk-bp-sheet, .dk-bp-side) > .dk-bp-foot {
+  padding: 12px 16px 14px;
+  border-top: none;
+}
+:is(.dk-bp-sheet, .dk-bp-side) > .dk-bp-foot .dk-btn-primary,
+:is(.dk-bp-sheet, .dk-bp-side) > .dk-bp-foot .dk-btn-ghost {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+:is(.dk-bp-sheet, .dk-bp-side) .dk-swatch {
+  width: 44px;
+  height: 44px;
+}
+
+/* the tablet side panel (frame 62): title 15/700, 18 px in from the sides */
+.dk-bp.dk-bp-side > .dk-bp-head {
+  padding: 18px 10px 6px 18px;
+  font-size: 15px;
+}
+.dk-bp.dk-bp-side > .dk-bp-head .dk-bp-x {
+  width: 44px;
+  height: 44px;
+}
+.dk-bp.dk-bp-side > .dk-bp-body {
+  padding: 0 18px 12px;
+}
+/* a block's toolbar on a tablet (frame 61): 44 px buttons */
+.dk-layout-tablet .dk-btoolbar {
+  padding: 6px;
+  border-radius: 12px;
+}
+.dk-layout-tablet .dk-btoolbar .dk-btb {
+  min-width: 44px;
+  height: 44px;
 }

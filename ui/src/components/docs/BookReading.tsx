@@ -146,3 +146,152 @@ export function ReadingFooter({
     </nav>
   );
 }
+
+/** One heading of the touch outline. */
+export interface OutlineEntry {
+  slug: string;
+  text: string;
+  /** Heading level, 2 and deeper (indented 12 px a level). */
+  level: number;
+}
+
+/**
+ * The outline on a tablet (a drawer from the right) or a phone (a sheet), with a Chapters tab in a book (Reader 49 and
+ * 50): 44 px rows in the drawer, 52 px rows with a tick on the one being read in the sheet, and how long is left.
+ * @param props.phone - Phone rows (the sheet) instead of the drawer's.
+ * @param props.title - The drawer's title (the book's or the page's).
+ * @param props.entries - The page's headings.
+ * @param props.activeSlug - The heading being read.
+ * @param props.book - The book the page is in, for the Chapters tab; `null` outside a book.
+ * @param props.tab - The open tab.
+ * @param props.minutesLeft - Reading time left in minutes.
+ */
+export function TouchOutline({
+  phone,
+  title,
+  entries,
+  activeSlug,
+  book,
+  currentId,
+  tab,
+  onTab,
+  minutesLeft,
+  onJump,
+  onOpen,
+  onClose,
+}: {
+  phone: boolean;
+  title: string;
+  entries: OutlineEntry[];
+  activeSlug: string | null;
+  book: BookInfo | null;
+  currentId: string;
+  tab: 'outline' | 'chapters';
+  onTab: (t: 'outline' | 'chapters') => void;
+  minutesLeft: number;
+  onJump: (slug: string) => void;
+  onOpen: (id: string) => void;
+  onClose: () => void;
+}) {
+  const showChapters = !!book && tab === 'chapters';
+  const tick = (
+    <svg
+      aria-hidden="true"
+      width={15}
+      height={15}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={3}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </svg>
+  );
+  return (
+    <div className={`dk-tout${phone ? ' dk-tout-phone' : ''}`} data-testid="touch-outline" data-popover="">
+      {!phone && (
+        <div className="dk-tout-head">
+          <span>{title}</span>
+          <button type="button" className="dk-icobtn" aria-label="Close" onClick={onClose}>
+            <svg
+              aria-hidden="true"
+              width={18}
+              height={18}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.9}
+              strokeLinecap="round"
+            >
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+      )}
+      {book && (
+        <div className="dk-tout-tabs" role="tablist">
+          {(['outline', 'chapters'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={tab === t}
+              className="dk-tout-tab"
+              onClick={() => onTab(t)}
+              data-testid={`tout-tab-${t}`}
+            >
+              {t === 'outline' ? 'On this page' : 'Chapters'}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="dk-tout-list">
+        {showChapters
+          ? book.chapters.map((c) => {
+              const on = c.id === currentId;
+              return (
+                <a
+                  key={c.id}
+                  href={`?docs=${c.id}`}
+                  className="dk-tout-row"
+                  aria-current={on ? 'page' : undefined}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpen(c.id);
+                  }}
+                >
+                  {book.numberChapters && <span className="dk-tout-n">{c.number}</span>}
+                  <span className="dk-tout-text">{c.title}</span>
+                  {phone && on && tick}
+                </a>
+              );
+            })
+          : entries.map((h) => {
+              const on = activeSlug === h.slug;
+              return (
+                <a
+                  key={h.slug}
+                  href={`#${h.slug}`}
+                  className="dk-tout-row"
+                  aria-current={on ? 'location' : undefined}
+                  style={h.level > 2 ? { paddingLeft: (phone ? 16 : 12) + (h.level - 2) * 12 } : undefined}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onJump(h.slug);
+                  }}
+                >
+                  <span className="dk-tout-text">{h.text}</span>
+                  {phone && on && tick}
+                </a>
+              );
+            })}
+      </div>
+      <div className="dk-tout-foot" data-testid="minutes-left">
+        {book && book.index >= 0 ? `Chapter ${book.index + 1} of ${book.chapters.length} · ` : ''}
+        {Math.max(1, minutesLeft)} min left
+      </div>
+    </div>
+  );
+}

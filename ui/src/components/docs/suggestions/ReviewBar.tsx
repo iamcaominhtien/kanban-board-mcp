@@ -12,7 +12,15 @@ import { DOCS_SCRIM, useEscape } from '../docsShared';
 import type { DocsSuggestion } from './api';
 import { authorsOf, chipLine, describeSuggestion, placeName, suggestionsWord } from './describe';
 import { SgIcon, Spark, rowIcon, type SgIconName } from './sgIcons';
-import { ChangeTags, ErrorMsg, StaleMsg, StaleNote, SuggestionActions, SuggestionBody } from './SuggestionFrame';
+import {
+  ChangeTags,
+  ErrorMsg,
+  SgBlock,
+  StaleMsg,
+  StaleNote,
+  SuggestionActions,
+  SuggestionBody,
+} from './SuggestionFrame';
 import { useReview, type Review } from './useSuggestionReview';
 import './suggestions.css';
 
@@ -285,6 +293,65 @@ function ListSheet({ review }: { review: Review }) {
   );
 }
 
+/**
+ * Phone, RichDocsAi2 frame 42: a block someone changed while the team worked on it. The sheet says who, switches
+ * between the block now and the team's version (40 px items), and offers Keep mine and Use the team's (44 px).
+ */
+function ClashSheet({ review, s, index }: { review: Review; s: DocsSuggestion; index: number }) {
+  const [side, setSide] = useState<'mine' | 'team'>('team');
+  const view = describeSuggestion(s);
+  const now = s.blockId ? (review.doc?.content ?? []).find((b) => b.attrs?.blockId === s.blockId) : null;
+  const off = !review.online || !review.canEdit || !!review.busy;
+  const error = review.errors[s.id];
+  return (
+    <BottomSheet label="Edited at the same time" onClose={() => review.setSheet(null)} testId="sg-sheet" hideTitle>
+      <SheetHead title="Edited at the same time" action={`${index + 1} of ${review.list.length}`} />
+      <div className="sg-sheet-body sg-touch sg-phone" data-clash="true">
+        <div className="sg-clash-who" data-testid="sg-clash-line">
+          {s.changedBy || 'Someone'} changed this block while {s.author} was working on it.
+        </div>
+        <div className="sg-switch sg-switch-wide" role="group" aria-label="Which version">
+          <button type="button" aria-pressed={side === 'mine'} onClick={() => setSide('mine')}>
+            Your block now
+          </button>
+          <button type="button" aria-pressed={side === 'team'} onClick={() => setSide('team')}>
+            {s.author}’s version
+          </button>
+        </div>
+        <div className={`sg-clash-card${side === 'team' ? ' sg-clash-card-team' : ''}`}>
+          <div>
+            <span className={`sg-tag ${side === 'team' ? 'sg-tag-ok' : 'sg-tag-muted'}`}>
+              {side === 'team' ? `${s.author}’s version` : 'Your block now'}
+            </span>
+          </div>
+          <SgBlock node={side === 'team' ? view.after : (now ?? null)} />
+        </div>
+        {error && <ErrorMsg text={error} />}
+        <div className="sg-sheet-actions">
+          <button
+            type="button"
+            className="sg-btn"
+            disabled={off}
+            data-testid="sg-keep-mine"
+            onClick={() => void review.reject(s)}
+          >
+            Keep mine
+          </button>
+          <button
+            type="button"
+            className="sg-btn sg-btn-primary"
+            disabled={off}
+            data-testid="sg-use-team"
+            onClick={() => void review.accept(s, true)}
+          >
+            Use the team’s
+          </button>
+        </div>
+      </div>
+    </BottomSheet>
+  );
+}
+
 /** Phone: one suggestion as it would read, its change in words, and the two big buttons. */
 function SuggestionSheet({ review, id }: { review: Review; id: string }) {
   const index = review.list.findIndex((x) => x.id === id);
@@ -293,6 +360,7 @@ function SuggestionSheet({ review, id }: { review: Review; id: string }) {
   const view = describeSuggestion(s);
   const error = review.errors[s.id];
   const label = `Suggestion ${index + 1} of ${review.list.length}`;
+  if (s.stale && s.atSameTime) return <ClashSheet review={review} s={s} index={index} />;
   return (
     <BottomSheet label={label} onClose={() => review.setSheet(null)} testId="sg-sheet" hideTitle>
       <SheetHead title={label} action="Done" onAction={() => review.setSheet(null)} />
@@ -304,21 +372,35 @@ function SuggestionSheet({ review, id }: { review: Review; id: string }) {
           <SuggestionBody view={view} rendered={null} sheet />
         </div>
         {s.stale && !review.looked.has(s.id) ? <StaleMsg /> : <StaleNote s={s} view={view} review={review} />}
-        {s.stale && !review.looked.has(s.id) && (
-          <button
-            type="button"
-            className="sg-btn sg-btn-look"
-            disabled={!review.canEdit}
-            data-testid="sg-look"
-            onClick={() => review.lookAt(s.id)}
-          >
-            <SgIcon name="eye" size={15.5} sw={2.4} />
-            Look at it
-          </button>
-        )}
         {error && <ErrorMsg text={error} />}
         <div className="sg-sheet-actions">
-          <SuggestionActions s={s} review={review} />
+          {/* RichDocsAi3 frame 55: until the changed block is looked at, Look at it takes Accept's place */}
+          {s.stale && !review.looked.has(s.id) ? (
+            <>
+              <button
+                type="button"
+                className="sg-btn sg-btn-reject"
+                disabled={!review.online || !review.canEdit || !!review.busy}
+                data-testid="sg-reject"
+                onClick={() => void review.reject(s)}
+              >
+                <SgIcon name="close" size={13} sw={2.4} />
+                Reject
+              </button>
+              <button
+                type="button"
+                className="sg-btn sg-btn-look"
+                disabled={!review.canEdit}
+                data-testid="sg-look"
+                onClick={() => review.lookAt(s.id)}
+              >
+                <SgIcon name="eye" size={15.5} sw={2.4} />
+                Look at it
+              </button>
+            </>
+          ) : (
+            <SuggestionActions s={s} review={review} />
+          )}
         </div>
         {review.list.length > 1 && (
           <div className="sg-sheet-nav">

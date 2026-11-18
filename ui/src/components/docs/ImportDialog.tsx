@@ -353,6 +353,7 @@ function MarkdownImport({
   onReviewLinks,
   onSource,
   onOtherFiles,
+  phone = false,
 }: ImportDialogProps & { onSource: (s: ImportSource) => void; onOtherFiles: (files: File[]) => void }) {
   const toast = useToast();
   const [rawEntries, setEntries] = useState<DocsImportEntry[]>(
@@ -827,20 +828,22 @@ function MarkdownImport({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 16,
+        padding: phone ? 0 : 16,
         boxSizing: 'border-box',
       }}
     >
       <div
+        className={`dk-imp-shell${phone ? ' dk-imp-phone' : ''}`}
         style={{
           position: 'relative',
-          width: 520,
+          width: phone ? '100%' : 520,
+          height: phone ? '100%' : undefined,
           maxWidth: '100%',
           maxHeight: '100%',
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: 16,
-          border: '1px solid #E3E8E5',
+          borderRadius: phone ? 0 : 16,
+          border: phone ? 'none' : '1px solid #E3E8E5',
           boxShadow: '0 24px 60px rgba(30,42,34,0.22)',
           background: '#FFFFFF',
           overflow: 'hidden',
@@ -892,7 +895,7 @@ function MarkdownImport({
   if (idle) {
     return shell(
       <>
-        <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="dk-imp-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <ImportSourceTiles value="markdown" onChange={onSource} />
           <div
             style={{
@@ -954,9 +957,8 @@ function MarkdownImport({
   return shell(
     <>
       <div
-        className="fx-scroll"
+        className="fx-scroll dk-imp-body"
         style={{
-          padding: '18px 22px',
           display: 'flex',
           flexDirection: 'column',
           gap: 14,

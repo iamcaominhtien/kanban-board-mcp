@@ -29,9 +29,10 @@ import {
   type MoveTarget,
   type TreeFilters,
   type TreeSort,
+  type TreeView,
 } from './treeModel';
 import { BoardIcon } from './boardIcons';
-import { FilterMark, SortMenu } from './TreeToolbar';
+import { FilterMark, SortMenu, ViewSwitch } from './TreeToolbar';
 import { BookTag, EditorAvatar, PageIcon, pageTint, StatusDot, StatusPill } from './treeParts';
 import './tree.css';
 
@@ -48,6 +49,39 @@ interface ViewProps {
   onMenu?: (node: DocsTreeNode, at: DOMRect) => void;
   /** The ✦ slot of a card (filled by the AI suggestions). */
   renderSuggestions?: (node: DocsTreeNode) => ReactNode;
+  /** Touch: the bar's Pages button, which opens the tree's drawer. */
+  onOpenTree?: () => void;
+  /** Touch: the bar's view switch. */
+  onViewChange?: (v: TreeView) => void;
+}
+
+/**
+ * The bar over the gallery and the recent list on a tablet or a phone (Tree1 B 8-9, 13-14): a 44 px "Pages" button
+ * that opens the tree, the view's name and the three-way view switch.
+ */
+function TouchViewBar({
+  title,
+  view,
+  onOpenTree,
+  onViewChange,
+}: {
+  title: string;
+  view: TreeView;
+  onOpenTree?: () => void;
+  onViewChange?: (v: TreeView) => void;
+}) {
+  return (
+    <div className="tr-touchbar" data-testid="views-touchbar">
+      {onOpenTree && (
+        <button type="button" className="tr-touchbar-pages" onClick={onOpenTree}>
+          <BoardIcon name="viewTree" size={16} strokeWidth={1.9} />
+          Pages
+        </button>
+      )}
+      <span className="tr-touchbar-title">{title}</span>
+      {onViewChange && <ViewSwitch view={view} onView={onViewChange} />}
+    </div>
+  );
 }
 
 const QUICK: { key: FilterKey | null; label: string }[] = [
@@ -269,7 +303,15 @@ export function GalleryView(
 
   return (
     <section className={`tr-view tr-view-${layout}`} aria-label="Gallery" data-testid="docs-gallery">
-      <nav className="tr-crumbs" aria-label="Folder">
+      {layout !== 'desktop' && (
+        <TouchViewBar
+          title={folderNode && !filtering ? folderNode.title : 'All pages'}
+          view="gallery"
+          onOpenTree={props.onOpenTree}
+          onViewChange={props.onViewChange}
+        />
+      )}
+      <nav className="tr-crumbs" aria-label="Folder" hidden={layout !== 'desktop' && !folderNode}>
         <button type="button" onClick={() => setFolder(null)} aria-current={!folderNode ? 'page' : undefined}>
           All pages
         </button>
@@ -298,7 +340,7 @@ export function GalleryView(
             {inBook ? 'Open book page' : 'Open page'}
           </button>
         </header>
-      ) : (
+      ) : layout === 'phone' && !filtering ? null : (
         <header className="tr-view-head">
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2>{filtering ? 'Matching pages' : 'All pages'}</h2>
@@ -402,7 +444,10 @@ export function RecentView(props: ViewProps) {
   const touch = layout !== 'desktop';
   return (
     <section className={`tr-view tr-view-${layout}`} aria-label="Recent" data-testid="docs-recent">
-      <header className="tr-view-head">
+      {touch && (
+        <TouchViewBar title="Recent" view="recent" onOpenTree={props.onOpenTree} onViewChange={props.onViewChange} />
+      )}
+      <header className="tr-view-head" hidden={touch}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2>Recent</h2>
           <div className="tr-view-sub">

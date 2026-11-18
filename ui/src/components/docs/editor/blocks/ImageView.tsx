@@ -307,22 +307,56 @@ function ImageStrip({
   onCaption: () => void;
   onReplace: () => void;
 }) {
-  const items: [string, () => void][] = [
-    ['Position', () => open('layout')],
-    ['Size', () => open('layout')],
-    ['Crop', () => open('crop')],
-    ['Caption', onCaption],
-    ['Alt text', () => open('text')],
-    ['Link', () => open('text')],
-    ['Replace', onReplace],
+  // the board's 20 px icons (Blocks board, frame 9)
+  const items: [string, ReactNode, () => void][] = [
+    [
+      'Position',
+      <>
+        <rect height="7" rx="1" width="7" x="13" y="5" />
+        <path d="M4 6h6M4 10h6M4 15h16M4 19h12" />
+      </>,
+      () => open('layout'),
+    ],
+    ['Size', <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />, () => open('layout')],
+    ['Crop', <path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14" />, () => open('crop')],
+    [
+      'Caption',
+      <>
+        <rect height="9" rx="1.5" width="16" x="4" y="3" />
+        <path d="M4 16h16M4 20h10" />
+      </>,
+      onCaption,
+    ],
+    ['Alt text', <path d="M3 18l4-12 4 12M4.5 14h5M14 8h7M14 12h7M14 16h4" />, () => open('text')],
+    [
+      'Link',
+      <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />,
+      () => open('text'),
+    ],
+    ['Replace', <path d="M4 8h14l-3-3M20 16H6l3 3" />, onReplace],
   ];
   return createPortal(
     <div className="dk-img-strip" role="toolbar" aria-label="Image" data-block-ui="">
-      {items.map(([label, fn]) => (
-        <button key={label} type="button" onMouseDown={(e) => e.preventDefault()} onClick={fn}>
-          {label}
-        </button>
-      ))}
+      <div className="dk-img-strip-row">
+        {items.map(([label, icon, fn]) => (
+          <button key={label} type="button" onMouseDown={(e) => e.preventDefault()} onClick={fn}>
+            <svg
+              aria-hidden="true"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {icon}
+            </svg>
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
     </div>,
     document.body,
   );

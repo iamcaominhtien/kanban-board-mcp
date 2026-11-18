@@ -8,6 +8,8 @@ import { Avatar, Snip, StatusDot, TICKET_KEY, ancestors, highlight, sectionLabel
 import type { DocsMatchType, DocsSearchPage, DocsSearchParams, DocsSearchResponse } from '../../types/docsFx';
 import { MatchMarker, TableRowSnip, markerWords, matchAnchor } from './links/MatchMarker';
 import { BlockResultCard, isBlockMatch } from './links/BlockResultCard';
+import { useDocsLayout } from '../../hooks/useDocsLayout';
+import './links/links.css';
 
 export interface SearchResultsProps {
   projectId: string;
@@ -137,6 +139,7 @@ function Check({
   return (
     <div
       role="checkbox"
+      className="sr-opt"
       aria-checked={on}
       tabIndex={0}
       onClick={onChange}
@@ -190,6 +193,7 @@ function Radio({
   return (
     <div
       role="radio"
+      className="sr-opt"
       aria-checked={on}
       tabIndex={0}
       onClick={onChange}
@@ -263,6 +267,11 @@ export function SearchResults({
   const [onlyProject, setOnlyProject] = useState<string | null>(null);
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [within, setWithin] = useState('');
+  // RichDocsLinks B 8-10: on a tablet and a phone the filters sit behind one button and open as a sheet
+  const layout = useDocsLayout(null);
+  const touch = layout !== 'desktop';
+  const phone = layout === 'phone';
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [ticketsOpen, setTicketsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -374,6 +383,7 @@ export function SearchResults({
     const pageCard = (
       <div
         key={p.pageId}
+        className="sr-card"
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -392,7 +402,8 @@ export function SearchResults({
               e.preventDefault();
               onOpenPage(p.pageId);
             }}
-            style={{ fontSize: 16, fontWeight: 700, color: '#1E2A22', textDecoration: 'none' }}
+            className="sr-title"
+            style={{ fontWeight: 700, color: '#1E2A22', textDecoration: 'none' }}
           >
             {highlight(p.title, q)}
           </a>
@@ -597,9 +608,131 @@ export function SearchResults({
       </div>
     ) : null;
 
+  const filterCount =
+    (scope !== 'tickets' ? types.length : 0) +
+    authors.length +
+    (edited !== 'any' ? 1 : 0) +
+    (under ? 1 : 0) +
+    (hasTickets ? 1 : 0);
+  const countWords = data
+    ? scope === 'tickets'
+      ? `${data.tickets.length} tickets`
+      : `${matchCount} ${matchCount === 1 ? 'match' : 'matches'}`
+    : '';
+  const scopeChoices: { id: typeof scope; label: string }[] = [
+    { id: 'space', label: 'This space' },
+    ...(currentPage ? [{ id: 'page' as const, label: 'This page' }] : []),
+    { id: 'all', label: 'All projects' },
+    { id: 'tickets', label: 'Tickets' },
+  ];
+  const touchHeader = (
+    <div className="sr-head">
+      <div className="sr-head-row">
+        <button type="button" className="qo-back" aria-label="Back" onClick={onBack}>
+          <Icon name="chevronRight" size={20} strokeWidth={1.9} style={{ transform: 'rotate(180deg)' }} />
+        </button>
+        <div className="sr-q">
+          <Icon name="i09" size={phone ? 16 : 18} strokeWidth={2} style={{ color: '#2E6F40' }} />
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submit()}
+            placeholder={`Search ${projectName} docs…`}
+            aria-label="Search docs"
+            enterKeyHint="search"
+          />
+          {input && (
+            <button
+              type="button"
+              className="qo-clear"
+              aria-label="Clear search"
+              onClick={() => {
+                setInput('');
+                setQ('');
+                inputRef.current?.focus();
+              }}
+            >
+              <Icon name="close" size={15} strokeWidth={2} />
+            </button>
+          )}
+        </div>
+        {phone ? (
+          <span className="sr-filter-wrap">
+            <button
+              type="button"
+              className="sr-filter-ico"
+              aria-label={filterCount ? `Filters, ${filterCount} on` : 'Filters'}
+              onClick={() => setFiltersOpen(true)}
+            >
+              <Icon name="filter" size={18} strokeWidth={1.9} />
+            </button>
+            {filterCount > 0 && <span className="sr-badge sr-badge-corner">{filterCount}</span>}
+          </span>
+        ) : (
+          <>
+            <label className="sr-scope">
+              <Icon
+                name={scope === 'all' ? 'i21' : scope === 'tickets' ? 'i13' : scope === 'page' ? 'i00' : 'i07'}
+                size={15}
+                strokeWidth={1.9}
+                style={{ color: '#2E6F40' }}
+              />
+              <span>{scopeChoices.find((c) => c.id === scope)?.label}</span>
+              <Icon name="i06" size={12} strokeWidth={2} style={{ color: '#9AA8A0' }} />
+              <select
+                aria-label="Search scope"
+                value={scope}
+                onChange={(e) => setScope(e.target.value as typeof scope)}
+              >
+                {scopeChoices.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="button" className="st-btn st-btn-primary sr-go" onClick={submit}>
+              <Icon name="i09" size={14} strokeWidth={2} />
+              Search
+            </button>
+          </>
+        )}
+      </div>
+      <div className="sr-chips">
+        {phone ? (
+          scopeChoices.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={`sr-pill${scope === c.id ? ' is-on' : ''}`}
+              aria-pressed={scope === c.id}
+              onClick={() => setScope(c.id)}
+            >
+              {c.label}
+            </button>
+          ))
+        ) : (
+          <button type="button" className="sr-filter-btn" onClick={() => setFiltersOpen(true)}>
+            <Icon name="filter" size={14} strokeWidth={1.9} />
+            Filter
+            {filterCount > 0 && <span className="sr-badge">{filterCount}</span>}
+          </button>
+        )}
+      </div>
+      {data && q && (
+        <div className="sr-count">
+          <b>{countWords}</b>
+          {!phone && ` · ${data.tookMs} ms`}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div
-      className="docs-root"
+      className="docs-root sr-root"
+      data-layout={layout}
       style={{
         flex: 1,
         minWidth: 0,
@@ -608,408 +741,461 @@ export function SearchResults({
         background: '#FFFFFF',
         height: '100%',
         minHeight: 0,
+        position: 'relative',
       }}
     >
-      <div
-        style={{
-          padding: '18px 28px 14px',
-          borderBottom: '1px solid #E3E8E5',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 14,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button type="button" className="dk-icobtn" aria-label="Back" title="Back (Esc)" onClick={onBack}>
-            <Icon name="i60" size={16} strokeWidth={1.9} />
-          </button>
-          <div
-            style={{
-              flex: 1,
-              minWidth: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 14px',
-              borderRadius: 10,
-              border: '1px solid #C7D2CB',
-              background: '#FFFFFF',
-            }}
-          >
-            <Icon name="i09" size={18} strokeWidth={2} style={{ color: '#2E6F40' }} />
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && submit()}
-              placeholder={`Search ${projectName} docs…`}
-              aria-label="Search docs"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                border: 'none',
-                outline: 'none',
-                fontSize: 15,
-                fontWeight: 500,
-                color: '#1E2A22',
-                fontFamily: 'inherit',
-                background: 'transparent',
-              }}
-            />
-            {input && (
-              <button
-                type="button"
-                aria-label="Clear search"
-                onClick={() => {
-                  setInput('');
-                  setQ('');
-                  inputRef.current?.focus();
-                }}
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: '50%',
-                  background: '#E3E8E5',
-                  color: '#5B6B60',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
-              >
-                <Icon name="i08" size={11} strokeWidth={2.2} />
-              </button>
-            )}
-            <span className="dk-kbd">/</span>
-          </div>
-          <div style={{ width: 170, position: 'relative' }}>
-            <div className="st-input" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ display: 'flex', color: '#2E6F40' }}>
-                <Icon
-                  name={scope === 'all' ? 'i21' : scope === 'tickets' ? 'i13' : scope === 'page' ? 'i00' : 'i07'}
-                  size={15}
-                  strokeWidth={1.9}
-                />
-              </span>
-              <span style={{ flex: 1, minWidth: 0, fontWeight: 600 }}>
-                {scope === 'all'
-                  ? 'All projects'
-                  : scope === 'tickets'
-                    ? 'Tickets'
-                    : scope === 'page'
-                      ? 'This page'
-                      : 'This space'}
-              </span>
-              <Icon name="i06" size={12} strokeWidth={2} style={{ color: '#9AA8A0' }} />
-            </div>
-            <select
-              aria-label="Search scope"
-              value={scope}
-              onChange={(e) => setScope(e.target.value as typeof scope)}
-              style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', cursor: 'pointer' }}
-            >
-              {currentPage && <option value="page">This page</option>}
-              <option value="space">This space</option>
-              <option value="all">All projects</option>
-              <option value="tickets">Tickets</option>
-            </select>
-          </div>
-          <button type="button" className="st-btn st-btn-primary" style={{ padding: '11px 18px' }} onClick={submit}>
-            <Icon name="i09" size={14} strokeWidth={2} />
-            Search
-          </button>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ flex: 1, fontSize: 13.5, color: '#5B6B60' }}>
-            {data && q ? (
-              <>
-                <b style={{ color: '#1E2A22', fontWeight: 700 }}>
-                  {scope === 'tickets'
-                    ? `${data.tickets.length} tickets`
-                    : `${matchCount} ${matchCount === 1 ? 'match' : 'matches'}`}
-                </b>
-                {scope !== 'tickets' && (
-                  <>
-                    {' '}
-                    in{' '}
-                    <b style={{ color: '#1E2A22', fontWeight: 700 }}>
-                      {total} {total === 1 ? 'page' : 'pages'}
-                    </b>
-                  </>
-                )}{' '}
-                for “<b style={{ color: '#1E2A22', fontWeight: 700 }}>{q}</b>” ·{' '}
-                <span style={{ color: '#9AA8A0' }}>{data.tookMs} ms</span>
-              </>
-            ) : (
-              <span>{q ? 'Searching…' : 'Type to search pages, headings and tickets'}</span>
-            )}
-          </div>
-          <div
-            style={{
-              width: 230,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 7,
-              padding: '6px 10px',
-              borderRadius: 8,
-              border: '1px solid #E3E8E5',
-              background: '#FFFFFF',
-            }}
-          >
-            <Icon name="i09" size={13} strokeWidth={1.9} style={{ color: '#9AA8A0' }} />
-            <input
-              value={within}
-              onChange={(e) => setWithin(e.target.value)}
-              placeholder="Search within results…"
-              aria-label="Search within results"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                border: 'none',
-                outline: 'none',
-                fontSize: 12.5,
-                color: '#1E2A22',
-                fontFamily: 'inherit',
-                background: 'transparent',
-              }}
-            />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#5B6B60' }}>Sort by</span>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 2,
-                padding: 3,
-                borderRadius: 8,
-                background: '#EEF3EF',
-              }}
-            >
-              <button
-                type="button"
-                className={`mb-view-btn${sort === 'relevance' ? ' mb-view-btn-active' : ''}`}
-                onClick={() => setSort('relevance')}
-              >
-                Relevance
-              </button>
-              <button
-                type="button"
-                className={`mb-view-btn${sort === 'edited_at' ? ' mb-view-btn-active' : ''}`}
-                onClick={() => setSort('edited_at')}
-              >
-                Recently edited
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+      {touch ? (
+        touchHeader
+      ) : (
         <div
-          className="fx-scroll"
           style={{
-            width: 236,
-            flexShrink: 0,
-            borderRight: '1px solid #E3E8E5',
-            background: '#FBFCFB',
-            padding: '18px 18px 12px',
-            boxSizing: 'border-box',
-            overflowY: 'auto',
+            padding: '18px 28px 14px',
+            borderBottom: '1px solid #E3E8E5',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22', flex: 1 }}>Filters</span>
-            <button
-              type="button"
-              onClick={clearAll}
-              style={{
-                border: 'none',
-                background: 'none',
-                fontSize: 12,
-                fontWeight: 600,
-                color: '#2E6F40',
-                cursor: 'pointer',
-                padding: 0,
-                fontFamily: 'inherit',
-              }}
-            >
-              Clear all
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button type="button" className="dk-icobtn" aria-label="Back" title="Back (Esc)" onClick={onBack}>
+              <Icon name="i60" size={16} strokeWidth={1.9} />
             </button>
-          </div>
-          {scope !== 'tickets' &&
-            filterSection(
-              'Type',
-              TYPES.map((t) => {
-                const n = f?.kinds?.find((k) => k.name === t.id)?.count;
-                return (
-                  <Check
-                    key={t.id}
-                    on={types.includes(t.id)}
-                    onChange={() => setTypes((l) => (l.includes(t.id) ? l.filter((x) => x !== t.id) : [...l, t.id]))}
-                    count={n}
-                  >
-                    <TypeTile t={t} />
-                    <span data-testid={`type-filter-${t.id}`}>{t.label}</span>
-                  </Check>
-                );
-              }),
-            )}
-          {filterSection(
-            'Author',
-            f?.authors?.length ? (
-              f.authors.map((a) => (
-                <Check
-                  key={a.name}
-                  on={authors.includes(a.name)}
-                  onChange={() =>
-                    setAuthors((l) => (l.includes(a.name) ? l.filter((x) => x !== a.name) : [...l, a.name]))
-                  }
-                  count={a.count}
-                >
-                  <Avatar name={a.name} />
-                  <span>{a.name}</span>
-                </Check>
-              ))
-            ) : (
-              <span className="st-hint">No authors in these results.</span>
-            ),
-          )}
-          {filterSection(
-            'Edited',
-            <>
-              {EDITED.map((e) => (
-                <Radio
-                  key={e.id}
-                  on={edited === e.id}
-                  onChange={() => setEdited(e.id)}
-                  count={e.id === 'custom' ? undefined : f?.edited?.[e.id as 'any']}
-                >
-                  {e.label}
-                </Radio>
-              ))}
-              {edited === 'custom' && (
-                <input
-                  type="date"
-                  aria-label="Edited since"
-                  value={customFrom}
-                  onChange={(e) => setCustomFrom(e.target.value)}
-                  className="st-input"
-                  style={{ marginTop: 4 }}
-                />
-              )}
-            </>,
-          )}
-          {filterSection(
-            'Page tree location',
-            <>
-              <div style={{ position: 'relative' }}>
-                <div className="st-input" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ display: 'flex', color: '#2E6F40' }}>
-                    <Icon name="i07" size={15} strokeWidth={1.9} />
-                  </span>
-                  <span
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {underNode?.title ?? 'Anywhere in space'}
-                  </span>
-                  <Icon name="i06" size={12} strokeWidth={2} style={{ color: '#9AA8A0' }} />
-                </div>
-                <select
-                  aria-label="Page tree location"
-                  value={under}
-                  onChange={(e) => setUnder(e.target.value)}
-                  style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', cursor: 'pointer' }}
-                >
-                  <option value="">Anywhere in space</option>
-                  {nodes.map((n) => (
-                    <option key={n.id} value={n.id}>
-                      {' '.repeat(depthOf(n.id))}
-                      {n.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', paddingTop: 4 }}>
-                Pick a page to search it and everything below it.
-              </div>
-            </>,
-          )}
-          {filterSection(
-            'Linked tickets',
             <div
               style={{
+                flex: 1,
+                minWidth: 0,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
-                padding: '4px 0',
-                fontSize: 13,
-                fontWeight: 500,
-                color: '#1E2A22',
+                padding: '10px 14px',
+                borderRadius: 10,
+                border: '1px solid #C7D2CB',
+                background: '#FFFFFF',
               }}
             >
-              <span style={{ flex: 1 }}>Only pages that link a ticket</span>
+              <Icon name="i09" size={18} strokeWidth={2} style={{ color: '#2E6F40' }} />
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && submit()}
+                placeholder={`Search ${projectName} docs…`}
+                aria-label="Search docs"
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: 15,
+                  fontWeight: 500,
+                  color: '#1E2A22',
+                  fontFamily: 'inherit',
+                  background: 'transparent',
+                }}
+              />
+              {input && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setInput('');
+                    setQ('');
+                    inputRef.current?.focus();
+                  }}
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: '50%',
+                    background: '#E3E8E5',
+                    color: '#5B6B60',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  <Icon name="i08" size={11} strokeWidth={2.2} />
+                </button>
+              )}
+              <span className="dk-kbd">/</span>
+            </div>
+            <div style={{ width: 170, position: 'relative' }}>
+              <div className="st-input" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ display: 'flex', color: '#2E6F40' }}>
+                  <Icon
+                    name={scope === 'all' ? 'i21' : scope === 'tickets' ? 'i13' : scope === 'page' ? 'i00' : 'i07'}
+                    size={15}
+                    strokeWidth={1.9}
+                  />
+                </span>
+                <span style={{ flex: 1, minWidth: 0, fontWeight: 600 }}>
+                  {scope === 'all'
+                    ? 'All projects'
+                    : scope === 'tickets'
+                      ? 'Tickets'
+                      : scope === 'page'
+                        ? 'This page'
+                        : 'This space'}
+                </span>
+                <Icon name="i06" size={12} strokeWidth={2} style={{ color: '#9AA8A0' }} />
+              </div>
+              <select
+                aria-label="Search scope"
+                value={scope}
+                onChange={(e) => setScope(e.target.value as typeof scope)}
+                style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', cursor: 'pointer' }}
+              >
+                {currentPage && <option value="page">This page</option>}
+                <option value="space">This space</option>
+                <option value="all">All projects</option>
+                <option value="tickets">Tickets</option>
+              </select>
+            </div>
+            <button type="button" className="st-btn st-btn-primary" style={{ padding: '11px 18px' }} onClick={submit}>
+              <Icon name="i09" size={14} strokeWidth={2} />
+              Search
+            </button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ flex: 1, fontSize: 13.5, color: '#5B6B60' }}>
+              {data && q ? (
+                <>
+                  <b style={{ color: '#1E2A22', fontWeight: 700 }}>
+                    {scope === 'tickets'
+                      ? `${data.tickets.length} tickets`
+                      : `${matchCount} ${matchCount === 1 ? 'match' : 'matches'}`}
+                  </b>
+                  {scope !== 'tickets' && (
+                    <>
+                      {' '}
+                      in{' '}
+                      <b style={{ color: '#1E2A22', fontWeight: 700 }}>
+                        {total} {total === 1 ? 'page' : 'pages'}
+                      </b>
+                    </>
+                  )}{' '}
+                  for “<b style={{ color: '#1E2A22', fontWeight: 700 }}>{q}</b>” ·{' '}
+                  <span style={{ color: '#9AA8A0' }}>{data.tookMs} ms</span>
+                </>
+              ) : (
+                <span>{q ? 'Searching…' : 'Type to search pages, headings and tickets'}</span>
+              )}
+            </div>
+            <div
+              style={{
+                width: 230,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+                padding: '6px 10px',
+                borderRadius: 8,
+                border: '1px solid #E3E8E5',
+                background: '#FFFFFF',
+              }}
+            >
+              <Icon name="i09" size={13} strokeWidth={1.9} style={{ color: '#9AA8A0' }} />
+              <input
+                value={within}
+                onChange={(e) => setWithin(e.target.value)}
+                placeholder="Search within results…"
+                aria-label="Search within results"
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: 12.5,
+                  color: '#1E2A22',
+                  fontFamily: 'inherit',
+                  background: 'transparent',
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#5B6B60' }}>Sort by</span>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  padding: 3,
+                  borderRadius: 8,
+                  background: '#EEF3EF',
+                }}
+              >
+                <button
+                  type="button"
+                  className={`mb-view-btn${sort === 'relevance' ? ' mb-view-btn-active' : ''}`}
+                  onClick={() => setSort('relevance')}
+                >
+                  Relevance
+                </button>
+                <button
+                  type="button"
+                  className={`mb-view-btn${sort === 'edited_at' ? ' mb-view-btn-active' : ''}`}
+                  onClick={() => setSort('edited_at')}
+                >
+                  Recently edited
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+        {touch && filtersOpen && <div className="sr-scrim" aria-hidden="true" onClick={() => setFiltersOpen(false)} />}
+        <div
+          className={`fx-scroll${touch ? ' sr-sheet' : ''}`}
+          role={touch ? 'dialog' : undefined}
+          aria-label={touch ? 'Filters' : undefined}
+          style={
+            touch
+              ? { display: filtersOpen ? undefined : 'none' }
+              : {
+                  width: 236,
+                  flexShrink: 0,
+                  borderRight: '1px solid #E3E8E5',
+                  background: '#FBFCFB',
+                  padding: '18px 18px 12px',
+                  boxSizing: 'border-box',
+                  overflowY: 'auto',
+                }
+          }
+        >
+          {touch && (
+            <div className="sr-sheet-head">
               <button
                 type="button"
-                role="switch"
-                aria-checked={hasTickets}
-                aria-label="Only pages that link a ticket"
-                className="st-toggle-track"
-                onClick={() => setHasTickets((v) => !v)}
-                style={{ background: hasTickets ? '#2E6F40' : '#C7D2CB', border: 'none', padding: 0 }}
+                className="qo-back"
+                aria-label="Back to the results"
+                onClick={() => setFiltersOpen(false)}
               >
-                <span className="st-toggle-dot" style={{ left: hasTickets ? 17 : 2 }} />
+                <Icon name="chevronRight" size={20} strokeWidth={1.9} style={{ transform: 'rotate(180deg)' }} />
               </button>
-            </div>,
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="sr-sheet-title">Filters</div>
+                {data && q && <div className="sr-sheet-sub">{countWords}</div>}
+              </div>
+              <button type="button" className="sr-clear-all" onClick={clearAll}>
+                Clear all
+              </button>
+            </div>
           )}
-          {filterSection(
-            'Status',
-            <>
-              <Check
-                on={status.published}
-                onChange={() => setStatus((s) => ({ ...s, published: !s.published }))}
-                count={f?.status?.find((s) => s.name === 'published')?.count}
+          <div className={touch ? 'sr-sheet-body' : undefined}>
+            {touch && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  paddingBottom: 14,
+                  marginBottom: 14,
+                  borderBottom: '1px solid #EEF3EF',
+                }}
               >
-                Published
-              </Check>
-              <Check
-                on={status.draft}
-                onChange={() => setStatus((s) => ({ ...s, draft: !s.draft }))}
-                count={f?.status?.find((s) => s.name === 'draft')?.count}
+                <div style={{ ...sectionLabelStyle, paddingBottom: 4 }}>Sort by</div>
+                <Radio on={sort === 'relevance'} onChange={() => setSort('relevance')}>
+                  Relevance
+                </Radio>
+                <Radio on={sort === 'edited_at'} onChange={() => setSort('edited_at')}>
+                  Recently edited
+                </Radio>
+              </div>
+            )}
+            <div style={{ display: touch ? 'none' : 'flex', alignItems: 'center', marginBottom: 12 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22', flex: 1 }}>Filters</span>
+              <button
+                type="button"
+                onClick={clearAll}
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: '#2E6F40',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontFamily: 'inherit',
+                }}
               >
-                Draft
-              </Check>
-              <Check
-                on={status.outdated}
-                onChange={() => setStatus((s) => ({ ...s, outdated: !s.outdated }))}
-                count={f?.outdated}
+                Clear all
+              </button>
+            </div>
+            {scope !== 'tickets' &&
+              filterSection(
+                'Type',
+                TYPES.map((t) => {
+                  const n = f?.kinds?.find((k) => k.name === t.id)?.count;
+                  return (
+                    <Check
+                      key={t.id}
+                      on={types.includes(t.id)}
+                      onChange={() => setTypes((l) => (l.includes(t.id) ? l.filter((x) => x !== t.id) : [...l, t.id]))}
+                      count={n}
+                    >
+                      <TypeTile t={t} />
+                      <span data-testid={`type-filter-${t.id}`}>{t.label}</span>
+                    </Check>
+                  );
+                }),
+              )}
+            {filterSection(
+              'Author',
+              f?.authors?.length ? (
+                f.authors.map((a) => (
+                  <Check
+                    key={a.name}
+                    on={authors.includes(a.name)}
+                    onChange={() =>
+                      setAuthors((l) => (l.includes(a.name) ? l.filter((x) => x !== a.name) : [...l, a.name]))
+                    }
+                    count={a.count}
+                  >
+                    <Avatar name={a.name} />
+                    <span>{a.name}</span>
+                  </Check>
+                ))
+              ) : (
+                <span className="st-hint">No authors in these results.</span>
+              ),
+            )}
+            {filterSection(
+              'Edited',
+              <>
+                {EDITED.map((e) => (
+                  <Radio
+                    key={e.id}
+                    on={edited === e.id}
+                    onChange={() => setEdited(e.id)}
+                    count={e.id === 'custom' ? undefined : f?.edited?.[e.id as 'any']}
+                  >
+                    {e.label}
+                  </Radio>
+                ))}
+                {edited === 'custom' && (
+                  <input
+                    type="date"
+                    aria-label="Edited since"
+                    value={customFrom}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                    className="st-input"
+                    style={{ marginTop: 4 }}
+                  />
+                )}
+              </>,
+            )}
+            {filterSection(
+              'Page tree location',
+              <>
+                <div style={{ position: 'relative' }}>
+                  <div className="st-input" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ display: 'flex', color: '#2E6F40' }}>
+                      <Icon name="i07" size={15} strokeWidth={1.9} />
+                    </span>
+                    <span
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {underNode?.title ?? 'Anywhere in space'}
+                    </span>
+                    <Icon name="i06" size={12} strokeWidth={2} style={{ color: '#9AA8A0' }} />
+                  </div>
+                  <select
+                    aria-label="Page tree location"
+                    value={under}
+                    onChange={(e) => setUnder(e.target.value)}
+                    style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', cursor: 'pointer' }}
+                  >
+                    <option value="">Anywhere in space</option>
+                    {nodes.map((n) => (
+                      <option key={n.id} value={n.id}>
+                        {' '.repeat(depthOf(n.id))}
+                        {n.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ fontSize: 12, lineHeight: 1.45, color: '#5B6B60', paddingTop: 4 }}>
+                  Pick a page to search it and everything below it.
+                </div>
+              </>,
+            )}
+            {filterSection(
+              'Linked tickets',
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '4px 0',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: '#1E2A22',
+                }}
               >
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    border: '2px solid #C98A1B',
-                    boxSizing: 'border-box',
-                    flex: 'none',
-                  }}
-                />
-                <span data-testid="search-filter-outdated">May be outdated</span>
-              </Check>
-            </>,
-            true,
-          )}
+                <span style={{ flex: 1 }}>Only pages that link a ticket</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={hasTickets}
+                  aria-label="Only pages that link a ticket"
+                  className="st-toggle-track"
+                  onClick={() => setHasTickets((v) => !v)}
+                  style={{ background: hasTickets ? '#2E6F40' : '#C7D2CB', border: 'none', padding: 0 }}
+                >
+                  <span className="st-toggle-dot" style={{ left: hasTickets ? 17 : 2 }} />
+                </button>
+              </div>,
+            )}
+            {filterSection(
+              'Status',
+              <>
+                <Check
+                  on={status.published}
+                  onChange={() => setStatus((s) => ({ ...s, published: !s.published }))}
+                  count={f?.status?.find((s) => s.name === 'published')?.count}
+                >
+                  Published
+                </Check>
+                <Check
+                  on={status.draft}
+                  onChange={() => setStatus((s) => ({ ...s, draft: !s.draft }))}
+                  count={f?.status?.find((s) => s.name === 'draft')?.count}
+                >
+                  Draft
+                </Check>
+                <Check
+                  on={status.outdated}
+                  onChange={() => setStatus((s) => ({ ...s, outdated: !s.outdated }))}
+                  count={f?.outdated}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      border: '2px solid #C98A1B',
+                      boxSizing: 'border-box',
+                      flex: 'none',
+                    }}
+                  />
+                  <span data-testid="search-filter-outdated">May be outdated</span>
+                </Check>
+              </>,
+              true,
+            )}
+          </div>
         </div>
-        <div className="fx-scroll" style={{ flex: 1, minWidth: 0, padding: '0 28px 12px', overflowY: 'auto' }}>
+        <div className="fx-scroll sr-list" style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
           {edited !== 'any' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14 }}>
               <span

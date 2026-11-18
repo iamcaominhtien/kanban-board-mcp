@@ -198,7 +198,7 @@ export function SharePopover({ page, onClose, variant = 'popover', publicLinks }
   return (
     <div
       ref={rootRef}
-      className="dk-menu docs-root"
+      className={`dk-menu docs-root${sheet ? ' dk-share-sheet' : ''}`}
       role="dialog"
       aria-label="Share page"
       data-popover
@@ -214,16 +214,26 @@ export function SharePopover({ page, onClose, variant = 'popover', publicLinks }
               overflowY: 'auto',
               zIndex: 60,
             }),
-        padding: 14,
+        padding: sheet ? '0 16px 24px' : 14,
         display: 'flex',
         flexDirection: 'column',
         gap: 12,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22', flex: 1 }}>Share page</span>
-        <span style={{ fontSize: 12, color: '#5B6B60' }}>{crumbs.join(' › ')}</span>
-      </div>
+      {sheet ? (
+        // Reader 40: the sheet's own title row, 16 px, with a 44 px close; the path is left out
+        <div className="dk-share-sheet-head">
+          <span>Share page</span>
+          <button type="button" className="dk-icobtn" aria-label="Close" onClick={onClose}>
+            <Icon name="close" size={18} strokeWidth={1.9} />
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#1E2A22', flex: 1 }}>Share page</span>
+          <span style={{ fontSize: 12, color: '#5B6B60' }}>{crumbs.join(' › ')}</span>
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 8 }}>
         <div className="dk-share-field" data-testid="share-url">
           <span>{shown}</span>

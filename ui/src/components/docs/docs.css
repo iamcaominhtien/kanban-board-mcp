@@ -1572,6 +1572,14 @@ mark.docs-find-mark.docs-find-cur {
 .dk-convert-note-actions .st-btn {
   min-height: 32px;
 }
+/* on a tablet or a phone the notice stacks and its buttons are 44 px (Start board, frame 38) */
+:is(.dk-layout-tablet, .dk-layout-phone) .dk-convert-note {
+  flex-direction: column;
+  align-items: flex-start;
+}
+:is(.dk-layout-tablet, .dk-layout-phone) .dk-convert-note-actions .st-btn {
+  min-height: 44px;
+}
 
 /* ---------- Rich Docs: the app frame (design board "Rich Docs — app frame & responsive") ---------- */
 /* the page bar: where you are, the status and the page actions; it stays while the page scrolls */
@@ -1922,9 +1930,12 @@ mark.docs-find-mark.docs-find-cur {
 /* long-form rules on a narrow column: floats stack below 600 px, columns below 640 px, the first column of a
    table that scrolls stays in view */
 @container dkdoc (max-width: 600px) {
-  .dk-rich .dk-img-floatLeft,
-  .dk-rich .dk-img-floatRight {
+  /* Blocks board, frame 24: a floated picture takes the full width on its own row; the stored width is an inline
+     style, hence the !important */
+  .dk-rich .dk-img.dk-img-floatLeft,
+  .dk-rich .dk-img.dk-img-floatRight {
     float: none;
+    width: 100% !important;
     max-width: 100%;
     margin-left: 0;
     margin-right: 0;
@@ -1969,8 +1980,20 @@ mark.docs-find-mark.docs-find-cur {
 .dk-scrim {
   position: absolute;
   inset: 0;
-  background: rgba(30, 42, 34, 0.32);
+  background: rgba(30, 42, 34, 0.42);
   animation: dk-fade 0.15s ease-out;
+}
+/* the reading view's sheets and drawers dim less (Reader boards: .3 under a sheet, .2 under a drawer) */
+.dk-overlay-read > .dk-scrim {
+  background: rgba(30, 42, 34, 0.3);
+}
+.dk-overlay-read > .dk-scrim:has(+ .dk-drawer) {
+  background: rgba(30, 42, 34, 0.2);
+}
+/* on a tablet or a phone a drawer and a sheet cover the whole screen, the app bar too (Shell C 10, D 13; Tree1 A 2-3),
+   not only the Docs area inside the app's margins */
+.dk-touch .dk-overlay {
+  position: fixed;
 }
 @keyframes dk-fade {
   from {
@@ -2010,6 +2033,8 @@ mark.docs-find-mark.docs-find-cur {
 .dk-drawer-right > aside {
   border-left: none !important;
 }
+/* a sheet: 20 px corners and a soft shadow on the Tree, Shell and States boards; 18 px and a deeper shadow on the
+   Reader boards */
 .dk-sheet {
   position: fixed;
   left: 0;
@@ -2019,8 +2044,8 @@ mark.docs-find-mark.docs-find-cur {
   display: flex;
   flex-direction: column;
   background: #ffffff;
-  border-radius: 16px 16px 0 0;
-  box-shadow: 0 -12px 32px rgba(30, 42, 34, 0.2);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 40px rgba(30, 42, 34, 0.22);
   outline: none;
   animation: dk-slide-up 0.18s ease-out;
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -2028,17 +2053,41 @@ mark.docs-find-mark.docs-find-cur {
 .dk-overlay .dk-sheet {
   z-index: 1;
 }
+.dk-sheet-read {
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -10px 30px rgba(30, 42, 34, 0.3);
+}
 .dk-sheet-grab {
   display: flex;
   justify-content: center;
-  padding: 8px 0 4px;
+  padding: 9px 0 8px;
   touch-action: none;
 }
 .dk-sheet-grab > span {
   width: 40px;
+  height: 4.5px;
+  border-radius: 3px;
+  background: #cbd5ce;
+}
+.dk-sheet-read .dk-sheet-grab {
+  padding: 8px 0 6px;
+}
+.dk-sheet-read .dk-sheet-grab > span {
   height: 4px;
   border-radius: 2px;
   background: #c7d2cb;
+}
+/* Reader 28: the page title as a small uppercase line over the More sheet's rows */
+.dk-sheet-eyebrow {
+  padding: 4px 16px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #5b6b60;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .dk-sheet-head {
   display: flex;
@@ -2145,8 +2194,9 @@ mark.docs-find-mark.docs-find-cur {
   min-height: 44px;
   color: #5b6b60;
 }
-.dk-touch .dk-hov {
-  opacity: 1;
+/* touch rows have no grip (a long-press lifts the row, Tree2 19-20); the handles show in the reorder mode (23) */
+.dk-touch .dk-hov:not(.tr-handle-on) {
+  opacity: 0;
 }
 .dk-touch .dk-toc-link {
   padding-top: 11px !important;
@@ -2658,4 +2708,157 @@ mark.docs-find-mark.docs-find-cur {
 .dk-drawer .dk-ps-select,
 .dk-drawer .dk-ps-tab {
   min-height: 44px;
+}
+
+/* Recycle Bin rows on touch (Tree3 41-42): 44 px buttons; on a phone the two sit side by side, each half the card */
+.bin-row-tablet .bin-actions .st-btn,
+.bin-row-phone .bin-actions .st-btn {
+  min-height: 44px !important;
+  justify-content: center;
+}
+.bin-row-phone .bin-actions .st-btn {
+  flex: 1;
+}
+
+/* Page settings as a phone sheet (Shell 17): the title row keeps Reset as a word and a 44 px close; the tabs are
+   52 px high, a 15 px icon over an 11.5 px name, and share the width */
+.dk-sheet .dk-ps-head {
+  align-items: flex-start;
+  padding: 6px 12px 8px 20px;
+}
+.dk-sheet .dk-ps-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+.dk-ps-reset-link {
+  border: none;
+  background: none;
+  padding: 0 4px;
+  min-height: 44px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e2a22;
+  cursor: pointer;
+}
+.dk-ps-reset-link:disabled {
+  color: #9aa8a0;
+  cursor: default;
+}
+.dk-sheet .dk-ps-head .dk-icobtn {
+  width: 44px;
+  height: 44px;
+  color: #5b6b60;
+}
+.dk-sheet .dk-ps-tabs {
+  padding: 0 18px;
+}
+.dk-sheet .dk-ps-tab {
+  flex: 1;
+  height: 52px;
+  min-width: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.dk-sheet .dk-ps-tab-on {
+  color: #1e2a22;
+  font-weight: 700;
+}
+
+/* find in a page while reading on a phone (Reader 51): a 52 px bar over the top of the screen with a 44 px field, and
+   a 52 px bar with the count and next / previous over the keyboard */
+.fx-find-phone-top,
+.fx-find-phone-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  height: 52px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.fx-find-phone-top {
+  top: 0;
+  gap: 6px;
+  padding: 0 8px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.fx-find-phone-bottom {
+  padding: 0 8px 0 16px;
+  border-top: 1px solid #e3e8e5;
+}
+.fx-find-phone-bottom > span {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+.fx-find-phone-btn {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.fx-find-phone-field {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  box-sizing: border-box;
+  border: 1px solid #2e6f40;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+}
+.fx-find-phone-none {
+  border-color: #c4432a;
+}
+.fx-find-phone-field input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: 15px;
+  color: #1e2a22;
+}
+.fx-find-phone-field button {
+  border: none;
+  background: none;
+  padding: 0;
+  display: inline-flex;
+  color: #5b6b60;
+  cursor: pointer;
+}
+/* a sheet whose close is a word (the phone comments sheet) */
+.dk-sheet-closetext {
+  min-height: 44px;
+  padding: 0 8px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2e6f40;
+  cursor: pointer;
 }

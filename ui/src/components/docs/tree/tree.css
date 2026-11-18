@@ -1586,3 +1586,313 @@
 .st-btn.dk-bin-empty {
   min-height: 34px;
 }
+
+/* ---------- gallery and recent on touch (Tree1 B 8-9, 13-14): a 60 px bar with Pages, the name and the switch ---------- */
+.tr-touchbar {
+  height: 60px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #e3e8e5;
+  background: #ffffff;
+}
+.tr-view-tablet > .tr-touchbar,
+.tr-view-phone > .tr-touchbar {
+  margin: -16px -18px 0;
+}
+.tr-view-phone > .tr-touchbar {
+  margin: -12px -14px 0;
+}
+.tr-touchbar-pages {
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid #dce3de;
+  border-radius: 9px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+  cursor: pointer;
+  flex: none;
+}
+.tr-touchbar-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e2a22;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tr-view-tablet {
+  padding: 16px 18px 32px;
+  gap: 12px;
+}
+.tr-view-phone {
+  padding: 12px 14px 32px;
+  gap: 10px;
+}
+.tr-view-tablet .tr-view-head h2 {
+  font-size: 19px;
+}
+.dk-touch .tr-view .tr-sort > button {
+  height: 44px;
+}
+/* the quick filters stay on one line and scroll, fading out at the right edge */
+.dk-touch .tr-quick {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, #000 88%, transparent);
+}
+.tr-view-phone .tr-quick {
+  margin-right: -14px;
+}
+.dk-touch .tr-quick .tr-pill {
+  height: 44px;
+  padding: 0 13px;
+  flex: none;
+  white-space: nowrap;
+}
+.tr-view-tablet .tr-grid {
+  gap: 14px;
+}
+.tr-view-phone .tr-grid {
+  gap: 12px;
+}
+/* phone cards: a 78 px cover, the ⋯ a 32 px white circle in a 44 px corner target */
+.tr-view-phone .tr-card-cover {
+  height: 78px !important;
+}
+.dk-touch .tr-card .tr-card-more {
+  right: 0 !important;
+  top: 0 !important;
+  width: 44px !important;
+  height: 44px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+.dk-touch .tr-card .tr-card-more > svg {
+  box-sizing: content-box;
+  padding: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 1px 4px rgba(30, 42, 34, 0.25);
+  color: #1e2a22;
+}
+/* recent on touch: 64 px rows of two lines, a 44 px ⋯ */
+.dk-touch .tr-recent-touch {
+  min-height: 64px;
+  padding: 6px 6px 6px 16px;
+}
+.dk-touch .tr-recent-touch .tr-recent-title > span {
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.dk-touch .tr-recent-touch .tr-recent-title > small {
+  font-size: 12px;
+}
+.tr-view > * {
+  flex-shrink: 0;
+}
+.tr-crumbs[hidden],
+.tr-view-head[hidden] {
+  display: none;
+}
+
+/* the row menu as an action sheet on a phone (Tree3 29) */
+.tr-msheet-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 8px 10px 20px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.tr-msheet-ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eaf1ec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.tr-msheet-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e2a22;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tr-msheet-sub {
+  font-size: 12px;
+  color: #5b6b60;
+}
+.tr-msheet-head .dk-icobtn {
+  width: 44px;
+  height: 44px;
+  color: #5b6b60;
+}
+[data-testid='tree-menu-sheet'] .dk-sheet-body {
+  padding: 0 0 20px;
+}
+[data-testid='tree-menu-sheet'] .dk-menu-sheet .dk-mi {
+  min-height: 50px;
+  gap: 14px;
+  padding: 2px 20px;
+  border-radius: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+[data-testid='tree-menu-sheet'] .dk-menu-sheet .dk-mi svg {
+  width: 20px;
+  height: 20px;
+}
+[data-testid='tree-menu-sheet'] .dk-menu-sheet > div > div:first-child:not(.dk-mi) {
+  display: none;
+}
+
+/* the filter sheet of a phone (Tree1 16) */
+.tr-fsheet-head {
+  padding: 4px 20px 10px;
+}
+.tr-fsheet-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.tr-fsheet-sub {
+  font-size: 12.5px;
+  color: #5b6b60;
+  margin-top: 1px;
+}
+[data-testid='tree-filter-sheet'] .dk-sheet-body {
+  padding: 0 0 24px;
+}
+[data-testid='tree-filter-sheet'] .tr-pop-head {
+  padding: 12px 20px 4px;
+  font-size: 11px;
+}
+[data-testid='tree-filter-sheet'] .tr-fopt {
+  min-height: 48px;
+  gap: 12px;
+  padding: 0 20px;
+  border-radius: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+[data-testid='tree-filter-sheet'] .tr-fopt .tr-check {
+  width: 22px;
+  height: 22px;
+}
+[data-testid='tree-filter-sheet'] .tr-fopt .tr-check svg {
+  width: 16px;
+  height: 16px;
+}
+[data-testid='tree-filter-sheet'] .tr-fopt-count {
+  font-size: 12.5px;
+}
+[data-testid='tree-filter-sheet'] .tr-pills {
+  padding: 4px 20px 8px;
+  gap: 8px;
+}
+[data-testid='tree-filter-sheet'] .tr-pill {
+  height: 44px;
+  padding: 0 13px;
+}
+[data-testid='tree-filter-sheet'] .tr-filter-foot {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px 0;
+  border-top: none;
+  background: none;
+}
+[data-testid='tree-filter-sheet'] .tr-filter-foot > span {
+  display: none;
+}
+[data-testid='tree-filter-sheet'] .tr-filter-foot > button {
+  flex: 1;
+  min-height: 48px;
+  justify-content: center;
+}
+[data-testid='tree-filter-sheet'] .tr-filter-foot > .tr-link {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #e3e8e5;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1e2a22;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+/* touch: 20 px checkboxes while picking pages (Tree2 24-25) */
+.dk-touch .dk-tree-row .tr-check {
+  width: 20px;
+  height: 20px;
+}
+.dk-touch .dk-tree-row .tr-check svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* the Recycle Bin as a page on a tablet (Tree3 41) and a phone (42): 20/19 px title, 44 px Empty bin and filter */
+.dk-bin-touch .dk-bin-head {
+  align-items: center;
+  gap: 10px;
+  padding: 18px 18px 10px 8px;
+}
+.dk-bin-back {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #5b6b60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.dk-bin-touch .dk-bin-title {
+  font-size: 20px;
+}
+.dk-bin-touch .dk-bin-sub {
+  font-size: 12.5px;
+}
+.dk-bin-touch .st-btn.dk-bin-empty {
+  min-height: 44px;
+  white-space: nowrap;
+}
+.dk-bin-touch .dk-bin-tools {
+  gap: 10px;
+  padding: 2px 18px 10px;
+  border-bottom: 1px solid #e3e8e5;
+}
+.dk-bin-touch .dk-bin-seg-btn {
+  padding: 12px 14px;
+}
+.dk-bin-phone .dk-bin-head {
+  gap: 8px;
+  padding: 12px 14px 8px 4px;
+}
+.dk-bin-phone .dk-bin-title {
+  font-size: 19px;
+}
+.dk-bin-phone .dk-bin-tools {
+  padding: 2px 14px 8px;
+}

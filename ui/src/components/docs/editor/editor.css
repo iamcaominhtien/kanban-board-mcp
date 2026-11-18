@@ -143,6 +143,11 @@
   text-underline-offset: 2px;
   cursor: text;
 }
+/* a link card is a link as a whole: its words keep the card's colours, not the link's (Embeds board, frame 62) */
+.dk-editor a.dk-link-card {
+  color: inherit;
+  text-decoration: none;
+}
 .dk-editor s {
   color: #6b7a70;
 }
@@ -520,4 +525,18 @@
   border-radius: 4px;
   padding: 1px 5px;
   color: #5b6b60;
+}
+
+/* the phone edit header (Editor board, frame 3): 44 px icon buttons, Publish 40 high */
+.dk-edit-head-phone .dk-bar-ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 9px;
+  color: #1e2a22;
+}
+.dk-edit-head-phone .st-btn.st-btn-primary {
+  min-height: 40px;
+}
+.dk-edit-head.dk-edit-head-phone {
+  padding: 0 6px;
 }

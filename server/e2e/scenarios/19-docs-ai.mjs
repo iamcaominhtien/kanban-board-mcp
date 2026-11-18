@@ -395,6 +395,22 @@ export default {
       await h.getByRole('tab', { name: /^Missing docs/ }).click();
       s.note('missing docs tab', (await h.innerText()).slice(-200));
     });
+    await s.step('Docs health on a tablet: the tabs are 44 px pills, the chosen one dark green; Run now is 44 px (RichDocsLinks J 41)', async () => {
+      const size = p.viewportSize();
+      await p.setViewportSize({ width: 820, height: 1180 });
+      try {
+        const h = p.getByTestId('docs-health');
+        await p.locator('[data-testid="docs-health"][data-layout="tablet"]').waitFor();
+        const look = (el) => ({ h: Math.round(el.getBoundingClientRect().height), bg: getComputedStyle(el).backgroundColor, radius: getComputedStyle(el).borderRadius });
+        const on = await h.getByRole('tab', { selected: true }).evaluate(look);
+        const run = await h.getByTestId('health-run').evaluate(look);
+        s.note('tablet health', { on, run });
+        if (on.h !== 44 || on.bg !== 'rgb(31, 90, 49)' || on.radius !== '999px') throw new Error('tablet tab: ' + JSON.stringify(on));
+        if (run.h < 44) throw new Error('Run now is not 44 px on a tablet: ' + JSON.stringify(run));
+      } finally {
+        await p.setViewportSize(size);
+      }
+    });
     await s.step('a page comment on API', async () => {
       await item('API').click();
       await p.getByTestId('page-title').getByText('API', { exact: true }).waitFor();
@@ -575,6 +591,31 @@ export default {
       if (look.size !== '12.5px' || look.color !== 'rgb(91, 107, 96)') throw new Error('team line: ' + JSON.stringify(look));
       await d.getByRole('button', { name: 'Cancel' }).click();
       await d.waitFor({ state: 'detached' });
+    });
+    await s.step('Give the page on a phone: a bottom sheet (20 px corners), 44 px rows and two 44 px buttons (RichDocsAi2 frame 27)', async () => {
+      const size = p.viewportSize();
+      await p.setViewportSize({ width: 390, height: 844 });
+      try {
+        await p.getByTestId('page-menu').click();
+        await p.getByTestId('menu-give-ai').click();
+        const d = p.getByTestId('docs-give-page');
+        await d.locator('.gp-opt').first().waitFor();
+        const sheet = await d.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          return { w: Math.round(r.width), bottom: Math.round(r.bottom), radius: cs.borderRadius, shadow: cs.boxShadow };
+        });
+        const opt = await d.locator('.gp-opt').first().evaluate((el) => Math.round(el.getBoundingClientRect().height));
+        const btns = await d.locator('.gp-foot .sg-btn').evaluateAll((els) => els.map((el) => ({ h: Math.round(el.getBoundingClientRect().height), size: getComputedStyle(el).fontSize })));
+        s.note('give sheet', { sheet, opt, btns });
+        if (sheet.w !== 390 || sheet.bottom !== 844 || sheet.radius !== '20px 20px 0px 0px') throw new Error('give sheet: ' + JSON.stringify(sheet));
+        if (opt < 44) throw new Error('a team row is ' + opt + ' px');
+        if (btns.length !== 2 || btns.some((b) => b.h !== 44 || b.size !== '14.5px')) throw new Error('give buttons: ' + JSON.stringify(btns));
+        await d.getByRole('button', { name: 'Cancel' }).click();
+        await d.waitFor({ state: 'detached' });
+      } finally {
+        await p.setViewportSize(size);
+      }
     });
     await s.step('Ask the team on a selection: one purple button; the verbs, Change tone, Translate, Format this as…, the Ask line', async () => {
       const para = p.getByTestId('page-body').locator('.dk-rich p').first();

@@ -8,6 +8,7 @@
 import { useState, type CSSProperties } from 'react';
 import { KindGlyph } from './BlockKind';
 import { PageIcon } from '../tree/treeParts';
+import './links.css';
 
 /** The cover tints of the cards, chosen by the page (the board's ⏱️ blue, 📋 green, 📓 sand…). */
 const COVERS = ['#E3EFFA', '#E6F2EA', '#F7ECD9', '#F0E8FA', '#FDEEDC', '#EEF0EF'];
@@ -92,7 +93,7 @@ export function LinkedDocCard({
   const title = doc.target ? `${doc.title} › ${doc.target.label}` : doc.title;
   return (
     <div
-      className={`tdoc-card ${onRemove ? 'tdoc-manual' : ''}`}
+      className={`tdoc tdoc-card ${onRemove ? 'tdoc-manual' : ''}`}
       data-testid={testId}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
@@ -115,6 +116,7 @@ export function LinkedDocCard({
         type="button"
         onClick={onOpen}
         aria-label={`Open ${title}`}
+        className="tdoc-main"
         style={{
           display: 'block',
           width: '100%',
@@ -129,6 +131,7 @@ export function LinkedDocCard({
       >
         <div
           data-testid="tdoc-cover"
+          className="tdoc-cover"
           style={{
             height: 56,
             background: coverOf(doc.pageId),
@@ -140,7 +143,7 @@ export function LinkedDocCard({
         >
           <PageIcon icon={doc.icon} size={23} />
         </div>
-        <div style={{ padding: '10px 12px 11px' }}>
+        <div className="tdoc-body" style={{ padding: '10px 12px 11px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <span style={{ fontSize: 15, display: 'inline-flex' }}>
               {doc.target && doc.target.kind !== 'heading' ? (
@@ -176,6 +179,7 @@ export function LinkedDocCard({
           {doc.excerpt && (
             <div
               data-testid="tdoc-excerpt"
+              className="tdoc-excerpt"
               style={{
                 fontSize: 12,
                 lineHeight: 1.5,
@@ -211,6 +215,7 @@ export function LinkedDocCard({
         </div>
       </button>
       <div
+        className="tdoc-acts"
         style={{
           position: 'absolute',
           right: 8,
@@ -220,7 +225,13 @@ export function LinkedDocCard({
           zIndex: 3,
         }}
       >
-        <button type="button" data-testid="tdoc-side-panel" style={{ ...ACTION, padding: '0 10px' }} onClick={onOpen}>
+        <button
+          type="button"
+          data-testid="tdoc-side-panel"
+          className="tdoc-side"
+          style={{ ...ACTION, padding: '0 10px' }}
+          onClick={onOpen}
+        >
           <svg
             width={12}
             height={12}

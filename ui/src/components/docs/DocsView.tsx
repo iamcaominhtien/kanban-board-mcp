@@ -76,10 +76,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { IconPicker } from './tree/IconPicker';
 import { GalleryView, RecentView } from './tree/PageViews';
 import { BulkDeleteDialog } from './tree/SelectionBar';
-import { affectedPages } from './tree/treeModel';
+import { affectedPages, rowStatus, type TreeView } from './tree/treeModel';
 import { useTreeActions } from './tree/useTreeActions';
 import { useTreeViewState } from './tree/useTreeViewState';
-import { SuggestionCount } from './tree/treeParts';
+import { PageIcon, SuggestionCount } from './tree/treeParts';
 
 /** The event that opens the app's Recycle Bin (the row under the page tree). */
 export const OPEN_RECYCLE_BIN_EVENT = 'kb:open-recycle-bin';
@@ -187,17 +187,33 @@ function TreePageMenu({
   onAction,
   onClose,
   sheet,
+  sub,
 }: {
   node: DocsTreeNode;
   onAction: (a: PageMenuAction) => void;
   onClose: () => void;
   /** A phone: the menu is an action sheet. */
   sheet?: boolean;
+  /** The sheet's line under the title: where the page is and its status ("Architecture · Published"). */
+  sub?: string;
 }) {
   const { data } = useDocsPage(node.id);
   if (sheet)
     return (
-      <BottomSheet label={node.title} onClose={onClose} testId="tree-menu-sheet">
+      <BottomSheet label={node.title} onClose={onClose} testId="tree-menu-sheet" hideTitle>
+        {/* Tree3 29: the page's 40 px icon tile, its title and where it is, a 44 px close; 50 px rows */}
+        <div className="tr-msheet-head">
+          <span className="tr-msheet-ico" aria-hidden="true">
+            <PageIcon icon={node.icon} kind={node.kind} size={22} />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="tr-msheet-title">{node.title}</div>
+            {sub && <div className="tr-msheet-sub">{sub}</div>}
+          </div>
+          <button type="button" className="dk-icobtn" aria-label="Close" data-sheet-close onClick={onClose}>
+            <Icon name="close" size={18} strokeWidth={1.9} />
+          </button>
+        </div>
         {data ? (
           <PageMenu
             page={data}
@@ -843,6 +859,17 @@ export function DocsView({
     access.data?.access === false || treeError?.code === 'docs_no_access' || pageError?.code === 'docs_no_access';
   const disabledRole = treeError?.role ?? pageError?.role;
 
+  const menuSub = (n: DocsTreeNode) =>
+    `${(n.parentId && nodes.find((x) => x.id === n.parentId)?.title) || 'Top level'} · ${rowStatus(n, new Date()).label}`;
+  const changeView = (v: TreeView) => {
+    treeView.setView(v);
+    setHealthOpen(false);
+    if (v !== 'tree') {
+      onCloseResults?.();
+      setEditing(false);
+      setRailOpen(false);
+    }
+  };
   const treeEl = (
     <DocsTree
       projectId={projectId}
@@ -869,7 +896,8 @@ export function DocsView({
         />
       )}
       headerActions={
-        onPopOut ? (
+        // a window of its own is a desktop thing: the touch drawer's header has only its close button (Tree1 A 2-3)
+        onPopOut && layout === 'desktop' ? (
           <button
             type="button"
             className="dk-icobtn"
@@ -889,15 +917,7 @@ export function DocsView({
       onMove={(id, parentId, beforeId, afterId) => treeActions.moveOne(id, { parentId, beforeId, afterId })}
       layout={layout}
       view={treeView.view}
-      onViewChange={(v) => {
-        treeView.setView(v);
-        setHealthOpen(false);
-        if (v !== 'tree') {
-          onCloseResults?.();
-          setEditing(false);
-          setRailOpen(false);
-        }
-      }}
+      onViewChange={changeView}
       sort={treeView.sort}
       onSortChange={treeView.setSort}
       filters={treeView.filters}
@@ -922,6 +942,7 @@ export function DocsView({
         <TreePageMenu
           node={node}
           sheet={layout === 'phone'}
+          sub={menuSub(node)}
           onClose={close}
           onAction={(a) => {
             close();
@@ -1217,6 +1238,9 @@ export function DocsView({
       },
       onMenu: (node: DocsTreeNode, at: DOMRect) => setViewMenu({ node, at }),
       renderSuggestions: (n: DocsTreeNode) => <SuggestionCount count={n.suggestions} />,
+      // touch: the bar over the view opens the tree's drawer and switches the view (Tree1 B 8-9, 13-14)
+      onOpenTree: layout === 'desktop' ? undefined : () => setRailOpen(true),
+      onViewChange: layout === 'desktop' ? undefined : changeView,
     };
     content =
       treeView.view === 'gallery' ? (
@@ -1233,7 +1257,8 @@ export function DocsView({
   const treeDrawer = railOpen && !leftOverride && (
     <DocsDrawer
       label="Pages"
-      width={layout === 'phone' ? 336 : 340}
+      // Tree1 A 2-3: the tree's drawer is 400 wide on a tablet and 340 on a phone
+      width={layout === 'phone' ? 340 : 400}
       onClose={() => setRailOpen(false)}
       testId="tree-drawer"
     >
@@ -1505,6 +1530,7 @@ export function DocsView({
             <TreePageMenu
               node={viewMenu.node}
               sheet={layout === 'phone'}
+              sub={menuSub(viewMenu.node)}
               onClose={() => setViewMenu(null)}
               onAction={(a) => {
                 const n = viewMenu.node;

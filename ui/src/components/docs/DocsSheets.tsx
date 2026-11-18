@@ -14,6 +14,12 @@ interface OverlayProps {
   children: ReactNode;
   /** `data-testid` of the panel. */
   testId?: string;
+  /**
+   * Which boards it is drawn from: `read` for the reading view (Reader boards: a lighter scrim, an 18 px sheet with a
+   * deeper shadow, a drawer with a rule on its edge), `manage` for organising pages and the states (Tree, Shell and
+   * States boards: a darker scrim, a 20 px sheet).
+   */
+  look?: 'read' | 'manage';
 }
 
 /** Closes on Esc and moves the focus into the panel when it opens (back to where it was when it closes). */
@@ -53,7 +59,14 @@ export function DocsDrawer({
   onClose,
   children,
   testId,
-}: OverlayProps & { side?: 'left' | 'right'; width?: number }) {
+  look = 'manage',
+  scrim,
+}: OverlayProps & {
+  side?: 'left' | 'right';
+  width?: number;
+  /** How dark the page behind gets (0-1), when the board draws another value than the look's. */
+  scrim?: number;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const start = useRef<number | null>(null);
   useOverlayFocus(ref, onClose);
@@ -64,14 +77,26 @@ export function DocsDrawer({
     [side]: 0,
     width: `min(${width}px, calc(100% - 40px))`,
     background: '#FFFFFF',
-    boxShadow: side === 'left' ? '8px 0 24px rgba(30,42,34,0.18)' : '-8px 0 24px rgba(30,42,34,0.18)',
+    // Tree1 A 2-3: 12 0 40 .22; Reader3 49: -12 0 30 .16 with a rule on the open edge
+    boxShadow:
+      look === 'read'
+        ? `${side === 'left' ? 12 : -12}px 0 30px rgba(30,42,34,0.16)`
+        : `${side === 'left' ? 12 : -12}px 0 40px rgba(30,42,34,0.22)`,
+    ...(look === 'read'
+      ? { [side === 'left' ? 'borderRight' : 'borderLeft']: '1px solid var(--dp-rule, #E3E8E5)' }
+      : {}),
     display: 'flex',
     flexDirection: 'column',
     outline: 'none',
   };
   return (
-    <div className="dk-overlay docs-root" data-testid={testId ? `${testId}-overlay` : undefined}>
-      <div className="dk-scrim" aria-hidden="true" onClick={onClose} />
+    <div className={`dk-overlay dk-overlay-${look} docs-root`} data-testid={testId ? `${testId}-overlay` : undefined}>
+      <div
+        className="dk-scrim"
+        aria-hidden="true"
+        onClick={onClose}
+        style={scrim != null ? { background: `rgba(30,42,34,${scrim})` } : undefined}
+      />
       <div
         ref={ref}
         role="dialog"
@@ -101,14 +126,26 @@ export function DocsDrawer({
  * screen high.
  * @param props.label - Title and accessible name.
  * @param props.hideTitle - Leave the title row out (the content has its own).
+ * @param props.eyebrow - Show the title as a small uppercase line without a close button (Reader 28, the More sheet).
+ * @param props.look - `read` (Reader boards) or `manage` (Tree, Shell and States boards).
+ * @param props.closeText - Draw the close as this word, a green text button (the phone comments sheet), not ×.
  * @param props.onClose - Called by the close button, a tap on the dimmed page, Esc or dragging the sheet down.
  */
-export function BottomSheet({ label, onClose, children, testId, hideTitle }: OverlayProps & { hideTitle?: boolean }) {
+export function BottomSheet({
+  label,
+  onClose,
+  children,
+  testId,
+  hideTitle,
+  eyebrow,
+  look = 'manage',
+  closeText,
+}: OverlayProps & { hideTitle?: boolean; eyebrow?: boolean; closeText?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const start = useRef<number | null>(null);
   useOverlayFocus(ref, onClose);
   return (
-    <div className="dk-overlay docs-root" data-testid={testId ? `${testId}-overlay` : undefined}>
+    <div className={`dk-overlay dk-overlay-${look} docs-root`} data-testid={testId ? `${testId}-overlay` : undefined}>
       <div className="dk-scrim" aria-hidden="true" onClick={onClose} />
       <div
         ref={ref}
@@ -116,7 +153,7 @@ export function BottomSheet({ label, onClose, children, testId, hideTitle }: Ove
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className="dk-sheet"
+        className={`dk-sheet dk-sheet-${look}`}
         data-testid={testId}
       >
         <div
@@ -131,12 +168,19 @@ export function BottomSheet({ label, onClose, children, testId, hideTitle }: Ove
         >
           <span />
         </div>
-        {!hideTitle && (
+        {!hideTitle && eyebrow && <div className="dk-sheet-eyebrow">{label}</div>}
+        {!hideTitle && !eyebrow && (
           <div className="dk-sheet-head">
             <span>{label}</span>
-            <button type="button" className="dk-icobtn" aria-label="Close" data-sheet-close onClick={onClose}>
-              <Icon name="close" size={18} strokeWidth={2} />
-            </button>
+            {closeText ? (
+              <button type="button" className="dk-sheet-closetext" data-sheet-close onClick={onClose}>
+                {closeText}
+              </button>
+            ) : (
+              <button type="button" className="dk-icobtn" aria-label="Close" data-sheet-close onClick={onClose}>
+                <Icon name="close" size={18} strokeWidth={2} />
+              </button>
+            )}
           </div>
         )}
         <div className="dk-sheet-body">{children}</div>

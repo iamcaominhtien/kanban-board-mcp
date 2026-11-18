@@ -344,6 +344,25 @@ export default {
       s.note('viewer', measured.roleChip);
     });
 
+    await s.step('phone: a page that is not there says so, its buttons full width and 44 px high (F 48)', async () => {
+      const pid = (await api('GET', '/projects')).find((x) => x.name === 'Alpha').id;
+      const ctx = await s.browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, locale: 'en-US', timezoneId: 'UTC' });
+      ctx.setDefaultTimeout(8000);
+      const t = await ctx.newPage();
+      try {
+        await t.goto(`${base}/?proj=${pid}&docs=00000000-0000-0000-0000-000000000000`);
+        const st = t.getByTestId('docs-not-found');
+        await st.getByText('Page not found').waitFor({ timeout: 20000 });
+        const col = await st.locator('.dst-state').evaluate((el) => Math.round(el.getBoundingClientRect().width));
+        const btns = await st.locator('.dst-state-btns .st-btn').evaluateAll((els) => els.map((e) => [Math.round(e.getBoundingClientRect().width), Math.round(e.getBoundingClientRect().height)]));
+        if (!btns.length || btns.some(([w, h]) => w !== col || h < 44)) throw new Error(`buttons ${JSON.stringify(btns)} in a ${col} px column`);
+        measured.phoneNotFound = { col, btns };
+        s.note('phone not found', measured.phoneNotFound);
+      } finally {
+        await ctx.close();
+      }
+    });
+
     if (process.env.E2E_STATES_MEASURE) fs.writeFileSync(process.env.E2E_STATES_MEASURE, JSON.stringify(measured, null, 2));
   },
 };

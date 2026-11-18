@@ -37,6 +37,7 @@ export default {
     let pid = '';
     let target = '';
     let notes = '';
+    let decision = '';
     const api = async (method, path, body) => {
       const r = await fetch(`${base}${path}`, {
         method,
@@ -85,7 +86,7 @@ export default {
       const projects = await api('GET', '/projects');
       pid = (Array.isArray(projects) ? projects : projects.projects)[0].id;
       target = await publish('Rate limiting', TARGET);
-      await publish('Decision log', {
+      decision = await publish('Decision log', {
         type: 'doc',
         content: [
           para('b-0000b1', text('We chose a per-token window, see '), ref(target, { targetBlockId: 'b-0000a2' }), text(' for the numbers.')),
@@ -448,6 +449,108 @@ export default {
       const pa = await api('GET', `/docs/pages/${a}`);
       if (pa.content.content[0].content[1].attrs.page_id !== notes && pa.content.content[0].content[1].attrs.pageId !== notes)
         throw new Error('not relinked: ' + JSON.stringify(pa.content.content[0]));
+    });
+
+    // Touch frames (RichDocsLinks A 4-6, B 8-10, F 32, K 67-68): a context of its own with touch, at 820 x 1180 and 390 x 844
+    const touchPage = async (width, height) => {
+      const ctx = await s.browser.newContext({
+        viewport: { width, height },
+        hasTouch: true,
+        isMobile: width < 600,
+        deviceScaleFactor: 1,
+        locale: 'en-US',
+        timezoneId: 'UTC',
+      });
+      ctx.setDefaultTimeout(8000);
+      const tp = await ctx.newPage();
+      await tp.goto(`${base}/?proj=${pid}&docs=${decision}`);
+      await tp.getByTestId('page-title').getByText('Decision log', { exact: true }).waitFor({ timeout: 20000 });
+      await tp.locator('.kb-splash').waitFor({ state: 'detached' });
+      return { ctx, tp };
+    };
+
+    await s.step('tablet: quick open is a 640 px panel with a 54 px head and 54 px rows; a tap on a chip shows its card with 44 px buttons (A 4, K 67)', async () => {
+      const { ctx, tp } = await touchPage(820, 1180);
+      try {
+        await tp.keyboard.press('Control+k');
+        const head = tp.locator('.qo-head[data-layout="tablet"]');
+        await head.waitFor();
+        expect('tablet quick open head', await box(head), { h: 54 });
+        const panel = tp.locator('[role="dialog"][data-layout="tablet"] > div > div').first();
+        expect('tablet quick open panel', await box(panel), { w: 640, radius: '14px', border: '1px solid rgb(220, 227, 222)' });
+        const row = tp.locator('.qo-row').first();
+        await row.waitFor();
+        expect('tablet quick open row', await box(row), { h: 54, radius: '9px' });
+        if (await tp.locator('[role="dialog"] .qo-enter').first().isVisible()) throw new Error('the Enter key hint shows on a tablet');
+        await tp.keyboard.press('Escape');
+        await head.waitFor({ state: 'detached' });
+
+        const chip = tp.getByTestId('page-body').locator('[data-block-id="b-0000b2"] .dk-chip-page');
+        await chip.tap();
+        const card = tp.getByTestId('ref-tap-card');
+        await card.waitFor();
+        expect('tapped card', await box(card), { w: 420 });
+        expect('tapped card Open', await box(card.locator('.st-btn-primary').first()), { h: 44, font: '600 13.5px' });
+        // the first tap did not leave the page; a second one goes on
+        await tp.getByTestId('page-title').getByText('Decision log', { exact: true }).waitFor();
+        await chip.tap();
+        // the target was renamed to "Request limits" by the rename step above
+        await tp.getByTestId('page-title').getByText('Request limits', { exact: true }).waitFor();
+        const refs = tp.getByTestId('refs-button');
+        await refs.waitFor();
+        expect('tablet references button', await box(refs), { h: 44, bg: 'rgb(241, 248, 243)', border: '1px solid rgb(207, 230, 214)' });
+        const rb = tp.getByTestId('referenced-by');
+        await rb.scrollIntoViewIfNeeded();
+        expect('tablet Referenced by', await box(rb), { radius: '14px' });
+        expect('tablet Go to link', await box(rb.locator('.rb-go').first()), { h: 44 });
+      } finally {
+        await ctx.close();
+      }
+    });
+
+    await s.step('phone: quick open is a full screen (60 px head, 44 px field, 58 px rows); the search page keeps its filters in a full sheet (A 5, B 9-10, K 68)', async () => {
+      const { ctx, tp } = await touchPage(390, 844);
+      try {
+        const chip = tp.getByTestId('page-body').locator('[data-block-id="b-0000b2"] .dk-chip-page');
+        await chip.scrollIntoViewIfNeeded();
+        await chip.tap();
+        const sheet = tp.getByTestId('ref-tap-sheet');
+        await sheet.waitFor();
+        expect('tapped sheet', await box(sheet), { w: 390, radius: '20px 20px 0px 0px' });
+        expect('tapped sheet Open', await box(sheet.locator('.st-btn-primary').first()), { h: 48, font: '600 14.5px' });
+        await tp.locator('.ref-sheet-scrim').click({ position: { x: 20, y: 20 } });
+        await sheet.waitFor({ state: 'detached' });
+
+        await tp.keyboard.press('Control+k');
+        const head = tp.locator('.qo-head[data-layout="phone"]');
+        await head.waitFor();
+        expect('phone quick open head', await box(head), { w: 390, h: 60 });
+        expect('phone quick open field', await box(tp.locator('.qo-field')), { h: 44, radius: '10px', bg: 'rgb(238, 243, 239)' });
+        expect('phone quick open back', await box(tp.locator('.qo-back')), { w: 44, h: 44 });
+        const input = tp.locator('.fx-qinput');
+        await input.fill('rate');
+        await tp.locator('.qo-clear').waitFor();
+        const row = tp.locator('.qo-row').first();
+        await row.waitFor();
+        expect('phone quick open row', await box(row), { h: 58 });
+        await tp.getByText(/Show all \d+ results/).click();
+        const q = tp.locator('.sr-q');
+        await q.waitFor();
+        expect('phone search field', await box(q), { h: 44, radius: '11px' });
+        const pill = tp.locator('.sr-pill.is-on');
+        expect('phone scope pill', await box(pill), { h: 44, bg: 'rgb(31, 90, 49)', color: 'rgb(255, 255, 255)' });
+        expect('phone filter button', await box(tp.locator('.sr-filter-ico')), { w: 44, h: 44, radius: '11px' });
+        await tp.locator('.sr-filter-ico').tap();
+        const filters = tp.getByRole('dialog', { name: 'Filters' });
+        await filters.waitFor();
+        expect('phone filters sheet', await box(filters), { bg: 'rgb(255, 255, 255)' });
+        expect('phone filters head', await box(filters.locator('.sr-sheet-head')), { h: 56 });
+        expect('phone filter row', await box(filters.locator('.sr-opt').first()), { h: 44 });
+        await filters.getByRole('button', { name: 'Back to the results' }).tap();
+        await filters.waitFor({ state: 'hidden' });
+      } finally {
+        await ctx.close();
+      }
     });
   },
 };

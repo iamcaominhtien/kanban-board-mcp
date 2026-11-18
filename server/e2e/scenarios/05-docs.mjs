@@ -429,5 +429,174 @@ export default {
       await p.getByRole('heading', { name: 'What happened' }).waitFor();
     });
     }
+    // ---- touch: the same space on a tablet (820) and a phone (390), in a second window with touch ----
+    {
+    const base = s.server.base;
+    const get = async (path) => {
+      const r = await fetch(base + path);
+      if (!r.ok) throw new Error(`GET ${path}: ${r.status}`);
+      return r.json();
+    };
+    let touch = null;
+    let pid = '';
+    let handbook = '';
+    const rect = (loc) => loc.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), radius: cs.borderTopLeftRadius, font: `${cs.fontWeight} ${cs.fontSize}`, position: cs.position, opacity: cs.opacity };
+    });
+    const want = (what, got, exp) => {
+      for (const [k, v] of Object.entries(exp)) if (got[k] !== v) throw new Error(`${what}: ${k} is ${JSON.stringify(got[k])}, the board has ${JSON.stringify(v)} (${JSON.stringify(got)})`);
+    };
+    const openTouch = async (width, height) => {
+      if (touch) await touch.context().close();
+      const ctx = await s.browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1, hasTouch: true, isMobile: width < 600, locale: 'en-US', timezoneId: 'UTC' });
+      ctx.setDefaultTimeout(8000);
+      touch = await ctx.newPage();
+      await touch.goto(`${base}/?proj=${pid}&docs=${handbook}`);
+      await touch.locator(`[data-testid="docs-view"][data-layout="${width < 600 ? 'phone' : 'tablet'}"]`).waitFor({ timeout: 20000 });
+      await touch.getByTestId('page-title').waitFor();
+      const tip = touch.getByRole('button', { name: 'Got it' });
+      if (await tip.count()) await tip.first().click();
+      return touch;
+    };
+    await s.step('tablet: the tree is a 400 px drawer over the whole screen, 44 px rows without grips (Tree1 A 2)', async () => {
+      pid = (await get('/projects')).find((x) => x.name === 'Alpha').id;
+      handbook = (await get(`/projects/${pid}/docs/tree`)).find((n) => n.title === 'Handbook').id;
+      const t = await openTouch(820, 1180);
+      await t.getByRole('button', { name: 'Expand page tree' }).click();
+      const drawer = t.getByTestId('tree-drawer');
+      await drawer.getByTestId('tree-new-page').waitFor();
+      // the drawer slides in: measure once it has arrived
+      await t.waitForFunction(() => document.querySelector('[data-testid="tree-drawer"]')?.getAnimations().length === 0);
+      want('tree drawer', await rect(drawer), { x: 0, y: 0, w: 400, h: 1180 });
+      const row = drawer.locator('.dk-tree-row').first();
+      if ((await rect(row)).h < 44) throw new Error('touch rows are 44 px high');
+      want('grip outside the reorder mode', await rect(row.locator('[data-drag-handle]')), { opacity: '0' });
+      const reorder = drawer.getByTestId('tree-reorder-mode');
+      const r = await rect(reorder);
+      if (r.w !== 44 || r.h !== 44 || r.x + r.w > 400) throw new Error('reorder button: ' + JSON.stringify(r));
+      await reorder.click();
+      want('grip in the reorder mode', await rect(row.locator('[data-drag-handle]')), { opacity: '1' });
+      await drawer.getByRole('button', { name: 'Done' }).click();
+      await t.keyboard.press('Escape');
+      await drawer.waitFor({ state: 'detached' });
+    });
+    await s.step('tablet: Outline opens a 340 px drawer from the right with 44 px rows and the time left (Reader 49)', async () => {
+      const t = touch;
+      await t.getByTestId('toc-button').click();
+      const drawer = t.getByTestId('toc-drawer');
+      await drawer.getByTestId('touch-outline').waitFor();
+      await t.waitForFunction(() => document.querySelector('[data-testid="toc-drawer"]')?.getAnimations().length === 0);
+      want('outline drawer', await rect(drawer), { x: 480, y: 0, w: 340 });
+      want('outline row', await rect(drawer.locator('.dk-tout-row').first()), { h: 44, font: '400 14px' });
+      await drawer.getByTestId('minutes-left').getByText(/min left/).waitFor();
+      await drawer.getByRole('button', { name: 'Close' }).click();
+      await drawer.waitFor({ state: 'detached' });
+    });
+    await s.step('tablet: the gallery has a 60 px bar with Pages and the view switch, 44 px filters (Tree1 B 8)', async () => {
+      const t = touch;
+      await t.getByRole('button', { name: 'Expand page tree' }).click();
+      await t.getByTestId('tree-drawer').getByTestId('tree-view-gallery').click();
+      const bar = t.getByTestId('views-touchbar');
+      want('gallery bar', await rect(bar), { h: 60 });
+      want('Pages button', await rect(bar.getByRole('button', { name: 'Pages' })), { h: 44 });
+      want('quick filter', await rect(t.getByTestId('docs-gallery').locator('.tr-quick .tr-pill').first()), { h: 44 });
+      await bar.getByRole('button', { name: 'Pages' }).click();
+      await t.getByTestId('tree-drawer').getByTestId('tree-view-tree').click();
+      await t.keyboard.press('Escape');
+    });
+    await s.step('phone: the bottom bar is fixed to the screen edge to edge; More is an 18 px sheet of 48 px rows (Reader 28)', async () => {
+      const t = await openTouch(390, 844);
+      const bar = t.getByTestId('read-bar');
+      want('bottom bar', await rect(bar), { x: 0, w: 390, position: 'fixed' });
+      const b = await rect(bar);
+      if (b.y + b.h !== 844) throw new Error('the bottom bar sits at the bottom of the screen: ' + JSON.stringify(b));
+      await t.getByTestId('page-menu').click();
+      const sheet = t.getByTestId('page-menu-sheet');
+      await sheet.locator('.dk-sheet-eyebrow').getByText('Handbook').waitFor();
+      want('More sheet', await rect(sheet), { radius: '18px' });
+      want('More row', await rect(sheet.getByTestId('sheet-share')), { h: 48, font: '500 15px' });
+      await t.keyboard.press('Escape');
+      await sheet.waitFor({ state: 'detached' });
+    });
+    await s.step('phone: the outline sheet has 52 px rows; Share is a sheet with 44 px fields (Reader 40, 50)', async () => {
+      const t = touch;
+      await t.getByTestId('read-bar').getByTestId('toc-button').click();
+      const toc = t.getByTestId('toc-sheet');
+      want('outline row (phone)', await rect(toc.locator('.dk-tout-row').first()), { h: 52, font: '500 15px' });
+      await t.keyboard.press('Escape');
+      await toc.waitFor({ state: 'detached' });
+      await t.getByTestId('read-share').click();
+      const share = t.getByTestId('share-sheet');
+      want('share link field', await rect(share.getByTestId('share-url')), { h: 44 });
+      await share.getByRole('button', { name: 'Close' }).click();
+      await share.waitFor({ state: 'detached' });
+    });
+    await s.step('phone: Find takes the top of the screen, the count and arrows sit in a bar at the bottom (Reader 51)', async () => {
+      const t = touch;
+      await t.getByTestId('read-find').click();
+      const top = t.locator('.fx-find-phone-top');
+      want('find bar', await rect(top), { x: 0, y: 0, w: 390, h: 52 });
+      want('find field', await rect(t.locator('.fx-find-phone-field')), { h: 44 });
+      await t.getByRole('textbox', { name: 'Find' }).fill('step');
+      const bottom = t.locator('.fx-find-phone-bottom');
+      await bottom.getByText(/1 of \d+/).waitFor();
+      want('find count bar', await rect(bottom), { y: 844 - 52, h: 52 });
+      await t.getByRole('search', { name: 'Find in page' }).getByRole('button', { name: 'Close' }).click();
+      await top.waitFor({ state: 'detached' });
+    });
+    await s.step('phone: the tree drawer is 340 wide; the row menu is an action sheet with 50 px rows (Tree1 A 3, Tree3 29)', async () => {
+      const t = touch;
+      await t.getByRole('button', { name: 'Pages', exact: true }).first().click();
+      const drawer = t.getByTestId('tree-drawer');
+      await drawer.getByTestId('tree-new-page').waitFor();
+      await t.waitForFunction(() => document.querySelector('[data-testid="tree-drawer"]')?.getAnimations().length === 0);
+      want('tree drawer (phone)', await rect(drawer), { x: 0, y: 0, w: 340, h: 844 });
+      // the reorder entry joins the header: the toolbar row stays inside the drawer
+      const sel = await rect(drawer.getByTestId('tree-select-mode'));
+      if (sel.x + sel.w > 340) throw new Error('the toolbar runs out of the drawer: ' + JSON.stringify(sel));
+      await drawer.getByRole('button', { name: 'Page actions for Handbook' }).first().click();
+      const menu = t.getByTestId('tree-menu-sheet');
+      await menu.locator('.tr-msheet-title').getByText('Handbook').waitFor();
+      want('row menu item', await rect(menu.getByTestId('menu-rename')), { h: 50, font: '600 15px' });
+      await t.keyboard.press('Escape');
+      await menu.waitFor({ state: 'detached' });
+    });
+    await s.step('phone: while Docs shows, the app header is one 52 px bar over a 44 px tab strip; Docs is edge to edge (Shell A 3)', async () => {
+      const t = await openTouch(390, 844);
+      want('app bar', await rect(t.getByTestId('docs-phone-bar')), { x: 0, y: 0, w: 390, h: 52 });
+      want('Docs tab', await rect(t.getByTestId('view-docs')), { y: 52, h: 44, font: '700 13.5px' });
+      want('Docs area', await rect(t.getByTestId('docs-view')), { x: 0, y: 96, w: 390 });
+    });
+    await s.step('phone: the Recycle Bin is a page of its own: 19 px title, 44 px Empty bin and buttons (Tree3 42)', async () => {
+      const t = touch;
+      await t.getByRole('button', { name: 'Pages', exact: true }).first().click();
+      await t.getByTestId('tree-drawer').getByTestId('tree-recycle-bin').click();
+      const bin = t.locator('.dk-bin-touch');
+      await bin.locator('.dk-bin-title').getByText('Recycle Bin').waitFor();
+      // it slides in from 16 px down once shown (a class set on the next frame): wait for it to come to rest
+      await t.waitForFunction(() => {
+        const el = document.querySelector('.dk-bin-touch');
+        return !!el && el.getAnimations().length === 0 && el.getBoundingClientRect().top === 0;
+      });
+      want('bin page', await rect(bin), { x: 0, y: 0, w: 390, h: 844 });
+      want('bin title', await rect(bin.locator('.dk-bin-title')), { font: '700 19px' });
+      want('Empty bin', await rect(bin.locator('.dk-bin-empty')), { h: 44 });
+      await bin.getByRole('button', { name: 'Close the Recycle Bin' }).click();
+      await bin.waitFor({ state: 'detached' });
+    });
+    await s.step('phone: Page settings is a sheet with 52 px tabs, an icon over each name (Shell 17)', async () => {
+      const t = await openTouch(390, 844);
+      await t.getByTestId('page-menu').click();
+      await t.getByTestId('page-menu-sheet').getByRole('menuitem', { name: /Page settings/ }).click();
+      const sheet = t.getByTestId('page-settings-sheet');
+      want('settings tab', await rect(sheet.getByTestId('ps-tab-layout')), { h: 52, font: '700 11.5px' });
+      await sheet.getByRole('button', { name: 'Close page settings' }).click();
+      await sheet.waitFor({ state: 'detached' });
+      await touch.context().close();
+      touch = null;
+    });
+    }
   },
 };

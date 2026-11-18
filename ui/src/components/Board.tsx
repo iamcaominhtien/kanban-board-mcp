@@ -28,6 +28,7 @@ import { TicketCard } from './TicketCard';
 import { ParentGroupLinks } from './ParentGroupLinks';
 import { StoryLanes, readGroupByStory, statusOfDropId, writeGroupByStory } from './StoryLanes';
 import styles from './Board.module.css';
+import { DOCS_PHONE_BELOW, useNarrowWindow } from '../hooks/useDocsLayout';
 import loadingStyles from './AppLoading.module.css';
 
 const COLUMNS: ColumnType[] = [
@@ -201,6 +202,8 @@ export function Board({
   // editing a page on a tablet or a phone: the app bar and the view tabs hide so the page gets the screen
   const [docsImmersive, setDocsImmersive] = useState(false);
   const hideBar = viewMode === 'docs' && docsImmersive;
+  // Docs on a phone-sized window: the app's header folds to the boards' 52 px bar and the tabs to a strip
+  const docsPhone = useNarrowWindow(DOCS_PHONE_BELOW) && viewMode === 'docs';
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   // The lifted card keeps the footprint of the card it was picked from (Drag & Drop 1, comp-1 DD-1)
   const [activeWidth, setActiveWidth] = useState<number | null>(null);
@@ -285,13 +288,193 @@ export function Board({
     onDragEnd(active.id as string, status as Status);
   }
 
+  const viewTabs = (
+    <div className={styles.viewSwitcher}>
+      <button
+        type="button"
+        className={`${styles.viewBtn} ${viewMode === 'board' ? styles.viewBtnActive : ''}`}
+        onClick={() => onViewModeChange('board')}
+      >
+        Board
+      </button>
+      <button
+        type="button"
+        className={`${styles.viewBtn} ${viewMode === 'list' ? styles.viewBtnActive : ''}`}
+        onClick={() => onViewModeChange('list')}
+      >
+        List
+      </button>
+      <button
+        type="button"
+        className={`${styles.viewBtn} ${viewMode === 'timeline' ? styles.viewBtnActive : ''}`}
+        onClick={() => onViewModeChange('timeline')}
+      >
+        Timeline
+      </button>
+      <button
+        type="button"
+        className={`${styles.viewBtn} ${viewMode === 'docs' ? styles.viewBtnActive : ''}`}
+        onClick={() => onViewModeChange('docs')}
+        data-testid="view-docs"
+        title={docsWindow.popped ? 'Docs is open in its own window' : undefined}
+        style={docsWindow.popped ? { display: 'inline-flex', alignItems: 'center', gap: 6 } : undefined}
+      >
+        Docs
+        {docsWindow.popped && <PopOutIcon size={12} />}
+      </button>
+      {hasAiTeam && (
+        <button
+          type="button"
+          className={`${styles.viewBtn} ${viewMode === 'ai_team' ? styles.viewBtnActive : ''}`}
+          onClick={() => onViewModeChange('ai_team')}
+          data-testid="view-ai-team"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#7C5CD6"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+          </svg>
+          AI Team
+          {waitingForYou > 0 && (
+            <span
+              data-testid="ai-team-badge"
+              title="Things waiting for you"
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 10.5,
+                fontWeight: 700,
+                color: '#253D2C',
+                background: '#E8B93A',
+                padding: '0 5px',
+                borderRadius: 999,
+              }}
+            >
+              {waitingForYou}
+            </span>
+          )}
+        </button>
+      )}
+      <button
+        type="button"
+        className={`${styles.viewBtn} ${viewMode === 'schedules' ? styles.viewBtnActive : ''}`}
+        onClick={() => onViewModeChange('schedules')}
+        data-testid="view-schedules"
+        title="Count = schedules that will run in the next 24 hours"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+      >
+        <CalendarIcon size={13} />
+        Schedules
+        {scheduleList && (
+          <span
+            data-testid="schedules-badge"
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 10,
+              fontWeight: 700,
+              color: '#2E6F40',
+              background: '#DCEEE1',
+              padding: '1px 6px',
+              borderRadius: 999,
+            }}
+          >
+            {scheduleList.next24H}
+          </span>
+        )}
+      </button>
+    </div>
+  );
+
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className={styles.board} aria-busy={loadState ? true : undefined}>
-        <div className={styles.statusRow} style={hideBar ? { display: 'none' } : undefined}>
+      <div
+        className={`${styles.board}${docsPhone ? ` ${styles.boardDocsPhone}` : ''}`}
+        aria-busy={loadState ? true : undefined}
+      >
+        {docsPhone && !hideBar && (
+          // Docs on a phone (Shell A 3): one 52 px bar (menu, project, search, +) over a 44 px strip of the view tabs
+          <>
+            <div className={styles.phoneBar} data-testid="docs-phone-bar">
+              {onOpenSidebar && (
+                <button
+                  type="button"
+                  className={styles.phoneBarBtn}
+                  aria-label="Open the project sidebar"
+                  onClick={onOpenSidebar}
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 7h16M4 12h16M4 17h16" />
+                  </svg>
+                </button>
+              )}
+              <h1 className={styles.phoneBarTitle} title={projectName}>
+                {projectName}
+              </h1>
+              <button
+                type="button"
+                className={styles.phoneBarBtn}
+                aria-label="Search pages"
+                onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
+              >
+                <svg
+                  width="19"
+                  height="19"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="6" />
+                  <path d="M20 20l-4-4" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className={`${styles.phoneBarBtn} ${styles.phoneBarNew}`}
+                aria-label="New Ticket"
+                onClick={onNewTicket}
+                disabled={!!loadState}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            </div>
+            <div className={styles.phoneTabs}>{viewTabs}</div>
+          </>
+        )}
+        <div className={styles.statusRow} style={hideBar || docsPhone ? { display: 'none' } : undefined}>
           {statusSlot}
         </div>
-        <div className={styles.topBar} style={hideBar ? { display: 'none' } : undefined}>
+        <div className={styles.topBar} style={hideBar || docsPhone ? { display: 'none' } : undefined}>
           {loadState === 'projects' ? (
             <h1 className={styles.title} aria-label="Loading project">
               <span
@@ -307,108 +490,7 @@ export function Board({
           )}
           <div className={styles.topBarRight}>
             {headerExtra}
-            <div className={styles.viewSwitcher}>
-              <button
-                type="button"
-                className={`${styles.viewBtn} ${viewMode === 'board' ? styles.viewBtnActive : ''}`}
-                onClick={() => onViewModeChange('board')}
-              >
-                Board
-              </button>
-              <button
-                type="button"
-                className={`${styles.viewBtn} ${viewMode === 'list' ? styles.viewBtnActive : ''}`}
-                onClick={() => onViewModeChange('list')}
-              >
-                List
-              </button>
-              <button
-                type="button"
-                className={`${styles.viewBtn} ${viewMode === 'timeline' ? styles.viewBtnActive : ''}`}
-                onClick={() => onViewModeChange('timeline')}
-              >
-                Timeline
-              </button>
-              <button
-                type="button"
-                className={`${styles.viewBtn} ${viewMode === 'docs' ? styles.viewBtnActive : ''}`}
-                onClick={() => onViewModeChange('docs')}
-                data-testid="view-docs"
-                title={docsWindow.popped ? 'Docs is open in its own window' : undefined}
-                style={docsWindow.popped ? { display: 'inline-flex', alignItems: 'center', gap: 6 } : undefined}
-              >
-                Docs
-                {docsWindow.popped && <PopOutIcon size={12} />}
-              </button>
-              {hasAiTeam && (
-                <button
-                  type="button"
-                  className={`${styles.viewBtn} ${viewMode === 'ai_team' ? styles.viewBtnActive : ''}`}
-                  onClick={() => onViewModeChange('ai_team')}
-                  data-testid="view-ai-team"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                >
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#7C5CD6"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
-                  </svg>
-                  AI Team
-                  {waitingForYou > 0 && (
-                    <span
-                      data-testid="ai-team-badge"
-                      title="Things waiting for you"
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        color: '#253D2C',
-                        background: '#E8B93A',
-                        padding: '0 5px',
-                        borderRadius: 999,
-                      }}
-                    >
-                      {waitingForYou}
-                    </span>
-                  )}
-                </button>
-              )}
-              <button
-                type="button"
-                className={`${styles.viewBtn} ${viewMode === 'schedules' ? styles.viewBtnActive : ''}`}
-                onClick={() => onViewModeChange('schedules')}
-                data-testid="view-schedules"
-                title="Count = schedules that will run in the next 24 hours"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
-                <CalendarIcon size={13} />
-                Schedules
-                {scheduleList && (
-                  <span
-                    data-testid="schedules-badge"
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: '#2E6F40',
-                      background: '#DCEEE1',
-                      padding: '1px 6px',
-                      borderRadius: 999,
-                    }}
-                  >
-                    {scheduleList.next24H}
-                  </span>
-                )}
-              </button>
-            </div>
+            {!docsPhone && viewTabs}
             {headerActions}
             <button type="button" className={styles.newButton} onClick={onNewTicket} disabled={!!loadState}>
               <svg

@@ -30,8 +30,9 @@ const POPULAR = ['image', 'table', 'task', 'callout-info', 'columns', 'code', 'f
 /**
  * An item's tile: its text (H1…) or its icon.
  * @param props.size - The tile's side in px.
+ * @param props.iconSize - The icon's size in px (default: about half the tile).
  */
-export function ItemTile({ item, size = 32 }: { item: SlashItem; size?: number }) {
+export function ItemTile({ item, size = 32, iconSize }: { item: SlashItem; size?: number; iconSize?: number }) {
   const text = 'text' in item.tile ? item.tile.text : null;
   return (
     <span
@@ -43,7 +44,7 @@ export function ItemTile({ item, size = 32 }: { item: SlashItem; size?: number }
         fontSize: text && text.length > 2 ? 10.5 : 11.5,
       }}
     >
-      {text ?? ('icon' in item.tile ? <Icon name={item.tile.icon} size={Math.round(size * 0.53)} /> : null)}
+      {text ?? ('icon' in item.tile ? <Icon name={item.tile.icon} size={iconSize ?? Math.round(size * 0.53)} /> : null)}
     </span>
   );
 }
@@ -298,7 +299,19 @@ export function InsertCatalog({ host, state, ctx, usePosition }: Props) {
           }}
         />
       )}
-      <span className="dk-kbd">Esc</span>
+      {layout === 'tablet' ? (
+        <button
+          type="button"
+          className="dk-cat-x"
+          aria-label="Close"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={close}
+        >
+          <Icon name="close" size={20} strokeWidth={2} />
+        </button>
+      ) : layout === 'phone' ? null : (
+        <span className="dk-kbd">Esc</span>
+      )}
     </div>
   );
 
@@ -341,7 +354,7 @@ export function InsertCatalog({ host, state, ctx, usePosition }: Props) {
                         className={`dk-cat-cell${i === active ? ' on' : ''}`}
                         onClick={() => choose(it)}
                       >
-                        <ItemTile item={it} size={40} />
+                        <ItemTile item={it} size={24} iconSize={24} />
                         <span>{it.label}</span>
                       </button>
                     ))}
@@ -376,7 +389,7 @@ export function InsertCatalog({ host, state, ctx, usePosition }: Props) {
             <>
               {search}
               {!filtering && chips}
-              <div ref={listRef} className="dk-cat-list">
+              <div ref={listRef} className="dk-cat-list dk-cat-two">
                 {visible.length === 0 ? empty : rows(true)}
               </div>
             </>

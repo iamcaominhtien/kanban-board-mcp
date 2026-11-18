@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useState, type ComponentProps } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+  type CSSProperties,
+} from 'react';
 import { useDocsTree } from '../../api/docs';
 import { DocsView } from './DocsView';
 import { getActiveReplaceAdapter } from './editorReplace';
@@ -7,7 +15,7 @@ import { ImportDialog } from './ImportDialog';
 import type { ImportSource } from './start/importConvert';
 import { RefCheatSheetHost } from './RefCheatSheet';
 import { SearchPalette, rememberDocsPage, useDocsSearchHotkey } from './SearchPalette';
-import type { DocsLayout } from '../../hooks/useDocsLayout';
+import { DOCS_PHONE_BELOW, useNarrowWindow, type DocsLayout } from '../../hooks/useDocsLayout';
 import './docs.css';
 
 interface Props {
@@ -83,8 +91,32 @@ export function DocsSpace({
     if (n) rememberDocsPage(projectId, n.id, n.title);
   }, [current, nodes, projectId]);
 
+  // A phone has Docs edge to edge (Shell A 3, D 12-13): the app's view leaves a side and bottom margin around every
+  // tab; the Docs area cancels it with negative margins of the same size (read from the parent, so it follows the app)
+  const [bleed, setBleed] = useState<CSSProperties | undefined>(undefined);
+  const spaceRef = useRef<HTMLDivElement>(null);
+  // only when the window itself is a phone's: then the wider area is still a phone's, and the layout cannot flip
+  const phoneWindow = useNarrowWindow(DOCS_PHONE_BELOW);
+  useLayoutEffect(() => {
+    const parent = spaceRef.current?.parentElement;
+    if (layout !== 'phone' || !phoneWindow || !parent) {
+      setBleed(undefined);
+      return;
+    }
+    const cs = getComputedStyle(parent);
+    const px = (v: string) => parseFloat(v) || 0;
+    setBleed({
+      marginLeft: -px(cs.paddingLeft),
+      marginRight: -px(cs.paddingRight),
+      marginBottom: -px(cs.paddingBottom),
+    });
+  }, [layout, phoneWindow]);
+
   return (
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', position: 'relative', overflow: 'hidden' }}>
+    <div
+      ref={spaceRef}
+      style={{ flex: 1, minHeight: 0, display: 'flex', position: 'relative', overflow: 'hidden', ...bleed }}
+    >
       <DocsView
         projectId={projectId}
         projectName={projectName}

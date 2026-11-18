@@ -396,7 +396,7 @@
   color: #5b6b60;
 }
 
-/* tablet: the preview becomes a strip under the grid */
+/* tablet (Start board, frame 7): 740 wide, 44 px chips, three columns, the preview a strip under the grid */
 .dk-np-tablet {
   width: 740px;
 }
@@ -407,11 +407,64 @@
   width: 100%;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+.dk-np-tablet .dks-chip,
+.dk-np-phone .dks-chip {
+  height: 44px;
+  padding: 0 13px;
+  font-size: 13px;
+}
+.dk-np-tablet .dk-np-search {
+  height: 44px;
+}
 .dk-np-tablet .dk-np-preview {
   width: 100%;
-  max-height: 140px;
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  grid-auto-rows: min-content;
+  column-gap: 16px;
+  row-gap: 2px;
+  align-items: start;
+  padding: 10px 12px;
+  border-radius: 12px;
 }
-/* phone: a full-screen sheet in two steps */
+.dk-np-tablet .dk-np-preview > .st-field-label {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  margin-top: 16px;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+  color: #1e2a22;
+}
+.dk-np-tablet .dk-np-stage {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  width: 100px;
+  height: 78px;
+  padding: 6px 8px 0;
+  border-radius: 6px;
+}
+.dk-np-tablet .dk-np-sheet {
+  zoom: 0.4;
+}
+.dk-np-tablet .dk-np-stage::after {
+  height: 18px;
+}
+.dk-np-tablet .dk-np-pdesc {
+  grid-column: 2;
+}
+.dk-np-tablet .dk-np-pset {
+  display: none;
+}
+.dk-np-tablet .st-input,
+.dk-np-tablet .dk-np-fields .st-btn,
+.dk-np-tablet .dk-np-fields button {
+  min-height: 44px;
+}
+/* phone (frames 8 and 9): a full-screen sheet in two steps; a 52 px head with the 44 px close or back on the left,
+   44 px chips, cards with their names only, one 48 px button at the bottom */
 .dk-np-phone {
   width: 100vw;
   max-width: 100vw;
@@ -419,6 +472,27 @@
   max-height: 100%;
   border-radius: 0;
   border: none;
+}
+.dk-np-phone .dk-np-head {
+  height: 52px;
+  padding: 0 8px;
+  gap: 4px;
+  box-sizing: border-box;
+  flex: none;
+}
+.dk-np-phone .dk-np-head .dk-np-x,
+.dk-np-phone .dk-np-head .dk-icobtn {
+  width: 44px;
+  height: 44px;
+}
+.dk-np-phone .dk-np-title {
+  font-size: 16px;
+}
+.dk-np-phone .dk-np-body {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 16px;
+  gap: 12px;
 }
 .dk-np-phone .dk-np-main {
   flex-direction: column;
@@ -428,23 +502,60 @@
   max-height: none;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.dk-np-phone .dk-gal-desc {
+  display: none;
+}
 .dk-np-phone .dk-np-preview {
   width: 100%;
-  max-height: 220px;
+  padding: 0;
+  border: none;
+  background: none;
+  gap: 14px;
+}
+.dk-np-phone .dk-np-preview > .st-field-label,
+.dk-np-phone .dk-np-pset {
+  display: none;
+}
+.dk-np-phone .dk-np-stage {
+  height: 220px;
+  flex: none;
+  border-radius: 12px;
+  padding: 14px 70px 0;
 }
 .dk-np-phone .dk-np-fields {
   flex-direction: column;
+  align-items: stretch;
+}
+.dk-np-phone .dk-np-title-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.dk-np-phone .st-input,
+.dk-np-phone .dk-np-fields button {
+  min-height: 48px;
 }
 .dk-np-phone .dk-np-search {
   width: 100%;
+  height: 44px;
 }
 .dk-np-phone .dks-chips {
   flex-wrap: nowrap;
   overflow-x: auto;
+  scrollbar-width: none;
+  flex: none;
 }
-.dk-np-phone .dks-chip,
-.dk-np-phone .st-btn {
-  min-height: 44px;
+.dk-np-phone .dks-chip {
+  flex: none;
+  padding: 0 14px;
+  font-size: 13.5px;
+}
+.dk-np-phone .dk-np-foot {
+  padding: 10px 16px 26px;
+  background: #ffffff;
+}
+.dk-np-phone .dk-np-foot .st-btn {
+  min-height: 48px;
+  justify-content: center;
 }
 
 /* ── Save as a template ── */
@@ -476,6 +587,57 @@
 }
 .dk-st-phone .st-btn {
   min-height: 44px;
+}
+/* tablet (Start board, frame 55): fields 44 px */
+.dk-st-tablet .dk-st-input {
+  height: 44px;
+}
+/* phone (frame 23): a 52 px head with the close on the left, the page drawing above the fields, 44 px fields,
+   segments full width, one 48 px button */
+.dk-st-phone .dk-np-head {
+  height: 52px;
+  padding: 0 8px;
+  gap: 4px;
+  box-sizing: border-box;
+  flex: none;
+}
+.dk-st-phone .dk-np-badge,
+.dk-st-phone .dk-np-sub {
+  display: none;
+}
+.dk-st-phone .dk-np-x {
+  order: -1;
+  width: 44px;
+  height: 44px;
+}
+.dk-st-phone .dk-np-title {
+  font-size: 16px;
+}
+.dk-st-phone .dk-st-body {
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+}
+.dk-st-phone .dk-st-top {
+  flex-direction: column;
+  align-items: stretch;
+}
+.dk-st-phone .dk-st-thumb {
+  align-self: center;
+}
+.dk-st-phone .dk-st-input {
+  height: 44px;
+}
+.dk-st-phone .dk-st-segs {
+  flex-direction: column;
+}
+.dk-st-phone .dk-np-foot {
+  padding: 10px 16px 26px;
+  background: #ffffff;
+}
+.dk-st-phone .dk-np-foot .st-btn {
+  min-height: 48px;
+  justify-content: center;
 }
 .dk-keeps {
   display: flex;
@@ -1191,4 +1353,93 @@ div.dk-imp-name {
   .dk-imp-fields {
     flex-direction: column;
   }
+}
+
+/* ── import on touch (Start board, frames 33-35 and 57) ── */
+.dk-imp-body {
+  padding: 18px 22px;
+}
+/* a tablet: tiles, buttons and fields 44 px or more (frame 57) */
+@media (max-width: 959px) {
+  .dk-imp-shell .dk-src-tile {
+    min-height: 64px;
+  }
+  .dk-imp-shell .st-btn,
+  .dk-imp-shell .st-input,
+  .dk-imp-shell .dk-np-x {
+    min-height: 44px;
+  }
+  .dk-imp-shell .dk-np-x {
+    width: 44px;
+  }
+}
+/* a phone: a full-screen sheet, a 52 px head with the close on the left, one 48 px button at the bottom */
+.dk-imp-phone .dk-np-head {
+  height: 52px;
+  padding: 0 8px;
+  gap: 4px;
+  box-sizing: border-box;
+  flex: none;
+}
+.dk-imp-phone .dk-np-badge,
+.dk-imp-phone .dk-np-sub,
+.dk-imp-phone .dk-np-foot .dk-np-note {
+  display: none;
+}
+.dk-imp-phone .dk-np-x {
+  order: -1;
+  width: 44px;
+  height: 44px;
+}
+.dk-imp-phone .dk-np-title {
+  font-size: 16px;
+  line-height: 1.1;
+}
+.dk-imp-phone .dk-imp-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+}
+.dk-imp-phone .dk-np-foot {
+  padding: 10px 16px 26px;
+  background: #ffffff;
+  margin-top: auto;
+}
+.dk-imp-phone .dk-np-foot .st-btn {
+  flex: 1;
+  min-height: 48px;
+  justify-content: center;
+}
+.dk-hero-top.dk-hero-top-tablet {
+  gap: 20px;
+}
+.dk-hero-text.dk-hero-text-tablet {
+  padding-top: 0;
+}
+.dk-hero-top-tablet .dk-hp {
+  width: 230px;
+  overflow: hidden;
+}
+/* phone progress and results (frames 34, 35): rows of 52 px on hairlines, no box; the buttons stack, 48 px */
+.dk-imp-phone .dk-imp-list {
+  border: none;
+  padding: 0;
+}
+.dk-imp-phone .dk-imp-row {
+  min-height: 52px;
+  gap: 12px;
+  padding-left: 0;
+  padding-right: 0;
+}
+.dk-imp-phone .dk-imp-name {
+  font-size: 14px;
+}
+.dk-imp-phone .dk-np-foot {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.dk-imp-phone .dk-np-foot .st-btn {
+  width: 100%;
 }

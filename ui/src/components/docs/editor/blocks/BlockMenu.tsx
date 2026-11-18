@@ -67,12 +67,44 @@ function selectBlockText(editor: Editor, pos: number): boolean {
 }
 
 /** One row of the menu. */
+/** The row icons of the block menu (Blocks board, frames 53, 54 and 64): 24 px view box, drawn in strokes. */
+const BM_ICONS = {
+  turn: <path d="M4 8h14l-3-3M20 16H6l3 3" />,
+  list: <path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" />,
+  props: <path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4" />,
+  card: <path d="M4 6h16v12H4zM8 10h8M8 14h5" />,
+  duplicate: (
+    <>
+      <rect height="12" rx="2" width="12" x="8" y="8" />
+      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+    </>
+  ),
+  up: <path d="M12 19V5M6 11l6-6 6 6" />,
+  down: <path d="M12 5v14M6 13l6 6 6-6" />,
+  link: <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />,
+  lock: <path d="M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3" />,
+  comment: <path d="M4 5h16v11H9l-5 4z" />,
+  select: (
+    <>
+      <rect height="5" rx="1" width="5" x="3.5" y="4" />
+      <path d="M4.5 6.5l1.2 1.2 2-2.4M12 6h8M12 12h8M12 18h8" />
+      <rect height="5" rx="1" width="5" x="3.5" y="10" />
+      <rect height="5" rx="1" width="5" x="3.5" y="16" />
+    </>
+  ),
+  trash: <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />,
+} as const;
+
+type BmIcon = keyof typeof BM_ICONS;
+
 function Item({
   label,
   kbd,
   onClick,
   danger,
   disabled,
+  icon,
+  more,
   children,
 }: {
   label: string;
@@ -80,21 +112,45 @@ function Item({
   onClick: () => void;
   danger?: boolean;
   disabled?: boolean;
+  /** The row's icon (a cell of its own, so the labels line up). */
+  icon?: BmIcon;
+  /** The row opens a second list: a chevron at its end. */
+  more?: boolean;
   children?: ReactNode;
 }) {
   return (
     <button
       type="button"
       role="menuitem"
-      className="dk-mi dk-bm-item"
+      className={`dk-mi dk-bm-item${danger ? ' dk-bm-danger' : ''}`}
       disabled={disabled}
-      style={danger ? { color: '#C4432A' } : undefined}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
     >
-      <span>{label}</span>
+      {icon && (
+        <span className="dk-bm-ico" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            {BM_ICONS[icon]}
+          </svg>
+        </span>
+      )}
+      <span className="dk-bm-label">{label}</span>
       {children}
       {kbd && <span className="dk-bm-kbd">{kbd}</span>}
+      {more && (
+        <svg
+          className="dk-bm-more"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          aria-hidden="true"
+        >
+          <path d="M9 6l6 6-6 6" />
+        </svg>
+      )}
     </button>
   );
 }
@@ -286,10 +342,14 @@ export function BlockMenu({
         </div>
       ) : (
         <div role="menu" aria-label="Block">
-          {(many || canTurnInto(node)) && <Item label="Turn into ›" onClick={() => setSub('turn')} />}
-          {!many && isList && <Item label="List style ›" onClick={() => setSub('list')} />}
+          {(many || canTurnInto(node)) && <Item label="Turn into" icon="turn" more onClick={() => setSub('turn')} />}
+          {!many && isList && <Item label="List style" icon="list" more onClick={() => setSub('list')} />}
           {!many && props && (
-            <Item label={node.type.name === 'image' ? 'Image properties…' : 'Properties…'} onClick={done(props)} />
+            <Item
+              label={node.type.name === 'image' ? 'Image properties…' : 'Properties…'}
+              icon="props"
+              onClick={done(props)}
+            />
           )}
           {!many &&
             chipsIn(node)
@@ -298,19 +358,21 @@ export function BlockMenu({
                 <Item
                   key={`card-${i}`}
                   label={list.length === 1 ? 'Show as card' : `Show ${c.label} as card`}
+                  icon="card"
                   onClick={done(() => chipToCard(editor, pos, i))}
                 />
               ))}
           {!many && (node.type.name === 'pageCard' || node.type.name === 'ticketCard') && (
-            <Item label="Show as chip" onClick={done(() => cardToChip(editor, pos))} />
+            <Item label="Show as chip" icon="card" onClick={done(() => cardToChip(editor, pos))} />
           )}
           <span className="dk-bm-sep" />
-          <Item label="Duplicate" kbd="Ctrl D" onClick={done(() => duplicateBlocks(editor, all))} />
-          {!many && <Item label="Move up" kbd="Alt ↑" onClick={done(() => moveBlock(editor, pos, -1))} />}
-          {!many && <Item label="Move down" kbd="Alt ↓" onClick={done(() => moveBlock(editor, pos, 1))} />}
+          <Item label="Duplicate" icon="duplicate" kbd="Ctrl D" onClick={done(() => duplicateBlocks(editor, all))} />
+          {!many && <Item label="Move up" icon="up" kbd="Alt ↑" onClick={done(() => moveBlock(editor, pos, -1))} />}
+          {!many && <Item label="Move down" icon="down" kbd="Alt ↓" onClick={done(() => moveBlock(editor, pos, 1))} />}
           {!many && blockId && (
             <Item
               label="Copy link to block"
+              icon="link"
               onClick={done(() => {
                 const link = blockLink(window.location.href, blockId);
                 void navigator.clipboard
@@ -321,7 +383,7 @@ export function BlockMenu({
             />
           )}
           {!many && blockId && lock && (
-            <Item label="Teams cannot change this" onClick={done(() => lock.toggle(blockId))}>
+            <Item label="Teams cannot change this" icon="lock" onClick={done(() => lock.toggle(blockId))}>
               <span className="dk-bm-kbd" data-testid="block-lock-state">
                 {lock.locked.includes(blockId) ? '✓ On' : 'Off'}
               </span>
@@ -330,6 +392,7 @@ export function BlockMenu({
           {!many && onComment && (
             <Item
               label="Comment"
+              icon="comment"
               kbd="Ctrl Alt M"
               onClick={done(() => {
                 // an image, a table or an embed is commented on as a whole
@@ -345,12 +408,14 @@ export function BlockMenu({
           {(coarse || layout === 'phone') && !many && (
             <Item
               label="Select several blocks"
+              icon="select"
               onClick={done(() => askBlockUi(editor, { type: 'selectBlocks', pos }))}
             />
           )}
           <span className="dk-bm-sep" />
           <Item
             label="Delete"
+            icon="trash"
             kbd="Del"
             danger
             onClick={done(() => {
@@ -374,7 +439,7 @@ export function BlockMenu({
       </div>
     );
   }
-  const width = sub === 'list' ? 330 : 240;
+  const width = sub === 'list' ? 330 : layout === 'tablet' || coarse ? 270 : 240;
   const left = Math.max(8, Math.min(anchor.right + 6, window.innerWidth - width - 8));
   const top = Math.max(8, Math.min(anchor.top, window.innerHeight - 420));
   return (

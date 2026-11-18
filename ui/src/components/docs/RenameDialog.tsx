@@ -12,6 +12,7 @@ import { Icon } from './Icon';
 import { FooterNote, ModalShell, Spacer, plural } from './docsShared';
 import { RenameLinkGroups, mentionKey } from './links/RenameGroups';
 import type { RenameMention } from '../../types/docsActions';
+import './links/links.css';
 
 interface RenameDialogProps {
   projectId: string;

@@ -385,7 +385,8 @@ export function lookVars(look: PageLook, layout: DocsLayout = 'desktop'): CSSPro
   const px = WIDTH_PX[look.width];
   const vars: Record<string, string> = {
     '--dp-col': layout === 'phone' || px === null ? '100%' : `${px}px`,
-    '--dp-gutter': layout === 'phone' ? '32px' : '48px',
+    // a tablet keeps 60 px each side (Reader 2, Shell 22 at 820): room for the 44 px block handles beside the text
+    '--dp-gutter': layout === 'phone' ? '32px' : layout === 'tablet' ? '120px' : '48px',
     '--dp-page': pal.page,
     '--dp-ink': pal.ink,
     '--dp-text': sur.text,

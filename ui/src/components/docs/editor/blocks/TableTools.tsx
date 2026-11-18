@@ -6,7 +6,7 @@
  */
 
 import type { Editor } from '@tiptap/core';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { HIGHLIGHT_NAMES } from './palette';
 import {
@@ -249,19 +249,71 @@ export function PhoneTableBar({ editor }: { editor: Editor }) {
       {label}
     </button>
   );
+  // the bar's buttons: a 20 px icon over the word (Blocks board, frame 34)
+  const barBtn = (label: string, icon: ReactNode, fn: () => void, disabled = false, danger = false) => (
+    <button
+      key={label}
+      type="button"
+      disabled={disabled}
+      className={danger ? 'dk-table-phonebar-danger' : undefined}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={fn}
+    >
+      <svg
+        aria-hidden="true"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {icon}
+      </svg>
+      <span>{label}</span>
+    </button>
+  );
+  const mergeIcon = (
+    <>
+      <rect height="14" rx="2" width="18" x="3" y="5" />
+      <path d="M12 5v3M12 16v3M7 12h10M10 9.5L7.5 12 10 14.5M14 9.5l2.5 2.5-2.5 2.5" />
+    </>
+  );
   return createPortal(
     <>
       <div className="dk-table-phonebar" role="toolbar" aria-label={where} data-block-ui="">
         <span className="dk-table-phonebar-where">{where}</span>
         <div className="dk-table-phonebar-btns">
-          {btn('Row', () => setSheet('row'))}
-          {btn('Column', () => setSheet('col'))}
+          {barBtn('Row', <path d="M4 5h16v6H4zM12 14v6M9 17h6" />, () => setSheet('row'))}
+          {barBtn('Column', <path d="M5 4v16h6V4zM14 12h6M17 9v6" />, () => setSheet('col'))}
           {canSplitCell(editor)
-            ? btn('Split', () => splitSelectedCell(editor))
-            : btn('Merge', () => mergeSelectedCells(editor), merge !== 'ok')}
-          {btn('Shade', () => setSheet('shade'))}
-          {btn('Table', () => setSheet('table'))}
-          {btn('Delete', () => c().deleteTable().run())}
+            ? barBtn('Split', mergeIcon, () => splitSelectedCell(editor))
+            : barBtn('Merge', mergeIcon, () => mergeSelectedCells(editor), merge !== 'ok')}
+          {barBtn(
+            'Shade',
+            <>
+              <path d="M5 12l7-7 7 7-6 6a2 2 0 0 1-3 0z" />
+              <path d="M20 15c1 1.5 1.5 2.5 1.5 3.3a1.5 1.5 0 0 1-3 0c0-.8.5-1.8 1.5-3.3z" />
+            </>,
+            () => setSheet('shade'),
+          )}
+          {barBtn(
+            'Table',
+            <>
+              <rect height="16" rx="2" width="18" x="3" y="4" />
+              <path d="M3 10h18M3 15h18M9 4v16M15 4v16" />
+            </>,
+            () => setSheet('table'),
+          )}
+          {barBtn(
+            'Delete',
+            <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />,
+            () => c().deleteTable().run(),
+            false,
+            true,
+          )}
         </div>
       </div>
       {sheet === 'shade' && <CellProps editor={editor} anchor={null} onClose={() => setSheet(null)} />}

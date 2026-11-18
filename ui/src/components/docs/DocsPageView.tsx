@@ -58,7 +58,7 @@ import { SharePopover } from './SharePopover';
 import { AiEditedChip, aiWriter } from './AiChangedBar';
 import { useToast } from '../Toast';
 import { bookOf, readingNeighbours } from './book';
-import { ChapterList, ReadingFooter } from './BookReading';
+import { ChapterList, ReadingFooter, TouchOutline } from './BookReading';
 import { ExportMenu, type ExportFormat } from './docsExport';
 import { headerPlan, useElementWidth, useScrollProgress } from './headerActions';
 import { OlderVersionBar, OutdatedNote, VersionBadge } from './PageStatus';
@@ -235,6 +235,7 @@ export function DocsPageView({
   const [share, setShare] = useState(false);
   const [info, setInfo] = useState(false);
   const [toc, setToc] = useState(false);
+  const [toutTab, setToutTab] = useState<'outline' | 'chapters'>('outline');
   const [timeTip, setTimeTip] = useState(false);
   const [editTip, setEditTip] = useState(false);
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
@@ -669,6 +670,30 @@ export function DocsPageView({
     </div>
   );
 
+  // the outline on a tablet (drawer) and a phone (sheet), with a Chapters tab in a book (Reader 49-50)
+  const touchOutline = (
+    <TouchOutline
+      phone={phone}
+      title={book?.title ?? page.title}
+      entries={headings}
+      activeSlug={activeSlug}
+      book={book}
+      currentId={page.id}
+      tab={toutTab}
+      onTab={setToutTab}
+      minutesLeft={Math.round(minutes * (1 - readPct / 100))}
+      onJump={(slug) => {
+        setToc(false);
+        jump(slug);
+      }}
+      onOpen={(id) => {
+        setToc(false);
+        onOpenPage(id);
+      }}
+      onClose={() => setToc(false)}
+    />
+  );
+
   // on a phone the outline is in the bottom bar; on a tablet it is a pill over the page (Reader boards, A)
   const outlineButton =
     outlineOn && !inlineOutline && !phone ? (
@@ -690,7 +715,7 @@ export function DocsPageView({
             </>
           )}
         </button>
-        {toc && (
+        {toc && !touch && (
           <div
             className="dk-menu"
             style={{
@@ -714,13 +739,9 @@ export function DocsPageView({
 
   // the phone's bottom bar: the four things a reader reaches for (Reader boards, A: Outline, Find, Text, Share)
   const readBar = phone ? (
-    // full width of the phone (Reader boards K 78: five 78 px items on 390), out of the board's 28 px side gutter
-    <nav
-      className="dk-readbar"
-      aria-label="Reading"
-      data-testid="read-bar"
-      style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)', boxSizing: 'border-box' }}
-    >
+    // fixed to the bottom of the screen, edge to edge (Reader boards K 78: five 78 px items on 390), whatever margins
+    // the app puts around the Docs area
+    <nav className="dk-readbar" aria-label="Reading" data-testid="read-bar">
       {outlineOn && (
         <button
           type="button"
@@ -1174,6 +1195,10 @@ export function DocsPageView({
               <div className="dk-statusrow">
                 {statusChips}
                 {pageInfo}
+                {/* a phone has no room in the bar: "N references" joins the status line, its list a sheet (Links F 33) */}
+                {phone && !offline && !older && (
+                  <RefsButton pageId={page.id} onOpenPage={onOpenPage} onOpenTicket={onOpenTicket} />
+                )}
                 <SuggestionChip />
                 {!offline && !older && !sg.review?.list.length && (
                   <AiEditedChip
@@ -1413,10 +1438,12 @@ export function DocsPageView({
         {cc.open && !offline && touch && !phone && (
           <DocsDrawer
             side="right"
-            width={420}
+            width={380}
             label="Comments"
             onClose={() => cc.setOpen(false)}
             testId="comments-drawer"
+            look="read"
+            scrim={0.18}
           >
             <CommentsPanel
               pageId={page.id}
@@ -1439,15 +1466,28 @@ export function DocsPageView({
           </DocsDrawer>
         )}
         {readBar}
-        {phone && toc && (
-          <BottomSheet label="On this page" onClose={() => setToc(false)} testId="toc-sheet">
-            <div data-popover className="dk-toc-sheet">
-              {tocList}
-            </div>
-          </BottomSheet>
-        )}
+        {touch &&
+          toc &&
+          (phone ? (
+            <BottomSheet label="On this page" onClose={() => setToc(false)} testId="toc-sheet" look="read" hideTitle>
+              <div data-popover className="dk-toc-sheet">
+                {touchOutline}
+              </div>
+            </BottomSheet>
+          ) : (
+            <DocsDrawer
+              side="right"
+              width={340}
+              label="Outline"
+              onClose={() => setToc(false)}
+              testId="toc-drawer"
+              look="read"
+            >
+              {touchOutline}
+            </DocsDrawer>
+          ))}
         {phone && menu && (
-          <BottomSheet label={page.title} onClose={() => setMenu(false)} testId="page-menu-sheet">
+          <BottomSheet label={page.title} onClose={() => setMenu(false)} testId="page-menu-sheet" look="read" eyebrow>
             <div data-popover>
               <div className="dk-menu-sheet">
                 <button
@@ -1507,14 +1547,20 @@ export function DocsPageView({
           </BottomSheet>
         )}
         {phone && readerOpen && (
-          <BottomSheet label="Reading" onClose={() => setReaderOpen(false)} testId="reader-sheet" hideTitle>
+          <BottomSheet label="Reading" onClose={() => setReaderOpen(false)} testId="reader-sheet" hideTitle look="read">
             <div data-popover>
               <ReaderSettingsPanel prefs={prefs} onChange={setPrefs} pagePx={TEXT_SIZE_PX[look.textSize]} />
             </div>
           </BottomSheet>
         )}
         {phone && shareSheet && (
-          <BottomSheet label="Share page" onClose={() => setShareSheet(false)} testId="share-sheet" hideTitle>
+          <BottomSheet
+            label="Share page"
+            onClose={() => setShareSheet(false)}
+            testId="share-sheet"
+            hideTitle
+            look="read"
+          >
             <SharePopover
               page={page}
               variant="sheet"
@@ -1526,7 +1572,7 @@ export function DocsPageView({
         {chaptersOpen &&
           book &&
           (phone ? (
-            <BottomSheet label="Chapters" onClose={() => setChaptersOpen(false)} testId="chapters-sheet">
+            <BottomSheet label="Chapters" onClose={() => setChaptersOpen(false)} testId="chapters-sheet" look="read">
               <ChapterList
                 book={book}
                 currentId={page.id}
@@ -1543,6 +1589,7 @@ export function DocsPageView({
               label="Chapters"
               onClose={() => setChaptersOpen(false)}
               testId="chapters-drawer"
+              look="read"
             >
               <div style={{ padding: 16 }}>
                 <ChapterList

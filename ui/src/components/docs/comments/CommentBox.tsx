@@ -27,6 +27,8 @@ interface Props {
   autoFocus?: boolean;
   /** Start as one line that grows when focused (the "Reply…" field). */
   compact?: boolean;
+  /** With `compact`: the one-line field sits in a bar with a 44 px @ button and a 44 px send button (phone thread). */
+  docked?: boolean;
   testId?: string;
 }
 
@@ -44,6 +46,7 @@ const MAX = 4000;
  * @param props.onSubmit - Posts the text; reject to keep it and show the failure.
  * @param props.autoFocus - Focus the box on mount.
  * @param props.compact - Show a one-line field until focused.
+ * @param props.docked - With `compact`, put the field in a bar with @ and send buttons.
  * @param props.testId - Test id of the textarea.
  */
 export function CommentBox({
@@ -56,6 +59,7 @@ export function CommentBox({
   onSubmit,
   autoFocus,
   compact,
+  docked,
   testId = 'comment-input',
 }: Props) {
   // the box shows a mention as @PM; the comment is saved with the member's id (`stored`)
@@ -153,6 +157,34 @@ export function CommentBox({
     } finally {
       setBusy(false);
     }
+  }
+
+  if (compact && docked && !focused && !text) {
+    const open = (start: string) => {
+      setText(start);
+      setFocused(true);
+      requestAnimationFrame(() => {
+        ta.current?.focus();
+        ta.current?.setSelectionRange(start.length, start.length);
+      });
+    };
+    return (
+      <div className="dc-dock-bar">
+        <button type="button" className="dc-dock-at" aria-label="Mention someone" onClick={() => open('@')}>
+          <Icon name="at" size={18} strokeWidth={1.8} />
+        </button>
+        <input
+          className="dc-reply-field"
+          data-testid="reply-field"
+          placeholder={placeholder}
+          readOnly
+          onFocus={() => open('')}
+        />
+        <button type="button" className="dc-dock-send" aria-label={submitLabel} disabled>
+          <Icon name="send" size={17} strokeWidth={1.9} />
+        </button>
+      </div>
+    );
   }
 
   if (compact && !focused && !text) {

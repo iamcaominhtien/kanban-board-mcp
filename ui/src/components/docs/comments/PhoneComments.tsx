@@ -108,6 +108,7 @@ export function PhoneComments({
             onReattach={onReattach}
             suggestMembers={suggest}
             place={doc ? threadPlace(thread, doc) : undefined}
+            dockedReply
           />
         </div>
       </div>
@@ -115,7 +116,7 @@ export function PhoneComments({
   }
 
   return (
-    <BottomSheet label="Comments" onClose={onClose} testId="phone-comments">
+    <BottomSheet label="Comments" onClose={onClose} testId="phone-comments" closeText="Close">
       <div className="dc-psheet-tabs" role="tablist">
         {(
           [

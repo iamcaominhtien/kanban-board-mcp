@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import './docs.css';
 import { Icon } from './Icon';
 import { getActiveReplaceAdapter } from './editorReplace';
+import { DOCS_PHONE_BELOW, useKeyboardInset, useNarrowWindow } from '../../hooks/useDocsLayout';
 
 export interface FindReplaceOptions {
   /** true for Replace all; false replaces only the current match (`index`). */
@@ -182,6 +183,10 @@ export function FindInPage({
   // after Replace all: how many were changed (shown with Undo until the next search)
   const [replaced, setReplaced] = useState<number | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  // reading on a phone (Reader 51): the field takes the place of the header, the count and next / previous sit in a
+  // bar above the keyboard
+  const phoneRead = useNarrowWindow(DOCS_PHONE_BELOW) && !editable;
+  const kb = useKeyboardInset(phoneRead);
   useEffect(() => {
     const show = () => setShowReplace(true);
     window.addEventListener(SHOW_REPLACE_EVENT, show);
@@ -193,7 +198,7 @@ export function FindInPage({
   useLayoutEffect(() => {
     const bar = barRef.current;
     const host = bar?.parentElement;
-    if (!bar || !host) return;
+    if (!bar || !host || phoneRead) return;
     const sync = () => host.style.setProperty('--dk-find-h', `${Math.ceil(bar.getBoundingClientRect().height)}px`);
     sync();
     host.classList.add('dk-find-open');
@@ -204,7 +209,7 @@ export function FindInPage({
       host.classList.remove('dk-find-open');
       host.style.removeProperty('--dk-find-h');
     };
-  }, []);
+  }, [phoneRead]);
   const inputRef = useRef<HTMLInputElement>(null);
   const ranges = useRef<Range[]>([]);
   const marksRef = useRef<HTMLElement[]>([]);
@@ -385,6 +390,43 @@ export function FindInPage({
       {child}
     </button>
   );
+
+  if (phoneRead)
+    return (
+      <div ref={barRef} className="docs-root fx-find-phone" role="search" aria-label="Find in page">
+        <div className="fx-find-phone-top">
+          <button type="button" aria-label="Close" className="fx-find-phone-btn" onClick={onClose}>
+            <Icon name="i08" size={20} strokeWidth={1.9} />
+          </button>
+          <div className={`fx-find-phone-field${none ? ' fx-find-phone-none' : ''}`}>
+            <Icon name="search" size={15} strokeWidth={2} style={{ color: '#5B6B60', flex: 'none' }} />
+            <input
+              ref={inputRef}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={onKey}
+              aria-label="Find"
+              placeholder="Find in page"
+              spellCheck={false}
+            />
+            {q && (
+              <button type="button" aria-label="Clear" onClick={() => setQ('')}>
+                <Icon name="close" size={15} strokeWidth={2} />
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="fx-find-phone-bottom" style={{ bottom: kb }}>
+          <span aria-live="polite">{dq === '' ? '' : count ? `${cur + 1} of ${count}` : 'No results'}</span>
+          <button type="button" aria-label="Previous match" className="fx-find-phone-btn" onClick={() => step(-1)}>
+            <Icon name="i34" size={20} strokeWidth={1.9} />
+          </button>
+          <button type="button" aria-label="Next match" className="fx-find-phone-btn" onClick={() => step(1)}>
+            <Icon name="i06" size={20} strokeWidth={1.9} />
+          </button>
+        </div>
+      </div>
+    );
 
   return (
     <div

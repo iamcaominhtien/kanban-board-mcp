@@ -7,6 +7,8 @@ import { Icon } from './Icon';
 import { plural } from './docsShared';
 import { pageUrl } from './SharePopover';
 import { kindWord } from './links/BlockKind';
+import { useDocsLayout } from '../../hooks/useDocsLayout';
+import './links/links.css';
 
 interface ReferencedByProps {
   pageId: string;
@@ -139,6 +141,8 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
   const backlinks = useBacklinksEx(settled ? pageId : null);
   const page = useDocsPage(pageId);
   const [open, setOpen] = useState(true);
+  // RichDocsLinks F 32-33: on a tablet and a phone the rows are larger and Go to link is a 44 px button
+  const layout = useDocsLayout(null);
   const pages = backlinks.data?.pages ?? [];
   const tickets = backlinks.data?.tickets ?? [];
   const total = pages.length + tickets.length;
@@ -162,7 +166,8 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
 
   return (
     <section
-      className="docs-root"
+      className="docs-root rb-panel"
+      data-layout={layout}
       aria-label="Referenced by"
       data-testid="referenced-by"
       style={{
@@ -177,10 +182,15 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
         gap: total === 0 ? 12 : 16,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: '#1E2A22' }}>
+      <div
+        className="rb-head"
+        style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: '#1E2A22' }}
+      >
         <Icon name="i11" size={15} />
         Referenced by
-        <span style={{ fontSize: 12, fontWeight: 500, color: '#9AA8A0' }}>{backlinks.isLoading ? '' : summary}</span>
+        <span className="rb-sum" style={{ fontSize: 12, fontWeight: 500, color: '#9AA8A0' }}>
+          {backlinks.isLoading ? '' : summary}
+        </span>
         {total > 0 && (
           <button
             type="button"
@@ -274,8 +284,8 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
                 const anchor = p.sourceBlockId ?? p.anchor ?? (section ? slugify(section) : undefined);
                 const target = p.targetBlock;
                 return (
-                  <div key={`${p.pageId}-${i}`} style={rowBox}>
-                    <div style={rowHead}>
+                  <div key={`${p.pageId}-${i}`} className="rb-row" style={rowBox}>
+                    <div className="rb-row-head" style={rowHead}>
                       <span style={{ display: 'flex', color: '#2E6F40' }}>
                         <Icon name="i00" size={16} strokeWidth={1.8} />
                       </span>
@@ -286,7 +296,12 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
                           to {target.label} · {kindWord(target.kind)}
                         </span>
                       )}
-                      <button type="button" style={goLink} onClick={() => onOpenPage(p.pageId, anchor)}>
+                      <button
+                        type="button"
+                        className="rb-go"
+                        style={goLink}
+                        onClick={() => onOpenPage(p.pageId, anchor)}
+                      >
                         {p.sourceBlockId ? 'Go to link' : anchor ? 'Go to section' : 'Open page'}
                         <Icon name="i29" size={12} strokeWidth={2.2} />
                       </button>
@@ -314,8 +329,13 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
                 };
                 const where = `Mentioned in ${t.ticketId} · ${words[t.origin ?? ''] ?? t.origin ?? 'ticket'}`;
                 return (
-                  <div key={`${t.ticketId}-${t.origin}-${t.detail ?? ''}`} style={rowBox} data-testid="backlink-ticket">
-                    <div style={rowHead}>
+                  <div
+                    key={`${t.ticketId}-${t.origin}-${t.detail ?? ''}`}
+                    className="rb-row"
+                    style={rowBox}
+                    data-testid="backlink-ticket"
+                  >
+                    <div className="rb-row-head" style={rowHead}>
                       <span
                         style={{
                           width: 7,
@@ -332,7 +352,7 @@ export function ReferencedBy({ pageId, onOpenPage, onOpenTicket }: ReferencedByP
                       <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {t.title}
                       </span>
-                      <button type="button" style={goLink} onClick={() => onOpenTicket(t.ticketId)}>
+                      <button type="button" className="rb-go" style={goLink} onClick={() => onOpenTicket(t.ticketId)}>
                         Open ticket
                         <Icon name="i29" size={12} strokeWidth={2.2} />
                       </button>

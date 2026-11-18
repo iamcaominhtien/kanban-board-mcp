@@ -615,6 +615,10 @@ export function NewPageDialog({
             >
               <Icon name="chevronRight" size={16} strokeWidth={1.9} style={{ transform: 'rotate(180deg)' }} />
             </button>
+          ) : phone ? (
+            <button type="button" aria-label="Close" onClick={onClose} className="dk-np-x">
+              <Icon name="close" size={20} strokeWidth={1.9} />
+            </button>
           ) : (
             <div className={`dk-np-badge${chip === 'ai' ? ' dk-np-badge-ai' : ''}`}>
               {chip === 'ai' ? <AiSpark size={17} /> : <Icon name="i23" size={17} strokeWidth={1.9} />}
@@ -634,9 +638,11 @@ export function NewPageDialog({
               </div>
             )}
           </div>
-          <button type="button" aria-label="Close" onClick={onClose} className="dk-np-x">
-            <Icon name="close" size={16} strokeWidth={1.9} />
-          </button>
+          {!phone && (
+            <button type="button" aria-label="Close" onClick={onClose} className="dk-np-x">
+              <Icon name="close" size={16} strokeWidth={1.9} />
+            </button>
+          )}
         </div>
         <div className="dk-np-body">
           {(!phone || step === 'pick' || chip === 'ai') && chips}
@@ -671,6 +677,9 @@ export function NewPageDialog({
             </div>
           )}
           {showFields && fields}
+          {phone && step === 'name' && chip !== 'ai' && (
+            <div className="dk-np-note">Created as a draft. Only you can see it until you publish.</div>
+          )}
           {error && (
             <div role="alert" style={{ fontSize: 12.5, color: '#C4432A', fontWeight: 600 }}>
               {error}
@@ -678,7 +687,7 @@ export function NewPageDialog({
           )}
         </div>
         <div className="dk-np-foot">
-          {(!phone || step === 'name') && (
+          {(!phone || (step === 'name' && chip === 'ai')) && (
             <span className="dk-np-note">
               {writing
                 ? (job.data?.steps[(job.data?.steps.length ?? 1) - 1]?.text ?? 'Starting…')

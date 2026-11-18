@@ -151,6 +151,8 @@ function PublicPageView({ page }: { page: PublicPage }) {
     <div ref={setRootEl} className="dk-public docs-root" data-testid="public-page" data-layout={layout}>
       <style>{readerThemeCss()}</style>
       <header className="dk-public-bar">
+        {/* a phone keeps the 22 px mark and drops the name (Reader 43) */}
+        {phone && <PublicMark />}
         {!phone && (
           <>
             <PublicMark />

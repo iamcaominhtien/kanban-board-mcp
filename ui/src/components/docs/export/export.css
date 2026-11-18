@@ -95,23 +95,29 @@
   border-bottom-color: #2e6f40;
 }
 .dx-phone .dx-tabs {
-  padding: 0 4px 10px;
-  border-bottom: none;
-}
-.dx-phone .dx-tabs .dx-tab {
-  flex: 1;
-  min-height: 40px;
-  margin: 0;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  margin: 0 10px 10px;
   border: none;
   border-radius: 8px;
   background: #eef3ef;
 }
-.dx-phone .dx-tabs .dx-tab + .dx-tab {
-  margin-left: 4px;
+/* Export2 frame 33: on a phone New export / History is a switch, 38 px items */
+.dx-phone .dx-tabs .dx-tab {
+  flex: 1;
+  height: 38px;
+  margin: 0;
+  padding: 0 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
 }
 .dx-phone .dx-tabs .dx-tab[aria-selected='true'] {
   background: #ffffff;
-  box-shadow: 0 0 0 1px #2e6f40;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.14);
 }
 .dx-body {
   overflow-y: auto;
@@ -222,11 +228,16 @@
 .dx-phone .dx-fmt {
   flex-direction: row;
   align-items: center;
-  min-height: 56px;
-  padding: 10px;
+  gap: 10px;
+  min-height: 64px;
+  padding: 0 11px;
 }
 .dx-phone .dx-fmt[aria-pressed='true'] {
-  padding: 9px;
+  padding: 0 10px;
+}
+.dx-phone .dx-fmt .dx-fmt-ico {
+  width: 32px;
+  height: 32px;
 }
 .dx-fmt-ico {
   width: 34px;
@@ -311,9 +322,16 @@
   opacity: 0.45;
   cursor: default;
 }
-.dx-tablet .dx-seg button,
-.dx-phone .dx-seg button {
+.dx-tablet .dx-seg button {
   height: 44px;
+}
+/* Export1 frame 3: the phone's choices are 42 px in a 46 px track */
+.dx-phone .dx-seg button {
+  height: 42px;
+}
+/* frame 4: what to export, 52 px rows on a phone */
+.dx-phone .dx-scope {
+  min-height: 52px;
 }
 .dx-switches {
   border: 1px solid #e3e8e5;
@@ -872,9 +890,9 @@
 .dx-phone .dx-row {
   flex-wrap: wrap;
   padding: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   border: 1px solid #e3e8e5;
-  border-radius: 12px;
+  border-radius: 14px;
 }
 .dx-phone .dx-row .st-btn {
   min-height: 44px;
@@ -1083,7 +1101,7 @@
 .dx-cards-phone {
   left: 12px;
   right: 12px;
-  bottom: 76px;
+  bottom: 84px;
   width: auto;
 }
 /* a background export (board E 23–25): its badge, two lines and a bar, the one action on the right */
@@ -1147,4 +1165,102 @@
 }
 .dx-card-x {
   margin-left: -6px;
+}
+
+/* Export1 frame 3: the phone sheet's head has no badge: "Export" 17 px, the page 12 px, a 44 px close */
+.dx-phone .dx-head {
+  padding: 2px 0 6px 10px;
+  gap: 10px;
+}
+.dx-phone .dx-head-ico {
+  display: none;
+}
+.dx-phone .dx-title {
+  font-size: 17px;
+}
+.dx-phone .dx-sub {
+  font-size: 12px;
+}
+.dx-phone .dx-head > button[aria-label='Close'] {
+  width: 44px !important;
+  height: 44px !important;
+}
+/* Export1 frames 19-22: progress and endings on a phone: the same sheet head with no rule; the body 4 18 8, gap 14; the
+   action row 44 px buttons, centred; one 48 px full-width button in a white foot (10 18 30) */
+.dx-phone.dx-job .dx-head {
+  border-bottom: none;
+  padding: 2px 0 6px 10px;
+}
+.dx-phone.dx-job .dx-title {
+  font-size: 17px;
+}
+.dx-phone.dx-job .dx-body {
+  padding: 4px 10px 8px;
+  gap: 14px;
+}
+.dx-phone.dx-job .dx-actions {
+  justify-content: center;
+}
+.dx-phone.dx-job .dx-actions .st-btn {
+  min-height: 44px;
+  flex: none;
+}
+.dx-phone.dx-job .dx-foot {
+  padding: 10px 18px 30px;
+  background: #ffffff;
+}
+.dx-phone.dx-job .dx-foot .st-btn {
+  width: 100%;
+  min-height: 48px;
+  font-size: 14.5px;
+}
+/* Export2 frames 36-38: book mode on a phone: the three steps are a bar of three 4 px segments (the step's own is
+   green); the page list rows are 46 px with 18 px boxes; the search 44 px */
+.dx-phone .dx-steptabs {
+  display: flex;
+  gap: 5px;
+  padding: 2px 10px 10px;
+  border: none;
+}
+.dx-phone .dx-steptabs button {
+  flex: 1;
+  height: 16px;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  font-size: 0;
+  cursor: pointer;
+}
+.dx-phone .dx-steptabs button::before {
+  content: '';
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: #dce6df;
+}
+.dx-phone .dx-steptabs button[aria-selected='true']::before {
+  background: #2e6f40;
+}
+.dx-phone .dx-tick {
+  min-height: 46px;
+  gap: 9px;
+  font-size: 13px;
+}
+.dx-phone .dx-tick input {
+  width: 18px;
+  height: 18px;
+}
+.dx-phone .dx-search {
+  height: 44px;
+}
+.dx-phone.dx-job .dx-foot {
+  flex-wrap: wrap;
+}
+.dx-phone.dx-job .dx-foot .dx-spacer {
+  display: none;
+}
+.dx-phone.dx-job .dx-foot .st-btn {
+  flex: 1 1 100%;
 }

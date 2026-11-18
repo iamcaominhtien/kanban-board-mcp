@@ -9,6 +9,7 @@ import type { BacklinkPageRow } from '../../../types/docsActions';
 import { plural } from '../docsShared';
 import { usePageSettled } from '../pageSettled';
 import { kindWord } from './BlockKind';
+import { useDocsLayout } from '../../../hooks/useDocsLayout';
 
 const POP: CSSProperties = {
   position: 'absolute',
@@ -113,6 +114,8 @@ export function RefsButton({
   const settled = usePageSettled();
   const q = useBacklinksEx(settled ? pageId : null);
   const [open, setOpen] = useState(false);
+  // F 32-33: 44 px on a tablet and a phone; on a phone the list is a bottom sheet
+  const layout = useDocsLayout(null);
   const pages = q.data?.pages ?? [];
   const tickets = q.data?.tickets ?? [];
   const total = pages.length + tickets.length;
@@ -128,6 +131,8 @@ export function RefsButton({
       <button
         type="button"
         data-testid="refs-button"
+        className="refs-btn"
+        data-layout={layout}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         style={{
@@ -150,16 +155,54 @@ export function RefsButton({
       >
         {plural(total, 'reference')}
       </button>
+      {open && layout === 'phone' && (
+        <div className="refs-sheet-scrim" aria-hidden="true" onClick={() => setOpen(false)} />
+      )}
       {open && (
-        <div data-testid="refs-popover" style={{ ...POP, right: 0, top: 'calc(100% + 4px)', width: 340 }}>
-          <div style={{ padding: '10px 14px', borderBottom: '1px solid #E3E8E5', fontSize: 13, fontWeight: 700 }}>
-            Referenced by {by}
-          </div>
-          <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+        <div
+          data-testid="refs-popover"
+          className={layout === 'phone' ? 'refs-sheet' : undefined}
+          role={layout === 'phone' ? 'dialog' : undefined}
+          aria-label={layout === 'phone' ? 'Referenced by' : undefined}
+          style={layout === 'phone' ? undefined : { ...POP, right: 0, top: 'calc(100% + 4px)', width: 340 }}
+        >
+          {layout === 'phone' ? (
+            <>
+              <div className="refs-sheet-grab" aria-hidden="true" />
+              <div className="refs-sheet-head">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="refs-sheet-title">Referenced by</div>
+                  <div className="refs-sheet-sub">
+                    {plural(total, 'reference')} from {by}
+                  </div>
+                </div>
+                <button type="button" className="qo-back" aria-label="Close" onClick={() => setOpen(false)}>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </div>
+            </>
+          ) : (
+            <div style={{ padding: '10px 14px', borderBottom: '1px solid #E3E8E5', fontSize: 13, fontWeight: 700 }}>
+              Referenced by {by}
+            </div>
+          )}
+          <div style={layout === 'phone' ? undefined : { maxHeight: 320, overflowY: 'auto' }}>
             {pages.map((p, i) => (
               <button
                 key={`p${i}`}
                 type="button"
+                className="refs-row"
                 style={ROW}
                 data-testid="refs-row"
                 onClick={() => {
@@ -178,6 +221,7 @@ export function RefsButton({
               <button
                 key={`t${i}`}
                 type="button"
+                className="refs-row"
                 style={ROW}
                 data-testid="refs-row"
                 onClick={() => {

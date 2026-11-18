@@ -767,6 +767,16 @@ export function DocsEditScreen({
       >
         {phone ? (
           <header className="dk-edit-head dk-edit-head-phone" data-testid="edit-header">
+            <button
+              type="button"
+              className="dk-icobtn dk-bar-ico"
+              aria-label="Back to the page"
+              data-testid="edit-back"
+              // the draft stays: save what is typed, then leave as moving to another page does
+              onClick={() => void flush().finally(() => onExit())}
+            >
+              <Icon name="chevronRight" size={20} strokeWidth={1.8} style={{ transform: 'rotate(180deg)' }} />
+            </button>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1, paddingLeft: 2 }}>
               <span className="dk-edit-title">{title || 'Untitled'}</span>
               <span className="dk-edit-sub">
@@ -778,6 +788,16 @@ export function DocsEditScreen({
                 {saveStatus}
               </span>
             </div>
+            <button
+              type="button"
+              className="dk-icobtn dk-bar-ico"
+              aria-label={preview ? 'Back to editing' : 'Preview'}
+              aria-pressed={!!preview}
+              data-testid="preview-toggle-head"
+              onClick={togglePreview}
+            >
+              <Icon name="eye" size={20} strokeWidth={1.8} />
+            </button>
             <button
               type="button"
               className="st-btn st-btn-primary"

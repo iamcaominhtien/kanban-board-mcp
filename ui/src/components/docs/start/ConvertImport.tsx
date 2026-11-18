@@ -580,6 +580,7 @@ export function ConvertImport({
       }}
     >
       <div
+        className={`dk-imp-shell${phone ? ' dk-imp-phone' : ''}`}
         style={{
           position: 'relative',
           width: phone ? '100%' : 520,
@@ -609,8 +610,8 @@ export function ConvertImport({
           </button>
         </div>
         <div
+          className="dk-imp-body"
           style={{
-            padding: '18px 22px',
             display: 'flex',
             flexDirection: 'column',
             gap: 14,

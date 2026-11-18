@@ -8,7 +8,6 @@ import type { Editor } from '@tiptap/core';
 import { useEditorState } from '@tiptap/react';
 import { useState, type ReactNode } from 'react';
 import { BottomSheet } from '../../DocsSheets';
-import { Icon } from '../../Icon';
 import { FONT_LABEL, FONTS, type PageFont } from '../../pageSettings';
 import { ColorPicker } from './ColorPicker';
 import {
@@ -68,8 +67,12 @@ export function PhoneBar({ editor, disabled, pageHex, actions, plain }: Props) {
       : look.font;
   const alignNow = st.align === 'mixed' ? 'left' : st.align;
 
-  const row = (label: string, onClick: () => void, opts: { arrow?: boolean; icon?: ReactNode; keys?: string } = {}) => (
-    <button type="button" role="menuitem" className="dk-mi" onClick={onClick} disabled={off}>
+  const row = (
+    label: string,
+    onClick: () => void,
+    opts: { arrow?: boolean; icon?: ReactNode; disabled?: boolean } = {},
+  ) => (
+    <button type="button" role="menuitem" className="dk-mi" onClick={onClick} disabled={off || opts.disabled}>
       {opts.icon ?? <span style={{ width: 17 }} />}
       <span style={{ flex: 1 }}>{label}</span>
       {opts.arrow && <Glyph name="chevronRight" size={14} />}
@@ -81,7 +84,7 @@ export function PhoneBar({ editor, disabled, pageHex, actions, plain }: Props) {
       label: 'Format',
       body: (
         <div className="dk-ph-format" data-testid="format-sheet">
-          <div className="dk-rb-group">Style</div>
+          <div className="dk-ph-label">Style</div>
           <div className="dk-ph-chips" role="menu" aria-label="Styles">
             {STYLE_IDS.map((id) => (
               <button
@@ -99,13 +102,12 @@ export function PhoneBar({ editor, disabled, pageHex, actions, plain }: Props) {
           <div className="dk-ph-line">
             <button
               type="button"
-              className="dk-rb-select"
-              style={{ flex: 1 }}
+              className="dk-rb-select dk-ph-font"
               disabled={textOff}
               onClick={() => setSheet('font')}
             >
-              <span>{font}</span>
-              <Glyph name="chevronRight" size={12} />
+              <span style={{ fontFamily: `'${font}', 'Plus Jakarta Sans', sans-serif` }}>{font}</span>
+              <Glyph name="chevron" size={12} />
             </button>
             <span className="dk-rb-size" role="group" aria-label="Font size">
               <button
@@ -127,13 +129,37 @@ export function PhoneBar({ editor, disabled, pageHex, actions, plain }: Props) {
               </button>
             </span>
           </div>
-          <div className="dk-ph-line">
+          <div className="dk-ph-seg" role="group" aria-label="Character">
             {(
               [
-                ['bold', 'Bold', <b key="b">B</b>],
-                ['italic', 'Italic', <i key="i">I</i>],
-                ['underline', 'Underline', <u key="u">U</u>],
-                ['strike', 'Strikethrough', <s key="s">S</s>],
+                [
+                  'bold',
+                  'Bold',
+                  <span key="b" className="dk-ph-b">
+                    B
+                  </span>,
+                ],
+                [
+                  'italic',
+                  'Italic',
+                  <span key="i" className="dk-ph-i">
+                    I
+                  </span>,
+                ],
+                [
+                  'underline',
+                  'Underline',
+                  <span key="u" className="dk-ph-u">
+                    U
+                  </span>,
+                ],
+                [
+                  'strike',
+                  'Strikethrough',
+                  <span key="s" className="dk-ph-s">
+                    S
+                  </span>,
+                ],
                 [
                   'superscript',
                   'Superscript',
@@ -155,11 +181,66 @@ export function PhoneBar({ editor, disabled, pageHex, actions, plain }: Props) {
               </RBtn>
             ))}
           </div>
-          {row('Text colour', () => setSheet('color'), {
-            arrow: true,
-            icon: <ColorGlyph color={st.color && st.color !== 'mixed' ? cssColor('text', st.color) : undefined} />,
-          })}
-          {row('Highlight', () => setSheet('highlight'), { arrow: true, icon: <Glyph name="painter" /> })}
+          <div className="dk-ph-line">
+            <button type="button" className="st-btn dk-ph-wide" disabled={textOff} onClick={() => setSheet('color')}>
+              Text colour
+            </button>
+            <button
+              type="button"
+              className="st-btn dk-ph-wide"
+              disabled={textOff}
+              onClick={() => setSheet('highlight')}
+            >
+              Highlight
+            </button>
+          </div>
+          {!plain && (
+            <div className="dk-ph-seg" role="group" aria-label="Alignment">
+              {ALIGNS.map((a) => (
+                <RBtn
+                  key={a.value}
+                  label={`Align ${a.label.toLowerCase()}`}
+                  state={st.align === a.value}
+                  disabled={off || st.inCode}
+                  onClick={() => setAlign(editor, a.value)}
+                >
+                  <Glyph name={ALIGN_GLYPH[a.value]} size={20} />
+                </RBtn>
+              ))}
+            </div>
+          )}
+          <div className="dk-ph-seg" role="group" aria-label="Lists and indent">
+            <RBtn
+              label="Bulleted list"
+              state={st.list === 'bullet'}
+              disabled={off}
+              onClick={() => editor.commands.toggleBulletList()}
+            >
+              <Glyph name="bullets" size={20} />
+            </RBtn>
+            <RBtn
+              label="Numbered list"
+              state={st.list === 'ordered'}
+              disabled={off}
+              onClick={() => editor.commands.toggleOrderedList()}
+            >
+              <Glyph name="numbers" size={20} />
+            </RBtn>
+            <RBtn
+              label="Task list"
+              state={st.list === 'task'}
+              disabled={off}
+              onClick={() => editor.commands.toggleTaskList()}
+            >
+              <Glyph name="tasks" size={20} />
+            </RBtn>
+            <RBtn label="Outdent" disabled={off} onClick={() => changeIndent(editor, -1)}>
+              <Glyph name="outdent" size={20} />
+            </RBtn>
+            <RBtn label="Indent" disabled={off} onClick={() => changeIndent(editor, 1)}>
+              <Glyph name="indent" size={20} />
+            </RBtn>
+          </div>
         </div>
       ),
     },
@@ -167,33 +248,17 @@ export function PhoneBar({ editor, disabled, pageHex, actions, plain }: Props) {
       label: 'More',
       body: (
         <div className="dk-menu-sheet" role="menu" aria-label="More" data-testid="more-sheet">
-          <div className="dk-ph-line">
-            <RBtn label="Undo" disabled={off || !st.canUndo} onClick={() => editor.commands.undo()}>
-              <Glyph name="undo" />
-            </RBtn>
-            <RBtn label="Redo" disabled={off || !st.canRedo} onClick={() => editor.commands.redo()}>
-              <Glyph name="redo" />
-            </RBtn>
-            <RBtn label="Outdent" disabled={off} onClick={() => changeIndent(editor, -1)}>
-              <Glyph name="outdent" />
-            </RBtn>
-            <RBtn label="Indent" disabled={off} onClick={() => changeIndent(editor, 1)}>
-              <Glyph name="indent" />
-            </RBtn>
-          </div>
           {row(
             'Link',
             () => {
               close();
               actions.onLink();
             },
-            { icon: <Icon name="i11" size={17} /> },
+            { icon: <Glyph name="link" />, arrow: true },
           )}
-          {row('Line and paragraph spacing', () => setSheet('spacing'), {
-            arrow: true,
-            icon: <Glyph name="spacing" />,
-          })}
-          {row('Drop cap', () => setSheet('dropcap'), { arrow: true, icon: <Glyph name="dropCap" /> })}
+          {row('Indent', () => changeIndent(editor, 1), { icon: <Glyph name="indent" /> })}
+          {row('Line and paragraph spacing', () => setSheet('spacing'), { icon: <Glyph name="spacing" /> })}
+          {row('Drop cap', () => setSheet('dropcap'), { icon: <Glyph name="dropCap" /> })}
           {row(
             'Format painter',
             () => {
@@ -202,7 +267,7 @@ export function PhoneBar({ editor, disabled, pageHex, actions, plain }: Props) {
             },
             { icon: <Glyph name="painter" /> },
           )}
-          {row('Clear formatting', () => setSheet('clear'), { arrow: true, icon: <Glyph name="clear" /> })}
+          {row('Clear formatting', () => setSheet('clear'), { icon: <Glyph name="clear" /> })}
           {actions.onAskAi &&
             row(
               'Ask AI',
@@ -239,6 +304,8 @@ export function PhoneBar({ editor, disabled, pageHex, actions, plain }: Props) {
               },
               { icon: <Glyph name="keyboard" /> },
             )}
+          {row('Undo', () => editor.commands.undo(), { icon: <Glyph name="undo" />, disabled: !st.canUndo })}
+          {row('Redo', () => editor.commands.redo(), { icon: <Glyph name="redo" />, disabled: !st.canRedo })}
         </div>
       ),
     },

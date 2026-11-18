@@ -27,6 +27,8 @@ import { Icon } from '../Icon';
 import { typeName } from '../suggestions/describe';
 import '../docs.css';
 import { LineIcon } from '../../ui/LineIcon';
+import { useDocsLayout } from '../../../hooks/useDocsLayout';
+import '../links/links.css';
 
 type Kind = 'out_of_date' | 'missing' | 'broken' | 'overlaps';
 
@@ -495,6 +497,8 @@ export function DocsHealthView({
   onWritePage?: (ticketId: string) => void;
 }) {
   const q = useDocsHealth(projectId);
+  // RichDocsLinks J 41-42: on a tablet and a phone the tabs are 44 px pills and every button is 44 px
+  const layout = useDocsLayout(null);
   const run = useRunHealth(projectId);
   const dismiss = useDismissHealth(projectId);
   const [tab, setTab] = useState<HealthTab | null>(null);
@@ -511,7 +515,8 @@ export function DocsHealthView({
   return (
     <div
       data-testid="docs-health"
-      className="docs-root"
+      className="docs-root dh-root"
+      data-layout={layout}
       style={{ padding: '22px 32px', overflow: 'auto', height: '100%', boxSizing: 'border-box' }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
@@ -548,6 +553,7 @@ export function DocsHealthView({
         <>
           <div
             role="tablist"
+            className="dh-tabs"
             style={{
               display: 'flex',
               gap: 22,

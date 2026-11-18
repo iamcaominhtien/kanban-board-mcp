@@ -331,3 +331,86 @@
   width: max-content;
   max-width: calc(100% - 24px);
 }
+
+/* Docs on a phone (Rich Docs Shell A 3): no side margins, a 52 px bar and a 44 px strip of underlined tabs */
+.boardDocsPhone {
+  padding: 0;
+  gap: 0;
+}
+.phoneBar {
+  height: 52px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+.phoneBarBtn {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #1e2a22;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.phoneBarNew {
+  background: #2e6f40;
+  color: #ffffff;
+  border-radius: 10px;
+  margin-right: 4px;
+}
+.phoneBarTitle {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e2a22;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.phoneTabs {
+  height: 44px;
+  flex: none;
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid #e3e8e5;
+  padding: 0 4px;
+  box-sizing: border-box;
+  background: #ffffff;
+}
+.phoneTabs > .viewSwitcher {
+  display: flex;
+  gap: 0;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+}
+.phoneTabs .viewBtn {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 0;
+  border-bottom: 2.5px solid transparent;
+  background: none;
+  box-shadow: none;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #5b6b60;
+  white-space: nowrap;
+  flex: none;
+}
+.phoneTabs .viewBtnActive {
+  color: #1e2a22;
+  font-weight: 700;
+  border-bottom-color: #2e6f40;
+}

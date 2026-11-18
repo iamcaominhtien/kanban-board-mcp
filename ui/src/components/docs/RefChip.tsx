@@ -12,6 +12,7 @@ import { Icon } from './Icon';
 import { BlockCard, BlockGoneCard } from './links/BlockCard';
 import { KindGlyph } from './links/BlockKind';
 import './links/links.css';
+import { DOCS_PHONE_BELOW } from '../../hooks/useDocsLayout';
 
 export interface RefChipProps {
   kind: 'page' | 'ticket';
@@ -108,6 +109,9 @@ function Floating({
   role = 'dialog',
   label,
   ticket,
+  touch,
+  onClose,
+  anchor,
 }: {
   rect: DOMRect;
   width: number;
@@ -117,8 +121,28 @@ function Floating({
   role?: string;
   label?: string;
   ticket?: boolean;
+  /** Opened by a tap (RichDocsLinks K 67-68): `tablet` keeps the card at the chip with 44 px buttons and closes on a
+   * tap elsewhere; `phone` shows it as a bottom sheet over a scrim with 48 px buttons. */
+  touch?: 'tablet' | 'phone';
+  /** Closes the card (a tap outside it, or on the scrim). */
+  onClose?: () => void;
+  /** The chip that opened the card: a second tap on it goes on instead of closing. */
+  anchor?: HTMLElement | null;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (touch !== 'tablet' || !onClose) return;
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (ref.current && !ref.current.contains(t) && !anchor?.contains(t)) onClose();
+    };
+    // the tap that opened the card is still going; listen from the next one on
+    const t = setTimeout(() => document.addEventListener('pointerdown', onDown), 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('pointerdown', onDown);
+    };
+  }, [touch, onClose, anchor]);
   const gap = ticket ? 9 : 6;
   const [pos, setPos] = useState<{ left: number; top: number; flipped: boolean }>({
     left: rect.left,
@@ -140,12 +164,24 @@ function Floating({
     arrowLeft: Math.max(14, Math.min(width - 28, rect.left + rect.width / 2 - pos.left - 6)),
     flipped: pos.flipped,
   };
+  if (touch === 'phone')
+    return createPortal(
+      <div className="docs-root ref-sheet-wrap">
+        <div className="ref-sheet-scrim" aria-hidden="true" onClick={onClose} />
+        <div className="ref-sheet" ref={ref} role={role} aria-label={label} data-testid="ref-tap-sheet">
+          <div className="ref-sheet-grab" aria-hidden="true" />
+          {typeof children === 'function' ? children(info) : children}
+        </div>
+      </div>,
+      document.body,
+    );
   return createPortal(
     <div
-      className="docs-root"
+      className={touch ? 'docs-root ref-tap' : 'docs-root'}
       ref={ref}
       role={role}
       aria-label={label}
+      data-testid={touch ? 'ref-tap-card' : undefined}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
       style={{ position: 'fixed', left: pos.left, top: pos.top, width, zIndex: 1500 }}
@@ -367,6 +403,9 @@ export function RefChip(props: RefChipProps) {
   const ticketSurface = props.surface === 'ticket';
   const hover = useHoverCard(ticketSurface ? 300 : 400, ticketSurface ? 150 : 250);
   const ref = useRef<HTMLElement | null>(null);
+  // K 67-68: with no hover, the first tap shows the card and a second tap (or Open) goes on
+  const tapped = useRef(false);
+  const [tapMode, setTapMode] = useState<'tablet' | 'phone' | undefined>(undefined);
   const status = result?.status ?? 'ok';
   const ticketKey = kind === 'ticket' ? (result?.key ?? label) : '';
 
@@ -688,15 +727,27 @@ export function RefChip(props: RefChipProps) {
         className={sectionMissing ? 'dk-chip' : 'dk-chip dk-chip-page'}
         data-testid={sectionMissing ? 'ref-section-missing' : 'ref-page'}
         style={baseStyle}
-        onClick={go}
+        onPointerDown={(e) => {
+          tapped.current = e.pointerType === 'touch';
+          if (!tapped.current) setTapMode(undefined);
+        }}
+        onClick={() => {
+          if (tapped.current && !hover.open && result?.pageId) {
+            setTapMode(window.innerWidth < DOCS_PHONE_BELOW ? 'phone' : 'tablet');
+            hover.close();
+            hover.enter(ref.current, 0);
+            return;
+          }
+          go();
+        }}
         onKeyDown={(e) => e.key === 'Enter' && go()}
         onMouseEnter={() => hover.enter(ref.current)}
         onMouseMove={() => hover.enter(ref.current)}
         onMouseLeave={() => {
-          if (!ref.current?.matches(':hover')) hover.leave();
+          if (!tapped.current && !ref.current?.matches(':hover')) hover.leave();
         }}
         onFocus={() => hover.enter(ref.current)}
-        onBlur={hover.leave}
+        onBlur={() => !tapped.current && hover.leave()}
       >
         <Icon name="page" size={13} strokeWidth={1.9} style={iconColor ? { color: iconColor } : undefined} />
         <PageChipBody
@@ -712,11 +763,14 @@ export function RefChip(props: RefChipProps) {
       {hover.open && hover.rect && result?.pageId && linkedBlock && linkedBlock.kind !== 'heading' && (
         <Floating
           rect={hover.rect}
-          width={340}
+          width={tapMode === 'tablet' ? 420 : 340}
           ticket={ticketSurface}
           onEnter={hover.keep}
-          onLeave={hover.leave}
+          onLeave={tapMode ? () => {} : hover.leave}
           label={`Preview of ${linkedBlock.label}`}
+          touch={tapMode}
+          onClose={hover.close}
+          anchor={ref.current}
         >
           <BlockCard
             pageId={result.pageId}
@@ -775,10 +829,13 @@ export function RefChip(props: RefChipProps) {
         !(ticketSurface && !sectionMissing) && (
           <Floating
             rect={hover.rect}
-            width={sectionMissing ? 330 : 400}
+            width={sectionMissing ? 330 : tapMode === 'tablet' ? 420 : 400}
             onEnter={hover.keep}
-            onLeave={hover.leave}
+            onLeave={tapMode ? () => {} : hover.leave}
             label={`Preview of ${pageTitle ?? label}`}
+            touch={tapMode}
+            onClose={hover.close}
+            anchor={ref.current}
           >
             {sectionMissing ? (
               <MissingSection

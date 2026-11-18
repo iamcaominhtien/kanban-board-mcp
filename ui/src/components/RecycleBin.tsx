@@ -8,6 +8,7 @@ import { Icon } from './docs/Icon';
 import { CloseButton } from './docs/docsShared';
 import { relativeTime } from '../utils/relativeTime';
 import styles from './RecycleBin.module.css';
+import { DOCS_PHONE_BELOW, DOCS_TABLET_BELOW, useNarrowWindow } from '../hooks/useDocsLayout';
 
 interface RecycleBinProps {
   tickets: Ticket[];
@@ -37,7 +38,9 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
   const [picked, setPicked] = useState<Set<string>>(() => new Set());
   const [purgeFor, setPurgeFor] = useState<RecycleEntry[] | null>(null);
   const [whereFor, setWhereFor] = useState<RecycleEntry | null>(null);
-  const [phone] = useState(() => typeof window !== 'undefined' && window.innerWidth < 600);
+  const phone = useNarrowWindow(DOCS_PHONE_BELOW);
+  // a tablet or a phone shows the bin as a page of its own, full screen (Tree3 41-42), not a dialog
+  const touch = useNarrowWindow(DOCS_TABLET_BELOW);
   const tree = useDocsTree(whereFor ? (projectId ?? '') : '');
   const panelRef = useRef<HTMLDivElement>(null);
   const docs = useDocsRecycle(projectId ?? '', (id) => {
@@ -97,6 +100,17 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
         ? 'No tickets marked as "Won\'t Do".'
         : 'The Recycle Bin is empty.';
 
+  const emptyBtn = projectId ? (
+    <button
+      type="button"
+      className="st-btn st-btn-danger-outline dk-bin-empty"
+      disabled={pages.length === 0 || docs.emptying}
+      onClick={() => setConfirmEmpty(true)}
+    >
+      Empty bin
+    </button>
+  ) : null;
+
   const tab = (f: Filter, label: string, n: number) => (
     <button
       type="button"
@@ -109,11 +123,14 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
   );
 
   return (
-    <div className={`${styles.overlay} docs-root ${visible ? styles.overlayVisible : ''}`} onClick={handleClose}>
+    <div
+      className={`${styles.overlay} docs-root ${visible ? styles.overlayVisible : ''}${touch ? ` ${styles.overlayTouch}` : ''}`}
+      onClick={handleClose}
+    >
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`${styles.panel} ${visible ? styles.panelVisible : ''}`}
+        className={`${styles.panel} ${visible ? styles.panelVisible : ''}${touch ? ` ${styles.panelTouch} dk-bin-touch` : ''}${phone ? ' dk-bin-phone' : ''}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -122,11 +139,35 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
         {/* Tree board, frame 40: the title 22/700 with its rule under it, then the All / Pages / Tickets pill,
             the sort and Empty bin */}
         <div className="dk-bin-head">
+          {touch && (
+            <button type="button" className="dk-bin-back" aria-label="Close the Recycle Bin" onClick={handleClose}>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M15 6l-6 6 6 6" />
+              </svg>
+            </button>
+          )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="dk-bin-title">Recycle Bin</div>
-            <div className="dk-bin-sub">Pages and tickets are deleted forever 30 days after they were removed.</div>
+            {!phone && (
+              <div className="dk-bin-sub">
+                {touch
+                  ? 'Deleted forever after 30 days'
+                  : 'Pages and tickets are deleted forever 30 days after they were removed.'}
+              </div>
+            )}
           </div>
-          <CloseButton onClick={handleClose} size={30} color="#5B6B60" />
+          {touch && emptyBtn}
+          {!touch && <CloseButton onClick={handleClose} size={30} color="#5B6B60" />}
         </div>
         <div className="dk-bin-tools">
           <div className="dk-bin-seg" role="group" aria-label="Show">
@@ -135,19 +176,12 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
             {tab('tickets', 'Tickets', tickets.length)}
           </div>
           <div style={{ flex: 1 }} />
-          <span className="dk-bin-sort">
-            <span>Sort</span> Newest first
-          </span>
-          {projectId && (
-            <button
-              type="button"
-              className="st-btn st-btn-danger-outline dk-bin-empty"
-              disabled={pages.length === 0 || docs.emptying}
-              onClick={() => setConfirmEmpty(true)}
-            >
-              Empty bin
-            </button>
+          {!phone && (
+            <span className="dk-bin-sort">
+              <span>Sort</span> Newest first
+            </span>
           )}
+          {!touch && emptyBtn}
         </div>
 
         {pickedPages.length > 0 && (

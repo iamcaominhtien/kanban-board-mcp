@@ -37,6 +37,11 @@ interface Props {
   pageHex?: string;
   /** The text is stored as Markdown (an idea): no underline or colours. */
   plain?: boolean;
+  /**
+   * A phone (Editor board, frame 39): 42×44 buttons, only B I U, colours, link, comment and More; strikethrough and
+   * the AI items move into More, the block type and the references stay in the Aa sheet and Insert.
+   */
+  touch?: boolean;
 }
 
 const SEP = <span className="dk-bubble-sep" />;
@@ -114,6 +119,7 @@ export function BubbleToolbar({
   askTeam,
   pageHex = '#FFFFFF',
   plain,
+  touch,
 }: Props) {
   const st = useEditorState({
     editor,
@@ -244,7 +250,7 @@ export function BubbleToolbar({
     >
       <div
         data-testid="bubble-toolbar"
-        className="dk-bubble"
+        className={`dk-bubble${touch ? ' dk-bubble-touch' : ''}`}
         style={{
           position: 'relative',
           display: 'flex',
@@ -351,53 +357,66 @@ export function BubbleToolbar({
           </div>
         ) : (
           <>
-            <div style={{ position: 'relative' }}>
-              <Btn label="Block type" wide onClick={() => setBlockOpen((o) => !o)}>
-                <span style={{ fontSize: 12.5, fontWeight: 600 }}>{st?.block ?? 'Body'}</span>
-                <Glyph name="chevron" size={10} strokeWidth={2.4} className="dk-bubble-chev" />
-              </Btn>
-              {blockOpen && (
-                <div className="dk-menu" style={{ position: 'absolute', left: 0, top: 38, width: 170, zIndex: 5 }}>
-                  {BLOCKS.map((b) => (
-                    <div
-                      key={b.label}
-                      role="menuitem"
-                      className={`dk-mi${b.on(editor) ? ' dk-mi-on' : ''}`}
-                      style={{ padding: '6px 10px' }}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        b.run(editor);
-                        setBlockOpen(false);
-                      }}
-                    >
-                      {b.label}
+            {!touch && (
+              <>
+                <div style={{ position: 'relative' }}>
+                  <Btn label="Block type" wide onClick={() => setBlockOpen((o) => !o)}>
+                    <span style={{ fontSize: 12.5, fontWeight: 600 }}>{st?.block ?? 'Body'}</span>
+                    <Glyph name="chevron" size={10} strokeWidth={2.4} className="dk-bubble-chev" />
+                  </Btn>
+                  {blockOpen && (
+                    <div className="dk-menu" style={{ position: 'absolute', left: 0, top: 38, width: 170, zIndex: 5 }}>
+                      {BLOCKS.map((b) => (
+                        <div
+                          key={b.label}
+                          role="menuitem"
+                          className={`dk-mi${b.on(editor) ? ' dk-mi-on' : ''}`}
+                          style={{ padding: '6px 10px' }}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            b.run(editor);
+                            setBlockOpen(false);
+                          }}
+                        >
+                          {b.label}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
             {SEP}
             <Btn label="Bold" on={st?.bold} onClick={() => toggleMark(editor, 'bold')}>
-              <span style={{ fontWeight: 800, fontSize: 15 }}>B</span>
+              <span style={{ fontWeight: 800, fontSize: touch ? 16 : 15 }}>B</span>
             </Btn>
             <Btn label="Italic" on={st?.italic} onClick={() => toggleMark(editor, 'italic')}>
               <span
-                style={{ fontStyle: 'italic', fontWeight: 600, fontFamily: "'Lora', Georgia, serif", fontSize: 16 }}
+                style={{
+                  fontStyle: 'italic',
+                  fontWeight: 600,
+                  fontFamily: "'Lora', Georgia, serif",
+                  fontSize: touch ? 17 : 16,
+                }}
               >
                 I
               </span>
             </Btn>
             {!plain && (
               <Btn label="Underline" on={st?.underline} onClick={() => toggleMark(editor, 'underline')}>
-                <span style={{ fontWeight: 700, fontSize: 14, textDecoration: 'underline' }}>U</span>
+                <span style={{ fontWeight: 700, fontSize: touch ? 15 : 14, textDecoration: 'underline' }}>U</span>
               </Btn>
             )}
-            <Btn label="Strikethrough" on={st?.strike} onClick={() => toggleMark(editor, 'strike')}>
-              <span style={{ fontWeight: 700, fontSize: 14, textDecoration: 'line-through' }}>S</span>
-            </Btn>
-            <Btn label="Inline code" on={st?.code} onClick={() => toggleMark(editor, 'code')}>
-              <Icon name="i33" size={15} />
-            </Btn>
+            {!touch && (
+              <>
+                <Btn label="Strikethrough" on={st?.strike} onClick={() => toggleMark(editor, 'strike')}>
+                  <span style={{ fontWeight: 700, fontSize: 14, textDecoration: 'line-through' }}>S</span>
+                </Btn>
+                <Btn label="Inline code" on={st?.code} onClick={() => toggleMark(editor, 'code')}>
+                  <Icon name="i33" size={15} />
+                </Btn>
+              </>
+            )}
             {SEP}
             {!plain && (
               <Btn
@@ -453,26 +472,30 @@ export function BubbleToolbar({
                 </svg>
               </Btn>
             )}
-            <Btn
-              label="Reference a page or section"
-              onClick={() => {
-                const { from, to } = editor.state.selection;
-                editor
-                  .chain()
-                  .focus()
-                  .insertContent(`[[${editor.state.doc.textBetween(from, to, ' ')}`)
-                  .run();
-              }}
-            >
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>[[</span>
-            </Btn>
-            <Btn label="Ticket" onClick={() => editor.chain().focus().insertContent(`[[${ticketPrefix}-`).run()}>
-              <Icon name="i13" size={15} />
-            </Btn>
+            {!touch && (
+              <>
+                <Btn
+                  label="Reference a page or section"
+                  onClick={() => {
+                    const { from, to } = editor.state.selection;
+                    editor
+                      .chain()
+                      .focus()
+                      .insertContent(`[[${editor.state.doc.textBetween(from, to, ' ')}`)
+                      .run();
+                  }}
+                >
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>[[</span>
+                </Btn>
+                <Btn label="Ticket" onClick={() => editor.chain().focus().insertContent(`[[${ticketPrefix}-`).run()}>
+                  <Icon name="i13" size={15} />
+                </Btn>
+              </>
+            )}
             <Btn label="More formatting" expanded={pop?.id === 'more'} onClick={togglePop('more')}>
               <Glyph name="more" size={16} strokeWidth={2.6} />
             </Btn>
-            {onAi && (
+            {onAi && !touch && (
               <>
                 {SEP}
                 {(
@@ -498,7 +521,7 @@ export function BubbleToolbar({
                 ))}
               </>
             )}
-            {onAiBar && (
+            {onAiBar && !touch && (
               <>
                 {SEP}
                 <Btn label="AI on the selection" wide onClick={onAiBar}>
@@ -556,10 +579,30 @@ export function BubbleToolbar({
           <Popover anchor={pop.anchor} label="More formatting" role="menu" width={220} onClose={() => setPop(null)}>
             {(
               [
+                ...(touch ? ([['Strikethrough', () => toggleMark(editor, 'strike')]] as const) : []),
                 ['Superscript', () => toggleMark(editor, 'superscript')],
                 ['Subscript', () => toggleMark(editor, 'subscript')],
                 ['Clear formatting', () => clearFormatting(editor, 'text')],
                 ['Format painter', () => startPainter(editor, false)],
+                ...(touch && onAiBar ? ([['AI on the selection', onAiBar]] as const) : []),
+                ...(touch && onAi
+                  ? (
+                      [
+                        ['summarise', 'Summarise'],
+                        ['rewrite', 'Rewrite'],
+                        ['ask', 'Ask AI…'],
+                      ] as const
+                    ).map(
+                      ([action, label]) =>
+                        [
+                          label,
+                          () => {
+                            const { from, to } = editor.state.selection;
+                            onAi(action, editor.state.doc.textBetween(from, to, '\n'));
+                          },
+                        ] as const,
+                    )
+                  : []),
               ] as const
             ).map(([label, run]) => (
               <button

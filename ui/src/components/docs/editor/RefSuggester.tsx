@@ -9,6 +9,8 @@ import type { MenuHost, MenuState } from './menuHost';
 import { Hint, MenuFooter, useMenuPosition } from './SlashMenu';
 import type { TicketLite } from './context';
 import { KindTile } from '../links/BlockKind';
+import { useDocsLayout, useKeyboardInset } from '../../../hooks/useDocsLayout';
+import '../links/links.css';
 
 const HEAD: React.CSSProperties = {
   display: 'flex',
@@ -151,6 +153,8 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
   const { ref, pos } = useMenuPosition(state.rect, 436);
+  const layout = useDocsLayout(null);
+  const keyboard = useKeyboardInset(layout === 'phone');
 
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const currentNode = byId.get(currentPageId);
@@ -433,15 +437,21 @@ export function RefSuggester({ host, state, nodes, tickets, currentPageId, onClo
     <div
       ref={ref}
       data-testid="ref-menu"
+      className={`rs-menu rs-${layout}`}
       onMouseDown={(e) => e.preventDefault()}
-      style={{
-        position: 'fixed',
-        zIndex: 60,
-        width: 436,
-        top: pos?.top ?? -9999,
-        left: pos?.left ?? -9999,
-        visibility: pos ? 'visible' : 'hidden',
-      }}
+      style={
+        layout === 'phone'
+          ? // RichDocsLinks C 20: on a phone the list docks above the keyboard, full width, 56 px rows
+            { position: 'fixed', zIndex: 60, left: 0, right: 0, bottom: keyboard }
+          : {
+              position: 'fixed',
+              zIndex: 60,
+              width: 436,
+              top: pos?.top ?? -9999,
+              left: pos?.left ?? -9999,
+              visibility: pos ? 'visible' : 'hidden',
+            }
+      }
     >
       <div className="dk-menu" style={{ width: '100%', padding: 6 }} role="listbox" aria-label="Link a page or ticket">
         {mode === 'sections' && rich && targetNode && (

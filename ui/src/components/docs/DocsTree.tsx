@@ -979,7 +979,8 @@ export function DocsTree({
               style={{ marginRight: 4 }}
             />
           )}
-          {!renaming && (
+          {/* picking pages on touch: the row is its checkbox, no ⋯ (Tree2 24-25) */}
+          {!renaming && !(touch && selectMode) && (
             <span className="dk-tree-actions">
               {!readOnly && (
                 <button
@@ -1098,6 +1099,31 @@ export function DocsTree({
     );
   }
 
+  // touch: the entry to the reorder mode (the boards name the mode but draw no entry). On a tablet it sits beside
+  // Select; the phone's 340 px drawer has no room left in that row (Tree1 A 3), so it joins the header there.
+  const reorderBtn =
+    touch && !readOnly ? (
+      <button
+        type="button"
+        className={`${layout === 'phone' ? 'tr-headbtn' : 'tr-tool tr-tool-sq'}${reorder ? ' tr-tool-on' : ''}`}
+        aria-label="Reorder pages"
+        aria-pressed={reorder}
+        title="Reorder pages"
+        data-testid="tree-reorder-mode"
+        onClick={() => {
+          if (reorder) {
+            setReorder(false);
+            setReorderId(null);
+          } else {
+            endSelect();
+            setReorder(true);
+          }
+        }}
+      >
+        <BoardIcon name="grip" size={layout === 'phone' ? 18 : 16} strokeWidth={1.9} />
+      </button>
+    ) : null;
+
   return (
     <aside
       aria-label="Docs space"
@@ -1124,6 +1150,7 @@ export function DocsTree({
         </div>
         {headerActions}
         {headerExtra}
+        {layout === 'phone' && reorderBtn}
         <button
           type="button"
           className="tr-headbtn"
@@ -1181,27 +1208,7 @@ export function DocsTree({
             />
           )}
           <span className="tr-toolbar-gap" />
-          {touch && !readOnly && (
-            <button
-              type="button"
-              className={`tr-tool tr-tool-sq${reorder ? ' tr-tool-on' : ''}`}
-              aria-label="Reorder pages"
-              aria-pressed={reorder}
-              title="Reorder pages"
-              data-testid="tree-reorder-mode"
-              onClick={() => {
-                if (reorder) {
-                  setReorder(false);
-                  setReorderId(null);
-                } else {
-                  endSelect();
-                  setReorder(true);
-                }
-              }}
-            >
-              <BoardIcon name="grip" size={16} strokeWidth={1.9} />
-            </button>
-          )}
+          {layout !== 'phone' && reorderBtn}
           {onBulk && (
             <button
               type="button"

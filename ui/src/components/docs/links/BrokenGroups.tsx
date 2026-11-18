@@ -236,7 +236,7 @@ function GroupActions({
       testId: 'broken-remove',
     });
   return (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+    <div className="bg-acts" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
       {g.status === 'missing' && (
         <>
           {onFix && nodes && btn('Link to a page…', onRelink, { primary: true, testId: 'broken-relink' })}
@@ -428,9 +428,11 @@ export function BrokenGroups({
           <div
             key={g.key}
             data-testid="health-broken-group"
+            className="bg-group"
             style={{ border: '1px solid #E3E8E5', borderRadius: 12, background: '#fff', overflow: 'hidden' }}
           >
             <div
+              className="bg-head"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -463,7 +465,7 @@ export function BrokenGroups({
                   </>
                 )}
               </span>
-              <span style={{ fontSize: 12.5, color: '#3A4A3E', flex: 1, minWidth: 200 }}>
+              <span className="bg-why" style={{ fontSize: 12.5, color: '#3A4A3E', flex: 1, minWidth: 200 }}>
                 <b>{WHY[g.status] ?? g.status}</b> ·{' '}
                 {isMedia(g.status)
                   ? mediaWhy(g.status, g.page)
@@ -485,6 +487,7 @@ export function BrokenGroups({
                 <div
                   key={`${r.pageId}|${r.blockId ?? ''}`}
                   data-testid="health-broken"
+                  className="bg-row"
                   style={{
                     display: 'flex',
                     gap: 12,
@@ -501,6 +504,7 @@ export function BrokenGroups({
                   )}
                   <button
                     type="button"
+                    className="bg-open"
                     onClick={() => onOpenPage(r.pageId, r.blockId ?? undefined)}
                     style={{
                       border: 'none',

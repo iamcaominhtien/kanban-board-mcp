@@ -1,5 +1,5 @@
 /**
- * The rows of quick open, "Go to page…" (RichDocsLinks A 1-3): 46 px rows with a 28 px tile (the page's icon, or a
+ * The rows of quick open, "Go to page…" (RichDocsLinks A 1-6): 46 px rows (54 on a tablet, 58 on a phone, set in links.css) with a 28 px tile (the page's icon, or a
  * heading, ticket, create or search mark), the title, the page's status dot, where it is, and Enter on the chosen
  * row. Group heads are 11 px capitals.
  */
@@ -24,7 +24,6 @@ const ROW: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 11,
-  minHeight: 46,
   padding: '5px 14px',
   borderRadius: 9,
   margin: '0 6px',
@@ -156,7 +155,7 @@ export function QoRow({
         {where != null && where !== '' && <span style={WHERE}>{where}</span>}
         {after}
         {on && (
-          <span style={{ marginLeft: 6, flex: 'none' }}>
+          <span className="qo-enter" style={{ marginLeft: 6, flex: 'none' }}>
             <Kbd>Enter</Kbd>
           </span>
         )}

@@ -332,54 +332,200 @@
   background: #f1f8f3;
   color: #2e6f40;
 }
+/* the editor's phone sheets (Editor board, frames 9, 10 and 18): 20 px corners, a 40×5 grabber, 15 px title */
+.dk-sheet[data-testid^='phone-sheet-'] {
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 40px rgba(20, 32, 24, 0.22);
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+/* the bar is fixed, so its sheets' overlay would cover only the bar: it covers the screen */
+.dk-ribbon-bottom > .dk-overlay {
+  position: fixed;
+}
+.dk-overlay:has(> .dk-sheet[data-testid^='phone-sheet-']) > .dk-scrim {
+  background: rgba(20, 32, 24, 0.38);
+}
+.dk-sheet[data-testid^='phone-sheet-'] .dk-sheet-grab {
+  padding: 8px 0 2px;
+}
+.dk-sheet[data-testid^='phone-sheet-'] .dk-sheet-grab > span {
+  height: 5px;
+  border-radius: 3px;
+  background: #d3dcd6;
+}
+.dk-sheet[data-testid^='phone-sheet-'] .dk-sheet-head {
+  padding: 6px 8px 6px 20px;
+  font-size: 15px;
+}
+.dk-sheet[data-testid^='phone-sheet-'] .dk-sheet-head .dk-icobtn {
+  border-radius: 9px;
+  color: #5b6b60;
+}
+.dk-sheet[data-testid^='phone-sheet-'] .dk-sheet-body {
+  padding: 0 8px 4px;
+}
+/* Aa: the format sheet (frame 9) */
+.dk-sheet[data-testid='phone-sheet-format'] .dk-sheet-body {
+  padding: 4px 16px 8px;
+}
 .dk-ph-format {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
+}
+.dk-ph-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #5b6b60;
+  margin-bottom: 7px;
 }
 .dk-ph-chips {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   overflow-x: auto;
-  padding: 2px 8px 6px;
   scrollbar-width: none;
 }
 .dk-ph-chip {
   flex: none;
-  min-height: 40px;
+  height: 40px;
   padding: 0 14px;
-  border-radius: 20px;
+  border-radius: 10px;
   border: 1px solid #e3e8e5;
   background: #ffffff;
   font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 500;
   color: #1e2a22;
+  white-space: nowrap;
+  cursor: pointer;
 }
 .dk-ph-chip-on {
-  background: #eaf0ec;
+  font-weight: 700;
+  background: #f1f8f3;
   border-color: #2e6f40;
 }
 .dk-ph-line {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 8px;
-  flex-wrap: wrap;
+  gap: 8px;
 }
-.dk-ph-line .dk-rb {
-  min-width: 44px;
+.dk-ph-format .dk-rb-select.dk-ph-font {
+  flex: 1;
+  width: auto;
+  height: 44px;
+  gap: 6px;
+  padding: 0 9px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.dk-ph-format .dk-rb-size {
+  width: 130px;
   height: 44px;
 }
-.dk-ph-line .dk-rb-select,
-.dk-ph-line .dk-rb-size {
+.dk-ph-format .dk-rb-size .dk-rb-size-v {
+  font-size: 13px;
+}
+.dk-ph-wide.st-btn {
+  flex: 1;
   height: 44px;
+  justify-content: center;
 }
-.dk-ph-line .dk-rb-size {
-  width: 132px;
+/* a row of 44 px buttons on a tinted strip: marks, alignment, lists */
+.dk-ph-seg {
+  display: flex;
+  align-items: center;
+  background: #f6faf7;
+  border-radius: 10px;
+  padding: 2px;
 }
-.dk-ph-line .dk-rb-size button {
-  width: 44px;
+.dk-ph-seg .dk-rb {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0;
+  border-radius: 7px;
+  color: #3a4a3e;
+}
+.dk-ph-seg .dk-rb.dk-rb-on {
+  color: #1e2a22;
+}
+.dk-ph-b {
+  font-size: 15px;
+  font-weight: 800;
+}
+.dk-ph-i {
+  font-family: 'Lora', 'Source Serif 4', Georgia, serif;
+  font-style: italic;
+  font-size: 16px;
+  font-weight: 600;
+}
+.dk-ph-u,
+.dk-ph-s {
+  font-size: 14.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.dk-ph-s {
+  text-decoration: line-through;
+}
+.dk-ph-seg .dk-rb-script {
+  font-size: 13px;
+  font-weight: 700;
+}
+/* More (frame 10): 44 px rows, 14 px text, 16 px icons */
+.dk-sheet[data-testid^='phone-sheet-'] .dk-menu-sheet .dk-mi {
+  min-height: 44px;
+  height: 44px;
+  padding: 7px 10px;
+  gap: 9px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e2a22;
+}
+.dk-sheet[data-testid^='phone-sheet-'] .dk-menu-sheet .dk-mi > svg:first-child {
+  width: 16px;
+  height: 16px;
+  color: #3a4a3e;
+}
+.dk-sheet[data-testid^='phone-sheet-'] .dk-menu-sheet .dk-mi > svg:last-child:not(:first-child) {
+  color: #7a8a80;
+}
+/* the colour sheet (frame 18): the picker's own title goes, the sheet names it; 36 px swatches in 54 px cells */
+.dk-sheet[data-testid='phone-sheet-color'] .dk-sheet-body,
+.dk-sheet[data-testid='phone-sheet-highlight'] .dk-sheet-body {
+  padding: 0 14px 8px;
+}
+.dk-cp-touch {
+  padding: 12px;
+}
+.dk-cp-touch > .dk-cp-title {
+  display: none;
+}
+.dk-cp-touch .dk-cp-auto {
+  height: 40px;
+}
+.dk-cp-touch .dk-cp-sw {
+  width: 54px;
+  min-height: 0;
+}
+.dk-cp-touch .dk-cp-sw-recent {
+  width: 36px;
+}
+.dk-cp-touch .dk-cp-dot {
+  width: 36px;
+  height: 36px;
+}
+.dk-cp-touch .dk-cp-plus {
+  width: 40px;
+  height: 40px;
+}
+.dk-cp-touch .dk-cp-hexbox {
+  height: 40px;
+  border-color: transparent;
 }
 
 /* ---------- popovers ---------- */
@@ -648,9 +794,6 @@
   height: 14px;
   border-radius: 4px;
   flex: none;
-}
-.dk-cp-touch .dk-cp-sw {
-  min-height: 52px;
 }
 .dk-cp-backlink {
   border: none;
@@ -1118,6 +1261,20 @@
 .dk-bubble .dk-bubble-btn.dk-bubble-caret {
   width: 14px;
   color: #9db0a3;
+}
+/* on a phone (Editor board, frame 39): 42×44 buttons */
+.dk-bubble.dk-bubble-touch {
+  gap: 1px;
+}
+.dk-bubble.dk-bubble-touch .dk-bubble-btn {
+  width: 42px;
+  height: 44px;
+}
+.dk-bubble.dk-bubble-touch .dk-bubble-btn.dk-bubble-hl {
+  width: 28px;
+}
+.dk-bubble.dk-bubble-touch .dk-bubble-btn.dk-bubble-caret {
+  width: 14px;
 }
 .dk-bubble .dk-rb-color {
   font-size: 13px;

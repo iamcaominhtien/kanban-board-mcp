@@ -10,6 +10,7 @@ import { Icon } from './Icon';
 import { agoText, displayName, plural } from './docsShared';
 import { daysLeftText, daysLeftTone, pagesToEmpty, type EmptyScope, type RestoreWhere } from './tree/RecycleBinParts';
 import { EditorAvatar } from './tree/treeParts';
+import { DOCS_PHONE_BELOW, DOCS_TABLET_BELOW, useNarrowWindow } from '../../hooks/useDocsLayout';
 
 const errMsg = (err: unknown) => docsErrorDetail(err)?.message ?? extractError(err);
 
@@ -191,9 +192,74 @@ export function BinRow({
 }) {
   const isPage = kind === 'page';
   const emoji = icon && !icon.startsWith('icon:') && !icon.startsWith('/') && !/^(https?:|data:)/.test(icon);
+  // Tree3 41-42: on a tablet the days left sit by the title and the buttons stack, 44 px high; a phone gets one card
+  // per page with the two buttons side by side under it
+  const narrow = useNarrowWindow(DOCS_TABLET_BELOW);
+  const phone = useNarrowWindow(DOCS_PHONE_BELOW);
+  const tile = (
+    <div
+      aria-hidden="true"
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: 11,
+        background: '#F1F6F2',
+        color: '#5B6B60',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        fontSize: 22,
+        filter: emoji ? 'grayscale(.35)' : undefined,
+      }}
+    >
+      {emoji ? icon : <Icon name={isPage ? 'i00' : 'i13'} size={20} strokeWidth={1.8} />}
+    </div>
+  );
+  if (phone) {
+    return (
+      <div
+        className="bin-row bin-row-phone"
+        data-testid={`bin-row-${kind}`}
+        style={{ padding: '14px 16px', borderBottom: last ? undefined : '1px solid #EEF3EF' }}
+        data-first={first ? '1' : undefined}
+        data-pinned={pinned ? '1' : undefined}
+      >
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          {check}
+          {tile}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.3, color: '#1E2A22' }}>{title}</div>
+            <div style={{ fontSize: 12.5, color: '#5B6B60', marginTop: 2 }}>{meta}</div>
+          </div>
+          {badge}
+        </div>
+        {lines.map((l, i) => (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 12,
+              color: '#5B6B60',
+              margin: '8px 0 0 56px',
+              flexWrap: 'wrap',
+            }}
+          >
+            {l}
+          </div>
+        ))}
+        {footer && <div style={{ margin: '1px 0 0 56px' }}>{footer}</div>}
+        <div className="bin-actions" style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          {actions}
+        </div>
+      </div>
+    );
+  }
   return (
     <div
-      className="bin-row"
+      className={`bin-row${narrow ? ' bin-row-tablet' : ''}`}
       data-testid={`bin-row-${kind}`}
       style={{
         display: 'flex',
@@ -206,26 +272,9 @@ export function BinRow({
       data-pinned={pinned ? '1' : undefined}
     >
       {check}
-      <div
-        aria-hidden="true"
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 11,
-          background: '#F1F6F2',
-          color: '#5B6B60',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          fontSize: 22,
-          filter: emoji ? 'grayscale(.35)' : undefined,
-        }}
-      >
-        {emoji ? icon : <Icon name={isPage ? 'i00' : 'i13'} size={20} strokeWidth={1.8} />}
-      </div>
+      {tile}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: narrow ? 'wrap' : undefined }}>
           <span
             style={{
               display: 'inline-flex',
@@ -245,7 +294,8 @@ export function BinRow({
           >
             {isPage ? 'Page' : 'Ticket'}
           </span>
-          <span style={{ fontSize: 14.5, fontWeight: 700, color: '#1E2A22' }}>{title}</span>
+          <span style={{ fontSize: narrow ? 15 : 14.5, fontWeight: 700, color: '#1E2A22' }}>{title}</span>
+          {narrow && badge}
         </div>
         <div
           style={{
@@ -279,8 +329,15 @@ export function BinRow({
         {footer}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
-        {badge}
-        <div className="bin-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {!narrow && badge}
+        <div
+          className="bin-actions"
+          style={
+            narrow
+              ? { display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 8 }
+              : { display: 'flex', alignItems: 'center', gap: 8 }
+          }
+        >
           {actions}
         </div>
       </div>

@@ -114,7 +114,11 @@ function DiffText({ view }: { view: SuggestionView }) {
 }
 
 /** A block drawn by the reader (inside the page's reader, so references resolve). */
-function Block({ node }: { node: RichDoc | null }) {
+/**
+ * One block drawn as the page draws it.
+ * @param props.node - The block, or null for "No block here".
+ */
+export function SgBlock({ node }: { node: RichDoc | null }) {
   if (!node) return <div className="sg-empty">No block here</div>;
   return (
     <div className="dk-md dk-rich">
@@ -142,7 +146,7 @@ export function BeforeAfterCards({ view, stacked }: { view: SuggestionView; stac
             {side === 'before' ? 'Before' : removed ? 'Removed' : 'After'}
           </span>
         </div>
-        {node ? <Block node={node} /> : <div className="sg-side-empty">No block here</div>}
+        {node ? <SgBlock node={node} /> : <div className="sg-side-empty">No block here</div>}
       </div>
     );
   };
@@ -171,7 +175,7 @@ export function BeforeAfter({ view, initial = 'after' }: { view: SuggestionView;
         ))}
       </div>
       {node ? (
-        <Block node={node} />
+        <SgBlock node={node} />
       ) : (
         <div className="sg-empty">{side === 'before' ? 'No block here' : 'Removed from the page'}</div>
       )}
@@ -198,10 +202,10 @@ export function SuggestionBody({
   stacked?: boolean;
 }) {
   if (view.mode === 'diff') return <DiffText view={view} />;
-  if (view.mode === 'removed') return <>{rendered ?? <Block node={view.before} />}</>;
+  if (view.mode === 'removed') return <>{rendered ?? <SgBlock node={view.before} />}</>;
   if (sheet && (view.mode === 'whole' || view.before)) return <BeforeAfter view={view} />;
   if (view.mode === 'whole') return <BeforeAfterCards view={view} stacked={stacked} />;
-  return <Block node={view.after} />;
+  return <SgBlock node={view.after} />;
 }
 
 /** The first, bold sentence of the note under a block that changed since the team wrote it. */
@@ -305,13 +309,13 @@ export function StaleNote({ s, view, review }: { s: DocsSuggestion; view: Sugges
         <div>
           <span className="sg-tag sg-tag-muted">On the page now</span>
         </div>
-        <Block node={now ?? null} />
+        <SgBlock node={now ?? null} />
       </div>
       <div className="sg-side sg-side-after">
         <div>
           <span className="sg-tag sg-tag-ok">The team’s version</span>
         </div>
-        <Block node={view.after} />
+        <SgBlock node={view.after} />
       </div>
     </div>
   );
@@ -396,13 +400,13 @@ function ClashFrame({
           <div>
             <span className="sg-tag sg-tag-muted">Your block now</span>
           </div>
-          <Block node={now ?? null} />
+          <SgBlock node={now ?? null} />
         </div>
         <div className="sg-side sg-side-after">
           <div>
             <span className="sg-tag sg-tag-ok">{s.author}’s version</span>
           </div>
-          <Block node={view.after} />
+          <SgBlock node={view.after} />
         </div>
       </div>
       <div className="sg-clash-line" data-testid="sg-clash-line">

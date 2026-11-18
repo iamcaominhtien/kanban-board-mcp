@@ -780,7 +780,10 @@
 .sg-sheet-actions {
   display: flex;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 12px;
+}
+.sg-sheet-actions .sg-btn-look {
+  flex: 1.4;
 }
 .sg-sheet-actions .sg-btn {
   flex: 1;
@@ -1472,6 +1475,68 @@
   border-top: 1px solid #e3e8e5;
 }
 
+/* Ai2 frame 27: on a phone, Give the page is a bottom sheet (20 px corners, grab 36x4), 44 px rows and two 44 px
+   buttons that share the width */
+@media (max-width: 599px) {
+  .gp-scrim {
+    align-items: flex-end;
+    padding: 0;
+    background: rgba(30, 42, 34, 0.3) !important;
+  }
+  .gp-card {
+    width: 100%;
+    max-height: 92vh;
+    border: none;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -10px 30px rgba(30, 42, 34, 0.16);
+  }
+  .gp-card::before {
+    content: '';
+    display: block;
+    flex: none;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: #c7d2cb;
+    margin: 8px auto 4px;
+  }
+  .gp-head {
+    align-items: center;
+    padding: 4px 4px 6px 16px;
+    border-bottom: none;
+  }
+  .gp-badge,
+  .gp-sub {
+    display: none;
+  }
+  .gp-title {
+    font-size: 15px;
+  }
+  .gp-x {
+    width: 44px;
+    height: 44px;
+  }
+  .gp-body {
+    padding: 0 16px 12px;
+  }
+  .gp-opt {
+    min-height: 44px;
+  }
+  .gp-foot {
+    padding: 8px 16px 16px;
+    border-top: none;
+  }
+  .gp-foot > span {
+    display: none;
+  }
+  .gp-foot .sg-btn {
+    flex: 1;
+    height: 44px;
+    justify-content: center;
+    font-size: 14.5px;
+  }
+}
+
 /* ---------- a team's note under a block it did not change (G 35-36) ---------- */
 .sg-team-note {
   margin: 8px 0 14px;
@@ -1651,4 +1716,26 @@
     sans-serif;
   padding: 2px 8px;
   white-space: nowrap;
+}
+/* RichDocsAi2 frame 42: the phone sheet of a block edited at the same time */
+.sg-clash-who {
+  font-size: 12.5px;
+  color: #5b6b60;
+  margin-bottom: 10px;
+}
+.sg-clash-card {
+  box-sizing: border-box;
+  border: 1px solid #e3e8e5;
+  border-radius: 9px;
+  background: #fff;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sg-clash-card-team {
+  border-color: #bfdcc7;
+}
+.sg-phone .sg-switch-wide button {
+  font-size: 13px;
 }

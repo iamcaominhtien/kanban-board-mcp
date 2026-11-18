@@ -30,6 +30,7 @@ import { MatchMarker, TableRowSnip, matchAnchor } from './links/MatchMarker';
 import { QO_HEAD, QoRow, QoTile } from './links/QuickOpen';
 import './links/links.css';
 import type { DocsTreeNode } from '../../types/docs';
+import { useDocsLayout } from '../../hooks/useDocsLayout';
 
 // ─── recents + hotkey (exported helpers) ──────────────────────────────────────
 
@@ -212,6 +213,12 @@ export function SearchPalette({
 }: SearchPaletteProps) {
   const toast = useToast();
   const online = useDocsOnline();
+  // RichDocsLinks A 4-6: a centred 640 px panel on a tablet (54 px rows), a full screen on a phone (58 px rows); no
+  // key hints on either, since there is no keyboard to press them with
+  const windowLayout = useDocsLayout(null);
+  const layout = fullScreen ? 'phone' : windowLayout;
+  const touch = layout !== 'desktop';
+  const phone = layout === 'phone';
   const [q, setQ] = useState(initialQuery);
   const [dq, setDq] = useState(initialQuery);
   const [scope, setScope] = useState<Scope>('space');
@@ -680,68 +687,84 @@ export function SearchPalette({
   // ── render helpers ──
   const header = (
     <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '13px 18px',
-        borderBottom: '1px solid #E3E8E5',
-      }}
+      className="qo-head"
+      data-layout={layout}
+      style={
+        touch
+          ? undefined
+          : {
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '13px 18px',
+              borderBottom: '1px solid #E3E8E5',
+            }
+      }
     >
-      {fullScreen ? (
-        <button
-          type="button"
-          className="dk-icobtn dk-bar-ico"
-          aria-label="Back to the page"
-          onClick={onClose}
-          style={{ transform: 'rotate(180deg)' }}
-        >
-          <Icon name="chevronRight" size={18} strokeWidth={2} />
+      {layout === 'phone' ? (
+        <button type="button" className="qo-back" aria-label="Back to the page" onClick={onClose}>
+          <Icon name="chevronRight" size={20} strokeWidth={1.9} style={{ transform: 'rotate(180deg)' }} />
         </button>
       ) : (
-        <Icon name="i09" size={18} strokeWidth={2} style={{ color: '#2E6F40' }} />
+        <Icon name="i09" size={18} strokeWidth={2} style={{ color: layout === 'tablet' ? '#5B6B60' : '#2E6F40' }} />
       )}
-      <div className="fx-qwrap">
-        <div className="fx-qback" ref={backRef} aria-hidden="true">
-          {q === '' ? (
-            <span style={{ color: '#6B7A70' }}>{`Search ${projectName} docs…`}</span>
-          ) : (
-            tokenize(q).map((t, i) =>
-              t.kind === 'plain' ? (
-                <span key={i}>
-                  {(mode === 'link' || mode === 'headings') && i > 0 ? (
-                    <mark className="fx-mark">{t.text}</mark>
-                  ) : (
-                    t.text
-                  )}
-                </span>
-              ) : (
-                <span
-                  key={i}
-                  className="fx-qtok"
-                  style={{ color: TOKEN_STYLE[t.kind].fg, ['--tok-bg' as string]: TOKEN_STYLE[t.kind].bg }}
-                >
-                  {t.text}
-                </span>
-              ),
-            )
-          )}
+      <div className={layout === 'phone' ? 'qo-field' : 'qo-field-plain'}>
+        {layout === 'phone' && <Icon name="i09" size={16} strokeWidth={2} style={{ color: '#5B6B60' }} />}
+        <div className="fx-qwrap">
+          <div className="fx-qback" ref={backRef} aria-hidden="true">
+            {q === '' ? (
+              <span style={{ color: '#6B7A70' }}>{`Search ${projectName} docs…`}</span>
+            ) : (
+              tokenize(q).map((t, i) =>
+                t.kind === 'plain' ? (
+                  <span key={i}>
+                    {(mode === 'link' || mode === 'headings') && i > 0 ? (
+                      <mark className="fx-mark">{t.text}</mark>
+                    ) : (
+                      t.text
+                    )}
+                  </span>
+                ) : (
+                  <span
+                    key={i}
+                    className="fx-qtok"
+                    style={{ color: TOKEN_STYLE[t.kind].fg, ['--tok-bg' as string]: TOKEN_STYLE[t.kind].bg }}
+                  >
+                    {t.text}
+                  </span>
+                ),
+              )
+            )}
+          </div>
+          <input
+            ref={inputRef}
+            className="fx-qinput"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onScroll={(e) => {
+              if (backRef.current) backRef.current.scrollLeft = e.currentTarget.scrollLeft;
+            }}
+            onKeyDown={onKeyDown}
+            spellCheck={false}
+            autoComplete="off"
+            aria-label={`Search ${projectName} docs`}
+            role="combobox"
+            aria-expanded="true"
+          />
         </div>
-        <input
-          ref={inputRef}
-          className="fx-qinput"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onScroll={(e) => {
-            if (backRef.current) backRef.current.scrollLeft = e.currentTarget.scrollLeft;
-          }}
-          onKeyDown={onKeyDown}
-          spellCheck={false}
-          autoComplete="off"
-          aria-label={`Search ${projectName} docs`}
-          role="combobox"
-          aria-expanded="true"
-        />
+        {layout === 'phone' && q !== '' && (
+          <button
+            type="button"
+            className="qo-clear"
+            aria-label="Clear the search"
+            onClick={() => {
+              setQ('');
+              inputRef.current?.focus();
+            }}
+          >
+            <Icon name="close" size={15} strokeWidth={2} />
+          </button>
+        )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         {askAvailable && (
@@ -756,8 +779,7 @@ export function SearchPalette({
         )}
         {loading && <span className="mc-spin" />}
         {!loading && modeChip(mode, hasPhrase, hasExclude, parsed.excludes.length)}
-        {!loading && mode === 'plain' && !hasPhrase && !hasExclude && trimmed !== '' && !syntaxOpen && <Kbd>Esc</Kbd>}
-        {!loading && mode === 'plain' && !hasPhrase && !hasExclude && trimmed === '' && !syntaxOpen && <Kbd>Esc</Kbd>}
+        {!loading && !touch && mode === 'plain' && !hasPhrase && !hasExclude && !syntaxOpen && <Kbd>Esc</Kbd>}
       </div>
     </div>
   );
@@ -1849,29 +1871,30 @@ export function SearchPalette({
         position: 'fixed',
         inset: 0,
         zIndex: 1000,
-        background: fullScreen ? '#FFFFFF' : 'rgba(37,61,44,0.5)',
+        background: phone ? '#FFFFFF' : touch ? 'rgba(30,42,34,0.42)' : 'rgba(37,61,44,0.5)',
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
-        paddingTop: fullScreen ? 0 : '10vh',
+        paddingTop: phone ? 0 : touch ? 50 : '10vh',
         boxSizing: 'border-box',
       }}
-      data-full-screen={fullScreen || undefined}
+      data-full-screen={phone || undefined}
+      data-layout={layout}
     >
       <div
         style={
-          fullScreen
+          phone
             ? { position: 'relative', width: '100%', height: '100%' }
-            : { position: 'relative', width: 620, maxWidth: 'calc(100vw - 32px)' }
+            : { position: 'relative', width: touch ? 640 : 620, maxWidth: 'calc(100vw - 32px)' }
         }
       >
         <div
           style={{
             width: '100%',
-            height: fullScreen ? '100%' : undefined,
-            borderRadius: fullScreen ? 0 : 14,
-            border: fullScreen ? 'none' : '1px solid #E3E8E5',
-            boxShadow: fullScreen ? 'none' : '0 24px 64px rgba(30,42,34,0.22)',
+            height: phone ? '100%' : undefined,
+            borderRadius: phone ? 0 : 14,
+            border: phone ? 'none' : touch ? '1px solid #DCE3DE' : '1px solid #E3E8E5',
+            boxShadow: phone ? 'none' : touch ? '0 24px 64px rgba(30,42,34,0.28)' : '0 24px 64px rgba(30,42,34,0.22)',
             background: '#FFFFFF',
             overflow: 'hidden',
             boxSizing: 'border-box',
@@ -1880,19 +1903,21 @@ export function SearchPalette({
           }}
         >
           {header}
-          {scopeBar}
+          {!(touch && trimmed === '') && scopeBar}
           <div
             ref={listRef}
             className="fx-scroll"
             style={
-              fullScreen
-                ? { flex: 1, overflowY: 'auto', minHeight: 0 }
-                : { maxHeight: 'min(460px, 60vh)', overflowY: 'auto', minHeight: 0 }
+              phone
+                ? { flex: 1, overflowY: 'auto', minHeight: 0, padding: '4px 0 6px' }
+                : touch
+                  ? { maxHeight: 'min(640px, 60vh)', overflowY: 'auto', minHeight: 0, padding: '4px 0 6px' }
+                  : { maxHeight: 'min(460px, 60vh)', overflowY: 'auto', minHeight: 0 }
             }
           >
             {body}
           </div>
-          {footer}
+          {!touch && footer}
         </div>
         {syntaxOpen && <SyntaxHelp onClose={() => setSyntaxOpen(false)} />}
       </div>
