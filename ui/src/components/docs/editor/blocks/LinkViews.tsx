@@ -8,7 +8,7 @@
 
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { client } from '../../../../api/client';
 import {
   diagramKeys,
@@ -27,6 +27,7 @@ import { useEditorEnv } from '../context';
 import { useResolved } from '../useResolved';
 import { askBlockUi } from './bus';
 import { EmbedToolbar, Sep, ToolBtn } from './embedUi';
+import { EmbIcon } from '../../embeds/embIcons';
 import { cardToChip } from './refCards';
 import { Panel } from './ui';
 import '../../embeds/embeds.css';
@@ -224,15 +225,64 @@ function DiagramVersions({
   );
 }
 
+/** The shared diagram card's own actions, which the Docs toolbar of a selected diagram stands in for. */
+type SharedAction = 'Edit' | 'Download' | 'View full size' | 'Copy link';
+
+/** Finds one of the shared diagram card's toolbar buttons (Edit has no aria-label: it is the text button). */
+function sharedButton(root: HTMLElement | null, action: SharedAction): HTMLButtonElement | null {
+  const bar = root?.querySelector('[role="toolbar"][aria-label="Diagram actions"]');
+  if (!bar) return null;
+  if (action === 'Edit') return bar.querySelector('button:not([aria-label])');
+  return bar.querySelector(`button[aria-label="${action}"]`);
+}
+
 /**
- * The draw.io diagram node view.
+ * The draw.io diagram node view. Selected in the editor, one toolbar sits on the card's top right (Embeds board,
+ * frame 21): Edit, Download, View full size, Copy link | 50 / 75 / 100 % | Versions, More (Replace, Remove). The
+ * first four press the shared card's own buttons, so the diagram behaves as it does everywhere else.
  */
 export function DiagramBlockView({ node, selected, editor, getPos, updateAttributes, deleteNode }: NodeViewProps) {
   const { id, label } = node.attrs as { id: string; label: string };
   const widthPct = typeof node.attrs.widthPct === 'number' ? node.attrs.widthPct : null;
   const editable = editor.isEditable;
   const [versions, setVersions] = useState<DOMRect | null | false>(false);
+  const [more, setMore] = useState(false);
+  const [shared, setShared] = useState<SharedAction[]>([]);
   const box = useRef<HTMLDivElement>(null);
+  const showBar = selected && editable;
+
+  // which of the shared card's actions exist (Edit only when the diagram can be edited); the card fills in once its
+  // diagram loads, so it is read again whenever its DOM changes while the toolbar shows
+  useEffect(() => {
+    const el = box.current;
+    if (!showBar || !el) return undefined;
+    const read = () => {
+      const have = (['Edit', 'Download', 'View full size', 'Copy link'] as SharedAction[]).filter(
+        (a) => sharedButton(el, a) != null,
+      );
+      setShared((cur) => (cur.join() === have.join() ? cur : have));
+    };
+    read();
+    const watch = new MutationObserver(read);
+    watch.observe(el, { childList: true, subtree: true });
+    return () => watch.disconnect();
+  }, [showBar]);
+
+  useEffect(() => {
+    if (!more) return undefined;
+    const close = (e: MouseEvent) => {
+      if (!(e.target as Element | null)?.closest?.('.dk-dg-toolbar')) setMore(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMore(false);
+    document.addEventListener('mousedown', close, true);
+    document.addEventListener('keydown', esc, true);
+    return () => {
+      document.removeEventListener('mousedown', close, true);
+      document.removeEventListener('keydown', esc, true);
+    };
+  }, [more]);
+
+  const press = (a: SharedAction) => sharedButton(box.current, a)?.click();
   return (
     <NodeViewWrapper
       className={`dk-diagram dk-dg-block${selected ? ' dk-emb-selected' : ''}`}
@@ -240,17 +290,28 @@ export function DiagramBlockView({ node, selected, editor, getPos, updateAttribu
       data-diagram={id}
       style={widthPct ? { width: `${widthPct}%` } : undefined}
     >
-      {selected && editable && (
-        <EmbedToolbar label="Diagram">
-          <ToolBtn label="Versions" wide onClick={() => setVersions(box.current?.getBoundingClientRect() ?? null)} />
-          <ToolBtn
-            label="Replace"
-            wide
-            onClick={() => {
-              const p = posOf(getPos);
-              if (p != null) askBlockUi(editor, { type: 'insertDiagram', replacePos: p });
-            }}
-          />
+      {showBar && (
+        <div className="dk-btoolbar dk-dg-toolbar" role="toolbar" aria-label="Diagram" data-block-ui="">
+          {shared.includes('Edit') && (
+            <ToolBtn label="Edit" wide onClick={() => press('Edit')}>
+              <EmbIcon name="pen" /> Edit
+            </ToolBtn>
+          )}
+          {shared.includes('Download') && (
+            <ToolBtn label="Download" onClick={() => press('Download')}>
+              <EmbIcon name="download" />
+            </ToolBtn>
+          )}
+          {shared.includes('View full size') && (
+            <ToolBtn label="View full size" onClick={() => press('View full size')}>
+              <EmbIcon name="size" />
+            </ToolBtn>
+          )}
+          {shared.includes('Copy link') && (
+            <ToolBtn label="Copy link" onClick={() => press('Copy link')}>
+              <EmbIcon name="link" />
+            </ToolBtn>
+          )}
           <Sep />
           {[50, 75, 100].map((w) => (
             <ToolBtn
@@ -264,8 +325,42 @@ export function DiagramBlockView({ node, selected, editor, getPos, updateAttribu
             </ToolBtn>
           ))}
           <Sep />
-          <ToolBtn label="Remove" wide danger onClick={deleteNode} />
-        </EmbedToolbar>
+          <ToolBtn label="Versions" onClick={() => setVersions(box.current?.getBoundingClientRect() ?? null)}>
+            <EmbIcon name="history" />
+          </ToolBtn>
+          <span className="dk-dg-more">
+            <button
+              type="button"
+              className={`dk-btb${more ? ' on' : ''}`}
+              aria-label="More"
+              title="More"
+              aria-haspopup="menu"
+              aria-expanded={more}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setMore((v) => !v)}
+            >
+              <EmbIcon name="more" />
+            </button>
+            {more && (
+              <div className="dk-emb-menu" role="menu" aria-label="Diagram">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMore(false);
+                    const p = posOf(getPos);
+                    if (p != null) askBlockUi(editor, { type: 'insertDiagram', replacePos: p });
+                  }}
+                >
+                  <EmbIcon name="swap" /> Replace
+                </button>
+                <button type="button" role="menuitem" className="dk-emb-del" onClick={deleteNode}>
+                  <EmbIcon name="trash" /> Remove
+                </button>
+              </div>
+            )}
+          </span>
+        </div>
       )}
       <div ref={box}>
         <DiagramEmbed

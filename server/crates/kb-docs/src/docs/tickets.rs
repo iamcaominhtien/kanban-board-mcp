@@ -533,6 +533,26 @@ impl Rows {
 
 /// Pages tied to a ticket: mentioned in it (description/comment), linked by hand, or mentioning it.
 pub async fn docs_for_ticket(session: &Session, ticket_id: &str) -> Result<Vec<Map<String, Value>>> {
+    docs_for_ticket_with(session, ticket_id, false).await
+}
+
+/// How many characters of a heading's section or a block a Linked docs card shows.
+const EXCERPT_CHARS: usize = 140;
+
+/// Where a row of `docs_for_ticket` points inside its page, for the block-level cards.
+enum RowPlace {
+    /// The ticket's text names a heading of the page (by its text).
+    Section(String),
+    /// A block of the page (where the page mentions the ticket, or the block linked by hand).
+    Block(String),
+}
+
+/// [`docs_for_ticket`]; with `blocks`, the rows of rich pages also say where in the page they point
+/// (`GET /tickets/{id}/docs?blocks=true`, RichDocsLinks H 47): `block_id`, `block` (`{block_id, kind, label, detail}`,
+/// see [`super::blocks::describe_target`]) and `excerpt` (the words of the heading's section or the block). A row the
+/// page cannot place keeps only the usual keys.
+pub async fn docs_for_ticket_with(session: &Session, ticket_id: &str, blocks: bool) -> Result<Vec<Map<String, Value>>> {
+    let mut places: Vec<(usize, String, RowPlace)> = Vec::new();
     let t = ticket::Entity::find_by_id(ticket_id).one(session).await?;
     let proj = match &t {
         Some(t) => project_table::Entity::find_by_id(t.project_id.as_str()).one(session).await?,
@@ -576,7 +596,12 @@ pub async fn docs_for_ticket(session: &Session, ticket_id: &str) -> Result<Vec<M
                     resolve_page_ref(&pages, &[], &request, &headings, Some(&aliases), Some(&renamed), Some(&index));
                 if let Some(pid) = res.get("page_id").and_then(Value::as_str) {
                     if let Some(page) = by_id.get(pid).cloned() {
-                        rows.add(&page, &by_id, origin, res.get("section").and_then(Value::as_str), &r.context, detail);
+                        let before = rows.out.len();
+                        let section = res.get("section").and_then(Value::as_str);
+                        rows.add(&page, &by_id, origin, section, &r.context, detail);
+                        if let (true, Some(section)) = (rows.out.len() > before, section) {
+                            places.push((before, page.id.clone(), RowPlace::Section(section.to_string())));
+                        }
                     }
                 }
             }
@@ -606,6 +631,7 @@ pub async fn docs_for_ticket(session: &Session, ticket_id: &str) -> Result<Vec<M
                 .map(|(_, text)| text.clone())
                 .unwrap_or_else(|| slug.to_string())
         });
+        let before = rows.out.len();
         rows.add(
             &src,
             &by_id,
@@ -614,9 +640,15 @@ pub async fn docs_for_ticket(session: &Session, ticket_id: &str) -> Result<Vec<M
             &link.snippet,
             "",
         );
+        if let (true, Some(block)) = (rows.out.len() > before, link.source_block_id.clone()) {
+            places.push((before, src.id.clone(), RowPlace::Block(block)));
+        }
     }
     if let Some(t) = &t {
         canvas_rows(session, t, &by_id, &mut rows).await?;
+    }
+    if blocks && !places.is_empty() {
+        place_rows(session, &mut rows.out, &places, &by_id).await?;
     }
     rows.out.sort_by(|a, b| {
         let key = |m: &Map<String, Value>| {
@@ -625,6 +657,50 @@ pub async fn docs_for_ticket(session: &Session, ticket_id: &str) -> Result<Vec<M
         key(a).cmp(&key(b))
     });
     Ok(rows.out)
+}
+
+/// Adds `block_id`, `block` and `excerpt` to the rows a rich page can place (see [`docs_for_ticket_with`]).
+async fn place_rows(
+    session: &Session,
+    out: &mut [Map<String, Value>],
+    places: &[(usize, String, RowPlace)],
+    by_id: &HashMap<String, docs_page::Model>,
+) -> Result<()> {
+    let pages: Vec<docs_page::Model> =
+        places.iter().filter_map(|(_, id, _)| by_id.get(id).cloned()).collect::<Vec<_>>().into_iter().fold(
+            Vec::new(),
+            |mut acc: Vec<docs_page::Model>, p| {
+                if !acc.iter().any(|x| x.id == p.id) {
+                    acc.push(p);
+                }
+                acc
+            },
+        );
+    let docs = docs_search::rich_docs(session, &pages).await?;
+    for (at, page_id, place) in places {
+        let (Some(row), Some(doc)) = (out.get_mut(*at), docs.get(page_id)) else { continue };
+        let block_id = match place {
+            RowPlace::Block(id) => Some(id.clone()),
+            RowPlace::Section(text) => {
+                let wanted = crate::util::casefold(text.trim());
+                super::blocks::link_targets(doc)
+                    .0
+                    .into_iter()
+                    .find(|h| crate::util::casefold(h.text.trim()) == wanted)
+                    .map(|h| h.block_id)
+            }
+        };
+        let Some(block_id) = block_id else { continue };
+        let Some(block) = super::blocks::describe_target(doc, &block_id) else { continue };
+        row.insert("block_id".into(), json!(block_id));
+        row.insert(
+            "block".into(),
+            json!({"block_id": block["block_id"], "kind": block["kind"], "label": block["label"],
+                   "detail": block["detail"]}),
+        );
+        row.insert("excerpt".into(), json!(super::blocks::block_excerpt(doc, &block_id, EXCERPT_CHARS)));
+    }
+    Ok(())
 }
 
 const ORIGIN_WORDS: [(&str, &str); 8] = [
@@ -756,10 +832,32 @@ async fn ticket_activity(session: &Session, t: &ticket::Model, field: &str, from
 /// Returns the link row; when a mention already links them, that row, with `already_linked` and a `message` (no
 /// manual link is added). Fails with 422 if the page and ticket are in different projects.
 pub async fn link_ticket_doc(session: &Session, ticket_id: &str, page_id: &str) -> Result<Map<String, Value>> {
+    link_ticket_doc_at(session, ticket_id, page_id, None).await
+}
+
+/// [`link_ticket_doc`] at a heading or block of the page (`block_id`, kept on the manual link as the block it points
+/// at, so the ticket's card opens the page there; RichDocsLinks H 48). A page already linked by hand moves its link
+/// to the new block.
+///
+/// # Errors
+/// As [`link_ticket_doc`]; 422 `block_not_found` when the page has no such block.
+pub async fn link_ticket_doc_at(
+    session: &Session,
+    ticket_id: &str,
+    page_id: &str,
+    block_id: Option<&str>,
+) -> Result<Map<String, Value>> {
     let t = ticket_or_404(session, ticket_id).await?;
     let page = get_page(session, page_id, false, false).await?;
     if page.project_id != t.project_id {
         return docs_err(422, "bad_project", "The page and the ticket belong to different projects");
+    }
+    let block = block_id.filter(|b| !b.is_empty()).map(str::to_string);
+    if let Some(b) = &block {
+        let docs = docs_search::rich_docs(session, std::slice::from_ref(&page)).await?;
+        if docs.get(&page.id).and_then(|d| super::blocks::describe_target(d, b)).is_none() {
+            return docs_err(422, "block_not_found", "The page has no such heading or block");
+        }
     }
     let existing = docs_link::Entity::find()
         .filter(docs_link::Column::SourcePageId.eq(page.id.as_str()))
@@ -791,11 +889,17 @@ pub async fn link_ticket_doc(session: &Session, ticket_id: &str, page_id: &str) 
         link.target_ticket_id = Set(Some(ticket_id.to_string()));
         link.origin = Set("manual".to_string());
         link.snippet = Set(String::new());
+        link.source_block_id = Set(block.clone());
         link.insert(session).await?;
         ticket_activity(session, &t, "doc_ref_added", Value::Null, json!(page.title)).await?;
         session.commit().await?;
+    } else if let (Some(row), Some(_)) = (existing, &block) {
+        let mut row = kb_db::edit(row);
+        row.source_block_id = Set(block.clone());
+        row.update(session).await?;
+        session.commit().await?;
     }
-    let rows = docs_for_ticket(session, ticket_id).await?;
+    let rows = docs_for_ticket_with(session, ticket_id, block.is_some()).await?;
     match rows.into_iter().find(|r| r["page_id"] == json!(page.id) && r["origin"] == json!("manual")) {
         Some(row) => Ok(row),
         None => Err(crate::Error::Other("the manual link is not listed".to_string())),

@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DocsPage, RichDoc } from '../../../types/docs';
-import type { DocsSuggestion } from './api';
+import type { DocsSuggestion, TeamNote } from './api';
 
 const http = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn() }));
 vi.mock('../../../api/client', () => ({ client: http }));
@@ -88,10 +88,11 @@ const NEW = sg({
 const GONE = sg({ id: 's-gone', kind: 'delete', blockId: 'b-1', before: p('b-1', 'A short note.') });
 
 let list: DocsSuggestion[] = [];
+let notes: TeamNote[] = [];
 
 function serve() {
   http.get.mockImplementation(async (url: string) => {
-    if (url.endsWith('/suggestions')) return { data: { count: list.length, suggestions: list } };
+    if (url.endsWith('/suggestions')) return { data: { count: list.length, suggestions: list, notes } };
     if (url.endsWith('/work'))
       return {
         data: {
@@ -146,6 +147,7 @@ function setup(opts: { layout?: DocsLayout; canEdit?: boolean } = {}) {
 const suggestionGets = () => http.get.mock.calls.filter(([u]) => String(u).endsWith('/suggestions')).length;
 
 beforeEach(() => {
+  notes = [];
   http.get.mockReset();
   http.post.mockReset();
   http.patch.mockReset();
@@ -333,5 +335,57 @@ describe('suggestions on the page', () => {
     await screen.findAllByTestId('sg-block');
     expect(screen.queryByTestId('sg-accept-all')).toBeNull();
     expect((screen.getByTestId('sg-accept') as HTMLButtonElement).disabled).toBe(true);
+  });
+});
+
+describe('what a team did not change, and a block changed at the same time (G 36–37)', () => {
+  const NOTE: TeamNote = {
+    id: 'n1',
+    kind: 'formatting',
+    blockId: 'b-1',
+    author: 'Docs team',
+    memberId: 'm1',
+    runId: 'r1',
+    createdAt: '2026-11-17T10:00:00Z',
+    wrote: 'A shorter note.',
+    after: p('b-1', 'A shorter note.'),
+    lost: { colour: 1, link: 1 },
+  };
+
+  it('puts the note under its block; Show what it wrote, Replace the block and Dismiss call the server', async () => {
+    list = [];
+    notes = [NOTE];
+    http.post.mockResolvedValue({ data: { ...PAGE, version: 15 } });
+    setup();
+    const note = await screen.findByTestId('sg-team-note');
+    expect(note.textContent).toContain('Docs team left this block as it is.');
+    expect(note.textContent).toContain('1 colour and 1 link');
+    // under the block it is about
+    expect(note.previousElementSibling?.getAttribute('data-block-id')).toBe('b-1');
+    fireEvent.click(within(note).getByTestId('sg-note-show'));
+    expect(within(note).getByTestId('sg-note-wrote').textContent).toContain('A shorter note.');
+    fireEvent.click(within(note).getByTestId('sg-note-replace'));
+    await waitFor(() => expect(http.post).toHaveBeenCalledWith('/docs/pages/pg/suggestions/notes/n1/replace'));
+    fireEvent.click(within(note).getAllByTestId('sg-note-dismiss')[0]);
+    await waitFor(() =>
+      expect(http.post).toHaveBeenCalledWith('/docs/pages/pg/suggestions/notes/dismiss', { ids: ['n1'] }),
+    );
+  });
+
+  it('shows Keep mine and Use the team’s for a block a person changed while the team worked', async () => {
+    list = [{ ...TEXT, stale: true, atSameTime: true, changedBy: 'Hoa Mai' }];
+    http.post.mockResolvedValue({ data: { ...PAGE, version: 15 } });
+    setup();
+    const block = await screen.findByTestId('sg-block');
+    expect(block.getAttribute('data-clash')).toBe('true');
+    expect(within(block).getByText('Edited at the same time')).toBeTruthy();
+    expect(within(block).getByText('Your block now')).toBeTruthy();
+    expect(within(block).getByTestId('sg-clash-line').textContent).toContain(
+      'Hoa Mai changed this block while Docs team was working on it.',
+    );
+    fireEvent.click(within(block).getByTestId('sg-use-team'));
+    await waitFor(() =>
+      expect(http.post).toHaveBeenCalledWith('/docs/pages/pg/suggestions/accept', { ids: ['s-text'], looked: true }),
+    );
   });
 });

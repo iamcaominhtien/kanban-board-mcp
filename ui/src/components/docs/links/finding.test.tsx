@@ -65,3 +65,22 @@ describe('finding and connecting pages', () => {
     expect(brokenWhy({ kind: 'page', status: 'block_missing' })).toBe('Block not found');
   });
 });
+
+describe('broken-link group fixes and gone uploads (G 40, Ai H 47)', () => {
+  it('finds the closest heading, lists the pages of a group, names a gone upload', async () => {
+    const { alike, closestHeading, perPage, groupBroken, mediaWhy, isMedia } = await import('./BrokenGroups');
+    expect(alike('Indexes', 'Index plan')).toBeGreaterThan(0.5);
+    expect(closestHeading('Indexes', [{ text: 'Fields' }, { text: 'Index plan' }])).toBe('Index plan');
+    expect(closestHeading('Indexes', [{ text: 'Fields' }])).toBeNull();
+    const groups = groupBroken([
+      { pageId: 'a', title: 'Overview', ref: '[[Old rules]]', status: 'missing' },
+      { pageId: 'b', title: 'Planning', ref: '[[Old rules]]', status: 'missing' },
+      { pageId: 'b', title: 'Planning', ref: '[[Old rules]]', status: 'missing', blockId: 'b-000002' },
+      { pageId: 'c', title: 'Blog', ref: '/uploads/x.mp4', status: 'video_missing', name: 'Board tour.mp4' },
+    ]);
+    expect(perPage(groups[0])).toBe('Overview (1) · Planning (2)');
+    const video = groups.find((g) => isMedia(g.status))!;
+    expect(video.page).toBe('Board tour.mp4');
+    expect(mediaWhy(video.status, video.page)).toBe('Video “Board tour.mp4” is not in Project files any more');
+  });
+});

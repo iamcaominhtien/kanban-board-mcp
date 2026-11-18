@@ -1,11 +1,12 @@
 /**
  * What a rename does to the links (RichDocsLinks H 44): links that follow by themselves (the chip shows the new
- * title), and links with their own text (they keep it). Each row shows the link before and after.
+ * title), links with their own text (they keep it), and the plain-text mentions of the old title, which change only
+ * where the person ticks them. Each row shows the words before and after.
  */
 
 import type { CSSProperties, ReactNode } from 'react';
 import { useBacklinksEx } from '../../../api/docsActions';
-import type { BacklinkPageRow } from '../../../types/docsActions';
+import type { BacklinkPageRow, RenameMention } from '../../../types/docsActions';
 import { plural } from '../docsShared';
 import { KindGlyph } from './BlockKind';
 
@@ -83,32 +84,57 @@ function Chip({ title, target }: { title: string; target?: { kind: string; label
   );
 }
 
+const PENCIL = (
+  <svg
+    aria-hidden="true"
+    width={14}
+    height={14}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#8A5A00"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ flexShrink: 0 }}
+  >
+    <path d="M4 20h4L19 9l-4-4L4 16z" />
+    <path d="M13.5 6.5l4 4" />
+  </svg>
+);
+
+/** The key of a mention block: page and block. */
+export const mentionKey = (m: Pick<RenameMention, 'pageId' | 'blockId'>) => `${m.pageId}|${m.blockId}`;
+
 function Group({
   title,
   note,
   children,
   testId,
+  icon,
 }: {
   title: string;
   note: string;
   children: ReactNode;
   testId: string;
+  icon?: ReactNode;
 }) {
   return (
     <div style={BOX} data-testid={testId}>
       <div style={HEAD}>
-        <svg
-          aria-hidden="true"
-          width={14}
-          height={14}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#2E6F40"
-          strokeWidth={2.6}
-          strokeLinecap="round"
-        >
-          <path d="M5 12.5L10 17.5L19 7" />
-        </svg>
+        {icon ?? (
+          <svg
+            aria-hidden="true"
+            width={14}
+            height={14}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#2E6F40"
+            strokeWidth={2.6}
+            strokeLinecap="round"
+          >
+            <path d="M5 12.5L10 17.5L19 7" />
+          </svg>
+        )}
         {title}
         <span style={{ flex: 1 }} />
         <span style={{ fontSize: 12, fontWeight: 600, color: '#5B6B60' }}>{note}</span>
@@ -123,22 +149,31 @@ function Group({
  * @param props.pageId - The page being renamed.
  * @param props.oldTitle - Its title now.
  * @param props.newTitle - The title it gets.
+ * @param props.mentions - The plain-text mentions of the old title in other pages (from the rename preview).
+ * @param props.chosen - The mention blocks ticked to change ({@link mentionKey}).
+ * @param props.onToggle - Ticks or unticks a mention block.
  */
 export function RenameLinkGroups({
   pageId,
   oldTitle,
   newTitle,
+  mentions = [],
+  chosen,
+  onToggle,
 }: {
   pageId: string;
   oldTitle: string;
   newTitle: string;
+  mentions?: RenameMention[];
+  chosen?: ReadonlySet<string>;
+  onToggle?: (m: RenameMention) => void;
 }) {
   const q = useBacklinksEx(pageId);
   const pages = q.data?.pages ?? [];
   const tickets = q.data?.tickets ?? [];
   const follow = pages.filter((p) => !ownText(p));
   const own = pages.filter((p) => ownText(p));
-  if (!pages.length && !tickets.length) return null;
+  if (!pages.length && !tickets.length && !mentions.length) return null;
   const followPages = new Set(follow.map((p) => p.pageId)).size;
   const ticketIds = [...new Set(tickets.map((t) => t.ticketId))];
   const followCount = follow.length + tickets.length;
@@ -192,6 +227,98 @@ export function RenameLinkGroups({
               </div>
             </div>
           ))}
+        </Group>
+      )}
+      {mentions.length > 0 && (
+        <Group
+          title="Mentions written as plain text"
+          note={`${plural(
+            mentions.reduce((n, m) => n + m.count, 0),
+            'place',
+          )} · you choose`}
+          testId="rename-mentions"
+          icon={PENCIL}
+        >
+          {mentions.map((m) => {
+            const on = chosen?.has(mentionKey(m)) ?? false;
+            return (
+              <label
+                key={mentionKey(m)}
+                data-testid="rename-mention"
+                style={{ ...ROW, position: 'relative', alignItems: 'flex-start', cursor: 'pointer' }}
+              >
+                <input
+                  type="checkbox"
+                  checked={on}
+                  onChange={() => onToggle?.(m)}
+                  style={{ position: 'absolute', opacity: 0, width: 1, height: 1, margin: 0 }}
+                  aria-label={`Change the mention in ${m.title}`}
+                />
+                <span
+                  aria-hidden="true"
+                  data-testid="rename-mention-box"
+                  style={
+                    on
+                      ? {
+                          width: 20,
+                          height: 20,
+                          borderRadius: 5,
+                          background: '#2E6F40',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flex: 'none',
+                        }
+                      : {
+                          width: 20,
+                          height: 20,
+                          borderRadius: 5,
+                          border: '1.5px solid #9AA8A0',
+                          background: '#fff',
+                          boxSizing: 'border-box',
+                          flex: 'none',
+                          display: 'inline-block',
+                        }
+                  }
+                >
+                  {on && (
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3.2}>
+                      <path d="M5 12.5L10 17.5L19 7" />
+                    </svg>
+                  )}
+                </span>
+                <div style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.55 }}>
+                  <b>{m.parent ? `${m.parent} › ${m.title}` : m.title}</b>
+                  <div style={{ color: '#3A4A3E' }}>
+                    {m.before.trim() ? `…${m.before.replace(/^…/, '')}` : ''}
+                    <span
+                      style={{
+                        textDecoration: 'line-through',
+                        color: '#C4432A',
+                        background: '#FDF1EE',
+                        borderRadius: 3,
+                        padding: '0 2px',
+                      }}
+                    >
+                      {m.text}
+                    </span>{' '}
+                    <span
+                      style={{
+                        color: '#1F5A31',
+                        background: '#E6F2EA',
+                        borderRadius: 3,
+                        padding: '0 2px',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {title}
+                    </span>
+                    {m.after}
+                  </div>
+                </div>
+              </label>
+            );
+          })}
         </Group>
       )}
     </div>

@@ -1200,15 +1200,17 @@ mark.docs-find-mark.docs-find-cur {
   font-size: 12.5px;
   color: #5b6b60;
 }
+/* the drop cap (Editor board, frame 1): 62 px at 17.5 px text (3.54em), 700, the page's link green, line 0.82 */
 .dk-rich .dk-dropcap::first-letter {
   float: left;
-  font-weight: 800;
-  color: #1e2a22;
-  line-height: 0.85;
-  margin: 4px 8px 0 0;
+  font-weight: 700;
+  color: var(--dp-link, #2e6f40);
+  line-height: 0.82;
+  padding: 3px 7px 0 0;
+  margin: 0;
 }
 .dk-rich .dk-dropcap-3::first-letter {
-  font-size: 3.6em;
+  font-size: 3.54em;
 }
 .dk-rich .dk-dropcap-5::first-letter {
   font-size: 5.8em;
@@ -1496,7 +1498,21 @@ mark.docs-find-mark.docs-find-cur {
 }
 .dk-rich .dk-math-block {
   margin: 0 0 14px;
+  padding: 14px;
+  text-align: center;
   overflow-x: auto;
+}
+.dk-rich .dk-math-block .katex-display {
+  margin: 0;
+}
+/* a formula that cannot be read stays as its text, in red (Embeds board, frame 69) */
+.dk-rich .katex-error {
+  font: 12.5px var(--font-mono, monospace);
+  color: #c4432a !important;
+  white-space: nowrap;
+  background: #fdf1ee;
+  border-radius: 4px;
+  padding: 1px 5px;
 }
 .dk-rich .dk-callout-title {
   color: #1e2a22;
@@ -1523,21 +1539,38 @@ mark.docs-find-mark.docs-find-cur {
   border: 1px solid #f0dba8;
   color: #7a4f08;
 }
+/* the converted page notice (Start board, frame 37): a blue bar above the title, 32 px buttons on the right */
 .dk-convert-note {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 10px 14px;
+  gap: 12px;
+  padding: 11px 14px;
   border-radius: 10px;
-  background: #f1f8f3;
-  border: 1px solid #cfe8d6;
-  color: #1e2a22;
+  background: #e8f1fa;
+  border: 1px solid #c9ddf0;
+  color: #244e78;
   font-size: 13px;
+  line-height: 1.5;
   margin-bottom: 16px;
 }
-.dk-convert-note > span {
-  flex: 1 1 240px;
+.dk-convert-note-text {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+}
+.dk-convert-note-text svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.dk-convert-note-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+.dk-convert-note-actions .st-btn {
+  min-height: 32px;
 }
 
 /* ---------- Rich Docs: the app frame (design board "Rich Docs — app frame & responsive") ---------- */
@@ -1704,6 +1737,46 @@ mark.docs-find-mark.docs-find-cur {
 }
 .dk-ph-center .dk-ph-title {
   text-align: center;
+}
+/* the book look (Editor board, frame 1): a centred title "With eyebrow" is a chapter opening; the eyebrow is muted
+   and widely spaced, the title 40/1.1 at 17.5 px text, and a rule, a diamond and a rule close it */
+.dk-ph-center[data-title-style='eyebrow'] {
+  padding: 30px 0 6px;
+}
+.dk-ph-center[data-title-style='eyebrow'] .dk-ph-eyebrow {
+  margin-bottom: 12px;
+  letter-spacing: 0.22em;
+  color: var(--dp-muted, #5b6b60);
+}
+.dk-ph-center[data-title-style='eyebrow'] .dk-ph-title {
+  margin-bottom: 14px;
+  font-size: calc(var(--dp-size, 14.5px) * 2.29);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.dk-ph-ornament {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.dk-ph-ornament span {
+  width: 34px;
+  height: 1px;
+  background: #68ba7f;
+}
+.dk-ph-ornament i {
+  width: 7px;
+  height: 7px;
+  background: var(--dp-link, #2e6f40);
+  transform: rotate(45deg);
+}
+/* in a serif page, a justified paragraph that follows another starts indented with no space between (frame 1) */
+.dk-fonted
+  p:is([style*='text-align: justify'], [style*='text-align:justify'])
+  + p:is([style*='text-align: justify'], [style*='text-align:justify']) {
+  margin-top: 0;
+  text-indent: 1.6em;
 }
 .dk-ph-byline {
   display: flex;

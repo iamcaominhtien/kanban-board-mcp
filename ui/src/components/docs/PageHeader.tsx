@@ -65,6 +65,14 @@ export function PageHeader({ look, title, byline, fallbackEyebrow }: Props) {
         </div>
       )}
       {title}
+      {look.titleStyle === 'eyebrow' && look.titleAlign === 'center' && (
+        // the book look (Editor board, frame 1): a centred eyebrow title ends in a rule, a diamond and a rule
+        <div className="dk-ph-ornament" aria-hidden="true" data-testid="page-ornament">
+          <span />
+          <i />
+          <span />
+        </div>
+      )}
       {by && (
         <div className="dk-ph-byline" data-testid="page-byline">
           <span className="dk-ph-avatar" style={by.avatar} aria-hidden="true">

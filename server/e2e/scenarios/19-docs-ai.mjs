@@ -183,6 +183,15 @@ export default {
       const banner = p.getByTestId('freshness-banner');
       await banner.getByText('This page may be out of date').waitFor({ timeout: 30000 });
       await banner.getByTestId('freshness-reason').getByText('The API moved to gRPC.').waitFor();
+      // the reason names the block it read, with Show (RichDocsAi2 H 46): the board's amber 20 px chip
+      const chip = banner.getByTestId('freshness-block');
+      await chip.getByText('Paragraph · Show').waitFor();
+      const look = await chip.evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return { h: el.getBoundingClientRect().height, color: cs.color, border: cs.borderTopColor, size: cs.fontSize };
+      });
+      s.note('reason block chip', JSON.stringify(look));
+      if (look.h !== 20 || look.color !== 'rgb(138, 90, 0)' || look.border !== 'rgb(235, 211, 164)' || look.size !== '11px') throw new Error('reason chip: ' + JSON.stringify(look));
       await banner.getByTestId('freshness-still-correct').click();
       await banner.waitFor({ state: 'detached' });
     });
@@ -356,6 +365,31 @@ export default {
       await row.waitFor({ state: 'detached' });
       await h.getByText('Every link and section resolves.').waitFor();
     });
+    await s.step('Docs health: a picture whose file was deleted is a row of its own, with the IN column', async () => {
+      const notes = ids['Release notes'];
+      const v = (await api(`/docs/pages/${notes}`)).version;
+      const published = await p.request.post(`${s.server.base}/docs/pages/${notes}/publish`, {
+        data: { base_version: v, markdown: '# Release notes\n\nThe release ships the API described in [[API]].\n\n![Valley road](/uploads/e2e-gone/valley.png)\n', note: 'A picture' },
+      });
+      if (!published.ok()) throw new Error('publish answered ' + published.status());
+      const h = p.getByTestId('docs-health');
+      await h.getByTestId('health-run').click();
+      await h.getByRole('button', { name: 'Run now' }).waitFor({ timeout: 30000 });
+      await h.getByRole('tab', { name: /^Broken links 1/ }).click();
+      const row = h.getByTestId('health-broken-media');
+      await row.getByText('The image file was deleted: “Valley road”').waitFor({ timeout: 15000 });
+      await row.getByText('Image', { exact: true }).waitFor();
+      await h.getByText('IN', { exact: true }).waitFor();
+      const look = await row.evaluate((el) => {
+        const td = el.querySelector('td'); const cs = getComputedStyle(td);
+        return { padding: cs.padding, size: cs.fontSize, status: el.dataset.status };
+      });
+      s.note('broken picture row', JSON.stringify(look));
+      if (look.padding !== '11px 14px' || look.size !== '12.5px' || look.status !== 'image_missing') throw new Error('broken picture row: ' + JSON.stringify(look));
+      await row.getByRole('button', { name: 'Dismiss' }).click();
+      await p.getByRole('menuitem').first().click();
+      await row.waitFor({ state: 'detached' });
+    });
     await s.step('Docs health: Missing docs lists a Done ticket no page mentions', async () => {
       const h = p.getByTestId('docs-health');
       await h.getByRole('tab', { name: /^Missing docs/ }).click();
@@ -445,6 +479,18 @@ export default {
       const row = (done.result.pages ?? []).find((x) => x.page_id === notes);
       s.note('digest job result', done.result);
       if (!row || row.kind !== 'changed' || row.from_version !== v || row.to_version !== v + 1 || row.line !== 'Added the paging line.') throw new Error('since_viewed result: ' + JSON.stringify(done.result));
+      // who published it and the blocks that changed (RichDocsAi2 H 44): the paragraph, as a 19 px grey chip
+      if (!row.by || !row.at || !row.blocks || row.blocks.edited < 1) throw new Error('since_viewed blocks: ' + JSON.stringify(row));
+      const line = card.getByTestId('since-viewed-row').filter({ hasText: 'Release notes' });
+      await line.getByTestId('since-viewed-by').getByText(/: 1 block edited/).waitFor();
+      const chip = line.getByTestId('since-viewed-chips').locator('span').first();
+      await chip.getByText(/^Paragraph/).waitFor();
+      const look = await chip.evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return { h: el.getBoundingClientRect().height, bg: cs.backgroundColor, size: cs.fontSize };
+      });
+      s.note('digest chip', JSON.stringify(look));
+      if (look.h !== 19 || look.bg !== 'rgb(241, 243, 241)' || look.size !== '10.5px') throw new Error('digest chip: ' + JSON.stringify(look));
       s.note('digest after the summary', (await card.innerText()).slice(0, 300));
     });
     await s.step('Follow a page: the bell menu, Everything, Only mentions, Muted, unfollow', async () => {
@@ -516,6 +562,19 @@ export default {
       await p.getByRole('menuitemcheckbox', { name: 'Not for AI teams', checked: true }).waitFor();
       await Promise.all([saved(), p.getByTestId('menu-not-for-ai').click()]);
       if ('notForAi' in (await settingsOf())) throw new Error('notForAi should be off again');
+    });
+    await s.step('Give the page to a team: each team has its roles and what it does now under its name', async () => {
+      await p.getByTestId('page-menu').click();
+      await p.getByTestId('menu-give-ai').click();
+      const d = p.getByTestId('docs-give-page');
+      const opt = d.locator('.gp-opt').filter({ hasText: 'Docs helper' });
+      const sub = opt.locator('.gp-opt-hint');
+      await sub.getByText(/ · (idle|working( on [A-Z]+-\d+)?|paused)$/).waitFor({ timeout: 15000 });
+      const look = await sub.evaluate((el) => ({ size: getComputedStyle(el).fontSize, color: getComputedStyle(el).color }));
+      s.note('team line', `${await sub.innerText()} ${JSON.stringify(look)}`);
+      if (look.size !== '12.5px' || look.color !== 'rgb(91, 107, 96)') throw new Error('team line: ' + JSON.stringify(look));
+      await d.getByRole('button', { name: 'Cancel' }).click();
+      await d.waitFor({ state: 'detached' });
     });
     await s.step('Ask the team on a selection: one purple button; the verbs, Change tone, Translate, Format this as…, the Ask line', async () => {
       const para = p.getByTestId('page-body').locator('.dk-rich p').first();

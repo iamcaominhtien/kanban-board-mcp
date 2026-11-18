@@ -35,8 +35,8 @@ use super::{docs_error, query_int, query_opt, query_opt_bool, query_pairs, query
 use crate::docs_search::{self, SearchParams};
 use crate::schemas::{
     AccessRequestBody, AnchorBody, AnchorPreviewBody, AssignPageBody, CommentBody, DraftSave, FollowBody,
-    ImportResolveBody, PageCreate, PageDuplicate, PageMove, PageRename, PublishBody, ResolveBody, RestoreBody,
-    SeenBody, SendCommentsBody, SendToAiBody, SettingsBody, ThreadCreate, TicketDocBody,
+    ImportResolveBody, LinkFixBody, PageCreate, PageDuplicate, PageMove, PageRename, PublishBody, ResolveBody,
+    RestoreBody, SeenBody, SendCommentsBody, SendToAiBody, SettingsBody, ThreadCreate, TicketDocBody, VersionNoteBody,
 };
 use crate::{docs, docs_comments, docs_import, docs_work};
 
@@ -56,6 +56,7 @@ pub fn routes() -> Routes {
         .get("/projects/{project_id}/docs/recycle-bin", get_recycle_bin)
         .delete("/projects/{project_id}/docs/recycle-bin", empty_recycle_bin)
         .post("/projects/{project_id}/docs/resolve", post_resolve)
+        .post("/projects/{project_id}/docs/links/fix", post_fix_links)
         // the files are read up to 2 MB each (and one byte more): the body limit of the extractors is lifted
         .add("POST", "/projects/{project_id}/docs/import", post(post_import).layer(DefaultBodyLimit::disable()))
         .post("/projects/{project_id}/docs/import/resolve", post_import_resolve)
@@ -93,6 +94,8 @@ pub fn routes() -> Routes {
         .post("/docs/pages/{page_id}/suggestions/accept", post_accept_suggestions)
         .post("/docs/pages/{page_id}/suggestions/accept-all", post_accept_all)
         .post("/docs/pages/{page_id}/suggestions/reject", post_reject_suggestions)
+        .post("/docs/pages/{page_id}/suggestions/notes/dismiss", post_dismiss_notes)
+        .post("/docs/pages/{page_id}/suggestions/notes/{note_id}/replace", post_replace_from_note)
         .delete("/docs/pages/{page_id}", del_page)
         .post("/docs/pages/{page_id}/move", post_move)
         .post("/docs/pages/{page_id}/duplicate", post_duplicate)
@@ -107,6 +110,7 @@ pub fn routes() -> Routes {
         .post("/docs/pages/{page_id}/publish", post_publish)
         .get("/docs/pages/{page_id}/versions", get_versions)
         .get("/docs/pages/{page_id}/versions/{version}", get_version)
+        .patch("/docs/pages/{page_id}/versions/{version}", patch_version_note)
         .get("/docs/pages/{page_id}/versions/{version}/diff/{b}", get_diff)
         .post("/docs/pages/{page_id}/versions/{version}/restore", post_restore_version)
         .get("/docs/pages/{page_id}/backlinks", get_backlinks)
@@ -260,6 +264,9 @@ async fn get_search(
         sort: query_str(&pairs, "sort", "relevance"),
         kinds: query_opt(&pairs, "kind"),
         kind_facets: query_str(&pairs, "facets", "").split(',').any(|f| f.trim() == "kinds"),
+        outdated_facet: query_str(&pairs, "facets", "").split(',').any(|f| f.trim() == "outdated"),
+        project_facets: query_str(&pairs, "facets", "").split(',').any(|f| f.trim() == "projects"),
+        cards: query_opt_bool(&pairs, "cards")?.unwrap_or(false),
     };
     let q = query_str(&pairs, "q", "");
     let session = kb_db::session();
@@ -288,6 +295,48 @@ async fn post_resolve(
     let session = kb_db::session();
     let refs: Vec<Value> = body.refs.into_iter().map(Value::Object).collect();
     Ok(Json(Value::Array(done(&headers, docs::resolve_refs(&session, &project_id, &refs, body.from_ticket).await)?)))
+}
+
+/// Fix a group of broken links in the pages that hold them: Relink (to a page, heading or block) or Remove (keep the
+/// words). Each changed page gets a new version with a note; answers `{links, pages, changed, skipped}`.
+async fn post_fix_links(
+    headers: HeaderMap,
+    Path(project_id): Path<String>,
+    Body(body): Body<LinkFixBody>,
+) -> ApiResult<Json<Value>> {
+    let fix = match (body.action.as_str(), body.to) {
+        ("remove", _) => docs::bulk::LinkFix::Remove,
+        ("relink", Some(to)) => docs::bulk::LinkFix::Relink(docs::bulk::LinkTo {
+            page_id: to.page_id,
+            section: to.section.filter(|s| !s.trim().is_empty()),
+            block_id: to.block_id.filter(|s| !s.trim().is_empty()),
+            block_label: to.block_label.filter(|s| !s.trim().is_empty()),
+        }),
+        ("relink", None) => {
+            return Err(docs_error(
+                &headers,
+                kb_doctext::docs_text::DocsError::new(
+                    422,
+                    "relink_needs_target",
+                    "Choose the page the links should point to",
+                )
+                .into(),
+            ));
+        }
+        _ => {
+            return Err(docs_error(
+                &headers,
+                kb_doctext::docs_text::DocsError::new(422, "invalid_action", "The action is relink or remove").into(),
+            ));
+        }
+    };
+    let group = docs::bulk::LinkGroup {
+        page: body.page,
+        anchor: body.anchor.filter(|a| !a.trim().is_empty()),
+        pages: body.pages,
+    };
+    let session = kb_db::session();
+    Ok(obj(mutate(&headers, docs::bulk::fix_links(&session, &project_id, &group, &fix).await).await?))
 }
 
 /// A form field as text. Starlette's form keeps the last value of a repeated field.
@@ -417,9 +466,11 @@ async fn get_rename_preview(
     Path(page_id): Path<String>,
     RawQuery(query): RawQuery,
 ) -> ApiResult<Json<Value>> {
-    let title = query_str(&query_pairs(query.as_deref()), "title", "");
+    let pairs = query_pairs(query.as_deref());
+    let title = query_str(&pairs, "title", "");
+    let mentions = query_opt_bool(&pairs, "mentions")?.unwrap_or(false);
     let session = kb_db::session();
-    Ok(obj(done(&headers, docs::rename_preview(&session, &page_id, &title).await)?))
+    Ok(obj(done(&headers, docs::rename_preview(&session, &page_id, &title, mentions).await)?))
 }
 
 /// Preview what deleting a page would affect.
@@ -435,7 +486,10 @@ async fn patch_page(
     Body(body): Body<PageRename>,
 ) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
-    Ok(obj(mutate(&headers, docs::rename_page(&session, &page_id, &body.title, body.rewrite_links).await).await?))
+    let mentions: Option<Vec<(String, String)>> =
+        body.rewrite_mentions.map(|m| m.into_iter().map(|r| (r.page_id, r.block_id)).collect());
+    let renamed = docs::rename_page(&session, &page_id, &body.title, body.rewrite_links, mentions.as_deref()).await;
+    Ok(obj(mutate(&headers, renamed).await?))
 }
 
 /// Change a page's settings (`{settings: {key: value | null}}`; null puts a key back to its default).
@@ -721,6 +775,25 @@ async fn post_reject_suggestions(
     Ok(Json(mutate(&headers, crate::docs_suggestions::reject(&session, &page_id, &body.ids).await).await?))
 }
 
+/// Dismiss notes of changes a team did not make.
+async fn post_dismiss_notes(
+    headers: HeaderMap,
+    Path(page_id): Path<String>,
+    Body(body): Body<SuggestionIds>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(Json(mutate(&headers, crate::docs_suggestions::dismiss_notes(&session, &page_id, &body.ids).await).await?))
+}
+
+/// Use the team's version of a block a note kept as it was (one new version).
+async fn post_replace_from_note(
+    headers: HeaderMap,
+    Path((page_id, note_id)): Path<(String, String)>,
+) -> ApiResult<Json<Value>> {
+    let session = kb_db::session();
+    Ok(obj(mutate(&headers, crate::docs_suggestions::replace_from_note(&session, &page_id, &note_id).await).await?))
+}
+
 /// Move a page and its sub-pages to the Recycle Bin.
 async fn del_page(headers: HeaderMap, Path(page_id): Path<String>) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
@@ -887,6 +960,17 @@ async fn get_version(headers: HeaderMap, Path((page_id, version)): Path<(String,
     Ok(obj(done(&headers, docs::get_version(&session, &page_id, version).await)?))
 }
 
+/// Change the note of one version (the history's "Edit note"); returns the version as `GET` does.
+async fn patch_version_note(
+    headers: HeaderMap,
+    Path((page_id, version)): Path<(String, String)>,
+    Body(body): Body<VersionNoteBody>,
+) -> ApiResult<Json<Value>> {
+    let version = int_path("version", &version)?;
+    let session = kb_db::session();
+    Ok(obj(mutate(&headers, docs::set_version_note(&session, &page_id, version, body.note.as_deref()).await).await?))
+}
+
 /// Diff two versions of a page.
 async fn get_diff(headers: HeaderMap, Path((page_id, a, b)): Path<(String, String, String)>) -> ApiResult<Json<Value>> {
     // `/versions/{a}/diff/{b}` in Python; axum wants one name per position, so the first is `{version}` in the path
@@ -950,10 +1034,16 @@ async fn post_page_assign(
     Ok((StatusCode::CREATED, obj(out)))
 }
 
-/// List the pages a ticket references or is linked to.
-async fn get_ticket_docs(headers: HeaderMap, Path(ticket_id): Path<String>) -> ApiResult<Json<Value>> {
+/// List the pages a ticket references or is linked to (`blocks=true`: rows of rich pages say the heading or block
+/// they point at, with its words).
+async fn get_ticket_docs(
+    headers: HeaderMap,
+    Path(ticket_id): Path<String>,
+    RawQuery(query): RawQuery,
+) -> ApiResult<Json<Value>> {
+    let blocks = query_opt_bool(&query_pairs(query.as_deref()), "blocks")?.unwrap_or(false);
     let session = kb_db::session();
-    let rows = done(&headers, docs::docs_for_ticket(&session, &ticket_id).await)?;
+    let rows = done(&headers, docs::docs_for_ticket_with(&session, &ticket_id, blocks).await)?;
     Ok(Json(Value::Array(rows.into_iter().map(Value::Object).collect())))
 }
 
@@ -964,7 +1054,8 @@ async fn post_ticket_doc(
     Body(body): Body<TicketDocBody>,
 ) -> ApiResult<(StatusCode, Json<Value>)> {
     let session = kb_db::session();
-    let result = done(&headers, docs::link_ticket_doc(&session, &ticket_id, &body.page_id).await)?;
+    let linked = docs::link_ticket_doc_at(&session, &ticket_id, &body.page_id, body.block_id.as_deref()).await;
+    let result = done(&headers, linked)?;
     events::publish("invalidate", &[]).await;
     Ok((StatusCode::CREATED, obj(result)))
 }

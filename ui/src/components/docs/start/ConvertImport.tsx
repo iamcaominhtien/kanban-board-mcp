@@ -198,47 +198,60 @@ export function ConvertImport({
   };
 
   const stateText = (r: ImportRow) => {
-    if (r.problem) return { text: r.problem.title, color: '#A5321E' };
+    if (r.problem) return { text: r.problem.title, color: '#C4432A' };
     switch (r.status) {
       case 'done':
-        return { text: phase === 'done' && result?.stopped ? 'imported' : 'Imported', color: '#2E6F40' };
+        return phase === 'done' && !result?.stopped
+          ? { text: '', color: '#2E6F40' }
+          : { text: phase === 'done' ? 'imported' : 'Imported', color: '#2E6F40' };
       case 'working':
-        return { text: `${r.pct ?? 0}%`, color: '#1E2A22' };
+        return { text: `${r.pct ?? 0}%`, color: '#5B6B60' };
       case 'failed':
-        return { text: 'Failed', color: '#A5321E' };
+        return { text: phase === 'done' ? '' : 'Failed', color: '#C4432A' };
       case 'waiting':
-        return { text: phase === 'done' ? 'not imported' : 'Waiting', color: '#9AA8A0' };
+        return { text: phase === 'done' ? 'not imported' : 'Waiting', color: '#5B6B60' };
       default:
-        return { text: offlineNothing ? '' : 'Ready', color: '#5B6B60' };
+        return { text: offlineNothing ? formatSize(r.size) : 'Ready', color: '#5B6B60' };
     }
   };
 
+  // the rows (frames 29, 30, 32): a 20 px state mark, the name 13/600, its state or size on the right
+  const markOf = (r: ImportRow) =>
+    r.status === 'working' ? (
+      <span className="mc-spin dk-imp-spin" aria-hidden="true" />
+    ) : (
+      <span className="dk-imp-mark" aria-hidden="true">
+        {r.status === 'done' && <Icon name="check" size={12} strokeWidth={2.6} />}
+        {(r.status === 'failed' || r.problem) && <Icon name="i08" size={11} strokeWidth={2.4} />}
+      </span>
+    );
   const fileRows = (
-    <div style={{ border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' }} data-testid="import-rows">
+    <div className="dk-imp-list" data-testid="import-rows">
       {rows.map((r) => {
         const st = stateText(r);
+        const state = r.problem || r.status === 'failed' ? 'failed' : (r.status ?? 'ready');
+        const tall = !!(r.problem || (r.status === 'failed' && r.reason) || (r.status === 'done' && r.dropped));
         return (
-          <div key={r.key} className="dk-imp-row" data-testid="import-row">
-            <span style={{ display: 'flex', color: r.status === 'done' ? '#2E6F40' : '#9AA8A0' }}>
-              <Icon
-                name={r.status === 'done' ? 'i17' : r.status === 'failed' || r.problem ? 'i22' : 'i00'}
-                size={16}
-                strokeWidth={1.8}
-              />
-            </span>
+          <div
+            key={r.key}
+            className={`dk-imp-row${tall ? ' dk-imp-row-tall' : ''}`}
+            data-state={state}
+            data-testid="import-row"
+          >
+            {markOf(r)}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <span className="dk-imp-name">{r.name}</span>
-                <span style={{ fontSize: 11.5, color: '#9AA8A0', flexShrink: 0 }}>{formatSize(r.size)}</span>
+                {phase === 'choose' && <span className="dk-imp-size">{formatSize(r.size)}</span>}
               </div>
-              {r.problem && <div style={{ fontSize: 12, color: '#A5321E', marginTop: 2 }}>{r.problem.text}</div>}
+              {r.problem && <div className="dk-imp-why">{r.problem.text}</div>}
               {r.status === 'failed' && r.reason && (
-                <div role="alert" style={{ fontSize: 12, color: '#A5321E', marginTop: 2 }}>
+                <div role="alert" className="dk-imp-why">
                   {r.reason}
                 </div>
               )}
               {r.status === 'done' && !!r.dropped && (
-                <div style={{ fontSize: 12, color: '#7A4F08', marginTop: 2 }}>
+                <div className="dk-imp-why dk-imp-why-warn">
                   {plural(r.dropped, 'picture')} could not be kept and {r.dropped === 1 ? 'was' : 'were'} left out.
                 </div>
               )}
@@ -249,15 +262,12 @@ export function ConvertImport({
               )}
             </div>
             {st.text && (
-              <span style={{ fontSize: 12, fontWeight: 600, color: st.color, flexShrink: 0 }}>{st.text}</span>
+              <span className={r.status === 'working' ? 'dk-imp-pct' : 'dk-imp-state'} style={{ color: st.color }}>
+                {st.text}
+              </span>
             )}
             {r.status === 'failed' && phase === 'done' && (
-              <button
-                type="button"
-                className="st-btn st-btn-sm"
-                data-testid="import-retry"
-                onClick={() => void go([r])}
-              >
+              <button type="button" className="st-btn" data-testid="import-retry" onClick={() => void go([r])}>
                 Retry
               </button>
             )}
@@ -278,7 +288,7 @@ export function ConvertImport({
   );
 
   const placeSelect = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 0 }}>
       <label className="st-field-label" htmlFor="docs-import-place" style={{ fontSize: 11 }}>
         Place under
       </label>
@@ -298,6 +308,25 @@ export function ConvertImport({
     </div>
   );
 
+  // frame 31: the paste's Title beside Place under
+  const pasteTitleField = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 0 }}>
+      <label className="st-field-label" htmlFor="docs-paste-title" style={{ fontSize: 11 }}>
+        Title
+      </label>
+      <input
+        id="docs-paste-title"
+        className="st-input"
+        value={pasteTitle}
+        placeholder="Page title"
+        onChange={(e) => {
+          setPasteTitle(e.target.value);
+          setPasteTitleTouched(true);
+        }}
+      />
+    </div>
+  );
+
   const accept = source === 'word' ? '.docx' : '.html,.htm';
   const chooseBody = paste ? (
     <>
@@ -310,40 +339,23 @@ export function ConvertImport({
         autoFocus
       />
       {text.trim() && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12 }}>
-          <b style={{ color: '#1E2A22' }} data-testid="paste-guess">
+        <div className="dk-paste-guess">
+          <span className="dk-paste-chip" data-testid="paste-guess">
             Looks like {KIND_LABEL[kind]}
-          </b>
-          <span style={{ color: '#5B6B60' }}>
+          </span>
+          <span className="dk-paste-meta">
             {formatSize(new Blob([text]).size)}
             {pasteFindings(text, kind).length ? ` · ${joinWords(pasteFindings(text, kind))} found` : ''}
           </span>
-          <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-            {(['html', 'markdown', 'text'] as const)
-              .filter((k) => k !== kind)
-              .map((k) => (
-                <button key={k} type="button" className="st-btn st-btn-sm" onClick={() => setKindOverride(k)}>
-                  Treat as {KIND_LABEL[k]}
-                </button>
-              ))}
-          </span>
+          {(['html', 'markdown', 'text'] as const)
+            .filter((k) => k !== kind)
+            .map((k) => (
+              <button key={k} type="button" className="dk-paste-switch" onClick={() => setKindOverride(k)}>
+                Treat as {KIND_LABEL[k]}
+              </button>
+            ))}
         </div>
       )}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <label className="st-field-label" htmlFor="docs-paste-title" style={{ fontSize: 11 }}>
-          Title
-        </label>
-        <input
-          id="docs-paste-title"
-          className="st-input"
-          value={pasteTitle}
-          placeholder="Page title"
-          onChange={(e) => {
-            setPasteTitle(e.target.value);
-            setPasteTitleTouched(true);
-          }}
-        />
-      </div>
     </>
   ) : (
     <>
@@ -409,11 +421,20 @@ export function ConvertImport({
   if (phase === 'running') {
     body = (
       <>
-        <div style={{ display: 'flex', alignItems: 'baseline', fontSize: 13, fontWeight: 700, color: '#1E2A22' }}>
-          {Math.min(total, doneRows + 1)} of {total}
+        <div className="dk-imp-progress">
+          <div
+            className="dk-imp-total"
+            role="progressbar"
+            aria-valuenow={total ? Math.round((doneRows / total) * 100) : 0}
+          >
+            <div style={{ width: `${total ? (doneRows / total) * 100 : 0}%` }} />
+          </div>
+          <span className="dk-imp-count">
+            {Math.min(total, doneRows + 1)} of {total}
+          </span>
         </div>
         {fileRows}
-        <div style={{ fontSize: 12, color: '#5B6B60' }}>
+        <div className="dk-imp-hint">
           {phone
             ? 'You can leave this screen. Import keeps going and a toast tells you when it is done.'
             : 'You can keep working. The tree fills in as pages arrive.'}
@@ -423,22 +444,27 @@ export function ConvertImport({
   } else if (phase === 'done') {
     body = (
       <>
-        <div style={{ fontSize: 13, color: '#3A4A3E', lineHeight: 1.5 }} data-testid="import-summary">
-          {result?.stopped && !result.failed
-            ? `Import stopped. ${doneRows} of ${total} pages were imported before you stopped. They stay in the tree.`
-            : `${doneRows} of ${plural(total, 'file')} were imported. ${
-                failedRows.length === 1 ? 'One could not be read.' : `${failedRows.length} could not be read.`
-              }`}
-        </div>
+        {result?.stopped && !result.failed ? (
+          <div className="dk-imp-alert dk-imp-alert-info" data-testid="import-summary">
+            <b>Import stopped.</b> {doneRows} of {total} pages were imported before you stopped. They stay in the tree.
+          </div>
+        ) : (
+          <div className="dk-imp-alert" data-testid="import-summary">
+            <b>
+              {doneRows} of {plural(total, 'file')} were imported.
+            </b>{' '}
+            {failedRows.length === 1 ? 'One could not be read.' : `${failedRows.length} could not be read.`}
+          </div>
+        )}
         {fileRows}
       </>
     );
   } else if (offlineNothing) {
     body = (
       <>
-        <div role="alert" style={{ fontSize: 13, color: '#A5321E', lineHeight: 1.5 }} data-testid="import-offline">
-          Nothing was imported. We could not reach the server. Your files are still here; try again when you are back
-          online.
+        <div role="alert" className="dk-imp-alert" data-testid="import-offline">
+          <b>Nothing was imported.</b> We could not reach the server. Your files are still here; try again when you are
+          back online.
         </div>
         {paste ? chooseBody : fileRows}
       </>
@@ -448,7 +474,14 @@ export function ConvertImport({
       <>
         <ImportSourceTiles value={source} onChange={onSource} />
         {chooseBody}
-        {placeSelect}
+        {paste ? (
+          <div className="dk-imp-fields">
+            {pasteTitleField}
+            {placeSelect}
+          </div>
+        ) : (
+          placeSelect
+        )}
       </>
     );
   }
@@ -462,7 +495,7 @@ export function ConvertImport({
     foot = (
       <button
         type="button"
-        className="st-btn"
+        className="st-btn st-btn-danger-outline"
         style={phone ? { flex: 1 } : { marginLeft: 'auto' }}
         disabled={stopping}
         onClick={() => {

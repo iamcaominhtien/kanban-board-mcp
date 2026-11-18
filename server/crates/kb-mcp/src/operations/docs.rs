@@ -221,7 +221,7 @@ pub async fn update_docs_page(
         let page = docs_rich::load(&session, page_id).await?;
         if let Some(title) = title {
             if pytext::strip(title) != page.detail.get("title").and_then(Value::as_str).unwrap_or_default() {
-                docs::rename_page(&session, page_id, title, true).await.map_err(docs_error)?;
+                docs::rename_page(&session, page_id, title, true, None).await.map_err(docs_error)?;
             }
         }
         let doc = match &page.doc {

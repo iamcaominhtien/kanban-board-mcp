@@ -82,6 +82,8 @@ export interface DocsAiSource {
   gaps?: string[];
   sources?: { n: number; label: string; quote?: string }[];
   accepted?: boolean;
+  /** The formatting the draft uses, in words ("Title and subtitle centred", "Pull quote"): the Gaps panel lists it. */
+  formatting?: string[];
 }
 
 export interface DocsPage {

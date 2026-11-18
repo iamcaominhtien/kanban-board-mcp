@@ -59,8 +59,27 @@ export function PageWork({ pageId, onOpenTicket }: { pageId: string; onOpenTicke
     const t = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(t);
   }, [live.length]);
+  // the blocks a team is changing now are marked in the page (States H 59–61): "Docs team is changing this block"
+  const changing = live.flatMap((t) => (t.run.blocks ?? []).map((id) => [id, t.run.member] as const));
+  const changingKey = changing.map(([id, who]) => `${id}:${who}`).join(',');
+  useEffect(() => {
+    if (!changingKey) return undefined;
+    const marked: HTMLElement[] = [];
+    for (const pair of changingKey.split(',')) {
+      const at = pair.indexOf(':');
+      const id = pair.slice(0, at);
+      const who = pair.slice(at + 1);
+      document.querySelectorAll<HTMLElement>(`[data-block-id="${CSS.escape(id)}"]`).forEach((el) => {
+        el.setAttribute('data-ai-changing', `${who} is changing this block`);
+        marked.push(el);
+      });
+    }
+    return () => marked.forEach((el) => el.removeAttribute('data-ai-changing'));
+    // `now` ticks every second while a run is live: blocks drawn after the banner are marked too
+  }, [changingKey, now]);
   if (!live.length) return null;
   const working = live.some((t) => t.run.state !== 'needs_input');
+  const paused = new Set(changing.map(([id]) => id)).size;
   return (
     <section aria-label="AI at work on this page" data-testid="docs-page-work" className="pw-wrap">
       {live.map((t) => {
@@ -114,8 +133,10 @@ export function PageWork({ pageId, onOpenTicket }: { pageId: string; onOpenTicke
       {working && !phone && (
         <div className="pw-note">
           <SgIcon name="info" size={14} color="#5B6B60" />
-          <span>
-            You can keep editing. If you change a block the team is working on, its version arrives as a suggestion.
+          <span data-testid="pw-note">
+            {paused > 0
+              ? `You can keep editing; the ${paused === 1 ? 'block' : `${paused} blocks`} it is changing ${paused === 1 ? 'is' : 'are'} marked on the page, and its changes arrive as suggestions.`
+              : 'You can keep editing. If you change a block the team is working on, its version arrives as a suggestion.'}
           </span>
         </div>
       )}

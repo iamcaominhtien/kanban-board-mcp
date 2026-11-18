@@ -3,7 +3,7 @@
  * and when, its note, "with AI", how many blocks it changed, the conversion from Markdown and the old Markdown
  * versions, a restore; a box to choose it for a comparison; its buttons (View, Restore, Copy as new page: on hover, or
  * always on the chosen row) and its menu (View this version, Compare with previous, Compare with current, Restore,
- * Copy as new page).
+ * Copy as new page, Copy link to version, Edit note).
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -22,6 +22,10 @@ export interface RowActions {
   onCompareCurrent?: () => void;
   onRestore?: () => void;
   onCopy?: () => void;
+  /** Copy a link that opens the page on this version. */
+  onCopyLink?: () => void;
+  /** Change the version's note. */
+  onEditNote?: () => void;
 }
 
 /** The chosen-row box (20 px with a 15 px check on touch, 16 px with an 11 px check on desktop). */
@@ -131,6 +135,9 @@ function RowMenu({ v, current, actions }: { v: DocsVersionSummary; current: numb
           <div className="hx-menu-sep" role="separator" />
           {restore && item(`Restore as v${current + 1}`, 'i19', actions.onRestore, 'menu-restore')}
           {item('Copy as new page', 'i24', actions.onCopy, 'menu-copy')}
+          {item('Copy link to version', 'i11', actions.onCopyLink, 'menu-copy-link')}
+          {actions.onEditNote && <div className="hx-menu-sep" role="separator" />}
+          {item('Edit note', 'i15', actions.onEditNote, 'menu-edit-note')}
         </div>
       )}
     </span>

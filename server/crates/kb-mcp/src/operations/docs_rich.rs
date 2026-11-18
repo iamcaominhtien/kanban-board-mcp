@@ -274,6 +274,15 @@ pub async fn save(
         let page = docs::save_draft(session, page_id, BodyInput::Content(doc), None, i32::try_from(base_version).ok())
             .await
             .map_err(docs_error)?;
+        // a team's draft says so, with the formatting it used (the Gaps panel of the draft)
+        if let Some(run) = common::resolve().await? {
+            let mut source = Map::new();
+            source.insert("kind".into(), json!("team"));
+            source.insert("from".into(), json!(run.ticket_id));
+            source.insert("member_id".into(), json!(run.member_id));
+            let author = activity::current_actor();
+            docs_suggestions::mark_ai_draft(session, page_id, Some(&author), source).await.map_err(docs_error)?;
+        }
         let mut out = pick(&page, &["id", "title", "version"]);
         out.insert("published".into(), json!(false));
         return Ok(out);
@@ -310,11 +319,20 @@ pub async fn save(
     let mut out = pick(&detail, &["id", "title", "version"]);
     let left_alone = done.get("left_alone").cloned().unwrap_or(json!([]));
     let left: Vec<&str> = left_alone.as_array().into_iter().flatten().filter_map(Value::as_str).collect();
-    let left_note = if left.is_empty() {
+    let mut left_note = if left.is_empty() {
         String::new()
     } else {
         format!(" Left as they are (locked for teams: \"Teams cannot change this\"): {}.", left.join(", "))
     };
+    let kept: Vec<&str> =
+        done.get("kept_formatting").and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str).collect();
+    if !kept.is_empty() {
+        left_note.push_str(&format!(
+            " Left as they are (rewriting them would remove their colours, highlights, links or fonts; keep the \
+             spans of docs_read(action='get')): {}.",
+            kept.join(", ")
+        ));
+    }
     let version = detail.get("version").and_then(Value::as_i64).unwrap_or_default();
     let (published, message) = match mode {
         ApplyMode::Direct => {

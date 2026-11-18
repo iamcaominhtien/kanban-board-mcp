@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { DocsLayout } from '../../hooks/useDocsLayout';
 import type { DocsTreeNode } from '../../types/docs';
@@ -330,7 +330,7 @@ export function DocsTree({
   const [filter, setFilter] = useState('');
   const [filterFocus, setFilterFocus] = useState(false);
   const [newMenu, setNewMenu] = useState(false);
-  const [menu, setMenu] = useState<{ id: string; left: number; top: number } | null>(null);
+  const [menu, setMenu] = useState<{ id: string; left: number; top: number; arrow?: number } | null>(null);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ id: string; x: number; y: number } | null>(null);
   const [drop, setDrop] = useState<Drop | null>(null);
@@ -1007,7 +1007,17 @@ export function DocsTree({
                 onClick={(e) => {
                   e.stopPropagation();
                   const rect = e.currentTarget.getBoundingClientRect();
-                  setMenu((m) => (m?.id === n.id ? null : { id: n.id, left: rect.right, top: rect.bottom - 6 }));
+                  // desktop (Tree board, frame 27): the menu opens beside the tree, its arrow at the row
+                  const side = touch ? null : e.currentTarget.closest('aside')?.getBoundingClientRect();
+                  const mid = rect.top + rect.height / 2;
+                  const top = Math.max(8, Math.min(mid - 24, window.innerHeight - 480));
+                  setMenu((m) =>
+                    m?.id === n.id
+                      ? null
+                      : side
+                        ? { id: n.id, left: side.right + 8, top, arrow: mid - top }
+                        : { id: n.id, left: rect.right, top: rect.bottom - 6 },
+                  );
                 }}
                 className="dk-icobtn"
               >
@@ -1342,10 +1352,21 @@ export function DocsTree({
 
       {menu && byId.get(menu.id) && (
         <div
-          className="docs-root"
+          className={`docs-root${menu.arrow != null ? ' tr-rowmenu' : ''}`}
           onMouseDown={(e) => e.stopPropagation()}
-          style={{ position: 'fixed', left: menu.left, top: menu.top, width: 0, height: 0, zIndex: 300 }}
+          style={
+            {
+              position: 'fixed',
+              left: menu.left,
+              top: menu.top,
+              width: 0,
+              height: 0,
+              zIndex: 300,
+              '--tr-arrow': `${menu.arrow ?? 24}px`,
+            } as CSSProperties
+          }
         >
+          {menu.arrow != null && <span className="tr-rowmenu-arrow" aria-hidden="true" />}
           {renderMenu(byId.get(menu.id)!, () => setMenu(null))}
         </div>
       )}

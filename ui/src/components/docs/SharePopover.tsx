@@ -3,6 +3,10 @@ import type { DocsPage } from '../../types/docs';
 import { Icon } from './Icon';
 import { PublicLinkSection } from './PublicLinkSection';
 import { usePublicLink } from '../../api/docsPublic';
+import { useMembers } from '../../api/members';
+import { useProjects } from '../../api/projects';
+import { useDocsAccess } from '../../api/docsAccess';
+import { Avatar, displayName } from './docsShared';
 
 interface SharePopoverProps {
   page: DocsPage;
@@ -92,6 +96,54 @@ function ProjectAccess({ chosen }: { chosen: boolean }) {
 function ProjectAccessLive({ pageId }: { pageId: string }) {
   const q = usePublicLink(pageId);
   return <ProjectAccess chosen={!q.data?.link} />;
+}
+
+/** People shown before "and N more". */
+const PEOPLE_SHOWN = 5;
+
+/**
+ * "People with access" (Reader board, frame 38): the project's people and what each can do on the page — Owner for
+ * the person who made it, then Can edit or Can read from their role and the project's "who can edit" setting.
+ * Read-only: access is set for the whole Docs space in Settings, not per page.
+ * @param props.page - The page.
+ */
+function PeopleWithAccess({ page }: { page: DocsPage }) {
+  const membersQ = useMembers(page.projectId).data;
+  const projectsQ = useProjects().data;
+  const me = useDocsAccess(page.projectId).data?.me ?? null;
+  const members = Array.isArray(membersQ) ? membersQ : [];
+  const policy = (Array.isArray(projectsQ) ? projectsQ : []).find((p) => p.id === page.projectId)?.docsEditPolicy;
+  const people = members.filter((m) => (m.kind ?? 'human') === 'human');
+  if (!people.length) return null;
+  const canEdit = (role: string) =>
+    policy === 'everyone' || (policy === 'admins' ? role === 'admin' : role !== 'viewer');
+  const ranked = [...people].sort(
+    (a, b) =>
+      Number(b.name === page.createdBy) - Number(a.name === page.createdBy) ||
+      Number(b.name === me) - Number(a.name === me) ||
+      a.name.localeCompare(b.name),
+  );
+  const shown = ranked.slice(0, PEOPLE_SHOWN);
+  return (
+    <div className="dk-share-people" data-testid="share-people">
+      <div className="dk-share-label">People with access</div>
+      {shown.map((m) => (
+        <div key={m.id} className="dk-share-person">
+          <Avatar name={m.name} size={28} />
+          <div className="dk-share-person-name">
+            {displayName(m.name)}
+            {m.name === me && <span> (you)</span>}
+          </div>
+          <span className="dk-share-person-role">
+            {m.name === page.createdBy ? 'Owner' : canEdit(m.role ?? 'member') ? 'Can edit' : 'Can read'}
+          </span>
+        </div>
+      ))}
+      {ranked.length > shown.length && (
+        <div className="dk-share-more">and {ranked.length - shown.length} more in this project</div>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -213,6 +265,7 @@ export function SharePopover({ page, onClose, variant = 'popover', publicLinks }
       )}
       {publicLinks ? <ProjectAccessLive pageId={page.id} /> : <ProjectAccess chosen />}
       {publicLinks && <PublicLinkSection page={page} canEdit={publicLinks.canEdit} />}
+      {publicLinks && <PeopleWithAccess page={page} />}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div className="dk-share-label">Reference in another page</div>
         <div style={{ display: 'flex', gap: 8 }}>

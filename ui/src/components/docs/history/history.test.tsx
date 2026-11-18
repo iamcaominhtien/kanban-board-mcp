@@ -30,7 +30,7 @@ vi.mock('../../../api/docs', async (orig) => {
 });
 
 import { CompareView } from './CompareView';
-import { CopyPageDialog, RestoreDialog } from './Dialogs';
+import { CopyPageDialog, EditNoteDialog, RestoreDialog } from './Dialogs';
 import { VersionRow } from './VersionRow';
 import { orphanSentence, rowChange } from './versionInfo';
 
@@ -204,6 +204,51 @@ describe('a version row counts the blocks it changed', () => {
     ]);
     fireEvent.click(screen.getByTestId('menu-copy'));
     expect(onCopy).toHaveBeenCalled();
+  });
+});
+
+describe('copy link to version and edit note', () => {
+  it('adds the two items when the row can copy a link and edit its note', () => {
+    const onCopyLink = vi.fn();
+    const onEditNote = vi.fn();
+    render(
+      <VersionRow
+        v={summary(12)}
+        current={15}
+        change={null}
+        previous={11}
+        selected={false}
+        onToggle={() => undefined}
+        actions={{ onOpen: () => undefined, onCopy: () => undefined, onCopyLink, onEditNote }}
+        touch={false}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('version-menu-12'));
+    expect(screen.getAllByRole('menuitem').map((b) => b.textContent)).toEqual([
+      'View this version',
+      'Copy as new page',
+      'Copy link to version',
+      'Edit note',
+    ]);
+    fireEvent.click(screen.getByTestId('menu-copy-link'));
+    expect(onCopyLink).toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('version-menu-12'));
+    fireEvent.click(screen.getByTestId('menu-edit-note'));
+    expect(onEditNote).toHaveBeenCalled();
+  });
+
+  it('saves the trimmed note and refuses one that is too long', () => {
+    const onSave = vi.fn();
+    render(
+      <EditNoteDialog target={summary(12)} busy={false} error={null} onCancel={() => undefined} onSave={onSave} />,
+    );
+    const box = screen.getByLabelText('Version note');
+    fireEvent.change(box, { target: { value: '  Added the 401 branch ' } });
+    fireEvent.click(screen.getByTestId('hx-edit-note-save'));
+    expect(onSave).toHaveBeenCalledWith('Added the 401 branch');
+    fireEvent.change(box, { target: { value: 'x'.repeat(201) } });
+    expect(screen.getByRole('alert').textContent).toContain('up to 200 characters');
+    expect((screen.getByTestId('hx-edit-note-save') as HTMLButtonElement).disabled).toBe(true);
   });
 });
 

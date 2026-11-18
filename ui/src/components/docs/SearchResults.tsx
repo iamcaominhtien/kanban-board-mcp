@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import './docs.css';
 import { Icon } from './Icon';
 import { useDocsSearch } from '../../api/docsFx';
@@ -7,6 +7,7 @@ import { useDocsOnline, searchDocsCache } from './useDocsOffline';
 import { Avatar, Snip, StatusDot, TICKET_KEY, ancestors, highlight, sectionLabelStyle, timeAgo } from './searchShared';
 import type { DocsMatchType, DocsSearchPage, DocsSearchParams, DocsSearchResponse } from '../../types/docsFx';
 import { MatchMarker, TableRowSnip, markerWords, matchAnchor } from './links/MatchMarker';
+import { BlockResultCard, isBlockMatch } from './links/BlockResultCard';
 
 export interface SearchResultsProps {
   projectId: string;
@@ -253,7 +254,13 @@ export function SearchResults({
   const [customFrom, setCustomFrom] = useState('');
   const [under, setUnder] = useState('');
   const [hasTickets, setHasTickets] = useState(false);
-  const [status, setStatus] = useState<{ published: boolean; draft: boolean }>({ published: true, draft: true });
+  const [status, setStatus] = useState<{ published: boolean; draft: boolean; outdated: boolean }>({
+    published: true,
+    draft: true,
+    outdated: false,
+  });
+  // All projects (B 12): the results of one project only
+  const [onlyProject, setOnlyProject] = useState<string | null>(null);
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [within, setWithin] = useState('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -284,6 +291,9 @@ export function SearchResults({
     pageId: scope === 'page' ? (currentPage?.id ?? null) : null,
     kinds: types,
     kindFacets: scope !== 'tickets',
+    outdatedFacet: scope !== 'tickets',
+    projectFacets: scope === 'all',
+    cards: true,
     mode: q.trim().startsWith('#') ? 'headings' : undefined,
     limit,
     sort,
@@ -291,9 +301,12 @@ export function SearchResults({
     editedSince,
     underPage: under || null,
     hasTickets,
-    status: [status.published && 'published', status.draft && 'draft'].filter(
-      (x): x is string => !!x && !(status.published && status.draft),
-    ),
+    // "May be outdated" narrows to the published pages that may be outdated (B 7)
+    status: status.outdated
+      ? ['outdated']
+      : [status.published && 'published', status.draft && 'draft'].filter(
+          (x): x is string => !!x && !(status.published && status.draft),
+        ),
   };
   if (params.mode) params.q = q.trim().slice(1);
   const res = useDocsSearch(projectId, params, { enabled: online && q.trim().length > 0, keepPrevious: true });
@@ -306,15 +319,17 @@ export function SearchResults({
   const loading = res.isFetching && !res.data;
   const failed = res.isError && !netError;
 
+  useEffect(() => setOnlyProject(null), [scope, q]);
   const shown = useMemo(() => {
-    const pages = data?.pages ?? [];
+    const all = data?.pages ?? [];
+    const pages = onlyProject ? all.filter((p) => p.projectId === onlyProject) : all;
     const w = within.trim().toLowerCase();
     return w
       ? pages.filter((p) =>
           (p.title + ' ' + p.matches.map((m) => m.section + ' ' + m.snippet).join(' ')).toLowerCase().includes(w),
         )
       : pages;
-  }, [data, within]);
+  }, [data, within, onlyProject]);
 
   const total = data?.total ?? 0;
   const matchCount = data?.matchCount ?? (data?.pages ?? []).reduce((n, p) => n + Math.max(1, p.matches.length), 0);
@@ -327,7 +342,7 @@ export function SearchResults({
     setEdited('any');
     setUnder('');
     setHasTickets(false);
-    setStatus({ published: true, draft: true });
+    setStatus({ published: true, draft: true, outdated: false });
     setWithin('');
   };
   const f = data?.facets;
@@ -344,13 +359,19 @@ export function SearchResults({
   };
 
   const card = (p: DocsSearchPage) => {
-    const secs = p.matches;
+    // a picture, table, code block, file or diagram that matched gets a card of its own (B 7)
+    const blocks = p.matches.filter(isBlockMatch);
+    const secs = p.matches.filter((m) => !isBlockMatch(m));
+    const blockCards = blocks.map((m, i) => (
+      <BlockResultCard key={`${p.pageId}-b${i}`} page={p} match={m} q={q} onOpen={onOpenPage} />
+    ));
+    if (blocks.length && !secs.length) return <Fragment key={p.pageId}>{blockCards}</Fragment>;
     const open = expanded[p.pageId];
     const visible = open ? secs : secs.slice(0, 3);
     const anc = ancestors(p);
     const crumb = [scope === 'all' ? p.projectName : projectName, ...anc];
     const nm = Math.max(secs.length, 1);
-    return (
+    const pageCard = (
       <div
         key={p.pageId}
         style={{
@@ -497,6 +518,14 @@ export function SearchResults({
           )}
         </div>
       </div>
+    );
+    return blocks.length ? (
+      <Fragment key={p.pageId}>
+        {pageCard}
+        {blockCards}
+      </Fragment>
+    ) : (
+      pageCard
     );
   };
 
@@ -958,6 +987,24 @@ export function SearchResults({
               >
                 Draft
               </Check>
+              <Check
+                on={status.outdated}
+                onChange={() => setStatus((s) => ({ ...s, outdated: !s.outdated }))}
+                count={f?.outdated}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    border: '2px solid #C98A1B',
+                    boxSizing: 'border-box',
+                    flex: 'none',
+                  }}
+                />
+                <span data-testid="search-filter-outdated">May be outdated</span>
+              </Check>
             </>,
             true,
           )}
@@ -1105,6 +1152,9 @@ export function SearchResults({
               ))}
             </div>
           )}
+          {scope === 'all' && (f?.projects?.length ?? 0) > 0 && (
+            <ProjectStrip projects={f?.projects ?? []} only={onlyProject} onPick={setOnlyProject} total={total} />
+          )}
           {!ticketMode || scope !== 'tickets' ? shown.map(card) : null}
           {scope !== 'tickets' && shown.length > 0 && data && (
             <div
@@ -1128,6 +1178,80 @@ export function SearchResults({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+const PILL: React.CSSProperties = {
+  height: 28,
+  boxSizing: 'border-box',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 5,
+  padding: '0 11px',
+  borderRadius: 999,
+  fontSize: 12.5,
+  fontWeight: 600,
+  whiteSpace: 'nowrap',
+  flex: 'none',
+  cursor: 'pointer',
+  font: 'inherit',
+};
+
+/**
+ * All projects (RichDocsLinks B 12): one pill per project you belong to with its number of results; a pill shows
+ * that project's results only.
+ */
+function ProjectStrip({
+  projects,
+  only,
+  onPick,
+  total,
+}: {
+  projects: { projectId: string; name: string; count: number }[];
+  only: string | null;
+  onPick: (id: string | null) => void;
+  total: number;
+}) {
+  const pill = (on: boolean): React.CSSProperties =>
+    on
+      ? { ...PILL, background: '#1F5A31', color: '#fff', border: '1px solid #1F5A31' }
+      : { ...PILL, background: '#fff', color: '#3A4A3E', border: '1px solid #DCE3DE' };
+  return (
+    <div
+      data-testid="search-project-strip"
+      style={{ display: 'flex', gap: 8, padding: '12px 0', borderBottom: '1px solid #EEF3EF', flexWrap: 'wrap' }}
+    >
+      <button type="button" style={{ ...pill(!only), fontSize: 12.5, fontWeight: 600 }} onClick={() => onPick(null)}>
+        <svg
+          width={12}
+          height={12}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" />
+        </svg>
+        All projects
+        <span style={{ fontSize: 11, fontWeight: 700, color: !only ? '#CFE6D6' : '#5B6B60' }}>{total}</span>
+      </button>
+      {projects.map((p) => (
+        <button
+          type="button"
+          key={p.projectId}
+          data-testid="search-project-pill"
+          style={{ ...pill(only === p.projectId), fontSize: 12.5, fontWeight: 600 }}
+          onClick={() => onPick(only === p.projectId ? null : p.projectId)}
+        >
+          {p.name}
+          <span style={{ fontSize: 11, fontWeight: 700, color: only === p.projectId ? '#CFE6D6' : '#5B6B60' }}>
+            {p.count}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }

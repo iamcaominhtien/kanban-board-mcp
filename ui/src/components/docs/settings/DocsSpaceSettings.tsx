@@ -24,6 +24,7 @@ import type { Project } from '../../../types/ticket';
 import { Pills, SettingRow, SettingsCard, Switch } from '../../settings/settingsUi';
 import ss from '../../settings/SettingsPage.module.css';
 import { ModalShell } from '../docsShared';
+import { Icon } from '../Icon';
 import {
   BACKGROUNDS,
   BACKGROUND_LABEL,
@@ -380,7 +381,7 @@ function TemplatesCard({
       <fieldset disabled={locked} className="ds-fields">
         <Labelled label="Default for new pages" hint="Used by the + button in the tree, which skips the gallery.">
           <select
-            className="st-input"
+            className="st-input ds-select"
             aria-label="Default for new pages"
             value={s.defaultTemplate}
             onChange={(e) =>
@@ -407,48 +408,52 @@ function TemplatesCard({
             ))}
           </select>
         </Labelled>
-        <div className={ss.field}>
-          <span className={ss.fieldLab}>Shown in the gallery</span>
-          <div className="ds-checks" role="group" aria-label="Shown in the gallery">
-            <label className="ds-check">
-              <input type="checkbox" checked disabled />
-              <span>
-                Blank <small>Always available</small>
-              </span>
-            </label>
-            {builtin
-              .filter((b) => b.id !== 'blank')
-              .map((b) => (
-                <label key={b.id} className="ds-check">
-                  <input
-                    type="checkbox"
-                    checked={!hidden.has(b.id)}
-                    data-testid={`ds-tpl-${b.id}`}
-                    onChange={(e) => {
-                      const next = e.target.checked
-                        ? s.hiddenTemplates.filter((x) => x !== b.id)
-                        : [...s.hiddenTemplates, b.id];
-                      save(
-                        'tpl',
-                        { hiddenTemplates: next },
-                        `${b.name}: ${e.target.checked ? 'shown' : 'hidden'}`,
-                        e.target.checked ? 'hidden' : 'shown',
-                      );
-                    }}
-                  />
-                  <span>
-                    {b.name} {b.description && <small>{b.description}</small>}
-                  </span>
-                </label>
-              ))}
+        <div className="ds-rule" />
+        <div className="ds-cap">Shown in the gallery</div>
+        {/* Tree board, frame 52: one 38 px row per template, its icon tile, the name and a switch */}
+        <div role="group" aria-label="Shown in the gallery">
+          <div className="ds-trow">
+            <span className="ds-tile" aria-hidden="true">
+              <Icon name="i00" size={14} strokeWidth={1.8} />
+            </span>
+            <div className="ds-tname">
+              Blank <span>· Always available</span>
+            </div>
+            <Switch on label="Blank" disabled onChange={() => undefined} />
           </div>
+          {builtin
+            .filter((b) => b.id !== 'blank')
+            .map((b) => (
+              <div key={b.id} className="ds-trow">
+                <span className="ds-tile" aria-hidden="true">
+                  <Icon name="i00" size={14} strokeWidth={1.8} />
+                </span>
+                <div className="ds-tname">
+                  {b.name} {b.description && <span>· {b.description}</span>}
+                </div>
+                <Switch
+                  on={!hidden.has(b.id)}
+                  label={`Show ${b.name}`}
+                  testId={`ds-tpl-${b.id}`}
+                  onChange={(on) => {
+                    const next = on ? s.hiddenTemplates.filter((x) => x !== b.id) : [...s.hiddenTemplates, b.id];
+                    save(
+                      'tpl',
+                      { hiddenTemplates: next },
+                      `${b.name}: ${on ? 'shown' : 'hidden'}`,
+                      on ? 'hidden' : 'shown',
+                    );
+                  }}
+                />
+              </div>
+            ))}
         </div>
       </fieldset>
-      <div className={ss.settingRow}>
-        <div className={ss.settingRowText}>
-          <div className={ss.settingName}>Your templates · {shared.length} shared with this project</div>
-        </div>
-        <button type="button" className="st-btn st-btn-sm" disabled={!enabled} onClick={() => setManage(true)}>
+      <div className="ds-yours">
+        <span style={{ flex: 1 }}>
+          Your templates <span>· {shared.length} shared with this project</span>
+        </span>
+        <button type="button" className="ds-link" disabled={!enabled} onClick={() => setManage(true)}>
           Manage
         </button>
       </div>
@@ -505,62 +510,76 @@ function SavedTemplates({
 function SharingCard({ s, locked, status, error, save }: CardProps & { s: Settings }) {
   const expiry = (v: Settings['publicLinkExpiry']) => EXPIRY.find(([k]) => k === v)?.[1] ?? v;
   return (
-    <SettingsCard
-      title="Sharing and highlights"
-      hint="A page owner turns a public link on for one page. An admin can switch public links off for the whole project."
-      setting="docs-sharing"
-      status={status}
-    >
-      {error}
-      <SettingRow
-        title="Allow public links"
-        hint="Off: every public link in this project stops working, and owners can no longer make one."
+    <>
+      <SettingsCard
+        title="Sharing"
+        hint="A page owner turns a public link on for one page. An admin can switch public links off for the whole project."
+        setting="docs-sharing"
+        status={status}
       >
-        <Switch
-          on={s.allowPublicLinks}
-          label="Allow public links"
-          disabled={locked}
-          testId="ds-public-links"
-          onChange={(v) =>
-            save('share', { allowPublicLinks: v }, 'Allow public links', s.allowPublicLinks ? 'On' : 'Off')
-          }
-        />
-      </SettingRow>
-      <fieldset disabled={locked || !s.allowPublicLinks} className="ds-fields">
-        <Labelled label="New public links expire" hint="The default for new links. Owners can choose a shorter time.">
-          <Pills
-            label="New public links expire"
-            options={EXPIRY}
-            value={s.publicLinkExpiry}
-            onChange={(v) => save('share', { publicLinkExpiry: v }, `Expire: ${expiry(v)}`, expiry(s.publicLinkExpiry))}
-          />
-        </Labelled>
-      </fieldset>
-      <div className={ss.divider} />
-      <fieldset disabled={locked} className="ds-fields">
-        <Labelled
-          label="Highlights on pages"
-          hint="Readers can highlight a passage while reading; only people who can comment can. A page can turn them off in its Access settings. Highlights are not shown on public pages."
+        {error}
+        <SettingRow
+          title="Allow public links"
+          hint="Off: every public link in this project stops working, and owners can no longer make one."
         >
-          <Pills
-            label="Highlights on pages"
-            options={[
-              ['on', 'On'],
-              ['off', 'Off'],
-            ]}
-            value={s.highlights}
+          <Switch
+            on={s.allowPublicLinks}
+            label="Allow public links"
+            disabled={locked}
+            testId="ds-public-links"
             onChange={(v) =>
-              save(
-                'share',
-                { highlights: v },
-                `Highlights: ${v === 'on' ? 'On' : 'Off'}`,
-                s.highlights === 'on' ? 'On' : 'Off',
-              )
+              save('share', { allowPublicLinks: v }, 'Allow public links', s.allowPublicLinks ? 'On' : 'Off')
             }
           />
-        </Labelled>
-      </fieldset>
-    </SettingsCard>
+        </SettingRow>
+        <fieldset disabled={locked || !s.allowPublicLinks} className="ds-fields">
+          <Labelled label="New public links expire" hint="The default for new links. Owners can choose a shorter time.">
+            <Pills
+              label="New public links expire"
+              options={EXPIRY}
+              value={s.publicLinkExpiry}
+              onChange={(v) =>
+                save('share', { publicLinkExpiry: v }, `Expire: ${expiry(v)}`, expiry(s.publicLinkExpiry))
+              }
+            />
+          </Labelled>
+        </fieldset>
+      </SettingsCard>
+      {/* the board gives Highlights a card of its own (frame 52), the choice a 34 px segmented control */}
+      <SettingsCard
+        title="Highlights"
+        hint="Readers can highlight a passage while reading. A highlight is a note on the page, shared with everyone who can read it; it is not page text and has no version."
+        setting="docs-highlights"
+      >
+        <fieldset disabled={locked} className="ds-fields">
+          <SettingRow
+            title="Highlights on pages"
+            hint="The default for every page. A page can turn them off in its Access settings."
+          >
+            <Seg
+              label="Highlights on pages"
+              options={[
+                ['on', 'On'],
+                ['off', 'Off'],
+              ]}
+              value={s.highlights}
+              onChange={(v) =>
+                save(
+                  'share',
+                  { highlights: v },
+                  `Highlights: ${v === 'on' ? 'On' : 'Off'}`,
+                  s.highlights === 'on' ? 'On' : 'Off',
+                )
+              }
+            />
+          </SettingRow>
+          <div className="ds-note">
+            Only people who can comment can highlight, so viewers can’t. Highlights are not shown on public pages.
+            Admins can clear all highlights on a page.
+          </div>
+        </fieldset>
+      </SettingsCard>
+    </>
   );
 }
 
@@ -588,7 +607,7 @@ function LimitField({
     if (!bad && n !== value) onSave(n);
   };
   return (
-    <Labelled label={label} hint={bad ? `A whole number from 1 to ${max}.` : hint}>
+    <SettingRow title={label} hint={bad ? `A whole number from 1 to ${max}.` : hint}>
       <span className="ds-mb">
         <input
           className="st-input"
@@ -602,7 +621,7 @@ function LimitField({
         />
         MB
       </span>
-    </Labelled>
+    </SettingRow>
   );
 }
 
@@ -618,7 +637,8 @@ function UploadsCard({ s, locked, status, error, save }: CardProps & { s: Settin
       status={status}
     >
       {error}
-      <fieldset disabled={locked} className="ds-fields ds-grid">
+      {/* Tree board, frame 55: one 44 px row per limit, the field on the right */}
+      <fieldset disabled={locked} className="ds-fields ds-rows">
         <LimitField
           label="Image size"
           hint="Larger images are refused with a message."
@@ -639,36 +659,41 @@ function UploadsCard({ s, locked, status, error, save }: CardProps & { s: Settin
           max={MAX_UPLOAD_MB.fileMb}
           onSave={limit('fileMb', 'File size')}
         />
-        <Labelled label="HTML embed size" hint="Fixed. Embeds run in a sandbox.">
-          <span className="ds-fixed">512 KB</span>
-        </Labelled>
+        <SettingRow title="HTML embed size" hint="Fixed. Embeds run in a sandbox.">
+          <span className="ds-fixed ds-fixed-mono">512 KB</span>
+        </SettingRow>
       </fieldset>
-      <fieldset disabled={locked} className="ds-fields">
-        <Labelled
-          label="Scripts in HTML embeds"
+      <div className="ds-rule" />
+      <fieldset disabled={locked} className="ds-fields ds-rows">
+        <SettingRow
+          title="Scripts in HTML embeds"
           hint="An embed that needs scripts runs only after someone presses “Run it”."
         >
-          <Pills
-            label="Scripts in HTML embeds"
-            options={[
-              ['ask', 'Ask before running'],
-              ['off', 'Off'],
-            ]}
+          <select
+            className="st-input ds-select"
+            style={{ width: 190 }}
+            aria-label="Scripts in HTML embeds"
             value={s.scriptsInEmbeds}
-            onChange={(v) =>
+            onChange={(e) => {
+              const v = e.target.value as Settings['scriptsInEmbeds'];
               save(
                 'up',
                 { scriptsInEmbeds: v },
                 `Scripts: ${v === 'ask' ? 'Ask before running' : 'Off'}`,
                 s.scriptsInEmbeds === 'ask' ? 'Ask before running' : 'Off',
-              )
-            }
-          />
-        </Labelled>
+              );
+            }}
+          >
+            <option value="ask">Ask before running</option>
+            <option value="off">Off</option>
+          </select>
+        </SettingRow>
+        <SettingRow title="Check files for viruses" hint="Always on. Programs and scripts can’t be uploaded.">
+          <span className="ds-on">
+            <Icon name="check" size={13} strokeWidth={2.6} /> On
+          </span>
+        </SettingRow>
       </fieldset>
-      <SettingRow title="Check files for viruses" hint="Always on. Programs and scripts can’t be uploaded.">
-        <span className="ds-fixed">On</span>
-      </SettingRow>
     </SettingsCard>
   );
 }

@@ -7,20 +7,24 @@ import type { ReactNode } from 'react';
 import type { DocsLayout } from '../../../hooks/useDocsLayout';
 import type { DocsPage } from '../../../types/docs';
 import { PageSettledContext } from '../pageSettled';
-import type { DocsSuggestion } from './api';
+import type { DocsSuggestion, TeamNote } from './api';
 import { AskTeamProvider } from './AskTeam';
 import { SuggestionFrame } from './SuggestionFrame';
+import { TeamNoteView } from './TeamNotes';
 import { ReviewContext, useSuggestionReview, type Review, type ReviewOptions } from './useSuggestionReview';
 
 const frame = (s: DocsSuggestion, rendered: ReactNode) => <SuggestionFrame key={s.id} s={s} rendered={rendered} />;
 
 /**
  * The review of the open page's suggestions: give `review` to {@link ReviewContext}, and `wrap`, `lead`, `tail` to
- * the page's RichDocView (`blockWrap`, `lead`, `tail`).
+ * the page's RichDocView (`blockWrap`, `lead`, `tail`). A team's notes on blocks it did not change are drawn under them.
  * @param o - The page and what the review may do.
  */
-export function usePageSuggestions(o: Omit<ReviewOptions, 'frame'>) {
-  return useSuggestionReview({ ...o, frame });
+export function usePageSuggestions(o: Omit<ReviewOptions, 'frame' | 'noteFrame'>) {
+  const noteFrame = (n: TeamNote) => (
+    <TeamNoteView key={n.id} note={n} pageId={o.page.id} projectId={o.projectId} canEdit={o.canEdit} />
+  );
+  return useSuggestionReview({ ...o, frame, noteFrame });
 }
 
 /**

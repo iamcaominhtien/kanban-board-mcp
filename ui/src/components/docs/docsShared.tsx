@@ -126,15 +126,24 @@ export function useEscape(onEscape: () => void, enabled = true) {
 }
 
 /** Round close button for dialogs and panels. */
-export function CloseButton({ onClick }: { onClick: () => void }) {
+export function CloseButton({
+  onClick,
+  size = 28,
+  color = '#9AA8A0',
+}: {
+  onClick: () => void;
+  /** Width and height in px. */
+  size?: number;
+  color?: string;
+}) {
   return (
     <button
       type="button"
       aria-label="Close"
       onClick={onClick}
       style={{
-        width: 28,
-        height: 28,
+        width: size,
+        height: size,
         borderRadius: 6,
         border: 'none',
         background: 'none',
@@ -142,7 +151,7 @@ export function CloseButton({ onClick }: { onClick: () => void }) {
         alignItems: 'center',
         justifyContent: 'center',
         cursor: 'pointer',
-        color: '#9AA8A0',
+        color,
         flexShrink: 0,
       }}
     >
@@ -165,6 +174,12 @@ interface ModalShellProps {
   bodyStyle?: CSSProperties;
   zIndex?: number;
   testId?: string;
+  /**
+   * The Tree board's dialog frame (frames 33, 35, 37): r16, 0 24 60 .22, a 36 px #E6F2EA badge, the title 16/700
+   * and the subtitle 12.5 centred beside it, a 30 px close and a footer with 10 px gaps. Off keeps the older frame
+   * that dialogs outside Docs still use.
+   */
+  boardFrame?: boolean;
 }
 
 /**
@@ -180,6 +195,7 @@ interface ModalShellProps {
  * @param props.bodyStyle - Style overrides for the body.
  * @param props.zIndex - Stacking order of the scrim.
  * @param props.testId - `data-testid` of the dialog.
+ * @param props.boardFrame - Draw the Tree board's dialog frame (see `ModalShellProps.boardFrame`).
  */
 export function ModalShell({
   width,
@@ -194,7 +210,9 @@ export function ModalShell({
   bodyStyle,
   zIndex = 1100,
   testId,
+  boardFrame = false,
 }: ModalShellProps) {
+  const b = boardFrame;
   useEscape(onClose);
   return (
     <div
@@ -224,9 +242,9 @@ export function ModalShell({
           maxHeight: 'calc(100vh - 32px)',
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: 12,
+          borderRadius: b ? 16 : 12,
           border: '1px solid #E3E8E5',
-          boxShadow: '0 24px 64px rgba(30,42,34,0.28)',
+          boxShadow: b ? '0 24px 60px rgba(30,42,34,0.22)' : '0 24px 64px rgba(30,42,34,0.28)',
           background: '#FFFFFF',
           overflow: 'hidden',
           boxSizing: 'border-box',
@@ -236,7 +254,7 @@ export function ModalShell({
         <div
           style={{
             display: 'flex',
-            alignItems: 'flex-start',
+            alignItems: b ? 'center' : 'flex-start',
             gap: 12,
             padding: '16px 22px',
             borderBottom: '1px solid #E3E8E5',
@@ -246,10 +264,10 @@ export function ModalShell({
           {icon && (
             <div
               style={{
-                width: 34,
-                height: 34,
+                width: b ? 36 : 34,
+                height: b ? 36 : 34,
                 borderRadius: '50%',
-                background: iconTone === 'red' ? '#FBE7E4' : '#DCEEE1',
+                background: iconTone === 'red' ? '#FBE7E4' : b ? '#E6F2EA' : '#DCEEE1',
                 color: iconTone === 'red' ? '#C4432A' : '#2E6F40',
                 display: 'flex',
                 alignItems: 'center',
@@ -261,10 +279,12 @@ export function ModalShell({
             </div>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#1E2A22' }}>{title}</div>
-            {subtitle && <div style={{ fontSize: 12, color: '#5B6B60', marginTop: 2 }}>{subtitle}</div>}
+            <div style={{ fontSize: b ? 16 : 15, fontWeight: 700, color: '#1E2A22' }}>{title}</div>
+            {subtitle && (
+              <div style={{ fontSize: b ? 12.5 : 12, color: '#5B6B60', marginTop: b ? 1 : 2 }}>{subtitle}</div>
+            )}
           </div>
-          <CloseButton onClick={onClose} />
+          <CloseButton onClick={onClose} size={b ? 30 : 28} color={b ? '#5B6B60' : '#9AA8A0'} />
         </div>
         <div style={{ overflowY: 'auto', minHeight: 0, ...bodyStyle }}>{children}</div>
         {footer && (
@@ -272,7 +292,7 @@ export function ModalShell({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
+              gap: b ? 10 : 8,
               padding: '14px 22px',
               borderTop: '1px solid #E3E8E5',
               background: '#FBFCFB',

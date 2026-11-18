@@ -2559,3 +2559,254 @@ a.dk-link-card:hover {
   font-weight: 600;
   color: #1e2a22;
 }
+
+/* ---------- drawings in a page: diagram, sketch, canvas (Embeds board C 21-27, F 49-52) ----------
+   The cards are the shared DiagramEmbed / SketchEmbed / CanvasEmbed; in Docs they take the board's frame here,
+   matched by their test ids and roles (their module classes are hashed), so their behaviour stays the same. */
+:is(.dk-editor, .dk-rich)
+  :is([data-testid='diagram-embed'], [data-testid='sketch-embed'], [data-testid='canvas-embed']) {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+}
+:is(.dk-editor, .dk-rich) [data-testid='diagram-embed'] > span:first-child {
+  padding: 10px 16px 0;
+  min-height: 0;
+}
+:is(.dk-editor, .dk-rich) [data-testid='sketch-embed'] > span:first-child {
+  padding: 8px;
+  min-height: 0;
+}
+:is(.dk-editor, .dk-rich) [data-testid='canvas-embed'] > span:first-child {
+  padding: 0;
+}
+/* footer: pad 8 14, #FBFCFB, a #EEF3EF rule, 12 px #5B6B60; chip 20 high, 11.5/700; name 12.5/600 */
+:is(.dk-editor, .dk-rich)
+  :is([data-testid='diagram-embed'], [data-testid='sketch-embed'], [data-testid='canvas-embed'])
+  > figcaption {
+  gap: 10px;
+  padding: 8px 14px;
+  border-top: 1px solid #eef3ef;
+  background: #fbfcfb;
+  font: 400 12px var(--font-body);
+  color: #5b6b60;
+}
+:is(.dk-editor, .dk-rich)
+  :is([data-testid='diagram-embed'], [data-testid='sketch-embed'], [data-testid='canvas-embed'])
+  > figcaption
+  > span:first-child {
+  height: 20px;
+  padding: 0 7px;
+  gap: 5px;
+  border-radius: 5px;
+  font: 700 11.5px var(--font-body);
+}
+:is(.dk-editor, .dk-rich) [data-testid='diagram-embed'] > figcaption > span:first-child {
+  background: #f1f8f3;
+  color: #2e6f40;
+}
+:is(.dk-editor, .dk-rich) [data-testid='sketch-embed'] > figcaption > span:first-child {
+  background: #efeafb;
+  color: #5b4bb5;
+}
+:is(.dk-editor, .dk-rich) [data-testid='canvas-embed'] > figcaption > span:first-child {
+  background: #e8f1fa;
+  color: #2f6fb0;
+}
+:is(.dk-editor, .dk-rich)
+  :is([data-testid='diagram-embed'], [data-testid='sketch-embed'], [data-testid='canvas-embed'])
+  > figcaption
+  > span:nth-child(2) {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+/* the canvas footer: "3 frames · Edited by … · 1d ago" on the right, as one run of text */
+:is(.dk-editor, .dk-rich) [data-testid='canvas-embed'] > figcaption > span:nth-child(3) {
+  margin-left: auto;
+  white-space: nowrap;
+}
+:is(.dk-editor, .dk-rich) [data-testid='canvas-embed'] > figcaption > span:nth-child(4) {
+  margin-left: -6px !important;
+  white-space: nowrap;
+}
+:is(.dk-editor, .dk-rich) [data-testid='canvas-embed'] > figcaption > span:nth-child(4)::before {
+  content: '· ';
+}
+/* the hover toolbar: pad 3 4, gap 1, r10, 0 8 24 .13; text buttons 28 high 12/600, icon buttons 26 × 26 */
+:is(.dk-editor, .dk-rich)
+  :is([data-testid='diagram-embed'], [data-testid='sketch-embed'], [data-testid='canvas-embed'])
+  > [role='toolbar'] {
+  gap: 1px;
+  padding: 3px 4px;
+  border-radius: 10px;
+  border: 1px solid #e3e8e5;
+  box-shadow: 0 8px 24px rgba(30, 42, 34, 0.13);
+}
+:is(.dk-editor, .dk-rich) :is([data-testid='sketch-embed'], [data-testid='canvas-embed']) > [role='toolbar'] {
+  top: 12px;
+  right: 12px;
+}
+:is(.dk-editor, .dk-rich)
+  :is([data-testid='diagram-embed'], [data-testid='sketch-embed'], [data-testid='canvas-embed'])
+  > [role='toolbar']
+  :is(button, a) {
+  box-sizing: border-box;
+  min-width: 28px;
+  height: 28px;
+  min-height: 0;
+  padding: 0 9px;
+  gap: 3px;
+  border-radius: 7px;
+  color: #3a4a3e;
+  font: 600 12px var(--font-body);
+}
+:is(.dk-editor, .dk-rich)
+  :is([data-testid='diagram-embed'], [data-testid='sketch-embed'], [data-testid='canvas-embed'])
+  > [role='toolbar']
+  :is(button[aria-label], [data-testid='canvas-view'], [data-testid='canvas-copy-link']) {
+  width: 26px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0;
+  justify-content: center;
+}
+/* canvas: View full size and Copy link are icons on the board; the words stay as their accessible names */
+:is(.dk-editor, .dk-rich) :is([data-testid='canvas-view'], [data-testid='canvas-copy-link']) {
+  font-size: 0 !important;
+}
+:is(.dk-editor, .dk-rich)
+  :is([data-testid='diagram-embed'], [data-testid='sketch-embed'], [data-testid='canvas-embed'])
+  > [role='toolbar']
+  :is(button, a):hover {
+  background: #f1f3f1;
+  color: #1e2a22;
+}
+/* states (frames 27, 52): centred, 13/700 title, 12/1.45 text; empty and not found on grey, not found 130 high */
+:is(.dk-editor, .dk-rich)
+  :is(
+    [data-testid='diagram-empty'],
+    [data-testid='diagram-missing'],
+    [data-testid='sketch-missing'],
+    [data-testid='canvas-missing']
+  ) {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+}
+:is(.dk-editor, .dk-rich) :is([data-testid='diagram-empty'], [data-testid='diagram-missing']) > span {
+  min-height: 200px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 18px;
+  background: #f1f3f1;
+  text-align: center;
+}
+:is(.dk-editor, .dk-rich) :is([data-testid='sketch-missing'], [data-testid='canvas-missing']) > span {
+  height: 130px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 20px;
+  background: #f6faf7;
+  text-align: center;
+}
+:is(.dk-editor, .dk-rich)
+  :is(
+    [data-testid='diagram-empty'],
+    [data-testid='diagram-missing'],
+    [data-testid='sketch-missing'],
+    [data-testid='canvas-missing']
+  )
+  > span
+  > span:first-child {
+  font: 700 13px var(--font-body);
+  color: #1e2a22;
+}
+:is(.dk-editor, .dk-rich)
+  :is(
+    [data-testid='diagram-empty'],
+    [data-testid='diagram-missing'],
+    [data-testid='sketch-missing'],
+    [data-testid='canvas-missing']
+  )
+  > span
+  > span:nth-child(2) {
+  font: 400 12px/1.45 var(--font-body);
+  color: #5b6b60;
+}
+:is(.dk-editor, .dk-rich) [data-testid='diagram-empty'] button {
+  height: 27px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+/* the loading card: 150 high, a 10 px rounded bar inside 16 px of padding */
+:is(.dk-editor, .dk-rich) :is([data-testid='diagram-loading'], [data-testid='sketch-loading']) {
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+:is(.dk-editor, .dk-rich) :is([data-testid='diagram-loading'], [data-testid='sketch-loading']) > span {
+  height: 118px;
+  border-radius: 10px;
+}
+
+/* selected in the editor: the card's border turns 2 px green (frames 21, 49) instead of an outline around it */
+.dk-dg-block.dk-emb-selected,
+.dk-editor :is(.dk-sketch, .dk-canvas).ProseMirror-selectednode {
+  outline: none;
+}
+.dk-dg-block.dk-emb-selected [data-testid='diagram-embed'],
+.dk-editor .dk-sketch.ProseMirror-selectednode [data-testid='sketch-embed'],
+.dk-editor .dk-canvas.ProseMirror-selectednode [data-testid='canvas-embed'] {
+  border: 2px solid #2e6f40;
+}
+.dk-dg-block {
+  position: relative;
+}
+/* a selected diagram shows one toolbar, ours, on the card's top right; the shared hover toolbar steps aside */
+.dk-btoolbar.dk-dg-toolbar {
+  position: absolute;
+  top: 20px;
+  right: 10px;
+  margin: 0;
+  padding: 3px 4px;
+  gap: 1px;
+  z-index: 7;
+}
+.dk-dg-block.dk-emb-selected [role='toolbar'][aria-label='Diagram actions'] {
+  visibility: hidden;
+}
+.dk-dg-toolbar .dk-btb {
+  width: 26px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0;
+}
+.dk-dg-toolbar .dk-btb.wide {
+  width: auto;
+  min-width: 34px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.dk-dg-toolbar .dk-btb[aria-label='Edit'] {
+  height: 28px;
+  min-width: 28px;
+  padding: 0 9px;
+  font-size: 12px;
+}
+.dk-dg-toolbar .dk-btb[aria-label='Width 100%'] {
+  min-width: 40px;
+}
+.dk-dg-more {
+  position: relative;
+  display: inline-flex;
+}
+.dk-dg-more .dk-emb-menu {
+  top: 32px;
+  right: -4px;
+}

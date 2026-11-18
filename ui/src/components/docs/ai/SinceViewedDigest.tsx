@@ -1,6 +1,9 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { docsAiError, useDocsAiJob, useDocsAiState } from '../../../api/docsAi';
-import { useStartSinceViewed, type SinceViewedPage } from '../../../api/docsAiWrite';
+import { useStartSinceViewed, type SinceViewedBlocks, type SinceViewedPage } from '../../../api/docsAiWrite';
+import { actorInitials, actorName, relativeTime } from '../../../utils/relativeTime';
+import { avatarColors } from '../docsUi';
+import { typeName } from '../suggestions/describe';
 import { aiGate, costLabel } from '../../../utils/docsAiRules';
 import { pagesLabel } from '../../../utils/writeRules';
 import type { DocsTreeNode } from '../../../types/docs';
@@ -36,6 +39,45 @@ function useLastVisit(projectId: string): string | null {
   }, [projectId]);
   return since;
 }
+
+/**
+ * A digest row's chips (AI board H 44): the blocks that changed by name ("Paragraph 2", "Heading 2", "Image") and the
+ * new ones with a plus ("+ Pull quote"); a new page is one chip, "+ 14 blocks".
+ */
+export function blockChips(kind: SinceViewedPage['kind'], b: SinceViewedBlocks): { label: string; added: boolean }[] {
+  if (kind === 'new') return b.added ? [{ label: `+ ${b.added} block${b.added === 1 ? '' : 's'}`, added: true }] : [];
+  return b.blocks.map((x) => {
+    const name = typeName({ type: x.type, attrs: x.level != null ? { level: x.level } : {} });
+    const label = x.type !== 'heading' && x.n ? `${name} ${x.n}` : name;
+    return x.change === 'added' ? { label: `+ ${label}`, added: true } : { label, added: false };
+  });
+}
+
+/** "3 blocks edited, 1 added", "new page", "2 blocks removed", or "changed" when no block changed. */
+export function rowCounts(kind: SinceViewedPage['kind'], b: SinceViewedBlocks): string {
+  if (kind === 'new') return 'new page';
+  const parts = (
+    [
+      [b.edited, 'edited'],
+      [b.added, 'added'],
+      [b.removed, 'removed'],
+    ] as [number, string][]
+  ).filter(([n]) => n > 0);
+  if (!parts.length) return 'changed';
+  return parts.map(([n, v], i) => (i === 0 ? `${n} block${n === 1 ? '' : 's'} ${v}` : `${n} ${v}`)).join(', ');
+}
+
+const CHIP: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  height: 19,
+  padding: '0 7px',
+  borderRadius: 999,
+  background: '#F1F3F1',
+  color: '#3A4A3E',
+  fontSize: 10.5,
+  fontWeight: 700,
+};
 
 interface Props {
   projectId: string;
@@ -162,6 +204,8 @@ export function SinceViewedDigest({ projectId, nodes, onOpenPage, phone }: Props
             <button
               key={p.pageId}
               type="button"
+              aria-label={p.title}
+              data-testid="since-viewed-row"
               onClick={() => onOpenPage(p.pageId)}
               style={{
                 display: 'block',
@@ -176,21 +220,70 @@ export function SinceViewedDigest({ projectId, nodes, onOpenPage, phone }: Props
                 color: '#1E2A22',
               }}
             >
-              <span
-                style={{
-                  display: 'block',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {p.title}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    flex: 1,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {p.title}
+                </span>
+                {p.at && <span style={{ fontSize: 11, color: '#5B6B60' }}>{relativeTime(p.at)}</span>}
               </span>
-              <span style={{ display: 'block', fontSize: 12, color: '#5B6B60', marginTop: 2 }}>
-                {p.line ?? (p.kind === 'new' ? 'A new page' : 'Changed')}
-              </span>
+              {p.by && p.blocks && (
+                <span
+                  data-testid="since-viewed-by"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: 12,
+                    color: '#5B6B60',
+                    margin: '2px 0 6px',
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      ...avatarColors(actorName(p.by)),
+                      width: 16,
+                      height: 16,
+                      borderRadius: '50%',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 6,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {actorInitials(p.by)}
+                  </span>
+                  {actorName(p.by)}: {rowCounts(p.kind, p.blocks)}
+                </span>
+              )}
+              {p.blocks && blockChips(p.kind, p.blocks).length > 0 && (
+                <span style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }} data-testid="since-viewed-chips">
+                  {blockChips(p.kind, p.blocks).map((c, i) => (
+                    <span
+                      key={`${c.label}-${i}`}
+                      style={c.added ? { ...CHIP, background: '#E4F3E8', color: '#1F5A31' } : CHIP}
+                    >
+                      {c.label}
+                    </span>
+                  ))}
+                </span>
+              )}
+              {(p.line || !p.blocks) && (
+                <span style={{ display: 'block', fontSize: 12, color: '#5B6B60', marginTop: p.blocks ? 6 : 2 }}>
+                  {p.line ?? (p.kind === 'new' ? 'A new page' : 'Changed')}
+                </span>
+              )}
             </button>
           ))}
           <div

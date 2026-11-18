@@ -55,7 +55,7 @@ import { ReferencedBy } from './ReferencedBy';
 import { BlockRefBadges, RefsButton } from './links/RefsButton';
 import { ArrivalBanner } from './links/ArrivalBanner';
 import { SharePopover } from './SharePopover';
-import { AiChangedBar, aiWriter } from './AiChangedBar';
+import { AiEditedChip, aiWriter } from './AiChangedBar';
 import { useToast } from '../Toast';
 import { bookOf, readingNeighbours } from './book';
 import { ChapterList, ReadingFooter } from './BookReading';
@@ -421,7 +421,7 @@ export function DocsPageView({
   const member = members.find((m) => m.name.toLowerCase() === actorName(who).toLowerCase());
   const mc = member?.color ? getAvatarColors(member.color) : null;
   const av = mc ? { background: mc.bg, color: mc.color } : avatarColors(actorName(who));
-  // the latest version was written by an AI team of the project: its line says so (AiChangedBar's rule)
+  // the latest version was written by an AI team of the project: its line says so (AiEditedChip's rule)
   const aiTeam = !older && published && !showDraft ? aiWriter(page, members) : null;
   const canShare = published && !offline;
   const phone = layout === 'phone';
@@ -496,6 +496,14 @@ export function DocsPageView({
 
   // what a print is made of: the page as its author set it (a reading theme never prints) and the shown text
   const printParts = useRef<() => PrintParts>(() => ({ title: page.title, meta: null, footer: '', body: null }));
+  // what a print is made of for these choices; the preview uses the same, so it shows what will print. Shared
+  // highlights print only with "Include highlights" (highlights/hlPrint.ts); the reader's markers never print.
+  const hlPrintCopy = useRef(hl.printCopy);
+  hlPrintCopy.current = hl.printCopy;
+  const printFor = useCallback((opts: PrintOptions): PrintParts => {
+    const parts = printParts.current();
+    return { ...parts, body: hlPrintCopy.current(parts.body, opts.highlights) };
+  }, []);
   printParts.current = () => ({
     title: page.title,
     meta: [actorName(who), `Updated ${shortDate(whenIso)}`, published ? `v${older?.version ?? page.version}` : 'Draft']
@@ -1140,15 +1148,6 @@ export function DocsPageView({
               {lock && <ConvertBar lock={lock} />}
               {!offline && !older && <ConvertedNotice page={page} onViewOriginal={() => onAction('history')} />}
               {!offline && !older && (
-                <AiChangedBar
-                  page={page}
-                  projectId={projectId}
-                  members={members}
-                  canEdit={!readOnly}
-                  onCompare={onCompare}
-                />
-              )}
-              {!offline && !older && (
                 <div style={{ marginBottom: 16 }}>
                   <SinceViewedBanner page={page} since={since} onCompare={onCompare ?? (() => undefined)} />
                 </div>
@@ -1176,6 +1175,15 @@ export function DocsPageView({
                 {statusChips}
                 {pageInfo}
                 <SuggestionChip />
+                {!offline && !older && !sg.review?.list.length && (
+                  <AiEditedChip
+                    page={page}
+                    projectId={projectId}
+                    members={members}
+                    canEdit={!readOnly}
+                    onCompare={onCompare}
+                  />
+                )}
               </div>
               <ReviewBar />
               {!offline && !older && aiOn && (
@@ -1554,11 +1562,10 @@ export function DocsPageView({
             inBook={!!book && book.index >= 0}
             onPrint={(opts) => {
               setPrintOpen(false);
-              const parts = printParts.current();
-              // shared highlights print only with "Include highlights" (highlights/hlPrint.ts)
-              printPage(opts, { ...parts, body: hl.printCopy(parts.body, opts.highlights) });
+              printPage(opts, printFor(opts));
             }}
             onClose={() => setPrintOpen(false)}
+            preview={printFor}
           />
         )}
         <SelectionToolbar

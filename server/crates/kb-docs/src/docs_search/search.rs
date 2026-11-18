@@ -50,6 +50,13 @@ pub struct SearchParams {
     pub kinds: Option<String>,
     /// Count the pages per match type (`facets.kinds`); the full search page asks for it (`facets=kinds`).
     pub kind_facets: bool,
+    /// Count the pages that may be outdated (`facets.outdated`); the search page asks for it (`facets=outdated`).
+    pub outdated_facet: bool,
+    /// Count the results per project (`facets.projects`, scope `all`); the search page asks for it (`facets=projects`).
+    pub project_facets: bool,
+    /// Give each match of a picture, video, code block, file or diagram what its result card shows (`card`, see
+    /// [`crate::docs::blocks::match_card`]); the search page asks for it (`cards=true`).
+    pub cards: bool,
 }
 
 impl Default for SearchParams {
@@ -68,6 +75,9 @@ impl Default for SearchParams {
             sort: "relevance".into(),
             kinds: None,
             kind_facets: false,
+            outdated_facet: false,
+            project_facets: false,
+            cards: false,
         }
     }
 }
@@ -504,8 +514,15 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
         if since.as_ref().is_some_and(|s| p.updated_at < *s) {
             continue;
         }
-        if params.status.as_deref().is_some_and(|s| !s.is_empty() && p.status != s) {
-            continue;
+        match params.status.as_deref() {
+            // the search page's "May be outdated" (RichDocsLinks B 7): no page row has that status
+            Some(OUTDATED) => {
+                if !may_be_outdated(p, now) {
+                    continue;
+                }
+            }
+            Some(s) if !s.is_empty() && p.status != s => continue,
+            _ => {}
         }
         if params.has_tickets.is_some_and(|h| ticket_linked.contains(&p.id) != h) {
             continue;
@@ -631,6 +648,20 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
                 matches
             }
         };
+        let mut matches = matches;
+        if params.cards {
+            if let Some(doc) = docs.get(&p.id) {
+                for mm in matches.iter_mut() {
+                    let card = mm
+                        .get("block_id")
+                        .and_then(Json::as_str)
+                        .and_then(|b| crate::docs::blocks::match_card(doc, b, &positive));
+                    if let Some(card) = card {
+                        mm.insert("card".into(), card);
+                    }
+                }
+            }
+        }
         m.insert("matches".into(), Json::Array(matches.into_iter().map(Json::Object).collect()));
         out_pages.push(Json::Object(m));
     }
@@ -664,8 +695,55 @@ pub async fn search(session: &Session, project_id: &str, q: &str, params: &Searc
     if let Some(k) = kinds_facet {
         facets["kinds"] = k;
     }
+    if params.outdated_facet {
+        facets["outdated"] = json!(candidates.iter().filter(|p| may_be_outdated(p, now)).count());
+    }
+    if params.project_facets {
+        // "All projects · Kanban Board 17 · Mobile App 8" (B 12): the results per project, largest first
+        let mut per: Vec<(String, i64)> = Vec::new();
+        for p in &filtered {
+            match per.iter_mut().find(|(id, _)| *id == p.project_id) {
+                Some(row) => row.1 += 1,
+                None => per.push((p.project_id.clone(), 1)),
+            }
+        }
+        per.sort_by_key(|row| std::cmp::Reverse(row.1));
+        facets["projects"] = Json::Array(
+            per.into_iter()
+                .map(|(id, n)| {
+                    let name = projects.get(&id).map(|x| x.name.clone()).unwrap_or_default();
+                    json!({"project_id": id, "name": name, "count": n})
+                })
+                .collect(),
+        );
+    }
     result.insert("facets".into(), facets);
     Ok(result)
+}
+
+/// The `status` filter value for pages that may be outdated.
+pub const OUTDATED: &str = "outdated";
+
+/// A published page not edited or reviewed for this many months may be outdated (the UI's `OUTDATED_MONTHS`).
+const OUTDATED_MONTHS: u32 = 6;
+
+/// Whether a page may be outdated, by the rule of the reading view: published, and marked Outdated in its settings
+/// (`status`), or not edited (nor marked reviewed, `reviewedAt`) for [`OUTDATED_MONTHS`] months.
+pub fn may_be_outdated(p: &docs_page::Model, now: chrono::DateTime<Utc>) -> bool {
+    if p.version < 1 || p.status != "published" {
+        return false;
+    }
+    let settings = crate::docs::read_settings(p.settings.as_deref());
+    if settings.get("status").and_then(Json::as_str) == Some(OUTDATED) {
+        return true;
+    }
+    let Some(cutoff) = now.checked_sub_months(chrono::Months::new(OUTDATED_MONTHS)) else {
+        return false;
+    };
+    let cutoff = time::iso(&cutoff);
+    let reviewed = settings.get("reviewedAt").and_then(Json::as_str).unwrap_or("");
+    let last = if reviewed > p.updated_at.as_str() { reviewed } else { p.updated_at.as_str() };
+    !last.is_empty() && last < cutoff.as_str()
 }
 
 /// The match types of the search page's Type filter, in its order.

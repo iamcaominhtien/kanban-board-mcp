@@ -13,7 +13,7 @@ import { extractError } from '../../../api/extractError';
 import type { DocsLayout } from '../../../hooks/useDocsLayout';
 import type { DocsPage, RichDoc } from '../../../types/docs';
 import { useToast } from '../../Toast';
-import { useSettleSuggestions, useSuggestions, type DocsSuggestion } from './api';
+import { useSettleSuggestions, useSuggestions, type DocsSuggestion, type TeamNote } from './api';
 import { suggestionsWord } from './describe';
 
 /** The words under a block whose Accept did not go through. */
@@ -46,7 +46,8 @@ export interface Review {
   /** The reader can edit the page: Accept and Reject are offered. */
   canEdit: boolean;
   layout: DocsLayout;
-  accept: (s: DocsSuggestion) => Promise<void>;
+  /** Accepts one suggestion; `seen` says the reviewer chose the team's version of a block changed since. */
+  accept: (s: DocsSuggestion, seen?: boolean) => Promise<void>;
   reject: (s: DocsSuggestion) => Promise<void>;
   acceptAll: () => Promise<void>;
   rejectAll: () => Promise<void>;
@@ -103,6 +104,8 @@ export interface ReviewOptions {
   onHistory?: () => void;
   /** Draws one suggestion on the page (SuggestionFrame); given here so the hook stays free of the frame's imports. */
   frame: (s: DocsSuggestion, rendered: ReactNode) => ReactNode;
+  /** Draws a team's note under its block (TeamNoteView, G 35–36). */
+  noteFrame?: (n: TeamNote) => ReactNode;
 }
 
 /**
@@ -117,6 +120,7 @@ export function useSuggestionReview(o: ReviewOptions) {
   const restore = useRestoreVersion(projectId);
   const work = usePageWork(enabled ? page.id : null);
   const list = useMemo(() => (enabled ? (q.data?.suggestions ?? []) : []), [enabled, q.data]);
+  const notes = useMemo(() => (enabled ? (q.data?.notes ?? []) : []), [enabled, q.data]);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [looked, setLooked] = useState<ReadonlySet<string>>(new Set());
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -212,8 +216,8 @@ export function useSuggestionReview(o: ReviewOptions) {
     });
 
   const accept = useCallback(
-    async (s: DocsSuggestion) => {
-      const stale = s.stale && !looked.has(s.id);
+    async (s: DocsSuggestion, seen = false) => {
+      const stale = s.stale && !seen && !looked.has(s.id);
       if (stale || busy) return;
       const total = live.current.list.length;
       const before = live.current.page.version;
@@ -384,9 +388,15 @@ export function useSuggestionReview(o: ReviewOptions) {
   }, [doc, list]);
   // the reader renders every block again when `wrap` changes: it changes only with where suggestions sit
   // (and with the suggestions themselves: a frame gets its suggestion when the reader renders the block)
-  const shape = list.length ? list.map((s) => `${s.id}${s.stale ? '!' : ''}`).join(',') : '';
+  const shape =
+    (list.length ? list.map((s) => `${s.id}${s.stale ? '!' : ''}`).join(',') : '') +
+    (notes.length && o.noteFrame ? `|${notes.map((n) => n.id).join(',')}` : '');
   const placedRef = useRef(placed);
   placedRef.current = placed;
+  const notesRef = useRef(notes);
+  notesRef.current = notes;
+  const noteFrame = useRef(o.noteFrame);
+  noteFrame.current = o.noteFrame;
   const wrap = useMemo(() => {
     if (!shape) return undefined;
     return (node: RichDoc, rendered: ReactNode): ReactNode => {
@@ -394,10 +404,13 @@ export function useSuggestionReview(o: ReviewOptions) {
       const p = placedRef.current;
       const own = id ? p.onBlock.get(id) : undefined;
       const added = id ? (p.after.get(id) ?? []) : [];
-      if (!own && !added.length) return rendered;
+      // a team's note sits under its block (G 36), unless a suggestion of the block is shown there already
+      const noted = id && !own && noteFrame.current ? notesRef.current.filter((n) => n.blockId === id) : [];
+      if (!own && !added.length && !noted.length) return rendered;
       return (
         <>
           {own ? frame.current(own, rendered) : rendered}
+          {noted.map((n) => noteFrame.current?.(n))}
           {added.map((s) => frame.current(s, null))}
         </>
       );

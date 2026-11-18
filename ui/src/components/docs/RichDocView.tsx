@@ -9,6 +9,7 @@
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { Fragment, memo, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { HeadingLinkHandle } from './links/HeadingLinkHandle';
 import { useResolveRefs } from '../../api/docs';
 import type { DocsRefRequest, RichDoc } from '../../types/docs';
 import { docToMarkdown, topLevelBlocks } from '../../richdoc';
@@ -595,6 +596,7 @@ function block(node: Node, r: Render, key: string): ReactNode {
       const Tag = `h${level}` as 'h1';
       return (
         <Tag key={key} id={id} {...blockAttrs(node, r, null, textBlockStyle(a))}>
+          {str(a.blockId) && <HeadingLinkHandle blockId={str(a.blockId)} text={headingSlugText(node)} />}
           {inline(node.content, key)}
           {level === 2 && id && <SectionAnchor slug={id.replace(/^docs-/, '')} />}
         </Tag>

@@ -113,6 +113,12 @@ const PATHS: Record<string, ReactNode> = {
     </>
   ),
   trash: <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
+  history: (
+    <>
+      <path d="M3.5 12a8.5 8.5 0 1 0 2.5-6" />
+      <path d="M3 4v4h4M12 8v4l3 2" />
+    </>
+  ),
 };
 
 /** The name of an embed icon. */

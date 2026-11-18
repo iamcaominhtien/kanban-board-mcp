@@ -11,6 +11,7 @@ import {
 } from '../../../utils/careRules';
 import { useDocsRefs } from '../DocsRefsContext';
 import '../docs.css';
+import { typeName } from '../suggestions/describe';
 import { SgIcon, Spark } from '../suggestions/sgIcons';
 import '../suggestions/suggestions.css';
 
@@ -33,6 +34,32 @@ const TICKET_CHIP: CSSProperties = {
   marginRight: 4,
 };
 
+// the block a reason read: a small amber chip that scrolls the page to it (RichDocsAi2 frame 46)
+const BLOCK_CHIP: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  height: 20,
+  padding: '0 7px',
+  borderRadius: 5,
+  background: '#fff',
+  border: '1px solid #EBD3A4',
+  fontFamily: 'inherit',
+  fontSize: 11,
+  fontWeight: 700,
+  color: '#8A5A00',
+  verticalAlign: 1,
+  marginLeft: 6,
+  cursor: 'pointer',
+  boxSizing: 'border-box',
+};
+
+/** Scrolls the page to a block. */
+function showBlock(id: string) {
+  const el = document.querySelector<HTMLElement>(`[data-block-id="${CSS.escape(id)}"]`);
+  el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+}
+
 function Reason({
   r,
   busy,
@@ -53,8 +80,20 @@ function Reason({
         </code>
       )}
       {r.text}
+      {r.blockId && (
+        <button
+          type="button"
+          data-testid="freshness-block"
+          onClick={() => showBlock(r.blockId!)}
+          style={BLOCK_CHIP}
+          title="Show the block on the page"
+        >
+          <SgIcon name="eye" size={11} sw={2.2} />
+          {r.blockType ? typeName({ type: r.blockType }) : 'Block'} · Show
+        </button>
+      )}
       <span style={{ color: '#5B6B60', marginLeft: 8 }} title="What was compared">
-        Compared: {r.compared}
+        Compared: {r.compared ?? r.source ?? 'text in the page'}
       </span>
       <span style={{ position: 'relative', marginLeft: 8 }}>
         <button

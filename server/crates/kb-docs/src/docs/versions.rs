@@ -576,6 +576,37 @@ pub async fn restore_version(
     commit_version(session, &mut page, &body, &v.title, &actor, Some(&note), draft, true).await
 }
 
+/// The longest version note, in characters (the publish box's own limit is the same).
+pub const VERSION_NOTE_MAX: usize = 200;
+
+/// Changes the note of one version of a page ("Edit note" in the history's row menu).
+///
+/// `note` is trimmed; empty or `None` removes the note. The version's text, author and time stay as they are, and
+/// no new version is written. Needs edit rights on the page's project.
+///
+/// # Errors
+///
+/// 404 `page_not_found` / `version_not_found`, 410 `page_deleted`, 403 without edit rights, 422 `note_too_long` when
+/// the note is over [`VERSION_NOTE_MAX`] characters.
+pub async fn set_version_note(
+    session: &Session,
+    page_id: &str,
+    n: i64,
+    note: Option<&str>,
+) -> Result<Map<String, Value>> {
+    get_page(session, page_id, false, true).await?;
+    let v = version(session, page_id, n).await?;
+    let note = note.map(str::trim).filter(|t| !t.is_empty()).map(str::to_string);
+    if note.as_ref().is_some_and(|t| t.chars().count() > VERSION_NOTE_MAX) {
+        return docs_err(422, "note_too_long", format!("A version note can be up to {VERSION_NOTE_MAX} characters"));
+    }
+    let mut row: docs_version::ActiveModel = v.into();
+    row.note = Set(note);
+    row.update(session).await?;
+    session.commit().await?;
+    get_version(session, page_id, n).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

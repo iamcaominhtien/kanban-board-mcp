@@ -61,14 +61,33 @@ export function ConvertedNotice({ page, onViewOriginal }: { page: DocsPage; onVi
   };
   return (
     <div className="dk-convert-note" role="status" data-testid="converted-notice">
-      <Icon name="i17" size={15} strokeWidth={1.9} style={{ color: '#2E6F40' }} />
-      <span>Converted to the new format. The original is kept in History.</span>
-      <button type="button" className="st-btn st-btn-sm" onClick={onViewOriginal}>
-        View original
-      </button>
-      <button type="button" className="st-btn st-btn-sm st-btn-primary" onClick={dismiss}>
-        Got it
-      </button>
+      <span className="dk-convert-note-text">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#2F6FB0"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11v6M12 7.5v.01" />
+        </svg>
+        <span>
+          <b>Converted to the new format.</b> The original is kept in History.
+        </span>
+      </span>
+      <span className="dk-convert-note-actions">
+        <button type="button" className="st-btn" onClick={onViewOriginal}>
+          View original
+        </button>
+        <button type="button" className="st-btn" onClick={dismiss}>
+          Got it
+        </button>
+      </span>
     </div>
   );
 }

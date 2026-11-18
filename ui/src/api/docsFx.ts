@@ -38,7 +38,11 @@ export async function searchDocs(
   if (p.status?.length) params.status = p.status.join(',');
   if (p.sort) params.sort = p.sort;
   if (p.kinds?.length) params.kind = p.kinds.join(',');
-  if (p.kindFacets) params.facets = 'kinds';
+  const facets = [p.kindFacets && 'kinds', p.outdatedFacet && 'outdated', p.projectFacets && 'projects'].filter(
+    Boolean,
+  );
+  if (facets.length) params.facets = facets.join(',');
+  if (p.cards) params.cards = true;
   const res = await client.get<DocsSearchResponse>(`/projects/${projectId}/docs/search`, { params, signal });
   return res.data;
 }

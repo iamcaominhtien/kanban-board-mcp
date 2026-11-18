@@ -621,6 +621,85 @@ pub fn match_sites(doc: &Value, refs: &[(bool, String)]) -> Vec<Option<LinkSite>
     out
 }
 
+/// The words a ticket's Linked docs card shows of a heading or block (RichDocsLinks H 47): for a heading, the
+/// blocks under it up to the next heading of its level or higher; for another block, its own text. Lines are joined
+/// with " · " and the result cut to `chars` characters ("…" when cut). Empty when the block is not in `doc`.
+pub fn block_excerpt(doc: &Value, block_id: &str, chars: usize) -> String {
+    let top = kb_richdoc::top_level_blocks(doc);
+    let text = match top.iter().position(|n| block_id_of(n) == Some(block_id)) {
+        Some(at) if node_type(top[at]) == "heading" => {
+            let level = top[at].get("attrs").and_then(|a| a.get("level")).and_then(Value::as_u64).unwrap_or(1);
+            top[at + 1..]
+                .iter()
+                .take_while(|n| {
+                    node_type(n) != "heading"
+                        || n.get("attrs").and_then(|a| a.get("level")).and_then(Value::as_u64).unwrap_or(1) > level
+                })
+                .map(|n| block_text(n))
+                .collect::<Vec<_>>()
+                .join("\n")
+        }
+        _ => find_block(doc, block_id).map(block_text).unwrap_or_default(),
+    };
+    // a table row reads "Plan | Burst" as text: a card says "Plan, Burst"
+    let joined =
+        text.lines().map(|l| l.trim().replace(" | ", ", ")).filter(|l| !l.is_empty()).collect::<Vec<_>>().join(" · ");
+    if joined.chars().count() <= chars {
+        return joined;
+    }
+    let cut: String = joined.chars().take(chars).collect();
+    format!("{}…", cut.trim_end())
+}
+
+/// The lines of a code block a search card shows, at most this many.
+const CARD_LINES: usize = 2;
+
+/// What a search result card shows of the block a match sits in (RichDocsLinks B 7), by kind: a picture's `src`,
+/// `alt`, `caption` and `title`; a video's `src`, `poster`, `title`, `caption` and `description`; a code block's
+/// `language`, `filename` and `lines` (`[{n, text}]`, numbered from 1: the first line that holds one of `terms` and the
+/// next, else the first lines); a file's `name`, `size` (bytes) and `mime`; nothing more for a table, diagram, sketch
+/// or canvas. Every card also has the block's `label` and `detail` (as [`describe_target`] names it). `None` for the
+/// other kinds (their snippet says it all) or when the block is not in `doc`.
+pub fn match_card(doc: &Value, block_id: &str, terms: &[String]) -> Option<Value> {
+    let node = find_block(doc, block_id)?;
+    let a = |k: &str| node.get("attrs").and_then(|x| x.get(k)).cloned().unwrap_or(Value::Null);
+    let card = match node_type(node) {
+        "image" => json!({"src": a("src"), "alt": a("alt"), "caption": a("caption"), "title": a("title")}),
+        "video" => json!({"src": a("src"), "poster": a("poster"), "title": a("title"), "caption": a("caption"),
+                          "description": a("description")}),
+        "codeBlock" => {
+            let text = block_text(node);
+            let lines: Vec<&str> = text.lines().collect();
+            let folded: Vec<String> = terms.iter().map(|t| t.to_lowercase()).collect();
+            let first = lines
+                .iter()
+                .position(|l| {
+                    let l = l.to_lowercase();
+                    folded.iter().any(|t| l.contains(t.as_str()))
+                })
+                .unwrap_or(0);
+            let shown: Vec<Value> = lines
+                .iter()
+                .enumerate()
+                .skip(first)
+                .take(CARD_LINES)
+                .map(|(i, l)| json!({"n": i + 1, "text": l}))
+                .collect();
+            json!({"language": a("language"), "filename": a("filename"), "lines": shown})
+        }
+        "fileCard" => json!({"name": a("name"), "size": a("size"), "mime": a("mime")}),
+        "diagram" | "sketch" | "canvas" | "table" => json!({}),
+        _ => return None,
+    };
+    let mut card = card;
+    // the block's name and what it is ("Limits", "Table · 3 columns, 4 rows"), as a link to it says
+    if let Some(named) = describe_target(doc, block_id) {
+        card["label"] = named["label"].clone();
+        card["detail"] = named["detail"].clone();
+    }
+    Some(card)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

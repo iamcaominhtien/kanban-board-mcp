@@ -100,7 +100,7 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
   const tab = (f: Filter, label: string, n: number) => (
     <button
       type="button"
-      className={`dk-tabs-btn ${filter === f ? 'dk-tabs-btn-on' : ''}`}
+      className={`dk-bin-seg-btn${filter === f ? ' dk-bin-seg-on' : ''}`}
       aria-pressed={filter === f}
       onClick={() => setFilter(f)}
     >
@@ -119,28 +119,35 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
         aria-modal="true"
         aria-label="Recycle Bin"
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '16px 20px',
-            borderBottom: '1px solid #E3E8E5',
-            flexShrink: 0,
-          }}
-        >
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#1E2A22', flex: 1 }}>Recycle Bin</span>
+        {/* Tree board, frame 40: the title 22/700 with its rule under it, then the All / Pages / Tickets pill,
+            the sort and Empty bin */}
+        <div className="dk-bin-head">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="dk-bin-title">Recycle Bin</div>
+            <div className="dk-bin-sub">Pages and tickets are deleted forever 30 days after they were removed.</div>
+          </div>
+          <CloseButton onClick={handleClose} size={30} color="#5B6B60" />
+        </div>
+        <div className="dk-bin-tools">
+          <div className="dk-bin-seg" role="group" aria-label="Show">
+            {tab('all', 'All', items.length)}
+            {tab('pages', 'Pages', pages.length)}
+            {tab('tickets', 'Tickets', tickets.length)}
+          </div>
+          <div style={{ flex: 1 }} />
+          <span className="dk-bin-sort">
+            <span>Sort</span> Newest first
+          </span>
           {projectId && (
             <button
               type="button"
-              className="st-btn st-btn-sm st-btn-danger-outline"
+              className="st-btn st-btn-danger-outline dk-bin-empty"
               disabled={pages.length === 0 || docs.emptying}
               onClick={() => setConfirmEmpty(true)}
             >
               Empty bin
             </button>
           )}
-          <CloseButton onClick={handleClose} />
         </div>
 
         {pickedPages.length > 0 && (
@@ -167,23 +174,6 @@ export function RecycleBin({ tickets, projectId, onRestore, onClose, onOpenDocsP
             </button>
           </div>
         )}
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '12px 20px',
-            borderBottom: '1px solid #EEF3EF',
-            flexShrink: 0,
-          }}
-        >
-          {tab('all', 'All', items.length)}
-          {tab('pages', 'Pages', pages.length)}
-          {tab('tickets', 'Tickets', tickets.length)}
-          <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 12, color: '#9AA8A0' }}>Newest first</span>
-        </div>
 
         <div className={styles.list}>
           {docs.error && projectId && !/disabled/i.test(docs.error) && (

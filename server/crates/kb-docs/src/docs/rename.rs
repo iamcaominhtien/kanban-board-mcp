@@ -63,13 +63,24 @@ async fn links_to_rename(session: &Session, page: &docs_page::Model, old_title: 
 }
 
 /// Preview which pages a rename would rewrite links in: `{affected_pages, total}`.
-pub async fn rename_preview(session: &Session, page_id: &str, title: &str) -> Result<Map<String, Value>> {
+///
+/// With `with_mentions` the answer also lists the plain-text mentions of the current title in other pages, block by
+/// block (`mentions`: see [`super::bulk::mentions_of`]), which the person can choose to change with the rename.
+pub async fn rename_preview(
+    session: &Session,
+    page_id: &str,
+    title: &str,
+    with_mentions: bool,
+) -> Result<Map<String, Value>> {
     let page = get_page(session, page_id, false, false).await?;
     let new_title = clean_title(Some(title))?;
     let mut out = Map::new();
     if new_title == page.title {
         out.insert("affected_pages".into(), json!([]));
         out.insert("total".into(), json!(0));
+        if with_mentions {
+            out.insert("mentions".into(), json!([]));
+        }
         return Ok(out);
     }
     let affected = links_to_rename(session, &page, &page.title).await?;
@@ -87,6 +98,9 @@ pub async fn rename_preview(session: &Session, page_id: &str, title: &str) -> Re
     let total: usize = rows.iter().map(|r| r.2).sum();
     out.insert("affected_pages".into(), Value::Array(rows.into_iter().map(|r| r.1).collect()));
     out.insert("total".into(), json!(total));
+    if with_mentions {
+        out.insert("mentions".into(), Value::Array(super::bulk::mentions_of(session, &page, &page.title).await?));
+    }
     Ok(out)
 }
 
@@ -97,13 +111,16 @@ fn not_linkable(title: &str) -> bool {
 
 /// Rename a page, optionally rewriting `[[links]]` that point to it.
 ///
-/// `rewrite_links` updates `[[old title]]` links in other pages. Fails with 422 if the title cannot be written as a
-/// `[[link]]` while rewriting links. Returns the renamed page's detail with `rewritten` and `rewritten_pages`.
+/// `rewrite_links` updates `[[old title]]` links in other pages. `mentions` are the plain-text mentions of the old
+/// title the person chose to change, as `(page_id, block_id)` pairs (`None`: the request named none). Fails with 422
+/// if the title cannot be written as a `[[link]]` while rewriting links. Returns the renamed page's detail with
+/// `rewritten` and `rewritten_pages`, and with `mentions` given also `mentions_changed` and `mention_pages`.
 pub async fn rename_page(
     session: &Session,
     page_id: &str,
     title: &str,
     rewrite_links: bool,
+    mentions: Option<&[(String, String)]>,
 ) -> Result<Map<String, Value>> {
     let page = get_page(session, page_id, false, true).await?;
     let new_title = clean_title(Some(title))?;
@@ -178,12 +195,23 @@ pub async fn rename_page(
             touched.push(src.id.clone());
         }
     }
+    let mut mention_counts = None;
+    if let Some(chosen) = mentions.filter(|m| !m.is_empty() && new_title != old_title) {
+        mention_counts =
+            Some(super::bulk::rename_mentions(session, &page.project_id, &old_title, &new_title, chosen).await?);
+    } else if mentions.is_some() {
+        mention_counts = Some((0, 0));
+    }
     refresh_link_targets(session, &page.project_id).await?;
     docs_search::reindex(session, &touched).await?;
     session.commit().await?;
     let mut detail = page_detail(session, page_id).await?;
     detail.insert("rewritten".into(), json!(rewritten_links));
     detail.insert("rewritten_pages".into(), json!(rewritten_pages));
+    if let Some((n, pages)) = mention_counts {
+        detail.insert("mentions_changed".into(), json!(n));
+        detail.insert("mention_pages".into(), json!(pages));
+    }
     Ok(detail)
 }
 

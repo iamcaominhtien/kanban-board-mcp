@@ -294,10 +294,10 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved, onChoos
   const rowBase: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: 7,
-    height: 32,
+    gap: 6,
+    minHeight: 32,
     flexShrink: 0,
-    padding: '0 10px 0 8px',
+    padding: '2px 8px 2px 6px',
     borderRadius: 7,
     fontSize: 13,
     fontWeight: 500,
@@ -355,11 +355,10 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved, onChoos
         }}
         style={{
           ...rowBase,
-          padding: `0 10px 0 ${8 + r.depth * 18}px`,
-          ...(disabled ? { color: '#9AA8A0', cursor: 'not-allowed' } : {}),
-          ...(selected
-            ? { background: '#DCEEE1', boxShadow: '0 0 0 1.5px #2E6F40 inset', color: '#1E2A22', fontWeight: 700 }
-            : {}),
+          // Tree board, frame 33: 18 px per level, a page that cannot be chosen at half opacity, the choice on #DCEEE1
+          padding: `2px 8px 2px ${6 + r.depth * 18}px`,
+          ...(disabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
+          ...(selected ? { background: '#DCEEE1', color: '#1E2A22', fontWeight: 700 } : {}),
         }}
       >
         {r.hasKids ? (
@@ -386,14 +385,15 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved, onChoos
           {r.title}
         </span>
         {selected && (
-          <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 700, color: '#2E6F40' }}>Move here</span>
+          <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 700, color: '#1F5A31' }}>Move here</span>
         )}
         {disabled && (
           <span
             style={{
               marginLeft: 'auto',
               fontSize: 11.5,
-              color: '#9AA8A0',
+              fontWeight: 400,
+              color: '#5B6B60',
               display: 'flex',
               alignItems: 'center',
               gap: 4,
@@ -436,9 +436,9 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved, onChoos
               position: 'absolute',
               left: 0,
               right: 0,
-              top: 1,
-              height: 2,
-              borderRadius: 1,
+              top: 0.5,
+              height: 3,
+              borderRadius: 2,
               background: '#2E6F40',
               opacity: on ? 1 : 0,
             }}
@@ -447,13 +447,13 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved, onChoos
             <div
               style={{
                 position: 'absolute',
-                left: -3,
-                top: -2,
-                width: 8,
-                height: 8,
+                left: -6,
+                top: -2.5,
+                width: 9,
+                height: 9,
                 borderRadius: '50%',
                 background: '#FFFFFF',
-                border: '2px solid #2E6F40',
+                border: '2.5px solid #2E6F40',
                 boxSizing: 'border-box',
               }}
             />
@@ -492,6 +492,7 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved, onChoos
 
   return (
     <ModalShell
+      boardFrame
       width={560}
       ariaLabel={heading ?? `Move “${page.title}”`}
       icon="i35"
@@ -503,7 +504,7 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved, onChoos
         </>
       }
       onClose={onClose}
-      bodyStyle={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}
+      bodyStyle={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 10 }}
       footer={
         <>
           <FooterNote>Links to this page keep working.</FooterNote>
@@ -556,7 +557,13 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved, onChoos
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
+          gap: 7,
+          height: 36,
+          boxSizing: 'border-box',
+          padding: '0 11px',
+          borderColor: '#C7D2CB',
+          borderRadius: 8,
+          fontSize: 13.5,
           ...(focused && searching ? { borderColor: '#2E6F40', boxShadow: '0 0 0 3px rgba(46,111,64,0.18)' } : {}),
         }}
       >
@@ -680,14 +687,14 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved, onChoos
           role="listbox"
           aria-label="Pages"
           style={{
-            border: '1px solid #E3E8E5',
+            border: '1px solid #E3EAE5',
             borderRadius: 10,
-            padding: 5,
+            padding: '4px 6px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 1,
+            gap: 2,
             background: '#FFFFFF',
-            maxHeight: 360,
+            maxHeight: 'min(470px, 46vh)',
             overflowY: 'auto',
           }}
         >
@@ -707,12 +714,12 @@ export function MoveToDialog({ projectId, page, nodes, onClose, onMoved, onChoos
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 9,
-          padding: '10px 12px',
-          borderRadius: 8,
+          gap: 8,
+          padding: '9px 12px',
+          borderRadius: 9,
           background: '#F1F8F3',
-          border: '1px solid #D7E8DC',
-          fontSize: 13,
+          border: '1px solid #CFE6D6',
+          fontSize: 12.5,
           color: '#1E2A22',
           lineHeight: 1.45,
         }}

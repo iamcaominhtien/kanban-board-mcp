@@ -408,6 +408,8 @@ export function LinkCheckerPanel({
  * @param props.count - How many links change.
  * @param props.nodes - The pages to choose from.
  * @param props.onPick - Called with the chosen page.
+ * @param props.where - The subtitle ("3 links in 2 pages"); "N links in this page" by default.
+ * @param props.perPage - The pages that change and how many links each ("Overview (1) · Planning (2)").
  */
 export function RelinkDialog({
   name,
@@ -415,12 +417,16 @@ export function RelinkDialog({
   nodes,
   onClose,
   onPick,
+  where,
+  perPage,
 }: {
   name: string;
   count: number;
   nodes: DocsTreeNode[];
   onClose: () => void;
   onPick: (n: DocsTreeNode) => void;
+  where?: string;
+  perPage?: string;
 }) {
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
@@ -435,7 +441,7 @@ export function RelinkDialog({
       width={520}
       ariaLabel={`Relink “${name}”`}
       title={`Relink “${name}”`}
-      subtitle={`${plural(count, 'link')} in this page`}
+      subtitle={where ?? `${plural(count, 'link')} in this page`}
       icon="link"
       onClose={onClose}
       testId="relink-dialog"
@@ -520,7 +526,8 @@ export function RelinkDialog({
         </div>
         {chosen && (
           <div style={{ fontSize: 12.5, color: '#5B6B60', lineHeight: 1.5 }}>
-            {plural(count, 'link')} will point to “{chosen.title}”. A link with its own text keeps that text.
+            {plural(count, 'link')} will point to “{chosen.title}”.{perPage ? ` ${perPage}.` : ''} A link with its own
+            text keeps that text.
           </div>
         )}
       </div>

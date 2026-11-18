@@ -51,6 +51,28 @@ async fn exec(s: &Server, sql: &str, params: &[Value]) {
     let _ = c.close().await;
 }
 
+/// The first column of the first row a query returns, as text (`None` for NULL).
+async fn query_one(s: &Server, sql: &str, params: &[Value]) -> Value {
+    let mut args = SqliteArguments::default();
+    for p in params {
+        args.add(p.as_str().map(str::to_string)).expect("bind");
+    }
+    let mut c = SqliteConnectOptions::new()
+        .filename(s.db_path())
+        .busy_timeout(Duration::from_secs(10))
+        .disable_statement_logging()
+        .connect()
+        .await
+        .expect("open the database");
+    let row = sqlx::query_with(sqlx::AssertSqlSafe(sql.to_string()), args)
+        .fetch_one(&mut c)
+        .await
+        .unwrap_or_else(|e| panic!("{sql}: {e}"));
+    let text: Option<String> = sqlx::Row::get(&row, 0);
+    let _ = c.close().await;
+    text.map_or(Value::Null, Value::String)
+}
+
 async fn insert(s: &Server, table: &str, columns: Value) {
     let columns = columns.as_object().expect("columns");
     let names: Vec<String> = columns.keys().map(|k| format!("\"{k}\"")).collect();
@@ -450,6 +472,88 @@ async fn an_ai_teams_change_waits_as_suggestions_unless_the_page_applies_it() {
     let versions = c.get(&format!("/docs/pages/{page_id}/versions")).await.json();
     let latest = versions.as_array().and_then(|v| v.first()).cloned().unwrap_or(Value::Null);
     assert_eq!(latest["author"], "Docs team", "{versions}");
+}
+
+#[tokio::test]
+async fn a_rewrite_that_would_lose_formatting_is_kept_as_a_note() {
+    if !skip_unless_available("a_rewrite_that_would_lose_formatting_is_kept_as_a_note") {
+        return;
+    }
+    let s = Server::start().await;
+    let (c, mcp) = (s.client(), s.mcp());
+    let (pid, page_id) = post_page(&c, &mcp).await;
+    // a person gives the paragraph a colour and a link
+    let ids: Vec<String> = blocks(&page(&c, &page_id).await).iter().map(id_of).collect();
+    let para = ids[2].clone();
+    let styled = format!(
+        "<!-- #{para} -->\nWe kept the [roadmap]{{color=green}} in a [slide deck](https://example.com) for two years.\n"
+    );
+    let out = write(&mcp, "edit", json!({"page_id": page_id, "block_id": para, "markdown": styled})).await;
+    assert_eq!(out["published"], true, "{out}");
+    ai_team(&s, &pid).await;
+    let team = s.mcp().bearer(TOKEN);
+
+    // the team rewrites it in plain words: the block stays, its words are kept in a note
+    let out = write(&team, "edit", json!({"page_id": page_id, "block_id": para, "markdown": "We used slides."})).await;
+    assert_eq!(out["suggestions"], 0, "{out}");
+    assert!(out["message"].as_str().expect("message").contains("remove their colours"), "{out}");
+    let waiting = c.get(&format!("/docs/pages/{page_id}/suggestions")).await.json();
+    assert_eq!(waiting["count"], 0);
+    let notes = waiting["notes"].as_array().expect("notes").clone();
+    assert_eq!(notes.len(), 1, "{waiting}");
+    assert_eq!(
+        (notes[0]["kind"].as_str(), notes[0]["block_id"].as_str(), notes[0]["author"].as_str()),
+        (Some("formatting"), Some(para.as_str()), Some("Docs team"))
+    );
+    assert_eq!(notes[0]["wrote"], "We used slides.");
+    assert_eq!(notes[0]["lost"], json!({"colour": 1, "link": 1}));
+
+    // Replace the block: the team's words are published; the note is gone
+    let note_id = notes[0]["id"].as_str().expect("id").to_string();
+    let done = c.post(&format!("/docs/pages/{page_id}/suggestions/notes/{note_id}/replace"), json!({})).await;
+    done.assert_status(200);
+    let now = page(&c, &page_id).await;
+    assert_eq!(now["version"], 3);
+    assert!(now["markdown"].as_str().expect("markdown").contains("We used slides."), "{now}");
+    let waiting = c.get(&format!("/docs/pages/{page_id}/suggestions")).await.json();
+    assert_eq!(waiting["notes"], json!([]));
+
+    // a locked block's note, dismissed
+    exec(
+        &s,
+        "UPDATE docs_page SET settings = ? WHERE id = ?",
+        &[json!(json!({"lockedBlocks": [para]}).to_string()), json!(page_id)],
+    )
+    .await;
+    let out = write(&team, "edit", json!({"page_id": page_id, "block_id": para, "markdown": "Again."})).await;
+    assert_eq!(out["left_alone"], json!([para]));
+    let notes = c.get(&format!("/docs/pages/{page_id}/suggestions")).await.json()["notes"].clone();
+    assert_eq!(notes[0]["kind"], "locked", "{notes}");
+    let id = notes[0]["id"].as_str().expect("id");
+    let done = c.post(&format!("/docs/pages/{page_id}/suggestions/notes/dismiss"), json!({"ids": [id]})).await;
+    assert_eq!(done.json()["dismissed"], 1);
+    assert_eq!(c.get(&format!("/docs/pages/{page_id}/suggestions")).await.json()["notes"], json!([]));
+}
+
+#[tokio::test]
+async fn a_teams_draft_names_the_formatting_it_used() {
+    if !skip_unless_available("a_teams_draft_names_the_formatting_it_used") {
+        return;
+    }
+    let s = Server::start().await;
+    let (c, mcp) = (s.client(), s.mcp());
+    let (pid, page_id) = post_page(&c, &mcp).await;
+    ai_team(&s, &pid).await;
+    let team = s.mcp().bearer(TOKEN);
+    let out =
+        write(&team, "update", json!({"page_id": page_id, "markdown": POST, "base_version": 1, "publish": false}))
+            .await;
+    assert_eq!(out["published"], false, "{out}");
+    let row = query_one(&s, "SELECT ai_source FROM docs_draft WHERE page_id = ?", &[json!(page_id)]).await;
+    let source: Value = serde_json::from_str(row.as_str().expect("an ai_source")).expect("json");
+    assert_eq!(source["kind"], "team");
+    assert_eq!(source["member_id"], "mem_docs_team");
+    assert_eq!(source["formatting"], json!(["Title centred", "Image floated right", "Pull quote"]), "{source}");
 }
 
 #[tokio::test]

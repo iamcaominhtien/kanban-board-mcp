@@ -1471,3 +1471,184 @@
   padding: 12px 22px;
   border-top: 1px solid #e3e8e5;
 }
+
+/* ---------- a team's note under a block it did not change (G 35-36) ---------- */
+.sg-team-note {
+  margin: 8px 0 14px;
+  font-family: var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  color: #1e2a22;
+}
+.sg-team-note > .sg-msg-note {
+  margin-top: 0;
+  gap: 9px;
+  background: #f1ecfb;
+  border: 1px solid #dcd0f3;
+}
+.sg-msg-note > div {
+  flex: 1;
+}
+.sg-note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.sg-note-wrote {
+  margin-top: 8px;
+  border: 1px dashed #d9ccf7;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #fff;
+}
+.sg-note-wrote-head {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #5b3aa6;
+  margin-bottom: 4px;
+}
+.sg-note-wrote-text {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ---------- edited at the same time (G 37) ---------- */
+.sg-tag-clash {
+  background: #fdf3e3;
+  color: #8a5a00;
+}
+.sg-clash-line {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #5b6b60;
+}
+
+/* ---------- the chip of a page a team edited directly, and its list (A 2) ---------- */
+.sg-edited-pop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.16);
+  padding: 12px;
+  font-family: var(--font-ui, 'Plus Jakarta Sans', sans-serif);
+  color: #1e2a22;
+  text-align: left;
+}
+.sg-edited-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px 8px;
+}
+.sg-edited-head > b {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.sg-edited-head > span {
+  font-size: 12px;
+  color: #5b6b60;
+}
+.sg-edited-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.sg-edited-row:hover:not(:disabled),
+.sg-edited-row:focus-visible {
+  background: #f1ecfb;
+}
+.sg-edited-row:disabled {
+  cursor: default;
+}
+.sg-edited-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: #efe8fb;
+  color: #5b3aa6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.sg-edited-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sg-edited-place {
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sg-edited-what {
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+.sg-edited-n {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5b3aa6;
+}
+.sg-edited-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 4px 2px;
+  border-top: 1px solid #e3e8e5;
+  margin-top: 6px;
+}
+.sg-edited-ask {
+  flex: 1 1 100%;
+  font-size: 12px;
+  color: #5b6b60;
+}
+
+/* ---------- a block a team is changing now (States H 59-61) ---------- */
+[data-ai-changing] {
+  position: relative;
+  border-left: 3px solid #7b6fd0;
+  background: #f5f3fd;
+  border-radius: 0 8px 8px 0;
+  padding: 8px 12px 8px 11px;
+}
+[data-ai-changing]::before {
+  content: attr(data-ai-changing);
+  position: absolute;
+  right: 8px;
+  top: -9px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  background: #efeafb;
+  color: #5b4bb5;
+  border: 1px solid #d5ccf0;
+  border-radius: 999px;
+  font:
+    700 10.5px 'Plus Jakarta Sans',
+    system-ui,
+    sans-serif;
+  padding: 2px 8px;
+  white-space: nowrap;
+}

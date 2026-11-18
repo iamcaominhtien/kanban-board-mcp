@@ -23,6 +23,28 @@ function sortedChildren(nodes: DocsTreeNode[], parentId: string | null): DocsTre
   return nodes.filter((n) => n.parentId === parentId).sort((a, b) => a.position - b.position);
 }
 
+// Tree board, frame 35: 38 px fields, 36 px toggle rows, list rows 30 high with 18 px per level
+const field: React.CSSProperties = {
+  height: 38,
+  boxSizing: 'border-box',
+  padding: '0 11px',
+  borderRadius: 8,
+  borderColor: '#C7D2CB',
+  fontSize: 13.5,
+};
+const toggleRow: React.CSSProperties = { display: 'flex', gap: 12, alignItems: 'flex-start', minHeight: 36 };
+const listRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  minHeight: 30,
+  boxSizing: 'border-box',
+  padding: '2px 8px 2px 6px',
+  fontSize: 13,
+  fontWeight: 500,
+  color: '#3A4A3E',
+};
+
 const checkRow: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -42,6 +64,7 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
   const toast = useToast();
   const duplicate = useDuplicatePage(projectId);
   const [title, setTitle] = useState(`${page.title} (copy)`);
+  const origParent = page.parentId;
   const [parentId, setParentId] = useState<string | null>(page.parentId);
   const [includeChildren, setIncludeChildren] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +144,8 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
 
   return (
     <ModalShell
-      width={520}
+      boardFrame
+      width={580}
       ariaLabel={`Duplicate “${page.title}”`}
       icon="i24"
       title={<>Duplicate “{page.title}”</>}
@@ -132,7 +156,7 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
         </>
       }
       onClose={onClose}
-      bodyStyle={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}
+      bodyStyle={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 13 }}
       footer={
         <>
           <FooterNote>The copy is created as a draft.</FooterNote>
@@ -153,7 +177,7 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
       }
     >
       <form onSubmit={(e) => void submit(e)} style={{ display: 'contents' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
           <label className="st-field-label" htmlFor="dup-title" style={{ fontSize: 11 }}>
             Title
           </label>
@@ -165,18 +189,27 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
             onChange={(e) => setTitle(e.target.value)}
             onFocus={() => setFocus(true)}
             onBlur={() => setFocus(false)}
-            style={focus ? { borderColor: '#2E6F40', boxShadow: '0 0 0 3px rgba(46,111,64,0.18)' } : undefined}
+            style={{
+              ...field,
+              ...(focus ? { borderColor: '#2E6F40', boxShadow: '0 0 0 3px rgba(46,111,64,0.14)' } : null),
+            }}
           />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
           <label className="st-field-label" htmlFor="dup-parent" style={{ fontSize: 11 }}>
             Location
           </label>
-          <div className="st-input" style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+          <div
+            className="st-input"
+            style={{ ...field, display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}
+          >
             <span style={{ display: 'flex', color: '#2E6F40' }}>
               <Icon name={parentId === null ? 'i27' : 'i00'} size={15} strokeWidth={1.8} />
             </span>
-            <span style={{ flex: 1, minWidth: 0, fontWeight: 600 }}>{current?.label.trim()}</span>
+            <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {current?.label.trim()}
+              {parentId === origParent && ' · same place as the original'}
+            </span>
             <Icon name="i06" size={12} strokeWidth={2.3} />
             <select
               id="dup-parent"
@@ -191,27 +224,15 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
               ))}
             </select>
           </div>
-          <div className="st-hint" style={{ fontSize: 12 }}>
-            Same place as the original. Choose another to copy it elsewhere.
-          </div>
         </div>
+        <div style={{ height: 1, background: '#E3E8E5' }} />
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '11px 12px',
-            borderRadius: 9,
-            border: '1px solid #E3E8E5',
-            background: '#FFFFFF',
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: hasChildren ? '#1E2A22' : '#9AA8A0' }}>
+        <div style={toggleRow}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: hasChildren ? '#1E2A22' : '#9AA8A0' }}>
               Include child pages
             </div>
-            <div style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.45 }}>
+            <div style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.45, marginTop: 1 }}>
               {hasChildren ? `Copies ${names} as well, under the new page.` : `${page.title} has no child pages.`}
             </div>
           </div>
@@ -240,50 +261,21 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
           <div
             role="list"
             aria-label="Pages that will be created"
-            style={{ border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' }}
+            style={{ border: '1px solid #E3EAE5', borderRadius: 9, overflow: 'hidden', background: '#FFFFFF' }}
           >
-            <div
-              role="listitem"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 9,
-                padding: '7px 12px',
-                borderBottom: '1px solid #EEF3EF',
-                fontSize: 12.5,
-                fontWeight: 700,
-                color: '#1E2A22',
-              }}
-            >
-              <span style={{ display: 'flex', color: '#2E6F40' }}>
+            <div role="listitem" style={{ ...listRow, fontWeight: 600, color: '#1E2A22' }}>
+              <span style={{ display: 'flex', width: 20, justifyContent: 'center', color: '#5B6B60' }}>
                 <Icon name="i00" size={15} strokeWidth={1.8} />
               </span>
               {trimmed || `${page.title} (copy)`}
-              <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 500, color: '#9AA8A0' }}>New</span>
+              <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: '#2E6F40' }}>New</span>
             </div>
-            {subPages.map((s, i) => (
-              <div
-                key={s.id}
-                role="listitem"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 9,
-                  padding: '7px 12px',
-                  paddingLeft: 12 + s.depth * 18,
-                  borderBottom: i < subPages.length - 1 ? '1px solid #EEF3EF' : undefined,
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  color: '#1E2A22',
-                }}
-              >
-                <span style={{ display: 'flex', color: '#9AA8A0' }}>
+            {subPages.map((s) => (
+              <div key={s.id} role="listitem" style={{ ...listRow, paddingLeft: 6 + s.depth * 18 }}>
+                <span style={{ display: 'flex', width: 20, justifyContent: 'center', color: '#5B6B60' }}>
                   <Icon name="i00" size={15} strokeWidth={1.8} />
                 </span>
                 {s.title}
-                <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 500, color: '#9AA8A0' }}>
-                  Copy of {s.title}
-                </span>
               </div>
             ))}
           </div>
@@ -298,14 +290,14 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
         ).map(([label, hint]) => (
           <div
             key={label}
-            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 2px', opacity: 0.6 }}
+            style={{ ...toggleRow, opacity: 0.6 }}
             data-testid={`dup-${label === 'Include comments' ? 'comments' : 'files'}`}
           >
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E2A22' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: '#1E2A22' }}>
                 {label} <span style={{ fontSize: 11.5, fontWeight: 600, color: '#5B6B60' }}>· coming later</span>
               </div>
-              <div style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.45 }}>{hint}</div>
+              <div style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.45, marginTop: 1 }}>{hint}</div>
             </div>
             <button
               type="button"
@@ -321,7 +313,18 @@ export function DuplicateDialog({ projectId, page, nodes, onClose, onDuplicated 
           </div>
         ))}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
+            padding: '9px 12px',
+            borderRadius: 9,
+            border: '1px solid #E3EAE5',
+            background: '#F6FAF7',
+          }}
+          data-testid="dup-always"
+        >
           <div style={checkRow}>
             <Icon name="i10" size={13} strokeWidth={2.4} />
             Content as of v{page.version}, headings and tables

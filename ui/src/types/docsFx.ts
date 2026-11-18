@@ -18,6 +18,28 @@ export interface DocsSearchMatch {
   /** A table match: its row, from 1 (the header row counted), and the row's cells. */
   row?: number | null;
   cells?: string[] | null;
+  /** With `cards=true`: what the block's result card shows (RichDocsLinks B 7). */
+  card?: DocsSearchCard | null;
+}
+
+/** What a search result card shows of a picture, video, table, code block, file or diagram. */
+export interface DocsSearchCard {
+  /** The block's name and what it is ("Limits", "Table · 3 columns, 4 rows"). */
+  label?: string | null;
+  detail?: string | null;
+  src?: string | null;
+  alt?: string | null;
+  caption?: string | null;
+  title?: string | null;
+  poster?: string | null;
+  description?: string | null;
+  language?: string | null;
+  filename?: string | null;
+  /** Code: the first line that matched and the next, numbered from 1. */
+  lines?: { n: number; text: string }[];
+  name?: string | null;
+  size?: number | null;
+  mime?: string | null;
 }
 
 export interface DocsSearchPage {
@@ -54,6 +76,10 @@ export interface DocsSearchFacets {
   status?: { name: string; count: number }[];
   /** Pages per type of match (`facets=kinds`): `page`, `image`, `table`, `file`, `code`, `diagram`. */
   kinds?: { name: DocsMatchType; count: number }[];
+  /** Pages that may be outdated (`facets=outdated`). */
+  outdated?: number;
+  /** Results per project, largest first (`facets=projects`, scope all). */
+  projects?: { projectId: string; name: string; count: number }[];
   [key: string]: unknown;
 }
 
@@ -85,6 +111,12 @@ export interface DocsSearchParams {
   kinds?: DocsMatchType[];
   /** Count pages per type of match (`facets.kinds`). */
   kindFacets?: boolean;
+  /** Count the pages that may be outdated (`facets.outdated`). */
+  outdatedFacet?: boolean;
+  /** Count the results per project (`facets.projects`). */
+  projectFacets?: boolean;
+  /** Give the matches of pictures, tables, code, files and diagrams their card (`card`). */
+  cards?: boolean;
 }
 
 // ─── Import ───────────────────────────────────────────────────────────────────

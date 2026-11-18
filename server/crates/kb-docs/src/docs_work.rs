@@ -13,7 +13,7 @@
 use std::collections::HashMap;
 
 use kb_db::Session;
-use kb_db::entities::{ai_run, ai_run_step, docs_link, member, ticket};
+use kb_db::entities::{ai_run, ai_run_step, docs_link, docs_suggestion, member, ticket};
 use kb_db::sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use serde_json::{Map, Value, json};
 
@@ -42,6 +42,24 @@ async fn doing(session: &Session, run: &ai_run::Model) -> Result<Option<String>>
         .one(session)
         .await?;
     Ok(step.map(|s| s.title).filter(|t| !t.is_empty()))
+}
+
+/// The blocks of the page a live run is changing: those its suggestions wait on, in the order they were made.
+async fn changing_blocks(session: &Session, page_id: &str, run_id: &str) -> Result<Vec<String>> {
+    let rows = docs_suggestion::Entity::find()
+        .filter(docs_suggestion::Column::PageId.eq(page_id))
+        .filter(docs_suggestion::Column::RunId.eq(run_id))
+        .filter(docs_suggestion::Column::State.eq("pending"))
+        .order_by_asc(docs_suggestion::Column::CreatedAt)
+        .all(session)
+        .await?;
+    let mut out: Vec<String> = Vec::new();
+    for id in rows.into_iter().filter_map(|r| r.block_id) {
+        if !out.contains(&id) {
+            out.push(id);
+        }
+    }
+    Ok(out)
 }
 
 async fn ticket_ids(session: &Session, page_id: &str) -> Result<Vec<String>> {
@@ -77,8 +95,9 @@ async fn member_name(session: &Session, names: &mut HashMap<String, String>, id:
 
 /// The tickets tied to a page and the AI work on them: `{tickets: [{id, title, status, assignee, run}], active}`.
 ///
-/// `run` is the live run on the ticket (or the latest one): `{id, member, mode, state, doing, started_at, ended_at}`.
-/// `active` counts the live runs.
+/// `run` is the live run on the ticket (or the latest one): `{id, member, mode, state, doing, started_at, ended_at,
+/// blocks}`; `blocks` are the block ids of this page the live run is changing (its suggestions waiting there), empty
+/// for a run that has ended. `active` counts the live runs.
 pub async fn work_on_page(session: &Session, page_id: &str) -> Result<Map<String, Value>> {
     let ids = ticket_ids(session, page_id).await?;
     let mut tickets: Vec<Value> = Vec::new();
@@ -117,6 +136,7 @@ pub async fn work_on_page(session: &Session, page_id: &str) -> Result<Map<String
                     "doing": doing(session, run).await?,
                     "started_at": run.started_at.clone().filter(|s| !s.is_empty()).unwrap_or_else(|| run.queued_at.clone()),
                     "ended_at": run.ended_at,
+                    "blocks": if live.is_some() { changing_blocks(session, page_id, &run.id).await? } else { Vec::new() },
                 }),
             );
             if live.is_some() {

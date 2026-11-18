@@ -192,7 +192,9 @@ export function useDocsRecycleBin(projectId: string) {
 export function useTicketDocs(ticketId: string) {
   return useQuery({
     queryKey: docsKeys.ticketDocs(ticketId),
-    queryFn: async () => (await client.get<DocsTicketDoc[]>(`/tickets/${ticketId}/docs`)).data,
+    // rows of rich pages name the heading or block they point at (RichDocsLinks H 47)
+    queryFn: async () =>
+      (await client.get<DocsTicketDoc[]>(`/tickets/${ticketId}/docs`, { params: { blocks: true } })).data,
     enabled: !!ticketId,
   });
 }

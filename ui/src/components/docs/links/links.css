@@ -80,3 +80,84 @@
   height: 24px;
   font-size: 16px;
 }
+
+/* ── Heading link handle (RichDocsLinks D 22): 28 px in the left margin, on hover ── */
+.dk-rich :is(h1, h2, h3, h4, h5, h6)[data-block-id] {
+  position: relative;
+}
+.dk-hl-handle {
+  position: absolute;
+  left: -34px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: #eaf0ec;
+  color: #2e6f40;
+  border: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.dk-rich :is(h1, h2, h3, h4, h5, h6):hover > .dk-hl-handle {
+  opacity: 1;
+}
+.dk-hl-handle::after {
+  content: 'Copy link to this heading';
+  position: absolute;
+  left: -12px;
+  bottom: calc(100% + 10px);
+  display: none;
+  padding: 5px 10px;
+  border-radius: 7px;
+  background: #1e2a22;
+  color: #fff;
+  font:
+    600 11.5px/1.4 'Plus Jakarta Sans',
+    system-ui,
+    sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.dk-hl-handle:hover::after {
+  display: block;
+}
+.dk-hl-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 2000;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #1e2a22;
+  color: #fff;
+  box-shadow: 0 14px 34px rgba(30, 42, 34, 0.34);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+.dk-hl-toast-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2e6f40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+@media (hover: none) {
+  .dk-rich :is(h1, h2, h3, h4, h5, h6):focus-within > .dk-hl-handle {
+    opacity: 1;
+  }
+}

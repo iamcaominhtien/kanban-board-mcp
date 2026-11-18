@@ -2,7 +2,7 @@ import type { Editor } from '@tiptap/core';
 import type { DocsAiSource } from '../../../types/docs';
 import { countCitations, findMarkers } from '../../../utils/writeRules';
 import type { CSSProperties } from 'react';
-import { Spark } from '../suggestions/sgIcons';
+import { SgIcon, Spark, type SgIconName } from '../suggestions/sgIcons';
 
 /** Select the first occurrence of `text` in the visual editor and scroll to it; false when it is not found. */
 export function goToText(editor: Editor | null, text: string): boolean {
@@ -72,6 +72,22 @@ export function AiDraftChip({ source }: { source: DocsAiSource }) {
       <span>{source.from && source.kind !== 'accepted' ? `from ${source.from} · ` : ''}only you see it</span>
     </div>
   );
+}
+
+/** The icon of a line of "Formatting the team used". */
+export function formattingIcon(line: string): SgIconName {
+  const l = line.toLowerCase();
+  if (l.includes('centred') || l.includes('aligned')) return 'align';
+  if (l.includes('floated')) return 'float';
+  if (l.includes('quote')) return 'quote';
+  if (l.includes('image') || l.includes('video')) return 'image';
+  if (l.includes('callout')) return 'callout';
+  if (l.includes('table')) return 'table';
+  if (l.includes('column')) return 'columns';
+  if (l.includes('colour')) return 'colour';
+  if (l.includes('highlight')) return 'highlight';
+  if (l.includes('task')) return 'tasks';
+  return 'text';
 }
 
 interface PanelProps {
@@ -153,6 +169,24 @@ export function AiDraftPanel({ source, markdown, onGoTo, onStripCitations }: Pan
               </li>
             ))}
           </ul>
+        </>
+      )}
+      {(source.formatting ?? []).length > 0 && (
+        <>
+          <div style={{ ...HEAD, borderTop: '1px solid #E3E8E5', paddingTop: 10 }}>FORMATTING THE TEAM USED</div>
+          {(source.formatting ?? []).map((f) => (
+            <div
+              key={f}
+              data-testid="ai-draft-formatting"
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', fontSize: 12.5 }}
+            >
+              <SgIcon name={formattingIcon(f)} size={14} color="#5B3AA6" />
+              <span>{f}</span>
+            </div>
+          ))}
+          <div style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.5 }}>
+            All of it is ordinary formatting. Change or remove any of it in the editor.
+          </div>
         </>
       )}
       {sources.length > 0 && (

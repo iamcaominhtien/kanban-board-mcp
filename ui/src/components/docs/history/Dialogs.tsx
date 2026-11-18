@@ -391,3 +391,93 @@ export function CopyPageDialog({ projectId, page, target, detail, onCancel, onCr
     </HxDialog>
   );
 }
+
+/** Props of {@link EditNoteDialog}. */
+export interface EditNoteDialogProps {
+  target: DocsVersionSummary;
+  busy: boolean;
+  error: string | null;
+  /** Phone and tablet: a sheet from the bottom. */
+  compact?: boolean;
+  onCancel: () => void;
+  /** Called with the new note (empty removes it). */
+  onSave: (note: string) => void;
+}
+
+/** The longest note, as the server takes it. */
+export const VERSION_NOTE_MAX = 200;
+
+/**
+ * "Edit note" of a version (row menu, design A 2): the note only; the version's text stays as it is.
+ * @param props - See {@link EditNoteDialogProps}.
+ */
+export function EditNoteDialog({ target, busy, error, compact, onCancel, onSave }: EditNoteDialogProps) {
+  const [note, setNote] = useState(target.note ?? '');
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => ref.current?.select(), []);
+  const long = note.trim().length > VERSION_NOTE_MAX;
+  return (
+    <HxDialog
+      width={440}
+      sheet={compact}
+      ariaLabel={`Edit the note of v${target.version}`}
+      testId="hx-edit-note"
+      icon="i15"
+      title={`Note of v${target.version}`}
+      subtitle={
+        <>
+          {displayName(target.author)} · {fmtDateTime(target.createdAt)}
+        </>
+      }
+      onClose={onCancel}
+      footer={
+        <>
+          {!compact && <span className="hx-dlg-note">Only the note changes, not the version.</span>}
+          {!compact && <span style={{ flex: 1 }} />}
+          <button type="button" className="st-btn" onClick={onCancel}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="st-btn st-btn-primary hx-dlg-go"
+            onClick={() => onSave(note.trim())}
+            disabled={busy || long}
+            data-testid="hx-edit-note-save"
+          >
+            {busy ? 'Saving…' : 'Save note'}
+          </button>
+        </>
+      }
+    >
+      <form
+        className="hx-field"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!busy && !long) onSave(note.trim());
+        }}
+      >
+        <label className="hx-field-label" htmlFor="version-note">
+          Version note
+        </label>
+        <input
+          id="version-note"
+          ref={ref}
+          className="hx-input"
+          value={note}
+          placeholder="What changed?"
+          onChange={(e) => setNote(e.target.value)}
+        />
+      </form>
+      {long && (
+        <div role="alert" className="hx-dlg-error">
+          A note can be up to {VERSION_NOTE_MAX} characters.
+        </div>
+      )}
+      {error && (
+        <div role="alert" className="hx-dlg-error">
+          {error}
+        </div>
+      )}
+    </HxDialog>
+  );
+}

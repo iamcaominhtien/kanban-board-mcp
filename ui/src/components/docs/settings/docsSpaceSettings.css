@@ -196,3 +196,139 @@
 .ds-swatches button[aria-checked='true'] > span {
   border: 2px solid #2e6f40;
 }
+
+/* the cards of Settings › Docs (Tree board, frames 49-60): r14, 20 px 22 px, the title 16/700, the note 12.5/1.5,
+   rows 44 high with the name 13.5/600 */
+.ds-root > section {
+  border-radius: 14px;
+  padding: 20px 22px;
+}
+.ds-root > section h2 {
+  font-size: 16px;
+}
+.ds-root > section h2 + div {
+  font-size: 12.5px;
+}
+.ds-select {
+  width: 200px;
+  height: 36px;
+  border-color: #c7d2cb;
+  border-radius: 8px;
+  font-size: 13.5px;
+}
+.ds-rule {
+  height: 1px;
+  background: #e3e8e5;
+}
+.ds-cap {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.ds-trow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 2px;
+  border-bottom: 1px solid #f0f3f1;
+}
+.ds-tile {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: #f1f6f2;
+  color: #2e6f40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.ds-tname {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+.ds-tname > span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #5b6b60;
+}
+.ds-yours {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px dashed #bfd2c5;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+}
+.ds-yours > span > span {
+  color: #5b6b60;
+  font-weight: 500;
+}
+.ds-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2e6f40;
+  cursor: pointer;
+}
+.ds-link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ds-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #5b6b60;
+}
+/* a choice beside its row (Highlights): 34 px options that keep their width */
+[data-setting='docs-highlights'] .ds-seg {
+  width: auto;
+}
+[data-setting='docs-highlights'] .ds-seg button {
+  flex: none;
+  height: 34px;
+}
+.ds-rows {
+  gap: 0;
+}
+.ds-rows > div {
+  min-height: 44px;
+  align-items: center;
+}
+.ds-root > section [data-setting] > div:first-child > div:first-child,
+.ds-rows > div > div:first-child > div:first-child {
+  font-size: 13.5px;
+}
+.ds-rows .ds-mb input {
+  width: 90px;
+  height: 36px;
+  box-sizing: border-box;
+  border-color: #c7d2cb;
+  border-radius: 8px;
+  font-size: 13.5px;
+}
+.ds-fixed-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: #5b6b60;
+}
+.ds-on {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #2e6f40;
+}

@@ -10,7 +10,8 @@ import { PageIcon } from './tree/treeParts';
 import { useToast } from '../Toast';
 import { Icon } from './Icon';
 import { FooterNote, ModalShell, Spacer, plural } from './docsShared';
-import { RenameLinkGroups } from './links/RenameGroups';
+import { RenameLinkGroups, mentionKey } from './links/RenameGroups';
+import type { RenameMention } from '../../types/docsActions';
 
 interface RenameDialogProps {
   projectId: string;
@@ -96,7 +97,20 @@ export function RenameDialog({
     return () => window.clearTimeout(t);
   }, [title]);
 
-  const preview = useRenamePreview(page.id, debounced, !!debounced.trim() && debounced.trim() !== page.title);
+  const preview = useRenamePreview(page.id, debounced, !!debounced.trim() && debounced.trim() !== page.title, true);
+  // the plain-text mentions change only where the person ticks them (H 44)
+  const [chosen, setChosen] = useState<ReadonlySet<string>>(() => new Set());
+  const mentions = useMemo(() => preview.data?.mentions ?? [], [preview.data]);
+  const chosenMentions = mentions.filter((m) => chosen.has(mentionKey(m)));
+  const chosenCount = chosenMentions.reduce((n, m) => n + m.count, 0);
+  const chosenPages = new Set(chosenMentions.map((m) => m.pageId)).size;
+  const toggleMention = (m: RenameMention) =>
+    setChosen((old) => {
+      const next = new Set(old);
+      if (next.has(mentionKey(m))) next.delete(mentionKey(m));
+      else next.add(mentionKey(m));
+      return next;
+    });
   const affected = useMemo(
     () => (preview.data && debounced.trim() === trimmed ? preview.data.affectedPages : []),
     [preview.data, debounced, trimmed],
@@ -111,15 +125,18 @@ export function RenameDialog({
     setError(null);
     const oldTitle = page.title;
     try {
-      const res = await rename.mutateAsync({ pageId: page.id, title: trimmed, rewriteLinks });
+      const rewriteMentions = chosenMentions.map((m) => ({ pageId: m.pageId, blockId: m.blockId }));
+      const res = await rename.mutateAsync({ pageId: page.id, title: trimmed, rewriteLinks, rewriteMentions });
       const updated = rewriteLinks ? (res.rewritten ?? links) : 0;
+      const changed = res.mentionsChanged ?? 0;
+      const lines = [
+        rewriteLinks && updated ? `${plural(updated, 'link')} on ${plural(affected.length, 'page')} updated.` : '',
+        changed ? `${plural(changed, 'plain-text mention')} changed.` : '',
+      ].filter(Boolean);
       toast.showToast({
         variant: 'success',
         title: `Renamed to “${res.title}”`,
-        message:
-          rewriteLinks && updated
-            ? `${plural(updated, 'link')} on ${plural(affected.length, 'page')} updated.`
-            : undefined,
+        message: lines.length ? lines.join(' ') : undefined,
         duration: 8000,
         action: {
           label: 'Undo',
@@ -150,7 +167,12 @@ export function RenameDialog({
       bodyStyle={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}
       footer={
         <>
-          {hasLinks ? (
+          {chosenCount > 0 ? (
+            <FooterNote>
+              Changes {plural(chosenCount, 'plain-text mention')} · creates a version on{' '}
+              {chosenPages === 1 ? 'that page' : 'those pages'}
+            </FooterNote>
+          ) : hasLinks ? (
             <FooterNote>
               Updates {plural(links, 'link')} written as text · creates a version on{' '}
               {affected.length === 1 ? 'that page' : `those ${affected.length} pages`}
@@ -235,7 +257,14 @@ export function RenameDialog({
       )}
       {/* what happens to the links (RichDocsLinks H 44): they follow; links with their own text keep it */}
       {!unchanged && trimmed && !problem && (
-        <RenameLinkGroups pageId={page.id} oldTitle={page.title} newTitle={trimmed} />
+        <RenameLinkGroups
+          pageId={page.id}
+          oldTitle={page.title}
+          newTitle={trimmed}
+          mentions={debounced.trim() === trimmed ? mentions : []}
+          chosen={chosen}
+          onToggle={toggleMention}
+        />
       )}
       {error && (
         <div role="alert" style={{ fontSize: 12.5, color: '#A5321E' }}>

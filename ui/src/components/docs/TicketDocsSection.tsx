@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useTicketDocs } from '../../api/docs';
+import { useCreatePage, useDocsTree, useTicketDocs } from '../../api/docs';
+import { client } from '../../api/client';
+import type { DocsLinkTargets } from '../../types/docs';
+import { useDocsRefs } from './DocsRefsContext';
+import { LinkedDocCard } from './links/LinkedDocCard';
 import { useProjects } from '../../api/projects';
 import { useDocsSuggest, useLinkTicketDoc } from '../../api/docsActions';
 import { extractError } from '../../api/extractError';
@@ -56,6 +60,7 @@ function mergeByPage(list: TicketDocRow[]): Grouped[] {
     const key = `${d.kind ?? 'page'}:${d.pageId}:${d.canvasId ?? ''}`;
     const o = d.origin ?? 'page';
     const row = out.get(key) ?? { ...d, chips: [], sections: [], manual: false, mentioned: false };
+    if (!row.block && d.block) Object.assign(row, { block: d.block, blockId: d.blockId, excerpt: d.excerpt });
     const label = originLabel(d);
     if (!row.chips.some((c) => c.label === label)) row.chips.push({ label, manual: o === 'manual' });
     if (d.section && !row.sections.includes(d.section)) row.sections.push(d.section);
@@ -66,136 +71,15 @@ function mergeByPage(list: TicketDocRow[]): Grouped[] {
   return [...out.values()];
 }
 
-const groupLabel: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: '#9AA8A0' };
-const card: React.CSSProperties = { border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' };
-
-function Row({
-  doc,
-  last,
-  onOpen,
-  onRemove,
-}: {
-  doc: Grouped;
-  last: boolean;
-  onOpen: () => void;
-  onRemove?: () => void;
-}) {
-  const path = doc.path ?? [];
-  const endsWithTitle = path[path.length - 1] === doc.title;
-  const oneSection = doc.sections.length === 1 ? doc.sections[0] : null;
-  const where = [...(oneSection || !doc.sections.length ? [] : [`in ${doc.sections.join(', ')}`])];
-  const trail = (
-    oneSection ? (endsWithTitle ? path : [...path, doc.title]) : endsWithTitle ? path.slice(0, -1) : path
-  ).join(' › ');
-  const sub = [trail, ...where].filter(Boolean).join(' · ');
-  return (
-    <div
-      className={`tdoc-row ${onRemove ? 'tdoc-manual' : ''}`}
-      data-testid={`ticket-doc-${onRemove ? 'manual' : doc.mentioned ? 'mention' : 'page'}`}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '9px 12px',
-        background: '#FFFFFF',
-        borderBottom: last ? undefined : '1px solid #EEF3EF',
-      }}
-    >
-      <button
-        type="button"
-        onClick={onOpen}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          flex: 1,
-          minWidth: 0,
-          background: 'none',
-          border: 'none',
-          padding: 0,
-          textAlign: 'left',
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-        }}
-      >
-        <span style={{ display: 'flex', color: '#2E6F40' }}>
-          {doc.kind === 'canvas' ? (
-            <Icon name="canvas" size={16} strokeWidth={1.8} />
-          ) : doc.sections.length ? (
-            <Icon name="i04" size={16} strokeWidth={1.8} />
-          ) : (
-            <Icon name="i00" size={16} strokeWidth={1.8} />
-          )}
-        </span>
-        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#1E2A22' }}>
-            {oneSection ? `${doc.title} › ${oneSection}` : doc.title}
-          </span>
-          {sub && <span style={{ fontSize: 11.5, color: '#9AA8A0' }}>{sub}</span>}
-        </span>
-      </button>
-      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-        {doc.chips.map((c) => (
-          <span
-            key={c.label}
-            data-testid="ticket-doc-origin"
-            style={{
-              fontSize: 11.5,
-              fontWeight: 600,
-              // "Mentioned in …" (and From docs) chips are blue, only "Manual link" is grey (TicketDocRefs F, board DR-4)
-              color: c.manual ? '#5B6B60' : '#1F5A8E',
-              padding: '2px 8px',
-              borderRadius: 999,
-              background: c.manual ? '#F1F3F1' : '#E8F1FB',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {c.label}
-          </span>
-        ))}
-      </span>
-      {onRemove ? (
-        <button
-          type="button"
-          className="tdoc-remove"
-          aria-label="Remove link"
-          onClick={onRemove}
-          style={{
-            width: 22,
-            height: 22,
-            borderRadius: 5,
-            border: 'none',
-            background: '#FBE7E4',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#C4432A',
-            flexShrink: 0,
-            cursor: 'pointer',
-            padding: 0,
-          }}
-        >
-          <Icon name="i08" size={12} strokeWidth={2} />
-        </button>
-      ) : (
-        <span
-          title="Remove the mention to unlink"
-          style={{
-            width: 22,
-            height: 22,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#C7D2CB',
-            flexShrink: 0,
-          }}
-        >
-          <Icon name="lock" size={13} strokeWidth={1.9} />
-        </span>
-      )}
-    </div>
-  );
-}
+// RichDocsLinks H 47: an 11 px uppercase group label over a row of 196 px cards
+const groupLabel: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: '.06em',
+  textTransform: 'uppercase',
+  color: '#5B6B60',
+  marginBottom: 6,
+};
 
 function LinkPopover({
   projectId,
@@ -461,8 +345,11 @@ function ApplyComments({ ticketId, projectId }: { ticketId: string; projectId?: 
 export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDocsSectionProps) {
   const canvas = useCanvas();
   const toast = useToast();
+  const refs = useDocsRefs();
   const { data } = useTicketDocs(ticketId);
   const { link, unlink } = useLinkTicketDoc(ticketId);
+  const tree = useDocsTree(projectId ?? '');
+  const createPage = useCreatePage(projectId ?? '');
   const [adding, setAdding] = useState(false);
   const docs = useMemo(() => (data ?? []) as unknown as TicketDocRow[], [data]);
 
@@ -475,15 +362,49 @@ export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDoc
     };
   }, [docs]);
   const linked = useMemo(() => new Set(docs.map((d) => d.pageId)), [docs]);
+  const count = groups.mentioned.length + groups.manual.length + groups.pages.length;
 
   async function add(item: DocsSuggestItem) {
     setAdding(false);
     try {
-      await link.mutateAsync(item.pageId);
+      // a heading of a rich page is linked by its block, so the card opens the page there (H 48)
+      let blockId: string | null = null;
+      if (item.kind === 'section' && item.slug) {
+        const t = (await client.get<DocsLinkTargets>(`/docs/pages/${item.pageId}/link-targets`)).data;
+        blockId = t.headings.find((h) => h.slug === item.slug)?.blockId ?? null;
+      }
+      await link.mutateAsync({ pageId: item.pageId, blockId });
     } catch (err) {
       toast.error("Couldn't link the doc", extractError(err));
     }
   }
+
+  /** "Write a page for KAN-12": a page that names the ticket (so it links by itself), opened to write. */
+  async function writePage() {
+    if (!projectId) return;
+    try {
+      const page = await createPage.mutateAsync({
+        title: `Notes for ${ticketId}`,
+        markdown: `Notes for ${ticketId}.\n`,
+      });
+      await link.mutateAsync(page.id);
+      onOpenPage(page.id, projectId);
+    } catch (err) {
+      toast.error("Couldn't start the page", extractError(err));
+    }
+  }
+
+  const nodes = tree.data ?? [];
+  const where = (d: Grouped) => {
+    const path = (d.path ?? []).filter((t, i, a) => !(i === a.length - 1 && t === d.title));
+    return path.length ? path.join(' › ') : 'Top level';
+  };
+  const open = (d: Grouped) => {
+    if (d.kind === 'canvas' && d.canvasId && canvas.available) return canvas.openViewer({ id: d.canvasId });
+    // the side panel at the heading or block (a sheet on a phone); without one, the page in Docs
+    if (refs) return refs.peek(d.pageId, d.blockId ? `block-${d.blockId}` : (d.sections[0] ?? null));
+    onOpenPage(d.pageId, d.projectId);
+  };
 
   async function remove(d: TicketDocRow) {
     try {
@@ -495,22 +416,32 @@ export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDoc
 
   const group = (label: string, list: Grouped[]) =>
     list.length > 0 && (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div>
         <div style={groupLabel}>{label}</div>
-        <div style={card}>
-          {list.map((d, i) => (
-            <Row
-              key={`${d.kind ?? 'page'}-${d.pageId}-${d.canvasId ?? ''}`}
-              doc={d}
-              last={i === list.length - 1}
-              onOpen={() =>
-                d.kind === 'canvas' && d.canvasId && canvas.available
-                  ? canvas.openViewer({ id: d.canvasId })
-                  : onOpenPage(d.pageId, d.projectId)
-              }
-              onRemove={d.manual ? () => void remove(d) : undefined}
-            />
-          ))}
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          {list.map((d) => {
+            const node = nodes.find((n) => n.id === d.pageId);
+            const target = d.block ?? (d.sections.length === 1 ? { kind: 'heading', label: d.sections[0] } : null);
+            return (
+              <LinkedDocCard
+                key={`${d.kind ?? 'page'}-${d.pageId}-${d.canvasId ?? ''}`}
+                testId={`ticket-doc-${d.manual && !d.mentioned ? 'manual' : d.mentioned ? 'mention' : 'page'}`}
+                doc={{
+                  pageId: d.pageId,
+                  title: d.title,
+                  icon: node?.icon ?? null,
+                  where: where(d),
+                  published: (node?.version ?? d.version ?? 1) > 0,
+                  target,
+                  excerpt: d.excerpt || d.snippet || null,
+                  origins: d.chips,
+                  canvas: d.kind === 'canvas',
+                }}
+                onOpen={() => open(d)}
+                onRemove={d.manual ? () => void remove(d) : undefined}
+              />
+            );
+          })}
         </div>
       </div>
     );
@@ -521,62 +452,76 @@ export function TicketDocsSection({ ticketId, projectId, onOpenPage }: TicketDoc
       data-testid="ticket-docs"
       style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 4, borderTop: '1px solid #EEF3EF' }}
     >
-      <style>{`
-        .tdoc-manual .tdoc-remove { opacity: 0; transition: opacity .12s; }
-        .tdoc-manual:hover, .tdoc-manual:focus-within { background: #F6FAF7 !important; }
-        .tdoc-manual:hover .tdoc-remove, .tdoc-manual:focus-within .tdoc-remove { opacity: 1; }
-      `}</style>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: '0.06em',
-            color: '#5B6B60',
-            textTransform: 'uppercase',
-          }}
-        >
-          Linked docs
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#1E2A22' }}>Linked docs</span>
+        <span style={{ fontSize: 12.5, color: '#5B6B60' }} data-testid="ticket-docs-count">
+          {count === 1 ? '1 page' : `${count} pages`}
         </span>
-        <span style={{ fontSize: 11.5, fontWeight: 600, color: '#9AA8A0' }} data-testid="ticket-docs-count">
-          {groups.mentioned.length + groups.manual.length + groups.pages.length}
-        </span>
+        <span style={{ flex: 1 }} />
+        <div style={{ position: 'relative' }}>
+          <button
+            type="button"
+            className="st-btn"
+            style={{ minHeight: 32 }}
+            data-testid="ticket-docs-link"
+            onClick={() => setAdding((a) => !a)}
+          >
+            <svg
+              width={13}
+              height={13}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.4}
+              aria-hidden="true"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Link a doc
+          </button>
+          {adding && (
+            <LinkPopover
+              projectId={projectId}
+              linked={linked}
+              onPick={(i) => void add(i)}
+              onClose={() => setAdding(false)}
+            />
+          )}
+        </div>
+        {projectId && (
+          <button
+            type="button"
+            className="st-btn st-btn-primary"
+            style={{ minHeight: 32 }}
+            data-testid="ticket-docs-write"
+            disabled={createPage.isPending}
+            onClick={() => void writePage()}
+          >
+            <svg
+              width={13}
+              height={13}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden="true"
+            >
+              <path d="M4 20h4L19 9l-4-4L4 16z" />
+              <path d="M13.5 6.5l4 4" />
+            </svg>
+            Write a page for {ticketId}
+          </button>
+        )}
       </div>
       {group('Mentioned in this ticket', groups.mentioned)}
       {group('Linked manually', groups.manual)}
       {group('Pages that mention this ticket', groups.pages)}
       <ApplyComments ticketId={ticketId} projectId={projectId} />
-      <div style={{ position: 'relative', alignSelf: 'flex-start' }}>
-        <button
-          type="button"
-          onClick={() => setAdding((a) => !a)}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '6px 10px',
-            borderRadius: 6,
-            border: '1px dashed #2E6F40',
-            background: '#F1F8F3',
-            cursor: 'pointer',
-            fontSize: 12,
-            fontWeight: 600,
-            color: '#2E6F40',
-            fontFamily: 'inherit',
-          }}
-        >
-          <Icon name="i01" size={12} strokeWidth={2.6} />
-          Link a doc
-        </button>
-        {adding && (
-          <LinkPopover
-            projectId={projectId}
-            linked={linked}
-            onPick={(i) => void add(i)}
-            onClose={() => setAdding(false)}
-          />
-        )}
-      </div>
+      {count === 0 && (
+        <div style={{ fontSize: 12.5, color: '#5B6B60' }}>
+          A page that mentions {ticketId} links by itself. A doc you link here can be removed again.
+        </div>
+      )}
     </div>
   );
 }

@@ -1511,3 +1511,188 @@
   filter: none;
   cursor: default;
 }
+
+/* "People with access" in Share (Reader board, frame 38): 40 px rows, a 28 px avatar, the name 13/600, the role
+   12.5 #3A4A3E on the right */
+.dk-share-people {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dk-share-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+}
+.dk-share-person-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e2a22;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dk-share-person-name > span {
+  color: #5b6b60;
+  font-weight: 500;
+}
+.dk-share-person-role {
+  font-size: 12.5px;
+  color: #3a4a3e;
+  white-space: nowrap;
+}
+.dk-share-more {
+  font-size: 12px;
+  color: #5b6b60;
+}
+
+/* "Sign in" on the public page's bar (frame 41): 34 high, 0 12, r8, a rule-coloured border, 12.5/600 */
+.dk-public-signin {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--dp-rule, #e3e8e5);
+  background: transparent;
+  color: var(--dp-ink, #1e2a22);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  flex: none;
+  box-sizing: border-box;
+}
+.dk-public-signin:hover {
+  background: rgba(30, 42, 34, 0.04);
+}
+[data-layout='phone'] .dk-public-signin {
+  height: 44px;
+}
+
+/* the Print panel with its preview (Reader board, frame 54): the 320 px panel beside a grey stage holding the page */
+.dk-print-frame {
+  display: flex;
+  max-width: 100%;
+  max-height: calc(100vh - 32px);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(30, 42, 34, 0.16);
+  border: 1px solid #e3e8e5;
+  background: #fff;
+}
+.dk-print-frame .dk-print-dialog {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  flex: none;
+}
+.dk-print-frame:not(.dk-print-frame-solo) .dk-print-dialog {
+  border-right: 1px solid #e3e8e5;
+}
+.dk-print-frame-solo {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.dk-print-frame-solo .dk-print-dialog {
+  border: 1px solid #e3e8e5;
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(30, 42, 34, 0.16);
+}
+.dk-print-stage {
+  width: 640px;
+  flex: none;
+  background: #e9efeb;
+  display: flex;
+  justify-content: center;
+  padding: 20px 20px 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.dk-print-paper {
+  width: 560px;
+  height: 630px;
+  flex: none;
+  background: #fff;
+  box-shadow: 0 6px 26px rgba(30, 42, 34, 0.22);
+  padding: 40px 52px 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.dk-print-paper[data-margins='narrow'] {
+  padding: 28px 36px 0;
+}
+.dk-print-paper[data-margins='wide'] {
+  padding: 52px 68px 0;
+}
+.dk-print-paper[data-paper='letter'] {
+  height: 600px;
+}
+/* the page is laid out 760 px wide and scaled to the paper's text width (456 px at normal margins: 0.6) */
+.dk-print-preview {
+  transform: scale(0.6);
+  transform-origin: top left;
+  pointer-events: none;
+}
+.dk-print-paper[data-margins='narrow'] .dk-print-preview {
+  transform: scale(0.642);
+}
+.dk-print-paper[data-margins='wide'] .dk-print-preview {
+  transform: scale(0.558);
+}
+.dk-print-preview .dk-print-sheet {
+  display: block;
+  background: var(--dp-page, #fff);
+  color: var(--dp-text, #3a4a3e);
+  font-family: var(--dp-body-font, 'Plus Jakarta Sans', sans-serif);
+}
+.dk-print-preview .dk-print-sheet[data-colours='off'] {
+  background: #fff;
+}
+.dk-print-preview .dk-print-sheet[data-colours='off'] .dk-md * {
+  color: #1e2a22 !important;
+  background: transparent !important;
+}
+.dk-print-preview .dk-print-cover {
+  height: 180px;
+  margin-bottom: 18px;
+  background-size: cover;
+  background-position: center;
+}
+.dk-print-preview .dk-print-title {
+  margin: 4px 0 6px;
+  font-family: var(--dp-heading-font, inherit);
+  font-size: 32px;
+  line-height: 1.15;
+  color: #1e2a22;
+}
+.dk-print-preview .dk-print-meta {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: #5b6b60;
+}
+.dk-print-preview .dk-print-eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b6b60;
+}
+.dk-print-preview .dk-print-foot {
+  display: none;
+}
+@media (max-width: 1040px) {
+  .dk-print-stage {
+    display: none;
+  }
+  .dk-print-frame:not(.dk-print-frame-solo) .dk-print-dialog {
+    border-right: none;
+  }
+}

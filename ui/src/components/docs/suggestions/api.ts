@@ -33,12 +33,38 @@ export interface DocsSuggestion {
   createdAt: string;
   /** A person changed the block since the team saw it: Accept waits for "Look at it". */
   stale: boolean;
+  /** Who published the block as it is now (a stale suggestion only). */
+  changedBy?: string | null;
+  /** Stale while the team's run is still working: a person and the team changed it at the same time (G 37). */
+  atSameTime?: boolean;
+}
+
+/**
+ * A change a team did not make (G 35–36): the block is locked for teams, or rewriting it would have removed its
+ * formatting. The team's words are kept so a person can copy them or use them.
+ */
+export interface TeamNote {
+  id: string;
+  kind: 'locked' | 'formatting';
+  blockId: string | null;
+  author: string;
+  memberId: string | null;
+  runId: string | null;
+  createdAt: string;
+  /** The team's version as plain text (null when it was not a rewrite). */
+  wrote: string | null;
+  /** The team's version of the block. */
+  after: RichDoc | null;
+  /** The formatting the rewrite would have removed, by kind (`colour`, `highlight`, `link`, `font`…). */
+  lost: Record<string, number>;
 }
 
 /** `GET /docs/pages/{id}/suggestions`. */
 export interface SuggestionList {
   count: number;
   suggestions: DocsSuggestion[];
+  /** The changes teams did not make, on blocks still on the page. */
+  notes?: TeamNote[];
 }
 
 /** `POST …/suggestions/accept-all`. */
@@ -96,6 +122,32 @@ export function useSettleSuggestions(pageId: string, projectId: string) {
     onSuccess: () => refresh(),
   });
   return { accept, acceptAll, reject };
+}
+
+/**
+ * Dismiss a team's note, or use the team's version of the block it kept ("Replace the block": a new version).
+ * @param pageId - The page.
+ * @param projectId - Its project (the tree's counts).
+ */
+export function useNoteActions(pageId: string, projectId: string) {
+  const qc = useQueryClient();
+  const refresh = (page?: DocsPage) => {
+    if (page) qc.setQueryData<DocsPage>(docsKeys.page(pageId), (old) => (old ? { ...old, ...page } : page));
+    void qc.invalidateQueries({ queryKey: suggestionKeys.page(pageId) });
+    void qc.invalidateQueries({ queryKey: docsKeys.tree(projectId) });
+    void qc.invalidateQueries({ queryKey: docsKeys.versions(pageId) });
+  };
+  const dismiss = useMutation({
+    mutationFn: async (ids: string[]) =>
+      (await client.post<{ dismissed: number }>(`/docs/pages/${pageId}/suggestions/notes/dismiss`, { ids })).data,
+    onSuccess: () => refresh(),
+  });
+  const replace = useMutation({
+    mutationFn: async (noteId: string) =>
+      (await client.post<DocsPage>(`/docs/pages/${pageId}/suggestions/notes/${noteId}/replace`)).data,
+    onSuccess: (page) => refresh(page),
+  });
+  return { dismiss, replace };
 }
 
 /** The project's Docs settings as stored, keys untouched (`aiApply` is keyed by member ids). */

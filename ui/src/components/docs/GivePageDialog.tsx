@@ -1,8 +1,10 @@
 import { useState, type ReactNode } from 'react';
+import { useAiTeams, useTeamsActivity } from '../../api/ai';
 import { useDocsPage } from '../../api/docs';
 import { useAssignPage } from '../../api/docsWork';
 import { extractError } from '../../api/extractError';
 import { useMembers } from '../../api/members';
+import type { AiTeam, TeamActivity } from '../../types/ai';
 import { DOCS_SCRIM, useEscape } from './docsShared';
 import { useTeamApply } from './suggestions/api';
 import { pageApply } from './suggestions/pageAi';
@@ -22,6 +24,21 @@ const KINDS = [
 ] as const;
 
 /**
+ * The line under a team in WHO (E 23): its roles and what it is doing, "Lead and Docs role · idle", "Dev, Reviewer,
+ * QA · working on KAN-171", "… · paused". Null while the team is not known.
+ * @param team - The team (its roles and whether it is paused).
+ * @param activity - What its lead and roles do now.
+ */
+export function teamSubline(team: AiTeam | undefined, activity: TeamActivity | undefined): string | null {
+  if (!team) return null;
+  const names = team.roles.map((r) => r.name || r.key).filter(Boolean);
+  const roles = names.length === 0 ? 'Lead' : names.length === 1 ? `Lead and ${names[0]} role` : names.join(', ');
+  const now = [activity?.lead, ...(activity?.roles ?? [])].find((a) => a?.working)?.working ?? null;
+  const state = team.paused ? 'paused' : now ? (now.ticketId ? `working on ${now.ticketId}` : 'working') : 'idle';
+  return `${roles} · ${state}`;
+}
+
+/**
  * Give a page to an AI team to write or review (#268). It becomes a ticket "Write/Review the page “X”", linked to the
  * page and assigned to the member, whose run starts; the page shows what it is doing. Drawn as on the board ("AI teams
  * on rich pages" E 23–24): a line says how the changes arrive, and an empty page is written as a private draft.
@@ -32,6 +49,8 @@ const KINDS = [
  */
 export function GivePageDialog({ projectId, page, onClose, onGiven }: Props) {
   const ais = (useMembers(projectId).data ?? []).filter((m) => m.kind === 'ai');
+  const teams = useAiTeams(projectId).data;
+  const activity = useTeamsActivity(projectId).data;
   const full = useDocsPage(page.id).data;
   const teamApply = useTeamApply(projectId).data?.aiApply;
   // an empty page is written from nothing: Write it is chosen and the team writes a private draft
@@ -103,7 +122,18 @@ export function GivePageDialog({ projectId, page, onClose, onGiven }: Props) {
               <fieldset className="gp-field">
                 <legend className="gp-label">WHO</legend>
                 <div className="gp-opts">
-                  {ais.map((m) => radio(chosen === m.id, m.name, null, () => setMemberId(m.id), 'give-member'))}
+                  {ais.map((m) =>
+                    radio(
+                      chosen === m.id,
+                      m.name,
+                      teamSubline(
+                        teams?.find((t) => t.id === m.id),
+                        activity?.[m.id],
+                      ),
+                      () => setMemberId(m.id),
+                      'give-member',
+                    ),
+                  )}
                 </div>
               </fieldset>
               <fieldset className="gp-field">

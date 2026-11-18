@@ -122,7 +122,15 @@ export interface HealthBroken {
   pageId: string;
   title: string;
   ref: string;
-  status: 'missing' | 'in_bin' | 'section_missing' | 'block_missing';
+  /** A link that does not resolve, or (a rich page) a picture, video or file whose upload is gone (H 47). */
+  status:
+    'missing' | 'in_bin' | 'section_missing' | 'block_missing' | 'image_missing' | 'video_missing' | 'file_missing';
+  /** The node type of the block the link or file sits in (Docs health's IN column). */
+  blockType?: string | null;
+  /** A broken picture, video or file: the words that name it (its caption, title or file name). */
+  name?: string | null;
+  /** A broken picture, video or file: when its page was last edited. */
+  editedAt?: string | null;
   /** The block of the page the link sits in (a rich page): Go to link opens it there. */
   blockId?: string | null;
   /** The page in the Recycle Bin the link points at (status `in_bin`): Restore. */

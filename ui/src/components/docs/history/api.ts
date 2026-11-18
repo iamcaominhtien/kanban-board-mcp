@@ -73,3 +73,34 @@ export function useCopyVersionAsPage(projectId: string) {
     },
   });
 }
+
+/**
+ * Change one version's note (`PATCH /docs/pages/{id}/versions/{n}`): the history's "Edit note". The list and that
+ * version are fetched again.
+ * @param pageId - The page.
+ */
+export function useEditVersionNote(pageId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ version, note }: { version: number; note: string }) =>
+      (await client.patch<DocsVersionDetail>(`/docs/pages/${pageId}/versions/${version}`, { note })).data,
+    onSuccess: (detail, { version }) => {
+      qc.setQueryData(versionKey(pageId, version), detail);
+      void qc.invalidateQueries({ queryKey: docsKeys.versions(pageId) });
+    },
+  });
+}
+
+/**
+ * The link that opens a page on one of its versions, read-only (`?docs=<page>&version=<n>`).
+ * @param pageId - The page.
+ * @param version - The version.
+ */
+export function versionLink(pageId: string, version: number): string {
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('docs', pageId);
+  url.searchParams.set('version', String(version));
+  return url.toString();
+}

@@ -10,6 +10,23 @@ export interface DocsPageStats {
 export interface RenamePreview {
   affectedPages: { pageId: string; title: string; count: number; space?: string; path?: string[] }[];
   total: number;
+  /** With `mentions=true`: the blocks of other pages that name the page in plain text (RichDocsLinks H 44). */
+  mentions?: RenameMention[];
+}
+
+/** A block of another page that names the page in plain text: the words around the first mention. */
+export interface RenameMention {
+  pageId: string;
+  title: string;
+  /** The page's parent title (`null` at the top level). */
+  parent: string | null;
+  blockId: string;
+  before: string;
+  /** The mention as written. */
+  text: string;
+  after: string;
+  /** How many mentions the block holds. */
+  count: number;
 }
 
 /** `GET /docs/pages/{id}/delete-preview` */
@@ -22,7 +39,7 @@ export interface DeletePreview {
   linkingTickets?: number;
 }
 
-export type RenamedPage = DocsPage & { rewritten?: number };
+export type RenamedPage = DocsPage & { rewritten?: number; mentionsChanged?: number; mentionPages?: number };
 
 export interface BacklinkPageRow {
   pageId: string;
@@ -85,6 +102,10 @@ export interface TicketDocRow {
   /** `canvas`: the row is a canvas shown in the ticket (the layers icon); `canvasId` opens it. */
   kind?: 'canvas';
   canvasId?: string;
+  /** A rich page (`blocks=true`): the heading or block the row points at, and its words (RichDocsLinks H 47). */
+  blockId?: string | null;
+  block?: { blockId: string; kind: string; label: string; detail: string } | null;
+  excerpt?: string | null;
 }
 
 export interface DocsSuggestItem {

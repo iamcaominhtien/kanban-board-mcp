@@ -270,8 +270,14 @@ async fn test_since_viewed_answers_the_pages_the_digest_card_reads() {
     r.assert_status(200);
     let j = f.job(&http::id(&r.json())).await;
     assert_eq!(j["state"], "finished", "{j}");
+    // who published it, when, and its blocks that changed (the digest's chips)
+    let mut pages = j["result"]["pages"].clone();
+    let row = pages[0].as_object_mut().expect("a row");
+    let blocks = row.remove("blocks").expect("blocks");
+    assert!(row.remove("by").is_some_and(|b| b.is_string()) && row.remove("at").is_some_and(|a| a.is_string()));
+    assert!(blocks["blocks"].as_array().is_some_and(|b| !b.is_empty()), "{blocks}");
     assert_eq!(
-        j["result"]["pages"],
+        pages,
         json!([{"page_id": api, "title": "API", "kind": "changed", "from_version": 1, "to_version": 2,
                 "line": "Added the REST v2 line."}])
     );

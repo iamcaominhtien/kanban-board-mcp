@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useCreatePage, useDocsTree, useRestorePage } from '../../../api/docs';
-import { BrokenGroups } from '../links/BrokenGroups';
+import { BrokenGroupsWithFixes } from '../links/BrokenGroups';
 import { OverlapBlocks } from '../links/OverlapBlocks';
 import { docsAiError } from '../../../api/docsAi';
 import {
@@ -11,6 +11,7 @@ import {
   useLinkTicketToPage,
   useRunHealth,
   type DocsHealth,
+  type HealthBroken,
 } from '../../../api/docsAiCare';
 import {
   checkedLabel,
@@ -23,6 +24,7 @@ import {
 } from '../../../utils/careRules';
 import { relativeTime } from '../../../utils/relativeTime';
 import { Icon } from '../Icon';
+import { typeName } from '../suggestions/describe';
 import '../docs.css';
 import { LineIcon } from '../../ui/LineIcon';
 
@@ -258,11 +260,16 @@ function Lists({
                 <div key={x.key} style={{ marginBottom: 4 }}>
                   {x.text}
                   <div style={{ fontSize: 11.5, color: '#9AA8A0' }}>
-                    Compared: {x.compared}
-                    {x.blockLabel && (
+                    Compared: {x.compared ?? x.source ?? 'text in the page'}
+                    {(x.blockLabel || x.blockType) && (
                       <>
                         {' '}
-                        · on the page: <b style={{ color: '#5B6B60' }}>{x.blockLabel}</b>
+                        · on the page:{' '}
+                        <b style={{ color: '#5B6B60' }}>
+                          {[x.blockType ? typeName({ type: x.blockType }) : null, x.blockLabel]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </b>
                       </>
                     )}
                   </div>
@@ -334,15 +341,60 @@ function Lists({
   }
   if (tab === 'broken') {
     if (!data.broken.length) return <Empty text="Every link and section resolves." />;
-    // grouped by what the links point at (RichDocsLinks G 40): one fix can mend them all
+    // links grouped by what they point at (RichDocsLinks G 40): one fix can mend them all; pictures, videos and
+    // files whose upload is gone are rows of their own (RichDocsAi2 H 47)
+    const links = data.broken.filter((r) => !isBrokenMedia(r));
+    const media = data.broken.filter(isBrokenMedia);
     return (
-      <BrokenGroups
-        items={data.broken}
-        onOpenPage={onOpenPage}
-        onCreate={(title) => void createPage.mutateAsync({ title }).then(() => run.mutate())}
-        onRestore={(id) => void restorePage.mutateAsync(id).then(() => run.mutate())}
-        dismiss={(r) => <DismissMenu disabled={busy} onPick={(l) => dismiss('broken', r, l)} />}
-      />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {links.length > 0 && (
+          <BrokenGroupsWithFixes
+            projectId={projectId}
+            onFixed={() => run.mutate()}
+            items={links}
+            onOpenPage={onOpenPage}
+            onCreate={(title) => void createPage.mutateAsync({ title }).then(() => run.mutate())}
+            onRestore={(id) => void restorePage.mutateAsync(id).then(() => run.mutate())}
+            dismiss={(r) => <DismissMenu disabled={busy} onPick={(l) => dismiss('broken', r, l)} />}
+          />
+        )}
+        {media.length > 0 && (
+          <Table
+            head={
+              <>
+                <th style={th}>PAGE</th>
+                <th style={th}>WHAT IS BROKEN</th>
+                <th style={th}>IN</th>
+                <th style={th}>EDITED</th>
+                <th style={th} />
+              </>
+            }
+          >
+            {media.map((r) => (
+              <tr key={healthItemId('broken', r)} data-testid="health-broken-media" data-status={r.status}>
+                <td style={{ ...td, width: '24%' }}>
+                  <b style={{ fontSize: 13 }}>{r.title}</b>
+                </td>
+                <td style={td}>{brokenMediaText(r)}</td>
+                <td style={{ ...td, fontSize: 12, color: '#5B6B60', whiteSpace: 'nowrap' }}>
+                  {typeName({ type: r.blockType ?? 'image' })}
+                </td>
+                <td style={{ ...td, fontSize: 11.5, color: '#5B6B60', whiteSpace: 'nowrap' }}>
+                  {r.editedAt ? relativeTime(r.editedAt) : ''}
+                </td>
+                <td style={{ ...td, whiteSpace: 'nowrap', textAlign: 'right' }}>
+                  <span style={{ display: 'inline-flex', gap: 6 }}>
+                    <button type="button" style={accent} onClick={() => onOpenPage(r.pageId, r.blockId ?? undefined)}>
+                      Review
+                    </button>
+                    <DismissMenu disabled={busy} onPick={(l) => dismiss('broken', r, l)} />
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </Table>
+        )}
+      </div>
     );
   }
   if (!data.overlaps.length) return <Empty text="No pages overlap." />;
@@ -392,6 +444,19 @@ function Lists({
       ))}
     </Table>
   );
+}
+
+/** A broken picture, video or file (its upload is gone), not a link. */
+function isBrokenMedia(r: HealthBroken): boolean {
+  return r.status === 'image_missing' || r.status === 'video_missing' || r.status === 'file_missing';
+}
+
+/** What is broken, in words (H 47): "Video “Board tour.mp4” is not in Project files any more". */
+export function brokenMediaText(r: HealthBroken): string {
+  const name = r.name || r.ref;
+  if (r.status === 'video_missing') return `Video “${name}” is not in Project files any more`;
+  if (r.status === 'file_missing') return `File “${name}” is not in Project files any more`;
+  return `The image file was deleted: “${name}”`;
 }
 
 function Empty({ text }: { text: string }) {

@@ -11,6 +11,7 @@
 
 pub mod blocks;
 pub mod body;
+pub mod bulk;
 pub mod gallery;
 pub mod pages;
 pub mod public;

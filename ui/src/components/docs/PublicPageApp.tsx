@@ -199,6 +199,10 @@ function PublicPageView({ page }: { page: PublicPage }) {
             />
           )}
         </span>
+        {/* Reader board, frame 41: "Sign in" opens the app itself; it says nothing about this page */}
+        <a className="dk-public-signin" href="/" data-testid="public-sign-in">
+          Sign in
+        </a>
       </header>
       <div
         className="dk-progress dk-public-progress"

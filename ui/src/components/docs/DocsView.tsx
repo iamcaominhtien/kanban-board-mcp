@@ -498,6 +498,19 @@ export function DocsView({
   const cachedPage = selectedId && !livePage ? offlineApi.getCachedPage(selectedId) : null;
   const offlineCopy = !livePage && networkDown && cachedPage ? cachedToPage(cachedPage, projectId, nodes) : null;
   const page = livePage ?? offlineCopy;
+  // a "Copy link to version" link (`?docs=<page>&version=<n>`) opens that version to read, once, when the page loads
+  const versionFromLink = useRef<number | null>(
+    (() => {
+      const n = Number(new URLSearchParams(window.location.search).get('version'));
+      return Number.isInteger(n) && n > 0 ? n : null;
+    })(),
+  );
+  useEffect(() => {
+    const n = versionFromLink.current;
+    if (n == null || !livePage) return;
+    versionFromLink.current = null;
+    if (n < livePage.version) setReading({ pageId: livePage.id, version: n });
+  }, [livePage]);
   useEffect(() => {
     if (pageQuery.isError || tree.isError) setFailedAt(new Date());
   }, [pageQuery.isError, pageQuery.errorUpdatedAt, tree.isError, tree.errorUpdatedAt]);

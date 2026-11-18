@@ -1,4 +1,4 @@
-import { ensureProject, openDocs } from '../lib/ui.mjs';
+import { closeTicket, ensureProject, openDocs, openTicket } from '../lib/ui.mjs';
 
 // Finding and connecting rich pages (design boards "Rich Docs — search, links & backlinks", RichDocsLinks 1-5, and
 // RichDocsStates4 I): a link to a block shows where it goes ("Rate limiting › [table] Limits"), its hover card shows
@@ -271,15 +271,17 @@ export default {
       if (await marked('b-0000b1').count()) throw new Error('the mark is still on');
     });
 
-    await s.step('the full search page: Type filter with counts, a table match says "Table · row 3" and shows the row', async () => {
+    await s.step('the full search page: Type filter with counts, a table match is a card that says "row 3" and shows the row', async () => {
       await p.keyboard.press('Control+k');
       const dlg = p.getByRole('dialog');
       await dlg.getByRole('combobox').or(dlg.getByRole('textbox')).first().fill('team');
       await dlg.getByTestId('match-marker').first().waitFor();
       await p.keyboard.press('Control+Enter');
-      const marker = p.getByTestId('match-marker').filter({ hasText: 'Table · row 3' });
-      await marker.waitFor();
-      const row = p.getByTestId('match-row').first();
+      // on the search page a table match is a card of its own (B 7): "Table", "row 3", the row
+      const tcard = p.getByTestId('search-block-card').filter({ hasText: 'row 3' }).first();
+      await tcard.waitFor();
+      if ((await tcard.getAttribute('data-kind')) !== 'table') throw new Error('not a table card');
+      const row = tcard.getByTestId('match-row').first();
       await row.getByText('600').waitFor();
       expect('table row', await box(row), { radius: '6px', border: '1px solid rgb(227, 232, 229)' });
       const tables = p.getByTestId('type-filter-table');
@@ -287,7 +289,7 @@ export default {
       const check = tables.locator('xpath=ancestor::div[@role="checkbox"]');
       if (!/1$/.test((await check.textContent()).trim())) throw new Error('Tables count: ' + (await check.textContent()));
       await check.click();
-      await p.getByTestId('match-marker').filter({ hasText: 'Table · row 3' }).waitFor();
+      await p.getByTestId('search-block-card').filter({ hasText: 'row 3' }).first().waitFor();
       await p.keyboard.press('Escape');
     });
 
@@ -323,6 +325,129 @@ export default {
       await p.keyboard.press('Enter');
       await menu.waitFor({ state: 'detached' });
       await content.locator('[data-block-id="b-0000b1"] .dk-chip-ticket, [data-block-id="b-0000b1"] [data-ref="ticket"]').first().waitFor();
+    });
+
+    await s.step('the search page gives a matched picture a card of its own (B 7): 30 px tile, the picture, its caption', async () => {
+      await p.reload();
+      await openDocs(s);
+      await p.keyboard.press('Control+k');
+      const dlg = p.getByRole('dialog');
+      await dlg.getByRole('combobox').or(dlg.getByRole('textbox')).first().fill('throttle');
+      await dlg.getByTestId('match-marker').first().waitFor();
+      await p.keyboard.press('Control+Enter');
+      const card = p.getByTestId('search-block-card').filter({ has: p.locator('[data-testid="search-card-thumb"]') }).first();
+      await card.waitFor();
+      if ((await card.getAttribute('data-kind')) !== 'image') throw new Error('the card is not a picture card');
+      expect('kind tile', await box(card.getByTestId('search-card-tile')), { w: 30, h: 30, radius: '9px', bg: 'rgb(240, 232, 250)' });
+      expect('card name', await box(card.getByTestId('search-card-name')), { font: '700 15px' });
+      expect('thumbnail', await box(card.getByTestId('search-card-thumb')), { w: 120, h: 76, radius: '7px' });
+      await card.getByText('CAPTION', { exact: true }).waitFor();
+      await card.getByText('Rate limiting', { exact: true }).waitFor();
+    });
+
+    await s.step('Status · May be outdated (B 7): the filter counts and narrows to the pages marked outdated', async () => {
+      const check = p.getByTestId('search-filter-outdated').locator('xpath=ancestor::div[@role="checkbox"]');
+      await check.waitFor();
+      if (!/0$/.test((await check.textContent()).trim())) throw new Error('outdated count before: ' + (await check.textContent()));
+      await api('PATCH', `/docs/pages/${target}/settings`, { settings: { status: 'outdated' } });
+      await p.keyboard.press('Escape');
+      await p.keyboard.press('Control+k');
+      const dlg = p.getByRole('dialog');
+      await dlg.getByRole('combobox').or(dlg.getByRole('textbox')).first().fill('throttle');
+      await dlg.getByTestId('match-marker').first().waitFor();
+      await p.keyboard.press('Control+Enter');
+      const again = p.getByTestId('search-filter-outdated').locator('xpath=ancestor::div[@role="checkbox"]');
+      await p.waitForFunction(
+        (el) => /1$/.test(el.textContent.trim()),
+        await again.elementHandle(),
+        { timeout: 8000 },
+      );
+      await again.click();
+      await p.getByTestId('search-block-card').first().waitFor();
+      await api('PATCH', `/docs/pages/${target}/settings`, { settings: { status: null } });
+      await p.keyboard.press('Escape');
+    });
+
+    await s.step('a heading shows a link handle on hover (D 22): 28 px, #EAF0EC; it copies the link and says "Link copied"', async () => {
+      await openPage('Rate limiting', 'b-0000a1');
+      const heading = body().locator('[data-block-id="b-0000a1"]');
+      await heading.hover();
+      const handle = heading.getByTestId('heading-link-handle');
+      await p.waitForFunction((el) => getComputedStyle(el).opacity === '1', await handle.elementHandle(), { timeout: 5000 });
+      expect('heading handle', await box(handle), { w: 28, h: 28, radius: '7px', bg: 'rgb(234, 240, 236)', color: 'rgb(46, 111, 64)' });
+      await handle.click();
+      const toast = p.getByTestId('heading-link-toast');
+      await toast.getByText('Link copied').waitFor();
+      await toast.getByText('Rate limiting › Limits').waitFor();
+      expect('link toast', await box(toast), { radius: '12px', bg: 'rgb(30, 42, 34)' });
+      const copied = await p.evaluate(() => navigator.clipboard.readText());
+      if (!copied.endsWith('#block-b-0000a1')) throw new Error('copied ' + copied);
+    });
+
+    await s.step('a ticket\'s Linked docs are cards (H 47): 196 px, the page and the block linked, its words, why', async () => {
+      // a task (a story opens its own screen, not the ticket dialog)
+      const t = await api('POST', `/projects/${pid}/tickets`, { title: 'Send Retry-After on 429' });
+      await api('POST', `/tickets/${t.id}/docs`, { page_id: target, block_id: 'b-0000a1' });
+      await p.reload();
+      await p.getByRole('button', { name: 'Board', exact: true }).click();
+      const dlg = await openTicket(s, t.id);
+      const card = dlg.getByTestId('ticket-doc-manual');
+      await card.waitFor();
+      expect('linked doc card', await box(card), { w: 196, radius: '12px', border: '1px solid rgb(220, 227, 222)' });
+      expect('card cover', await box(card.getByTestId('tdoc-cover')), { h: 56 });
+      await card.getByTestId('tdoc-title').getByText('Rate limiting › Limits').waitFor();
+      await card.getByTestId('tdoc-excerpt').getByText(/Plan, Requests \/ min, Burst/).waitFor();
+      await card.getByText('Manual link').waitFor();
+      await card.hover();
+      await card.getByTestId('tdoc-side-panel').click();
+      await p.getByTestId('peek-panel').waitFor();
+      await p.keyboard.press('Escape');
+      await p.getByTestId('peek-panel').waitFor({ state: 'detached' });
+      await dlg.getByTestId('ticket-docs-write').waitFor();
+      await closeTicket(s);
+    });
+
+    await s.step('rename offers the plain-text mentions (H 44); only the ticked one changes, with a new version', async () => {
+      const release = await publish('Release notes', {
+        type: 'doc',
+        content: [
+          para('b-0000d1', text('The new Rate limiting headers ship on Friday.')),
+          para('b-0000d2', text('We start rate limiting with free plans.')),
+        ],
+      });
+      await p.reload();
+      await openDocs(s);
+      await openPage('Rate limiting', 'b-0000a1');
+      // F2 on the page (not on a tree row, where it renames in place)
+      await p.getByTestId('page-title').click();
+      await p.keyboard.press('F2');
+      const dlg = p.getByRole('dialog', { name: 'Rename page' });
+      await dlg.locator('#rename-title').fill('Request limits');
+      const group = dlg.getByTestId('rename-mentions');
+      await group.getByText('Mentions written as plain text').waitFor();
+      const rows = group.getByTestId('rename-mention');
+      await rows.nth(1).waitFor();
+      expect('unticked box', await box(rows.first().getByTestId('rename-mention-box')), { w: 20, h: 20, radius: '5px' });
+      await rows.first().click();
+      expect('ticked box', await box(rows.first().getByTestId('rename-mention-box')), { bg: 'rgb(46, 111, 64)' });
+      await dlg.getByText('Changes 1 plain-text mention · creates a version on that page').waitFor();
+      await dlg.getByTestId('confirm-rename').click();
+      await dlg.waitFor({ state: 'detached' });
+      const page = await api('GET', `/docs/pages/${release}`);
+      const words = page.content.content.map((b) => b.content[0].text);
+      if (words[0] !== 'The new Request limits headers ship on Friday.') throw new Error('not changed: ' + words[0]);
+      if (words[1] !== 'We start rate limiting with free plans.') throw new Error('changed but not ticked: ' + words[1]);
+      if (page.version !== 2) throw new Error('version ' + page.version);
+    });
+
+    await s.step('the bulk fix route mends a broken-link group across pages (G 40): one version per changed page', async () => {
+      const a = await publish('Old notes A', { type: 'doc', content: [para('b-0000e1', text('See '), { type: 'docRef', attrs: { page: 'Old rules', section: null, label: null } })] });
+      const b = await publish('Old notes B', { type: 'doc', content: [para('b-0000e2', text('Also '), { type: 'docRef', attrs: { page: 'Old rules', section: null, label: null } })] });
+      const out = await api('POST', `/projects/${pid}/docs/links/fix`, { page: 'Old rules', anchor: null, pages: [a, b], action: 'relink', to: { page_id: notes } });
+      if (out.links !== 2 || out.pages !== 2) throw new Error('fix: ' + JSON.stringify(out));
+      const pa = await api('GET', `/docs/pages/${a}`);
+      if (pa.content.content[0].content[1].attrs.page_id !== notes && pa.content.content[0].content[1].attrs.pageId !== notes)
+        throw new Error('not relinked: ' + JSON.stringify(pa.content.content[0]));
     });
   },
 };

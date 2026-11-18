@@ -162,7 +162,7 @@ export function PageMenu({ page, onAction, onClose, variant = 'popover', hidden,
         );
         return (
           <div key={gi}>
-            {gi > 0 && <div style={{ height: 1, background: '#EEF3EF', margin: '4px 6px' }} />}
+            {gi > 0 && <div style={{ height: 1, background: '#E3E8E5', margin: '4px 6px' }} />}
             {group.map((it) => (
               <button
                 key={it.action}

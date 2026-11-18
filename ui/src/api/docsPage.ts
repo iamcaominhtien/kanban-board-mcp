@@ -24,18 +24,20 @@ export function useSimilarPages(projectId: string, slug: string, enabled = true)
 }
 
 /**
- * How many other pages link to `pageId` by its title (decides between a plain rename and the rewrite-links dialog).
+ * How many links to `pageId` by its title, and blocks of other pages that name it in plain text, a rename touches
+ * (decides between a plain rename and the rename dialog).
  * @param pageId - Page being renamed.
  * @param title - Proposed new title.
- * @returns Number of links affected by the rename, or 0 if the preview fails.
+ * @returns Links plus mention blocks affected by the rename, or 0 if the preview fails.
  */
 export async function fetchRenameLinkCount(pageId: string, title: string): Promise<number> {
   try {
-    const res = await client.get<{ total?: number; affectedPages?: unknown[] }>(
+    // plain-text mentions count too: the dialog offers to change them (RichDocsLinks H 44)
+    const res = await client.get<{ total?: number; affectedPages?: unknown[]; mentions?: unknown[] }>(
       `/docs/pages/${pageId}/rename-preview`,
-      { params: { title } },
+      { params: { title, mentions: true } },
     );
-    return res.data.total ?? res.data.affectedPages?.length ?? 0;
+    return (res.data.total ?? res.data.affectedPages?.length ?? 0) + (res.data.mentions?.length ?? 0);
   } catch {
     return 0;
   }

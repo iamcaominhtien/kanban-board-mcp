@@ -39,20 +39,43 @@ function MathView({ node, selected, updateAttributes }: NodeViewProps) {
     if (draft !== latex) updateAttributes({ latex: draft.trim() });
   }
 
+  const shown = (
+    <span
+      role="button"
+      tabIndex={0}
+      title="Click to edit formula"
+      onClick={() => {
+        if (editing) return;
+        setDraft(latex);
+        setEditing(true);
+      }}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+
+  // the formula stays in the page; editing opens a 420 px card under it (design "Embeds", frames 67-69)
   return (
     <NodeViewWrapper
       as={block ? 'div' : 'span'}
       className={block ? 'dk-math dk-math-block' : 'dk-math dk-math-inline'}
       data-selected={selected || editing ? 'true' : undefined}
+      data-editing={editing ? 'true' : undefined}
       contentEditable={false}
     >
-      {editing ? (
-        <span className="dk-math-edit">
+      {shown}
+      {block && !editing && (
+        <span className="dk-math-tip" aria-hidden="true">
+          Click to edit formula
+        </span>
+      )}
+      {editing && (
+        <span className="dk-math-edit" role="dialog" aria-label="Formula">
+          <span className="dk-math-title">Formula</span>
           <textarea
             ref={input}
             className="dk-math-input"
             value={draft}
-            rows={block ? 3 : 1}
+            rows={block ? 3 : 2}
             spellCheck={false}
             aria-label="LaTeX formula"
             onChange={(e) => setDraft(e.target.value)}
@@ -78,20 +101,9 @@ function MathView({ node, selected, updateAttributes }: NodeViewProps) {
             </span>
           )}
           <span className="dk-math-hint">
-            {block ? 'Ctrl Enter to apply, Esc to close' : 'Enter to apply, Esc to close'}
+            {block && <kbd>Ctrl</kbd>} <kbd>Enter</kbd> to apply, <kbd>Esc</kbd> to close
           </span>
         </span>
-      ) : (
-        <span
-          role="button"
-          tabIndex={0}
-          title="Click to edit formula"
-          onClick={() => {
-            setDraft(latex);
-            setEditing(true);
-          }}
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
       )}
     </NodeViewWrapper>
   );

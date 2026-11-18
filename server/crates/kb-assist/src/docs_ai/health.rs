@@ -2,7 +2,7 @@
 //! the board. Nothing here changes a page (`services/docs_ai/health.py`, lines 1 to 394).
 //!
 //! Out of date comes from the freshness checks. Missing docs (Done tickets no page links), Broken links (`[[links]]`
-//! and sections that do not resolve) and Overlaps (pages with strongly similar titles or text) are found by rules on
+//! and sections that do not resolve, and on rich pages pictures, videos and files whose upload is gone) and Overlaps (pages with strongly similar titles or text) are found by rules on
 //! the space's own data, with no model. Every live page is included (AI v2 reads what people read). Dismissals
 //! (this time, 30 days, never) are remembered per item in `docs_ai_health.data.dismissed`.
 
@@ -175,6 +175,12 @@ async fn broken(session: &Session, project_id: &str, pages: &[docs_page::Model])
         })
         .collect();
     let results = kb_docs::docs::refs::resolve_refs(session, project_id, &refs, false).await?;
+    let docs = kb_docs::docs_search::rich_docs(session, pages).await?;
+    // the kind of block a link sits in (Docs health's IN column): its node type
+    let block_type = |page_id: &str, block: &str| -> Option<String> {
+        let node = kb_docs::docs::blocks::find_block(docs.get(page_id)?, block)?;
+        node.get("type").and_then(Value::as_str).map(str::to_string)
+    };
     let mut out = Vec::new();
     let mut seen: HashSet<(String, String)> = HashSet::new();
     for (lk, res) in links.iter().zip(results.iter()) {
@@ -200,6 +206,9 @@ async fn broken(session: &Session, project_id: &str, pages: &[docs_page::Model])
             // a rich page's link: Go to link opens the page at its block
             item["block_id"] = json!(block);
         }
+        if let Some(ty) = lk.source_block_id.as_deref().and_then(|b| block_type(&lk.source_page_id, b)) {
+            item["block_type"] = json!(ty);
+        }
         if status == "in_bin" {
             // the page in the bin, so Docs health can offer Restore
             if let Some(target) = res.get("page_id").filter(|v| !v.is_null()) {
@@ -207,6 +216,78 @@ async fn broken(session: &Session, project_id: &str, pages: &[docs_page::Model])
             }
         }
         out.push(item);
+    }
+    Ok(out)
+}
+
+/// The pictures, videos and file cards of rich pages whose uploaded file is gone (H 47): `{page_id, title, ref,
+/// status, block_id, block_type, name, edited_at}`, `status` `image_missing`, `video_missing` or `file_missing`, `ref` the
+/// file's address and `name` the words that name it (its caption, title or file name).
+async fn broken_media(session: &Session, pages: &[docs_page::Model]) -> Result<Vec<Value>, Error> {
+    fn walk<'a>(n: &'a Value, out: &mut Vec<&'a Value>) {
+        if matches!(n.get("type").and_then(Value::as_str), Some("image" | "video" | "fileCard")) {
+            out.push(n);
+        }
+        for c in n.get("content").and_then(Value::as_array).into_iter().flatten() {
+            walk(c, out);
+        }
+    }
+    let docs = kb_docs::docs_search::rich_docs(session, pages).await?;
+    let mut srcs: Vec<String> = Vec::new();
+    for doc in docs.values() {
+        let mut media = Vec::new();
+        walk(doc, &mut media);
+        for node in media {
+            let src = node.get("attrs").and_then(|a| a.get("src")).and_then(Value::as_str).unwrap_or("");
+            if src.starts_with("/uploads/") && !srcs.iter().any(|s| s == src) {
+                srcs.push(src.to_string());
+            }
+        }
+    }
+    // only a file that is gone counts; an address that is not a served upload is left alone
+    let gone: HashSet<String> = tokio::task::spawn_blocking(move || {
+        srcs.into_iter()
+            .filter(|src| {
+                matches!(kb_docs::docs_embeds::preview::upload_file(src), Err(kb_docs::Error::Docs(e)) if e.status == 404)
+            })
+            .collect()
+    })
+    .await
+    .map_err(|e| Error::Other(format!("checking uploads: {e}")))?;
+    let mut out = Vec::new();
+    for page in pages {
+        let Some(doc) = docs.get(&page.id) else { continue };
+        let mut media = Vec::new();
+        walk(doc, &mut media);
+        let mut seen: HashSet<String> = HashSet::new();
+        for node in media {
+            let attr = |k: &str| node.get("attrs").and_then(|a| a.get(k)).and_then(Value::as_str).unwrap_or("");
+            let src = attr("src");
+            if !gone.contains(src) || !seen.insert(src.to_string()) {
+                continue;
+            }
+            let ty = node.get("type").and_then(Value::as_str).unwrap_or("image");
+            let status = match ty {
+                "video" => "video_missing",
+                "fileCard" => "file_missing",
+                _ => "image_missing",
+            };
+            let file = src.rsplit('/').next().unwrap_or(src);
+            let name = [attr("caption"), attr("title"), attr("alt"), attr("name")]
+                .into_iter()
+                .find(|t| !t.trim().is_empty())
+                .unwrap_or(file);
+            out.push(json!({
+                "page_id": page.id,
+                "title": page.title,
+                "ref": src,
+                "status": status,
+                "block_id": kb_docs::docs::blocks::block_id_of(node),
+                "block_type": ty,
+                "name": name,
+                "edited_at": page.updated_at,
+            }));
+        }
     }
     Ok(out)
 }
@@ -316,7 +397,9 @@ pub async fn run(
     let row = row_of(session, project_id).await?;
     let mut data = data_map(&row.data);
     data.insert("missing".into(), Value::Array(missing(session, project_id, &readable).await?));
-    data.insert("broken".into(), Value::Array(broken(session, project_id, &pages).await?));
+    let mut broken_items = broken(session, project_id, &pages).await?;
+    broken_items.extend(broken_media(session, &pages).await?);
+    data.insert("broken".into(), Value::Array(broken_items));
     data.insert("overlaps".into(), Value::Array(overlaps(session, &pages).await?));
     if let Some(day) = freshness_day.filter(|d| !d.is_empty()) {
         data.insert("freshness_day".into(), json!(day));
@@ -381,9 +464,33 @@ fn dismissed(entries: &[Map<String, Value>], kind: &str, id: &str, run_at: Optio
     false
 }
 
-/// `_out_of_date`: freshness checks come back with the assistant (AI v2, stage 7).
-async fn out_of_date(_session: &Session, _project_id: &str, _pages: &HashSet<String>) -> Result<Vec<Value>, Error> {
-    Ok(Vec::new())
+/// `_out_of_date`: the live pages whose latest freshness check (the page's "Check if up to date", or AI care) found
+/// reasons nobody marked "Still correct" or dismissed: `{page_id, title, parent, reasons, edited_at, checked_at}`,
+/// most recently checked first. Each reason names the block it read when the page is rich (`block_id`,
+/// `block_type`, `block_label`).
+async fn out_of_date(session: &Session, project_id: &str, pages: &HashSet<String>) -> Result<Vec<Value>, Error> {
+    let rows = readable_pages(session, project_id).await?;
+    let title_of = |id: &str| rows.iter().find(|p| p.id == id).map(|p| p.title.clone());
+    let mut out = Vec::new();
+    for page in rows.iter().filter(|p| pages.contains(&p.id)) {
+        let check = super::super::assistant::docs::freshness_of(session, page).await?;
+        if check.get("state").and_then(Value::as_str) != Some("stale") {
+            continue;
+        }
+        out.push(json!({
+            "page_id": page.id,
+            "title": page.title,
+            "parent": page.parent_id.as_deref().and_then(title_of),
+            "reasons": check.get("reasons").cloned().unwrap_or(json!([])),
+            "edited_at": page.updated_at,
+            "checked_at": check.get("checked_at").cloned().unwrap_or(Value::Null),
+        }));
+    }
+    out.sort_by(|a, b| {
+        let key = |v: &Value| v.get("checked_at").and_then(Value::as_str).unwrap_or("").to_string();
+        key(b).cmp(&key(a))
+    });
+    Ok(out)
 }
 
 /// The Docs health lists with dismissed items left out, and the counts.

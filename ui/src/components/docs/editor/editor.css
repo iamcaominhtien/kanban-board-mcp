@@ -385,60 +385,139 @@
   color: #c4432a;
 }
 
+/* formulas (Embeds board I, frames 67-69) */
+.dk-math {
+  position: relative;
+}
 .dk-math-inline {
   display: inline-block;
   vertical-align: baseline;
   border-radius: 4px;
   cursor: pointer;
 }
+/* a formula on its own line: 14 px of padding, centred, r8; selected = a 2 px green outline */
 .dk-math-block {
   display: block;
-  margin: 12px 0;
+  margin: 0 0 14px;
+  padding: 14px;
+  border-radius: 8px;
+  background: #fff;
   text-align: center;
-  overflow-x: auto;
   cursor: pointer;
 }
-.dk-math[data-selected='true'] {
-  box-shadow: 0 0 0 2px rgba(46, 111, 64, 0.35);
-}
-.dk-math-input {
-  font: 13px/1.5 var(--font-mono, monospace);
-  min-width: 220px;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 6px 8px;
-  border: 1px solid #2e6f40;
-  border-radius: 6px;
-  resize: vertical;
-  text-align: left;
-}
-.dk-math-inline .dk-math-input {
-  width: auto;
-  min-width: 160px;
-  resize: none;
-}
-/* the formula editing panel (Rich Docs, Embeds frames 68-69): LaTeX on top, the result under it */
-.dk-math-edit {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 6px;
-  vertical-align: top;
-  max-width: 100%;
-}
-.dk-math-block .dk-math-edit {
-  display: flex;
-}
-.dk-math-live {
-  padding: 6px 8px;
-  border-radius: 6px;
-  background: #f6f8f7;
+.dk-math-block > [role='button'] {
+  display: block;
   overflow-x: auto;
 }
+.dk-math-block .katex-display {
+  margin: 0;
+}
+.dk-math[data-selected='true'] {
+  outline: 2px solid #2e6f40;
+  outline-offset: 0;
+}
+.dk-math-inline[data-selected='true'] {
+  outline-offset: 1px;
+}
+.dk-math-tip {
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  font-size: 11px;
+  color: #5b6b60;
+  opacity: 0;
+  pointer-events: none;
+}
+.dk-math-block:hover .dk-math-tip,
+.dk-math-block[data-selected='true'] .dk-math-tip {
+  opacity: 1;
+}
+/* a formula KaTeX cannot read stays as its text, in red (frame 69) */
+.dk-math .katex-error {
+  font: 12.5px var(--font-mono, monospace);
+  color: #c4432a !important;
+  white-space: nowrap;
+  background: #fdf1ee;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+/* the editing card (frame 68): 420 wide, r12, 0 14 36 .16, pad 14 */
+.dk-math-edit {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  padding: 14px;
+  border: 1px solid #e3e8e5;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(30, 42, 34, 0.16);
+  text-align: left;
+  cursor: default;
+  white-space: normal;
+  font-family: var(--font-body);
+}
+.dk-math-block .dk-math-edit {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.dk-math-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e2a22;
+  margin-bottom: 8px;
+}
+.dk-math-input {
+  display: block;
+  width: 100%;
+  min-height: 58px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1.5px solid #2e6f40;
+  border-radius: 8px;
+  background: #fff;
+  font: 12px/1.6 var(--font-mono, monospace);
+  color: #1e2a22;
+  resize: vertical;
+  outline: none;
+}
+.dk-math-live {
+  display: block;
+  margin: 10px 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f6faf7;
+  text-align: center;
+  overflow-x: auto;
+}
+.dk-math-live .katex-display {
+  margin: 0;
+}
 .dk-math-err {
-  font-size: 12px;
+  display: block;
+  margin: 10px 0;
+  padding: 8px 11px;
+  border-radius: 8px;
+  border: 1px solid #f0c4b8;
+  background: #fdf1ee;
   color: #c4432a;
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 .dk-math-hint {
-  font-size: 11px;
-  color: #7a8a80;
+  font-size: 11.5px;
+  color: #5b6b60;
+}
+.dk-math-hint kbd {
+  font: 10.5px var(--font-mono, monospace);
+  background: #f6faf7;
+  border: 1px solid #e3e8e5;
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: #5b6b60;
 }

@@ -5,11 +5,16 @@
 //! people accept or reject. A suggestion keeps a snapshot of the block as the team saw it; when a person changed the
 //! block since, the suggestion is *stale*: Accept stays off until the reviewer has looked at it, and Accept all skips
 //! it. Accepting publishes a new version (marked "with AI"). Blocks the page locks for teams (`lockedBlocks`) are
-//! never changed: the team's edit to them is dropped and reported ("Left this block as it is").
+//! never changed: the team's edit to them is dropped and reported ("Left this block as it is"). A rewrite that would
+//! remove a block's formatting (a colour, a highlight, a link, a font…) is not applied either: the block stays as it
+//! is and the team's words are kept with a note (design G 36), which a person can copy, use or dismiss.
+//!
+//! Such a note is a row of the same table in the state `note`, of kind `locked` or `formatting`; it leaves when a
+//! person dismisses it or the same team's next change reaches the block.
 
 use kb_base::{activity, events, time};
 use kb_db::Session;
-use kb_db::entities::{docs_page, docs_suggestion};
+use kb_db::entities::{docs_draft, docs_page, docs_suggestion};
 use kb_db::sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use kb_richdoc::RandomIds;
 use serde_json::{Map, Value, json};
@@ -173,14 +178,21 @@ pub async fn propose(
     let (changes, left): (Vec<BlockChange>, Vec<BlockChange>) = diff_blocks(&old, new_doc)
         .into_iter()
         .partition(|c| c.block_id.as_deref().is_none_or(|id| !locked.iter().any(|l| l == id)) || c.kind == "insert");
+    // a rewrite that would remove a block's formatting is kept as a note, the block as it is
+    let (changes, kept): (Vec<BlockChange>, Vec<BlockChange>) = changes.into_iter().partition(|c| !loses_formatting(c));
     let left_alone: Vec<String> = left.iter().filter_map(|c| c.block_id.clone()).collect();
+    let kept_ids: Vec<String> = kept.iter().filter_map(|c| c.block_id.clone()).collect();
+    let noted: Vec<(&BlockChange, NoteKind)> =
+        left.iter().map(|c| (c, NoteKind::Locked)).chain(kept.iter().map(|c| (c, NoteKind::Formatting))).collect();
+    store_notes(session, &page, &author, member_id, run_id, &noted).await?;
     if mode == ApplyMode::Direct {
         let mut doc = old.clone();
         apply_changes(&mut doc, &changes);
         let body = PageBody::from_doc(doc);
         let title = page.title.clone();
         commit_version(session, &mut page, &body, &title, &author, note, None, true).await?;
-        return Ok(json!({"mode": "direct", "suggestions": 0, "changed": changes.len(), "left_alone": left_alone}));
+        return Ok(json!({"mode": "direct", "suggestions": 0, "changed": changes.len(), "left_alone": left_alone,
+                         "kept_formatting": kept_ids}));
     }
     // a team's newer suggestion on a block replaces its older pending one
     let pending = pending_rows(session, page_id).await?;
@@ -208,7 +220,307 @@ pub async fn propose(
     }
     session.commit().await?;
     announce(page_id).await;
-    Ok(json!({"mode": "suggest", "suggestions": changes.len(), "left_alone": left_alone}))
+    Ok(json!({"mode": "suggest", "suggestions": changes.len(), "left_alone": left_alone, "kept_formatting": kept_ids}))
+}
+
+/// Why a team's change to a block was not made.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NoteKind {
+    /// The page locks the block for teams ("Teams cannot change this").
+    Locked,
+    /// The rewrite would have removed the block's formatting.
+    Formatting,
+}
+
+impl NoteKind {
+    /// The word stored in `kind` and sent to the UI.
+    pub fn word(self) -> &'static str {
+        match self {
+            NoteKind::Locked => "locked",
+            NoteKind::Formatting => "formatting",
+        }
+    }
+}
+
+/// The inline formatting of a block, counted by kind: `colour`, `highlight`, `link`, `font`, `underline`, `chip` (a
+/// page or ticket chip) and `formula`. Kinds a block does not use are left out.
+pub fn formatting_of(block: &Value) -> Map<String, Value> {
+    fn walk(n: &Value, out: &mut std::collections::BTreeMap<&'static str, u64>) {
+        match n.get("type").and_then(Value::as_str) {
+            Some("docRef" | "ticketRef") => *out.entry("chip").or_default() += 1,
+            Some("mathInline") => *out.entry("formula").or_default() += 1,
+            _ => {}
+        }
+        for m in n.get("marks").and_then(Value::as_array).into_iter().flatten() {
+            let attrs = m.get("attrs");
+            let set = |k: &str| attrs.and_then(|a| a.get(k)).is_some_and(|v| !v.is_null() && v != "");
+            match m.get("type").and_then(Value::as_str) {
+                Some("link") => *out.entry("link").or_default() += 1,
+                Some("highlight") => *out.entry("highlight").or_default() += 1,
+                Some("underline") => *out.entry("underline").or_default() += 1,
+                Some("textStyle") => {
+                    if set("color") {
+                        *out.entry("colour").or_default() += 1;
+                    }
+                    if set("fontFamily") || set("fontSize") {
+                        *out.entry("font").or_default() += 1;
+                    }
+                }
+                _ => {}
+            }
+        }
+        for c in n.get("content").and_then(Value::as_array).into_iter().flatten() {
+            walk(c, out);
+        }
+    }
+    let mut counts = std::collections::BTreeMap::new();
+    walk(block, &mut counts);
+    counts.into_iter().map(|(k, v)| (k.to_string(), json!(v))).collect()
+}
+
+/// The formatting a block had that its new version lacks, by kind (`formatting_of`'s kinds, the number lost).
+pub fn lost_formatting(before: &Value, after: &Value) -> Map<String, Value> {
+    let (old, new) = (formatting_of(before), formatting_of(after));
+    old.into_iter()
+        .filter_map(|(k, v)| {
+            let had = v.as_u64().unwrap_or(0);
+            let has = new.get(&k).and_then(Value::as_u64).unwrap_or(0);
+            (has < had).then(|| (k, json!(had - has)))
+        })
+        .collect()
+}
+
+/// Whether a change rewrites a block of the same kind and leaves out some of its inline formatting.
+fn loses_formatting(c: &BlockChange) -> bool {
+    let (Some(before), Some(after)) = (&c.before, &c.content) else { return false };
+    c.kind == "replace" && before.get("type") == after.get("type") && !lost_formatting(before, after).is_empty()
+}
+
+/// Stores a note for each change that was not made, and retires the team's older notes on those blocks.
+async fn store_notes(
+    session: &Session,
+    page: &docs_page::Model,
+    author: &str,
+    member_id: Option<&str>,
+    run_id: Option<&str>,
+    noted: &[(&BlockChange, NoteKind)],
+) -> Result<()> {
+    if noted.is_empty() {
+        return Ok(());
+    }
+    let older = note_rows(session, &page.id).await?;
+    for (c, kind) in noted {
+        for o in older.iter().filter(|o| o.author == author && o.block_id == c.block_id) {
+            let mut row = kb_db::edit(o.clone());
+            row.state = Set("dismissed".into());
+            row.update(session).await?;
+        }
+        let mut row = docs_suggestion::new();
+        row.page_id = Set(page.id.clone());
+        row.block_id = Set(c.block_id.clone());
+        row.kind = Set(kind.word().to_string());
+        row.content = Set(c.content.as_ref().filter(|_| c.kind == "replace").map(Value::to_string));
+        row.before = Set(c.before.as_ref().map(Value::to_string));
+        row.base_version = Set(page.version);
+        row.author = Set(author.to_string());
+        row.member_id = Set(member_id.map(str::to_string));
+        row.run_id = Set(run_id.map(str::to_string));
+        row.state = Set("note".into());
+        row.insert(session).await?;
+    }
+    Ok(())
+}
+
+async fn note_rows(session: &Session, page_id: &str) -> Result<Vec<docs_suggestion::Model>> {
+    Ok(docs_suggestion::Entity::find()
+        .filter(docs_suggestion::Column::PageId.eq(page_id))
+        .filter(docs_suggestion::Column::State.eq("note"))
+        .order_by_asc(docs_suggestion::Column::CreatedAt)
+        .all(session)
+        .await?)
+}
+
+/// The notes of the page's blocks that are still there, as `list` sends them: `{id, kind, block_id, author,
+/// member_id, run_id, created_at, wrote, after, lost}` (`wrote`: the team's version as plain text, `after` its block,
+/// both `None` for a change other than a rewrite; `lost`: the formatting the rewrite would have removed).
+fn notes_json(rows: &[docs_suggestion::Model], current: &Value) -> Vec<Value> {
+    let here = |id: &str| {
+        current.get("content").and_then(Value::as_array).is_some_and(|a| a.iter().any(|b| block_id(b) == Some(id)))
+    };
+    rows.iter()
+        .filter(|n| n.block_id.as_deref().is_some_and(here))
+        .map(|n| {
+            let after = parse(n.content.as_deref());
+            let before = parse(n.before.as_deref());
+            let wrote = (!after.is_null()).then(|| crate::docs::blocks::block_text(&after));
+            let lost = if after.is_null() { Map::new() } else { lost_formatting(&before, &after) };
+            json!({
+                "id": n.id,
+                "kind": n.kind,
+                "block_id": n.block_id,
+                "author": n.author,
+                "member_id": n.member_id,
+                "run_id": n.run_id,
+                "created_at": n.created_at,
+                "wrote": wrote,
+                "after": after,
+                "lost": lost,
+            })
+        })
+        .collect()
+}
+
+/// Dismisses notes of a page ("Dismiss"): `{dismissed}`.
+///
+/// # Errors
+/// The page errors (edit rights).
+pub async fn dismiss_notes(session: &Session, page_id: &str, ids: &[String]) -> Result<Value> {
+    get_page(session, page_id, false, true).await?;
+    let mut n = 0;
+    for row in note_rows(session, page_id).await? {
+        if !ids.contains(&row.id) {
+            continue;
+        }
+        let mut row = kb_db::edit(row);
+        row.state = Set("dismissed".into());
+        row.decided_by = Set(Some(activity::current_actor()));
+        row.decided_at = Set(Some(time::now_iso()));
+        row.update(session).await?;
+        n += 1;
+    }
+    session.commit().await?;
+    announce(page_id).await;
+    Ok(json!({"dismissed": n}))
+}
+
+/// Uses the team's version of a block a note kept as it was ("Replace the block"): publishes one new version, as
+/// accepting a suggestion does, and returns the page.
+///
+/// # Errors
+/// 404 `suggestion_not_found` for an unknown note or one without a version of the block (a locked block's delete);
+/// the page errors (edit rights).
+pub async fn replace_from_note(session: &Session, page_id: &str, note_id: &str) -> Result<Map<String, Value>> {
+    get_page(session, page_id, false, true).await?;
+    let Some(row) = note_rows(session, page_id).await?.into_iter().find(|n| n.id == note_id && n.content.is_some())
+    else {
+        return docs_err(404, "suggestion_not_found", "Suggestion not found");
+    };
+    let mut row = kb_db::edit(row);
+    row.kind = Set("replace".into());
+    row.state = Set("pending".into());
+    row.update(session).await?;
+    accept(session, page_id, &[note_id.to_string()], true).await
+}
+
+/// The formatting a page uses, named in words as the Gaps panel of a team's draft lists it (design E 25): "Title and
+/// subtitle centred", "Pull quote", "Image floated right", "Cover image"… One line per kind, in page order; plain
+/// paragraphs, lists and headings left as they come are not named.
+///
+/// `cover`: whether the page has a cover image (a page setting, not a block).
+pub fn formatting_used(doc: &Value, cover: bool) -> Vec<String> {
+    let blocks: Vec<&Value> = kb_richdoc::top_level_blocks(doc);
+    let ty = |b: &Value| b.get("type").and_then(Value::as_str).unwrap_or("").to_string();
+    let at =
+        |b: &Value, k: &str| b.get("attrs").and_then(|a| a.get(k)).and_then(Value::as_str).unwrap_or("").to_string();
+    let centred = |b: &Value| at(b, "textAlign") == "center";
+    let mut out: Vec<String> = Vec::new();
+    let mut add = |line: &str| {
+        if !out.iter().any(|o| o == line) {
+            out.push(line.to_string());
+        }
+    };
+    // the title: a centred first heading, with the line under it when that one is centred too
+    let mut start = 0;
+    if blocks.first().is_some_and(|b| ty(b) == "heading" && centred(b)) {
+        if blocks.get(1).is_some_and(|b| centred(b) && ty(b) != "heading") {
+            add("Title and subtitle centred");
+            start = 2;
+        } else {
+            add("Title centred");
+            start = 1;
+        }
+    }
+    for b in &blocks[start.min(blocks.len())..] {
+        match ty(b).as_str() {
+            "heading" if centred(b) => add("Headings centred"),
+            "paragraph" if centred(b) => add("Text centred"),
+            "paragraph" if at(b, "textAlign") == "right" => add("Text aligned right"),
+            "pullQuote" => add("Pull quote"),
+            "blockquote" => add("Quote"),
+            "callout" => add("Callout"),
+            "columns" => add("Columns"),
+            "table" => add("Table"),
+            "image" => match at(b, "placement").as_str() {
+                "floatRight" => add("Image floated right"),
+                "floatLeft" => add("Image floated left"),
+                "wide" | "full" => add("Wide image"),
+                _ => add("Image"),
+            },
+            "video" => add("Video"),
+            "diagram" => add("Diagram"),
+            "codeBlock" => add("Code block"),
+            "taskList" => add("Task list"),
+            _ => {}
+        }
+        let marks = formatting_of(b);
+        if marks.contains_key("colour") {
+            add("Coloured text");
+        }
+        if marks.contains_key("highlight") {
+            add("Highlights");
+        }
+    }
+    if cover {
+        add("Cover image");
+    }
+    out
+}
+
+/// Marks the page's draft as written by an AI ("Drafted with AI"): merges `source` (`{kind, from, member_id, gaps,
+/// sources}`) into the draft's `ai_source` and adds `formatting`, the formatting the draft uses
+/// ([`formatting_used`]). `author`: whose draft (`None`: the draft saved last). Returns false when there is no such
+/// draft (nothing is marked).
+///
+/// # Errors
+/// A database error.
+pub async fn mark_ai_draft(
+    session: &Session,
+    page_id: &str,
+    author: Option<&str>,
+    source: Map<String, Value>,
+) -> Result<bool> {
+    let mut find = docs_draft::Entity::find().filter(docs_draft::Column::PageId.eq(page_id));
+    if let Some(author) = author {
+        find = find.filter(docs_draft::Column::Author.eq(author));
+    }
+    let Some(draft) = find.order_by_desc(docs_draft::Column::UpdatedAt).one(session).await? else {
+        return Ok(false);
+    };
+    let page = docs_page::Entity::find_by_id(page_id).one(session).await?;
+    let cover =
+        page.as_ref().is_some_and(|p| read_settings(p.settings.as_deref()).get("cover").is_some_and(Value::is_object));
+    let mut merged = match parse(draft.ai_source.as_deref()) {
+        Value::Object(m) => m,
+        _ => Map::new(),
+    };
+    for (k, v) in source {
+        if !v.is_null() {
+            merged.insert(k, v);
+        }
+    }
+    let formatting = draft
+        .content
+        .as_deref()
+        .map(|c| parse(Some(c)))
+        .filter(Value::is_object)
+        .map(|doc| formatting_used(&doc, cover))
+        .unwrap_or_default();
+    merged.insert("formatting".into(), json!(formatting));
+    let mut row = kb_db::edit(draft);
+    row.ai_source = Set(Some(Value::Object(merged).to_string()));
+    row.update(session).await?;
+    session.commit().await?;
+    Ok(true)
 }
 
 /// Applies block changes to a document in order (a change whose block is gone is skipped).
@@ -296,8 +608,10 @@ fn change_of(s: &docs_suggestion::Model) -> BlockChange {
     }
 }
 
-/// The page's pending suggestions, in page order where possible: `{suggestions: [...], count}`; each with its
-/// before/after block, author, note and `stale`.
+/// The page's pending suggestions, in page order where possible: `{suggestions: [...], count, notes}`; each with its
+/// before/after block, author, note, `stale` and, when stale, `changed_by` (who published the block as it is now)
+/// and `at_same_time` (the team's run is still working: a person and the team changed the block at the same time).
+/// `notes` are the changes a team did not make (`notes_json`).
 ///
 /// # Errors
 /// The page errors.
@@ -317,9 +631,26 @@ pub async fn list(session: &Session, page_id: &str) -> Result<Map<String, Value>
         let key = s.block_id.as_deref().or(s.after_block_id.as_deref());
         key.and_then(|k| order.iter().position(|o| o == k)).unwrap_or(0)
     });
+    // who changed a block under the team: the author of the version the page is at
+    let changed_by = latest_version(session, &page).await?.map(|v| v.author);
+    // the runs still working: a block changed under one of them was "edited at the same time" (G 37)
+    let run_ids: Vec<&str> = rows.iter().filter_map(|s| s.run_id.as_deref()).collect();
+    let live_runs: std::collections::HashSet<String> = if run_ids.is_empty() {
+        std::collections::HashSet::new()
+    } else {
+        kb_db::entities::ai_run::Entity::find()
+            .filter(kb_db::entities::ai_run::Column::Id.is_in(run_ids))
+            .filter(kb_db::entities::ai_run::Column::State.is_in(crate::docs_work::LIVE))
+            .all(session)
+            .await?
+            .into_iter()
+            .map(|r| r.id)
+            .collect()
+    };
     let list: Vec<Value> = rows
         .iter()
         .map(|s| {
+            let stale = is_stale(s, &current);
             json!({
                 "id": s.id,
                 "kind": s.kind,
@@ -333,13 +664,17 @@ pub async fn list(session: &Session, page_id: &str) -> Result<Map<String, Value>
                 "note": s.note,
                 "base_version": s.base_version,
                 "created_at": s.created_at,
-                "stale": is_stale(s, &current),
+                "stale": stale,
+                "changed_by": if stale { json!(changed_by) } else { Value::Null },
+                "at_same_time": stale && s.run_id.as_deref().is_some_and(|r| live_runs.contains(r)),
             })
         })
         .collect();
+    let notes = notes_json(&note_rows(session, page_id).await?, &current);
     let mut out = Map::new();
     out.insert("count".into(), json!(list.len()));
     out.insert("suggestions".into(), Value::Array(list));
+    out.insert("notes".into(), Value::Array(notes));
     Ok(out)
 }
 
@@ -499,5 +834,56 @@ mod tests {
         let mut doc = old.clone();
         apply_changes(&mut doc, &d);
         assert_eq!(doc, new);
+    }
+
+    fn styled(id: &str) -> Value {
+        json!({"type": "paragraph", "attrs": {"blockId": id}, "content": [
+            {"type": "text", "text": "work", "marks": [{"type": "textStyle", "attrs": {"color": "green"}}]},
+            {"type": "text", "text": " Hoa ", "marks": [{"type": "highlight", "attrs": {"color": "yellow"}}]},
+            {"type": "text", "text": "board", "marks": [{"type": "link", "attrs": {"href": "/x"}}]},
+        ]})
+    }
+
+    #[test]
+    fn a_rewrite_that_drops_formatting_is_named_by_what_it_loses() {
+        let before = styled("b-1");
+        assert_eq!(
+            formatting_of(&before),
+            json!({"colour": 1, "highlight": 1, "link": 1}).as_object().cloned().unwrap()
+        );
+        let plain = p("b-1", "work Hoa board, rewritten");
+        assert_eq!(
+            lost_formatting(&before, &plain),
+            json!({"colour": 1, "highlight": 1, "link": 1}).as_object().cloned().unwrap()
+        );
+        let c = BlockChange {
+            kind: "replace",
+            block_id: Some("b-1".into()),
+            after_block_id: None,
+            content: Some(plain),
+            before: Some(before.clone()),
+        };
+        assert!(loses_formatting(&c));
+        // the same formatting kept: not a loss; another kind of block: not compared
+        let kept = BlockChange { content: Some(styled("b-1")), ..c.clone() };
+        assert!(!loses_formatting(&kept));
+        let heading = json!({"type": "heading", "attrs": {"blockId": "b-1", "level": 2}, "content": [{"type": "text", "text": "x"}]});
+        assert!(!loses_formatting(&BlockChange { content: Some(heading), ..c }));
+    }
+
+    #[test]
+    fn the_formatting_a_draft_uses_is_named_in_words() {
+        let doc = json!({"type": "doc", "content": [
+            {"type": "heading", "attrs": {"blockId": "b-1", "level": 1, "textAlign": "center"}, "content": [{"type": "text", "text": "T"}]},
+            {"type": "paragraph", "attrs": {"blockId": "b-2", "textAlign": "center"}, "content": [{"type": "text", "text": "S"}]},
+            {"type": "image", "attrs": {"blockId": "b-3", "src": "/uploads/a.png", "placement": "floatRight"}},
+            p("b-4", "Body"),
+            {"type": "pullQuote", "attrs": {"blockId": "b-5"}, "content": [{"type": "text", "text": "Q"}]},
+        ]});
+        assert_eq!(
+            formatting_used(&doc, true),
+            ["Title and subtitle centred", "Image floated right", "Pull quote", "Cover image"]
+        );
+        assert!(formatting_used(&json!({"type": "doc", "content": [p("b-1", "x")]}), false).is_empty());
     }
 }

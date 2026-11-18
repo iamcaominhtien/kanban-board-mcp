@@ -337,6 +337,84 @@ export function ErrorMsg({ text }: { text: string }) {
 }
 
 /**
+ * A person and the team changed the same block while the team was working (G 37): the person's edit stays on the
+ * page, the team's version waits beside it, and Keep mine or Use the team's settles it.
+ */
+function ClashFrame({
+  s,
+  view,
+  review,
+  index,
+}: {
+  s: DocsSuggestion;
+  view: SuggestionView;
+  review: Review;
+  index: number;
+}) {
+  const now = s.blockId ? (review.doc?.content ?? []).find((b) => b.attrs?.blockId === s.blockId) : null;
+  const off = !review.online || !review.canEdit || !!review.busy;
+  const error = review.errors[s.id];
+  return (
+    <div
+      className={`sg-block sg-stale${index === review.current ? ' sg-current' : ''}`}
+      data-sg-id={s.id}
+      data-testid="sg-block"
+      data-clash="true"
+      aria-label={`Suggestion ${index + 1} of ${review.list.length}`}
+    >
+      <div className="sg-bhead">
+        <span className="sg-team">
+          <Spark size={12} />
+          {s.author}
+        </span>
+        <span className="sg-tag sg-tag-clash">Edited at the same time</span>
+        <span className="sg-actions">
+          <button
+            type="button"
+            className="sg-btn"
+            disabled={off}
+            data-testid="sg-keep-mine"
+            onClick={() => void review.reject(s)}
+          >
+            <SgIcon name="close" size={13} sw={2.4} />
+            Keep mine
+          </button>
+          <button
+            type="button"
+            className="sg-btn sg-btn-primary"
+            disabled={off}
+            data-testid="sg-use-team"
+            onClick={() => void review.accept(s, true)}
+          >
+            <SgIcon name="check" size={13} sw={2.4} />
+            Use the team’s
+          </button>
+        </span>
+      </div>
+      <div className="sg-sides">
+        <div className="sg-side">
+          <div>
+            <span className="sg-tag sg-tag-muted">Your block now</span>
+          </div>
+          <Block node={now ?? null} />
+        </div>
+        <div className="sg-side sg-side-after">
+          <div>
+            <span className="sg-tag sg-tag-ok">{s.author}’s version</span>
+          </div>
+          <Block node={view.after} />
+        </div>
+      </div>
+      <div className="sg-clash-line" data-testid="sg-clash-line">
+        {s.changedBy || 'Someone'} changed this block while {s.author} was working on it. Use the team’s version, or
+        keep yours.
+      </div>
+      {error && <ErrorMsg text={error} />}
+    </div>
+  );
+}
+
+/**
  * A suggested block on the page.
  * @param props.s - The suggestion.
  * @param props.rendered - The block as it is on the page now (null for a new block).
@@ -346,6 +424,9 @@ export function SuggestionFrame({ s, rendered }: { s: DocsSuggestion; rendered: 
   if (!review) return <>{rendered}</>;
   const view = describeSuggestion(s);
   const phone = review.layout === 'phone';
+  if (s.stale && s.atSameTime && !phone) {
+    return <ClashFrame s={s} view={view} review={review} index={review.list.findIndex((x) => x.id === s.id)} />;
+  }
   const touch = review.layout !== 'desktop';
   const index = review.list.findIndex((x) => x.id === s.id);
   const error = review.errors[s.id];

@@ -610,7 +610,6 @@ function MarkdownImport({
   const doneN = Object.values(rowState).filter((s) => s === 'done' || s === 'failed').length;
   const totalN = Object.keys(rowState).length;
   const pct = totalN ? Math.floor((doneN / totalN) * 100) : 0;
-  const curN = Math.min(totalN, doneN + 1);
 
   const idle = entries.length === 0;
   const importing = phase === 'importing';
@@ -720,31 +719,29 @@ function MarkdownImport({
     };
   };
 
-  const progressOf = (r: DocsImportDryFile) => {
-    if (r.status === 'error') return resultOf(r);
-    const s = rowState[r.path] ?? 'waiting';
-    if (s === 'done')
-      return {
-        text: 'Imported',
-        color: '#5B6B60',
-        icon: <Icon name="i17" size={16} strokeWidth={1.9} style={{ color: '#2E6F40' }} />,
-      };
-    if (s === 'importing') return { text: 'Importing…', color: '#1E2A22', icon: <span className="mc-spin" /> };
-    if (s === 'failed')
-      return {
-        text: 'Failed',
-        color: '#A5321E',
-        icon: <Icon name="i22" size={16} strokeWidth={1.9} style={{ color: '#C4432A' }} />,
-      };
-    return {
-      text: 'Waiting',
-      color: '#9AA8A0',
-      icon: <Icon name="i20" size={16} strokeWidth={1.9} style={{ color: '#9AA8A0' }} />,
-    };
+  // a file while it imports (frame 29): a 20 px state mark, the name 13/600, the state on the right
+  const progressRow = (r: DocsImportDryFile) => {
+    const s = r.status === 'error' ? 'failed' : (rowState[r.path] ?? 'waiting');
+    const label = { done: 'Imported', importing: 'Importing…', failed: 'Not imported', waiting: 'Waiting' }[s];
+    return (
+      <div key={r.path} className="dk-imp-row" data-state={s}>
+        {s === 'importing' ? (
+          <span className="mc-spin dk-imp-spin" aria-hidden="true" />
+        ) : (
+          <span className="dk-imp-mark" aria-hidden="true">
+            {s === 'done' && <Icon name="check" size={12} strokeWidth={2.6} />}
+            {s === 'failed' && <Icon name="i08" size={11} strokeWidth={2.4} />}
+          </span>
+        )}
+        <div className="dk-imp-name">{r.path}</div>
+        <span className="dk-imp-state">{label}</span>
+      </div>
+    );
   };
 
   const fileRow = (r: DocsImportDryFile, last: boolean) => {
-    const res = importing ? progressOf(r) : resultOf(r);
+    if (importing) return progressRow(r);
+    const res = resultOf(r);
     return (
       <div
         key={r.path}
@@ -855,8 +852,9 @@ function MarkdownImport({
             <Icon name="i26" size={17} strokeWidth={1.9} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="dk-np-title">Import Markdown</div>
+            <div className="dk-np-title">{phase === 'importing' ? 'Importing' : 'Import Markdown'}</div>
             <div className="dk-np-sub">
+              {phase === 'importing' ? 'Markdown files into ' : ''}
               {projectName}
               {entries.length > 0 &&
                 ` · ${entries.length} ${entries.length === 1 ? 'file' : 'files'}, ${fmtSize(totalBytes)}`}
@@ -967,37 +965,14 @@ function MarkdownImport({
         }}
       >
         {importing ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#1E2A22' }}
-            >
-              Importing page {curN} of {totalN}
-              <span
-                style={{
-                  marginLeft: 'auto',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: '#5B6B60',
-                }}
-              >
-                {pct}%
-              </span>
+          // frame 29: a 6 px bar with "2 of 5", the files with their own state, a note under them
+          <div className="dk-imp-progress" data-testid="import-progress">
+            <div className="dk-imp-total" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+              <div style={{ width: `${pct}%` }} />
             </div>
-            <div style={{ height: 8, borderRadius: 999, background: '#E3E8E5', overflow: 'hidden' }}>
-              <div
-                style={{
-                  width: `${pct}%`,
-                  height: '100%',
-                  borderRadius: 999,
-                  background: '#2E6F40',
-                  transition: 'width .2s',
-                }}
-              />
-            </div>
-            <div style={{ fontSize: 12, color: '#5B6B60' }}>
-              Links are resolved after the last page is saved. You can close this window; the import keeps running.
-            </div>
+            <span className="dk-imp-count">
+              {doneN} of {totalN}
+            </span>
           </div>
         ) : (
           <>
@@ -1073,9 +1048,17 @@ function MarkdownImport({
               </span>
             </div>
           )}
-          <div style={{ border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' }}>
+          <div
+            className={importing ? 'dk-imp-list' : undefined}
+            style={importing ? undefined : { border: '1px solid #E3E8E5', borderRadius: 8, overflow: 'hidden' }}
+          >
             {rows.map((r, i) => fileRow(r, i === rows.length - 1))}
           </div>
+          {importing && (
+            <div className="dk-imp-hint">
+              You can keep working. The tree fills in as pages arrive. Links are resolved after the last page is saved.
+            </div>
+          )}
           {tooMany && (
             <div style={{ fontSize: 12, color: '#A5321E' }}>
               Only the first {IMPORT_MAX_FILES} files are imported; the rest are skipped.
@@ -1147,19 +1130,20 @@ function MarkdownImport({
       >
         <span style={{ fontSize: 12, color: '#5B6B60', lineHeight: 1.45 }}>
           {importing
-            ? 'Cancel stops after the current page. Pages already imported are kept.'
+            ? 'Stopping keeps the pages already imported.'
             : 'Imported pages start as drafts for you to review.'}
         </span>
         <div style={{ flex: 1 }} />
-        <button type="button" className="st-btn" onClick={cancel} disabled={importing && stopping}>
-          {importing && stopping ? 'Stopping…' : 'Cancel'}
-        </button>
         {importing ? (
-          <button type="button" className="st-btn st-btn-primary" disabled style={{ opacity: 0.7 }}>
-            <span className="mc-spin mc-spin-w" />
-            Importing…
+          <button type="button" className="st-btn st-btn-danger-outline" onClick={cancel} disabled={stopping}>
+            {stopping ? 'Stopping…' : 'Stop importing'}
           </button>
         ) : (
+          <button type="button" className="st-btn" onClick={cancel}>
+            Cancel
+          </button>
+        )}
+        {importing ? null : (
           <button
             type="button"
             className="st-btn st-btn-primary"

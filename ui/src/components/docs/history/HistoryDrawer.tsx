@@ -23,9 +23,9 @@ import { useToast } from '../../Toast';
 import { HistorySummary } from '../ai/HistorySummary';
 import { Icon } from '../Icon';
 import { agoText, displayName, fmtTimeOnly, plural } from '../docsShared';
-import { COUNTED_ROWS, useVersionDetails } from './api';
+import { COUNTED_ROWS, useEditVersionNote, useVersionDetails, versionLink } from './api';
 import { CompareView } from './CompareView';
-import { CopyPageDialog, RestoreDialog } from './Dialogs';
+import { CopyPageDialog, EditNoteDialog, RestoreDialog } from './Dialogs';
 import { VersionRow } from './VersionRow';
 import { rowChange } from './versionInfo';
 import './history.css';
@@ -90,6 +90,9 @@ export function HistoryDrawer({
   const [comparing, setComparing] = useState<{ from: number; to: number } | null>(initialCompare ?? null);
   const [restoreTarget, setRestoreTarget] = useState<DocsVersionSummary | null>(null);
   const [copyTarget, setCopyTarget] = useState<DocsVersionSummary | null>(null);
+  const [noteTarget, setNoteTarget] = useState<DocsVersionSummary | null>(null);
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const editNote = useEditVersionNote(page.id);
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [showOlder, setShowOlder] = useState(false);
   const [draftOpen, setDraftOpen] = useState(true);
@@ -114,7 +117,27 @@ export function HistoryDrawer({
     setTimeout(onClose, 180);
   }, [onClose]);
 
-  const dialogOpen = !!restoreTarget || !!copyTarget;
+  const dialogOpen = !!restoreTarget || !!copyTarget || !!noteTarget;
+
+  async function copyVersionLink(v: number) {
+    try {
+      await navigator.clipboard.writeText(versionLink(page.id, v));
+      toast.success(`Link to v${v} copied`);
+    } catch {
+      toast.error("Couldn't copy to the clipboard");
+    }
+  }
+
+  async function saveNote(target: DocsVersionSummary, note: string) {
+    setNoteError(null);
+    try {
+      await editNote.mutateAsync({ version: target.version, note });
+      setNoteTarget(null);
+      toast.success(note ? `Note of v${target.version} saved` : `Note of v${target.version} removed`);
+    } catch (err) {
+      setNoteError(docsErrorDetail(err)?.message ?? extractError(err));
+    }
+  }
   useEffect(() => {
     if (comparing || dialogOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -219,6 +242,19 @@ export function HistoryDrawer({
           onConfirm={(note) => void confirmRestore(note)}
         />
       )}
+      {noteTarget && (
+        <EditNoteDialog
+          target={noteTarget}
+          busy={editNote.isPending}
+          error={noteError}
+          compact={touch}
+          onCancel={() => {
+            setNoteTarget(null);
+            setNoteError(null);
+          }}
+          onSave={(note) => void saveNote(noteTarget, note)}
+        />
+      )}
       {copyTarget && (
         <CopyPageDialog
           projectId={projectId}
@@ -288,6 +324,8 @@ export function HistoryDrawer({
             v.version !== page.version ? () => setComparing({ from: v.version, to: page.version }) : undefined,
           onRestore: v.version !== page.version ? () => openRestore(v) : undefined,
           onCopy: () => setCopyTarget(v),
+          onCopyLink: () => void copyVersionLink(v.version),
+          onEditNote: () => setNoteTarget(v),
         }}
       />
     );

@@ -429,6 +429,13 @@ pub fn freshness_job(job: docs_ai_job::Model) -> HandlerFuture {
         inputs.insert("page_id".into(), json!(job.page_id));
         let out = turn(&job, "docs-freshness", inputs, None, TurnExtra::default()).await?;
         let data = out.data();
+        let doc = match job.page_id.as_deref() {
+            Some(page_id) => {
+                let session = kb_db::database::session();
+                published_rich(&session, page_id).await?
+            }
+            None => None,
+        };
         let mut reasons = Vec::new();
         for (i, r) in items(data.get("reasons")).iter().enumerate() {
             let Some(r) = r.as_object() else { continue };
@@ -436,18 +443,53 @@ pub fn freshness_job(job: docs_ai_job::Model) -> HandlerFuture {
                 Value::String(text) => text,
                 other => pyjson::py_str(&other),
             };
-            reasons.push(json!({
+            let mut reason = json!({
                 "key": finding_id("stale", &seed),
                 "quote": get(r, "quote"),
                 "source": get(r, "source"),
                 "text": get_or(r, "why", json!("")),
-            }));
+            });
+            // the block the quote is in, so the banner and Docs health name it ("Callout · Show")
+            let quote = r.get("quote").and_then(Value::as_str).unwrap_or("");
+            if let Some((id, ty, label)) = doc.as_ref().and_then(|d| block_of_quote(d, quote)) {
+                reason["block_id"] = json!(id);
+                reason["block_type"] = json!(ty);
+                reason["block_label"] = json!(label);
+            }
+            reasons.push(reason);
         }
         let stale = data.get("state").and_then(Value::as_str) == Some("stale") && !reasons.is_empty();
         let mut result = Map::new();
         result.insert("state".into(), json!(if stale { "stale" } else { "ok" }));
         result.insert("reasons".into(), Value::Array(reasons));
         Ok(merge(result, cost(&out)))
+    })
+}
+
+/// The latest published version of a rich page as JSON (`None` for a Markdown page or one never published).
+async fn published_rich(session: &Session, page_id: &str) -> Result<Option<Value>, Error> {
+    let Some(page) = docs_page::Entity::find_by_id(page_id).one(session).await? else { return Ok(None) };
+    let Some(v) = kb_docs::docs::latest_version(session, &page).await? else { return Ok(None) };
+    Ok(Some(v).filter(|v| v.format == "rich").and_then(|v| v.content).and_then(|c| serde_json::from_str(&c).ok()))
+}
+
+/// The top-level block whose text holds a quote (spaces and case aside): `(block id, node type, its first words)`.
+pub(crate) fn block_of_quote(doc: &Value, quote: &str) -> Option<(String, String, String)> {
+    let squash = |t: &str| t.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
+    let wanted = squash(quote);
+    if wanted.is_empty() {
+        return None;
+    }
+    let blocks = doc.get("content").and_then(Value::as_array)?;
+    blocks.iter().find_map(|b| {
+        let text = kb_docs::docs::blocks::block_text(b);
+        if !squash(&text).contains(&wanted) {
+            return None;
+        }
+        let id = kb_docs::docs::blocks::block_id_of(b)?.to_string();
+        let ty = b.get("type").and_then(Value::as_str).unwrap_or("paragraph").to_string();
+        let line = text.lines().map(str::trim).find(|l| !l.is_empty()).unwrap_or("");
+        Some((id, ty, clip(line, 60)))
     })
 }
 
@@ -750,6 +792,17 @@ pub fn write_job(job: docs_ai_job::Model) -> HandlerFuture {
             return Err(DocsAiError::new("invalid_output", "The assistant did not create the page.").into());
         }
         jobs::update(&job.id, &[("page_id", get(&data, "page_id"))]).await?;
+        // the draft says it was written with AI: its gaps and the formatting it used (the Gaps panel)
+        let source = p.get("source").and_then(Value::as_object);
+        let from = source.and_then(|s| s.get("ticket_id").or_else(|| s.get("idea_id"))).cloned().unwrap_or(Value::Null);
+        let mut mark = Map::new();
+        mark.insert("kind".into(), json!("write"));
+        mark.insert("from".into(), from);
+        mark.insert("gaps".into(), get_or(&data, "gaps", json!([])));
+        {
+            let session = kb_db::database::session();
+            kb_docs::docs_suggestions::mark_ai_draft(&session, &text_of(&get(&data, "page_id")), None, mark).await?;
+        }
         let mut result = Map::new();
         result.insert("page_id".into(), get(&data, "page_id"));
         result.insert("title".into(), get(&data, "title"));

@@ -1492,3 +1492,97 @@
   opacity: 0.45;
   cursor: default;
 }
+
+/* the row menu beside the tree (frame 27): 250 wide, an arrow pointing at the row */
+.tr-rowmenu > .dk-menu {
+  left: 0 !important;
+  right: auto !important;
+  top: 0 !important;
+  width: 250px !important;
+}
+.tr-rowmenu-arrow {
+  position: absolute;
+  left: -6px;
+  top: calc(var(--tr-arrow, 24px) - 6px);
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-left: 1px solid #dce3de;
+  border-bottom: 1px solid #dce3de;
+  transform: rotate(45deg);
+  z-index: 61;
+}
+
+/* the Recycle Bin's head (frame 40): title 22/700, the note 13, then the All / Pages / Tickets pill, the sort and
+   Empty bin */
+.dk-bin-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 22px 24px 4px 28px;
+  flex-shrink: 0;
+}
+.dk-bin-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e2a22;
+}
+.dk-bin-sub {
+  font-size: 13px;
+  color: #5b6b60;
+  margin-top: 2px;
+}
+.dk-bin-tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 28px 14px;
+  border-bottom: 1px solid #eef3ef;
+  flex-shrink: 0;
+}
+.dk-bin-seg {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background: #eef3ef;
+}
+.dk-bin-seg-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dk-bin-seg-on {
+  background: #fff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.1);
+}
+.dk-bin-sort {
+  height: 32px;
+  box-sizing: border-box;
+  border: 1px solid #dce3de;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e2a22;
+  background: #fff;
+  white-space: nowrap;
+}
+.dk-bin-sort > span {
+  color: #5b6b60;
+  font-weight: 500;
+}
+.st-btn.dk-bin-empty {
+  min-height: 34px;
+}

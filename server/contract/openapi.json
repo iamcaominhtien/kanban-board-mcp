@@ -9035,7 +9035,8 @@
         }
        ],
        "title": "Status"
-      }
+      },
+      "description": "Only pages in this status (`published`, `draft`); `outdated`: pages that may be outdated."
      },
      {
       "name": "sort",
@@ -9079,7 +9080,18 @@
        ],
        "title": "Facets"
       },
-      "description": "`kinds` adds facets.kinds (pages per match type)."
+      "description": "Comma separated: `kinds` adds facets.kinds (pages per match type), `outdated` facets.outdated (pages that may be outdated), `projects` facets.projects (results per project, scope all)."
+     },
+     {
+      "name": "cards",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Cards"
+      },
+      "description": "Each match of a picture, video, table, code block, file or diagram carries `card`, what its result card shows."
      }
     ],
     "responses": {
@@ -9242,6 +9254,63 @@
           "additionalProperties": true
          },
          "title": "Response Post Resolve Projects  Project Id  Docs Resolve Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/projects/{project_id}/docs/links/fix": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Post Fix Links",
+    "description": "Fix a group of broken links in the pages that hold them: point them at another page, heading or block (relink), or keep their words and drop the links (remove). Each changed page gets a new version with a note.",
+    "operationId": "post_fix_links_projects__project_id__docs_links_fix_post",
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true,
+        "title": "LinkFixBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Post Fix Links Projects  Project Id  Docs Links Fix Post"
         }
        }
       }
@@ -9539,6 +9608,17 @@
        "default": "",
        "title": "Title"
       }
+     },
+     {
+      "name": "mentions",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Mentions"
+      },
+      "description": "Also list the plain-text mentions of the current title in other pages, block by block."
      }
     ],
     "responses": {
@@ -10254,6 +10334,68 @@
       }
      }
     }
+   },
+   "patch": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Patch Version Note",
+    "description": "Change the note of one version (the history's \"Edit note\"); returns the version as `GET` does.",
+    "operationId": "patch_version_note_docs_pages__page_id__versions__version__patch",
+    "parameters": [
+     {
+      "name": "page_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Page Id"
+      }
+     },
+     {
+      "name": "version",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Version"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VersionNoteBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Patch Version Note Docs Pages  Page Id  Versions  Version  Patch"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
    }
   },
   "/docs/pages/{page_id}/versions/{a}/diff/{b}": {
@@ -10590,6 +10732,17 @@
        "type": "string",
        "title": "Ticket Id"
       }
+     },
+     {
+      "name": "blocks",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Blocks"
+      },
+      "description": "Rows of rich pages also carry block_id, block and excerpt: the heading or block they point at."
      }
     ],
     "responses": {
@@ -26101,6 +26254,32 @@
      }
     }
    }
+  },
+  "/docs/pages/{page_id}/suggestions/notes/dismiss": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
+  },
+  "/docs/pages/{page_id}/suggestions/notes/{note_id}/replace": {
+   "post": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Rich Docs (format 1)",
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     }
+    }
+   }
   }
  },
  "components": {
@@ -30782,6 +30961,32 @@
       "type": "boolean",
       "title": "Rewrite Links",
       "default": false
+     },
+     "rewrite_mentions": {
+      "anyOf": [
+       {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "page_id": {
+           "type": "string"
+          },
+          "block_id": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "page_id",
+          "block_id"
+         ]
+        }
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rewrite Mentions"
      }
     },
     "type": "object",
@@ -33115,6 +33320,17 @@
      "page_id": {
       "type": "string",
       "title": "Page Id"
+     },
+     "block_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Block Id"
      }
     },
     "type": "object",
@@ -34200,6 +34416,24 @@
     "type": "object",
     "title": "VersionName",
     "description": "Name a version."
+   },
+   "VersionNoteBody": {
+    "properties": {
+     "note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note"
+     }
+    },
+    "type": "object",
+    "title": "VersionNoteBody",
+    "description": "Request body to change a version's note."
    },
    "VoteBody": {
     "properties": {

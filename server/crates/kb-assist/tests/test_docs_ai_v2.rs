@@ -273,11 +273,20 @@ async fn test_freshness_banner() {
     assert!(j["state"] == "finished" && j["result"]["state"] == "stale");
     let banner = adocs::freshness_of(&s, &page).await.expect("banner");
     assert!(banner["stale"] == true && banner["reasons"][0]["text"] == "The API moved to gRPC.");
+    // Docs health lists the page as out of date, with the same reason
+    let health = kb_assist::docs_ai::health::get(&s, &pid, true).await.expect("health");
+    let listed = health["out_of_date"].as_array().expect("out of date").clone();
+    assert_eq!(listed.len(), 1, "{health:?}");
+    assert_eq!(listed[0]["page_id"], page_id);
+    assert_eq!(listed[0]["reasons"][0]["text"], "The API moved to gRPC.");
+    assert_eq!(health["counts"]["out_of_date"], 1);
     let key = banner["reasons"][0]["key"].as_str().expect("key").to_string();
     let gone = adocs::freshness_mark(&s, &page, false, Some(&key)).await.expect("dismiss");
     assert!(gone["stale"] == false && gone["hidden"] == 1);
     let ok = adocs::freshness_mark(&s, &page, true, None).await.expect("still correct");
     assert_eq!(ok["state"], "ok");
+    let health = kb_assist::docs_ai::health::get(&s, &pid, true).await.expect("health");
+    assert_eq!(health["out_of_date"], json!([]));
 }
 
 #[tokio::test]
@@ -567,7 +576,15 @@ async fn test_since_viewed_lists_the_pages_changed_since_the_person_saw_them() {
     assert_eq!(j["state"], "finished", "{j:?}");
     let pages = j["result"]["pages"].as_array().expect("pages").clone();
     assert_eq!(pages.len(), 2);
-    let of = |id: &str| pages.iter().find(|p| p["page_id"] == id).expect("page").clone();
+    // who published it, when, and its blocks that changed (the digest's chips) are checked apart
+    let of = |id: &str| {
+        let mut row = pages.iter().find(|p| p["page_id"] == id).expect("page").clone();
+        let map = row.as_object_mut().expect("a row");
+        assert!(map.remove("by").is_some_and(|b| b.is_string()), "{map:?}");
+        assert!(map.remove("at").is_some_and(|a| a.is_string()), "{map:?}");
+        map.remove("blocks");
+        row
+    };
     assert_eq!(
         of(&api),
         json!({"page_id": api, "title": "API", "kind": "changed", "from_version": 1, "to_version": 2, "line": "Moved to REST v2."})
