@@ -291,6 +291,30 @@ export default {
       await panel.waitFor({ state: 'detached' });
       await saved();
     });
+    await s.step('selection bar: one colour popover with Text and Highlight tabs, both palettes by name (Start board 16)', async () => {
+      await content().locator('p', { hasText: 'Colour line' }).click();
+      await p.keyboard.press('End');
+      await p.keyboard.press('Shift+Home');
+      const bar = p.getByTestId('bubble-toolbar');
+      await bar.getByRole('button', { name: 'Text colour' }).click();
+      const pop = p.getByTestId('bubble-colours');
+      await pop.getByRole('tab', { name: 'Text', selected: true }).waitFor();
+      await pop.getByText('Text colour · White page').waitFor();
+      await pop.getByRole('radio', { name: 'Blue text' }).click();
+      await content().locator('span[data-color="blue"]', { hasText: 'Colour line' }).waitFor();
+      // the highlight caret opens the same popover on its Highlight tab; a highlight swatch highlights
+      await bar.getByRole('button', { name: 'Highlight colours' }).click();
+      await pop.getByRole('tab', { name: 'Highlight', selected: true }).waitFor();
+      await pop.getByRole('radio', { name: 'Lime highlight' }).click();
+      await content().locator('mark[data-color="lime"]', { hasText: 'Colour line' }).waitFor();
+      // back to green text on teal, which the replace step below expects
+      await bar.getByRole('button', { name: 'Text colour' }).click();
+      await pop.getByRole('radio', { name: 'Green text' }).click();
+      await bar.getByRole('button', { name: 'Highlight colours' }).click();
+      await pop.getByRole('radio', { name: 'Teal highlight' }).click();
+      await content().locator('mark[data-color="teal"]', { hasText: 'Colour line' }).waitFor();
+      await saved();
+    });
     await s.step('Find and replace from Ctrl+H: whole word, No results, Replace all keeps the colour', async () => {
       await p.keyboard.press('End');
       await p.keyboard.press('Control+h');

@@ -6,6 +6,7 @@ import { NodeSelection } from '@tiptap/pm/state';
 import { CellSelection } from '@tiptap/pm/tables';
 import { Icon } from '../Icon';
 import { LineIcon } from '../../ui/LineIcon';
+import { BubbleColors } from './ribbon/BubbleColors';
 import { ColorPicker } from './ribbon/ColorPicker';
 import {
   clearFormatting,
@@ -46,6 +47,44 @@ interface Props {
   /** Pages and tickets the link panel offers for what is typed in its address. */
   linkTargets?: LinkTargets;
 }
+
+/** A button of the bar (a stable component, so a popover keeps its anchor between renders). */
+const Btn = ({
+  label,
+  on,
+  onClick,
+  children,
+  wide,
+  expanded,
+  className,
+}: {
+  label: string;
+  /** On, mixed (drawn dashed) or off. */
+  on?: boolean | Tri;
+  onClick: (e: ReactMouseEvent<HTMLButtonElement>) => void;
+  children: React.ReactNode;
+  wide?: boolean;
+  expanded?: boolean;
+  className?: string;
+}) => {
+  const tri = on === true ? 'on' : on === false || on === undefined ? 'off' : on;
+  return (
+    <button
+      type="button"
+      className={`dk-bubble-btn${tri === 'on' ? ' dk-rb-on' : tri === 'mixed' ? ' dk-rb-mixed' : ''}${className ? ` ${className}` : ''}`}
+      aria-label={label}
+      title={label}
+      aria-pressed={on === undefined ? undefined : tri === 'mixed' ? 'mixed' : tri === 'on'}
+      aria-haspopup={expanded === undefined ? undefined : true}
+      aria-expanded={expanded}
+      style={wide ? { width: 'auto', padding: '0 9px', gap: 6, display: 'flex' } : undefined}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+};
 
 const SEP = <span className="dk-bubble-sep" />;
 
@@ -153,42 +192,6 @@ export function BubbleToolbar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkOpen]);
 
-  const Btn = ({
-    label,
-    on,
-    onClick,
-    children,
-    wide,
-    expanded,
-    className,
-  }: {
-    label: string;
-    /** On, mixed (drawn dashed) or off. */
-    on?: boolean | Tri;
-    onClick: (e: ReactMouseEvent<HTMLButtonElement>) => void;
-    children: React.ReactNode;
-    wide?: boolean;
-    expanded?: boolean;
-    className?: string;
-  }) => {
-    const tri = on === true ? 'on' : on === false || on === undefined ? 'off' : on;
-    return (
-      <button
-        type="button"
-        className={`dk-bubble-btn${tri === 'on' ? ' dk-rb-on' : tri === 'mixed' ? ' dk-rb-mixed' : ''}${className ? ` ${className}` : ''}`}
-        aria-label={label}
-        title={label}
-        aria-pressed={on === undefined ? undefined : tri === 'mixed' ? 'mixed' : tri === 'on'}
-        aria-haspopup={expanded === undefined ? undefined : true}
-        aria-expanded={expanded}
-        style={wide ? { width: 'auto', padding: '0 9px', gap: 6, display: 'flex' } : undefined}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={onClick}
-      >
-        {children}
-      </button>
-    );
-  };
   const hlValue =
     st?.highlight === 'off' || !st ? null : st.highlightColor === 'mixed' ? 'mixed' : (st.highlightColor ?? 'yellow');
   const link = st?.href ?? '';
@@ -467,23 +470,41 @@ export function BubbleToolbar({
         {pop && (pop.id === 'color' || pop.id === 'hl') && (
           <Popover
             anchor={pop.anchor}
-            label={pop.id === 'color' ? 'Text colour' : 'Highlight'}
-            width={340}
+            label="Colour"
+            width={touch ? 340 : 300}
             onClose={() => setPop(null)}
             testId={`bubble-pop-${pop.id}`}
           >
-            <ColorPicker
-              kind={pop.id === 'color' ? 'text' : 'highlight'}
-              value={pop.id === 'color' ? (st?.color ?? null) : hlValue}
-              pageHex={pageHex}
-              onPick={(v) => {
-                if (pop.id === 'color') setTextColor(editor, v);
-                else setHighlight(editor, v);
-                if (v) rememberColor(pop.id === 'color' ? 'text' : 'highlight', v);
-                setPop(null);
-                editor.commands.focus();
-              }}
-            />
+            {touch ? (
+              <ColorPicker
+                kind={pop.id === 'color' ? 'text' : 'highlight'}
+                value={pop.id === 'color' ? (st?.color ?? null) : hlValue}
+                pageHex={pageHex}
+                touch
+                onPick={(v) => {
+                  if (pop.id === 'color') setTextColor(editor, v);
+                  else setHighlight(editor, v);
+                  if (v) rememberColor(pop.id === 'color' ? 'text' : 'highlight', v);
+                  setPop(null);
+                  editor.commands.focus();
+                }}
+              />
+            ) : (
+              // Start board, frame 16: one popover for both, opened on the tab of the button pressed
+              <BubbleColors
+                initial={pop.id === 'color' ? 'text' : 'highlight'}
+                text={st?.color ?? null}
+                highlight={hlValue}
+                pageHex={pageHex}
+                onPick={(kind, v) => {
+                  if (kind === 'text') setTextColor(editor, v);
+                  else setHighlight(editor, v);
+                  if (v) rememberColor(kind, v);
+                  setPop(null);
+                  editor.commands.focus();
+                }}
+              />
+            )}
           </Popover>
         )}
         {pop?.id === 'more' && (

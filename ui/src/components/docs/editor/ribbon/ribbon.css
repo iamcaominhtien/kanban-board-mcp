@@ -1909,3 +1909,148 @@ body.dk-focus-on aside[aria-label='Project navigation'] {
   gap: 8px;
   margin-top: 8px;
 }
+
+/* ---------- the floating toolbar's colours (Start board, frame 16) ---------- */
+.dk-rb-pop:has(> .dk-bcp) {
+  padding: 12px;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(30, 42, 34, 0.16);
+}
+.dk-bcp {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.dk-bcp-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: #eef3ef;
+}
+.dk-bcp-tabs button {
+  flex: 1;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+}
+.dk-bcp-tabs button.on {
+  background: #ffffff;
+  color: #1e2a22;
+  box-shadow: 0 1px 2px rgba(30, 42, 34, 0.14);
+}
+.dk-bcp-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9aa8a0;
+  margin-bottom: 6px;
+}
+.dk-bcp-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 0;
+}
+.dk-bcp-cell {
+  width: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.dk-bcp-sw {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  flex: none;
+  box-sizing: border-box;
+}
+.dk-bcp-cell.on .dk-bcp-sw {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4px #2e6f40;
+}
+.dk-bcp-cell:hover:not(.on) .dk-bcp-sw {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4px #c7d2cb;
+}
+.dk-bcp-name {
+  font-size: 9.5px;
+  color: #5b6b60;
+  white-space: nowrap;
+}
+.dk-bcp-recent {
+  display: flex;
+  gap: 6px;
+  min-height: 22px;
+  align-items: center;
+}
+.dk-bcp-recent button {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 0;
+  cursor: pointer;
+}
+.dk-bcp-none {
+  font-size: 11.5px;
+  color: #9aa8a0;
+}
+.dk-bcp-free {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border-top: 1px solid #e3e8e5;
+  padding-top: 10px;
+}
+.dk-bcp-free .dk-bcp-sw {
+  border: 1px solid rgba(30, 42, 34, 0.12);
+}
+.dk-bcp-free input {
+  width: 120px;
+  height: 34px;
+  box-sizing: border-box;
+  border: 1px solid #c7d2cb;
+  border-radius: 8px;
+  padding: 0 11px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #1e2a22;
+}
+.dk-bcp-free input:focus {
+  outline: 2px solid #2e6f40;
+  outline-offset: -1px;
+}
+.dk-bcp-freename {
+  flex: 1;
+  font-size: 12px;
+  color: #5b6b60;
+}
+.dk-bcp-clear {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6b60;
+  cursor: pointer;
+  align-self: flex-start;
+}
