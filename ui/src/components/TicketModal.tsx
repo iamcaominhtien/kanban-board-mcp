@@ -65,12 +65,8 @@ import {
 import { aiApi } from '../api/ai';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScheduleTicketBlock } from './schedules/ScheduleTicketBlock';
-import { RunHeaderButton, RunHeaderChip, TicketAiPanel, TicketRunsTab } from './ai/RunPanel';
-import { TicketHandover } from './ai/code/TicketHandover';
-import { PullStatus } from './ai/code/PullStatus';
-import { TimelineTab } from './aiteam/TimelineTab';
-import { AiActivityDesign, AiRunPanelDesign } from './ai/activity/AiActivityDesign';
-import { MOCK_AI_ACTIVITY } from './ai/activity/mock';
+import { RunHeaderButton, RunHeaderChip } from './ai/RunPanel';
+import { AiActivity, AiRunPanel } from './ai/activity/AiActivity';
 import { openTimeline } from './aiteam/timelineLink';
 import { TicketAiMenu } from './assist/TicketAi';
 import { TicketChat } from './assist/TicketChat';
@@ -259,7 +255,6 @@ function TicketModalInner({
   const [hasAiPane, setHasAiPane] = useState(false);
   const [aiNeedsYou, setAiNeedsYou] = useState(false);
   const aiPaneRef = useRef<HTMLDivElement>(null);
-  const runsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = aiPaneRef.current;
     if (!el) {
@@ -268,7 +263,8 @@ function TicketModalInner({
     }
     const read = () => {
       setHasAiPane(el.childElementCount > 0);
-      setAiNeedsYou(!!el.querySelector('[data-testid="ai-approve-done"]'));
+      // the lead asked a question and waits for the answer
+      setAiNeedsYou(!!el.querySelector('[data-testid="active-run-card"][data-state="needs_input"]'));
     };
     read();
     const watch = new MutationObserver(read);
@@ -297,9 +293,11 @@ function TicketModalInner({
         setActiveTab('main');
         window.setTimeout(() => openTicketId && fireAiEvent(ASSIGN_AI_EVENT, openTicketId, memberId), 60);
       },
+      // the run itself is on the ticket's AI tab (the AI activity shows its card and opens it there)
       openRun: (runId) => {
         setAiRunId(runId);
-        setMainView('ai');
+        setMainView('ticket');
+        setActiveTab('ai');
       },
     }),
     [openTicketId],
@@ -1932,56 +1930,18 @@ function TicketModalInner({
                     </div>
                   )}
                   <div ref={aiPaneRef} className={styles.aiPane} hidden={!hasAiPane || mainView !== 'ai'}>
-                    {/* TODO(connect to data): the design's mock for now; port the real logic from main (table in ai/activity/mock.ts) */}
-                    {MOCK_AI_ACTIVITY && <PullStatus ticketId={ticket.id} />}
-                    {MOCK_AI_ACTIVITY && (
-                      <AiActivityDesign
-                        ticket={ticket}
-                        ticketId={ticket.id}
-                        projectId={ticket.projectId}
-                        onOpenTimeline={() => openTimeline({ scope: ticket.id })}
-                        onOpenRun={() => {
-                          setMainView('ticket');
-                          setActiveTab('ai');
-                        }}
-                      />
-                    )}
-                    {!MOCK_AI_ACTIVITY && (
-                      <>
-                        <TicketAiPanel
-                          ticket={ticket}
-                          onOpenRun={() => runsRef.current?.scrollIntoView({ block: 'start' })}
-                        />
-                        <TicketHandover ticket={ticket} />
-                        {/* the team's work on this ticket as a sequence diagram, as on main: one column per AI */}
-                        {mainView === 'ai' && ticket.projectId && (
-                          <div data-testid="ticket-timeline" style={{ padding: '0 24px' }}>
-                            <button
-                              type="button"
-                              className="ai-btn ai-btn-sm"
-                              style={{ marginBottom: 8 }}
-                              data-testid="open-in-timeline"
-                              onClick={() => openTimeline({ scope: ticket.id })}
-                            >
-                              Open in Flow
-                            </button>
-                            <TimelineTab
-                              projectId={ticket.projectId}
-                              scopeTicketId={ticket.id}
-                              compactChrome
-                              actions={{
-                                onOpenTicket: () => undefined,
-                                onOpenDocsPage: () => undefined,
-                              }}
-                            />
-                          </div>
-                        )}
-                        {/* every run of the ticket and the chosen one whole: its report, messages and steps as a tree */}
-                        <div ref={runsRef} style={{ padding: '12px 24px' }}>
-                          <TicketRunsTab ticket={ticket} runId={aiRunId} />
-                        </div>
-                      </>
-                    )}
+                    {/* the ticket's AI activity: its run, notices, Resources, the hand-over of its code, the Timeline */}
+                    <AiActivity
+                      ticket={ticket}
+                      ticketId={ticket.id}
+                      projectId={ticket.projectId}
+                      shown={hasAiPane && mainView === 'ai'}
+                      onOpenTimeline={() => openTimeline({ scope: ticket.id })}
+                      onOpenRun={() => {
+                        setMainView('ticket');
+                        setActiveTab('ai');
+                      }}
+                    />
                   </div>
                   <div
                     className={`${styles.detailBody} ${styles.tabFadeSlide}`}
@@ -3465,12 +3425,7 @@ function TicketModalInner({
                       <WorkspaceNotSetUp onOpenSettings={onOpenSettings} />
                     ))}
                   {activeTab === 'branches' && <BranchesSection ticketId={ticket.id} />}
-                  {activeTab === 'ai' &&
-                    (MOCK_AI_ACTIVITY ? (
-                      <AiRunPanelDesign ticket={ticket} />
-                    ) : (
-                      <TicketRunsTab ticket={ticket} runId={aiRunId} />
-                    ))}
+                  {activeTab === 'ai' && <AiRunPanel ticket={ticket} runId={aiRunId} />}
                   {activeTab === 'activity' && (
                     <ActivitySection
                       ticketId={ticket.id}

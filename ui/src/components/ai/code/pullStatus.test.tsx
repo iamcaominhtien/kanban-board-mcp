@@ -21,6 +21,8 @@ const pull = {
 };
 function wire(pulls: unknown[]) {
   http.get.mockImplementation((url: string) => {
+    // the ticket's runs (who the board gave a run to): none here
+    if (url.endsWith('/ai/runs')) return Promise.resolve({ data: [] });
     if (url.startsWith('/tickets/')) return Promise.resolve({ data: { id: 'KAN-1', projectId: 'p1', assignee: null } });
     if (url.endsWith('/ai/pulls')) return Promise.resolve({ data: pulls });
     return Promise.resolve({ data: {} });

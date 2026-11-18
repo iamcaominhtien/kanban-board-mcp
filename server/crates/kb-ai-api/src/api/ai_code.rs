@@ -64,14 +64,22 @@ async fn get_worktrees(Path(project_id): Path<String>) -> ApiResult<Json<Value>>
     Ok(Json(json!({"worktrees": rows, "total_mb": total})))
 }
 
-/// The ticket's worktree, or null.
+/// The ticket's worktree with what git says now, or null.
+///
+/// Like the answer of `PATCH …/handover`, it carries `route`: the hand-over that will be used (the ticket's own
+/// choice, else the project's, else the one guessed from the repository), since only the server can make the guess.
 async fn get_ticket_worktree(Path(ticket_id): Path<String>) -> ApiResult<Json<Value>> {
     let session = kb_db::session();
     let row = ai_worktree::Entity::find_by_id(ticket_id.as_str()).one(&session).await?;
     match row {
         Some(row) if row.state != "removed" => {
             let live = svc_worktrees::status(&row).await.map_err(uncaught)?;
-            Ok(Json(svc_worktrees::to_dict(&row, Some(live.to_value()))))
+            let mut out = match svc_worktrees::to_dict(&row, Some(live.to_value())) {
+                Value::Object(map) => map,
+                _ => Map::new(),
+            };
+            out.insert("route".into(), json!(svc_worktrees::route_for(&session, &row).await.map_err(uncaught)?));
+            Ok(Json(Value::Object(out)))
         }
         _ => Ok(Json(Value::Null)),
     }

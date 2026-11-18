@@ -150,6 +150,7 @@ npm run build`) and Playwright installed globally (`NODE_PATH`).
 | 29–31 | canvases, sketches (`ai`), diagrams (a stand-in draw.io editor served by the scenario) |
 | 32–34 | Idea Space: comments, research log, assumptions and test tickets, delete; capture, triage, merge, park, stages, promote, outcome; the Idea AI (`ai`: triage advice, Shape with AI, Draft with AI) |
 | 35–37 (`ai`) | AI runs that fail, hang, are stopped, retried, restarted or messaged, sessions, accounts; the assistants (Board AI chats and insights, editor AI, Docs AI Ask, Write and history); knowledge base, lessons, notes, role packs, plugins, the repository scan, schedules, worktrees, the team page |
+| 38 (`ai`) | a ticket's AI activity: the run card and the hand-over of its worktree (outputs to the Workspace, commit, the route changed per ticket, Merge, a conflict with main, discard) |
 
 Not covered: the real draw.io editor (not in the checkout), a real Claude sign-in, the desktop-only windows and OS
 notifications.

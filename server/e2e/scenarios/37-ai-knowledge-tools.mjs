@@ -556,10 +556,8 @@ export default {
 
     // ------------------------------------------------------------------ code worktrees
     // The per-ticket hand-over card (GET /tickets/:id/ai/worktree, POST …/worktree/commit, /outputs, /merge, PATCH
-    // …/handover) has no screen to drive: TicketHandover is rendered by TicketModal only while MOCK_AI_ACTIVITY (ui/src/
-    // components/ai/activity/mock.ts) is false, and it is `true`, so the ticket's AI tab shows the design instead.
-    // These calls are therefore not made here. The worktree list of Settings > AI > Repositories (Keep, Remove, Open
-    // folder, Stop, Clean up finished) is what drives the rest of aiCode.ts.
+    // …/handover) is in the ticket's AI activity and is driven by 38-ticket-ai-activity.mjs. The worktree list of
+    // Settings > AI > Repositories (Keep, Remove, Open folder, Stop, Clean up finished) is what is driven here.
     const reposRegion = () => p.getByRole('region', { name: 'Repositories' });
     const KEYS = { 1: 'Fix add', 2: 'Second', 3: 'Third', 4: 'Fourth' };
     const openCard = async (n) => {

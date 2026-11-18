@@ -1,7 +1,10 @@
 import { useState, type ReactNode } from 'react';
-import { aiApi, isActive, useTicketRuns } from '../../../api/ai';
+import { aiApi, isActive, useAiMutation, useAiSettings, useTicketRuns } from '../../../api/ai';
+import { useRestartRun } from '../../../api/aiResources';
+import { extractError } from '../../../api/extractError';
 import type { AiRun } from '../../../types/ai';
-import { levelOf, LEVEL_COLOR } from '../../aiteam/resourcesFormat';
+import { AUTO_RESTARTS, fmtGb, levelOf, LEVEL_COLOR } from '../../aiteam/resourcesFormat';
+import { useToast } from '../../Toast';
 import { hhmm, useNow } from '../aiUi';
 import { useRunResources, type RunResources } from './useResources';
 import './design/designBlocks.css';
@@ -116,6 +119,7 @@ export function RestartNotice({ ticketId, onOpenRun }: { ticketId: string; onOpe
   // for memory says so on the run itself (design F8)
   if (!run || !last || !isActive(run.state)) return null;
   const system = last.by === 'system';
+  const bySystem = restarts.filter((r) => r.by === 'system').length;
   return (
     <div className="dz dz-rs" data-testid="restart-notice">
       <div
@@ -155,16 +159,31 @@ export function RestartNotice({ ticketId, onOpenRun }: { ticketId: string; onOpe
                 It reached <b>{gb(last.rssMb)}</b>, over the {gb(last.limitMb)} limit, so the system restarted it.{' '}
               </>
             ) : null}
-            It continues from its session. <b>Restart {last.n}</b>
-            {restarts.length > 1 ? ` (${restarts.length} in this run)` : ''}.
+            It continues from its session.{' '}
+            {system ? (
+              <>
+                <b>
+                  Restart {bySystem} of {AUTO_RESTARTS}
+                </b>
+                {bySystem < AUTO_RESTARTS
+                  ? ': after the last, the next time it goes over the limit the run is stopped.'
+                  : ': the next time it goes over the limit the run is stopped.'}
+              </>
+            ) : (
+              <>
+                <b>Restart {last.n}</b>
+                {restarts.length > 1 ? ` (${restarts.length} in this run)` : ''}.
+              </>
+            )}
           </span>
-          {onOpenRun && (
-            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {onOpenRun && (
               <button type="button" className="st-btn st-btn-sm" onClick={onOpenRun}>
                 Open run
               </button>
-            </div>
-          )}
+            )}
+            {system && <RaiseLimitButton projectId={run.projectId} />}
+          </div>
         </div>
       </div>
     </div>
@@ -180,6 +199,8 @@ export function Resources({ ticketId }: { ticketId: string }) {
   const run = useNewestRun(ticketId);
   const streamed = useRunResources(run?.id);
   const [stopping, setStopping] = useState(false);
+  const restart = useRestartRun();
+  const toast = useToast();
   // a reading goes stale without another event: look at the clock now and then
   const now = useNow(2000);
   if (!run) return null;
@@ -263,7 +284,33 @@ export function Resources({ ticketId }: { ticketId: string }) {
         </div>
         {feed && feed.run.history.length > 1 && <Chart feed={feed} limitMb={limitMb} />}
         {active && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="st-btn st-btn-sm"
+              data-testid="resources-restart"
+              disabled={!live || restart.isPending}
+              title={live ? undefined : 'Restart needs a live reading of the CLI'}
+              onClick={() =>
+                restart.mutate(run.id, { onError: (err) => toast.error("Couldn't restart", extractError(err)) })
+              }
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                style={{ flexShrink: 0 }}
+              >
+                <path d="M20 11a8 8 0 0 0-14.5-4M4 4v4h4M4 13a8 8 0 0 0 14.5 4M20 20v-4h-4" />
+              </svg>
+              Restart
+            </button>
             <button
               type="button"
               className="st-btn st-btn-sm"
@@ -290,8 +337,124 @@ export function Resources({ ticketId }: { ticketId: string }) {
               </svg>
               Stop
             </button>
+            <span className="st-hint" style={{ fontSize: '11.5px' }}>
+              Restart starts the CLI again inside this run: it resumes and its memory is released.
+            </span>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** The limit one step up: half as much again, in whole GB (4 GB when there is none). */
+const nextLimit = (limitMb: number) => Math.round(((limitMb || 4096) * 1.5) / 1024) * 1024;
+
+/**
+ * "Raise limit to 3 GB": the project's memory limit of one run, half as much again. The server decides who may change
+ * the project's AI settings and says so when it refuses.
+ */
+function RaiseLimitButton({ projectId }: { projectId: string }) {
+  const settings = useAiSettings(projectId).data;
+  const toast = useToast();
+  const raise = useAiMutation((mb: number) => aiApi.updateSettings(projectId, { runMemoryLimitMb: mb }));
+  // no limit at all: nothing to raise
+  if (!settings || settings.runMemoryLimitMb <= 0) return null;
+  const next = nextLimit(settings.runMemoryLimitMb);
+  return (
+    <button
+      type="button"
+      className="st-btn st-btn-sm"
+      data-testid="raise-limit"
+      disabled={raise.isPending}
+      onClick={() =>
+        raise.mutate(next, {
+          onSuccess: () => toast.success(`Limit raised to ${fmtGb(next)}`),
+          onError: (err) => toast.error("Couldn't raise the limit", extractError(err)),
+        })
+      }
+    >
+      Raise limit to {fmtGb(next)}
+    </button>
+  );
+}
+
+/**
+ * The stop notice of the design (AiResources, "Stopped automatically at 10:58"): the ticket's newest run was stopped
+ * by the system because its CLI went over the memory limit once more after its restarts. Partial work is kept; Retry
+ * starts a new run, and the limit can be raised first. Nothing for any other run.
+ */
+export function StopNotice({ ticketId, onOpenRun }: { ticketId: string; onOpenRun?: () => void }) {
+  const run = useNewestRun(ticketId);
+  const toast = useToast();
+  const retry = useAiMutation((id: string) => aiApi.retry(id));
+  if (!run || run.stopCode !== 'memory' || isActive(run.state)) return null;
+  const restarts = (run.restarts ?? []).filter((r) => r.by === 'system');
+  const limitMb = restarts[restarts.length - 1]?.limitMb ?? null;
+  return (
+    <div className="dz dz-rs" data-testid="memory-stop">
+      <div
+        style={{
+          padding: '11px 13px',
+          border: '1px solid #F0C4B8',
+          borderRadius: '10px',
+          background: '#FDF3F0',
+          display: 'flex',
+          gap: '10px',
+          alignItems: 'flex-start',
+        }}
+      >
+        <span style={{ color: '#A5321E', display: 'flex', marginTop: '1px' }}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#A5321E"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            style={{ flexShrink: 0 }}
+          >
+            <rect x="4" y="5" width="16" height="14" rx="1.5" />
+          </svg>
+        </span>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#A5321E' }}>
+            Stopped automatically{run.endedAt ? ` at ${hhmm(run.endedAt)}` : ''}
+          </span>
+          <span style={{ fontSize: '12.5px', lineHeight: 1.5, color: '#3A2A1E' }}>
+            It went over {limitMb ? `the ${fmtGb(limitMb)} limit` : 'the memory limit'}
+            {restarts.length ? ` again after ${restarts.length} restart${restarts.length === 1 ? '' : 's'}` : ''}
+            {run.peakRssMb ? (
+              <>
+                {' '}
+                (peak <b>{gb(run.peakRssMb)}</b>)
+              </>
+            ) : null}
+            . Partial work in the folder is kept.
+          </span>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="st-btn st-btn-primary st-btn-sm"
+              data-testid="memory-stop-retry"
+              disabled={retry.isPending}
+              onClick={() =>
+                retry.mutate(run.id, { onError: (err) => toast.error("Couldn't retry", extractError(err)) })
+              }
+            >
+              Retry
+            </button>
+            <RaiseLimitButton projectId={run.projectId} />
+            {onOpenRun && (
+              <button type="button" className="st-btn st-btn-sm" onClick={onOpenRun}>
+                Open run
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
