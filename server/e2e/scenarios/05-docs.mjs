@@ -142,6 +142,38 @@ export default {
       await p.locator('.dk-page-scroll.dk-rt-sepia').waitFor({ state: 'detached' });
       await p.keyboard.press('Escape');
     });
+    await s.step('a reading theme dresses the whole Docs screen: the header, the tree and the bar go Night too (Reader 1, 18)', async () => {
+      await p.getByRole('button', { name: 'Reading settings' }).click();
+      const panel = p.getByRole('dialog', { name: 'Reading settings' });
+      // Show highlights: a view setting of this reader, on by default
+      await panel.getByRole('switch', { name: 'Show highlights', checked: true }).waitFor();
+      await panel.getByRole('button', { name: /Night/ }).click();
+      await p.locator('[data-testid="docs-view"][data-docs-tone="night"]').waitFor();
+      const bg = await p.evaluate(() => ({
+        tree: getComputedStyle(document.querySelector('aside[aria-label="Docs space"], aside[aria-label="Docs space (collapsed)"]')).backgroundColor,
+        bar: getComputedStyle(document.querySelector('[data-testid="page-bar"]')).backgroundColor,
+        header: getComputedStyle(document.querySelector('[data-testid="docs-view"]').closest('[class*="board"]').querySelector('h1').parentElement).backgroundColor,
+      }));
+      s.note('night', JSON.stringify(bg));
+      // rgb(r, g, b), or color(srgb r g b) from 0 to 1 (a colour mixed in CSS)
+      const dark = (c) => {
+        const n = c.match(/[\d.]+/g).map(Number);
+        return c.startsWith('color(') ? n[0] + n[1] + n[2] < 0.8 : n[0] + n[1] + n[2] < 200;
+      };
+      for (const [k, v] of Object.entries(bg)) if (!dark(v)) throw new Error(`the ${k} is not dark in Night: ${v}`);
+      await panel.getByRole('button', { name: 'Reset' }).click();
+      await p.locator('[data-testid="docs-view"][data-docs-tone="night"]').waitFor({ state: 'detached' });
+      await p.keyboard.press('Escape');
+    });
+    await s.step('the Docs header is the one drawn (no Board health) with Ask AI and the bell; the page bar spans the outline', async () => {
+      if (await p.getByRole('button', { name: /Board health/ }).count()) throw new Error('Board health belongs to the board');
+      const m = await p.evaluate(() => ({
+        bar: document.querySelector('[data-testid="page-bar"]').getBoundingClientRect().right,
+        view: document.querySelector('[data-testid="docs-view"]').getBoundingClientRect().right,
+      }));
+      // the bar runs to the right edge of the Docs area, over the outline column (Reader 1, 1)
+      if (Math.abs(m.bar - m.view) > 2) throw new Error('the page bar stops short of the outline: ' + JSON.stringify(m));
+    });
     await s.step('the Published badge opens its version, and History reads an older version read-only', async () => {
       await p.getByTestId('status-badge').click();
       await p.getByRole('dialog', { name: 'Version 3' }).getByRole('button', { name: /Page history/ }).click();
@@ -199,7 +231,10 @@ export default {
       await p.getByTestId('public-stop').click();
       await p.getByTestId('public-url').waitFor({ state: 'detached' });
       await reader.reload();
-      await reader.getByRole('heading', { name: 'This link is no longer public.' }).waitFor();
+      // Reader 44: no hint of what the page was, a lock, and a way to sign in
+      await reader.getByRole('heading', { name: 'This link is not public' }).waitFor();
+      await reader.getByRole('link', { name: 'Sign in to Kanban' }).waitFor();
+      await reader.getByTestId('public-sign-in').waitFor();
       await reader.close();
       await p.keyboard.press('Escape');
     });
@@ -363,7 +398,9 @@ export default {
       await ch.getByText('1 chapter').waitFor();
       await ch.getByRole('listitem').filter({ hasText: 'Install guide' }).getByText('1', { exact: true }).waitFor();
       await p.getByTestId('reading-footer').getByText('1. Install guide').waitFor();
-      // a book's pages read in focus, the tree folded to its rail; a page outside the book brings the tree back
+      // a book's pages read in focus, without the app's chrome (Reader 1, 4); "← Alpha" brings it back
+      await p.getByTestId('focus-back').click();
+      // the tree is folded to its rail beside a book; a page outside the book brings the tree back
       await p.getByRole('button', { name: 'Release notes', exact: true }).first().click();
       await item('Release notes').waitFor();
     });
@@ -563,8 +600,19 @@ export default {
       await t.keyboard.press('Escape');
       await menu.waitFor({ state: 'detached' });
     });
+    await s.step('phone: a page reads in focus: no app header, the page bar leads with ← and carries Ask AI and the bell (Reader 1, 3)', async () => {
+      const t = await openTouch(390, 844);
+      if (await t.getByTestId('docs-phone-bar').count()) throw new Error('the app bar should step aside while a page is read');
+      want('page bar', await rect(t.getByTestId('page-bar')), { x: 0, y: 0, w: 390 });
+      want('back', await rect(t.getByTestId('focus-back')), { w: 44, h: 44 });
+      await t.getByTestId('page-bar').locator('[data-notification-bell]').waitFor();
+      if (await t.getByTestId('page-bar').getByRole('navigation', { name: 'Breadcrumb' }).locator('.dk-crumb-here').count())
+        throw new Error('a phone in focus shows no path');
+    });
     await s.step('phone: while Docs shows, the app header is one 52 px bar over a 44 px tab strip; Docs is edge to edge (Shell A 3)', async () => {
       const t = await openTouch(390, 844);
+      // ← brings the app's chrome back for this page
+      await t.getByTestId('focus-back').click();
       want('app bar', await rect(t.getByTestId('docs-phone-bar')), { x: 0, y: 0, w: 390, h: 52 });
       want('Docs tab', await rect(t.getByTestId('view-docs')), { y: 52, h: 44, font: '700 13.5px' });
       want('Docs area', await rect(t.getByTestId('docs-view')), { x: 0, y: 96, w: 390 });

@@ -110,6 +110,12 @@ export default {
       const first = await bar.evaluate((el) => el.firstElementChild?.getAttribute('data-testid'));
       if (first !== 'hl-swatches') throw new Error('the colours should lead the bar, got ' + first);
       await bar.getByTestId('selection-comment').waitFor();
+      // the reader's bubble is a 292 px card: the colours, then Copy, Comment, Link, then who will see it (Reader 75)
+      expect('the bubble', await box(bar), { w: 292, radius: '12px' });
+      await bar.getByTestId('selection-copy').waitFor();
+      await bar.getByTestId('selection-link').waitFor();
+      expect('Copy', await box(bar.getByTestId('selection-copy')), { h: 50, font: '600 11px' });
+      await bar.getByTestId('hl-sel-note').getByText('Everyone in the project who can read this page will see it.').waitFor();
       await bar.getByTestId('hl-more-colours').click();
       await bar.getByTestId('hl-all-colours').locator('.hl-sw').nth(11).waitFor();
       expect('a tile of the 12', await box(bar.getByTestId('hl-all-colours').locator('.hl-sw-tile').first()), { w: 26, h: 26 });
@@ -222,8 +228,9 @@ export default {
       await rows.nth(0).getByText('Paragraph 1', { exact: false }).waitFor();
       expect('title', await box(panel.locator('.hl-panel-name')), { font: '700 15px' });
       expect('Everyone / Me', await box(panel.locator('.hl-seg button').first()), { h: 28, font: '600 12.5px' });
-      expect('a colour chip', await box(panel.getByTestId('hl-chip-green')), { h: 28, radius: '999px', font: '600 12px' });
-      expect('Go to passage', await box(rows.first().getByTestId('hl-go')), { h: 32, radius: '8px', font: '600 12.5px', padding: '0px 12px' });
+      // the filters and the row actions are plain words, without frames (Reader 78, 80)
+      expect('a colour chip', await box(panel.getByTestId('hl-chip-green')), { h: 28, font: '600 12px', border: '1px rgba(0, 0, 0, 0)' });
+      expect('Go to passage', await box(rows.first().getByTestId('hl-go')), { h: 32, radius: '8px', font: '600 12.5px', padding: '0px 8px', border: '1px rgba(0, 0, 0, 0)' });
       expect('a row', await box(rows.first()), { padding: '11px 12px 10px' });
       expect('the rail', await box(p.locator('.hl-rail')), { w: 336 });
       // Remove is only on your own (78)
@@ -237,6 +244,18 @@ export default {
       await s.shot('list');
       await rows.first().getByTestId('hl-go').click();
       await p.getByTestId('hl-flash').waitFor({ state: 'attached' });
+    });
+
+    await s.step('a highlight with its thread: on a desktop it opens in the side panel in place of the list, with a way back (Reader 114)', async () => {
+      const panel = p.getByTestId('hl-panel');
+      await panel.locator('[data-testid="hl-row"][data-color="pink"]').getByTestId('hl-row-comments').click();
+      const thread = p.getByTestId('hl-thread');
+      await thread.locator('.hl-thread-quote').getByText('“So we started writing tickets for a stranger.”').waitFor();
+      await thread.getByTestId('thread-card').getByText('Check this against').waitFor();
+      // the comments panel stays shut: the thread is beside the page
+      if (await p.getByTestId('comments-panel').count()) throw new Error('the thread opened in the comments panel');
+      await thread.getByTestId('hl-thread-back').click();
+      await p.getByTestId('hl-panel').waitFor();
     });
 
     await s.step('your own without a thread goes at once, with Undo for 8 seconds; Undo brings it back', async () => {
@@ -478,6 +497,32 @@ export default {
       if (await p.locator('.ProseMirror .dk-hl-edit').count()) throw new Error('still drawn after Hide');
       await strip.getByTestId('hl-edit-hide').click();
       await p.locator('.ProseMirror .dk-hl-edit').first().waitFor();
+      await openPage();
+    });
+
+    await s.step("a book's chapter reads in focus: no app chrome, \"← project\" in the bar brings it back (Reader 1, 4)", async () => {
+      const book = await api('POST', `/projects/${pid}/docs/pages`, { title: 'Harbour book' });
+      await api('PUT', `/docs/pages/${book.id}/draft`, { markdown: 'A novel.\n' });
+      await api('POST', `/docs/pages/${book.id}/publish`, { base_version: 0 });
+      await api('PATCH', `/docs/pages/${book.id}/settings`, { settings: { book: { isBook: true } } });
+      const ch = await api('POST', `/projects/${pid}/docs/pages`, { title: 'The Long Tide', parent_id: book.id });
+      await api('PUT', `/docs/pages/${ch.id}/draft`, { markdown: 'The tide went out.\n' });
+      await api('POST', `/docs/pages/${ch.id}/publish`, { base_version: 0 });
+      await p.goto(`${base}/?proj=${pid}&docs=${ch.id}`);
+      await p.getByTestId('focus-back').waitFor({ timeout: 20000 });
+      // no project sidebar, no app header, no tree: the chapter list and the page
+      if (await p.getByTestId('sidebar-idea-space').isVisible()) throw new Error('the project sidebar should step aside');
+      if (await p.getByTestId('view-docs').isVisible()) throw new Error('the app header should step aside');
+      if (await p.getByRole('complementary', { name: 'Docs space' }).count()) throw new Error('the tree should step aside');
+      await p.getByRole('navigation', { name: 'Chapters' }).waitFor();
+      await p.getByTestId('focus-back').click();
+      await p.getByTestId('view-docs').waitFor();
+      await p.getByTestId('sidebar-idea-space').waitFor();
+      // back to Field notes for the steps that follow (beside a book the tree is folded to its rail)
+      await p.getByRole('button', { name: 'Field notes', exact: true }).first().click();
+      await p.getByTestId('page-body').locator('[data-block-id="b-000001"]').waitFor();
+      // and the address without the chapter, so a reload opens the board as before
+      await p.goto(`${base}/`);
       await openPage();
     });
 
