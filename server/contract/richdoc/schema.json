@@ -55,7 +55,9 @@
           "type": "enum",
           "values": [
             0,
+            2,
             3,
+            4,
             5
           ]
         },
@@ -67,6 +69,29 @@
             "lead",
             "small"
           ]
+        },
+        "dropCapStyle": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "raised"
+          ],
+          "note": "null: dropped into the text; raised: standing on the first line"
+        },
+        "dropCapColor": {
+          "default": null,
+          "type": "string|null",
+          "note": "colour name from palette.json or #rrggbb; null: the text colour"
+        },
+        "dropCapFont": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "body"
+          ],
+          "note": "null: the heading font"
         }
       }
     },
@@ -361,6 +386,44 @@
             "full",
             "fit"
           ]
+        },
+        "banded": {
+          "default": false,
+          "type": "boolean"
+        },
+        "borders": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "rows",
+            "outer",
+            "none"
+          ],
+          "note": "null: a line between every cell"
+        },
+        "spacing": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "tight",
+            "roomy"
+          ]
+        },
+        "align": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "caption": {
+          "default": null,
+          "type": "string|null"
         }
       }
     },
@@ -417,6 +480,35 @@
             "top",
             "middle",
             "bottom"
+          ]
+        },
+        "border": {
+          "default": null,
+          "type": "string|null",
+          "note": "the sides that have a line: \"top right bottom left\" (any of them) or \"none\"; null: as the table draws it"
+        },
+        "borderStyle": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "thick",
+            "dashed"
+          ],
+          "note": "null: 1 px solid"
+        },
+        "borderColor": {
+          "default": null,
+          "type": "string|null",
+          "note": "colour name from palette.json or #rrggbb"
+        },
+        "padding": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "tight",
+            "roomy"
           ]
         }
       }
@@ -529,6 +621,15 @@
         "line": {
           "default": false,
           "type": "boolean"
+        },
+        "valign": {
+          "default": null,
+          "type": "enum",
+          "values": [
+            null,
+            "middle"
+          ],
+          "note": "null: the columns' blocks start at the top"
         }
       }
     },

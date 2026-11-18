@@ -4,7 +4,7 @@
  * They are global attributes, so the existing extensions stay as they are; plain Markdown drops them (the text stays).
  */
 
-import { Extension } from '@tiptap/core';
+import { Extension, type Attribute } from '@tiptap/core';
 import { dataAttr, nullable } from './attr';
 
 const textBlock = {
@@ -15,6 +15,20 @@ const textBlock = {
   spaceAfter: dataAttr('spaceAfter', null, 'json'),
 };
 
+/**
+ * A cell's border colour: written as `data-border-color` and as the `--dk-cb` variable the border rules read (a
+ * palette name as the page's text colour of that name).
+ */
+const borderColorAttr: Attribute = {
+  ...dataAttr('borderColor', null),
+  renderHTML: (attrs) => {
+    const v = attrs.borderColor as unknown;
+    if (typeof v !== 'string' || !v) return {};
+    const css = /^#[0-9a-f]{6}$/i.test(v) ? v : /^[a-z]+$/.test(v) ? `var(--rd-c-${v})` : null;
+    return { 'data-border-color': v, ...(css ? { style: `--dk-cb: ${css}` } : {}) };
+  },
+};
+
 /** Adds the format 1 attributes to paragraph, heading, quote, lists, code block, rule, table, image, callout, … */
 export const RichAttrs = Extension.create({
   name: 'richdocAttrs',
@@ -23,7 +37,12 @@ export const RichAttrs = Extension.create({
     return [
       {
         types: ['paragraph'],
-        attributes: { ...textBlock, dropCap: dataAttr('dropCap', 0, 'json'), variant: dataAttr('variant', null) },
+        attributes: {
+          ...textBlock,
+          dropCap: dataAttr('dropCap', 0, 'json'),
+          ...nullable('dropCapStyle', 'dropCapColor', 'dropCapFont'),
+          variant: dataAttr('variant', null),
+        },
       },
       { types: ['heading'], attributes: textBlock },
       { types: ['blockquote'], attributes: { variant: dataAttr('variant', 'plain'), ...nullable('source') } },
@@ -40,10 +59,19 @@ export const RichAttrs = Extension.create({
         },
       },
       { types: ['horizontalRule'], attributes: { style: dataAttr('style', 'line') } },
-      { types: ['table'], attributes: { style: dataAttr('style', null), width: dataAttr('width', null) } },
+      {
+        types: ['table'],
+        attributes: {
+          ...nullable('style', 'width', 'borders', 'spacing', 'align', 'caption'),
+          banded: dataAttr('banded', false, 'json'),
+        },
+      },
       {
         types: ['tableCell', 'tableHeader'],
-        attributes: { background: dataAttr('background', null), verticalAlign: dataAttr('verticalAlign', null) },
+        attributes: {
+          ...nullable('background', 'verticalAlign', 'border', 'borderStyle', 'padding'),
+          borderColor: borderColorAttr,
+        },
       },
       {
         types: ['image'],

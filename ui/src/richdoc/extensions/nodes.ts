@@ -62,6 +62,7 @@ export const Columns = Node.create({
     ...nullable('ratio'),
     gap: dataAttr('gap', 24, 'json'),
     line: dataAttr('line', false, 'json'),
+    ...nullable('valign'),
   }),
   ...htmlSpec('columns', false),
   renderMarkdown: (node, h) => h.renderChildren(node.content ?? [], '\n\n'),
