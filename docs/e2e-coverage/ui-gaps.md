@@ -40,7 +40,7 @@
 - never shown: `Linked branch` (src/components/DebugSpaceSection.tsx:396)
 - never shown: `Confirm delete` (src/components/DebugSpaceSection.tsx:949, src/components/WorkspaceSection.tsx:621)
 
-## src/components/MarkdownEditor.tsx (10)
+## src/components/MarkdownEditor.tsx (9)
 
 - shown: `Heading` (src/components/MarkdownEditor.tsx:1067)
 - shown: `Insert doc reference` (src/components/MarkdownEditor.tsx:1163, src/components/comments/Composer.tsx:392)
@@ -51,13 +51,12 @@
 - shown: `Align right` (src/components/MarkdownEditor.tsx:1470)
 - never shown: `Link text…` (src/components/MarkdownEditor.tsx:1540)
 - never shown: `Remove image` (src/components/MarkdownEditor.tsx:1714)
-- never shown: `Reset` (src/components/MarkdownEditor.tsx:1701, src/components/ai/tools/InstalledTab.tsx:170)
 
 ## src/components/McpFullControl.tsx (1)
 
 - never shown: `Turn on full control over MCP` (src/components/McpFullControl.tsx:55)
 
-## src/components/McpIntegrations.tsx (8)
+## src/components/McpIntegrations.tsx (7)
 
 - never shown: `/path/to/project` (src/components/McpIntegrations.tsx:385)
 - never shown: `Project folder` (src/components/McpIntegrations.tsx:386)
@@ -65,7 +64,6 @@
 - never shown: `Check again` (src/components/McpIntegrations.tsx:336)
 - never shown: `Browse…` (src/components/McpIntegrations.tsx:391)
 - never shown: `Claude Code docs` (src/components/McpIntegrations.tsx:458)
-- never shown: `Update` (src/components/McpIntegrations.tsx:536)
 - shown: `Reinstall` (src/components/McpIntegrations.tsx:555)
 
 ## src/components/MembersPanel.tsx (1)
@@ -174,11 +172,9 @@
 
 - never shown: `Pick which team to send to` (src/components/ai/ComposerAi.tsx:129)
 
-## src/components/ai/DragConfirm.tsx (3)
+## src/components/ai/DragConfirm.tsx (1)
 
 - never shown: `Move … anyway` (src/components/ai/DragConfirm.tsx:42)
-- never shown: `Keep it with the AI` (src/components/ai/DragConfirm.tsx:67)
-- never shown: `Move and cancel run` (src/components/ai/DragConfirm.tsx:70)
 
 ## src/components/ai/MentionPill.tsx (2)
 
@@ -189,23 +185,17 @@
 
 - never shown: `type an answer…` (src/components/ai/QuestionCard.tsx:97)
 
-## src/components/ai/RunPanel.tsx (2)
+## src/components/ai/RunPanel.tsx (1)
 
 - shown: `Run options` (src/components/ai/RunPanel.tsx:97)
-- shown: `Run again` (src/components/ai/RunPanel.tsx:452)
 
 ## src/components/ai/RunResources.tsx (1)
 
 - never shown: `RAM of this run, last 5 minutes` (src/components/ai/RunResources.tsx:81)
 
-## src/components/ai/RunView.tsx (2)
+## src/components/ai/RunView.tsx (1)
 
-- never shown: `It reads this at its next step…` (src/components/ai/RunView.tsx:141)
 - never shown: `It reads this when it takes its next turn…` (src/components/ai/RunView.tsx:141)
-
-## src/components/ai/accounts/AccountBanner.tsx (1)
-
-- never shown: `Choose another account` (src/components/ai/accounts/AccountBanner.tsx:68)
 
 ## src/components/ai/accounts/AccountPicker.tsx (4)
 
@@ -230,24 +220,19 @@
 
 - never shown: `Account for these teams` (src/components/ai/accounts/RemoveAccountDialog.tsx:93)
 
-## src/components/ai/accounts/SignInWindow.tsx (3)
+## src/components/ai/accounts/SignInWindow.tsx (2)
 
 - never shown: `Stop signing in?` (src/components/ai/accounts/SignInWindow.tsx:445)
-- never shown: `Cancel sign-in` (src/components/ai/accounts/SignInWindow.tsx:429)
 - never shown: `Keep signing in` (src/components/ai/accounts/SignInWindow.tsx:461)
-
-## src/components/ai/accounts/SignedOutBanners.tsx (1)
-
-- never shown: `Sign in again` (src/components/ai/accounts/SignedOutBanners.tsx:53)
 
 ## src/components/ai/activity/AiActivityDesign.tsx (2)
 
-- never shown: `What to show` (src/components/ai/activity/AiActivityDesign.tsx:98)
-- never shown: `One run` (src/components/ai/activity/AiActivityDesign.tsx:99)
+- shown: `What to show` (src/components/ai/activity/AiActivityDesign.tsx:98)
+- shown: `One run` (src/components/ai/activity/AiActivityDesign.tsx:99)
 
 ## src/components/ai/activity/Resources.tsx (1)
 
-- never shown: `RAM of the run over the last 5 minutes` (src/components/ai/activity/Resources.tsx:68)
+- shown: `RAM of the run over the last 5 minutes` (src/components/ai/activity/Resources.tsx:68)
 
 ## src/components/ai/activity/design/designBlocks.tsx (4)
 
@@ -262,16 +247,12 @@
 - never shown: `Where to look` (src/components/ai/code/RepoCommands.tsx:339)
 - never shown: `e.g. this repo uses pnpm; the app is in ui/` (src/components/ai/code/RepoCommands.tsx:340)
 
-## src/components/ai/code/RepoCommandsParts.tsx (9)
+## src/components/ai/code/RepoCommandsParts.tsx (5)
 
-- shown: `… command` (src/components/ai/code/RepoCommandsParts.tsx:140)
 - never shown: `prepare` (src/components/ai/code/RepoCommandsParts.tsx:143)
 - shown: `npm ci && uv sync` (src/components/ai/code/RepoCommandsParts.tsx:143)
 - never shown: `test` (src/components/ai/code/RepoCommandsParts.tsx:143)
-- shown: `npm test` (src/components/ai/code/RepoCommandsParts.tsx:143)
 - never shown: `lint` (src/components/ai/code/RepoCommandsParts.tsx:143)
-- shown: `npm run lint` (src/components/ai/code/RepoCommandsParts.tsx:143)
-- shown: `npm run build` (src/components/ai/code/RepoCommandsParts.tsx:143)
 - shown: `Type one` (src/components/ai/code/RepoCommandsParts.tsx:212)
 
 ## src/components/ai/code/RepositoriesSection.tsx (1)
@@ -284,53 +265,30 @@
 - never shown: `Pull request` (src/components/ai/code/TicketHandover.tsx:167)
 - never shown: `Commit the code` (src/components/ai/code/TicketHandover.tsx:229)
 
-## src/components/ai/editor/useEditorAi.tsx (17)
+## src/components/ai/editor/useEditorAi.tsx (13)
 
-- never shown: `Translate into` (src/components/ai/editor/useEditorAi.tsx:1032)
-- never shown: `Translate into… (English, Tiếng Việt, 日本語)` (src/components/ai/editor/useEditorAi.tsx:1033)
-- never shown: `What should it write?` (src/components/ai/editor/useEditorAi.tsx:1052)
-- never shown: `diagram` (src/components/ai/editor/useEditorAi.tsx:1053)
-- never shown: `Describe the diagram…` (src/components/ai/editor/useEditorAi.tsx:1053)
-- never shown: `doc` (src/components/ai/editor/useEditorAi.tsx:1053)
-- never shown: `idea` (src/components/ai/editor/useEditorAi.tsx:1053)
-- never shown: `Ask AI to write, with this page as context…` (src/components/ai/editor/useEditorAi.tsx:1053)
-- never shown: `Ask AI to write, with this ticket as context…` (src/components/ai/editor/useEditorAi.tsx:1053)
-- shown: `AI on the selection` (src/components/ai/editor/useEditorAi.tsx:1202)
-- never shown: `Show the draft` (src/components/ai/editor/useEditorAi.tsx:656)
-- never shown: `Insert below` (src/components/ai/editor/useEditorAi.tsx:702, src/components/ai/editor/useEditorAi.tsx:943)
-- never shown: `Continue` (src/components/ai/editor/useEditorAi.tsx:732, src/components/assist/AnswerBlock.tsx:261)
-- never shown: `Open Members` (src/components/ai/editor/useEditorAi.tsx:798, src/components/docs/ai/AskPanel.tsx:255, src/components/docs/ai/AskPanel.tsx:287)
-- never shown: `Open in the diagram editor` (src/components/ai/editor/useEditorAi.tsx:904)
-- never shown: `T Selected text` (src/components/ai/editor/useEditorAi.tsx:1095)
-- never shown: `What will be sent ⓘ` (src/components/ai/editor/useEditorAi.tsx:1105)
-
-## src/components/ai/knowledge/KnowledgeBasePanel.tsx (4)
-
-- never shown: `Search the knowledge base` (src/components/ai/knowledge/KnowledgeBasePanel.tsx:109)
-- never shown: `Search as the AIs do: keywords` (src/components/ai/knowledge/KnowledgeBasePanel.tsx:110)
-- never shown: `Search the shared store too` (src/components/ai/knowledge/KnowledgeBasePanel.tsx:69)
-- never shown: `Add files` (src/components/ai/knowledge/KnowledgeBasePanel.tsx:79)
-
-## src/components/ai/knowledge/MemoryPanel.tsx (3)
-
-- never shown: `Keep it` (src/components/ai/knowledge/MemoryPanel.tsx:133, src/components/ai/knowledge/kbParts.tsx:190, src/components/settings/database/MoveCopyStep.tsx:97, src/components/settings/database/MoveStopped.tsx:361)
-- never shown: `Edit and keep` (src/components/ai/knowledge/MemoryPanel.tsx:141)
-- shown: `No` (src/components/ai/knowledge/MemoryPanel.tsx:149, src/components/docs/ai/AskPanel.tsx:451, src/components/ideas/IdeaPage.tsx:737)
+- never shown: `Translate into` (src/components/ai/editor/useEditorAi.tsx:1034)
+- never shown: `Translate into… (English, Tiếng Việt, 日本語)` (src/components/ai/editor/useEditorAi.tsx:1035)
+- never shown: `diagram` (src/components/ai/editor/useEditorAi.tsx:1055)
+- never shown: `Describe the diagram…` (src/components/ai/editor/useEditorAi.tsx:1055)
+- never shown: `doc` (src/components/ai/editor/useEditorAi.tsx:1055)
+- never shown: `idea` (src/components/ai/editor/useEditorAi.tsx:1055)
+- never shown: `Ask AI to write, with this page as context…` (src/components/ai/editor/useEditorAi.tsx:1055)
+- never shown: `Show the draft` (src/components/ai/editor/useEditorAi.tsx:658)
+- never shown: `Insert below` (src/components/ai/editor/useEditorAi.tsx:704, src/components/ai/editor/useEditorAi.tsx:945)
+- never shown: `Continue` (src/components/ai/editor/useEditorAi.tsx:734, src/components/assist/AnswerBlock.tsx:261)
+- never shown: `Open Members` (src/components/ai/editor/useEditorAi.tsx:800, src/components/docs/ai/AskPanel.tsx:258, src/components/docs/ai/AskPanel.tsx:290)
+- never shown: `Open in the diagram editor` (src/components/ai/editor/useEditorAi.tsx:906)
+- never shown: `T Selected text` (src/components/ai/editor/useEditorAi.tsx:1097)
 
 ## src/components/ai/knowledge/TokenMeter.tsx (1)
 
 - shown: `Share of the prompt budget` (src/components/ai/knowledge/TokenMeter.tsx:20)
 
-## src/components/ai/knowledge/kbParts.tsx (9)
+## src/components/ai/knowledge/kbParts.tsx (3)
 
-- never shown: `Text to add` (src/components/ai/knowledge/kbParts.tsx:285)
-- never shown: `Paste text here` (src/components/ai/knowledge/kbParts.tsx:286)
 - never shown: `Store` (src/components/ai/knowledge/kbParts.tsx:302)
-- never shown: `Move to the shared store` (src/components/ai/knowledge/kbParts.tsx:156, src/components/ai/knowledge/kbParts.tsx:198)
-- never shown: `Keep it here` (src/components/ai/knowledge/kbParts.tsx:167)
-- never shown: `Move back to this project` (src/components/ai/knowledge/kbParts.tsx:208)
 - never shown: `Choose a file` (src/components/ai/knowledge/kbParts.tsx:275, src/components/ideas/IdeaEvidenceTab.tsx:166)
-- never shown: `This project` (src/components/ai/knowledge/kbParts.tsx:307)
 - never shown: `The shared store` (src/components/ai/knowledge/kbParts.tsx:308)
 
 ## src/components/ai/packs/EnvBlock.tsx (3)
@@ -339,37 +297,28 @@
 - never shown: `/opt/homebrew/bin` (src/components/ai/packs/EnvBlock.tsx:150)
 - never shown: `The app’s own PATH` (src/components/ai/packs/EnvBlock.tsx:161)
 
-## src/components/ai/packs/PackDialogs.tsx (9)
+## src/components/ai/packs/PackDialogs.tsx (2)
 
 - never shown: `Start from` (src/components/ai/packs/PackDialogs.tsx:184)
-- never shown: `Copy of` (src/components/ai/packs/PackDialogs.tsx:197)
-- never shown: `Name` (src/components/ai/packs/PackDialogs.tsx:223, src/components/ai/packs/PackEditor.tsx:261)
-- never shown: `Release manager` (src/components/ai/packs/PackDialogs.tsx:226)
-- never shown: `Key` (src/components/ai/packs/PackDialogs.tsx:236)
-- never shown: `release_manager` (src/components/ai/packs/PackDialogs.tsx:238)
-- never shown: `Add the role` (src/components/ai/packs/PackDialogs.tsx:170)
-- never shown: `A copy of` (src/components/ai/packs/PackDialogs.tsx:185)
 - never shown: `Blank` (src/components/ai/packs/PackDialogs.tsx:208)
 
-## src/components/ai/packs/PackEditor.tsx (13)
+## src/components/ai/packs/PackEditor.tsx (12)
 
-- never shown: `Model` (src/components/ai/packs/PackEditor.tsx:114)
+- shown: `Model` (src/components/ai/packs/PackEditor.tsx:114)
 - never shown: `Model id` (src/components/ai/packs/PackEditor.tsx:146)
 - never shown: `A full model id` (src/components/ai/packs/PackEditor.tsx:148)
-- never shown: `Glyph` (src/components/ai/packs/PackEditor.tsx:273)
-- never shown: `Hands in` (src/components/ai/packs/PackEditor.tsx:309)
-- never shown: `Effort` (src/components/ai/packs/PackEditor.tsx:350, src/components/ai/packs/PackEditor.tsx:367)
-- never shown: `Model for a second try` (src/components/ai/packs/PackEditor.tsx:382)
-- never shown: `Writes` (src/components/ai/packs/PackEditor.tsx:401)
-- never shown: `At once` (src/components/ai/packs/PackEditor.tsx:452)
-- never shown: `Other…` (src/components/ai/packs/PackEditor.tsx:130)
+- shown: `Glyph` (src/components/ai/packs/PackEditor.tsx:273)
+- shown: `Hands in` (src/components/ai/packs/PackEditor.tsx:309)
+- shown: `Effort` (src/components/ai/packs/PackEditor.tsx:350, src/components/ai/packs/PackEditor.tsx:367)
+- shown: `Model for a second try` (src/components/ai/packs/PackEditor.tsx:382)
+- shown: `Writes` (src/components/ai/packs/PackEditor.tsx:401)
+- shown: `At once` (src/components/ai/packs/PackEditor.tsx:452)
+- shown: `Other…` (src/components/ai/packs/PackEditor.tsx:130)
 - shown: `None` (src/components/ai/packs/PackEditor.tsx:386, src/components/docs/ai/DocsAiSettings.tsx:100)
-- never shown: `Reset to ready-made` (src/components/ai/packs/PackEditor.tsx:495, src/components/ai/packs/PackEditor.tsx:501)
-- never shown: `Remove this role` (src/components/ai/packs/PackEditor.tsx:508)
+- shown: `Remove this role` (src/components/ai/packs/PackEditor.tsx:508)
 
-## src/components/ai/packs/PackList.tsx (2)
+## src/components/ai/packs/PackList.tsx (1)
 
-- shown: `More for …` (src/components/ai/packs/PackList.tsx:66)
 - shown: `Actions` (src/components/ai/packs/PackList.tsx:114)
 
 ## src/components/ai/power/KeepAwakeChip.tsx (1)
@@ -401,22 +350,14 @@
 
 - never shown: `Add…` (src/components/ai/tools/CatalogueTab.tsx:74)
 
-## src/components/ai/tools/InstalledTab.tsx (7)
+## src/components/ai/tools/InstalledTab.tsx (2)
 
 - never shown: `Working` (src/components/ai/tools/InstalledTab.tsx:222)
-- shown: `Search skills and plugins…` (src/components/ai/tools/InstalledTab.tsx:306)
-- shown: `Search installed` (src/components/ai/tools/InstalledTab.tsx:307)
 - shown: `Filter` (src/components/ai/tools/InstalledTab.tsx:313)
-- never shown: `See what changed` (src/components/ai/tools/InstalledTab.tsx:120)
-- shown: `Check for update` (src/components/ai/tools/InstalledTab.tsx:142, src/components/ai/tools/InstalledTab.tsx:174)
-- never shown: `Roll back` (src/components/ai/tools/InstalledTab.tsx:190)
 
-## src/components/ai/tools/SkillsPluginsSection.tsx (4)
+## src/components/ai/tools/SkillsPluginsSection.tsx (1)
 
 - never shown: `('installed'); const [pick, setPick] = useState` (src/components/ai/tools/SkillsPluginsSection.tsx:16)
-- shown: `Reload all` (src/components/ai/tools/SkillsPluginsSection.tsx:89)
-- never shown: `Reset all` (src/components/ai/tools/SkillsPluginsSection.tsx:100)
-- shown: `Reset all to the catalogue` (src/components/ai/tools/SkillsPluginsSection.tsx:108)
 
 ## src/components/aiteam/FlowMap.tsx (2)
 
@@ -446,37 +387,28 @@
 
 ## src/components/aiteam/NowTab.tsx (1)
 
-- never shown: `See the roles →` (src/components/aiteam/NowTab.tsx:124)
+- shown: `See the roles →` (src/components/aiteam/NowTab.tsx:124)
 
 ## src/components/aiteam/RecentSpend.tsx (1)
 
 - never shown: `…: … % of the cap` (src/components/aiteam/RecentSpend.tsx:99)
 
-## src/components/aiteam/ResourcesTab.tsx (6)
+## src/components/aiteam/ResourcesTab.tsx (5)
 
 - shown: `RAM of each run, last 5 minutes` (src/components/aiteam/ResourcesTab.tsx:123)
 - never shown: `stop` (src/components/aiteam/ResourcesTab.tsx:254)
 - never shown: `Confirm stop` (src/components/aiteam/ResourcesTab.tsx:254)
 - never shown: `Confirm restart` (src/components/aiteam/ResourcesTab.tsx:254)
-- never shown: `Restart` (src/components/aiteam/ResourcesTab.tsx:227)
 - shown: `All AI limits in Settings →` (src/components/aiteam/ResourcesTab.tsx:524)
 
 ## src/components/aiteam/RunDetail.tsx (1)
 
 - shown: `← All runs` (src/components/aiteam/RunDetail.tsx:22)
 
-## src/components/aiteam/SteppedInTab.tsx (5)
+## src/components/aiteam/SteppedInTab.tsx (2)
 
-- never shown: `The lesson` (src/components/aiteam/SteppedInTab.tsx:134)
 - shown: `Mark this touch (…)` (src/components/aiteam/SteppedInTab.tsx:217)
-- never shown: `Make a lesson` (src/components/aiteam/SteppedInTab.tsx:252)
-- never shown: `Propose to Memory` (src/components/aiteam/SteppedInTab.tsx:274)
 - shown: `Export CSV` (src/components/aiteam/SteppedInTab.tsx:471)
-
-## src/components/aiteam/TeamPage.tsx (2)
-
-- never shown: `Roles, limits and account: open on the Members page →` (src/components/aiteam/TeamPage.tsx:102)
-- never shown: `← All teams` (src/components/aiteam/TeamPage.tsx:167)
 
 ## src/components/aiteam/TimelineGroups.tsx (1)
 
@@ -507,26 +439,21 @@
 
 - never shown: `The conversation is …% full` (src/components/aiteam/teamUi.tsx:162)
 
-## src/components/assist/AnswerBlock.tsx (8)
+## src/components/assist/AnswerBlock.tsx (6)
 
 - shown: `Copy answer` (src/components/assist/AnswerBlock.tsx:437)
-- shown: `Regenerate` (src/components/assist/AnswerBlock.tsx:443)
-- shown: `Not helpful` (src/components/assist/AnswerBlock.tsx:459)
 - never shown: `Keep waiting` (src/components/assist/AnswerBlock.tsx:142)
 - never shown: `Send now` (src/components/assist/AnswerBlock.tsx:232)
 - never shown: `Settings → AI` (src/components/assist/AnswerBlock.tsx:360)
 - never shown: `See what was sent` (src/components/assist/AnswerBlock.tsx:376)
 - never shown: `Send all` (src/components/assist/AnswerBlock.tsx:379)
 
-## src/components/assist/AssistDock.tsx (11)
+## src/components/assist/AssistDock.tsx (8)
 
-- never shown: `Chat history` (src/components/assist/AssistDock.tsx:94, src/components/assist/AssistDock.tsx:355)
-- never shown: `Search chats…` (src/components/assist/AssistDock.tsx:107)
-- never shown: `Search chats` (src/components/assist/AssistDock.tsx:110)
-- never shown: `Board AI` (src/components/assist/AssistDock.tsx:330)
-- never shown: `Scope` (src/components/assist/AssistDock.tsx:414, src/components/assist/AssistDock.tsx:518)
+- shown: `Board AI` (src/components/assist/AssistDock.tsx:330)
+- shown: `Scope` (src/components/assist/AssistDock.tsx:414, src/components/assist/AssistDock.tsx:518)
 - never shown: `Remove doc` (src/components/assist/AssistDock.tsx:475)
-- never shown: `What the Board AI may read` (src/components/assist/AssistDock.tsx:507)
+- shown: `What the Board AI may read` (src/components/assist/AssistDock.tsx:507)
 - never shown: `Ask about the project instead` (src/components/assist/AssistDock.tsx:403)
 - never shown: `Open Settings → AI` (src/components/assist/AssistDock.tsx:558)
 - never shown: `Ask for a first ticket` (src/components/assist/AssistDock.tsx:588)
@@ -537,12 +464,10 @@
 - shown: `Tone` (src/components/assist/AssistSettings.tsx:80)
 - shown: `Open AI Team →` (src/components/assist/AssistSettings.tsx:186)
 
-## src/components/assist/BoardHealth.tsx (4)
+## src/components/assist/BoardHealth.tsx (2)
 
-- shown: `Snooze` (src/components/assist/BoardHealth.tsx:54, src/components/notifications/NotificationRow.tsx:416)
-- never shown: `Schedule and noise controls` (src/components/assist/BoardHealth.tsx:367)
+- shown: `Schedule and noise controls` (src/components/assist/BoardHealth.tsx:367)
 - shown: `Open Board health` (src/components/assist/BoardHealth.tsx:505)
-- shown: `Snooze all` (src/components/assist/BoardHealth.tsx:515)
 
 ## src/components/assist/ContextMeter.tsx (1)
 
@@ -558,10 +483,10 @@
 
 ## src/components/assist/ScopedChat.tsx (4)
 
-- never shown: `Chat menu` (src/components/assist/ScopedChat.tsx:486)
+- shown: `Chat menu` (src/components/assist/ScopedChat.tsx:486)
 - never shown: `Commands` (src/components/assist/ScopedChat.tsx:693)
 - never shown: `Open AI Team` (src/components/assist/ScopedChat.tsx:141, src/components/assist/ScopedChat.tsx:163)
-- never shown: `Chat` (src/components/assist/ScopedChat.tsx:459)
+- shown: `Chat` (src/components/assist/ScopedChat.tsx:459)
 
 ## src/components/assist/TicketAi.tsx (1)
 
@@ -725,11 +650,11 @@
 
 ## src/components/docs/ai/CreateTicketsDialog.tsx (5)
 
-- never shown: `Create tickets` (src/components/docs/ai/CreateTicketsDialog.tsx:131)
-- never shown: `Create ticket …` (src/components/docs/ai/CreateTicketsDialog.tsx:188)
-- never shown: `Type of ticket …` (src/components/docs/ai/CreateTicketsDialog.tsx:219)
-- never shown: `Project of ticket …` (src/components/docs/ai/CreateTicketsDialog.tsx:231)
-- never shown: `Column of ticket …` (src/components/docs/ai/CreateTicketsDialog.tsx:243)
+- never shown: `Create tickets` (src/components/docs/ai/CreateTicketsDialog.tsx:133)
+- never shown: `Create ticket …` (src/components/docs/ai/CreateTicketsDialog.tsx:190)
+- never shown: `Type of ticket …` (src/components/docs/ai/CreateTicketsDialog.tsx:221)
+- never shown: `Project of ticket …` (src/components/docs/ai/CreateTicketsDialog.tsx:233)
+- never shown: `Column of ticket …` (src/components/docs/ai/CreateTicketsDialog.tsx:245)
 
 ## src/components/docs/ai/DocsAiSettings.tsx (2)
 
@@ -742,10 +667,9 @@
 - never shown: `Add to a page` (src/components/docs/ai/DocsHealthView.tsx:170)
 - never shown: `Pick a page…` (src/components/docs/ai/DocsHealthView.tsx:190)
 
-## src/components/docs/ai/DrawDiagram.tsx (2)
+## src/components/docs/ai/DrawDiagram.tsx (1)
 
 - never shown: `What should change? e.g. add a cache between the API and the database` (src/components/docs/ai/DrawDiagram.tsx:111)
-- never shown: `What should it show? (optional)` (src/components/docs/ai/DrawDiagram.tsx:111)
 
 ## src/components/docs/ai/ExplainCard.tsx (1)
 
@@ -757,7 +681,7 @@
 
 ## src/components/docs/ai/HistorySummary.tsx (1)
 
-- never shown: `Summarise changes since` (src/components/docs/ai/HistorySummary.tsx:91)
+- never shown: `Summarise changes since` (src/components/docs/ai/HistorySummary.tsx:93)
 
 ## src/components/docs/ai/NeedsInput.tsx (2)
 
@@ -767,11 +691,6 @@
 ## src/components/docs/ai/PageAiMenu.tsx (1)
 
 - never shown: `‹ Back` (src/components/docs/ai/PageAiMenu.tsx:195)
-
-## src/components/docs/ai/SelectionAi.tsx (2)
-
-- never shown: `Explain` (src/components/docs/ai/SelectionAi.tsx:35)
-- never shown: `Summarise` (src/components/docs/ai/SelectionAi.tsx:43)
 
 ## src/components/docs/ai/SummaryBlock.tsx (1)
 
@@ -1021,14 +940,13 @@
 - never shown: `Search time zones` (src/components/schedules/MemberSelect.tsx:180)
 - never shown: `Search by key or title…` (src/components/schedules/MemberSelect.tsx:317)
 
-## src/components/schedules/ScheduleDetail.tsx (7)
+## src/components/schedules/ScheduleDetail.tsx (6)
 
 - never shown: `Another team` (src/components/schedules/ScheduleDetail.tsx:106)
-- never shown: `Schedule` (src/components/schedules/ScheduleDetail.tsx:324)
-- never shown: `Filter runs` (src/components/schedules/ScheduleDetail.tsx:524)
+- shown: `Schedule` (src/components/schedules/ScheduleDetail.tsx:324)
+- shown: `Filter runs` (src/components/schedules/ScheduleDetail.tsx:524)
 - never shown: `Pick a team…` (src/components/schedules/ScheduleDetail.tsx:109)
 - never shown: `Run on it` (src/components/schedules/ScheduleDetail.tsx:116)
-- never shown: `Run on another team` (src/components/schedules/ScheduleDetail.tsx:127)
 - never shown: `PR` (src/components/schedules/ScheduleDetail.tsx:205)
 
 ## src/components/schedules/ScheduleEditor.tsx (5)
@@ -1152,5 +1070,5 @@
 
 ## Keys pressed outside text fields
 
- , +, -, /, 0, 1, 2, =, Alt+Alt, Alt+n, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Ctrl+-, Ctrl+0, Ctrl+A, Ctrl+Control, Ctrl+End, Ctrl+Enter, Ctrl+a, Ctrl+f, Ctrl+j, Ctrl+k, Ctrl+s, Ctrl+y, Ctrl+z, Delete, Enter, Escape, F2, P, Shift+ArrowRight, Shift+Shift, Tab, a, c, e, f, g, h, i, j, k, l, m, n, p, s, t, v, x, z
+ , +, -, /, 0, 1, 2, =, Alt+Alt, Alt+n, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Ctrl+-, Ctrl+0, Ctrl+A, Ctrl+Control, Ctrl+End, Ctrl+Enter, Ctrl+a, Ctrl+f, Ctrl+j, Ctrl+k, Ctrl+s, Ctrl+y, Ctrl+z, Delete, Enter, Escape, F2, Shift+ArrowRight, Shift+Shift, Tab, a, c, e, f, g, h, i, j, k, m, n, p, t, v, x, z
 

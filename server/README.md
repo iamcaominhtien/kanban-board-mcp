@@ -131,7 +131,7 @@ make a test pass; change one only when the behavior was meant to change.
 ## `e2e/`
 
 A Playwright check of the real UI against the server: headless Chromium, one server per scenario on its own temporary
-folders, 33 scenarios and 804 steps. Each server gets a stand-in AI (`fake-claude` behind a `claude` script on its
+folders, 36 scenarios and 895 steps. Each server gets a stand-in AI (`fake-claude` behind a `claude` script on its
 `PATH`, a signed-in account, a sample git repository), so the AI screens run without tokens. It needs the built server
 and stand-in (`cargo build -p kanban-server -p kanban-mcp-stdio -p fake-claude`), the built UI (`cd ui && npm ci &&
 npm run build`) and Playwright installed globally (`NODE_PATH`).
@@ -149,6 +149,7 @@ npm run build`) and Playwright installed globally (`NODE_PATH`).
 | 26–28 | Docs page actions (duplicate, move, rename, delete), history, diffs and the search page, comments and live edits, offline |
 | 29–31 | canvases, sketches (`ai`), diagrams (a stand-in draw.io editor served by the scenario) |
 | 32–34 | Idea Space: comments, research log, assumptions and test tickets, delete; capture, triage, merge, park, stages, promote, outcome; the Idea AI (`ai`: triage advice, Shape with AI, Draft with AI) |
+| 35–37 (`ai`) | AI runs that fail, hang, are stopped, retried, restarted or messaged, sessions, accounts; the assistants (Board AI chats and insights, editor AI, Docs AI Ask, Write and history); knowledge base, lessons, notes, role packs, plugins, the repository scan, schedules, worktrees, the team page |
 
 Not covered: the real draw.io editor (not in the checkout), a real Claude sign-in, the desktop-only windows and OS
 notifications.

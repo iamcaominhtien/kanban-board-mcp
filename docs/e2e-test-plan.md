@@ -86,6 +86,7 @@ quyết định số phận 8 call code chết.
 | Đợt 2 (26, 27, 28) | 27 / 574 | 63.0 % | 38.9 % | 53.8 % | 48.0 % |
 | Đợt 3 (29, 30, 31) | 30 / 713 | 69.8 % | 46.3 % | 58.0 % | 52.3 % |
 | Đợt 4 (32, 33, 34) | 33 / 804 | 75.6 % | 51.7 % | 60.6 % | 54.3 % |
+| Đợt 5 (35, 36, 37) | 36 / 895 | 90.4 % | 57.4 % | 65.8 % | 58.0 % |
 
 Đợt 1: `api/tickets.ts` còn 1 call chưa phủ (từ 10), call duy nhất còn lại thuộc Docs / Idea (đợt 2, 4). Các component
 gốc (board, ticket) tăng từ 60.4 % lên 67.2 % function. Bug đã sửa: trang vẫn gọi API của project đã xoá (`App.tsx`);
@@ -114,6 +115,23 @@ Bug đã sửa: Accept một lời khuyên AI trong Triage (trên dòng hoặc t
 `ideaAiWave5` hỏng từ AI v2 vì câu thông báo đã đổi. Giữ nguyên: bóng đèn ý tưởng trên thẻ trượt 28 px khi rê chuột
 (thiết kế cố ý); xoá giả định không có trả 400 (log, comment trả 404), đúng hợp đồng 4.0.x. Chưa phủ: sửa nội dung
 mục log (không có UI), một lần "Get advice" trộn Merge / Park / Keep (`fake-claude` chỉ trả một câu cho mọi ý tưởng).
+
+Đợt 5 (AI & trợ lý): call chưa phủ của các file `api/ai*`, `assist`, `editorAi`, `docsAi*`, `schedules` giảm từ 93 còn
+17. Số còn lại không có màn hình gọi tới: `TicketHandover` (worktree, commit, merge, handover) chỉ hiện khi
+`MOCK_AI_ACTIVITY` là false, mà công tắc này đang bật trong lúc chuyển giao diện AI của ticket sang thiết kế mới;
+`GET /ai/power` chỉ desktop app gọi; poll pull request cần một PR GitHub thật; `scheduleApi.events`, `GET
+/ai/scans/:id` không ai gọi; bản nháp Docs AI (PATCH trả 410 trong AI v2). `fake-claude` thêm `FAKE_CLAUDE_V2_FAIL`,
+`_HANG`, `_DELAY`, `_STEPS`. Bug đã sửa: run đang chờ giữ tài khoản cũ của team sau khi team chuyển sang tài khoản
+khác, chờ mãi lời đăng nhập lại (`kb-ai-run`: run chưa bắt đầu đi theo team, và health của team được kiểm lại);
+Ask the docs không hiện trang nguồn và không nhận ra hai trang mâu thuẫn, vì server AI v2 trả `answered` / `conflict`
+còn UI chờ `answer` / `disagree` (`api/docsAiAsk.ts`); Accept sau "Try again" của editor AI luôn lỗi; tóm tắt lịch sử
+trang không hiện; Undo của "tickets created" không báo; xoá tài liệu knowledge base làm trang gọi lại nó (404). Test
+cũ đã sửa: hai golden lịch chạy phụ thuộc giờ và ngày (`ai_schedule_routes`), mock của `Composer.draft`, `askRules`,
+`Knowledge.test`. Chưa sửa: khoảng 40 unit test UI của khu vực AI hỏng từ AI v2 (#322) vì chữ trên màn hình đã đổi;
+gửi một câu trả lời của trợ lý thành comment hai lần tạo comment trùng (chỉ khi gọi API thẳng); đồng hồ context của
+Board AI không có số vì server không ghi; đề xuất lệnh của AI khi quét repository (`fake-claude` chưa trả lời được
+lời gọi một lần không có session); cú bấm "Move and cancel run" thỉnh thoảng không ăn (2 / 12 lần, chưa rõ do test
+hay do app).
 
 ## 6. Những gì đo được đến giờ
 
