@@ -168,7 +168,8 @@ export function IdeaList({
   if (ideas.length === 0) {
     return (
       <div className="is-empty">
-        <h3>{filtered ? 'No idea matches' : 'No ideas here yet'}</h3>
+        {/* an h3 for its style (.is-empty h3), announced as the level under the page's h1 */}
+        <h3 aria-level={2}>{filtered ? 'No idea matches' : 'No ideas here yet'}</h3>
         <div>
           {filtered ? 'Try another filter or search.' : 'Press C to write one down. It goes to the Inbox first.'}
         </div>

@@ -1,3 +1,4 @@
+import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StartedAsIdea, TestsAssumption } from './ideas/ideaLinks';
 import { useResolveAssumption } from '../api/ideas';
@@ -331,6 +332,14 @@ function TicketModalInner({
 
   const [title, setTitle] = useState(ticket?.title ?? '');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const titleHeadingRef = useRef<HTMLHeadingElement>(null);
+  const titleFocusBack = useRef(false);
+  useEffect(() => {
+    if (!isEditingTitle && titleFocusBack.current) {
+      titleFocusBack.current = false;
+      titleHeadingRef.current?.focus();
+    }
+  }, [isEditingTitle]);
   const resolveAssumption = useResolveAssumption();
   const [description, setDescription] = useState(ticket?.description ?? '');
   const [status, setStatus] = useState<Status>(ticket?.status ?? 'backlog');
@@ -511,6 +520,22 @@ function TicketModalInner({
   }
   const handleCloseRef = useRef(handleClose);
   handleCloseRef.current = handleClose;
+  // focus goes into the dialog on open and back to the card (or button) that opened it on close; in the New Ticket form
+  // Esc closes from a field too (the window listener below leaves fields alone)
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(
+    panelRef,
+    () => {
+      if (localMode === 'create' || !ticket) handleCloseRef.current();
+    },
+    // the card may have moved to another column (a new element) while the ticket was open
+    () =>
+      ticket
+        ? (document
+            .querySelector<HTMLElement>(`[data-ticket-id="${ticket.id}"]`)
+            ?.closest<HTMLElement>('[role="button"]') ?? null)
+        : null,
+  );
 
   // Esc closes the ticket unless something inside is using it (a field, the doc side panel, another dialog)
   useEffect(() => {
@@ -871,6 +896,11 @@ function TicketModalInner({
     return (
       <div className={`${styles.overlay} ${visible ? styles.overlayVisible : ''}`} onClick={handleClose}>
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="New ticket"
+          ref={panelRef}
+          tabIndex={-1}
           className={`${styles.panel} ${styles.panelNew} ${visible ? styles.panelVisible : ''}`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -1173,6 +1203,8 @@ function TicketModalInner({
           role="dialog"
           aria-modal="true"
           aria-label={`Ticket ${ticket.id}`}
+          ref={panelRef}
+          tabIndex={-1}
           className={`${styles.panel} ${styles.panelDetail} ${chatOpen && aiChatAvailable ? styles.panelWithChat : ''} ${visible ? styles.panelVisible : ''} ${isFullscreen ? styles.panelFullscreen : ''}`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -1188,6 +1220,7 @@ function TicketModalInner({
                 <span>{TYPE_CONFIG[ticket.type].label}</span>
                 <select
                   className={styles.sidebarSelect}
+                  aria-label="Ticket type"
                   value={ticket.type}
                   onChange={(e) => handleTypeChange(e.target.value as IssueType)}
                 >
@@ -1970,8 +2003,18 @@ function TicketModalInner({
                             />
                           ) : (
                             <h2
+                              ref={titleHeadingRef}
                               className={styles.titleText}
                               onClick={() => setIsEditingTitle(true)}
+                              // keyboard: Enter or F2 edits the title (focus returns here when the edit ends)
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === 'F2') {
+                                  e.preventDefault();
+                                  titleFocusBack.current = true;
+                                  setIsEditingTitle(true);
+                                }
+                              }}
                               title="Click to edit"
                             >
                               {ticket.title}
@@ -3175,6 +3218,7 @@ function TicketModalInner({
                           <span style={{ textTransform: 'capitalize' }}>{priority}</span>
                           <select
                             className={styles.sidebarSelect}
+                            aria-label="Priority"
                             value={priority}
                             onChange={(e) => handlePriorityChange(e.target.value as Priority)}
                           >
@@ -3225,6 +3269,7 @@ function TicketModalInner({
                             ref={dateInputRef}
                             type="date"
                             className={styles.invisibleDateInput}
+                            aria-label="Due date"
                             value={dueDate ?? ''}
                             onChange={(e) => {
                               const next = e.target.value || null;
@@ -3257,6 +3302,7 @@ function TicketModalInner({
                           </span>
                           <select
                             className={styles.sidebarSelect}
+                            aria-label="Estimate"
                             value={estimate ?? ''}
                             onChange={(e) => handleEstimateChange(e.target.value ? Number(e.target.value) : null)}
                           >

@@ -1,3 +1,4 @@
+import { useDialogFocus } from '../../hooks/useDialogFocus';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -202,6 +203,9 @@ export function NewPageDialog({
       .catch((err: unknown) => setError(extractError(err)));
   }, [job.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef);
+
   // the title defaults to the template name until the user types their own
   useEffect(() => {
     if (!titleTouched && tpl) setTitle(tpl.id === 'blank' ? '' : tpl.name);
@@ -316,6 +320,8 @@ export function NewPageDialog({
       }}
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label="New page"

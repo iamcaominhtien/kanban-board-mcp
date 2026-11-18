@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useDialogFocus } from '../../hooks/useDialogFocus';
+import { useEffect, useRef, useState } from 'react';
 import { useDocsFollowers } from '../../api/docs';
 import { docsAiError, useDocsAiJob, useDocsAiState } from '../../api/docsAi';
 import { useStartPublishNote } from '../../api/docsAiWrite';
@@ -100,6 +101,8 @@ export function PublishDialog({
   const markers = findMarkers(draftMarkdown);
   const warning = publishWarning(markers);
   useEscape(onClose);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef);
   const { added, removed } = lineDiffCounts(baseMarkdown, draftMarkdown);
   const refsAdded = Math.max(0, countPageRefs(draftMarkdown) - countPageRefs(baseMarkdown));
   const next = fromVersion + 1;
@@ -145,6 +148,8 @@ export function PublishDialog({
       }}
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label="Publish page"

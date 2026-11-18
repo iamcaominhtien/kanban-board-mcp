@@ -17,6 +17,7 @@ export function EmptyState({ icon, title, text }: Readonly<{ icon: IconName; tit
 export function LoadingRows({ rows = 3 }: Readonly<{ rows?: number }>) {
   return (
     <div
+      role="status"
       aria-busy="true"
       aria-label="Loading notifications"
       style={{ display: 'flex', flexDirection: 'column', gap: 7 }}

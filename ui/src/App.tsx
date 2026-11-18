@@ -982,6 +982,7 @@ export default function App() {
               />
               {/* The Board AI dock sits on the right edge; the page leaves its width free so nothing hides under it */}
               <div
+                role="main"
                 style={{
                   flex: 1,
                   minWidth: 0,
