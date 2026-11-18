@@ -180,7 +180,7 @@
 .dk-editor p.dk-empty {
   position: relative;
 }
-.dk-editor .dk-ph {
+.dk-editor .dk-placeholder {
   position: absolute;
   left: 0;
   top: 0;
@@ -189,7 +189,7 @@
   pointer-events: none;
   user-select: none;
 }
-.dk-editor .dk-ph .dk-kbd {
+.dk-editor .dk-placeholder .dk-kbd {
   margin: 0 3px;
 }
 

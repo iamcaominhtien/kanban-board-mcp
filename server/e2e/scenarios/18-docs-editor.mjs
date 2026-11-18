@@ -30,6 +30,11 @@ export default {
       await toolbar().waitFor();
       // Rich Docs: the page is edited as rich text only (the Visual / Markdown switch is gone)
       if (await p.getByRole('group', { name: 'Editor mode' }).count()) throw new Error('the editor still has a Markdown mode');
+      // the empty line's hint reads on one line (it shared a class name with the reading page's header, a flex column)
+      const hint = content().locator('.dk-placeholder');
+      await hint.waitFor();
+      const hb = await hint.boundingBox();
+      if (!hb || hb.height > 30) throw new Error('the hint is not one line: ' + JSON.stringify(hb));
     });
     await s.step('slash menu: lists the blocks and filters them as you type', async () => {
       await content().click();
