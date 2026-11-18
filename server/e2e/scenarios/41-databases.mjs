@@ -45,13 +45,19 @@ export default {
     const pgEmpty = `kb41e_${tag}`;
 
     // ---- the servers, through their own clients
+    // the clients: psql of the newest PostgreSQL installed, else the one on PATH; mariadb, else mysql (a CI runner
+    // has the MySQL client only)
+    const pgDirs = fs.existsSync('/usr/lib/postgresql') ? fs.readdirSync('/usr/lib/postgresql').sort() : [];
+    const psqlBin = pgDirs.map((v) => `/usr/lib/postgresql/${v}/bin/psql`).filter((f) => fs.existsSync(f)).pop() || 'psql';
+    const onPath = (name) => (process.env.PATH || '').split(path.delimiter).some((d) => fs.existsSync(path.join(d, name)));
+    const mysqlBin = onPath('mariadb') ? 'mariadb' : 'mysql';
     const psql = (db, sql) => execFileSync(
-      (fs.readdirSync('/usr/lib/postgresql').sort().map((v) => `/usr/lib/postgresql/${v}/bin/psql`).filter((f) => fs.existsSync(f)).pop()) || 'psql',
+      psqlBin,
       ['-X', '-At', '-h', pg.host, '-p', pg.port, '-U', pg.user, '-d', db, '-c', sql],
       { env: { ...process.env, PGPASSWORD: pg.password, PGSSLMODE: 'disable' } },
     ).toString().trim();
     const mysql = (db, sql) => execFileSync(
-      'mariadb',
+      mysqlBin,
       ['-N', '-B', '-h', my.host, '-P', my.port, '-u', my.user, ...(db ? [db] : []), '-e', sql],
       { env: { ...process.env, MYSQL_PWD: my.password } },
     ).toString().trim();
