@@ -3,7 +3,10 @@
  * that leads to the previous and the next chapter, or the next page.
  */
 
+import { useDocsPage } from '../../api/docs';
+import { actorName } from '../../utils/relativeTime';
 import type { BookInfo, ReadingLink } from './book';
+import { readingMinutes } from './pageSettings';
 import { chapterLabel } from './book';
 
 /**
@@ -99,6 +102,11 @@ function FooterCard({
   label: string;
   onOpen: (id: string) => void;
 }) {
+  // who wrote it and how long it reads, under the title (Reader 1, 4, 7)
+  const { data: linked } = useDocsPage(link.id);
+  const meta = linked
+    ? `${actorName(linked.createdBy)} · ${readingMinutes(linked.markdown || linked.draft?.markdown || '')} min read`
+    : null;
   return (
     <a
       href={`?docs=${link.id}`}
@@ -115,6 +123,11 @@ function FooterCard({
         {side === 'next' && <Arrow d="M5 12h14M13 6l6 6-6 6" />}
       </span>
       <span className="dk-readnext-title">{label}</span>
+      {meta && (
+        <span className="dk-readnext-meta" data-testid={`read-${side}-meta`}>
+          {meta}
+        </span>
+      )}
     </a>
   );
 }

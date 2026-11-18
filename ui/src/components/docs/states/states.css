@@ -887,8 +887,26 @@ button.dst-save {
   color: #fff;
   border-color: #2e6f40;
 }
-/* phone (45): the summary on its own line, 44 px buttons sharing the row */
+.dsv-ico {
+  display: none;
+  flex: none;
+}
+/* phone (45): the info mark, the summary on its own line, 44 px buttons sharing the row; the block chips and the
+   markers switch stay on larger screens */
 @media (max-width: 600px) {
+  .dsv-ico {
+    display: block;
+    margin-top: 1px;
+  }
+  .dsv-dot,
+  .dsv-chips,
+  .dsv-marks {
+    display: none;
+  }
+  .dsv-banner .dk-icobtn {
+    width: 26px !important;
+    height: 26px !important;
+  }
   .dsv-banner {
     padding: 10px 12px;
   }

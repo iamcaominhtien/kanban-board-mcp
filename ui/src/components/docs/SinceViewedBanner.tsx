@@ -248,9 +248,28 @@ export function SinceViewedBanner({ page, since, onCompare }: SinceViewedBannerP
   return (
     <div data-testid="since-viewed-banner" className="docs-root dsv-banner">
       <div className="dsv-row">
+        {/* a phone leads with the info mark (AI 45) */}
+        <svg
+          className="dsv-ico"
+          aria-hidden="true"
+          width={16}
+          height={16}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#2F6FB0"
+          strokeWidth={2}
+          strokeLinecap="round"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11v5M12 8v.01" />
+        </svg>
         <div className="dsv-body">
           <div className="dsv-line">
-            <b>Changes since you last viewed</b> <span className="dsv-sum">· {summary}</span>
+            <b>Changes since you last viewed</b>{' '}
+            <span className="dsv-sum">
+              <span className="dsv-dot">· </span>
+              {summary}
+            </span>
           </div>
           {chips.length > 0 && (
             <div className="dsv-chips" data-testid="since-chips">
@@ -296,7 +315,9 @@ export function SinceViewedBanner({ page, since, onCompare }: SinceViewedBannerP
             </button>
           </div>
         </div>
-        <MarksToggle on={marks} onChange={setMarks} />
+        <span className="dsv-marks">
+          <MarksToggle on={marks} onChange={setMarks} />
+        </span>
         <button
           type="button"
           className="dk-icobtn"
