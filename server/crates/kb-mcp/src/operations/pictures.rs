@@ -228,6 +228,17 @@ async fn local(src: &Path, width: Option<i64>) -> Result<(Vec<u8>, &'static str,
         pathlib::stem_of_name(&file_name).to_string()
     };
     match suffix.as_str() {
+        // a frame of a canvas is a screen (at least one screen tall); any other page is a drawing, as tall as it is
+        ".html" | ".htm" if !parent.join("frame.json").is_file() => {
+            let width = width.unwrap_or_else(|| frame_width(parent));
+            match screenshots::content_png(parent, &file_name, width).await {
+                Some(png) => Ok((png, "browser", String::new(), name)),
+                None => {
+                    let (png, by, note) = frame_png(parent, &file_name, width).await?;
+                    Ok((png, by, note, name))
+                }
+            }
+        }
         ".html" | ".htm" => {
             let (png, by, note) = frame_png(parent, &file_name, width.unwrap_or_else(|| frame_width(parent))).await?;
             Ok((png, by, note, name))

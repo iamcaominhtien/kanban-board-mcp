@@ -203,6 +203,11 @@ fn parse_marker(line: &str) -> Result<Option<MarkerLine>, RichDocError> {
     if body == "/columns" {
         return Ok(Some(MarkerLine::ColumnsEnd));
     }
+    // the guide's names for a block (`<!-- divider style=thick -->`, `<!-- picture placement=floatRight -->`) stand
+    // for its type, as agents write them
+    let (word, rest) = body.split_once(char::is_whitespace).unwrap_or((body, ""));
+    let named = block_alias(word).map(|ty| format!("{ty} {rest}"));
+    let body = named.as_deref().unwrap_or(body);
     let chars: Vec<char> = body.chars().collect();
     let first: String = chars.iter().take_while(|c| !is_space(**c)).collect();
     let pair_like = first
@@ -260,6 +265,19 @@ fn parse_marker(line: &str) -> Result<Option<MarkerLine>, RichDocError> {
         return Ok(Some(MarkerLine::Column(m.id)));
     }
     Ok(Some(MarkerLine::Block(m)))
+}
+
+/// The block type a name of the guide stands for in a marker (`divider` for `horizontalRule`), or `None`.
+fn block_alias(word: &str) -> Option<&'static str> {
+    Some(match word {
+        "divider" | "rule" => "horizontalRule",
+        "picture" | "img" => "image",
+        "quote" => "blockquote",
+        "code" => "codeBlock",
+        "math" => "mathBlock",
+        "pullquote" => "pullQuote",
+        _ => return None,
+    })
 }
 
 /// A marker line; empty when it would say nothing (a block without id or attributes).

@@ -392,13 +392,18 @@ pub fn allowed(url: &str, origin: &str) -> bool {
 
 // --- drawing -------------------------------------------------------------------------------------------------------
 
-async fn with_chrome(
-    chrome: &str,
-    url: &str,
-    origin: &str,
-    width: i64,
-    height: Option<i64>,
-) -> Result<Vec<u8>, String> {
+/// How tall a screenshot of a page is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Height {
+    /// This many CSS px.
+    Fixed(i64),
+    /// The whole page, never less than the window (a frame of a screen design: at least one screen).
+    Window,
+    /// Just what the page draws (a drawing or chart made as a page: no white below it).
+    Content,
+}
+
+async fn with_chrome(chrome: &str, url: &str, origin: &str, width: i64, height: Height) -> Result<Vec<u8>, String> {
     let owned = origin.to_string();
     let filter: Filter = Arc::new(move |u| allowed(u, &owned));
     let browser = chrome::launch(chrome, "kanban-shot-", &["--hide-scrollbars"], filter).await?;
@@ -407,7 +412,26 @@ async fn with_chrome(
     result
 }
 
-async fn shoot(cdp: &Cdp, url: &str, width: i64, mut height: Option<i64>) -> Result<Vec<u8>, String> {
+/// The height of what a page draws, in CSS px: the bottom of the lowest thing in the body, with the body's bottom
+/// padding and margin (the body's own box when it holds nothing). Not the document's scroll height, which is never
+/// less than the window (800 px), nor the body's box, which fills the window in quirks mode: both left a short
+/// drawing with white below it.
+const CONTENT_HEIGHT: &str = "(() => { const b = document.body; if (!b) return document.documentElement.scrollHeight; \
+    const s = getComputedStyle(b); let bottom = 0; \
+    for (const e of b.querySelectorAll('*')) { const r = e.getBoundingClientRect(); \
+    if (r.width > 0 && r.height > 0) bottom = Math.max(bottom, r.bottom); } \
+    if (bottom === 0) return Math.ceil(b.getBoundingClientRect().bottom + window.scrollY); \
+    return Math.ceil(bottom + window.scrollY + (parseFloat(s.paddingBottom) || 0) + (parseFloat(s.marginBottom) || 0)); })()";
+
+/// The height of the whole page: never less than the window.
+const WINDOW_HEIGHT: &str =
+    "Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0)";
+
+async fn shoot(cdp: &Cdp, url: &str, width: i64, height: Height) -> Result<Vec<u8>, String> {
+    let fixed = match height {
+        Height::Fixed(h) => Some(h),
+        Height::Window | Height::Content => None,
+    };
     let target = cdp.call("Target.createTarget", json!({"url": "about:blank"}), None).await?;
     let target = target["targetId"].as_str().unwrap_or_default().to_string();
     let attached = cdp.call("Target.attachToTarget", json!({"targetId": target, "flatten": true}), None).await?;
@@ -418,7 +442,7 @@ async fn shoot(cdp: &Cdp, url: &str, width: i64, mut height: Option<i64>) -> Res
     let mobile = width <= 500;
     cdp.call(
         "Emulation.setDeviceMetricsOverride",
-        json!({"deviceScaleFactor": 1, "mobile": mobile, "width": width, "height": height.unwrap_or(800)}),
+        json!({"deviceScaleFactor": 1, "mobile": mobile, "width": width, "height": fixed.unwrap_or(800)}),
         session,
     )
     .await?;
@@ -435,14 +459,14 @@ async fn shoot(cdp: &Cdp, url: &str, width: i64, mut height: Option<i64>) -> Res
     )
     .await?;
     tokio::time::sleep(Duration::from_secs_f64(SETTLE_SECONDS)).await;
-    let height = match height.take() {
+    let height = match fixed {
         Some(h) => h,
         None => {
             let measured = cdp
                 .call(
                     "Runtime.evaluate",
                     json!({
-                        "expression": "Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0)",
+                        "expression": if height == Height::Content { CONTENT_HEIGHT } else { WINDOW_HEIGHT },
                         "returnByValue": true
                     }),
                     session,
@@ -470,6 +494,14 @@ async fn shoot(cdp: &Cdp, url: &str, width: i64, mut height: Option<i64>) -> Res
     base64::engine::general_purpose::STANDARD
         .decode(shot["data"].as_str().unwrap_or_default())
         .map_err(|e| e.to_string())
+}
+
+/// The height a screenshot command is given: only a fixed one (it draws the whole page otherwise).
+fn fixed_height(height: Height) -> Option<i64> {
+    match height {
+        Height::Fixed(h) => Some(h),
+        Height::Window | Height::Content => None,
+    }
 }
 
 async fn with_command(command: &[String], url: &str, width: i64, height: Option<i64>) -> Result<Vec<u8>, String> {
@@ -517,8 +549,19 @@ pub fn available() -> Option<&'static str> {
 /// A screenshot of `folder/entry` drawn at `width` (and `height`; `None`: the whole page, up to 8000 px), or `None`
 /// when no browser is available or it failed.
 pub async fn page_png(folder: &Path, entry: &str, width: i64, height: Option<i64>) -> Option<Vec<u8>> {
+    let height = height.map_or(Height::Window, |h| Height::Fixed(h.clamp(100, MAX_HEIGHT)));
+    shoot_page(folder, entry, width, height).await
+}
+
+/// A screenshot of `folder/entry` drawn at `width`, as tall as what the page draws (a chart or illustration made
+/// as a page, with no window of white below it), or `None` when no browser is available or it failed.
+pub async fn content_png(folder: &Path, entry: &str, width: i64) -> Option<Vec<u8>> {
+    shoot_page(folder, entry, width, Height::Content).await
+}
+
+/// [`page_png`] and [`content_png`]: serves the folder and draws the page with the configured command or browser.
+async fn shoot_page(folder: &Path, entry: &str, width: i64, height: Height) -> Option<Vec<u8>> {
     let width = width.clamp(200, MAX_WIDTH);
-    let height = height.map(|h| h.clamp(100, MAX_HEIGHT));
     let command = chrome::command();
     let chrome = if command.is_some() { None } else { chrome::find_chrome() };
     if command.is_none() && chrome.is_none() {
@@ -536,7 +579,7 @@ pub async fn page_png(folder: &Path, entry: &str, width: i64, height: Option<i64
         (Some(command), _) => {
             match tokio::time::timeout(
                 Duration::from_secs_f64(TIMEOUT + 20.0),
-                with_command(command, &url, width, height),
+                with_command(command, &url, width, fixed_height(height)),
             )
             .await
             {

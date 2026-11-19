@@ -1111,7 +1111,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"path\":\"<files>/flat.png\",\"width\":1280,\"height\":800,\"drawn_by\":\"browser\",\"markdown\":\"![flat](/uploads/flat-<random>.png)\",\"look\":\"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"}"
+        "text": "{\"path\":\"<files>/flat.png\",\"width\":1280,\"height\":100,\"drawn_by\":\"browser\",\"markdown\":\"![flat](/uploads/flat-<random>.png)\",\"look\":\"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"}"
       }
     ],
     "isError": false

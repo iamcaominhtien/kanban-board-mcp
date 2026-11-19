@@ -280,3 +280,23 @@ fn random_edits_keep_pages_valid() {
         }
     }
 }
+
+/// Agents write the block's kind before its attributes, by the name the guide gives it (`<!-- divider
+/// style=thick -->`, `<!-- picture placement=floatRight -->`, `<!-- table caption=… -->`): the attributes apply to
+/// the block that follows, as `<!-- style=thick -->` would.
+#[test]
+fn a_marker_may_name_the_block_it_formats() {
+    let doc = kb_richdoc::annotated_to_doc(
+        "<!-- divider style=thick -->\n---\n\n<!-- table caption=\"Giờ nước\" banded=true -->\n| a | b |\n|---|---|\n| 1 | 2 |\n\n<!-- picture placement=floatRight width=40 -->\n![x](/uploads/x.png)\n\nText.",
+        None,
+        &mut kb_richdoc::SeqIds(1),
+    )
+    .expect("read");
+    let blocks = doc["content"].as_array().expect("blocks");
+    let types: Vec<&str> = blocks.iter().filter_map(|b| b["type"].as_str()).collect();
+    assert_eq!(types, ["horizontalRule", "table", "image", "paragraph"], "{blocks:?}");
+    assert_eq!(blocks[0]["attrs"]["style"], "thick");
+    assert_eq!(blocks[1]["attrs"]["caption"], "Giờ nước");
+    assert_eq!(blocks[1]["attrs"]["banded"], true);
+    assert_eq!(blocks[2]["attrs"]["placement"], "floatRight");
+}
