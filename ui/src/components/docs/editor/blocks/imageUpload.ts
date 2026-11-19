@@ -269,3 +269,20 @@ export function dropPlacement(x: number, column: DOMRect): Placement | undefined
   if (x > column.right - column.width * 0.2) return 'floatRight';
   return undefined;
 }
+
+/**
+ * A picture address the editor may show while it previews: a `blob:` URL the editor made for a picked file, or an
+ * http(s) address someone typed. Anything else (another scheme, text that is not a URL) gives `undefined`.
+ * @param raw - The address to check.
+ * @returns The address, rebuilt by the URL parser, or undefined.
+ */
+export function previewSrc(raw: string): string | undefined {
+  let url: URL;
+  try {
+    // a typed /uploads/... address is read against the page it is typed on
+    url = new URL(raw.trim(), globalThis.location?.href ?? 'http://localhost/');
+  } catch {
+    return undefined;
+  }
+  return url.protocol === 'blob:' || url.protocol === 'http:' || url.protocol === 'https:' ? url.href : undefined;
+}

@@ -21,6 +21,7 @@ import {
   subscribeUploads,
   uploadFor,
   uploadsVersion,
+  previewSrc,
 } from './imageUpload';
 import { formatBytes, useBlockLayout } from './ui';
 
@@ -543,7 +544,7 @@ export function ImageView({ node, selected, editor, getPos, updateAttributes, de
     } else if (pendingUp.status === 'waiting') {
       body = (
         <div className="dk-imgv-failed" data-testid="image-waiting">
-          <img src={pendingUp.preview} alt="" style={{ ...look, width: '100%' }} />
+          <img src={previewSrc(pendingUp.preview)} alt="" style={{ ...look, width: '100%' }} />
           <StateCard
             tone="muted"
             title={`${name} waits for the connection`}
@@ -560,7 +561,7 @@ export function ImageView({ node, selected, editor, getPos, updateAttributes, de
     } else if (pendingUp.status === 'failed') {
       body = (
         <div className="dk-imgv-failed">
-          <img src={pendingUp.preview} alt="" style={{ ...look, width: '100%' }} />
+          <img src={previewSrc(pendingUp.preview)} alt="" style={{ ...look, width: '100%' }} />
           <StateCard
             tone="error"
             title="Upload failed"
@@ -583,7 +584,7 @@ export function ImageView({ node, selected, editor, getPos, updateAttributes, de
       const pct = Math.round((pendingUp.loaded / Math.max(1, pendingUp.file.size)) * 100);
       body = (
         <div className="dk-imgv-uploading" role="status" aria-label={`Uploading ${name}`}>
-          <img src={pendingUp.preview} alt="" style={{ ...look, width: '100%' }} />
+          <img src={previewSrc(pendingUp.preview)} alt="" style={{ ...look, width: '100%' }} />
           <div className="dk-imgv-progress" contentEditable={false}>
             <div className="dk-imgv-progress-row">
               <span className="dk-imgv-progress-name">{name}</span>

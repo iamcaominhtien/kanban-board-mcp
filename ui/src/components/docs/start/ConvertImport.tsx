@@ -105,7 +105,8 @@ export function ConvertImport({
     if (pasteTitleTouched) return;
     const h =
       kind === 'html'
-        ? /<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(text)?.[1]?.replace(/<[^>]+>/g, '')
+        ? // the browser's parser reads the heading's text (an inert document: nothing in it loads or runs)
+          new DOMParser().parseFromString(text, 'text/html').querySelector('h1')?.textContent
         : kind === 'markdown'
           ? /^#\s+(.+)$/m.exec(text)?.[1]
           : text.split('\n').find((l) => l.trim());
