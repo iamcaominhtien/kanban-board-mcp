@@ -75,8 +75,9 @@ describe('which state shows', () => {
     expect(askView(false, result({ verdict: 'disagree' }), null).kind).toBe('disagree');
   });
   it('maps the error codes to the states of the design', () => {
+    // AI v2 has no budget pause any more: an over_budget code is an error like any other
     const over = askView(false, null, { code: 'over_budget', detail: 'x' });
-    expect(over).toMatchObject({ kind: 'error', title: 'AI is paused until tomorrow', action: 'usage' });
+    expect(over).toMatchObject({ kind: 'error', action: 'retry' });
     expect(askView(false, null, { code: 'no_member', detail: 'x' })).toMatchObject({ action: 'members' });
     expect(askView(false, null, { code: 'boom', detail: 'It broke' })).toMatchObject({
       detail: 'It broke',

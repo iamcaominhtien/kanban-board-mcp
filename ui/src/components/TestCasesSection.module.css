@@ -29,7 +29,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .tcAddBtn {
@@ -108,7 +108,7 @@
 
 .rollupShowLabel {
   font-size: 11px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .rollupDropdownWrapper {
@@ -143,7 +143,7 @@
 
 .rollupBreakdown {
   font-size: 11px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .rollupDropdownMenu {
@@ -272,7 +272,7 @@
   gap: 6px;
   font-size: 10.5px;
   font-weight: 400;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 /* The key (and "KAN-140 — this ticket") is a 10.5 px uppercase label; a child's title stays sentence case
@@ -370,7 +370,7 @@
 .codeMono {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10.5px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   flex-shrink: 0;
   width: 26px;
   box-sizing: border-box;
@@ -407,7 +407,7 @@
 
 .timeMeta {
   font-size: 10.5px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   white-space: nowrap;
 }
 
@@ -441,7 +441,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   flex-shrink: 0;
   transition: all 0.12s;
 }
@@ -476,7 +476,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .fieldBox {
@@ -528,7 +528,7 @@
   background: none;
   cursor: pointer;
   font-size: 11.5px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   transition: all 0.12s;
 }
 
@@ -542,7 +542,7 @@
   align-items: center;
   gap: 10px;
   font-size: 10.5px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   padding-top: 4px;
   border-top: 1px solid #eef3ef;
 }
@@ -550,14 +550,14 @@
 .emptyMsg {
   padding: 24px;
   text-align: center;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   font-size: 13px;
 }
 
 .fileRemoveBtn {
   border: none;
   background: none;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   font-size: 15px;
   line-height: 1;
   cursor: pointer;

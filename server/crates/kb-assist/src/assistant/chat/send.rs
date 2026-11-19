@@ -315,6 +315,10 @@ async fn answer(message_id: &str, by: &str, files: Vec<(String, Vec<u8>)>, stop:
         row.metered = Set(false);
         let mut ctx = dict(&ai.context);
         ctx.insert("run".into(), json!({"id": out.run_id}));
+        // how full the conversation is, for the dock's context meter (which reads the newest answer that says)
+        if let (Some(used), Some(size)) = (out.context_used, out.context_window) {
+            ctx.insert("context_window".into(), json!({"used": used, "size": size}));
+        }
         let merged = match receipt::collect(&session, None, &out.run_id, Some(&started)).await {
             Ok(changes) => receipt::merge(ctx.get("receipt"), changes, &out.run_id),
             // a receipt that cannot be read must not lose the answer

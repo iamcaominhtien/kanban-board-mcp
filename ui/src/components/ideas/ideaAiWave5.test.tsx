@@ -133,7 +133,7 @@ describe('Keep: ask an AI member for a problem statement and assumptions (ICT-5)
     wrap(<KeepDialog idea={idea()} onClose={() => {}} onDone={() => {}} />);
     fireEvent.click(await screen.findByTestId('keep-suggest'));
     fireEvent.click(screen.getByRole('button', { name: 'Keep' }));
-    expect(await screen.findByText('The AI suggestion could not be made')).toBeTruthy();
+    expect(await screen.findByText('Idea AI did not answer')).toBeTruthy();
     expect(screen.getByText(/kept as Exploring without a suggestion/)).toBeTruthy();
   });
 });

@@ -16,8 +16,9 @@ export const codeKeys = {
 
 export const codeApi = {
   list: async (projectId: string) => (await client.get<WorktreeList>(`/projects/${projectId}/ai/worktrees`)).data,
+  /** The ticket's worktree with the route its code will be handed over by, or null when it has none. */
   ticket: async (ticketId: string) =>
-    (await client.get<Worktree | null>(`/tickets/${ticketId}/ai/worktree`)).data ?? null,
+    (await client.get<WorktreeWithRoute | null>(`/tickets/${ticketId}/ai/worktree`)).data ?? null,
   remove: async (ticketId: string) =>
     (await client.post<Worktree>(`/tickets/${ticketId}/ai/worktree/remove`, { force: false })).data,
   keep: async (ticketId: string) => (await client.post<Worktree>(`/tickets/${ticketId}/ai/worktree/keep`)).data,

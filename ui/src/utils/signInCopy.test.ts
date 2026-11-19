@@ -159,11 +159,9 @@ describe('statusLine', () => {
   it('says who the CLI reports, when it does', () => {
     const signedIn = { email: 'an.nguyen@work.example', plan: 'max', method: 'subscription' };
     expect(plain(statusLine('done', { ...ctx, signedIn }).body)).toBe(
-      'Work Claude is signed in as an.nguyen@work.example · Max plan. It is ready to be chosen by AI members.',
+      'Work Claude is signed in as an.nguyen@work.example · Max plan. It is ready to be chosen by AI teams.',
     );
-    expect(plain(statusLine('done', ctx).body)).toBe(
-      'Work Claude is signed in. It is ready to be chosen by AI members.',
-    );
+    expect(plain(statusLine('done', ctx).body)).toBe('Work Claude is signed in. It is ready to be chosen by AI teams.');
   });
 
   it('states the exit code and the duplicate in plain words', () => {

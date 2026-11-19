@@ -272,10 +272,17 @@ export function useDuplicatePage(projectId: string) {
 
 /** Mutation: move a page to the Recycle Bin. */
 export function useDeletePage(projectId: string) {
-  return useDocsMutation(
-    async (pageId: string) => (await client.delete<{ id: string; deletedPages: number }>(`/docs/pages/${pageId}`)).data,
-    projectId,
-  );
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (pageId: string) =>
+      (await client.delete<{ id: string; deletedPages: number }>(`/docs/pages/${pageId}`)).data,
+    // Refresh Docs, except the deleted page's own queries: fetched again they only answer 410 (the open page's view
+    // closes it right after).
+    onSuccess: (_, pageId) => {
+      void qc.invalidateQueries({ queryKey: ['docs'], predicate: (q) => !q.queryKey.includes(pageId) });
+      void qc.invalidateQueries({ queryKey: docsKeys.tree(projectId) });
+    },
+  });
 }
 
 /** Mutation: restore a page from the Recycle Bin. */

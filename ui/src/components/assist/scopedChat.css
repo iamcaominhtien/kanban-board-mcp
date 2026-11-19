@@ -130,7 +130,7 @@
 }
 .sc-chip-skip {
   text-decoration: line-through;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .sc-body {
   flex: 1;

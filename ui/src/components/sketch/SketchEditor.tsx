@@ -369,6 +369,8 @@ export function SketchEditor({ request, onClose }: Props) {
     const down = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
       const k = e.key.toLowerCase();
+      // a field that handles Esc itself (renaming a layer: Esc cancels the name) gets it, not the editor
+      if (e.key === 'Escape' && (e.target as HTMLElement | null)?.closest?.('[data-own-escape]')) return;
       // the editor sits over the page: keys used here must not reach the page behind it. A text field keeps its
       // own keys (they must reach it), so only Esc and Ctrl+S are taken from it.
       if (!isTyping(e.target) || e.key === 'Escape' || (mod && k === 's')) e.stopPropagation();

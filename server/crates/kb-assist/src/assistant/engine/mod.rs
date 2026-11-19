@@ -146,6 +146,10 @@ pub struct Turn {
     pub files: Vec<String>,
     /// How long a one-shot answer took, in seconds.
     pub elapsed_s: f64,
+    /// Tokens the conversation holds after the turn, as Claude Code last reported them (None: not reported).
+    pub context_used: Option<i64>,
+    /// The model's context window in tokens, from the turn's `result` (None: not reported).
+    pub context_window: Option<i64>,
 }
 
 impl Turn {
@@ -166,6 +170,21 @@ impl Turn {
             model: model.map(str::to_string),
             files: Vec::new(),
             elapsed_s: 0.0,
+            context_used: None,
+            context_window: None,
+        }
+    }
+
+    /// Keeps the context size a line of the stream reports (the newest one wins).
+    pub fn note_context(&mut self, parsed: &kb_ai_run::stream::Parsed) {
+        let tokens = |v: Option<&Value>| {
+            v.filter(|v| kb_base::pyjson::truthy(v)).and_then(kb_ai::store::py_int).and_then(|n| i64::try_from(n).ok())
+        };
+        if let Some(used) = tokens(parsed.context_used.as_ref()) {
+            self.context_used = Some(used);
+        }
+        if let Some(window) = tokens(parsed.context_window.as_ref()) {
+            self.context_window = Some(window);
         }
     }
 

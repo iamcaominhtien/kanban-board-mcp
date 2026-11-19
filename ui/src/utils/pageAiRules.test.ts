@@ -56,16 +56,18 @@ describe('what the menu says it reads', () => {
     expect(freshnessHint(PAGE)).toBe('Compare with KAN-12, KAN-9 and 2 linked pages');
     expect(freshnessHint('nothing')).toBe('Compare with the tickets and pages it links to');
   });
-  it('estimates at least a cent', () => {
-    expect(estimateLabel('short')).toBe('About $0.01');
-    expect(estimateLabel('x'.repeat(40000))).toMatch(/^About \$0\.\d\d$/);
+  it('estimates at least a cent, and says Not metered for a team on a subscription', () => {
+    expect(estimateLabel('short', true)).toBe('About $0.01');
+    expect(estimateLabel('x'.repeat(40000), true)).toMatch(/^About \$0\.\d\d$/);
+    expect(estimateLabel('short', false)).toBe('Not metered');
   });
 });
 
 describe('problems and selections', () => {
-  it('says paused or over budget the way the states board does', () => {
-    expect(problemLine('over_budget', 'Daily cap reached')).toContain('paused until tomorrow');
-    expect(problemLine('hidden', '')).toBe('This page is hidden from AI.');
+  it('says the team is paused with the server sentence, or a default one', () => {
+    expect(problemLine('paused', 'Daily cap reached')).toBe('Daily cap reached');
+    expect(problemLine('paused', '')).toContain('The team that answers is paused');
+    expect(problemLine('no_member', '')).toBe('No AI team can read this space. Open Members.');
     expect(problemLine('weird', 'The server said this.')).toBe('The server said this.');
   });
   it('needs a few words selected', () => {
@@ -100,6 +102,6 @@ describe('moneyLabel', () => {
   it('keeps three decimals under a cent', () => {
     expect(moneyLabel(0.004, true)).toBe('$0.004');
     expect(moneyLabel(0.031, true)).toBe('$0.03');
-    expect(moneyLabel(0.3, false)).toBe('not metered');
+    expect(moneyLabel(0.3, false)).toBe('Not metered');
   });
 });

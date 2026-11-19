@@ -7,7 +7,7 @@ describe('fmtDuration / fmtAgo', () => {
   it('reads minutes, hours and days', () => {
     expect(fmtDuration(30)).toBe('under a minute');
     expect(fmtDuration(41 * 60)).toBe('41 min');
-    expect(fmtDuration(2 * 3600 + 5 * 60)).toBe('2 h 05');
+    expect(fmtDuration(2 * 3600 + 5 * 60)).toBe('2 h 05 min');
     expect(fmtDuration(3 * 86400)).toBe('3 d');
     expect(fmtAgo(12 * 60)).toBe('12 min ago');
     expect(fmtAgo(null)).toBe('');

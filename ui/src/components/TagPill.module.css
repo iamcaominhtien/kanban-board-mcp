@@ -1,3 +1,8 @@
+/* the palette's text colours come inline and sit just under 4.5:1 on their tint at 10px; mixing in a little black clears AA */
+.tagPill > span:first-child {
+  color: color-mix(in srgb, currentcolor 80%, black);
+}
+
 .tagPill {
   display: inline-flex;
   align-items: center;

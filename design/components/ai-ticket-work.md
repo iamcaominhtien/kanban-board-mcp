@@ -341,8 +341,8 @@ The words, states and conditions follow the code. The layout does not: the run p
 | A-005 | Popover with two choices, *Start now* and *Assign only* | One blue notice with both sentences and three buttons (`ai/AssigneePicker.tsx`, `AssignStartPopover`) | **Redrawn on purpose** as two choice cards and one button that says *Assign & start* or *Assign*. The code has to change to match |
 | A-022, B-09 | Rename the header "Agent" to "Team" | Still "Agent" (`ai/activity/RunHistoryTable.tsx:157`; C-19) | "Team" |
 | A-007 | "AI summary ready" becomes "Report ready" or goes (C-19) | Review column still shows "AI summary ready" (`ai/RunPanel.tsx:393`) | "Report ready" |
-| A-019, B-08, B-12 | Resources strip, restart notice and the role tree are in the run panel | Notice and Resources sit above the panel in the AI activity view; the two-level tree is only on the Team page's run detail (`MOCK_AI_ACTIVITY` is on, C-18) | Drawn where the code has them |
-| B-19 | Paused and signed-out strips on the ticket | Built in `TicketAiPanel`, which the ticket does not render while `MOCK_AI_ACTIVITY` is on (C-18) | Drawn as designed |
+| A-019, B-08, B-12 | Resources strip, restart notice and the role tree are in the run panel | Notice and Resources sit above the panel in the AI activity view; the two-level tree is only on the Team page's run detail | Drawn where the code has them |
+| B-19 | Paused and signed-out strips on the ticket | Built in `TicketAiStrips`, at the top of the AI activity view and the run panel | Drawn as designed |
 | H3 | "AI team can't run" | "AI member(s) can't run" (`utils/memberAccount.ts:153`) | v2 words |
 | C1 | Hint "send" | Hint says "ask" (`comments/Composer.tsx`) and the "Context sent" chips are still drawn | v2 words |
 | A-020 | "Not metered" alone | Usage card also says "a local runner uses your signed-in CLI" (`ai/RunView.tsx:205`) | "Not metered" |

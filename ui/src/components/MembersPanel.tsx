@@ -1,7 +1,8 @@
 import { displayStatus } from '../utils/memberAccount';
 import { MenuSelect } from './ui/MenuSelect';
 import { extractError } from '../api/extractError';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 import type { AxiosError } from 'axios';
 import type { Member } from '../types/ticket';
 import { useAddMember, useRemoveMember, useSetMemberRole } from '../api/members';
@@ -44,6 +45,8 @@ interface MembersPanelProps {
 export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAiPage }: MembersPanelProps) {
   // AI members live under the AI tab; the people list stays as it was
   const members = allMembers.filter((m) => (m.kind ?? 'human') === 'human');
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(panelRef, onClose);
   const [tab, setTab] = useState<'humans' | 'ai'>('humans');
   const ai = useAiTeams(projectId);
   const aiMembers = ai.data ?? [];
@@ -89,10 +92,20 @@ export function MembersPanel({ projectId, members: allMembers, onClose, onOpenAi
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.panel} onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="members-panel-title"
+        className={styles.panel}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className={styles.header}>
-          <h2 className={styles.title}>Project Members</h2>
+          <h2 id="members-panel-title" className={styles.title}>
+            Project Members
+          </h2>
           <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
             <svg
               width="16"

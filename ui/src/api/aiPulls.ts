@@ -7,7 +7,7 @@ export const pullKeys = { list: (projectId: string) => ['ai', 'pulls', projectId
 export const pullApi = {
   list: async (projectId: string) => (await client.get<Pull[]>(`/projects/${projectId}/ai/pulls`)).data,
   poll: async (projectId: string) =>
-    (await client.post<{ changes: number }>(`/projects/${projectId}/ai/pulls/poll`)).data,
+    (await client.post<{ changes: unknown[] }>(`/projects/${projectId}/ai/pulls/poll`)).data,
 };
 
 /** The watched pull requests of a project; polled gently while one is open. */

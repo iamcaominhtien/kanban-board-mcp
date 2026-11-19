@@ -34,13 +34,16 @@ const wt = (over: Partial<Worktree & { route: string }> = {}, uncommitted: strin
     ...over,
   }) as Worktree;
 
-function setup(worktree: Worktree | null) {
+function setup(worktree: Worktree | null, projectRoute = 'auto') {
   http.get.mockImplementation((url: string) => {
     if (url.endsWith('/ai/worktree')) return Promise.resolve({ data: worktree });
+    if (url.endsWith('/ai/settings'))
+      return Promise.resolve({ data: { ops: { worktrees: { handover: projectRoute } } } });
+    if (url.endsWith('/ai/board')) return Promise.resolve({ data: { tickets: {} } });
     return Promise.reject(new Error(`unexpected GET ${url}`));
   });
 }
-const ticket = { id: 'KAN-1', assignee: 'dev1' } as unknown as Ticket;
+const ticket = { id: 'KAN-1', projectId: 'p', assignee: 'dev1' } as unknown as Ticket;
 const renderIt = () =>
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
@@ -73,24 +76,39 @@ describe('TicketHandover', () => {
     expect(second.container.textContent).toBe('');
   });
 
-  it('by default hands over by pull request and offers Merge here instead', async () => {
-    setup(wt({ prUrl: 'https://x/pr/7', prNumber: 7 }, ['a.ts', 'b.ts']));
+  it('hands over by the route the server names, and offers Merge here instead', async () => {
+    setup(wt({ route: 'pr', prUrl: 'https://x/pr/7', prNumber: 7 } as never, ['a.ts', 'b.ts']));
     http.patch.mockResolvedValue({ data: wt() });
     renderIt();
     expect(await screen.findByTestId('ready-to-hand-over')).toBeTruthy();
-    expect(screen.getByText('open a pull request')).toBeTruthy();
+    expect(screen.getByTestId('handover-route').textContent).toContain('hands over by opening a pull request');
+    expect(screen.getByTestId('handover-route').textContent).toContain('guessed it from the repository');
     expect(screen.getByText(/2 files changed, not committed/)).toBeTruthy();
     expect(screen.getByTestId('handover-pr').textContent).toBe('Pull request #7');
     expect(screen.queryByTestId('merge-btn')).toBeNull();
+    expect(screen.queryByTestId('route-pr')).toBeNull();
     fireEvent.click(screen.getByTestId('merge-here'));
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/tickets/KAN-1/ai/handover', { route: 'local' }));
   });
 
-  it('shows the branch route text and still offers Merge here', async () => {
-    setup(wt({ route: 'branch' } as never));
+  it('uses the project route when the server names none, and says it is the project choice', async () => {
+    setup(wt(), 'branch');
     renderIt();
-    expect(await screen.findByText('leave the branch')).toBeTruthy();
+    expect(await screen.findByText('leaving the branch')).toBeTruthy();
+    expect(screen.getByTestId('handover-route').textContent).toContain('The project chose it');
     expect(screen.getByTestId('merge-here')).toBeTruthy();
+    expect(screen.getByTestId('route-pr')).toBeTruthy();
+  });
+
+  it('a route of its own can go back to the project one', async () => {
+    setup(wt({ route: 'branch', handover: 'branch' } as never), 'pr');
+    http.patch.mockResolvedValue({ data: wt() });
+    renderIt();
+    expect((await screen.findByTestId('handover-route')).textContent).toContain(
+      'That is its own choice; the project’s is opening a pull request',
+    );
+    fireEvent.click(screen.getByTestId('route-auto'));
+    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/tickets/KAN-1/ai/handover', { route: 'auto' }));
   });
 
   it('merges on this machine, and reports success and a PR link', async () => {
@@ -100,7 +118,7 @@ describe('TicketHandover', () => {
     const btn = await screen.findByTestId('merge-btn');
     expect(screen.getByText(/Merging also removes the worktree/)).toBeTruthy();
     fireEvent.click(btn);
-    expect(await screen.findByText('Merged.')).toBeTruthy();
+    expect((await screen.findByTestId('merge-done')).textContent).toContain('Merged.');
     expect(http.post).toHaveBeenCalledWith('/tickets/KAN-1/ai/merge');
     expect(screen.getByText('Pull request').getAttribute('href')).toBe('https://x/pr/9');
   });
@@ -134,6 +152,15 @@ describe('TicketHandover', () => {
     renderIt();
     expect(await screen.findByText(/Merged\. The worktree is removed and its port is given back\./)).toBeTruthy();
     expect(screen.queryByTestId('ready-to-hand-over')).toBeNull();
+  });
+
+  it('names the files of a conflict with the base branch', async () => {
+    setup(wt({ state: 'conflict', route: 'local', conflictFiles: ['api/tickets.py', 'ui/tickets.ts'] } as never));
+    renderIt();
+    const box = await screen.findByTestId('handover-conflict');
+    expect(box.textContent).toContain('Cannot be merged: main has moved');
+    expect(box.textContent).toContain('2 files differ from main: api/tickets.py, ui/tickets.ts.');
+    expect(screen.getByTestId('worktree-state').textContent).toBe('Conflict with main');
   });
 
   it('says what keeps the worktree and lets a person move the outputs, commit the code or discard', async () => {

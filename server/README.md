@@ -34,7 +34,7 @@ crate and registered in `crates/kb-app/src/hooks.rs`.
 | `kb-base` | What every area shares: configuration, time and JSON in the stored formats, errors as the REST API answers them, the router (`routes`), the actor context, the event bus, secrets, the API secret |
 | `kb-log` | The application log (a size-rotating file) and its export |
 | `kb-fuzzy` | The fuzzy-search scores (`ratio`, `partial_ratio`, `token_sort_ratio`, `WRatio`) |
-| `kb-db` | The database: targets and engine, sessions, the 77 entities, the schema per engine, the 80 migrations, the change log |
+| `kb-db` | The database: targets and engine, sessions, the 82 entities, the schema per engine, the 82 migrations, the change log |
 | `kb-files` | The uploads folder, the draw.io editor that ships with the app, file responses |
 | `kb-dbkit` | Probing a database, copying between databases, the `kanban-db` command, the database routes |
 | `kb-notify` | The notification centre and its loop |
@@ -122,7 +122,7 @@ and, for two of them, part of the build:
 - `schema-sqlite.sql`, `schema-postgres.sql`, `schema-mysql.sql`, `alembic-head.txt`: the schema at the newest revision.
 - `golden/`: recorded answers (HTTP and MCP), and the output of pure functions (scores, slugs, anchors, Markdown and HTML
   handling, schedule slots across clock changes, `pyjson`). The tests assert against them.
-- `migrations/`: a database at each of the 80 revisions (`fixtures/`) and what upgrading it must give (`expected/`).
+- `migrations/`: a database at each of the 82 revisions (`fixtures/`) and what upgrading it must give (`expected/`).
 
 The Python server and the scripts that generated these files (`gen_*.py`, `export_contract.py`) are gone, and so is the
 `PARITY_TARGET=python` mode of `testkit`. The recorded files stay as the regression baseline: do not regenerate them to
@@ -131,7 +131,7 @@ make a test pass; change one only when the behavior was meant to change.
 ## `e2e/`
 
 A Playwright check of the real UI against the server: headless Chromium, one server per scenario on its own temporary
-folders, 21 scenarios and 375 steps. Each server gets a stand-in AI (`fake-claude` behind a `claude` script on its
+folders, 42 scenarios and about 1,020 steps. Each server gets a stand-in AI (`fake-claude` behind a `claude` script on its
 `PATH`, a signed-in account, a sample git repository), so the AI screens run without tokens. It needs the built server
 and stand-in (`cargo build -p kanban-server -p kanban-mcp-stdio -p fake-claude`), the built UI (`cd ui && npm ci &&
 npm run build`) and Playwright installed globally (`NODE_PATH`).
@@ -145,10 +145,21 @@ npm run build`) and Playwright installed globally (`NODE_PATH`).
 | 17–18 | file previews (PDF, Word, Excel, PowerPoint, CSV, JSON, Markdown, HTML, audio, ZIP), the Docs editor (slash menu, formatting, table, callout, math, code, find and replace, export) |
 | 19–21 (`ai`) | Docs AI, the AI team (accounts, teams, runs, a question answered, the AI Team pages, Settings > AI, schedules, Board AI), the rest of Idea Space (matrix, evidence, Ask AI chat, settings) |
 | 22 | appearance, workspace, database wizard, MCP integrations, logs, keyboard, follow bell, notification settings |
-| 24 | Docs links on rich pages: links to headings and blocks, the block hover card, the arrival mark, a gone block, Referenced by per block, `[[Page#` headings and blocks, search markers |
+| 23–25 | a ticket's details (comments edited, deleted and restored, reopen undo), projects (edit name and colour, delete) and Stories, workspace and branches |
+| 26–28 | Docs page actions (duplicate, move, rename, delete), history, diffs and the search page, comments and live edits, offline |
+| 29–31 | canvases, sketches (`ai`), diagrams (a stand-in draw.io editor served by the scenario) |
+| 32–34 | Idea Space: comments, research log, assumptions and test tickets, delete; capture, triage, merge, park, stages, promote, outcome; the Idea AI (`ai`: triage advice, Shape with AI, Draft with AI) |
+| 35–37 (`ai`) | AI runs that fail, hang, are stopped, retried, restarted or messaged, sessions, accounts; the assistants (Board AI chats and insights, editor AI, Docs AI Ask, Write and history); knowledge base, lessons, notes, role packs, plugins, the repository scan, schedules, worktrees, the team page |
+| 38 (`ai`) | a ticket's AI activity: the run card and the hand-over of its worktree (outputs to the Workspace, commit, the route changed per ticket, Merge, a conflict with main, discard) |
+| 39–40 | Settings and system (the database move wizard to another SQLite file, a stopped copy and its AI help, the reconnect screen, the data folder, updates and the update notice); notifications (snooze, dismiss, clear, turn a kind off, unmute, the day card) and previews (xlsx charts, pptx shapes, connectors, tables and charts, the image viewer) |
+| 41 | PostgreSQL and MariaDB for real: the move wizard SQLite → PostgreSQL → MariaDB with each card's fields, refused connections, copy, verify, switch; Edit connection; the reconnect screen while the server is down. Skipped unless `KANBAN_TEST_POSTGRES_URL` and `KANBAN_TEST_MYSQL_URL` are set (`scripts/dev-databases.sh start`) |
+| 42 | tablet widths (1024×768, 768×1024) and both looks (Color, Black & white): no sideways page scroll, the key controls reachable, text contrast (WCAG AA) on the main screens |
+| 43 | accessibility: axe (WCAG 2.1 A/AA) on nine screens, a keyboard-only walk (ticket, Docs page, Settings, every dialog with Esc), focus visible, returned and in order |
+| 44–46 | rich Docs: highlights (select and highlight, the bubble, the list, Undo, limits, tablet and phone), links (to headings and blocks, the block hover card, the arrival mark, a gone block, Referenced by per block, `[[Page#` headings and blocks, search markers), states (save status, offline queue, merge and conflict by block, save failed, viewer) |
 
-Not covered: the draw.io editor (not in the checkout), a real Claude sign-in, the desktop-only windows and OS
-notifications.
+Not covered: the real draw.io editor (not in the checkout), a real Claude sign-in. The desktop-only parts (OS
+notifications, the dock/taskbar badge, the update flow) have their own check in `desktop/e2e`, run with
+`xvfb-run -a npm run e2e` from `desktop/` (see `desktop/README.md`).
 
 ```bash
 cd server/e2e
@@ -159,6 +170,17 @@ node run.mjs --target rust --group core    # or ai
 
 Screenshots and the report go to `e2e/report/` (`--report <folder>` elsewhere). `E2E_SOFT=1` keeps a scenario going
 after a failed step.
+
+How much of the UI the run covers: `E2E_MEASURE=1` records the controls each step acted on, the labels it showed and
+the V8 coverage of the pages; `measure/report.mjs` matches them against the server calls and labels read from
+`ui/src` and writes `report/measure/` (a summary, the lists of what is not covered, code coverage per file and in
+HTML). Build the UI unminified for it, or the lines map badly. The baseline and the plan are in `docs/e2e-test-plan.md`.
+
+```bash
+cd ui && npx vite build --sourcemap --minify false && cd ../server/e2e
+npm ci                                     # the coverage converter (monocart-coverage-reports)
+E2E_MEASURE=1 node run.mjs --target rust && node measure/report.mjs
+```
 
 The scenarios were written against the Python server of 4.0.3 first. To compare again, check out its last commit
 (`36352ea`) in a worktree, run `uv sync` in its `server/`, and run both: `report/diff.md` lists every step whose

@@ -30,7 +30,7 @@
 
 .searchIcon {
   flex-shrink: 0;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .searchInput {
@@ -45,7 +45,7 @@
 }
 
 .searchInput::placeholder {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .divider {
@@ -86,12 +86,12 @@
 }
 
 .labelMuted {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   font-weight: 500;
 }
 
 .chevronIcon {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   transition: transform 0.15s ease;
   margin-left: 2px;
 }

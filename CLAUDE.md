@@ -43,7 +43,13 @@ Pick the model and effort for each subagent from the task, not by default:
 
 # Tests
 
-Run only the tests related to what you changed, never the whole suite (it is slow, and some tests fail in a cloud container for reasons that have nothing to do with the change). Related means:
+Three rules, for every change:
+
+1. **Never run a whole suite on your own**: not the whole Cargo workspace, not all of vitest, not the full e2e run. The full runs happen in CI: `ci.yml` on each pull request, `e2e-nightly.yml` (the whole real-UI suite, PostgreSQL and MariaDB, the desktop app) once a night on main. Run a full suite only when the user asks for it in so many words.
+2. **Always add to or change the automated tests with the code**: a new behaviour gets a test, a changed behaviour gets its tests changed, a fixed bug gets a test that would have caught it, at each level the change reaches (a Rust test in the crate, a vitest next to the component, a step in the e2e scenario of the screen). A change with no test change says why in its commit.
+3. **Run only the suites related to the change**, as listed below.
+
+Related means:
 
 - in `server/` (the Cargo workspace, one crate per area): `cargo test -p <crate>` for each crate you changed, or one file with `cargo test -p <crate> --test <file>`. When you changed a public function, also the crates that use it (`cargo tree -i <crate> --depth 1` lists them, or use CodeGraph `callers`). The suite of each area:
   - Docs (pages, versions, search, comments, import): `kb-docs`; the Docs text and access rules: `kb-doctext`;
@@ -55,9 +61,9 @@ Run only the tests related to what you changed, never the whole suite (it is slo
   - the app shell (middlewares, `/events`, uploads, the static UI, the route table): `kb-app`;
 - in `ui/`, `npx vitest run <the folders you changed>` plus `npx tsc --noEmit -p .`, eslint and prettier on the files you touched;
 - in `desktop/`, `npm test` when you changed `desktop/`.
-- the real UI (`server/e2e`, Playwright, 21 scenarios; not in CI, so it runs only here):
+- the real UI (`server/e2e`, Playwright, 42 scenarios; not in CI, so it runs only here):
   - **Run only the scenarios of the area** when a change reaches what a screen shows or sends (a UI component, a route's JSON, an event): `cd server/e2e && node run.mjs --target rust --only 15,16`. The scenario names in `server/e2e/scenarios/` say what each covers (`server/README.md` has the table); 19 to 21 are the AI screens, on `fake-claude`. A change inside one crate that no screen sees (a query, a helper with its own tests) needs none.
-  - **Never the full run by default** (about 8 minutes, `node run.mjs --target rust`): only when the user asks, or before a release, or after a change that every screen goes through (the app shell, middlewares, `/events`, the session or the database layer, a shared UI component such as the ticket modal).
+  - **Never the full run on your own** (about 25 minutes, `node run.mjs --target rust --jobs 3`): the nightly CI (`.github/workflows/e2e-nightly.yml`) runs it, and it can be started by hand there. Run it here only when the user asks. After a change that every screen goes through (the app shell, middlewares, `/events`, the session or the database layer, a shared UI component such as the ticket modal), run the few scenarios that use it most and say in the commit that the nightly run covers the rest.
   - **Add to them**: a new screen or flow gets steps in the scenario of its area (or a new numbered scenario), and a fixed UI-visible bug gets a step that would have caught it.
   - It needs the built server and `fake-claude`, a fresh `ui/dist` (`cd ui && npm run build`) and Playwright on `NODE_PATH`. A step that fails only on a fast machine is usually a toast or a list read too early: wait for the state, do not add a sleep. A scenario asserts what the app does today; a fault of the app found while writing it is noted in the step and reported, not hidden.
 

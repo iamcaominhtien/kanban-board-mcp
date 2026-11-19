@@ -425,3 +425,17 @@ async fn test_ensure_fts_creates_the_table_lazily_and_backfills() {
     // recreated and backfilled on demand
     assert_eq!(titles(&search(&c, &pid, "pangolin", &[]).await), ["Early page"]);
 }
+
+/// A page never published is searched by its draft: each save of the draft updates the index (it was indexed once,
+/// empty, when the page was made, and a draft saved later was never found).
+#[tokio::test]
+async fn test_a_saved_draft_of_an_unpublished_page_is_found() {
+    let (_s, c, pid) = setup!("test_a_saved_draft_of_an_unpublished_page_is_found");
+    let page = mk(&c, &pid, "Scratch", json!({})).await;
+    assert!(titles(&search(&c, &pid, "postgresql", &[]).await).is_empty());
+    let r = c.put(&format!("/docs/pages/{}/draft", id(&page)), json!({"markdown": "PostgreSQL scratch notes"})).await;
+    assert_eq!(r.status, 200, "{}", r.text());
+    assert_eq!(titles(&search(&c, &pid, "postgresql", &[]).await), vec!["Scratch".to_string()]);
+    let draft_only = search(&c, &pid, "postgresql", &[("status", "draft")]).await;
+    assert_eq!(titles(&draft_only), vec!["Scratch".to_string()]);
+}

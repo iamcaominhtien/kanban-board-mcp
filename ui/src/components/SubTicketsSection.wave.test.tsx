@@ -85,21 +85,21 @@ describe('wave badge popover (Ticket Detail with Sub-tickets 7, TDP-1)', () => {
     mount([child('KAN-2'), child('KAN-3', ['KAN-2'])]);
     fireEvent.click(screen.getByTestId('wave-badge-KAN-3'));
     fireEvent.click(screen.getByRole('button', { name: 'Earlier wave' }));
-    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/tickets/KAN-3', { wavePin: 1 }));
+    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/tickets/KAN-3', { wavePin: 1 }, undefined));
   });
 
   it('unchecking Auto-set pins the wave where it is; checking it again drops the pin', async () => {
     mount([child('KAN-2'), child('KAN-3', ['KAN-2'])]);
     fireEvent.click(screen.getByTestId('wave-badge-KAN-3'));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Auto-set from Blocked by' }));
-    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/tickets/KAN-3', { wavePin: 2 }));
+    await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/tickets/KAN-3', { wavePin: 2 }, undefined));
     cleanup();
     mount([child('KAN-2'), child('KAN-3', ['KAN-2'], 4)]);
     fireEvent.click(screen.getByTestId('wave-badge-KAN-3'));
     const auto = screen.getByRole('checkbox', { name: 'Auto-set from Blocked by' }) as HTMLInputElement;
     expect(auto.checked).toBe(false);
     fireEvent.click(auto);
-    await waitFor(() => expect(http.patch).toHaveBeenLastCalledWith('/tickets/KAN-3', { wavePin: null }));
+    await waitFor(() => expect(http.patch).toHaveBeenLastCalledWith('/tickets/KAN-3', { wavePin: null }, undefined));
   });
 
   it('a pinned wave is used for the badge and the order, and the tickets it blocks follow it', () => {

@@ -348,6 +348,11 @@ export function useToast(): ToastContextValue {
   return ctx;
 }
 
+/** Returns the toast API, or null outside `ToastProvider` (a component that is also drawn without one). */
+export function useOptionalToast(): ToastContextValue | null {
+  return useContext(ToastContext);
+}
+
 export interface InlineBannerProps {
   message: string;
   icon?: React.ReactNode;

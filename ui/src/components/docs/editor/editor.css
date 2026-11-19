@@ -121,7 +121,7 @@
   transform: rotate(45deg);
 }
 .dk-editor ul[data-type='taskList'] li[data-checked='true'] > div {
-  color: #5b6b60;
+  color: var(--color-text-sec);
   text-decoration: line-through;
 }
 .dk-editor blockquote {
@@ -184,7 +184,7 @@
   position: absolute;
   left: 0;
   top: 0;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   white-space: nowrap;
   pointer-events: none;
   user-select: none;
@@ -408,7 +408,7 @@
 .dk-handle {
   display: flex;
   align-items: center;
-  color: #5b6b60;
+  color: var(--color-text-sec);
   /* 4 px clear of the text, as on the board (frame 1: 48 px of handle at left -52) */
   position: relative;
   left: -4px;

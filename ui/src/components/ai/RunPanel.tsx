@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { aiApi, isActive, useAiMutation, useTicketRuns } from '../../api/ai';
 import { extractError } from '../../api/extractError';
 import type { Ticket } from '../../types';
-import type { AiRun } from '../../types/ai';
 import { useToast } from '../Toast';
 import { useScheduleList } from '../../api/schedules';
 import { useSchedules } from '../schedules/SchedulesContext';
@@ -12,13 +11,12 @@ import { PAUSE_COLOR, PauseGlyph, PausedStrip, clockTime, pausedSummary } from '
 import { AccountNote } from './accounts/AccountBanner';
 import { SignInAgainButton } from './accounts/SignedOutBanners';
 import './accounts/accountsMember.css';
-import { RestartNotice, RunResourcesStrip } from './RunResources';
-import { AiAvatar, RunStateChip, SparkleIcon, fmtElapsed, hhmm, secondsSince, useAiBoardState, useNow } from './aiUi';
+import { AiAvatar, RunStateChip, SparkleIcon, fmtElapsed, secondsSince, useAiBoardState, useNow } from './aiUi';
 import { LineIcon } from '../ui/LineIcon';
 import { useRunStepsCount } from '../../api/runCounters';
 
-// The run view, steps, history and the AI tab live in RunView.tsx
-export { RunView, RunHistory, TicketRunsTab } from './RunView';
+// The run view and its parts live in RunView.tsx; the ticket's AI activity in activity/AiActivity.tsx
+export { RunView } from './RunView';
 export { RunTree as RunSteps } from './run/RunTree';
 export { QuestionCard } from './QuestionCard';
 
@@ -206,66 +204,6 @@ export function RunHeaderChip({ ticket }: { ticket: Ticket }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// The AI block at the top of ticket detail: run card, question, failures
-// ---------------------------------------------------------------------------
-
-/** The newest run of the ticket, the lead's question, the pause for this ticket and the sign-in the team needs. */
-/** The run now going on a ticket: who, since when, which step, and a bar moving while it works (as on main). */
-function ActiveRunCard({ run, who, onOpenRun }: { run: AiRun; who: string; onOpenRun: () => void }) {
-  useNow(1000, run.state !== 'queued');
-  const steps = useRunStepsCount(run.id, run.stepsCount);
-  const queued = run.state === 'queued';
-  const state = run.state === 'starting' ? 'starting' : queued ? 'queued' : 'in progress';
-  return (
-    <div>
-      <div
-        className="ai-card"
-        style={{
-          padding: '10px 14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          borderColor: '#BFDCC7',
-          background: '#F1F8F3',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-        data-testid="active-run-card"
-      >
-        <RunStateChip state={run.state} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700 }}>
-            Run #{run.number} {state} · {who}
-          </div>
-          <div
-            className="ai-muted"
-            data-testid={queued ? 'why-waiting' : undefined}
-            style={{
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              color: queued ? '#B4571F' : undefined,
-            }}
-          >
-            {queued
-              ? (run.waitingReason ?? 'Starts in a few seconds')
-              : run.state === 'starting'
-                ? 'Starting… the CLI is starting up'
-                : `Started ${hhmm(run.startedAt)} · ${fmtElapsed(secondsSince(run.startedAt))} · step ${steps}`}
-          </div>
-        </div>
-        <button type="button" className="ai-btn ai-btn-sm" onClick={onOpenRun}>
-          Open run
-        </button>
-        {run.state === 'running' && <div className="ai-progress" />}
-      </div>
-      <RestartNotice run={run} />
-      {run.state === 'running' && <RunResourcesStrip run={run} />}
-    </div>
-  );
-}
-
 /** The strips of the ticket's AI tab: AI paused for the project ("Nothing new starts on this ticket.") and the account signed out. */
 export function TicketAiStrips({ ticket }: { ticket: Ticket }) {
   const runs = useTicketRuns(ticket.id);
@@ -299,32 +237,6 @@ export function TicketAiStrips({ ticket }: { ticket: Ticket }) {
         <ResumeAllDialog projectId={settings.projectId} onClose={() => setResumeOpen(false)} />
       )}
     </>
-  );
-}
-
-/** What a ticket's AI tab says before anything else: AI paused for the project, or the account signed out (H2, H3). */
-export function TicketAiPanel({ ticket, onOpenRun }: { ticket: Ticket; onOpenRun: () => void }) {
-  const runs = useTicketRuns(ticket.id);
-  const { members: aiMembers } = useAiBoardState();
-  const latest = (runs.data ?? [])[0];
-  const runTeam = latest ? aiMembers.get(latest.memberId) : undefined;
-  const active = latest && ['running', 'starting', 'queued'].includes(latest.state) ? latest : undefined;
-  return (
-    <div
-      className="ai-root"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 10,
-        padding: '12px 24px',
-        borderBottom: '1px solid #e3e8e5',
-        background: '#fff',
-      }}
-      data-testid="ticket-ai-panel"
-    >
-      <TicketAiStrips ticket={ticket} />
-      {active && <ActiveRunCard run={active} who={runTeam?.name ?? 'The AI'} onOpenRun={onOpenRun} />}
-    </div>
   );
 }
 

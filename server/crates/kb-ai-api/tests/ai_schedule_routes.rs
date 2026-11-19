@@ -124,7 +124,8 @@ async fn schedule_routes() {
     rec.check("GET schedules: another ticket", &c.get(&format!("{list}?ticket_id=nope")).await);
     rec.check("GET week", &c.get(&format!("{list}/week?start=2099-06-14&days=3")).await);
     rec.check("GET week: with a zone", &c.get(&format!("{list}/week?start=2099-06-15T00:00:00%2B07:00&days=2")).await);
-    rec.check("GET cards", &c.get(&format!("{list}/cards")).await);
+    // a card is "soon" within the hour before its run: the repeating one (09:00 UTC) is, if the test runs then
+    rec.check_hiding("GET cards", &c.get(&format!("{list}/cards")).await, &["state"]);
     rec.check(
         "POST preview: an existing schedule, edited",
         &c.post(&preview, json!({"schedule_id": s1, "time": "10:00"})).await,
@@ -146,7 +147,8 @@ async fn schedule_routes() {
     rec.check("PATCH schedule: a catch-up that is not one", &c.patch(&one, json!({"catch_up": "never"})).await);
     rec.check("POST pause: not found", &c.post_empty("/ai/schedules/nope/pause").await);
     rec.check("POST pause", &c.post_empty(&format!("{one}/pause")).await);
-    rec.check("GET cards: paused", &c.get(&format!("{list}/cards")).await);
+    // a card is "soon" within the hour before its run: the repeating one (09:00 UTC) is, if the test runs then
+    rec.check_hiding("GET cards: paused", &c.get(&format!("{list}/cards")).await, &["state"]);
     rec.check("POST resume: not found", &c.post_empty("/ai/schedules/nope/resume").await);
     rec.check("POST resume", &c.post_empty(&format!("{one}/resume")).await);
     rec.check("GET schedule: after", &c.get(&one).await);
@@ -226,6 +228,8 @@ async fn run_now_routes() {
         "pid",
         "model",
         "files",
+        // how many days are left until the schedule's run in 2099: one fewer each day
+        "next_in",
     ]);
     let (pid, _an) = project(c).await;
     let team = make_team(&f, &pid, "Dev An").await;

@@ -63,6 +63,10 @@ pub async fn save_draft(
             row.update(session).await?;
         }
     }
+    // A page never published is searched by its draft: keep the index on the text just saved.
+    if page.version == 0 {
+        docs_search::reindex(session, std::slice::from_ref(&page.id)).await?;
+    }
     session.commit().await?;
     page_detail(session, page_id).await
 }

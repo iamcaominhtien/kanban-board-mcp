@@ -124,7 +124,7 @@ export default {
       const d = p.getByRole('dialog', { name: 'Ask the docs' });
       await d.getByRole('textbox').fill('Who pays for hosting?');
       await p.keyboard.press('Enter');
-      await d.getByTestId('ask-not_covered').waitFor({ timeout: 30000 });
+      await d.getByTestId('ask-state-not_covered').waitFor({ timeout: 30000 });
       await d.getByText(/The docs do not say/).first().waitFor();
       await p.keyboard.press('Escape');
       await d.waitFor({ state: 'detached' });

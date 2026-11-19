@@ -37,7 +37,7 @@
 }
 
 .placeholder {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   font-size: 13px;
   user-select: none;
 }
@@ -115,7 +115,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   user-select: none;
 }
 
@@ -134,7 +134,7 @@
   cursor: pointer;
   border: none;
   background: none;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   transition: all 0.12s;
 }
 
@@ -213,7 +213,7 @@
 }
 
 .textarea::placeholder {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .previewContainer {
@@ -296,7 +296,7 @@
 
 .wysiwygArea:empty::before {
   content: attr(data-placeholder);
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   pointer-events: none;
 }
 
@@ -441,7 +441,7 @@
 }
 
 .popoverUrlInput::placeholder {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .popoverDivider {
@@ -454,7 +454,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 
 .popoverTextDisplay {
@@ -478,7 +478,7 @@
 .popoverCancelBtn {
   font-size: 11.5px;
   font-weight: 600;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   background: none;
   border: none;
   padding: 4px 8px;

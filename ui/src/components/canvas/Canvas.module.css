@@ -163,7 +163,7 @@
 }
 .sBoardName span {
   font-weight: 500;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .sNote,
 .note {
@@ -579,7 +579,7 @@ input.title:focus {
   display: grid;
   place-items: center;
   font: 700 14px var(--font-body);
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   pointer-events: none;
 }
 .boardLabel {
@@ -594,7 +594,7 @@ input.title:focus {
 }
 .boardLabel span {
   font-weight: 500;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .boardLabelSel {
   color: var(--cv-blue);

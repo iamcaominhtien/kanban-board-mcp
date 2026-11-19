@@ -113,14 +113,24 @@ describe('CatalogueTab', () => {
 });
 
 describe('InstalledTab actions', () => {
+  // the board's skills card above the list reads the board's skills and ops: an earlier test's answer must not reach it
+  beforeEach(() => {
+    http.get.mockReset();
+    http.get.mockResolvedValue({ data: [] });
+  });
   const renderIt = (plugins: Plugin[]) => render(wrap(<InstalledTab projectId="pr" plugins={plugins} />));
+  // Reload, Reset, Pin, Roll back, Check for update (of a git plugin) and Remove sit in the row's ⋯ menu
+  const fromMenu = (name: string | RegExp) => {
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for design' }));
+    fireEvent.click(screen.getByRole('menuitem', { name }));
+  };
 
   it('says nothing is installed, and when a filter matches nothing', () => {
     renderIt([]);
     expect(screen.getByTestId('installed-empty').textContent).toMatch(/Nothing installed yet/);
     cleanup();
     renderIt([plugin()]);
-    fireEvent.click(screen.getByRole('button', { name: /^Skills/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Never used/ }));
     expect(screen.getByTestId('installed-empty').textContent).toBe('Nothing matches this filter.');
   });
 
@@ -136,27 +146,27 @@ describe('InstalledTab actions', () => {
   it('reloads, resets, pins and rolls back through the action endpoint', async () => {
     http.post.mockResolvedValue({ data: plugin() });
     renderIt([plugin({ hasPrevious: true })]);
-    fireEvent.click(screen.getByRole('button', { name: 'Reload' }));
+    fromMenu('Reload');
     await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/plugins/p1/reload'));
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    fromMenu('Reset');
     await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/plugins/p1/reset'));
-    fireEvent.click(screen.getByRole('button', { name: 'Pin v2.4.0' }));
+    fromMenu('Pin v2.4.0');
     await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/plugins/p1/pin'));
-    fireEvent.click(screen.getByRole('button', { name: 'Roll back' }));
+    fromMenu('Roll back');
     await waitFor(() => expect(http.post).toHaveBeenCalledWith('/ai/plugins/p1/rollback'));
   });
 
   it('shows the error of a failed action', async () => {
     http.post.mockRejectedValue({ response: { data: { detail: 'git said no' } } });
     renderIt([plugin()]);
-    fireEvent.click(screen.getByRole('button', { name: 'Reload' }));
+    fromMenu('Reload');
     expect((await screen.findByTestId('plugin-error')).textContent).toBe('git said no');
   });
 
   it('checks for an update: up to date', async () => {
     http.get.mockResolvedValue({ data: { update: false } });
     renderIt([plugin()]);
-    fireEvent.click(screen.getByRole('button', { name: 'Check for update' }));
+    fromMenu('Check for update');
     expect(await screen.findByText('Up to date.')).toBeTruthy();
     expect(http.get).toHaveBeenCalledWith('/ai/plugins/p1/update');
   });
@@ -169,7 +179,7 @@ describe('InstalledTab actions', () => {
     );
     http.post.mockResolvedValue({ data: plugin() });
     renderIt([plugin()]);
-    fireEvent.click(screen.getByRole('button', { name: 'Check for update' }));
+    fromMenu('Check for update');
     fireEvent.click(await screen.findByRole('button', { name: 'See what changed' }));
     const box = await screen.findByTestId('plugin-changes');
     expect(box.textContent).toContain('Changes in 12345678');
@@ -189,7 +199,7 @@ describe('InstalledTab actions', () => {
         : Promise.resolve({ data: { commit: null, added: [], removed: [], changed: [] } }),
     );
     renderIt([plugin()]);
-    fireEvent.click(screen.getByRole('button', { name: 'Check for update' }));
+    fromMenu('Check for update');
     fireEvent.click(await screen.findByRole('button', { name: 'See what changed' }));
     expect(await screen.findByText('No file changed.')).toBeTruthy();
   });
@@ -197,16 +207,16 @@ describe('InstalledTab actions', () => {
   it('asks before removing, can keep, and removes with DELETE', async () => {
     http.delete.mockResolvedValue({});
     renderIt([plugin()]);
-    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    fromMenu('Remove');
     expect(screen.getByText('Remove design?')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Keep' }));
     expect(screen.queryByText('Remove design?')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    fromMenu('Remove');
     fireEvent.click(screen.getByTestId('confirm-remove'));
     await waitFor(() => expect(http.delete).toHaveBeenCalledWith('/ai/plugins/p1'));
   });
 
-  it('opens the detail: switch for every member and role checkboxes', async () => {
+  it('opens the detail: switch for every team and role chips', async () => {
     http.patch.mockResolvedValue({ data: plugin() });
     renderIt([
       plugin({
@@ -224,12 +234,12 @@ describe('InstalledTab actions', () => {
     const detail = screen.getByTestId('plugin-detail');
     expect(detail.textContent).toContain('2 skills: a, b');
     expect(detail.textContent).toContain('0 hooks');
-    expect(detail.textContent).toContain('Used by 2 members.');
-    fireEvent.click(screen.getByRole('switch', { name: 'On for every member' }));
+    expect(detail.textContent).toContain('Used by 2 teams.');
+    fireEvent.click(screen.getByRole('switch', { name: 'On for every team' }));
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/ai/plugins/p1', { defaultOn: true }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Dev' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Dev' }));
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/ai/plugins/p1', { roles: ['designer', 'dev'] }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Designer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Designer' }));
     await waitFor(() => expect(http.patch).toHaveBeenCalledWith('/ai/plugins/p1', { roles: [] }));
   });
 });

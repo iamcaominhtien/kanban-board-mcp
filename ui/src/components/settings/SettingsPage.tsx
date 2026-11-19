@@ -491,8 +491,7 @@ export function SettingsPage({
               type="search"
               placeholder="Search settings"
               aria-label="Search settings"
-              aria-expanded={showResults}
-              aria-controls="settings-search-results"
+              aria-controls={showResults ? 'settings-search-results' : undefined}
               value={query}
               onFocus={() => setSearchOpen(true)}
               onChange={(e) => {

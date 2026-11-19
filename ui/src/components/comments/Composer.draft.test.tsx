@@ -13,7 +13,7 @@ vi.mock('../sketch/useSketchStarter', () => ({ useSketchStarter: () => ({ availa
 vi.mock('../canvas/CanvasIcon', () => ({ CanvasIcon: () => null }));
 vi.mock('../canvas/useCanvasStarter', () => ({ useCanvasStarter: () => ({ available: false }) }));
 vi.mock('../ai/MentionPlan', () => ({ MentionPlan: () => null }));
-vi.mock('../ai/ComposerAi', () => ({ AskSplit: () => null }));
+vi.mock('../ai/ComposerAi', () => ({ AskSplit: () => null, mentionedAi: () => [] }));
 vi.mock('../ai/aiUi', () => ({ useAiBoardState: () => ({ members: new Map() }) }));
 vi.mock('../ai/editor/useEditorAi', () => ({
   useEditorAi: () => ({ onInput: () => {}, onKeyDown: () => false, layer: null }),

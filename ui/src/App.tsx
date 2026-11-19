@@ -14,7 +14,7 @@ import { OPEN_RUN_EVENT } from './components/aiteam/runLink';
 import { OPEN_TIMELINE_EVENT } from './components/aiteam/timelineLink';
 import { OPEN_SETTINGS_EVENT } from './components/aiteam/settingsLink';
 import { RecycleBin } from './components/RecycleBin';
-import { useProjects, useCreateProject, useDeleteProject } from './api/projects';
+import { useProjects, useCreateProject, useDeleteProject, useUpdateProject } from './api/projects';
 import { useMembers } from './api/members';
 import {
   useTickets,
@@ -150,11 +150,21 @@ export default function App() {
   const { data: apiProjects = EMPTY_PROJECTS, isLoading: projectsLoading } = projectsQuery;
   const createProjectMutation = useCreateProject();
   const deleteProjectMutation = useDeleteProject();
+  const updateProjectMutation = useUpdateProject();
 
   const { theme, toggleTheme } = useTheme();
-  const [currentProjectId, setCurrentProjectId] = useState<string>(
+  const [selectedProjectId, setCurrentProjectId] = useState<string>(
     () => new URLSearchParams(window.location.search).get('proj') ?? localStorage.getItem('activeProjectId') ?? '',
   );
+  // The project the board shows. Nothing asks for a project's data before the list is loaded, and an id from the URL
+  // or localStorage that is not in the list (the project was deleted) gives way to the first project, or to none:
+  // otherwise every query of the board would ask for a project that no longer exists.
+  const projectsLoaded = projectsQuery.data !== undefined;
+  const currentProjectId = !projectsLoaded
+    ? ''
+    : apiProjects.some((p) => p.id === selectedProjectId)
+      ? selectedProjectId
+      : (apiProjects[0]?.id ?? '');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeType, setActiveType] = useState<IssueType | 'all'>('all');
   const [activePriority, setActivePriority] = useState<Priority | 'all'>('all');
@@ -233,18 +243,14 @@ export default function App() {
   }, [searchQuery]);
 
   useEffect(() => {
+    if (!projectsLoaded) return;
     if (currentProjectId) {
       localStorage.setItem('activeProjectId', currentProjectId);
     } else {
       localStorage.removeItem('activeProjectId');
     }
-  }, [currentProjectId]);
-
-  useEffect(() => {
-    if (apiProjects.length > 0 && !apiProjects.find((p) => p.id === currentProjectId)) {
-      setCurrentProjectId(apiProjects[0].id);
-    }
-  }, [apiProjects, currentProjectId]);
+    if (currentProjectId !== selectedProjectId) setCurrentProjectId(currentProjectId);
+  }, [projectsLoaded, currentProjectId, selectedProjectId]);
 
   const currentProject = apiProjects.find((p) => p.id === currentProjectId);
 
@@ -756,6 +762,11 @@ export default function App() {
     }
   }
 
+  /** Saves a project's name and colour; an error goes back to the sidebar's form. */
+  async function handleUpdateProject(id: string, data: { name: string; color: string }) {
+    await updateProjectMutation.mutateAsync({ id, ...data });
+  }
+
   async function handleDeleteProject(id: string) {
     try {
       await deleteProjectMutation.mutateAsync(id);
@@ -916,6 +927,7 @@ export default function App() {
     onSelectProject: handleSelectProject,
     onCreateProject: handleCreateProject,
     onDeleteProject: handleDeleteProject,
+    onUpdateProject: handleUpdateProject,
     onOpenRecycleBin: () => setRecycleBinOpen(true),
     onOpenMembers: () => setMembersPanelOpen(true),
     memberCounts: { humans: humanMembers.length, ai: aiMemberCount },
@@ -1018,6 +1030,7 @@ export default function App() {
               )}
               {/* The Board AI dock sits on the right edge; the page leaves its width free so nothing hides under it */}
               <div
+                role="main"
                 style={{
                   flex: 1,
                   minWidth: 0,

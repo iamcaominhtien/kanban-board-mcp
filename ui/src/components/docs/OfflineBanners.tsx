@@ -5,10 +5,19 @@ import './docs.css';
 
 /**
  * "You are offline" bar of the editor (Docs states D 21, 22): grey, the edits are kept in this browser.
- * @param props.onRetry - Retry now (not on a phone, where the bar is a slim overlay).
+ * @param props.onRetry - Retry now (not on a phone, where the bar is a slim overlay): checks the connection.
  * @param props.phone - The phone's short words.
+ * @param props.checking - A check is running: the button says so and waits.
  */
-export function OfflineBanner({ onRetry, phone }: { onRetry: () => void; phone?: boolean }) {
+export function OfflineBanner({
+  onRetry,
+  phone,
+  checking = false,
+}: {
+  onRetry: () => void;
+  phone?: boolean;
+  checking?: boolean;
+}) {
   return (
     <StateBar
       tone="grey"
@@ -22,9 +31,9 @@ export function OfflineBanner({ onRetry, phone }: { onRetry: () => void; phone?:
       }
       actions={
         phone ? undefined : (
-          <button type="button" className="st-btn st-btn-sm" onClick={onRetry}>
+          <button type="button" className="st-btn st-btn-sm" onClick={onRetry} disabled={checking} aria-busy={checking}>
             <StIcon name="retry" size={13} sw={2} />
-            Retry now
+            {checking ? 'Checking…' : 'Retry now'}
           </button>
         )
       }

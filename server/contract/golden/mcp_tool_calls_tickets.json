@@ -1434,7 +1434,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool manage_ticket: Make a ticket a Story with Make this a Story, which hands it to the PM; a Story stays a Story."
+        "text": "Error executing tool manage_ticket: A ticket cannot become a Story, and a Story stays a Story: make a new ticket of type Story."
       }
     ],
     "isError": true
@@ -1443,7 +1443,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool manage_ticket: Make a ticket a Story with Make this a Story, which hands it to the PM; a Story stays a Story."
+        "text": "Error executing tool manage_ticket: A ticket cannot become a Story, and a Story stays a Story: make a new ticket of type Story."
       }
     ],
     "isError": true
@@ -1452,10 +1452,10 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool manage_ticket: A Story moves with its own state: hand it to the PM, approve its plan, or pause, drop or reopen it."
+        "text": "{\"id\":\"TKT-3\",\"title\":\"Export a month as CSV\",\"type\":\"story\",\"status\":\"done\",\"priority\":\"medium\",\"estimate\":0.5,\"completed_at\":\"<time>\"}"
       }
     ],
-    "isError": true
+    "isError": false
   },
   "update: done with the guards on and nothing checked": {
     "content": [
@@ -1596,7 +1596,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"total\":10,\"count\":10,\"offset\":0,\"has_more\":false,\"tickets\":[{\"id\":\"TKT-1\",\"title\":\"Nhắc uống nước mỗi giờ (8:00–18:00)\",\"type\":\"feature\",\"status\":\"in-progress\",\"priority\":\"high\",\"tags\":[\"sức khỏe\",\"Mobile\"],\"start_date\":\"2026-05-01\",\"due_date\":\"2026-06-01\",\"wave_pin\":2,\"updated_at\":\"<time>\"},{\"id\":\"TKT-2\",\"title\":\"Login: a wrong password shows no message\",\"type\":\"bug\",\"status\":\"todo\",\"priority\":\"critical\",\"assignee\":\"<uuid:3>\",\"tags\":[\"auth\",\"Đăng nhập\",\"p1\"],\"estimate\":3.0,\"start_date\":\"2026-06-01\",\"due_date\":\"2026-06-30\",\"acceptance_criteria\":{\"done\":0,\"total\":2},\"updated_at\":\"<time>\"},{\"id\":\"TKT-3\",\"title\":\"Export a month as CSV\",\"type\":\"story\",\"status\":\"backlog\",\"priority\":\"medium\",\"estimate\":0.5,\"updated_at\":\"<time>\"},{\"id\":\"TKT-4\",\"title\":\"The file\",\"type\":\"task\",\"status\":\"in-progress\",\"priority\":\"medium\",\"parent_id\":\"TKT-3\",\"updated_at\":\"<time>\"},{\"id\":\"TKT-5\",\"title\":\"The header row\",\"type\":\"chore\",\"status\":\"backlog\",\"priority\":\"medium\",\"parent_id\":\"TKT-4\",\"updated_at\":\"<time>\"},{\"id\":\"TKT-6\",\"title\":\"Child\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"parent_id\":\"TKT-1\",\"updated_at\":\"<time>\"},{\"id\":\"TKT-7\",\"title\":\"ññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññ\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"updated_at\":\"<time>\"},{\"id\":\"TKT-8\",\"title\":\"x\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"estimate\":3.0,\"updated_at\":\"<time>\"},{\"id\":\"TKT-9\",\"title\":\"From text\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"tags\":[\"a\",\"b\"],\"updated_at\":\"<time>\"},{\"id\":\"TKT-10\",\"title\":\"Peer\",\"type\":\"task\",\"status\":\"done\",\"priority\":\"low\",\"updated_at\":\"<time>\"}]}"
+        "text": "{\"total\":10,\"count\":10,\"offset\":0,\"has_more\":false,\"tickets\":[{\"id\":\"TKT-1\",\"title\":\"Nhắc uống nước mỗi giờ (8:00–18:00)\",\"type\":\"feature\",\"status\":\"in-progress\",\"priority\":\"high\",\"tags\":[\"sức khỏe\",\"Mobile\"],\"start_date\":\"2026-05-01\",\"due_date\":\"2026-06-01\",\"wave_pin\":2,\"updated_at\":\"<time>\"},{\"id\":\"TKT-2\",\"title\":\"Login: a wrong password shows no message\",\"type\":\"bug\",\"status\":\"todo\",\"priority\":\"critical\",\"assignee\":\"<uuid:3>\",\"tags\":[\"auth\",\"Đăng nhập\",\"p1\"],\"estimate\":3.0,\"start_date\":\"2026-06-01\",\"due_date\":\"2026-06-30\",\"acceptance_criteria\":{\"done\":0,\"total\":2},\"updated_at\":\"<time>\"},{\"id\":\"TKT-3\",\"title\":\"Export a month as CSV\",\"type\":\"story\",\"status\":\"done\",\"priority\":\"medium\",\"estimate\":0.5,\"updated_at\":\"<time>\"},{\"id\":\"TKT-4\",\"title\":\"The file\",\"type\":\"task\",\"status\":\"in-progress\",\"priority\":\"medium\",\"parent_id\":\"TKT-3\",\"updated_at\":\"<time>\"},{\"id\":\"TKT-5\",\"title\":\"The header row\",\"type\":\"chore\",\"status\":\"backlog\",\"priority\":\"medium\",\"parent_id\":\"TKT-4\",\"updated_at\":\"<time>\"},{\"id\":\"TKT-6\",\"title\":\"Child\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"parent_id\":\"TKT-1\",\"updated_at\":\"<time>\"},{\"id\":\"TKT-7\",\"title\":\"ññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññññ\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"updated_at\":\"<time>\"},{\"id\":\"TKT-8\",\"title\":\"x\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"estimate\":3.0,\"updated_at\":\"<time>\"},{\"id\":\"TKT-9\",\"title\":\"From text\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"tags\":[\"a\",\"b\"],\"updated_at\":\"<time>\"},{\"id\":\"TKT-10\",\"title\":\"Peer\",\"type\":\"task\",\"status\":\"done\",\"priority\":\"low\",\"updated_at\":\"<time>\"}]}"
       }
     ],
     "isError": false
@@ -1929,7 +1929,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"total\":10,\"count\":3,\"offset\":0,\"has_more\":true,\"tickets\":[{\"id\":\"TKT-1\",\"title\":\"Nhắc uống nước mỗi giờ (8:00–18:00)\",\"type\":\"feature\",\"status\":\"in-progress\",\"priority\":\"high\",\"tags\":[\"sức khỏe\",\"Mobile\"],\"start_date\":\"2026-05-01\",\"due_date\":\"2026-06-01\",\"wave_pin\":2,\"updated_at\":\"<time>\"},{\"id\":\"TKT-2\",\"title\":\"Login: a wrong password shows no message\",\"type\":\"bug\",\"status\":\"todo\",\"priority\":\"critical\",\"assignee\":\"<uuid:3>\",\"tags\":[\"auth\",\"Đăng nhập\",\"p1\"],\"estimate\":3.0,\"start_date\":\"2026-06-01\",\"due_date\":\"2026-06-30\",\"blocked_by\":[\"TKT-1\"],\"acceptance_criteria\":{\"done\":0,\"total\":2},\"comments\":1,\"updated_at\":\"<time>\"},{\"id\":\"TKT-3\",\"title\":\"Export a month as CSV\",\"type\":\"story\",\"status\":\"backlog\",\"priority\":\"medium\",\"estimate\":0.5,\"updated_at\":\"<time>\"}]}"
+        "text": "{\"total\":10,\"count\":3,\"offset\":0,\"has_more\":true,\"tickets\":[{\"id\":\"TKT-1\",\"title\":\"Nhắc uống nước mỗi giờ (8:00–18:00)\",\"type\":\"feature\",\"status\":\"in-progress\",\"priority\":\"high\",\"tags\":[\"sức khỏe\",\"Mobile\"],\"start_date\":\"2026-05-01\",\"due_date\":\"2026-06-01\",\"wave_pin\":2,\"updated_at\":\"<time>\"},{\"id\":\"TKT-2\",\"title\":\"Login: a wrong password shows no message\",\"type\":\"bug\",\"status\":\"todo\",\"priority\":\"critical\",\"assignee\":\"<uuid:3>\",\"tags\":[\"auth\",\"Đăng nhập\",\"p1\"],\"estimate\":3.0,\"start_date\":\"2026-06-01\",\"due_date\":\"2026-06-30\",\"blocked_by\":[\"TKT-1\"],\"acceptance_criteria\":{\"done\":0,\"total\":2},\"comments\":1,\"updated_at\":\"<time>\"},{\"id\":\"TKT-3\",\"title\":\"Export a month as CSV\",\"type\":\"story\",\"status\":\"done\",\"priority\":\"medium\",\"estimate\":0.5,\"updated_at\":\"<time>\"}]}"
       }
     ],
     "isError": false
@@ -1947,7 +1947,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"total\":9,\"count\":3,\"offset\":0,\"has_more\":true,\"tickets\":[{\"id\":\"TKT-1\",\"title\":\"Nhắc uống nước mỗi giờ (8:00–18:00)\",\"type\":\"feature\",\"status\":\"in-progress\",\"priority\":\"high\",\"tags\":[\"sức khỏe\",\"Mobile\"],\"start_date\":\"2026-05-01\",\"due_date\":\"2026-06-01\",\"wave_pin\":2,\"updated_at\":\"<time>\"},{\"id\":\"TKT-2\",\"title\":\"Login: a wrong password shows no message\",\"type\":\"bug\",\"status\":\"todo\",\"priority\":\"critical\",\"assignee\":\"<uuid:3>\",\"tags\":[\"auth\",\"Đăng nhập\",\"p1\"],\"estimate\":3.0,\"start_date\":\"2026-06-01\",\"due_date\":\"2026-06-30\",\"blocked_by\":[\"TKT-1\"],\"acceptance_criteria\":{\"done\":0,\"total\":2},\"comments\":1,\"updated_at\":\"<time>\"},{\"id\":\"TKT-3\",\"title\":\"Export a month as CSV\",\"type\":\"story\",\"status\":\"backlog\",\"priority\":\"medium\",\"estimate\":0.5,\"updated_at\":\"<time>\"}]}"
+        "text": "{\"total\":9,\"count\":3,\"offset\":0,\"has_more\":true,\"tickets\":[{\"id\":\"TKT-1\",\"title\":\"Nhắc uống nước mỗi giờ (8:00–18:00)\",\"type\":\"feature\",\"status\":\"in-progress\",\"priority\":\"high\",\"tags\":[\"sức khỏe\",\"Mobile\"],\"start_date\":\"2026-05-01\",\"due_date\":\"2026-06-01\",\"wave_pin\":2,\"updated_at\":\"<time>\"},{\"id\":\"TKT-2\",\"title\":\"Login: a wrong password shows no message\",\"type\":\"bug\",\"status\":\"todo\",\"priority\":\"critical\",\"assignee\":\"<uuid:3>\",\"tags\":[\"auth\",\"Đăng nhập\",\"p1\"],\"estimate\":3.0,\"start_date\":\"2026-06-01\",\"due_date\":\"2026-06-30\",\"blocked_by\":[\"TKT-1\"],\"acceptance_criteria\":{\"done\":0,\"total\":2},\"comments\":1,\"updated_at\":\"<time>\"},{\"id\":\"TKT-3\",\"title\":\"Export a month as CSV\",\"type\":\"story\",\"status\":\"done\",\"priority\":\"medium\",\"estimate\":0.5,\"updated_at\":\"<time>\"}]}"
       }
     ],
     "isError": false

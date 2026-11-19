@@ -25,10 +25,11 @@ Attachments, AI run logs and the board's skills stay in the data folder on this 
 ### Schema and versions
 
 All three engines hold the same schema. The server brings the database it opens up to date by itself, with its own
-migrations (`server/crates/kb-db/src/migrations/`, one module per revision, 80 in all), and keeps the revision in the
+migrations (`server/crates/kb-db/src/migrations/`, one module per revision, 82 in all), and keeps the revision in the
 `alembic_version` table with the same revision ids the 4.x versions used. The schema did not change in 5.0.0, so a
-database made by 4.0.x opens in 5.0.0 and a database made by 5.0.0 opens in 4.0.x. A database made by a newer version
-than the app is refused and left as it is: update the app first.
+database made by 4.0.x opens in 5.0.0 and a database made by 5.0.0 opens in 4.0.x. 5.1.0 adds two revisions for rich Docs
+(`d2f4a6c8e0b1`, `e4b6d8f0a2c3`), so 5.0.x refuses a database that 5.1.0 has migrated. A database made by a newer
+version than the app is refused and left as it is: update the app first.
 
 ## Moving data
 

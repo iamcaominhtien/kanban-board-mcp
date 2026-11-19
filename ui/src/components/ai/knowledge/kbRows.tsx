@@ -21,7 +21,7 @@ export function KbRow({
   const [error, setError] = useState<string | null>(null);
   const d = useKbDoc(doc.id);
   const patch = useKbMutation(projectId, (b: { store?: KbStore; private?: boolean }) => kbApi.patch(doc.id, b));
-  const remove = useKbMutation(projectId, () => kbApi.remove(doc.id));
+  const remove = useKbMutation(projectId, () => kbApi.remove(doc.id), doc.id);
   const act = async (fn: () => Promise<unknown>) => {
     setError(null);
     try {

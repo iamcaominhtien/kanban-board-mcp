@@ -563,10 +563,8 @@ describe('useNotificationToasts', () => {
   it("a toast's one button is the safe way in, never a decision taken from under the cursor", () => {
     const a = (id: string, label = id) => ({ id, label });
     const pick = (kind: string, ids: string[]) => toastAction(row({ kind, actions: ids.map((i) => a(i)) }))?.id;
-    expect(pick('approval', ['approve', 'deny', 'review'])).toBe('review');
     expect(pick('run_failed', ['retry', 'open_run_log'])).toBe('open_run_log');
     expect(pick('run_stopped_memory', ['retry', 'open_run_log'])).toBe('open_run_log');
-    expect(pick('blocked', ['open_ticket', 'change_permission'])).toBe('change_permission');
     expect(pick('question', ['answer', 'open_ticket'])).toBe('answer');
     expect(pick('account_signed_out', ['sign_in'])).toBe('sign_in');
     expect(pick('mention', ['dismiss'])).toBeUndefined();

@@ -173,7 +173,7 @@
   cursor: default;
 }
 .iconBtn[aria-pressed='false'] {
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .iconBtn[aria-disabled='true'] {
   opacity: 0.45;

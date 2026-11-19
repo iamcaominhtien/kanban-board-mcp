@@ -38,7 +38,7 @@ export interface WorktreeList {
 }
 
 export interface WorktreeWithRoute extends Worktree {
-  /** The route that will be used: the ticket's choice, else the project's, else the guess. */
+  /** The route that will be used: the ticket's choice, else the project's, else the guess from the repository. */
   route: HandoverRoute;
 }
 

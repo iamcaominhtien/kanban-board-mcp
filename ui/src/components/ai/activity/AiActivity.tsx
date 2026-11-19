@@ -1,33 +1,38 @@
-import { useState, type CSSProperties } from 'react';
-import { Resources, RestartNotice } from './Resources';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { Resources, RestartNotice, StopNotice } from './Resources';
 import { RunCard } from './RunCard';
 import { RunHistoryTable } from './RunHistoryTable';
 import { RunPanel, RunStepsBlock } from './RunPanel';
 import { TicketAiStrips } from '../RunPanel';
 import { useTicketRuns } from '../../../api/ai';
 import { elapsedWords, isLive, startedByWords } from './runFormat';
-import { useNow } from '../aiUi';
+import { LoadError, useNow } from '../aiUi';
 import { TimelineTab } from '../../aiteam/TimelineTab';
+import { TicketHandover } from '../code/TicketHandover';
+import { PullStatus } from '../code/PullStatus';
 import type { AiRun } from '../../../types/ai';
 import type { Ticket } from '../../../types';
 
 /**
- * The ticket's AI activity view as the canvas design draws it (design/source/AiTicketWork, AiResources and
- * AiTimelineCases), in the order it had on main: the run going now, its restart notice and Resources strip, then the
- * ticket's Timeline under "Open in Flow". The design's own mock numbers; connecting it to the board comes later.
- *
- * TODO(connect to data): the old code on `main` does this for real; port from it, see the table in `./mock.ts`.
+ * The ticket's AI activity, in the canvas design's look (design/source/AiTicketWork, AiResources, AiOperations H and
+ * AiTimelineCases), read from the board: the strips that stop work (AI paused, the account signed out), the newest
+ * run, its restart or memory-stop notice and Resources, the hand-over of its code (the worktree, what is left
+ * uncommitted, the route, Merge, a conflict) and the pull request the board watches, then the ticket's Timeline under
+ * "Open in Flow". Each block shows nothing when the board has nothing for it.
  */
-export function AiActivityDesign({
+export function AiActivity({
   ticket,
   ticketId,
   projectId,
+  shown = true,
   onOpenTimeline,
   onOpenRun,
 }: {
   ticket: Ticket;
   ticketId: string;
   projectId: string;
+  /** Whether the view is on screen: the Timeline is only loaded then (the rest is small and tells the modal its dot). */
+  shown?: boolean;
   onOpenTimeline?: () => void;
   onOpenRun?: () => void;
 }) {
@@ -41,42 +46,56 @@ export function AiActivityDesign({
       </div>
       <RunCard ticketId={ticketId} onOpenRun={onOpenRun} />
       <RestartNotice ticketId={ticketId} onOpenRun={onOpenRun} />
+      <StopNotice ticketId={ticketId} onOpenRun={onOpenRun} />
       <Resources ticketId={ticketId} />
+      <TicketHandover ticket={ticket} />
+      <PullStatus ticketId={ticketId} />
       {/* the button belongs to the Timeline under it: close to it, apart from the Resources card above */}
-      <div data-testid="ticket-timeline" style={{ marginTop: 10 }}>
-        <button
-          type="button"
-          className="ai-btn ai-btn-sm"
-          style={{ marginBottom: 8 }}
-          data-testid="open-in-timeline"
-          onClick={onOpenTimeline}
-        >
-          Open in Flow
-        </button>
-        <TimelineTab
-          projectId={projectId}
-          scopeTicketId={ticketId}
-          compactChrome
-          actions={{ onOpenTicket: () => undefined, onOpenDocsPage: () => undefined }}
-        />
-      </div>
+      {shown && projectId && (
+        <div data-testid="ticket-timeline" style={{ marginTop: 10 }}>
+          <button
+            type="button"
+            className="ai-btn ai-btn-sm"
+            style={{ marginBottom: 8 }}
+            data-testid="open-in-timeline"
+            onClick={onOpenTimeline}
+          >
+            Open in Flow
+          </button>
+          <TimelineTab
+            projectId={projectId}
+            scopeTicketId={ticketId}
+            compactChrome
+            actions={{ onOpenTicket: () => undefined, onOpenDocsPage: () => undefined }}
+          />
+        </div>
+      )}
     </div>
   );
 }
 
 /**
  * The run panel and the table of runs, as the canvas design draws them: the ticket's AI tab, opened by Open run. The
- * panel shows the newest run; a click on a row of the table shows that run instead (any run, from its first step).
- * "Full history" shows every run of the ticket one after the other, oldest first, each with all of its steps.
+ * panel shows the newest run, or `runId` when a link asked for that one (a run link in the thread or the chat); a click
+ * on a row of the table shows that run instead (any run, from its first step). "Full history" shows every run of the
+ * ticket one after the other, oldest first, each with all of its steps.
  */
-export function AiRunPanelDesign({ ticket }: { ticket: Ticket }) {
-  const runs = (useTicketRuns(ticket.id).data ?? []).filter((r) => r.kind === 'team');
-  const [picked, setPicked] = useState<string | null>(null);
+export function AiRunPanel({ ticket, runId }: { ticket: Ticket; runId?: string | null }) {
+  const q = useTicketRuns(ticket.id);
+  const runs = (q.data ?? []).filter((r) => r.kind === 'team');
+  const [picked, setPicked] = useState<string | null>(runId ?? null);
   const [full, setFull] = useState(false);
+  useEffect(() => {
+    if (!runId) return;
+    setPicked(runId);
+    setFull(false);
+  }, [runId]);
   // "Expand all" / "Collapse all" of the whole page of the full history
   const [allOpen, setAllOpen] = useState(false);
   // a run that is gone (another ticket, a deleted run) falls back to the newest
   const shown = runs.find((r) => r.id === picked) ?? runs[0];
+  if (q.isError) return <LoadError what="the runs" error={q.error} onRetry={() => void q.refetch()} />;
+  if (q.isLoading) return <span className="ai-spin" />;
   const seg = (on: boolean): CSSProperties => ({
     padding: '5px 11px',
     borderRadius: 7,
@@ -121,6 +140,12 @@ export function AiRunPanelDesign({ ticket }: { ticket: Ticket }) {
               </button>
             </>
           )}
+        </div>
+      )}
+      {!shown && (
+        <div className="ai-card ai-root" style={{ padding: 20 }} data-testid="no-runs">
+          <b>No AI runs on this ticket yet</b>
+          <div className="ai-hint">Assign it to a team, or use Run.</div>
         </div>
       )}
       {full ? <FullHistory runs={runs} allOpen={allOpen} /> : shown && <RunPanel key={shown.id} runId={shown.id} />}

@@ -66,7 +66,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .ai-label-dark {
   color: #5b6b60;
@@ -78,7 +78,7 @@
 }
 .ai-muted {
   font-size: 11px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .ai-chip {
   display: inline-flex;
@@ -295,7 +295,7 @@
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   padding: 16px 32px;
   border-bottom: 1px solid #eef3ef;
 }
@@ -307,7 +307,7 @@
   background: none;
   border: none;
   font: inherit;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   cursor: pointer;
   padding: 0;
 }
@@ -462,7 +462,7 @@
   gap: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
 }
 .ai-step-n {
   width: 22px;
@@ -771,7 +771,7 @@
   margin-left: auto;
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   flex-shrink: 0;
 }
 .ai-popover {
@@ -821,7 +821,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   padding: 8px 10px;
   border-bottom: 1px solid #e3e8e5;
   background: #f6faf7;
@@ -1268,7 +1268,7 @@
   border-radius: 7px;
   border: 1px solid #e3e8e5;
   background: #fff;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -1408,7 +1408,7 @@
   right: 10px;
   bottom: 6px;
   font-size: 11px;
-  color: #9aa8a0;
+  color: var(--color-text-sec);
   pointer-events: none;
 }
 .ai-limits {

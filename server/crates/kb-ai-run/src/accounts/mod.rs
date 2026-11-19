@@ -434,7 +434,8 @@ pub async fn remove(
                 m.paused_reason = Some(format!("Account {} was removed: choose an account", account.name));
             }
         }
-        save_model(session, &read, m).await?;
+        let saved = save_model(session, &read, m).await?;
+        crate::runs::follow_member_account(session, &saved.id, saved.account_id.as_deref()).await?;
     }
     let profile = profile_of(&account).await?;
     in_thread(profile, |p| p.remove()).await?;
@@ -472,8 +473,15 @@ pub async fn assign(session: &Session, member_id: &str, account_id: Option<&str>
             profile.account_id = Some(account.id);
         }
     }
+    // what was checked was the old account: checked again, as an edit of the member's account does
+    if profile.account_id != read.account_id {
+        profile.health = "unknown".to_string();
+        profile.health_detail = None;
+        profile.checked_at = None;
+    }
     profile.updated_at = now_iso();
     let profile = save_model(session, &read, profile).await?;
+    crate::runs::follow_member_account(session, member_id, profile.account_id.as_deref()).await?;
     session.commit().await?;
     events::publish(events::INVALIDATE, &[]).await;
     Ok(profile)
