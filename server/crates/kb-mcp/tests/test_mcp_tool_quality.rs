@@ -184,10 +184,12 @@ async fn test_the_tool_list_stays_compact() {
     // AI v2 removed the ai_team tool and the permission, handoff, workflow and Story actions; ai_run is seven actions
     // (ask, message, reply, team, runs, report). Measured after that: 49,074 / 51,904 characters. Rich Docs added
     // the annotated view, the block and highlights reads, block edits (block_id, attrs) and the suggestions an AI
-    // team's change becomes: about 1,600 characters (52,030 / 54,860 measured). The bounds leave about 1.5 % of
-    // room; raise them on purpose, with what was added, never by reflex.
-    assert!(default < 52_800, "default tool list is {default} characters (about {} tokens)", default / 4);
-    assert!(full < 55_700, "full tool list is {full} characters (about {} tokens)", full / 4);
+    // team's change becomes: about 1,600 characters (52,030 / 54,860 measured). The Docs tools were then written
+    // short (one line per action, the details in docs_guide) while gaining settings, templates, export and table
+    // cells: 47,850 / 50,680 measured. The bounds leave about 1.5 % of room; raise them on purpose, with what was
+    // added, never by reflex.
+    assert!(default < 48_600, "default tool list is {default} characters (about {} tokens)", default / 4);
+    assert!(full < 51_500, "full tool list is {full} characters (about {} tokens)", full / 4);
     if target() == Target::Python {
         assert!(default < full);
         // the measure is the Python test's: the numbers of its comment, within the bounds
@@ -550,13 +552,21 @@ async fn test_sketches_are_actions_of_the_docs_tools_not_tools_of_their_own() {
     let (Some(read), Some(write)) = (listed.get("docs_read"), listed.get("docs_write")) else { return };
     let (read_text, write_text) =
         (read["description"].as_str().expect("text"), write["description"].as_str().expect("text"));
+    // each action is named on the line that says what it takes (one line may list related actions)
+    let lists = |text: &str, action: &str| {
+        text.lines().any(|l| {
+            l.starts_with("- ")
+                && l.split([':', '|', '/', ',', ' ', '.']).any(|w| w == action)
+                && l.split_once(':').is_some_and(|(head, _)| head.contains(action) || l.contains(&format!("{action}:")))
+        })
+    };
     for action in ["sketches", "sketch"] {
         assert!(kb_mcp::tools::docs::DOCS_READ_OPS.iter().any(|(a, _)| *a == action), "{action}");
-        assert!(read_text.contains(&format!("- {action}:")), "{action}");
+        assert!(lists(read_text, action), "{action}");
     }
     for action in ["sketch_create", "sketch_save"] {
         assert!(kb_mcp::tools::docs::DOCS_WRITE_OPS.iter().any(|(a, _)| *a == action), "{action}");
-        assert!(write_text.contains(&format!("- {action}:")), "{action}");
+        assert!(lists(write_text, action), "{action}");
     }
     // the limits an agent must respect are in front of it
     assert!(write_text.contains("base_version") && write_text.contains("stale"));

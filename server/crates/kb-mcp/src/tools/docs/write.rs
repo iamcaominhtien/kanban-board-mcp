@@ -3,7 +3,7 @@
 use serde_json::{Map, Value};
 
 use super::composite;
-use crate::common::{ToolError, ToolResult, arg_bool, arg_int, arg_str, arg_text};
+use crate::common::{ToolError, ToolResult, arg_bool, arg_int, arg_object, arg_str, arg_text};
 use crate::operations as ops;
 use crate::tools::routing::{Op, batch, dispatch, params_of};
 
@@ -26,17 +26,21 @@ pub const DOCS_WRITE_OPS: &[(&str, Op)] = &[
             |a| {
                 Box::pin(async move {
                     let (markdown, parent_id) = (arg_str(&a, "markdown").unwrap_or_default(), arg_str(&a, "parent_id"));
+                    let template = arg_str(&a, "template");
+                    let settings = arg_object(&a, "settings");
                     ops::create_docs_page(
                         &arg_text(&a, "project_id"),
                         &arg_text(&a, "title"),
                         &markdown,
                         parent_id.as_deref(),
+                        template.as_deref(),
+                        settings.as_ref(),
                     )
                     .await
                 })
             },
             &["project_id", "title"],
-            &["markdown", "parent_id"],
+            &["markdown", "parent_id", "template", "settings"],
         ),
     ),
     (
@@ -71,6 +75,19 @@ pub const DOCS_WRITE_OPS: &[(&str, Op)] = &[
             },
             &[],
             &["path", "data", "name"],
+        ),
+    ),
+    (
+        "settings",
+        Op::new(
+            |a| {
+                Box::pin(async move {
+                    let settings = arg_object(&a, "settings").unwrap_or_default();
+                    ops::set_docs_settings(&arg_text(&a, "page_id"), &settings).await
+                })
+            },
+            &["page_id", "settings"],
+            &[],
         ),
     ),
     (

@@ -203,14 +203,15 @@ async fn get_shows_block_markers_formatting_and_highlights() {
     assert_eq!(blocks(&stored)[1]["attrs"]["placement"], "floatRight");
 
     let got = read(&mcp, "get", json!({"page_id": page_id})).await;
-    assert_eq!(got["format"], "rich");
+    // a rich page says nothing of its format (an `md` one does), and empty lists are left out
+    assert!(got.get("format").is_none() && got.get("headings").is_none(), "{got}");
     let md = got["markdown"].as_str().expect("markdown");
     let first = id_of(&blocks(&stored)[0]);
     assert!(md.starts_with(&format!("<!-- #{first} align=center -->\n## Why we moved our roadmap")), "{md}");
     assert!(md.contains("placement=floatRight") && md.contains("caption=\"Planning night\""), "{md}");
     assert!(md.contains("pullQuote -->\n> The pages did"), "{md}");
     assert_eq!(md.matches("<!-- #b-").count(), blocks(&stored).len(), "one marker per block: {md}");
-    assert_eq!(got["highlights"], json!([]));
+    assert!(got.get("highlights").is_none(), "{got}");
 
     // a reader highlights a passage: the team reads it as a hint (author, colour, quote, block)
     let para = id_of(&blocks(&stored)[2]);
@@ -234,12 +235,13 @@ async fn get_shows_block_markers_formatting_and_highlights() {
         "{part_md}"
     );
 
-    // one block in full: its Markdown and its JSON
+    // one block: its Markdown (with its marker); the JSON only for a block Markdown cannot hold
     let image = id_of(&blocks(&stored)[1]);
     let one = read(&mcp, "block", json!({"page_id": page_id, "block_id": image})).await;
     assert_eq!(one["type"], "image");
-    assert_eq!(one["block"]["attrs"]["widthPct"], 40);
-    assert!(one["markdown"].as_str().expect("markdown").contains("![Six people at a table](/uploads/team.png)"));
+    let one_md = one["markdown"].as_str().expect("markdown");
+    assert!(one_md.contains("width=40") && one_md.contains("![Six people at a table](/uploads/team.png)"), "{one}");
+    assert!(one.get("block").is_none(), "{one}");
     let missing =
         call_err(&mcp, "docs_read", json!({"action": "block", "page_id": page_id, "block_id": "b-ffffff"})).await;
     assert!(missing.contains("No block b-ffffff"), "{missing}");
@@ -317,7 +319,10 @@ async fn block_edits_change_one_block_and_keep_the_others() {
         (json!({"block_id": para, "mode": "attrs", "attrs": {"nope": 1}}), "no attribute nope"),
         (json!({"block_id": para, "mode": "append", "markdown": "x"}), "replace, after, delete, attrs"),
         (json!({"block_id": para, "section": "Details", "markdown": "x"}), "not two of them"),
-        (json!({"find": "Tickets", "attrs": {"align": "center"}, "markdown": "x"}), "attrs works with block_id"),
+        (
+            json!({"find": "Tickets", "attrs": {"align": "center"}, "markdown": "x"}),
+            "attrs and cells work with block_id",
+        ),
     ] {
         let mut arguments = json!({"action": "edit", "page_id": page_id});
         for (k, v) in args.as_object().expect("args") {
@@ -584,4 +589,43 @@ async fn a_page_not_for_ai_teams_is_refused_to_a_team_only() {
     write(&mcp, "edit", json!({"page_id": page_id, "find": "two years", "markdown": "ages"})).await;
     let settings: Map<String, Value> = page(&c, &page_id).await["settings"].as_object().cloned().unwrap_or_default();
     assert_eq!(settings.get("notForAi"), Some(&json!(true)));
+}
+
+#[tokio::test]
+async fn a_team_sets_the_look_of_a_page_but_not_who_may_read_it() {
+    if !skip_unless_available("a_team_sets_the_look_of_a_page_but_not_who_may_read_it") {
+        return;
+    }
+    let s = Server::start().await;
+    let (c, mcp) = (s.client(), s.mcp());
+    let (pid, page_id) = post_page(&c, &mcp).await;
+    ai_team(&s, &pid).await;
+    let team = s.mcp().bearer(TOKEN);
+    let set =
+        call(&team, "docs_write", json!({"action": "settings", "page_id": page_id, "settings": {"width": "wide"}}))
+            .await;
+    assert_eq!(set["settings"]["width"], "wide");
+    for key in ["notForAi", "aiApply", "lockedBlocks", "highlights", "reviewedAt"] {
+        let refused = call_err(
+            &team,
+            "docs_write",
+            json!({"action": "settings", "page_id": page_id, "settings": {key: null, "width": "full"}}),
+        )
+        .await;
+        assert!(refused.contains(&format!("'{key}' is changed by a person only")), "{key}: {refused}");
+    }
+    let refused = call_err(
+        &team,
+        "docs_write",
+        json!({"action": "create", "project_id": pid, "title": "Open", "settings": {"notForAi": false}}),
+    )
+    .await;
+    assert!(refused.contains("person only"), "{refused}");
+    // refused before anything changed: no page was made, the width is still the team's
+    let settings = page(&c, &page_id).await["settings"].clone();
+    assert_eq!(settings["width"], "wide");
+    let titles: Vec<Value> = read(&mcp, "list", json!({"project_id": pid})).await.as_array().expect("a list").clone();
+    assert!(titles.iter().all(|t| t["title"] != "Open"), "{titles:?}");
+    // a person (or an agent outside a run) sets them
+    call(&mcp, "docs_write", json!({"action": "settings", "page_id": page_id, "settings": {"notForAi": true}})).await;
 }

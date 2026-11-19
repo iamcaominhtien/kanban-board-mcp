@@ -8,6 +8,7 @@ pub mod checklists;
 pub mod comments;
 pub mod diagrams;
 pub mod docs;
+pub mod docs_page;
 pub mod docs_rich;
 pub mod ideas;
 pub mod members;
@@ -40,6 +41,7 @@ pub use docs::{
     reopen_docs_comment, reply_docs_comment, resolve_docs_comment, resolve_docs_links, restore_docs_page,
     restore_docs_version, search_docs, unlink_ticket_doc, update_docs_page, upload_file,
 };
+pub use docs_page::{export_docs, list_docs_templates, set_docs_settings};
 pub use ideas::{
     create_idea_ticket, get_idea_activity_trail, get_idea_ticket, list_idea_assumptions, list_idea_tickets,
 };

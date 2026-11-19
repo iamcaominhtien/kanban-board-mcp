@@ -251,6 +251,11 @@ pub fn arg_list(args: &Map<String, Value>, name: &str) -> Option<Vec<Value>> {
     args.get(name).and_then(Value::as_array).cloned()
 }
 
+/// An object argument (`None` when left out, null or not an object).
+pub fn arg_object(args: &Map<String, Value>, name: &str) -> Option<Map<String, Value>> {
+    args.get(name).and_then(Value::as_object).cloned()
+}
+
 /// A list of texts argument (`None` when left out or null).
 pub fn arg_strings(args: &Map<String, Value>, name: &str) -> Option<Vec<String>> {
     args.get(name)

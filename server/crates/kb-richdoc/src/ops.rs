@@ -23,6 +23,44 @@ pub enum BlockOp {
     Delete { block_id: String },
     /// Set or clear attributes of the block (`null` clears one); unknown attributes are refused.
     SetAttrs { block_id: String, attrs: Map<String, Value> },
+    /// Set or clear attributes of some cells of a table block: `cells` is a cell (`B2`) or a range (`A1:C3`), a
+    /// column letter and a 1-based row as a spreadsheet names them (row 1 is the first row, the header row when
+    /// there is one; a merged cell counts once, where it starts).
+    SetCellAttrs { block_id: String, cells: String, attrs: Map<String, Value> },
+}
+
+/// The spreadsheet letter of a 0-based column (`0` is `A`, `26` is `AA`).
+pub fn column_letter(col: usize) -> String {
+    let mut n = col + 1;
+    let mut out = Vec::new();
+    while n > 0 {
+        let r = (n - 1) % 26;
+        out.push(char::from(b'A' + u8::try_from(r).unwrap_or(0)));
+        n = (n - 1) / 26;
+    }
+    out.iter().rev().collect()
+}
+
+/// The cells a range names: `(first row, first column, last row, last column)`, 0-based and inclusive.
+///
+/// # Errors
+/// [`RichDocError::Invalid`] for a range that is not `B2` or `A1:C3`.
+pub fn cell_range(cells: &str) -> Result<(usize, usize, usize, usize), RichDocError> {
+    fn one(c: &str) -> Option<(usize, usize)> {
+        let c = c.trim();
+        let letters: String = c.chars().take_while(char::is_ascii_alphabetic).collect();
+        let digits = &c[letters.len()..];
+        if letters.is_empty() || letters.len() > 2 || digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
+            return None;
+        }
+        let col = letters.to_ascii_uppercase().bytes().fold(0usize, |n, b| n * 26 + usize::from(b - b'A' + 1)) - 1;
+        let row = digits.parse::<usize>().ok()?.checked_sub(1)?;
+        Some((row, col))
+    }
+    let bad = || RichDocError::Invalid(format!("cells: '{cells}' is not a cell (B2) or a range (A1:C3)"));
+    let (a, b) = cells.split_once(':').unwrap_or((cells, cells));
+    let ((r1, c1), (r2, c2)) = (one(a).ok_or_else(bad)?, one(b).ok_or_else(bad)?);
+    Ok((r1.min(r2), c1.min(c2), r1.max(r2), c1.max(c2)))
 }
 
 fn children(n: &Value) -> &[Value] {
@@ -254,6 +292,58 @@ pub fn apply(doc: &Value, edits: &[BlockOp], ids: &mut dyn IdSource) -> Result<V
                                 a.remove(&k);
                             } else {
                                 a.insert(k, v);
+                            }
+                        }
+                    }
+                }
+            }
+            BlockOp::SetCellAttrs { block_id: id, cells, attrs } => {
+                let (r1, c1, r2, c2) = cell_range(cells)?;
+                let place = find(&doc, id).ok_or_else(|| no_block(id))?;
+                let target = get(&doc, &place).ok_or_else(|| no_block(id))?;
+                if ty(target) != "table" {
+                    return Err(RichDocError::Invalid(format!(
+                        "cells works on a table; block {id} is a {}",
+                        ty(target)
+                    )));
+                }
+                let mut updates: Vec<(String, Value)> = Vec::new();
+                for (k, v) in attrs {
+                    let name = schema_name("tableCell", k)
+                        .ok_or_else(|| RichDocError::Invalid(format!("a table cell has no attribute {k}")))?;
+                    if matches!(name.as_str(), "colspan" | "rowspan" | "colwidth") {
+                        return Err(RichDocError::Invalid(format!(
+                            "{k} is the table's shape, not a cell's format: merging cells is done in the editor"
+                        )));
+                    }
+                    if !v.is_null() {
+                        check_attr("tableCell", &name, v)?;
+                    }
+                    updates.push((name, v.clone()));
+                }
+                let c = container_mut(&mut doc, &place.0).ok_or_else(|| no_block(id))?;
+                let table = c.get_mut(place.1).ok_or_else(|| no_block(id))?;
+                let rows = table.get_mut("content").and_then(Value::as_array_mut);
+                let rows = rows.ok_or_else(|| RichDocError::Invalid(format!("table {id} has no rows")))?;
+                let (n_rows, n_cols) = (rows.len(), rows.iter().map(|r| children(r).len()).max().unwrap_or(0));
+                if r2 >= n_rows || c2 >= n_cols {
+                    return Err(RichDocError::Invalid(format!(
+                        "cells: '{cells}' is outside the table ({n_rows} rows, {n_cols} columns: A1:{}{n_rows})",
+                        column_letter(n_cols.saturating_sub(1))
+                    )));
+                }
+                for row in &mut rows[r1..=r2] {
+                    let Some(cells) = row.get_mut("content").and_then(Value::as_array_mut) else { continue };
+                    for cell in cells.iter_mut().skip(c1).take(c2 + 1 - c1) {
+                        let Some(obj) = cell.as_object_mut() else { continue };
+                        let a = obj.entry("attrs").or_insert_with(|| Value::Object(Map::new()));
+                        if let Some(a) = a.as_object_mut() {
+                            for (k, v) in &updates {
+                                if v.is_null() {
+                                    a.remove(k);
+                                } else {
+                                    a.insert(k.clone(), v.clone());
+                                }
                             }
                         }
                     }

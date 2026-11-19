@@ -15,7 +15,7 @@ use crate::operations::docs_rich;
 use crate::tools::routing::dispatch;
 
 /// `_EDIT_KEYS`, and the keys of a block edit.
-const EDIT_KEYS: [&str; 6] = ["section", "find", "block_id", "markdown", "mode", "attrs"];
+const EDIT_KEYS: [&str; 7] = ["section", "find", "block_id", "markdown", "mode", "attrs", "cells"];
 
 /// `given.get(key) is not None`.
 fn given_key<'a>(given: &'a Map<String, Value>, key: &str) -> Option<&'a Value> {
@@ -130,13 +130,14 @@ async fn edit_inner(given: Map<String, Value>) -> ToolResult {
         "markdown",
         "mode",
         "attrs",
+        "cells",
     ];
     let extra: Vec<&str> =
         given.iter().filter(|(k, v)| !v.is_null() && !allowed.contains(&k.as_str())).map(|(k, _)| k.as_str()).collect();
     if !extra.is_empty() {
         return Err(ToolError::Value(format!(
             "docs_write(action='edit') does not use: {}. It takes page_id, markdown, section | find | block_id [, \
-             mode, attrs, base_version, note, publish] or items.",
+             mode, attrs, cells, base_version, note, publish] or items.",
             extra.join(", ")
         )));
     }
@@ -225,13 +226,21 @@ async fn edit_inner(given: Map<String, Value>) -> ToolResult {
             }
             let mode = given_text(e, "mode").filter(|m| !m.is_empty()).unwrap_or_else(|| "replace".into());
             let markdown = given_text(e, "markdown");
-            let new = docs_rich::block_edit(now, &block_id, &mode, markdown.as_deref(), given_key(e, "attrs"))
-                .map_err(failed)?;
+            let cells = given_text(e, "cells");
+            let new = docs_rich::block_edit(
+                now,
+                &block_id,
+                &mode,
+                markdown.as_deref(),
+                given_key(e, "attrs"),
+                cells.as_deref(),
+            )
+            .map_err(failed)?;
             text = kb_richdoc::doc_to_annotated(&new);
             doc = Some(new);
         } else {
-            if given_key(e, "attrs").is_some() {
-                return Err(failed(ToolError::value("attrs works with block_id and mode='attrs'.")));
+            if given_key(e, "attrs").is_some() || given_key(e, "cells").is_some() {
+                return Err(failed(ToolError::value("attrs and cells work with block_id and mode='attrs'.")));
             }
             // a later edit in the same call works on the text the earlier ones made
             let base_text = if i == 0 { base.as_ref().map(|(t, _)| t.as_str()) } else { None };
@@ -446,6 +455,10 @@ async fn tickets_of_page(given: Map<String, Value>) -> ToolResult {
     };
     let page = dispatch("docs_read", DOCS_READ_OPS, "get", json_map(json!({"page_id": page_id}))).await?;
     let markdown = page["markdown"].as_str().unwrap_or_default().to_string();
+    // the answer of get no longer names the project: read it from the page
+    let session = common::async_session();
+    let project_id =
+        docs_rich::load(&session, &page_id).await?.detail.get("project_id").cloned().unwrap_or(Value::Null);
     let drafts_given = given_key(&given, "items").cloned();
     let mut lines: Vec<Option<String>> = Vec::new();
     let mut skipped: Vec<Value> = Vec::new();
@@ -525,7 +538,7 @@ async fn tickets_of_page(given: Map<String, Value>) -> ToolResult {
         let heading: String = pytext::strip(&pyjson::py_str(&d["title"])).chars().take(200).collect();
         let mut args = json_map(json!({
             "action": "create",
-            "project_id": page["project_id"],
+            "project_id": project_id,
             "title": heading,
             "description": description,
             "type": d.get("type").filter(|v| pyjson::truthy(v)).cloned().unwrap_or(json!("task")),

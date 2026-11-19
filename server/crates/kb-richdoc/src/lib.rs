@@ -15,6 +15,7 @@ pub mod ops;
 pub mod schema;
 mod text;
 
+pub use annotated::short_name;
 pub use ids::{carries_block_id, is_block_id};
 
 /// The format version written with every rich page (`schema.json` `formatVersion`).

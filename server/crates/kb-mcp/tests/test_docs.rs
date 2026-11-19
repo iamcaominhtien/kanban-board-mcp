@@ -21,7 +21,7 @@ async fn test_mcp_docs_tools_round_trip_and_conflict() {
     assert!(created["version"] == 1 && created["status"] == "published");
     let page = call(&mcp, "docs_read", json!({"action": "get", "page_id": created["id"]})).await;
     let text = common::without_markers(page["markdown"].as_str().expect("text"));
-    assert!(text.starts_with("## Steps") && page["headings"][0]["slug"] == "steps");
+    assert!(text.starts_with("## Steps"), "{text}");
     let updated = call(
         &mcp,
         "docs_write",
@@ -43,12 +43,9 @@ async fn test_mcp_docs_tools_round_trip_and_conflict() {
     )
     .await;
     assert!(draft_only["published"] == false && draft_only["version"] == 2);
+    // the draft is the agent's own: the page stays at its published version
     let tree = call(&mcp, "docs_read", json!({"action": "list", "project_id": pid})).await;
-    let rows: Vec<(String, i64)> = tree
-        .as_array()
-        .expect("a list")
-        .iter()
-        .map(|t| (t["title"].as_str().expect("a title").to_string(), t["version"].as_i64().expect("a version")))
-        .collect();
-    assert_eq!(rows, [("Runbook".to_string(), 2)]);
+    assert_eq!(tree, json!([{"id": created["id"], "parent_id": null, "title": "Runbook", "status": "published"}]));
+    let page = call(&mcp, "docs_read", json!({"action": "get", "page_id": created["id"]})).await;
+    assert_eq!(page["version"], 2);
 }

@@ -3,7 +3,7 @@
 
 use serde_json::{Map, Value};
 
-use crate::common::{ToolResult, arg_int, arg_str, arg_strings, arg_text};
+use crate::common::{ToolResult, arg_bool, arg_int, arg_str, arg_strings, arg_text};
 use crate::operations as ops;
 use crate::operations::pictures::PictureArgs;
 use crate::tools::routing::{Op, dispatch, params_of};
@@ -24,11 +24,12 @@ pub const DOCS_READ_OPS: &[(&str, Op)] = &[
             |a| {
                 Box::pin(async move {
                     let section = arg_str(&a, "section");
-                    ops::get_docs_page(&arg_text(&a, "page_id"), section.as_deref()).await
+                    let plain = arg_bool(&a, "plain").unwrap_or(false);
+                    ops::get_docs_page(&arg_text(&a, "page_id"), section.as_deref(), plain).await
                 })
             },
             &["page_id"],
-            &["section"],
+            &["section", "plain"],
         ),
     ),
     (
@@ -89,6 +90,28 @@ pub const DOCS_READ_OPS: &[(&str, Op)] = &[
             },
             &["page_id", "version"],
             &["compare_to"],
+        ),
+    ),
+    (
+        "templates",
+        Op::new(
+            |a| Box::pin(async move { ops::list_docs_templates(&arg_text(&a, "project_id")).await }),
+            &["project_id"],
+            &[],
+        ),
+    ),
+    (
+        "export",
+        Op::new(
+            |a| {
+                Box::pin(async move {
+                    let scope = arg_str(&a, "scope").unwrap_or_else(|| "page".to_string());
+                    let format = arg_str(&a, "format").unwrap_or_else(|| "md".to_string());
+                    ops::export_docs(&arg_text(&a, "page_id"), &scope, &format, &arg_text(&a, "path")).await
+                })
+            },
+            &["page_id", "path"],
+            &["scope", "format"],
         ),
     ),
     (

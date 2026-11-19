@@ -189,14 +189,15 @@ pub fn block_edit(
     mode: &str,
     markdown: Option<&str>,
     attrs: Option<&Value>,
+    cells: Option<&str>,
 ) -> Result<Value, ToolError> {
     let need_markdown = || {
         markdown
             .filter(|m| !m.trim().is_empty())
             .ok_or_else(|| ToolError::Value(format!("block_id with mode='{mode}' needs markdown: the new block(s).")))
     };
-    if !matches!(mode, "attrs") && attrs.is_some() {
-        return Err(ToolError::value("attrs works with block_id and mode='attrs'."));
+    if !matches!(mode, "attrs") && (attrs.is_some() || cells.is_some()) {
+        return Err(ToolError::value("attrs and cells work with block_id and mode='attrs'."));
     }
     let apply = |op: BlockOp| kb_richdoc::ops::apply(doc, &[op], &mut RandomIds).map_err(richdoc_error);
     match mode {
@@ -238,7 +239,14 @@ pub fn block_edit(
                     "block_id with mode='attrs' needs attrs: an object such as {\"align\": \"center\"} (null clears one).",
                 ));
             };
-            apply(BlockOp::SetAttrs { block_id: block_id.to_string(), attrs: attrs.clone() })
+            match cells.filter(|c| !c.trim().is_empty()) {
+                Some(cells) => apply(BlockOp::SetCellAttrs {
+                    block_id: block_id.to_string(),
+                    cells: cells.to_string(),
+                    attrs: attrs.clone(),
+                }),
+                None => apply(BlockOp::SetAttrs { block_id: block_id.to_string(), attrs: attrs.clone() }),
+            }
         }
         other => Err(ToolError::Value(format!("mode with block_id: {}, not '{other}'.", BLOCK_MODES.join(", ")))),
     }
@@ -415,17 +423,17 @@ mod tests {
         let mut centred = para("b-000001", "Old");
         centred["attrs"]["textAlign"] = json!("center");
         let doc = json!({"type": "doc", "content": [centred, para("b-000002", "Next")]});
-        let new = block_edit(&doc, "b-000001", "replace", Some("New *words*"), None).unwrap();
+        let new = block_edit(&doc, "b-000001", "replace", Some("New *words*"), None, None).unwrap();
         let block = find_block(&new, "b-000001").unwrap();
         assert_eq!(block["attrs"]["textAlign"], "center");
         assert_eq!(find_block(&new, "b-000002"), find_block(&doc, "b-000002"));
         // a heading in its place is a new kind of block: nothing is carried over
-        let new = block_edit(&doc, "b-000001", "replace", Some("## Title"), None).unwrap();
+        let new = block_edit(&doc, "b-000001", "replace", Some("## Title"), None, None).unwrap();
         assert_eq!(find_block(&new, "b-000001").unwrap()["type"], "heading");
         assert!(find_block(&new, "b-000001").unwrap()["attrs"].get("textAlign").is_none());
-        let new = block_edit(&doc, "b-000002", "attrs", None, Some(&json!({"align": "right"}))).unwrap();
+        let new = block_edit(&doc, "b-000002", "attrs", None, Some(&json!({"align": "right"})), None).unwrap();
         assert_eq!(find_block(&new, "b-000002").unwrap()["attrs"]["textAlign"], "right");
-        assert!(block_edit(&doc, "b-000002", "attrs", None, Some(&json!({"nope": 1}))).is_err());
-        assert!(block_edit(&doc, "b-0000ff", "delete", None, None).is_err());
+        assert!(block_edit(&doc, "b-000002", "attrs", None, Some(&json!({"nope": 1})), None).is_err());
+        assert!(block_edit(&doc, "b-0000ff", "delete", None, None, None).is_err());
     }
 }
