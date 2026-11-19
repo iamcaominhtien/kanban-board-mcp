@@ -595,6 +595,11 @@ async fn tickets_of_page(given: Map<String, Value>) -> ToolResult {
     Ok(Value::Object(out))
 }
 
+/// The refusal of `assign` for a member that is no AI team of the project, and where to find one.
+const NO_TEAM: &str = "Pick an AI team of this project.";
+const NO_TEAM_HINT: &str = "member_id is an AI team's member id (get_projects with project_id lists the members); a person adds a team in \
+     the app (AI Team).";
+
 /// `docs_write(assign)`: a ticket that gives the page to an AI team to write or review; its lead starts on it.
 pub fn assign(given: Map<String, Value>) -> futures::future::BoxFuture<'static, ToolResult> {
     Box::pin(assign_page(given))
@@ -626,6 +631,8 @@ async fn assign_page(given: Map<String, Value>) -> ToolResult {
     .await
     .map_err(|err| match err {
         // `str(exc)`: a DocsError is its message
+        kb_docs::Error::Value(m) if m == NO_TEAM => ToolError::Value(format!("{m} {NO_TEAM_HINT}")),
+        kb_docs::Error::Docs(exc) if exc.message == NO_TEAM => ToolError::Value(format!("{NO_TEAM} {NO_TEAM_HINT}")),
         kb_docs::Error::Docs(exc) => ToolError::Value(exc.message),
         other => docs_error(other),
     })?;

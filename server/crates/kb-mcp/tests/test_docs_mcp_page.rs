@@ -305,6 +305,14 @@ async fn a_book_exports_its_chapters_and_the_tree_reads_in_order() {
     let mut xml = String::new();
     std::io::Read::read_to_string(&mut zip.by_name("word/document.xml").expect("its text"), &mut xml).expect("read");
     assert!(xml.contains("Harbour Lights") && xml.contains("Text of One"), "the book's title and chapters");
+    // into a folder: the file is named after the book
+    let named = read(
+        &mcp,
+        "export",
+        json!({"page_id": two, "scope": "book", "format": "docx", "path": dir.path().to_str().expect("utf-8")}),
+    )
+    .await;
+    assert!(named["path"].as_str().expect("a path").ends_with("Harbour Lights.docx"), "{named}");
     let lonely = call_err(
         &mcp,
         "docs_read",
@@ -333,6 +341,15 @@ async fn history_pictures_and_the_guide_are_short() {
         )
         .await;
     }
+    let old = read(&mcp, "version", json!({"page_id": id, "version": 1})).await;
+    assert!(old["markdown"].as_str().is_some_and(|m| m.contains("Line 3.")) && old.get("content").is_none(), "{old}");
+    let assign = call_err(
+        &mcp,
+        "docs_write",
+        json!({"action": "assign", "page_id": id, "member_id": "nobody", "kind": "review"}),
+    )
+    .await;
+    assert!(assign.contains("get_projects") && assign.contains("AI Team"), "{assign}");
     let versions = read(&mcp, "versions", json!({"page_id": id, "limit": 2})).await;
     assert_eq!(versions.as_array().map(Vec::len), Some(2), "{versions}");
     let diff = read(&mcp, "version", json!({"page_id": id, "version": 1, "compare_to": 4})).await;

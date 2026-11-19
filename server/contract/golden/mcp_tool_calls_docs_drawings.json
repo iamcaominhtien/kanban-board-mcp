@@ -681,7 +681,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: This is not a sketch source (wrong format)."
+        "text": "Error executing tool docs_write: This is not a sketch source (wrong format). A .sketch.json is {\"format\": \"kanban-sketch\", \"version\": 1, width, height, layers}; docs_read(action='sketch') writes one to start from."
       }
     ],
     "isError": true
@@ -885,7 +885,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: This is not a sketch source (wrong format)."
+        "text": "Error executing tool docs_write: This is not a sketch source (wrong format). A .sketch.json is {\"format\": \"kanban-sketch\", \"version\": 1, width, height, layers}; docs_read(action='sketch') writes one to start from."
       }
     ],
     "isError": true

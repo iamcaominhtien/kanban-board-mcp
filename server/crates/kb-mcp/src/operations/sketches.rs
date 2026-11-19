@@ -15,6 +15,10 @@ pub fn sketch_error(err: DrawFailure) -> ToolError {
         DrawFailure::Docs(exc) => {
             let hint = if exc.code == "sketch_conflict" {
                 " Export the sketch again, re-apply your change on the new version, and save it."
+            } else if exc.message.contains("not a sketch source") {
+                // what the right file is: the one docs_read(sketch) writes
+                " A .sketch.json is {\"format\": \"kanban-sketch\", \"version\": 1, width, height, layers}; \
+                 docs_read(action='sketch') writes one to start from."
             } else {
                 ""
             };

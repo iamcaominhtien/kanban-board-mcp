@@ -121,11 +121,13 @@ pub async fn export_docs(page_id: &str, scope: &str, format: &str, path: &str) -
     let session = common::async_session();
     let page = docs::page_detail(&session, page_id).await.map_err(docs_error)?;
     let project_id = page.get("project_id").and_then(Value::as_str).unwrap_or_default().to_string();
-    let (page_ids, book) = if scope == "book" {
+    let (page_ids, book, file_name) = if scope == "book" {
         let (root, ids) = chapters(&session, &project_id, &page).await?;
-        (Some(ids), Some(book_details(&root)))
+        // the file is named after the book, not after its first chapter
+        let name = root.get("title").and_then(Value::as_str).map(str::to_string);
+        (Some(ids), Some(book_details(&root)), name)
     } else {
-        (None, None)
+        (None, None, None)
     };
     let req = ExportRequest {
         scope: scope.to_string(),
@@ -133,7 +135,7 @@ pub async fn export_docs(page_id: &str, scope: &str, format: &str, path: &str) -
         page_ids,
         format: format.to_string(),
         draft: false,
-        file_name: None,
+        file_name,
         options: Map::new(),
         book,
     };

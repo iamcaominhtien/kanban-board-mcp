@@ -1155,7 +1155,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"version\":1,\"title\":\"Runbook\",\"markdown\":\"## Overview\\n\\nThe API is REST.\\n\\n## Endpoints\\n\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n## Limits\\n\\nRate limits are not enforced yet.\",\"format\":\"rich\",\"content\":{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:1>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Overview\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:2>\"},\"content\":[{\"type\":\"text\",\"text\":\"The API is REST.\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:3>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Endpoints\"}]},{\"type\":\"table\",\"attrs\":{\"blockId\":\"<bid:4>\"},\"content\":[{\"type\":\"tableRow\",\"attrs\":{\"blockId\":\"<bid:21>\"},\"content\":[{\"type\":\"tableHeader\",\"attrs\":{\"blockId\":\"<bid:22>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:23>\"},\"content\":[{\"type\":\"text\",\"text\":\"Method\"}]}]},{\"type\":\"tableHeader\",\"attrs\":{\"blockId\":\"<bid:24>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:25>\"},\"content\":[{\"type\":\"text\",\"text\":\"Path\"}]}]}]},{\"type\":\"tableRow\",\"attrs\":{\"blockId\":\"<bid:26>\"},\"content\":[{\"type\":\"tableCell\",\"attrs\":{\"blockId\":\"<bid:27>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:28>\"},\"content\":[{\"type\":\"text\",\"text\":\"GET\"}]}]},{\"type\":\"tableCell\",\"attrs\":{\"blockId\":\"<bid:29>\"},\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:30>\"},\"content\":[{\"type\":\"text\",\"text\":\"/tickets\"}]}]}]}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:5>\",\"level\":3},\"content\":[{\"type\":\"text\",\"text\":\"Errors\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:6>\"},\"content\":[{\"type\":\"text\",\"text\":\"401 when the token is missing.\"}]},{\"type\":\"heading\",\"attrs\":{\"blockId\":\"<bid:7>\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Limits\"}]},{\"type\":\"paragraph\",\"attrs\":{\"blockId\":\"<bid:8>\"},\"content\":[{\"type\":\"text\",\"text\":\"Rate limits are not enforced yet.\"}]}]},\"author\":\"agent\",\"note\":\"Created via MCP\",\"created_at\":\"<time>\",\"diagram_versions\":{},\"with_ai\":false}"
+        "text": "{\"version\":1,\"title\":\"Runbook\",\"markdown\":\"## Overview\\n\\nThe API is REST.\\n\\n## Endpoints\\n\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n### Errors\\n\\n401 when the token is missing.\\n\\n## Limits\\n\\nRate limits are not enforced yet.\",\"format\":\"rich\",\"with_ai\":false,\"author\":\"agent\",\"note\":\"Created via MCP\",\"created_at\":\"<time>\",\"diagram_versions\":{}}"
       }
     ],
     "isError": false
@@ -1227,7 +1227,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":4,\"published\":true,\"changed\":[\"section 'Limits'\"],\"now\":\"<!-- #<bid:7> -->\\n## Limits\\n\\n<!-- #<bid:31> -->\\nRate limits are 100 per minute.\"}"
+        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":4,\"published\":true,\"changed\":[\"section 'Limits'\"],\"now\":\"<!-- #<bid:7> -->\\n## Limits\\n\\n<!-- #<bid:21> -->\\nRate limits are 100 per minute.\"}"
       }
     ],
     "isError": false
@@ -1236,7 +1236,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":5,\"published\":true,\"changed\":[\"section 'limits'\"],\"now\":\"<!-- #<bid:7> -->\\n## Limits and quotas\\n\\n<!-- #<bid:32> -->\\nSee the plan.\"}"
+        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":5,\"published\":true,\"changed\":[\"section 'limits'\"],\"now\":\"<!-- #<bid:7> -->\\n## Limits and quotas\\n\\n<!-- #<bid:22> -->\\nSee the plan.\"}"
       }
     ],
     "isError": false
@@ -1245,7 +1245,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":6,\"published\":true,\"changed\":[\"section 'Endpoints'\"],\"now\":\"<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:33> -->\\n| POST | /tickets |\"}"
+        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":6,\"published\":true,\"changed\":[\"section 'Endpoints'\"],\"now\":\"<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:23> -->\\n| POST | /tickets |\"}"
       }
     ],
     "isError": false
@@ -1254,7 +1254,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":7,\"published\":true,\"changed\":[\"section 'Overview'\"],\"now\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:34> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\"}"
+        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":7,\"published\":true,\"changed\":[\"section 'Overview'\"],\"now\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:24> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\"}"
       }
     ],
     "isError": false
@@ -1263,7 +1263,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":8,\"published\":true,\"changed\":[\"section 'Overview'\"],\"now\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:34> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\"}"
+        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":8,\"published\":true,\"changed\":[\"section 'Overview'\"],\"now\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:24> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\"}"
       }
     ],
     "isError": false
@@ -1272,7 +1272,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":9,\"published\":true,\"changed\":[\"section 'Auth'\"],\"now\":\"<!-- #<bid:35> -->\\n## Auth\\n\\n<!-- #<bid:36> -->\\nTokens.\"}"
+        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":9,\"published\":true,\"changed\":[\"section 'Auth'\"],\"now\":\"<!-- #<bid:25> -->\\n## Auth\\n\\n<!-- #<bid:26> -->\\nTokens.\"}"
       }
     ],
     "isError": false
@@ -1434,7 +1434,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: conflict: section 'Appendix' was changed since the version you read. It now reads:\n\n<!-- #<bid:37> -->\n## Appendix\n\n<!-- #<bid:38> -->\nLast.\n\n<!-- #<bid:39> -->\nFinal words!\n\nApply your change to this text and retry with the page's current version as base_version. Nothing was changed."
+        "text": "Error executing tool docs_write: conflict: section 'Appendix' was changed since the version you read. It now reads:\n\n<!-- #<bid:27> -->\n## Appendix\n\n<!-- #<bid:28> -->\nLast.\n\n<!-- #<bid:29> -->\nFinal words!\n\nApply your change to this text and retry with the page's current version as base_version. Nothing was changed."
       }
     ],
     "isError": true
@@ -1443,7 +1443,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: conflict: section 'Limits and quotas' was changed since the version you read. It now reads:\n\n<!-- #<bid:7> -->\n## Limits and quotas\n\n<!-- #<bid:32> -->\nSee the plan.\n\nApply your change to this text and retry with the page's current version as base_version. Nothing was changed."
+        "text": "Error executing tool docs_write: conflict: section 'Limits and quotas' was changed since the version you read. It now reads:\n\n<!-- #<bid:7> -->\n## Limits and quotas\n\n<!-- #<bid:22> -->\nSee the plan.\n\nApply your change to this text and retry with the page's current version as base_version. Nothing was changed."
       }
     ],
     "isError": true
@@ -1461,7 +1461,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\",\"version\":12,\"markdown\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:34> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\\n\\n<!-- #<bid:40> -->\\n## Intro\\n\\n<!-- #<bid:41> -->\\nHi.\\n\\n<!-- #<bid:35> -->\\n## Auth\\n\\n<!-- #<bid:36> -->\\nTokens.More tokens.\\n\\n<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:33> -->\\n| POST | /tickets |\\n\\n<!-- #<bid:7> -->\\n## Limits and quotas\\n\\n<!-- #<bid:32> -->\\nSee the plan.\\n\\n<!-- #<bid:37> -->\\n## Appendix\\n\\n<!-- #<bid:38> -->\\nLast.\\n\\n<!-- #<bid:39> -->\\nFinal words!\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"referenced_by\":{\"pages\":[{\"page_id\":\"<uuid:9>\",\"title\":\"Limits \\\"v2\\\" & more\",\"excerpt\":\"See [[Runbook#Limits]] and Ghost and $t1.\",\"section\":\"Limits\"}]}}"
+        "text": "{\"id\":\"<uuid:4>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\",\"version\":12,\"markdown\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:24> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\\n\\n<!-- #<bid:30> -->\\n## Intro\\n\\n<!-- #<bid:31> -->\\nHi.\\n\\n<!-- #<bid:25> -->\\n## Auth\\n\\n<!-- #<bid:26> -->\\nTokens.More tokens.\\n\\n<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:23> -->\\n| POST | /tickets |\\n\\n<!-- #<bid:7> -->\\n## Limits and quotas\\n\\n<!-- #<bid:22> -->\\nSee the plan.\\n\\n<!-- #<bid:27> -->\\n## Appendix\\n\\n<!-- #<bid:28> -->\\nLast.\\n\\n<!-- #<bid:29> -->\\nFinal words!\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"referenced_by\":{\"pages\":[{\"page_id\":\"<uuid:9>\",\"title\":\"Limits \\\"v2\\\" & more\",\"excerpt\":\"See [[Runbook#Limits]] and Ghost and $t1.\",\"section\":\"Limits\"}]}}"
       }
     ],
     "isError": false
@@ -2019,7 +2019,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:5>\",\"parent_id\":\"<uuid:4>\",\"title\":\"Child\",\"status\":\"published\",\"version\":3,\"markdown\":\"<!-- #<bid:42> -->\\nBody\\n\\n<!-- #<bid:43> -->\\n![end.png](/uploads/end-<random>.png)\\n\\n<!-- #<bid:44> -->\\n![both.png](/uploads/both-<random>.png)\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\"}"
+        "text": "{\"id\":\"<uuid:5>\",\"parent_id\":\"<uuid:4>\",\"title\":\"Child\",\"status\":\"published\",\"version\":3,\"markdown\":\"<!-- #<bid:32> -->\\nBody\\n\\n<!-- #<bid:33> -->\\n![end.png](/uploads/end-<random>.png)\\n\\n<!-- #<bid:34> -->\\n![both.png](/uploads/both-<random>.png)\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\"}"
       }
     ],
     "isError": false
@@ -2028,7 +2028,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":12,\"section\":\"Overview\",\"markdown\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:34> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\",\"sections\":[\"## Overview\",\"## Intro\",\"## Auth\",\"## Endpoints\",\"### Errors\",\"## Limits and quotas\",\"## Appendix\"]}"
+        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":12,\"section\":\"Overview\",\"markdown\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:24> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\",\"sections\":[\"## Overview\",\"## Intro\",\"## Auth\",\"## Endpoints\",\"### Errors\",\"## Limits and quotas\",\"## Appendix\"]}"
       }
     ],
     "isError": false
@@ -2145,7 +2145,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:30>\",\"parent_id\":null,\"title\":\"Plan\",\"status\":\"published\",\"version\":2,\"markdown\":\"<!-- #<bid:45> -->\\n## Todo\\n\\n<!-- #<bid:46> -->\\n- [ ] Write the spec DOC-2\\n- [ ] Review the spec DOC-3\\n- [x] Done already\\n\\n<!-- #<bid:47> -->\\n- Action: Ask the owner DOC-4\\n\\n<!-- #<bid:48> -->\\n- [ ] Has a ticket DOC-1\\n\\n<!-- #<bid:49> -->\\n## Notes\\n\\n<!-- #<bid:50> -->\\nNothing here.\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"referenced_by\":{\"tickets\":[{\"ticket_id\":\"DOC-2\",\"title\":\"Write the spec\",\"status\":\"backlog\",\"origin\":\"description\",\"detail\":\"\",\"context\":\"From the page Plan:\",\"excerpt\":\"From the page [[Plan]]:\",\"target_anchor\":null},{\"ticket_id\":\"DOC-3\",\"title\":\"Review the spec\",\"status\":\"backlog\",\"origin\":\"description\",\"detail\":\"\",\"context\":\"From the page Plan:\",\"excerpt\":\"From the page [[Plan]]:\",\"target_anchor\":null},{\"ticket_id\":\"DOC-4\",\"title\":\"Ask the owner\",\"status\":\"backlog\",\"origin\":\"description\",\"detail\":\"\",\"context\":\"From the page Plan:\",\"excerpt\":\"From the page [[Plan]]:\",\"target_anchor\":null}]},\"work\":{\"tickets\":[{\"id\":\"DOC-2\",\"title\":\"Write the spec\",\"status\":\"backlog\",\"assignee\":null,\"run\":null},{\"id\":\"DOC-3\",\"title\":\"Review the spec\",\"status\":\"backlog\",\"assignee\":null,\"run\":null},{\"id\":\"DOC-4\",\"title\":\"Ask the owner\",\"status\":\"backlog\",\"assignee\":null,\"run\":null},{\"id\":\"DOC-1\",\"title\":\"Rate limit\",\"status\":\"backlog\",\"assignee\":null,\"run\":null}],\"active\":0}}"
+        "text": "{\"id\":\"<uuid:30>\",\"parent_id\":null,\"title\":\"Plan\",\"status\":\"published\",\"version\":2,\"markdown\":\"<!-- #<bid:35> -->\\n## Todo\\n\\n<!-- #<bid:36> -->\\n- [ ] Write the spec DOC-2\\n- [ ] Review the spec DOC-3\\n- [x] Done already\\n\\n<!-- #<bid:37> -->\\n- Action: Ask the owner DOC-4\\n\\n<!-- #<bid:38> -->\\n- [ ] Has a ticket DOC-1\\n\\n<!-- #<bid:39> -->\\n## Notes\\n\\n<!-- #<bid:40> -->\\nNothing here.\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"referenced_by\":{\"tickets\":[{\"ticket_id\":\"DOC-2\",\"title\":\"Write the spec\",\"status\":\"backlog\",\"origin\":\"description\",\"detail\":\"\",\"context\":\"From the page Plan:\",\"excerpt\":\"From the page [[Plan]]:\",\"target_anchor\":null},{\"ticket_id\":\"DOC-3\",\"title\":\"Review the spec\",\"status\":\"backlog\",\"origin\":\"description\",\"detail\":\"\",\"context\":\"From the page Plan:\",\"excerpt\":\"From the page [[Plan]]:\",\"target_anchor\":null},{\"ticket_id\":\"DOC-4\",\"title\":\"Ask the owner\",\"status\":\"backlog\",\"origin\":\"description\",\"detail\":\"\",\"context\":\"From the page Plan:\",\"excerpt\":\"From the page [[Plan]]:\",\"target_anchor\":null}]},\"work\":{\"tickets\":[{\"id\":\"DOC-2\",\"title\":\"Write the spec\",\"status\":\"backlog\",\"assignee\":null,\"run\":null},{\"id\":\"DOC-3\",\"title\":\"Review the spec\",\"status\":\"backlog\",\"assignee\":null,\"run\":null},{\"id\":\"DOC-4\",\"title\":\"Ask the owner\",\"status\":\"backlog\",\"assignee\":null,\"run\":null},{\"id\":\"DOC-1\",\"title\":\"Rate limit\",\"status\":\"backlog\",\"assignee\":null,\"run\":null}],\"active\":0}}"
       }
     ],
     "isError": false

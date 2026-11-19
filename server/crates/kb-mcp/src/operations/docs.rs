@@ -464,7 +464,11 @@ pub async fn get_docs_version(page_id: &str, version: i64, compare_to: Option<i6
     let session = common::async_session();
     let out = match compare_to {
         Some(other) => docs::diff_versions(&session, page_id, version, other).await.map(|d| short_diff(&d)),
-        None => docs::get_version(&session, page_id, version).await,
+        // the Markdown is what an agent reads; the rich JSON beside it is the app's
+        None => docs::get_version(&session, page_id, version).await.map(|mut v| {
+            v.remove("content");
+            v
+        }),
     };
     Ok(Value::Object(out.map_err(docs_error)?))
 }
