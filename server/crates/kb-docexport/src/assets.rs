@@ -22,6 +22,8 @@ pub enum DrawingKind {
     Canvas,
     /// An HTML embed (`htmlEmbed` block, by its block id `b-…`): a picture of the page it shows, for paper.
     Embed,
+    /// An equation (`mathBlock`, by its LaTeX): a picture of it typeset, for Word (which has no MathML).
+    Math,
 }
 
 impl DrawingKind {
@@ -42,6 +44,7 @@ impl DrawingKind {
             DrawingKind::Sketch => "sketch",
             DrawingKind::Canvas => "canvas",
             DrawingKind::Embed => "HTML embed",
+            DrawingKind::Math => "equation",
         }
     }
 
@@ -51,8 +54,8 @@ impl DrawingKind {
             DrawingKind::Diagram => format!("/diagrams/{id}/svg"),
             DrawingKind::Sketch => format!("/sketches/{id}/png"),
             DrawingKind::Canvas => format!("/canvases/{id}/overview.png"),
-            // an embed lives in its page; there is no address of its own
-            DrawingKind::Embed => String::new(),
+            // an embed or an equation lives in its page; there is no address of its own
+            DrawingKind::Embed | DrawingKind::Math => String::new(),
         }
     }
 }

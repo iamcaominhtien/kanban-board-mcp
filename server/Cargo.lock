@@ -2225,6 +2225,7 @@ dependencies = [
  "base64 0.22.1",
  "docx-rs",
  "image",
+ "pulldown-latex",
  "serde",
  "serde_json",
  "tempfile",
@@ -3234,6 +3235,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "pulldown-latex"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cf850381ae0dbb131f36e31d6090f55363d079ab3e518ad0323b9cb6a96d115"
+dependencies = [
+ "bumpalo",
 ]
 
 [[package]]

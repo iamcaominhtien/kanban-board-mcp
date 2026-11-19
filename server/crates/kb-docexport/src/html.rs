@@ -166,6 +166,8 @@ struct HtmlRenderer<'a> {
     highlights: &'a [Highlight],
     /// Whether a block used a rich attribute whose rules live in [`EXTRA_CSS`] (emitted only then).
     extra_css: bool,
+    /// Whether an equation was written: the math font then goes into the file.
+    has_math: bool,
 }
 
 impl<'a> HtmlRenderer<'a> {
@@ -190,6 +192,7 @@ impl<'a> HtmlRenderer<'a> {
             heading_shift: if opts.book.is_some() { 1 } else { 0 },
             highlights: &[],
             extra_css: false,
+            has_math: false,
         }
     }
 
@@ -243,6 +246,9 @@ impl<'a> HtmlRenderer<'a> {
         out.push_str(BASE_CSS);
         if self.extra_css {
             out.push_str(EXTRA_CSS);
+        }
+        if self.has_math {
+            out.push_str(&crate::math::font_css());
         }
         if self.theme() {
             out.push_str(&theme_css(&settings));
@@ -364,6 +370,17 @@ impl<'a> HtmlRenderer<'a> {
             }
         }
         let mut class = String::from("page");
+        if self.theme() {
+            if let Some(align) = s.text_align {
+                let _ = write!(class, " ta-{align}");
+            }
+            if s.indent_paragraphs {
+                class.push_str(" para-indent");
+            }
+            if s.drop_cap {
+                class.push_str(" page-dropcap");
+            }
+        }
         if let Some(book) = &self.opts.book {
             class.push_str(" chapter");
             if book.chapter_breaks && (index > 0 || book.cover || book.title_page || book.contents) {
@@ -389,8 +406,11 @@ impl<'a> HtmlRenderer<'a> {
         }
         let _ = writeln!(out, "<header class=\"{class}\">");
         if let Some(book) = self.opts.book.clone() {
-            if book.number_chapters {
-                let _ = writeln!(out, "<p class=\"chapter-no\">Chapter {}</p>", index + 1);
+            // the chapter's own line above its title ("Chương một"), else its number in the book's language
+            if let Some(e) = &s.eyebrow {
+                let _ = writeln!(out, "<p class=\"chapter-no\">{}</p>", esc(e));
+            } else if book.number_chapters {
+                let _ = writeln!(out, "<p class=\"chapter-no\">{}</p>", esc(&self.lang.chapter(index + 1)));
             }
             let _ = writeln!(out, "<h1 class=\"page-title\">{}</h1>", esc(&page.title));
             out.push_str("</header>\n");
@@ -705,11 +725,17 @@ impl<'a> HtmlRenderer<'a> {
                 out.push_str("</aside>\n");
             }
             "mathBlock" => {
-                let _ = writeln!(
-                    out,
-                    "<pre class=\"math-block\"><code class=\"math\">{}</code></pre>",
-                    esc(attr_str(node, "latex").unwrap_or(""))
-                );
+                let latex = attr_str(node, "latex").unwrap_or("");
+                match crate::math::mathml(latex, crate::math::MathLayout::Block) {
+                    Some(math) => {
+                        self.has_math = true;
+                        let _ = writeln!(out, "<div class=\"math-block\">{math}</div>");
+                    }
+                    None => {
+                        let _ =
+                            writeln!(out, "<pre class=\"math-block\"><code class=\"math\">{}</code></pre>", esc(latex));
+                    }
+                }
             }
             "diagram" | "sketch" | "canvas" => self.drawing(node, out),
             "video" => self.video(node, out),
@@ -921,6 +947,10 @@ impl<'a> HtmlRenderer<'a> {
         let _ = writeln!(out, "<div class=\"table-wrap\"><table class=\"t-{style}{width}\">");
         for (ri, row) in rows.into_iter().enumerate() {
             let body_index = if has_header { ri.checked_sub(1) } else { Some(ri) };
+            // the header row repeats at the top of each printed page the table runs onto
+            if has_header && ri == 0 {
+                out.push_str("<thead>");
+            }
             if banded && body_index.is_some_and(|b| b % 2 == 1) {
                 out.push_str("<tr class=\"band\">");
             } else {
@@ -948,6 +978,12 @@ impl<'a> HtmlRenderer<'a> {
                     let _ = write!(css, "background:{bg};");
                 }
                 self.cell_look(cell.node, &mut css);
+                // a code or a number alone in its cell ("FR-01", "12.500") stays on one line
+                let words = inline_text(cell.node);
+                let words = words.trim();
+                if !words.is_empty() && words.chars().count() <= 14 && !words.contains(char::is_whitespace) {
+                    css.push_str("white-space:nowrap;");
+                }
                 if let Some(w) = cell.node.get("attrs").and_then(|a| a.get("colwidth")).and_then(Value::as_array) {
                     let total: f64 = w.iter().filter_map(Value::as_f64).filter(|n| *n > 0.0 && *n < 5000.0).sum();
                     if total > 0.0 {
@@ -959,6 +995,9 @@ impl<'a> HtmlRenderer<'a> {
                 let _ = write!(out, "</{tag}>");
             }
             out.push_str("</tr>\n");
+            if has_header && ri == 0 {
+                out.push_str("</thead>\n");
+            }
         }
         out.push_str("</table>");
         if let Some(c) = caption {
@@ -1170,7 +1209,14 @@ impl<'a> HtmlRenderer<'a> {
                             format!("<span class=\"ticket-ref\">{}</span>", esc(attr_str(node, "key").unwrap_or("")))
                         }
                         "mathInline" => {
-                            format!("<code class=\"math\">{}</code>", esc(attr_str(node, "latex").unwrap_or("")))
+                            let latex = attr_str(node, "latex").unwrap_or("");
+                            match crate::math::mathml(latex, crate::math::MathLayout::Inline) {
+                                Some(math) => {
+                                    self.has_math = true;
+                                    format!("<span class=\"math\">{math}</span>")
+                                }
+                                None => format!("<code class=\"math\">{}</code>", esc(latex)),
+                            }
                         }
                         _ => esc(&inline_text(node)),
                     };
@@ -1358,7 +1404,7 @@ fn print_css(setup: &PageSetup, header: &str, content_height: f64, sheet: Option
     }
     css.push_str(
         "body { background: none !important; }\n.page { max-width: none !important; padding: 0 !important; box-shadow: none !important; }\n\
-         .page.break { break-before: page; }\n.toc { break-after: page; }\nfigure, pre, table, .callout, img { break-inside: avoid; }\n\
+         .page.break { break-before: page; }\n.toc { break-after: page; }\nfigure, pre, .callout, img, tr { break-inside: avoid; }\n\
          h1, h2, h3, h4, h5, h6 { break-after: avoid; }\na { color: inherit; }\n",
     );
     if setup.size == PageSize::FitToContent {
@@ -1370,8 +1416,21 @@ fn print_css(setup: &PageSetup, header: &str, content_height: f64, sheet: Option
 
 fn theme_css(s: &Settings) -> String {
     let (bg, ink) = page_colors(&s.background);
-    format!("body.theme {{ background: {bg}; color: {ink}; font-family: {}; }}\n{THEME_CSS}", font_stack(&s.body_font))
+    format!(
+        "body.theme {{ background: {bg}; color: {ink}; font-family: {}; }}\n{THEME_CSS}{PARAGRAPH_CSS}",
+        font_stack(&s.body_font)
+    )
 }
+
+/// The page settings for paragraphs (as the reader draws them, pageLook.css): their alignment, a first-line indent
+/// instead of a space, a drop cap on the first one. A paragraph's own alignment still wins (it is inline).
+const PARAGRAPH_CSS: &str = ".page.ta-center .body p { text-align: center; }\n\
+.page.ta-right .body p { text-align: right; }\n\
+.page.ta-justify .body p { text-align: justify; hyphens: auto; }\n\
+.page.para-indent .body p { margin-top: 0; margin-bottom: 0; }\n\
+.page.para-indent .body p + p { text-indent: 1.6em; }\n\
+.page.page-dropcap .body > p:first-of-type::first-letter { float: left; font-size: 3.3em; line-height: .85; \
+padding: 4px 8px 0 0; font-family: var(--heading-font, inherit); }\n";
 
 const BASE_CSS: &str = r#"*, *::before, *::after { box-sizing: border-box; }
 body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -1415,7 +1474,8 @@ figure.code .line { display: inline; } figure.code .hl { background: rgba(255, 2
 figure.code .add { background: rgba(46, 160, 67, .18); } figure.code .del { background: rgba(248, 81, 73, .18); }
 figure.code .ln { display: inline-block; width: 3ch; margin-right: 12px; text-align: right; opacity: .5; user-select: none; }
 code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .92em; }
-code.math { font-style: italic; } .math-block { text-align: center; padding: 8px; }
+code.math { font-style: italic; } .math-block { text-align: center; padding: 8px; overflow-x: auto; }
+math { font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", math; } math[display="block"] { font-size: 1.1em; }
 hr { border: 0; border-top: 1px solid currentColor; opacity: .3; margin: 24px 0; }
 hr.rule-short { width: 80px; margin: 24px auto; } hr.rule-thick { border-top-width: 4px; } hr.rule-double { border-top: 4px double currentColor; }
 .rule { text-align: center; margin: 24px 0; opacity: .6; letter-spacing: .3em; }

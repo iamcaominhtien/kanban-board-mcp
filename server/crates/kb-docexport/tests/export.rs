@@ -662,3 +662,86 @@ fn a_coloured_page_colours_the_whole_sheet() {
     let at_page = white.index_html().split("@page {").nth(1).map(|r| r.split('}').next().unwrap_or("").to_string());
     assert!(at_page.as_deref().is_some_and(|r| !r.contains("background")), "{at_page:?}");
 }
+
+/// A book's page settings reach the export as the reader shows them: justified paragraphs told apart by a
+/// first-line indent, a drop cap on the first, and each chapter's own line above its title, in the book's language.
+#[test]
+fn a_chapter_keeps_its_paragraph_settings_and_its_line() {
+    let text = |t: &str| json!({"type":"paragraph","content":[{"type":"text","text":t}]});
+    let mut one = page(
+        "Gió về",
+        json!({"type":"doc","content":[text("Buổi sáng hôm ấy gió chướng thổi về."), text("Bà ngoại đứng ở bậc cửa.")]}),
+    );
+    one.settings = json!({"textAlign":"justify","paragraphs":"indent","dropCap":true,"eyebrow":"Chương một"});
+    let two = page("Bến cũ", json!({"type":"doc","content":[text("Con đò cập bến khi trời còn tối.")]}));
+    let opts = HtmlOptions { book: Some(Book { number_chapters: true, ..book() }), ..Default::default() };
+    let html = render_html(&[one, two], &TestAssets, &opts);
+    let html = html.index_html();
+    assert!(
+        html.contains("ta-justify") && html.contains("para-indent") && html.contains("page-dropcap"),
+        "the page's classes"
+    );
+    assert!(html.contains(".page.para-indent .body p + p { text-indent: 1.6em; }"), "their rules");
+    assert!(html.contains("<p class=\"chapter-no\">Chương một</p>"), "the chapter's own line");
+    assert!(html.contains("<p class=\"chapter-no\">Chương 2</p>"), "else its number in the book's language");
+    let docx = render_docx(
+        &[page("Gió", json!({"type":"doc","content":[text("Một."), text("Hai.")]}))],
+        &TestAssets,
+        &DocxOptions::default(),
+    );
+    assert!(!zip_text(&docx, "word/document.xml").contains("w:firstLine"), "no indent without the setting");
+    let mut set = page("Gió", json!({"type":"doc","content":[text("Một."), text("Hai.")]}));
+    set.settings = json!({"textAlign":"justify","paragraphs":"indent"});
+    let xml = zip_text(&render_docx(&[set], &TestAssets, &DocxOptions::default()), "word/document.xml");
+    assert!(xml.contains("w:firstLine") && xml.contains(r#"w:jc w:val="both""#), "Word indents and justifies");
+}
+
+/// A long requirements table prints as a document's should: it may run onto the next page (rows whole, the header
+/// row repeated), and a short code in its cell ("FR-01") stays on one line.
+#[test]
+fn a_long_table_breaks_between_rows_and_keeps_its_codes_whole() {
+    let cell = |kind: &str, t: &str| json!({"type": kind, "content": [{"type":"paragraph","content":[{"type":"text","text":t}]}]});
+    let rows: Vec<Value> = std::iter::once(json!({"type":"tableRow","content":[cell("tableHeader","ID"), cell("tableHeader","Mô tả")]}))
+        .chain((1..40).map(|i| json!({"type":"tableRow","content":[cell("tableCell",&format!("FR-{i:02}")), cell("tableCell","Hệ thống cho phép bệnh nhân đặt lịch khám")]})))
+        .collect();
+    let doc = json!({"type":"doc","content":[{"type":"table","content": rows}]});
+    let print = HtmlOptions { print: Some(PageSetup::default()), ..Default::default() };
+    let html = render_html(&[page("BRD", doc)], &TestAssets, &print);
+    let html = html.index_html();
+    assert!(html.contains("<thead><tr>") && html.contains("</tr>\n</thead>"), "the header row repeats");
+    assert!(
+        html.contains("tr { break-inside: avoid; }") || html.contains(", tr { break-inside: avoid; }"),
+        "rows stay whole"
+    );
+    assert!(!html.contains("table, .callout"), "the table itself may break");
+    assert!(
+        html.contains("<td style=\"white-space:nowrap;\"><p>FR-01</p></td>") || html.contains("white-space:nowrap;\">"),
+        "{}",
+        &html[..0]
+    );
+}
+
+/// An equation is typeset, not shown as its LaTeX: MathML with the math font in HTML and PDF, a picture (when the
+/// caller drew one) or its symbols as text in Word.
+#[test]
+fn equations_are_typeset() {
+    let doc = json!({"type":"doc","content":[
+        {"type":"paragraph","content":[{"type":"text","text":"Tốc độ "},{"type":"mathInline","attrs":{"latex":"\\mu_t"}}]},
+        {"type":"mathBlock","attrs":{"latex":"\\mu = \\frac{\\ln W_t - \\ln W_0}{t}"}}
+    ]});
+    let html = render_html(&[page("Bài báo", doc.clone())], &TestAssets, &HtmlOptions::default());
+    let html = html.index_html();
+    assert!(html.contains("<div class=\"math-block\"><math") && html.contains("<mfrac>"), "a block equation");
+    assert!(html.contains("<span class=\"math\"><math"), "an inline one");
+    assert!(
+        html.contains("font-family: \"STIX Two Math\"; src: url(data:font/woff2;base64,"),
+        "the math font travels with it"
+    );
+    let plain = render_html(&[page("Plain", json!({"type":"doc","content":[]}))], &TestAssets, &HtmlOptions::default());
+    assert!(!plain.index_html().contains("STIX Two Math\"; src"), "no font without an equation");
+    let xml =
+        zip_text(&render_docx(&[page("Bài báo", doc)], &TestAssets, &DocxOptions::default()), "word/document.xml");
+    assert!(xml.contains("µt") && !xml.contains("\\mu_t"), "inline math as its symbols in Word");
+    let page_html = kb_docexport::equation_page("x^2").expect("a page");
+    assert!(page_html.contains("<msup>") && page_html.contains("STIX Two Math"));
+}

@@ -82,6 +82,7 @@ pub fn render_docx(pages: &[ExportPage], assets: &dyn AssetSource, opts: &DocxOp
         body_font: body_font.clone(),
         heading_font: heading_font.clone(),
         lang: crate::lang::Lang::of(pages),
+        paragraphs: PageParagraphs::default(),
     };
     let contents_alias = w.lang.contents();
     w.document(pages);
@@ -298,6 +299,16 @@ struct Writer<'a> {
     heading_font: String,
     /// The language of the export's own words.
     lang: crate::lang::Lang,
+    /// The page settings for its paragraphs: alignment, first-line indents, a drop cap still to set on the first.
+    paragraphs: PageParagraphs,
+}
+
+/// How the page being written sets its paragraphs (its settings), where a paragraph says nothing itself.
+#[derive(Default, Clone, Copy)]
+struct PageParagraphs {
+    align: Option<AlignmentType>,
+    indent: bool,
+    drop_cap_due: bool,
 }
 
 /// Where a list paragraph sits: its numbering instance and level.
@@ -399,6 +410,16 @@ impl<'a> Writer<'a> {
 
     fn page(&mut self, index: usize, page: &'a ExportPage) {
         let s = Settings::read(&page.settings);
+        self.paragraphs = PageParagraphs {
+            align: match s.text_align {
+                Some("center") => Some(AlignmentType::Center),
+                Some("right") => Some(AlignmentType::Right),
+                Some("justify") => Some(AlignmentType::Both),
+                _ => None,
+            },
+            indent: s.indent_paragraphs,
+            drop_cap_due: s.drop_cap,
+        };
         self.bg = s.background.clone();
         self.highlights = if self.opts.highlights == HighlightMode::Show { &page.highlights } else { &[] };
         let align = if s.title_center { AlignmentType::Center } else { AlignmentType::Left };
@@ -474,7 +495,29 @@ impl<'a> Writer<'a> {
                 if let Some(ctx) = list {
                     p = p.style("ListParagraph").numbering(NumberingId::new(ctx.num), IndentLevel::new(ctx.level));
                 } else {
-                    p = self.drop_cap(p, node);
+                    let page = self.paragraphs;
+                    if let (None, Some(a)) = (attr_str(node, "textAlign"), page.align) {
+                        p = p.align(a);
+                    }
+                    // a book's paragraphs: no space between them, the second and later indented
+                    if page.indent {
+                        p = p.line_spacing(LineSpacing::new().after(0));
+                        if matches!(out.last(), Some(Child::P(prev)) if prev.property.style.is_none()) {
+                            p = p.indent(None, Some(SpecialIndentType::FirstLine(384)), None, None);
+                        }
+                    }
+                    if page.drop_cap_due && attr_int(node, "dropCap", 0, 0, 5) == 0 {
+                        let mut with_cap = node.clone();
+                        if let Some(attrs) =
+                            with_cap.as_object_mut().map(|o| o.entry("attrs").or_insert(serde_json::json!({})))
+                        {
+                            attrs["dropCap"] = serde_json::json!(3);
+                        }
+                        p = self.drop_cap(p, &with_cap);
+                    } else {
+                        p = self.drop_cap(p, node);
+                    }
+                    self.paragraphs.drop_cap_due = false;
                 }
                 out.push(Child::P(p));
             }
@@ -599,6 +642,15 @@ impl<'a> Writer<'a> {
                 out.push(Child::P(Paragraph::new()));
             }
             "mathBlock" => {
+                let latex = attr_str(node, "latex").unwrap_or("");
+                let png =
+                    if latex.trim().is_empty() { None } else { self.assets.drawing_png(DrawingKind::Math, latex) };
+                // drawn at 96 dpi from 26 px type: half its pixel width is the size it reads at in the text
+                let width = png.as_deref().and_then(png_width).map(|w| f64::from(w) / 2.0);
+                if let Some(p) = png.and_then(|b| self.picture_bytes(&b, None, width, AlignmentType::Center)) {
+                    out.push(Child::P(p));
+                    return;
+                }
                 out.push(Child::P(
                     Paragraph::new()
                         .style("Code")
@@ -1145,7 +1197,7 @@ impl<'a> Writer<'a> {
                     let (text, mono) = match ty(node) {
                         "docRef" => (doc_ref_label(node).to_string(), false),
                         "ticketRef" => (attr_str(node, "key").unwrap_or("").to_string(), true),
-                        "mathInline" => (attr_str(node, "latex").unwrap_or("").to_string(), true),
+                        "mathInline" => (crate::math::equation_text(attr_str(node, "latex").unwrap_or("")), false),
                         _ => (inline_text(node), false),
                     };
                     let mut m = marks.clone();
@@ -1254,4 +1306,13 @@ fn to_png(bytes: &[u8]) -> Option<(Vec<u8>, u32, u32)> {
     let mut out = Cursor::new(Vec::new());
     img.write_to(&mut out, image::ImageFormat::Png).ok()?;
     Some((out.into_inner(), w, h))
+}
+
+/// The width in pixels of a PNG, from its header; `None` for anything else.
+fn png_width(bytes: &[u8]) -> Option<u32> {
+    if !bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
+        return None;
+    }
+    let raw: [u8; 4] = bytes.get(16..20)?.try_into().ok()?;
+    Some(u32::from_be_bytes(raw))
 }

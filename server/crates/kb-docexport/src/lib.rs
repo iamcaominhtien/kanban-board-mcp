@@ -17,6 +17,8 @@ mod html;
 mod inline;
 mod lang;
 mod markdown;
+mod math;
+pub use math::equation_page;
 mod model;
 mod pdf;
 mod size;

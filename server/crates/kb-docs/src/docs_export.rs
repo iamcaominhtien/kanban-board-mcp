@@ -275,16 +275,28 @@ fn drawings_in<'a>(node: &'a Value, out: &mut Vec<(DrawingKind, &'a Value)>) {
         out.push((kind, node));
     } else if ty == "htmlEmbed" {
         out.push((DrawingKind::Embed, node));
+    } else if ty == "mathBlock" {
+        out.push((DrawingKind::Math, node));
     }
     for child in node.get("content").and_then(Value::as_array).into_iter().flatten() {
         drawings_in(child, out);
     }
 }
 
+/// Whether an export's equations need pictures.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Equations {
+    /// The format typesets them itself (HTML and PDF: MathML).
+    Typeset,
+    /// The format cannot (Word): each one is drawn as a picture.
+    Pictured,
+}
+
 /// Draws a PNG of every diagram, sketch and canvas the pages show, as the page shows it: a diagram from its saved
 /// preview (or the board's own drawing of its shapes), a sketch from its stored picture, a canvas as an overview
-/// of its frames. A drawing that cannot be drawn is left out, and the export shows its placeholder line.
-async fn drawing_pictures(pages: &[ExportPage]) -> HashMap<String, Vec<u8>> {
+/// of its frames; an HTML embed as it first draws and, for Word, each equation. A drawing that cannot be drawn is
+/// left out, and the export shows its placeholder line.
+async fn drawing_pictures(pages: &[ExportPage], equations: Equations) -> HashMap<String, Vec<u8>> {
     let mut found = Vec::new();
     for page in pages {
         drawings_in(&page.doc, &mut found);
@@ -293,8 +305,13 @@ async fn drawing_pictures(pages: &[ExportPage]) -> HashMap<String, Vec<u8>> {
     let mut out = HashMap::new();
     for (kind, node) in found {
         let attr = |k: &str| node.get("attrs").and_then(|a| a.get(k)).and_then(Value::as_str).unwrap_or_default();
-        // an embed is known by its block id, a drawing by its own
-        let id = if kind == DrawingKind::Embed { attr("blockId") } else { attr("id") };
+        // an embed is known by its block id, an equation by its LaTeX, a drawing by its own id
+        let id = match kind {
+            DrawingKind::Embed => attr("blockId"),
+            DrawingKind::Math if equations == Equations::Typeset => continue,
+            DrawingKind::Math => attr("latex"),
+            _ => attr("id"),
+        };
         let key = drawing_key(kind, id);
         if id.is_empty() || out.contains_key(&key) {
             continue;
@@ -307,6 +324,10 @@ async fn drawing_pictures(pages: &[ExportPage]) -> HashMap<String, Vec<u8>> {
                 kb_draw::canvases::boards::overview_png(&session, id, page).await.ok()
             }
             DrawingKind::Embed => embed_picture(attr("html")).await,
+            DrawingKind::Math => match kb_docexport::equation_page(id) {
+                Some(page) => embed_picture(&page).await,
+                None => None,
+            },
         };
         if let Some(png) = png.filter(|p| !p.is_empty()) {
             out.insert(key, png);
@@ -446,7 +467,12 @@ async fn run(
     let id = id.to_string();
     let req = req.clone();
     // the renderer runs off the runtime and cannot wait on the database or a browser: draw the drawings first
-    let drawings = if req.format == "md" { HashMap::new() } else { drawing_pictures(&pages).await };
+    let drawings = match req.format.as_str() {
+        "md" => HashMap::new(),
+        // Word has no MathML: its equations are pictures too
+        "docx" => drawing_pictures(&pages, Equations::Pictured).await,
+        _ => drawing_pictures(&pages, Equations::Typeset).await,
+    };
     tokio::task::spawn_blocking(move || {
         let assets = Uploads::with_drawings(drawings);
         let highlights = if req.options.get("includeHighlights").and_then(Value::as_bool).unwrap_or(false) {

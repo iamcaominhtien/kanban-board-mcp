@@ -16,6 +16,7 @@ docx-rs = { workspace = true }
 image = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+pulldown-latex = { workspace = true }
 tempfile = { workspace = true }
 thiserror = { workspace = true }
 

@@ -61,6 +61,14 @@ impl Lang {
         }
     }
 
+    /// Returns the line above a chapter's title in a book ("Chapter 3").
+    pub(crate) fn chapter(self, number: usize) -> String {
+        match self {
+            Self::En => format!("Chapter {number}"),
+            Self::Vi => format!("Chương {number}"),
+        }
+    }
+
     /// Returns the heading of a table of contents.
     pub(crate) fn contents(self) -> &'static str {
         match self {

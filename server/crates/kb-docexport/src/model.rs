@@ -434,6 +434,13 @@ pub(crate) struct Settings {
     /// Whether the title is shown (`showTitle`: a page that sets its own title in its text, like a newspaper's
     /// nameplate, hides it).
     pub show_title: bool,
+    /// How the page's paragraphs are aligned when they say nothing themselves (`textAlign`): `center`, `right`,
+    /// `justify`; `None` is left.
+    pub text_align: Option<&'static str>,
+    /// Whether paragraphs are told apart by a first-line indent instead of a space (`paragraphs: indent`, a book).
+    pub indent_paragraphs: bool,
+    /// Whether the page's first paragraph starts with a drop cap (`dropCap: true`).
+    pub drop_cap: bool,
 }
 
 impl Settings {
@@ -486,6 +493,14 @@ impl Settings {
             eyebrow: s("eyebrow").map(str::to_string),
             show_byline: v.get("showByline").and_then(Value::as_bool).unwrap_or(true),
             show_title: v.get("showTitle").and_then(Value::as_bool).unwrap_or(true),
+            text_align: match s("textAlign") {
+                Some("center") => Some("center"),
+                Some("right") => Some("right"),
+                Some("justify") => Some("justify"),
+                _ => None,
+            },
+            indent_paragraphs: s("paragraphs") == Some("indent"),
+            drop_cap: v.get("dropCap").and_then(Value::as_bool).unwrap_or(false),
         }
     }
 }
