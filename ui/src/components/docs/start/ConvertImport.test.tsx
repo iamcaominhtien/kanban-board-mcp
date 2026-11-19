@@ -10,7 +10,7 @@ vi.mock('../../../api/client', async (orig) => {
 });
 
 import { ToastProvider } from '../../Toast';
-import { ConvertImport } from './ConvertImport';
+import { ConvertImport, headingText } from './ConvertImport';
 
 const html = (name: string, body: string) => new File([`<h1>${name}</h1><p>${body}</p>`], `${name}.html`);
 const big = () => {
@@ -98,5 +98,13 @@ describe('importing HTML files', () => {
     api.post.mockReset().mockResolvedValue({ data: { id: 'page-9' } });
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(onDone).toHaveBeenCalledWith(['page-9']));
+  });
+});
+
+describe('headingText', () => {
+  it('reads the words of a heading and leaves no markup, however the tags are written', () => {
+    expect(headingText('Q3 <em>report</em>')).toBe('Q3 report ');
+    expect(headingText('<scr<script>ipt>x')).not.toMatch(/[<>]/);
+    expect(headingText(undefined)).toBeUndefined();
   });
 });

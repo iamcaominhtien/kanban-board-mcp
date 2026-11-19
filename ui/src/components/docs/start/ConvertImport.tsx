@@ -25,6 +25,19 @@ import { runImport, type ImportRow, type RunResult } from './importRun';
 import { ImportNotes, ImportSourceTiles, importDialogName, sourceHint } from './ImportSources';
 import './start.css';
 
+/**
+ * The plain text of a heading's inner HTML, for the title field: tags dropped, then any angle bracket left, so no
+ * markup survives however the tags were written. Entities stay as written.
+ * @param inner - What was between `<h1>` and `</h1>`; undefined when there was no heading.
+ * @returns The heading's words, or undefined.
+ */
+export function headingText(inner: string | undefined): string | undefined {
+  return inner
+    ?.replace(/<[^>]*>/g, ' ')
+    .replace(/[<>]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
 /** Props of {@link ConvertImport}. */
 export interface ConvertImportProps {
   projectId: string;
@@ -105,8 +118,7 @@ export function ConvertImport({
     if (pasteTitleTouched) return;
     const h =
       kind === 'html'
-        ? // the browser's parser reads the heading's text (an inert document: nothing in it loads or runs)
-          new DOMParser().parseFromString(text, 'text/html').querySelector('h1')?.textContent
+        ? headingText(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(text)?.[1])
         : kind === 'markdown'
           ? /^#\s+(.+)$/m.exec(text)?.[1]
           : text.split('\n').find((l) => l.trim());
