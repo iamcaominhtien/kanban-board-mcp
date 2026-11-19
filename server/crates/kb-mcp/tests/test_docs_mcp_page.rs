@@ -413,4 +413,45 @@ async fn the_formatting_summary_of_the_description_works_as_written() {
     for mark in ["\"color\":\"red\"", "\"highlight\"", "\"underline\""] {
         assert!(words.contains(mark), "{mark}: {words}");
     }
+    // the table cells and the settings it shows
+    for form in [
+        "cells='A1:C1', attrs={\"background\": \"green\"}",
+        "border \"top bottom\"",
+        "width (narrow, normal, wide, full)",
+        "bodyFont (jakarta, lora, inter, playfair",
+        "book {\"isBook\": true}",
+        "upload alt",
+    ] {
+        assert!(text.contains(form), "the summary shows {form}");
+    }
+    let table = blocks[3]["attrs"]["blockId"].as_str().expect("an id").to_string();
+    let id = made["id"].as_str().expect("an id");
+    write(
+        &mcp,
+        "edit",
+        json!({"page_id": id, "block_id": table, "mode": "attrs", "cells": "A1:B1",
+                               "attrs": {"background": "green", "align": "center", "padding": "roomy"}}),
+    )
+    .await;
+    write(
+        &mcp,
+        "edit",
+        json!({"page_id": id, "block_id": table, "mode": "attrs", "cells": "B2", "attrs": {"border": "top bottom"}}),
+    )
+    .await;
+    let cells = read(&mcp, "block", json!({"page_id": id, "block_id": table})).await["cells"].clone();
+    assert_eq!(cells["A1"], json!({"align": "center", "background": "green", "padding": "roomy"}));
+    assert_eq!(cells["B2"], json!({"border": "top bottom"}));
+    for font in ["jakarta", "lora", "inter", "playfair"] {
+        write(&mcp, "settings", json!({"page_id": id, "settings": {"bodyFont": font}})).await;
+    }
+    let set = write(
+        &mcp,
+        "settings",
+        json!({"page_id": id, "settings": {"width": "wide", "titleAlign": "center",
+        "eyebrow": "Field notes", "cover": {"color": "#2e6f40"}, "book": {"isBook": true}}}),
+    )
+    .await;
+    assert_eq!(set["settings"]["width"], "wide");
+    assert_eq!(set["settings"]["book"]["isBook"], true);
 }

@@ -189,9 +189,11 @@ async fn test_the_tool_list_stays_compact() {
     // cells: 47,850 / 50,680 measured. A live run by an agent then added upload's alt, move's before_id, a limit
     // to versions and docs_guide by section: 48,760 / 51,590. Then docs_write carries a short summary of the
     // formatting most pages need (about 580 characters), so that a plain page needs no docs_guide (about 23,000):
-    // 49,340 / 52,170. The bounds leave some room; raise them on purpose, with what was added, never by reflex.
-    assert!(default < 49_500, "default tool list is {default} characters (about {} tokens)", default / 4);
-    assert!(full < 52_800, "full tool list is {full} characters (about {} tokens)", full / 4);
+    // 49,340 / 52,170; with table cells, the common settings and upload's alt added to it (a live run read the
+    // guide for those): 49,680 / 52,510. The bounds leave some room; raise them on purpose, with what was added,
+    // never by reflex.
+    assert!(default < 50_200, "default tool list is {default} characters (about {} tokens)", default / 4);
+    assert!(full < 53_200, "full tool list is {full} characters (about {} tokens)", full / 4);
     if target() == Target::Python {
         assert!(default < full);
         // the measure is the Python test's: the numbers of its comment, within the bounds
