@@ -453,8 +453,23 @@ pub async fn resolve_item(
         }
     }
     let shown_key = if matches!(kind, "test_case" | "branch") { keys[keys.len() - 1] } else { "id" };
-    let existing: Vec<String> =
-        items.iter().take(20).map(|item| pyjson::py_str(item.get(shown_key).unwrap_or(&Value::Null))).collect();
+    // a criterion or sub-task by its id and the start of its text, so the agent can tick the right one
+    let existing: Vec<String> = items
+        .iter()
+        .take(20)
+        .map(|item| {
+            let key = pyjson::py_str(item.get(shown_key).unwrap_or(&Value::Null));
+            match item.get("text").and_then(Value::as_str).filter(|_| matches!(kind, "criterion" | "sub_task")) {
+                Some(text) => {
+                    let line = text.lines().next().unwrap_or_default();
+                    let start: String = line.chars().take(40).collect();
+                    let more = if line.chars().count() > 40 || line.len() < text.len() { "…" } else { "" };
+                    format!("{key} (\"{start}{more}\")")
+                }
+                None => key,
+            }
+        })
+        .collect();
     let shown = if existing.is_empty() { "none".to_string() } else { existing.join(", ") };
     Err(ToolError::Value(format!(
         "{label} '{reference}' not found on {ticket_id}. Existing: {shown}. Call get_ticket('{ticket_id}') to see the \

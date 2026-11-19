@@ -169,8 +169,10 @@ pub fn item_answer(out: Value, item: &str, action: &str, keys: &[String]) -> Val
     let mut answer = Map::new();
     answer.insert("ticket".into(), ticket_card(&out));
     if item == "attachment" {
-        if let Some(attached) = out.get("attached") {
-            answer.insert("attached".into(), attached.clone());
+        if let Some(Value::Object(attached)) = out.get("attached") {
+            // the server's folder and the file's hash say nothing the agent can use
+            let kept = attached.iter().filter(|(k, _)| !["stored_in", "sha256"].contains(&k.as_str()));
+            answer.insert("attached".into(), Value::Object(kept.map(|(k, v)| (k.clone(), v.clone())).collect()));
         }
         let posted = out.get("comments").and_then(Value::as_array).and_then(|c| c.last());
         if let (Some(comment), Some(url)) = (posted, out["attached"]["url"].as_str()) {
@@ -199,10 +201,17 @@ pub fn item_answer(out: Value, item: &str, action: &str, keys: &[String]) -> Val
 }
 
 /// Returns the answer of a manage_ticket call: a ticket as its card, `{blocker, blocked}` as two cards, anything
-/// else as it is.
-pub fn ticket_answer(out: Value) -> Value {
+/// else as it is. A `create` also lists the acceptance criteria it was given (`criteria`: [{id, text}]), whose ids
+/// the agent needs to tick them.
+pub fn ticket_answer(out: Value, action: &str) -> Value {
     if is_ticket(&out) {
-        return ticket_card(&out);
+        let mut card = ticket_card(&out);
+        let criteria = out.get("acceptance_criteria").and_then(Value::as_array).filter(|c| !c.is_empty());
+        if let (true, Some(criteria)) = (action == "create", criteria) {
+            let listed: Vec<Value> = criteria.iter().map(|c| json!({"id": c["id"], "text": c["text"]})).collect();
+            card["criteria"] = Value::Array(listed);
+        }
+        return card;
     }
     match (out.get("blocker"), out.get("blocked")) {
         (Some(blocker), Some(blocked)) if is_ticket(blocker) && is_ticket(blocked) => {
@@ -273,9 +282,12 @@ mod tests {
 
     #[test]
     fn a_block_answers_with_both_cards() {
-        let both = ticket_answer(json!({"blocker": ticket(), "blocked": ticket()}));
+        let both = ticket_answer(json!({"blocker": ticket(), "blocked": ticket()}), "block");
         assert_eq!(both["blocker"]["id"], "TKT-1");
         assert!(both["blocked"].get("comments").is_some_and(|c| c == 1));
-        assert_eq!(ticket_answer(json!({"deleted": "TKT-1"})), json!({"deleted": "TKT-1"}));
+        assert_eq!(ticket_answer(json!({"deleted": "TKT-1"}), "delete"), json!({"deleted": "TKT-1"}));
+        let made = ticket_answer(ticket(), "create");
+        assert_eq!(made["criteria"], json!([{"id": "a1", "text": "works"}, {"id": "a2", "text": "fast"}]));
+        assert!(ticket_answer(ticket(), "update").get("criteria").is_none());
     }
 }

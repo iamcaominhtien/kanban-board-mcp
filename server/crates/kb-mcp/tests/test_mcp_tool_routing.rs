@@ -196,6 +196,10 @@ async fn test_ticket_lifecycle_and_relations() {
     let b = ticket(&mcp, &p, json!({"title": "b", "priority": "high"})).await;
     let child = ticket(&mcp, &p, json!({"title": "child", "parent_id": a["id"]})).await;
     assert!(child["parent_id"] == a["id"] && b["priority"] == "high");
+    // a create answers with the ids of the criteria it was given, to tick them
+    let with_ac = ticket(&mcp, &p, json!({"title": "c", "acceptance_criteria": ["works", "fast"]})).await;
+    assert!(with_ac["criteria"][1]["text"] == "fast" && with_ac["criteria"][1]["id"].is_string(), "{with_ac}");
+    assert_eq!(with_ac["acceptance_criteria"], json!({"done": 0, "total": 2}));
 
     let moved =
         call(&mcp, "manage_ticket", json!({"action": "update", "ticket_id": a["id"], "status": "in-progress"})).await;

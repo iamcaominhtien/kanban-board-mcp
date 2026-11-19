@@ -348,7 +348,7 @@ pub const TICKET_OPS: &[(&str, Op)] = &[
 pub async fn manage_ticket(args: Map<String, Value>) -> ToolResult {
     let action = arg_text(&args, "action");
     let out = dispatch("manage_ticket", TICKET_OPS, &action, params_of(args)).await?;
-    Ok(reply::ticket_answer(out))
+    Ok(reply::ticket_answer(out, &action))
 }
 
 #[cfg(test)]
