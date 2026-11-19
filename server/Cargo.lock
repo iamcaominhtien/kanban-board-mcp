@@ -2411,6 +2411,7 @@ dependencies = [
  "testkit",
  "tokio",
  "tracing",
+ "zip 8.6.0",
 ]
 
 [[package]]

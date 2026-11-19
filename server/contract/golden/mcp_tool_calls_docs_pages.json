@@ -570,7 +570,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: docs_write(action='move') requires page_id; optional: parent_id, after_id. Missing: page_id."
+        "text": "Error executing tool docs_write: docs_write(action='move') requires page_id; optional: parent_id, after_id, before_id. Missing: page_id."
       }
     ],
     "isError": true

@@ -50,5 +50,7 @@ test = false
 testkit = { workspace = true }
 flate2 = "1"
 fake-claude = { path = "../fake-claude" }
+# a test reads the Word file a book export writes
+zip = { workspace = true }
 # the same sqlx as testkit: a test adds the rows of an AI run to the server's SQLite file
 sqlx = { version = "0.9", default-features = false, features = ["sqlite", "runtime-tokio"] }

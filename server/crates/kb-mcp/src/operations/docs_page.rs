@@ -121,7 +121,12 @@ pub async fn export_docs(page_id: &str, scope: &str, format: &str, path: &str) -
     let session = common::async_session();
     let page = docs::page_detail(&session, page_id).await.map_err(docs_error)?;
     let project_id = page.get("project_id").and_then(Value::as_str).unwrap_or_default().to_string();
-    let page_ids = if scope == "book" { Some(chapters(&session, &project_id, &page).await?) } else { None };
+    let (page_ids, book) = if scope == "book" {
+        let (root, ids) = chapters(&session, &project_id, &page).await?;
+        (Some(ids), Some(book_details(&root)))
+    } else {
+        (None, None)
+    };
     let req = ExportRequest {
         scope: scope.to_string(),
         page_id: Some(page_id.to_string()),
@@ -130,7 +135,7 @@ pub async fn export_docs(page_id: &str, scope: &str, format: &str, path: &str) -
         draft: false,
         file_name: None,
         options: Map::new(),
-        book: None,
+        book,
     };
     let row = docs_export::start(&session, &project_id, &req).await.map_err(docs_error)?;
     let id = row.get("id").and_then(Value::as_str).unwrap_or_default().to_string();
@@ -170,7 +175,25 @@ pub async fn export_docs(page_id: &str, scope: &str, format: &str, path: &str) -
     Ok(out)
 }
 
-/// The chapters of the book `page` is (or is a chapter of), in tree order: the pages a book export holds.
+/// What a book export prints on its title page, from the book page: its title, author, cover and chapter numbers.
+fn book_details(root: &Map<String, Value>) -> Map<String, Value> {
+    let settings = root.get("settings");
+    let mut out = Map::new();
+    out.insert("title".into(), root.get("title").cloned().unwrap_or(Value::Null));
+    if let Some(author) = root.get("created_by").and_then(Value::as_str).filter(|a| !a.is_empty()) {
+        out.insert("author".into(), json!(author));
+    }
+    if let Some(src) = settings.and_then(|s| s.get("cover")).and_then(|c| c.get("src")).and_then(Value::as_str) {
+        out.insert("coverImage".into(), json!(src));
+    }
+    if let Some(n) = settings.and_then(|s| s.get("book")).and_then(|b| b.get("numberChapters")).and_then(Value::as_bool)
+    {
+        out.insert("numberChapters".into(), json!(n));
+    }
+    out
+}
+
+/// The book `page` is (or is a chapter of), and its chapters in tree order: the pages a book export holds.
 ///
 /// # Errors
 /// A page that is no book and has no sub-pages; the tree errors.
@@ -178,7 +201,7 @@ async fn chapters(
     session: &kb_db::Session,
     project_id: &str,
     page: &Map<String, Value>,
-) -> Result<Vec<String>, ToolError> {
+) -> Result<(Map<String, Value>, Vec<String>), ToolError> {
     let is_book = |p: &Map<String, Value>| {
         p.get("settings").and_then(|s| s.get("book")).and_then(|b| b.get("isBook")).and_then(Value::as_bool)
             == Some(true)
@@ -186,10 +209,11 @@ async fn chapters(
     let tree = docs::list_tree(session, project_id).await.map_err(docs_error)?;
     let id = page.get("id").and_then(Value::as_str).unwrap_or_default();
     let parent = page.get("parent_id").and_then(Value::as_str);
-    let parent_is_book = match parent {
-        Some(p) => is_book(&docs::page_detail(session, p).await.map_err(docs_error)?),
-        None => false,
+    let parent_page = match parent {
+        Some(p) => Some(docs::page_detail(session, p).await.map_err(docs_error)?),
+        None => None,
     };
+    let parent_is_book = parent_page.as_ref().is_some_and(is_book);
     let root = if !is_book(page) && parent_is_book { parent.unwrap_or(id) } else { id };
     let kids: Vec<String> = super::docs::in_reading_order(&tree)
         .into_iter()
@@ -202,7 +226,8 @@ async fn chapters(
              scope='page'.",
         ));
     }
-    Ok(kids)
+    let root_page = if root == id { page.clone() } else { parent_page.unwrap_or_default() };
+    Ok((root_page, kids))
 }
 
 /// Where an export goes: `path` itself, or the export's name inside it when `path` is a folder (or ends with `/`).

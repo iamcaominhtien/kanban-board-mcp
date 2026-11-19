@@ -384,13 +384,23 @@ pub async fn update_docs_page(
     .await
 }
 
-/// Move a Docs page under another page (or to the top level). Moving into itself or its own sub-pages is rejected.
-pub async fn move_docs_page(page_id: &str, parent_id: Option<&str>, after_id: Option<&str>) -> ToolResult {
+/// Move a Docs page under another page (or to the top level), after or before a sibling (`after_id` / `before_id`
+/// alone: at that sibling's level). Moving into itself or its own sub-pages is rejected.
+pub async fn move_docs_page(
+    page_id: &str,
+    parent_id: Option<&str>,
+    after_id: Option<&str>,
+    before_id: Option<&str>,
+) -> ToolResult {
+    if after_id.is_some() && before_id.is_some() {
+        return Err(ToolError::value("move: give after_id or before_id, not both."));
+    }
     notify_on_success(async {
         let session = common::async_session();
-        // after a sibling without a parent named: the sibling's parent (its level of the tree)
-        let sibling_parent = match (parent_id, after_id) {
-            (None, Some(after)) => docs::page_detail(&session, after)
+        // next to a sibling without a parent named: the sibling's parent (its level of the tree)
+        let sibling = after_id.or(before_id);
+        let sibling_parent = match (parent_id, sibling) {
+            (None, Some(sibling)) => docs::page_detail(&session, sibling)
                 .await
                 .map_err(docs_error)?
                 .get("parent_id")
@@ -399,7 +409,7 @@ pub async fn move_docs_page(page_id: &str, parent_id: Option<&str>, after_id: Op
             _ => None,
         };
         let parent_id = parent_id.or(sibling_parent.as_deref());
-        let page = docs::move_page(&session, page_id, parent_id, None, after_id).await.map_err(docs_error)?;
+        let page = docs::move_page(&session, page_id, parent_id, before_id, after_id).await.map_err(docs_error)?;
         Ok(pick(&page, &["id", "title", "parent_id"]))
     })
     .await

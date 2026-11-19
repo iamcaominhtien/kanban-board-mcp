@@ -242,7 +242,7 @@ async fn a_book_exports_its_chapters_and_the_tree_reads_in_order() {
         a
     };
     let other = write(&mcp, "create", mk("Other", None)).await["id"].clone();
-    let book = write(&mcp, "create", mk("Book", None)).await["id"].clone();
+    let book = write(&mcp, "create", mk("Harbour Lights", None)).await["id"].clone();
     write(&mcp, "settings", json!({"page_id": book, "settings": {"book": {"isBook": true}}})).await;
     let one = write(&mcp, "create", mk("One", Some(&book))).await["id"].clone();
     let two = write(&mcp, "create", mk("Two", Some(&book))).await["id"].clone();
@@ -256,7 +256,22 @@ async fn a_book_exports_its_chapters_and_the_tree_reads_in_order() {
         .iter()
         .map(|p| p["title"].clone())
         .collect();
-    assert_eq!(order, json!(["Other", "Book", "Two", "One", "Late"]).as_array().cloned().expect("titles"));
+    assert_eq!(order, json!(["Other", "Harbour Lights", "Two", "One", "Late"]).as_array().cloned().expect("titles"));
+    // before_id of the first sibling makes it first
+    write(&mcp, "move", json!({"page_id": one, "before_id": two})).await;
+    let chapters: Vec<Value> = read(&mcp, "list", json!({"project_id": pid}))
+        .await
+        .as_array()
+        .expect("a list")
+        .iter()
+        .filter(|p| p["parent_id"] == book)
+        .map(|p| p["title"].clone())
+        .collect();
+    assert_eq!(chapters, [json!("One"), json!("Two")]);
+    let both =
+        call_err(&mcp, "docs_write", json!({"action": "move", "page_id": one, "after_id": two, "before_id": two}))
+            .await;
+    assert!(both.contains("not both"), "{both}");
     let _ = other;
 
     let dir = tempfile::tempdir().expect("a folder");
@@ -274,9 +289,22 @@ async fn a_book_exports_its_chapters_and_the_tree_reads_in_order() {
             assert!(path.ends_with(".zip"), "{got}");
         } else {
             let text = std::fs::read_to_string(path).expect("the file");
-            assert!(text.find("Text of Two").expect("Two") < text.find("Text of One").expect("One"), "{text}");
+            assert!(text.find("Text of One").expect("One") < text.find("Text of Two").expect("Two"), "{text}");
         }
     }
+    // a book in Word carries the book's title, not "Book"
+    let docx = dir.path().join("book.docx");
+    let got = read(
+        &mcp,
+        "export",
+        json!({"page_id": book, "scope": "book", "format": "docx", "path": docx.to_str().expect("utf-8")}),
+    )
+    .await;
+    let opened = std::fs::File::open(got["path"].as_str().expect("a path")).expect("the file");
+    let mut zip = zip::ZipArchive::new(opened).expect("a docx is a zip");
+    let mut xml = String::new();
+    std::io::Read::read_to_string(&mut zip.by_name("word/document.xml").expect("its text"), &mut xml).expect("read");
+    assert!(xml.contains("Harbour Lights") && xml.contains("Text of One"), "the book's title and chapters");
     let lonely = call_err(
         &mcp,
         "docs_read",

@@ -96,11 +96,18 @@ pub const DOCS_WRITE_OPS: &[(&str, Op)] = &[
             |a| {
                 Box::pin(async move {
                     let (parent_id, after_id) = (arg_str(&a, "parent_id"), arg_str(&a, "after_id"));
-                    ops::move_docs_page(&arg_text(&a, "page_id"), parent_id.as_deref(), after_id.as_deref()).await
+                    let before_id = arg_str(&a, "before_id");
+                    ops::move_docs_page(
+                        &arg_text(&a, "page_id"),
+                        parent_id.as_deref(),
+                        after_id.as_deref(),
+                        before_id.as_deref(),
+                    )
+                    .await
                 })
             },
             &["page_id"],
-            &["parent_id", "after_id"],
+            &["parent_id", "after_id", "before_id"],
         ),
     ),
     (
