@@ -98,8 +98,15 @@ pub async fn export_diagram(diagram_id: &str, path: Option<&str>, version: Optio
     if let Some(shown) = version {
         // an older version: say which one this is, and the latest (what diagram_save takes as base_version)
         let latest = diagrams::get_diagram(&session, diagram_id, None, false).await.map_err(diagram_error)?;
+        let newest = latest.get("version").cloned().unwrap_or(Value::Null);
+        if newest != json!(shown) {
+            out.insert(
+                "note".into(),
+                json!(format!("This is version {shown}; the latest is {newest}: save on top of that one.")),
+            );
+        }
         out.insert("version".into(), json!(shown));
-        out.insert("latest".into(), latest.get("version").cloned().unwrap_or(Value::Null));
+        out.insert("latest".into(), newest);
     }
     Ok(Value::Object(out))
 }

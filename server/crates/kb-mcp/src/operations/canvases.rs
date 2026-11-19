@@ -182,10 +182,10 @@ pub async fn shared_guides(query: Option<&str>) -> ToolResult {
         // the scripts and themes a guide refers to are files: say where they are on this machine
         let text =
             texts.iter_mut().find(|(n, _)| *n == name).ok_or_else(|| ToolError::Other(kb_base::pytext::repr(&name)))?;
-        text.1.push_str(&format!(
-            "\n\nThis guide's folder (scripts/, themes/, examples/): {}\n",
-            hooks::skill_dir(&name)
-        ));
+        // its commands name the folder as Claude Code does (`${CLAUDE_SKILL_DIR}`): an agent outside it gets the path
+        let dir = hooks::skill_dir(&name);
+        text.1 = text.1.replace("${CLAUDE_SKILL_DIR}", &dir);
+        text.1.push_str(&format!("\n\nThis guide's folder (scripts/, themes/, examples/): {dir}\n"));
     }
     if let Some(want) = query.map(str::trim).filter(|q| !q.is_empty()) {
         return match texts.into_iter().find(|(n, _)| n == want) {
