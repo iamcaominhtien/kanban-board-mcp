@@ -11,6 +11,7 @@ import { useTickets } from '../../../../api/tickets';
 import { setNodeAttrs } from './commands';
 import { IMAGE_TYPES, isImageFile, startImageUpload } from './imageUpload';
 import { Dialog, Toggle, formatBytes } from './ui';
+import { isSafeUrl } from '../../../../utils/markdownWysiwyg';
 
 type Tab = 'upload' | 'link' | 'files';
 
@@ -290,7 +291,7 @@ export function InsertImageDialog({
               setPreview(null);
             }}
           />
-          {url.trim() && (
+          {url.trim() && isSafeUrl(url) && (
             <div className="dk-link-prev">
               <img
                 src={url.trim()}

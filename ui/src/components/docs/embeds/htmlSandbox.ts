@@ -76,7 +76,11 @@ export interface SrcdocOptions {
  * and the browser would log an error for each.
  */
 export function withoutScripts(html: string): string {
-  return html.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '').replace(/<script\b[^>]*\/?>/gi, '');
+  // parsed by the browser's own HTML parser (an inert document: nothing in it runs), so every form of a script tag
+  // the frame would see is found, which a pattern cannot promise
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('script').forEach((el) => el.remove());
+  return doc.head.innerHTML + doc.body.innerHTML;
 }
 
 /**

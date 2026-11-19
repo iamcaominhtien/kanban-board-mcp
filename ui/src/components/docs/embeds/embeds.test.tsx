@@ -21,6 +21,7 @@ import {
   linesWith,
   listWords,
   removedThings,
+  withoutScripts,
 } from './htmlSandbox';
 import { ProviderPlayer, VideoPlayer } from './VideoBlock';
 import { playableInBrowser, videoEmbedOf } from './videoEmbed';
@@ -305,5 +306,16 @@ describe('a frame that may not run scripts', () => {
     expect(doc).toContain('<p>Hi</p>');
     expect(doc.toLowerCase()).not.toContain('<script');
     expect(buildSrcdoc('<script>x()</script>', { scripts: true, frameId: 'f' })).toContain('<script>x()</script>');
+  });
+});
+
+describe('withoutScripts', () => {
+  it('drops every form of a script tag the browser would run, and keeps the rest', () => {
+    const html =
+      '<p>a</p><script>x()</script><SCRIPT src="y.js"></SCRIPT ><script>z()</script\t\n bar><b>b</b><script/>';
+    const out = withoutScripts(html);
+    expect(out.toLowerCase()).not.toContain('<script');
+    expect(out).toContain('<p>a</p>');
+    expect(out).toContain('<b>b</b>');
   });
 });
