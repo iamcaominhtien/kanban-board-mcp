@@ -21,10 +21,17 @@ pub(crate) fn font_css() -> String {
 /// picture Word gets; `None` for an empty one.
 pub fn equation_page(latex: &str) -> Option<String> {
     let math = mathml(latex, MathLayout::Block)?;
+    // a numbered equation keeps its number at the right edge, as in the text
+    let tag = split_tag(latex)
+        .1
+        .map(|t| {
+            format!("<span style=\"position:absolute;right:16px;top:50%;transform:translateY(-50%)\">({t})</span>")
+        })
+        .unwrap_or_default();
     Some(format!(
-        "<!doctype html><html><head><meta charset=\"utf-8\"><style>{}body {{ margin: 0; background: #fff; text-align: center; }} \
-         div {{ display: inline-block; padding: 6px 10px; font-size: 26px; }} math {{ font-family: \"STIX Two Math\", math; }}\
-         </style></head><body><div>{math}</div></body></html>",
+        "<!doctype html><html><head><meta charset=\"utf-8\"><style>{}body {{ margin: 0; background: #fff; text-align: center; \
+         position: relative; }} div {{ display: inline-block; padding: 6px 10px; font-size: 26px; }} span {{ font-size: 22px; }} \
+         math {{ font-family: \"STIX Two Math\", math; }}</style></head><body><div>{math}</div>{tag}</body></html>",
         font_css()
     ))
 }
@@ -64,6 +71,8 @@ pub(crate) fn mathml(latex: &str, layout: MathLayout) -> Option<String> {
     if latex.trim().is_empty() {
         return None;
     }
+    let (latex, _) = split_tag(latex);
+    let latex = latex.as_str();
     let storage = Storage::new();
     let parser = Parser::new(latex, &storage);
     let config = RenderConfig {
@@ -76,7 +85,29 @@ pub(crate) fn mathml(latex: &str, layout: MathLayout) -> Option<String> {
     };
     let mut out = String::new();
     push_mathml(&mut out, parser, config).ok()?;
-    Some(out)
+    // the renderer escapes the entity it writes for `\ ` (a hard space) once too often
+    Some(out.replace("&amp;nbsp;", "&#160;"))
+}
+
+/// Splits an equation's number from it: `\tag{3}` (or `\tag*{3}`) gives `Some("3")`; `\label{…}`, `\notag` and
+/// `\nonumber`, which only matter to LaTeX's own numbering, are dropped. The renderer knows none of them.
+pub(crate) fn split_tag(latex: &str) -> (String, Option<String>) {
+    let mut rest = latex.to_string();
+    let mut tag = None;
+    for command in [r"\tag*{", r"\tag{", r"\label{"] {
+        while let Some(start) = rest.find(command) {
+            let open = start + command.len();
+            let Some(len) = rest[open..].find('}') else { break };
+            if command != r"\label{" {
+                tag = Some(rest[open..open + len].trim().to_string());
+            }
+            rest.replace_range(start..open + len + 1, "");
+        }
+    }
+    for word in [r"\nonumber", r"\notag"] {
+        rest = rest.replace(word, "");
+    }
+    (rest, tag)
 }
 
 #[cfg(test)]
@@ -96,5 +127,12 @@ mod tests {
         let text = equation_text(r"\mu_t");
         // the renderer writes mu as the micro sign
         assert_eq!(text, "µt");
+        // a hard space is a space, not the text "&nbsp;"
+        let spaced = mathml(r"a\ b", MathLayout::Inline).expect("mathml");
+        assert!(spaced.contains("<mtext>&#160;</mtext>") && !spaced.contains("&amp;nbsp;"), "{spaced}");
+        // a numbered equation: the number apart, the equation without it
+        assert_eq!(split_tag(r"x = 1 \tag{2} \label{eq:x}"), ("x = 1  ".to_string(), Some("2".to_string())));
+        assert_eq!(split_tag(r"y \notag"), ("y ".to_string(), None));
+        assert!(!mathml(r"x = 1 \tag{2}", MathLayout::Block).expect("mathml").contains("merror"));
     }
 }

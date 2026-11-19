@@ -729,7 +729,18 @@ impl<'a> HtmlRenderer<'a> {
                 match crate::math::mathml(latex, crate::math::MathLayout::Block) {
                     Some(math) => {
                         self.has_math = true;
-                        let _ = writeln!(out, "<div class=\"math-block\">{math}</div>");
+                        match crate::math::split_tag(latex).1 {
+                            Some(tag) => {
+                                let _ = writeln!(
+                                    out,
+                                    "<div class=\"math-block tagged\">{math}<span class=\"math-tag\">({})</span></div>",
+                                    esc(&tag)
+                                );
+                            }
+                            None => {
+                                let _ = writeln!(out, "<div class=\"math-block\">{math}</div>");
+                            }
+                        }
                     }
                     None => {
                         let _ =
@@ -1475,7 +1486,8 @@ figure.code .add { background: rgba(46, 160, 67, .18); } figure.code .del { back
 figure.code .ln { display: inline-block; width: 3ch; margin-right: 12px; text-align: right; opacity: .5; user-select: none; }
 code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .92em; }
 code.math { font-style: italic; } .math-block { text-align: center; padding: 8px; overflow-x: auto; }
-math { font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", math; } math[display="block"] { font-size: 1.1em; }
+math { font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", math; }
+.math-block.tagged { position: relative; padding-right: 3em; } .math-tag { position: absolute; right: 0; top: 50%; transform: translateY(-50%); } math[display="block"] { font-size: 1.1em; }
 hr { border: 0; border-top: 1px solid currentColor; opacity: .3; margin: 24px 0; }
 hr.rule-short { width: 80px; margin: 24px auto; } hr.rule-thick { border-top-width: 4px; } hr.rule-double { border-top: 4px double currentColor; }
 .rule { text-align: center; margin: 24px 0; opacity: .6; letter-spacing: .3em; }
