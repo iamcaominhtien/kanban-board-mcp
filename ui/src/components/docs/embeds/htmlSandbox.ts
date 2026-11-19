@@ -72,11 +72,6 @@ export interface SrcdocOptions {
 }
 
 /**
- * The document an embed's frame shows: the CSP, base styles and the author's HTML (and the reporter when scripts
- * run).
- * @param html - The embed's HTML as stored (cleaned by the server).
- */
-/**
  * The embed's HTML without its scripts, for a frame that may not run them: the sandbox would block them anyway,
  * and the browser would log an error for each.
  */
@@ -84,6 +79,12 @@ export function withoutScripts(html: string): string {
   return html.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '').replace(/<script\b[^>]*\/?>/gi, '');
 }
 
+/**
+ * The document an embed's frame shows: the CSP, base styles and the author's HTML (and the reporter when scripts
+ * run).
+ * @param html - The embed's HTML as stored (cleaned by the server).
+ * @param opts - Whether scripts run, and the frame id the reporter answers with.
+ */
 export function buildSrcdoc(html: string, opts: SrcdocOptions): string {
   return (
     '<!doctype html><html><head><meta charset="utf-8">' +
