@@ -108,7 +108,8 @@ pub async fn create_from_template(
 
 /// Exports pages to a file and writes it at `path` (an absolute file path, or a folder that gets the export's own
 /// name). `scope`: `page`, `children` (the page and its sub-pages), `book` (a book page and its chapters) or `space`
-/// (the whole project; `page_id` names any page of it). Returns {path, format, size, name}.
+/// (the whole project; `page_id` names any page of it). Returns {path, format, size}, and `zip` when the file is a
+/// .zip of several files (its path then ends in `.zip`).
 ///
 /// # Errors
 /// A relative path, an unknown scope or format, an empty page, a failed or too slow export, a file that cannot be
@@ -120,10 +121,11 @@ pub async fn export_docs(page_id: &str, scope: &str, format: &str, path: &str) -
     let session = common::async_session();
     let page = docs::page_detail(&session, page_id).await.map_err(docs_error)?;
     let project_id = page.get("project_id").and_then(Value::as_str).unwrap_or_default().to_string();
+    let page_ids = if scope == "book" { Some(chapters(&session, &project_id, &page).await?) } else { None };
     let req = ExportRequest {
         scope: scope.to_string(),
         page_id: Some(page_id.to_string()),
-        page_ids: None,
+        page_ids,
         format: format.to_string(),
         draft: false,
         file_name: None,
@@ -151,13 +153,56 @@ pub async fn export_docs(page_id: &str, scope: &str, format: &str, path: &str) -
         }
     }
     let (name, bytes) = docs_export::file(&session, &id).await.map_err(docs_error)?;
+    // several files (pages with their pictures, a book in Word) come as one .zip: the file is named so
+    let zip = name.ends_with(".zip");
     let target = target_of(path, &name);
+    let target =
+        if zip && target.extension().is_none_or(|e| e != "zip") { target.with_extension("zip") } else { target };
     let written =
         target.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|()| std::fs::write(&target, &bytes));
     if let Err(e) = written {
         return Err(ToolError::Value(format!("{} could not be written ({e}).", target.display())));
     }
-    Ok(json!({"path": target.display().to_string(), "format": format, "size": bytes.len(), "name": name}))
+    let mut out = json!({"path": target.display().to_string(), "format": format, "size": bytes.len()});
+    if zip {
+        out["zip"] = json!("a .zip of the files (each page, its pictures)");
+    }
+    Ok(out)
+}
+
+/// The chapters of the book `page` is (or is a chapter of), in tree order: the pages a book export holds.
+///
+/// # Errors
+/// A page that is no book and has no sub-pages; the tree errors.
+async fn chapters(
+    session: &kb_db::Session,
+    project_id: &str,
+    page: &Map<String, Value>,
+) -> Result<Vec<String>, ToolError> {
+    let is_book = |p: &Map<String, Value>| {
+        p.get("settings").and_then(|s| s.get("book")).and_then(|b| b.get("isBook")).and_then(Value::as_bool)
+            == Some(true)
+    };
+    let tree = docs::list_tree(session, project_id).await.map_err(docs_error)?;
+    let id = page.get("id").and_then(Value::as_str).unwrap_or_default();
+    let parent = page.get("parent_id").and_then(Value::as_str);
+    let parent_is_book = match parent {
+        Some(p) => is_book(&docs::page_detail(session, p).await.map_err(docs_error)?),
+        None => false,
+    };
+    let root = if !is_book(page) && parent_is_book { parent.unwrap_or(id) } else { id };
+    let kids: Vec<String> = super::docs::in_reading_order(&tree)
+        .into_iter()
+        .filter(|n| n.get("parent_id").and_then(Value::as_str) == Some(root))
+        .filter_map(|n| n.get("id").and_then(Value::as_str).map(str::to_string))
+        .collect();
+    if kids.is_empty() {
+        return Err(ToolError::value(
+            "A book export holds the chapters: the sub-pages of the book page. This page has none; export it with \
+             scope='page'.",
+        ));
+    }
+    Ok(kids)
 }
 
 /// Where an export goes: `path` itself, or the export's name inside it when `path` is a folder (or ends with `/`).

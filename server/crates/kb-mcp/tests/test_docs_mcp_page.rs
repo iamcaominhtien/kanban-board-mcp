@@ -225,3 +225,113 @@ async fn the_answers_are_short() {
     let part = read(&mcp, "get", json!({"page_id": id, "section": "Plans"})).await;
     assert_eq!(part["sections"], json!(["## Plans"]));
 }
+
+#[tokio::test]
+async fn a_book_exports_its_chapters_and_the_tree_reads_in_order() {
+    if !skip_unless_available("a_book_exports_its_chapters_and_the_tree_reads_in_order") {
+        return;
+    }
+    let s = Server::start().await;
+    let (c, mcp) = (s.client(), s.mcp());
+    let pid = project(&c).await;
+    let mk = |title: &str, parent: Option<&Value>| {
+        let mut a = json!({"project_id": pid, "title": title, "markdown": format!("Text of {title}.")});
+        if let Some(p) = parent {
+            a["parent_id"] = p.clone();
+        }
+        a
+    };
+    let other = write(&mcp, "create", mk("Other", None)).await["id"].clone();
+    let book = write(&mcp, "create", mk("Book", None)).await["id"].clone();
+    write(&mcp, "settings", json!({"page_id": book, "settings": {"book": {"isBook": true}}})).await;
+    let one = write(&mcp, "create", mk("One", Some(&book))).await["id"].clone();
+    let two = write(&mcp, "create", mk("Two", Some(&book))).await["id"].clone();
+    let late = write(&mcp, "create", mk("Late", None)).await["id"].clone();
+    // `after_id` alone moves to that sibling's level: Two before One, inside the book
+    write(&mcp, "move", json!({"page_id": one, "after_id": two})).await;
+    let order: Vec<Value> = read(&mcp, "list", json!({"project_id": pid}))
+        .await
+        .as_array()
+        .expect("a list")
+        .iter()
+        .map(|p| p["title"].clone())
+        .collect();
+    assert_eq!(order, json!(["Other", "Book", "Two", "One", "Late"]).as_array().cloned().expect("titles"));
+    let _ = other;
+
+    let dir = tempfile::tempdir().expect("a folder");
+    let file = dir.path().join("book.md");
+    // from the book page or from a chapter: the chapters, in order; several files come as a .zip
+    for from in [&book, &two] {
+        let got = read(
+            &mcp,
+            "export",
+            json!({"page_id": from, "scope": "book", "format": "md", "path": file.to_str().expect("utf-8")}),
+        )
+        .await;
+        let path = got["path"].as_str().expect("a path");
+        if got.get("zip").is_some() {
+            assert!(path.ends_with(".zip"), "{got}");
+        } else {
+            let text = std::fs::read_to_string(path).expect("the file");
+            assert!(text.find("Text of Two").expect("Two") < text.find("Text of One").expect("One"), "{text}");
+        }
+    }
+    let lonely = call_err(
+        &mcp,
+        "docs_read",
+        json!({"action": "export", "page_id": late, "scope": "book", "path": file.to_str().expect("utf-8")}),
+    )
+    .await;
+    assert!(lonely.contains("scope='page'"), "{lonely}");
+}
+
+#[tokio::test]
+async fn history_pictures_and_the_guide_are_short() {
+    if !skip_unless_available("history_pictures_and_the_guide_are_short") {
+        return;
+    }
+    let s = Server::start().await;
+    let (c, mcp) = (s.client(), s.mcp());
+    let pid = project(&c).await;
+    let body: String = (1..=12).map(|i| format!("Line {i}.\n\n")).collect();
+    let made = write(&mcp, "create", json!({"project_id": pid, "title": "Long", "markdown": body})).await;
+    let id = made["id"].clone();
+    for v in 1..=3 {
+        write(
+            &mcp,
+            "edit",
+            json!({"page_id": id, "find": format!("Line {}.", v * 3), "markdown": format!("Changed {v}.")}),
+        )
+        .await;
+    }
+    let versions = read(&mcp, "versions", json!({"page_id": id, "limit": 2})).await;
+    assert_eq!(versions.as_array().map(Vec::len), Some(2), "{versions}");
+    let diff = read(&mcp, "version", json!({"page_id": id, "version": 1, "compare_to": 4})).await;
+    let text = diff["diff"].as_str().expect("a diff");
+    assert!(text.contains("- Line 3.") && text.contains("+ Changed 1.") && text.contains('…'), "{text}");
+    assert!(!text.contains("Line 12.") && diff.get("rows").is_none(), "only the changes and their context: {diff}");
+
+    // not in a dot folder: an upload never takes a file from one
+    let dir = tempfile::Builder::new().prefix("docs-upload").tempdir().expect("a folder");
+    let png = dir.path().join("dot.png");
+    // a 1x1 PNG
+    let bytes: [u8; 67] = [
+        137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21,
+        196, 137, 0, 0, 0, 10, 73, 68, 65, 84, 120, 156, 99, 0, 1, 0, 0, 5, 0, 1, 13, 10, 45, 180, 0, 0, 0, 0, 73, 69,
+        78, 68, 174, 66, 96, 130,
+    ];
+    std::fs::write(&png, bytes).expect("write the picture");
+    let up = write(&mcp, "upload", json!({"path": png.to_str().expect("utf-8"), "alt": "A green dot"})).await;
+    assert!(up["markdown"].as_str().expect("markdown").starts_with("![A green dot](/uploads/"), "{up}");
+    assert!(up.get("stored_in").is_none(), "{up}");
+
+    let part = read(&mcp, "docs_guide", json!({"section": "settings"})).await;
+    let guide = part["guide"].as_str().expect("a part");
+    assert!(guide.starts_with("## 6. The page") && !guide.contains("## 7."), "{guide}");
+    assert!(part["sections"].as_array().is_some_and(|s| s.len() >= 10), "{part}");
+    let numbered = read(&mcp, "docs_guide", json!({"section": "5"})).await;
+    assert!(numbered["guide"].as_str().expect("a part").starts_with("## 5. The annotated Markdown"));
+    let none = call_err(&mcp, "docs_read", json!({"action": "docs_guide", "section": "cooking"})).await;
+    assert!(none.contains("no section 'cooking'"), "{none}");
+}

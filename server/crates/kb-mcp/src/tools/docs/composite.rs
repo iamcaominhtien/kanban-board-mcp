@@ -344,6 +344,7 @@ async fn upload_file(given: Map<String, Value>) -> ToolResult {
         "path",
         "data",
         "name",
+        "alt",
         "page_id",
         "section",
         "find",
@@ -359,8 +360,8 @@ async fn upload_file(given: Map<String, Value>) -> ToolResult {
         given.iter().filter(|(k, v)| !v.is_null() && !allowed.contains(&k.as_str())).map(|(k, _)| k.as_str()).collect();
     if !extra.is_empty() {
         return Err(ToolError::Value(format!(
-            "docs_write(action='upload') does not use: {}. It takes path | data+name [, page_id, section, find, \
-             block_id, mode, ticket_id, body, author].",
+            "docs_write(action='upload') does not use: {}. It takes path | data+name [, alt, page_id, section, \
+             find, block_id, mode, ticket_id, body, author].",
             extra.join(", ")
         )));
     }
@@ -378,8 +379,17 @@ async fn upload_file(given: Map<String, Value>) -> ToolResult {
         .iter()
         .map(|k| (k.to_string(), given.get(*k).cloned().unwrap_or(Value::Null)))
         .collect();
-    let stored = run_write("upload".to_string(), just).await?;
+    let mut stored = run_write("upload".to_string(), just).await?;
+    // a picture says what it shows (the guide's rule): `alt` replaces the file name the Markdown starts with
+    if let Some(alt) = truthy("alt").map(|a| pyjson::py_str(&a).replace(['[', ']', '\n'], " ")) {
+        let md = pyjson::py_str(&stored["markdown"]);
+        if let Some(rest) = md.strip_prefix("![").and_then(|r| r.split_once("](")).map(|(_, url)| url.to_string()) {
+            stored["markdown"] = json!(format!("![{}]({rest}", alt.trim()));
+        }
+    }
     let mut out = stored.as_object().cloned().unwrap_or_default();
+    // where the server keeps its files says nothing an agent can use (a warning about it stays)
+    out.remove("stored_in");
     if let Some(page_id) = page_id {
         let by_text = given_key(&given, "find").is_some();
         let by_block = given_key(&given, "block_id").is_some();

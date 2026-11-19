@@ -70,20 +70,46 @@ fn pick(page: &Map<String, Value>, keys: &[&str]) -> Value {
     Value::Object(keys.iter().map(|k| (k.to_string(), page.get(*k).cloned().unwrap_or(Value::Null))).collect())
 }
 
-/// List a project's Docs pages as a flat tree in reading order: [{id, parent_id, title, status}] (the order is the
-/// tree's: a page comes after its parent and its earlier siblings).
+/// List a project's Docs pages as a flat tree in reading order: [{id, parent_id, title, status}] (a page comes right
+/// after its parent and its earlier siblings, as the tree shows it).
 pub async fn list_docs_pages(project_id: &str) -> ToolResult {
     let session = common::async_session();
     let tree = docs::list_tree(&session, project_id).await.map_err(docs_error)?;
     let keys = ["id", "parent_id", "title", "status"];
-    Ok(Value::Array(
-        tree.iter()
-            .map(|n| {
-                let node = n.as_object().cloned().unwrap_or_default();
-                pick(&node, &keys)
-            })
-            .collect(),
-    ))
+    Ok(Value::Array(in_reading_order(&tree).into_iter().map(|n| pick(n, &keys)).collect()))
+}
+
+/// The pages of a flat tree (`{id, parent_id, position}` each) in reading order: depth first, siblings by position.
+/// A page whose parent is not in the list is a root.
+pub fn in_reading_order(tree: &[Value]) -> Vec<&Map<String, Value>> {
+    let nodes: Vec<&Map<String, Value>> = tree.iter().filter_map(Value::as_object).collect();
+    let text = |n: &Map<String, Value>, key: &str| n.get(key).and_then(Value::as_str).map(str::to_string);
+    let ids: HashSet<String> = nodes.iter().filter_map(|n| text(n, "id")).collect();
+    let mut kids: std::collections::HashMap<Option<String>, Vec<&Map<String, Value>>> = Default::default();
+    for n in &nodes {
+        let parent = text(n, "parent_id").filter(|p| ids.contains(p));
+        kids.entry(parent).or_default().push(n);
+    }
+    for list in kids.values_mut() {
+        list.sort_by(|a, b| {
+            let pos = |n: &Map<String, Value>| n.get("position").and_then(Value::as_f64).unwrap_or(0.0);
+            pos(a).total_cmp(&pos(b))
+        });
+    }
+    let mut out = Vec::with_capacity(nodes.len());
+    // depth first, without recursion: a stack of the pages still to write, the next one on top
+    let mut stack: Vec<&Map<String, Value>> =
+        kids.get(&None).map(|l| l.iter().rev().copied().collect()).unwrap_or_default();
+    while let Some(n) = stack.pop() {
+        out.push(n);
+        if out.len() > nodes.len() {
+            break;
+        }
+        if let Some(children) = kids.get(&text(n, "id")) {
+            stack.extend(children.iter().rev().copied());
+        }
+    }
+    out
 }
 
 /// Read a Docs page: {id, parent_id, title, status, version, markdown, updated_by, updated_at} and, when there is any,
@@ -362,6 +388,17 @@ pub async fn update_docs_page(
 pub async fn move_docs_page(page_id: &str, parent_id: Option<&str>, after_id: Option<&str>) -> ToolResult {
     notify_on_success(async {
         let session = common::async_session();
+        // after a sibling without a parent named: the sibling's parent (its level of the tree)
+        let sibling_parent = match (parent_id, after_id) {
+            (None, Some(after)) => docs::page_detail(&session, after)
+                .await
+                .map_err(docs_error)?
+                .get("parent_id")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+            _ => None,
+        };
+        let parent_id = parent_id.or(sibling_parent.as_deref());
         let page = docs::move_page(&session, page_id, parent_id, None, after_id).await.map_err(docs_error)?;
         Ok(pick(&page, &["id", "title", "parent_id"]))
     })
@@ -404,19 +441,61 @@ pub async fn list_docs_recycle_bin(project_id: &str) -> ToolResult {
 }
 
 /// List a Docs page's published versions, newest first: [{version, author, note, created_at, words}].
-pub async fn list_docs_versions(page_id: &str) -> ToolResult {
+pub async fn list_docs_versions(page_id: &str, limit: Option<i64>) -> ToolResult {
     let session = common::async_session();
-    Ok(Value::Array(docs::list_versions(&session, page_id).await.map_err(docs_error)?))
+    let mut all = docs::list_versions(&session, page_id).await.map_err(docs_error)?;
+    all.truncate(usize::try_from(limit.unwrap_or(20).max(1)).unwrap_or(20));
+    Ok(Value::Array(all))
 }
 
-/// Read one old version of a Docs page (markdown), or a line diff between two versions.
+/// Read one old version of a Docs page (markdown), or what changed between two versions: {from, to, added, removed,
+/// diff}, `diff` being the changed lines (`-` old, `+` new) with one line of context, parts apart by `…`.
 pub async fn get_docs_version(page_id: &str, version: i64, compare_to: Option<i64>) -> ToolResult {
     let session = common::async_session();
     let out = match compare_to {
-        Some(other) => docs::diff_versions(&session, page_id, version, other).await,
+        Some(other) => docs::diff_versions(&session, page_id, version, other).await.map(|d| short_diff(&d)),
         None => docs::get_version(&session, page_id, version).await,
     };
     Ok(Value::Object(out.map_err(docs_error)?))
+}
+
+/// A line diff as the changed lines with one line of context around each run of changes.
+fn short_diff(diff: &Map<String, Value>) -> Map<String, Value> {
+    let rows: Vec<(&str, &str)> = diff
+        .get("rows")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .map(|r| {
+            (
+                r.get("type").and_then(Value::as_str).unwrap_or("same"),
+                r.get("text").and_then(Value::as_str).unwrap_or(""),
+            )
+        })
+        .collect();
+    let changed = |i: usize| rows.get(i).is_some_and(|(t, _)| *t != "same");
+    let shown: Vec<bool> = (0..rows.len()).map(|i| changed(i) || (i > 0 && changed(i - 1)) || changed(i + 1)).collect();
+    let mut lines: Vec<String> = Vec::new();
+    for (i, (kind, text)) in rows.iter().enumerate() {
+        if !shown[i] {
+            continue;
+        }
+        if i > 0 && !shown[i - 1] && !lines.is_empty() {
+            lines.push("…".into());
+        }
+        let mark = match *kind {
+            "add" => '+',
+            "del" => '-',
+            _ => ' ',
+        };
+        lines.push(format!("{mark} {text}"));
+    }
+    let mut out = Map::new();
+    for key in ["from", "to", "added", "removed"] {
+        out.insert(key.into(), diff.get(key).cloned().unwrap_or(Value::Null));
+    }
+    out.insert("diff".into(), json!(lines.join("\n")));
+    out
 }
 
 /// Publish an old version of a Docs page again as a new version (history is kept). Returns {id, title, version}.

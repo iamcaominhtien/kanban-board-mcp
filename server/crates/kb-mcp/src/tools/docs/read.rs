@@ -70,9 +70,9 @@ pub const DOCS_READ_OPS: &[(&str, Op)] = &[
     (
         "versions",
         Op::new(
-            |a| Box::pin(async move { ops::list_docs_versions(&arg_text(&a, "page_id")).await }),
+            |a| Box::pin(async move { ops::list_docs_versions(&arg_text(&a, "page_id"), arg_int(&a, "limit")).await }),
             &["page_id"],
-            &[],
+            &["limit"],
         ),
     ),
     (
@@ -244,7 +244,19 @@ pub const DOCS_READ_OPS: &[(&str, Op)] = &[
         ),
     ),
     ("ticket_guide", Op::new(|_| Box::pin(async move { ops::ticket_guide().await }), &[], &[])),
-    ("docs_guide", Op::new(|_| Box::pin(async move { ops::docs_guide().await }), &[], &[])),
+    (
+        "docs_guide",
+        Op::new(
+            |a| {
+                Box::pin(async move {
+                    let section = arg_str(&a, "section");
+                    ops::docs_guide(section.as_deref()).await
+                })
+            },
+            &[],
+            &["section"],
+        ),
+    ),
 ];
 
 /// Read a project's Docs: a tree of rich pages, read as Markdown with a block id before each block. `action`: list,

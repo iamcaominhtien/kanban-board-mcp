@@ -416,7 +416,7 @@ fn pages(f: &Fixtures) -> Vec<Call> {
         dw("move: into itself", "move", json!({"page_id": "$pg1", "parent_id": "$pg1"})),
         dw("move: into its own sub-page", "move", json!({"page_id": "$pg1", "parent_id": "$pg3"})),
         dw("move: under a page of another project", "move", json!({"page_id": "$pg3", "parent_id": "$pg5"})),
-        dw("move: to the top level after a sibling", "move", json!({"page_id": "$pg3", "after_id": "$pg2"})),
+        dw("move: after a sibling, at its level", "move", json!({"page_id": "$pg3", "after_id": "$pg2"})),
         dw(
             "move: after a page that is not a sibling",
             "move",

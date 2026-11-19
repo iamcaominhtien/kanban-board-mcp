@@ -131,9 +131,39 @@ pub async fn diagram_guide() -> ToolResult {
     Ok(Value::Object(visual_guides::diagram_guide()))
 }
 
-/// How to work in Docs (in Claude Code it is the docs-pages skill; issue #268): {guide}.
-pub async fn docs_guide() -> ToolResult {
-    Ok(Value::Object(docs_guide::guide()))
+/// How to work in Docs (in Claude Code it is the docs-pages skill; issue #268): {guide}. With `section` (its number,
+/// `5`, or a word of its heading, `settings`), only that part of the guide, and `sections`: the headings of all.
+///
+/// # Errors
+/// A section the guide does not have (the answer lists them).
+pub async fn docs_guide(section: Option<&str>) -> ToolResult {
+    let Some(want) = section.map(str::trim).filter(|s| !s.is_empty()) else {
+        return Ok(Value::Object(docs_guide::guide()));
+    };
+    let text = docs_guide::GUIDE;
+    // the parts: the text before the first `## ` heading, then one part per `## N. Heading`
+    let mut parts: Vec<(String, String)> = Vec::new();
+    for chunk in text.split("\n## ").skip(1) {
+        let heading = chunk.lines().next().unwrap_or_default().to_string();
+        if heading.split_once(". ").is_some_and(|(n, _)| n.chars().all(|c| c.is_ascii_digit())) {
+            parts.push((heading, format!("## {chunk}")));
+        } else if let Some(last) = parts.last_mut() {
+            // a `## ` line inside an example belongs to the part it is in
+            last.1.push_str(&format!("\n## {chunk}"));
+        }
+    }
+    let low = want.to_lowercase();
+    let found = parts.iter().find(|(h, _)| {
+        h.split_once(". ").is_some_and(|(n, _)| n == want.trim_end_matches('.')) || h.to_lowercase().contains(&low)
+    });
+    let sections: Vec<Value> = parts.iter().map(|(h, _)| json!(h)).collect();
+    match found {
+        Some((_, body)) => Ok(json!({"guide": body.trim_end(), "sections": sections})),
+        None => Err(ToolError::Value(format!(
+            "The guide has no section '{want}'. Its sections: {}.",
+            parts.iter().map(|(h, _)| h.as_str()).collect::<Vec<_>>().join("; ")
+        ))),
+    }
 }
 
 /// The board's shared guides for any role (in Claude Code they are its skills): {name: text} (issue #277).

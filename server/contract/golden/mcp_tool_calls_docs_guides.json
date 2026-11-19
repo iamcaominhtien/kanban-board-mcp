@@ -48,7 +48,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_read: docs_read(action='docs_guide') does not use: page_id. It requires nothing else."
+        "text": "Error executing tool docs_read: docs_read(action='docs_guide') does not use: page_id. It requires nothing else; optional: section."
       }
     ],
     "isError": true
