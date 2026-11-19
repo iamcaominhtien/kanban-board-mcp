@@ -213,7 +213,8 @@ async fn test_ticket_lifecycle_and_relations() {
     assert!(blocked["blocked"]["blocked_by"].as_array().expect("list").contains(&a["id"]));
     let freed =
         call(&mcp, "manage_ticket", json!({"action": "unblock", "ticket_id": b["id"], "target_id": a["id"]})).await;
-    assert_eq!(freed["blocked"]["blocked_by"], json!([]));
+    // a card leaves out what is empty
+    assert!(freed["blocked"].get("blocked_by").is_none(), "{freed}");
 
     let link = call(
         &mcp,
@@ -292,11 +293,10 @@ async fn test_a_work_log_note_without_an_action_is_added_and_with_an_id_updated(
         json!({"author": "PM", "role": "PM", "note": "Checked the links on the Overview page.", "log_kind": "investigation"}),
     )
     .await;
-    let entry = after["work_log"][0].clone();
+    let entry = after["work_log"].clone();
     assert_eq!(entry["note"], "Checked the links on the Overview page.");
     let after = items(&mcp, &i, "work_log", json!({"item_id": entry["id"], "note": "Fixed."})).await;
-    let notes: Vec<Value> = after["work_log"].as_array().expect("log").iter().map(|e| e["note"].clone()).collect();
-    assert_eq!(notes, [json!("Fixed.")]);
+    assert!(after["work_log"]["note"] == "Fixed." && after["ticket"]["work_log"] == 1, "{after}");
 }
 
 #[tokio::test]
@@ -308,9 +308,9 @@ async fn test_comments_work_log_criteria_sub_tasks_and_test_cases() {
     let i = &t["id"];
 
     let after = items(&mcp, i, "comment", json!({"action": "add", "text": "first", "author": "Claude"})).await;
-    let cid = after["comments"][0]["id"].clone();
+    let cid = after["comment"]["id"].clone();
     let edited = items(&mcp, i, "comment", json!({"action": "update", "item_id": cid, "text": "second"})).await;
-    assert_eq!(edited["comments"][0]["text"], "second");
+    assert_eq!(edited["comment"]["text"], "second");
     let hidden = items(&mcp, i, "comment", json!({"action": "delete", "item_id": cid})).await;
     let thread = call(&mcp, "get_ticket", json!({"ticket_id": i, "view": "comments"})).await;
     assert_eq!(thread["count"], 0);
@@ -335,21 +335,22 @@ async fn test_comments_work_log_criteria_sub_tasks_and_test_cases() {
         json!({"action": "update", "item_id": log["id"], "note": "rewritten", "pinned": false}),
     )
     .await;
-    assert_eq!(resolved["work_log"][0]["note"], "rewritten");
+    assert_eq!(resolved["work_log"]["note"], "rewritten");
     items(&mcp, i, "work_log", json!({"action": "delete", "item_id": log["id"]})).await;
 
     let with_ac = items(&mcp, i, "criterion", json!({"action": "add", "text": "works"})).await;
-    let ac = with_ac["acceptance_criteria"][0].clone();
+    let ac = with_ac["criterion"].clone();
     assert_eq!(ac["done"], false);
     let toggled = items(&mcp, i, "criterion", json!({"action": "toggle", "item_id": ac["id"]})).await;
-    assert_eq!(toggled["acceptance_criteria"][0]["done"], true);
+    assert_eq!(toggled["criterion"]["done"], true);
+    assert_eq!(toggled["ticket"]["acceptance_criteria"], json!({"done": 1, "total": 1}));
     let emptied = items(&mcp, i, "criterion", json!({"action": "delete", "item_id": ac["id"]})).await;
-    assert_eq!(emptied["acceptance_criteria"], json!([]));
+    assert!(emptied["deleted"] == ac["id"] && emptied["ticket"].get("acceptance_criteria").is_none(), "{emptied}");
 
     let with_st = items(&mcp, i, "sub_task", json!({"action": "add", "text": "step"})).await;
-    let st = with_st["sub_tasks"][0].clone();
+    let st = with_st["sub_task"].clone();
     let toggled = items(&mcp, i, "sub_task", json!({"action": "toggle", "item_id": st["id"]})).await;
-    assert_eq!(toggled["sub_tasks"][0]["done"], true);
+    assert_eq!(toggled["sub_task"]["done"], true);
     items(&mcp, i, "sub_task", json!({"action": "delete", "item_id": st["id"]})).await;
 
     items(&mcp, i, "test_case", json!({"action": "add", "title": "it runs", "expected_result": "ok"})).await;
@@ -361,9 +362,9 @@ async fn test_comments_work_log_criteria_sub_tasks_and_test_cases() {
         json!({"action": "update", "item_id": "TC-1", "status": "pass", "proof": "log.txt"}),
     )
     .await;
-    assert_eq!(passed["test_cases"][0]["status"], "pass");
+    assert_eq!(passed["test_case"]["status"], "pass");
     let left = items(&mcp, i, "test_case", json!({"action": "delete", "item_id": "TC-1"})).await;
-    assert_eq!(left["test_cases"], json!([]));
+    assert_eq!(left["deleted"], "TC-1");
 }
 
 #[tokio::test]
@@ -412,28 +413,28 @@ async fn test_branches_by_name() {
     let t = ticket(&mcp, &p, json!({})).await;
     let i = &t["id"];
     let added = call(&mcp, "ticket_branches", json!({"ticket_id": i, "action": "add", "name": "feat/x"})).await;
-    assert_eq!(added["branches"][0]["name"], "feat/x");
+    assert_eq!(added["branch"]["name"], "feat/x");
     let updated = call(
         &mcp,
         "ticket_branches",
         json!({"ticket_id": i, "action": "update", "branch": "feat/x", "pr_url": "https://example.com/pr/1"}),
     )
     .await;
-    assert_eq!(updated["branches"][0]["pr_url"], "https://example.com/pr/1");
+    assert_eq!(updated["branch"]["pr_url"], "https://example.com/pr/1");
     let renamed = call(
         &mcp,
         "ticket_branches",
         json!({"ticket_id": i, "action": "update", "branch": "feat/x", "name": "feat/y"}),
     )
     .await;
-    assert_eq!(renamed["branches"][0]["name"], "feat/y");
+    assert_eq!(renamed["branch"]["name"], "feat/y");
     let refused = call_err(&mcp, "ticket_branches", json!({"ticket_id": i, "action": "delete"})).await;
     assert!(refused.contains("Missing: branch"), "{refused}");
     let refused =
         call_err(&mcp, "ticket_branches", json!({"ticket_id": i, "action": "add", "name": "z", "force": true})).await;
     assert!(refused.contains("does not use: force"), "{refused}");
     let gone = call(&mcp, "ticket_branches", json!({"ticket_id": i, "action": "delete", "branch": "feat/y"})).await;
-    assert_eq!(gone["branches"], json!([]));
+    assert_eq!(gone["deleted"], "feat/y");
 }
 
 #[tokio::test]
@@ -502,7 +503,7 @@ async fn test_reopen_pend_and_resume_through_manage_ticket() {
         json!({"action": "resume", "ticket_id": tid, "reason": "unblocked", "add_comment": true}),
     )
     .await;
-    assert_eq!(resumed["pending"], false);
+    assert!(resumed.get("pending").is_none(), "{resumed}");
 
     // the ticket it waited on still blocks it: Done is refused until that one is done (3.35.1)
     let refused =

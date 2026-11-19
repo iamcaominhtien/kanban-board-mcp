@@ -3,7 +3,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Notes\",\n  \"prefix\": \"NOT\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Notes\",\"prefix\":\"NOT\",\"color\":\"#6366f1\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -12,7 +12,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:2>\",\n  \"project_id\": \"<uuid:1>\",\n  \"name\": \"Bao\",\n  \"color\": \"#10B981\",\n  \"role\": \"member\",\n  \"kind\": \"human\",\n  \"created_at\": \"<time>\"\n}"
+        "text": "{\"id\":\"<uuid:2>\",\"project_id\":\"<uuid:1>\",\"name\":\"Bao\",\"color\":\"#10B981\",\"role\":\"member\",\"kind\":\"human\",\"created_at\":\"<time>\"}"
       }
     ],
     "isError": false

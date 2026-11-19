@@ -3,7 +3,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Draw\",\n  \"prefix\": \"DRW\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Draw\",\"prefix\":\"DRW\",\"color\":\"#6366f1\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -12,7 +12,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:2>\",\n  \"name\": \"Away\",\n  \"prefix\": \"AWY\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:2>\",\"name\":\"Away\",\"prefix\":\"AWY\",\"color\":\"#6366f1\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -21,7 +21,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"DRW-1\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Draw it\",\n  \"description\": \"\",\n  \"type\": \"task\",\n  \"status\": \"backlog\",\n  \"priority\": \"medium\",\n  \"estimate\": null,\n  \"due_date\": null,\n  \"start_date\": null,\n  \"tags\": [],\n  \"parent_id\": null,\n  \"comments\": [],\n  \"acceptance_criteria\": [],\n  \"sub_tasks\": [],\n  \"work_log\": [],\n  \"test_cases\": [],\n  \"wont_do_reason\": null,\n  \"created_by\": \"<uuid:3>\",\n  \"assignee\": null,\n  \"blocks\": [],\n  \"blocked_by\": [],\n  \"block_done_if_acs_incomplete\": false,\n  \"block_done_if_tcs_incomplete\": false,\n  \"links\": [],\n  \"branches\": [],\n  \"workspace_retention_days\": null,\n  \"repo_path\": null,\n  \"reopen_count\": 0,\n  \"last_reopened_at\": null,\n  \"last_reopened_by\": null,\n  \"last_reopen_reason\": null,\n  \"reopen_history\": [],\n  \"pending\": false,\n  \"pending_reason_type\": null,\n  \"pending_ticket_id\": null,\n  \"pending_member_id\": null,\n  \"pending_party\": null,\n  \"pending_note\": null,\n  \"pending_since\": null,\n  \"pending_by\": null,\n  \"from_idea_id\": null,\n  \"tests_assumption_id\": null,\n  \"wave_pin\": null,\n  \"review_requested_from\": null,\n  \"completed_at\": null,\n  \"completed_by\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+        "text": "{\"id\":\"DRW-1\",\"title\":\"Draw it\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\"}"
       }
     ],
     "isError": false
@@ -30,7 +30,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Design\",\"status\":\"published\",\"version\":1}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Design\",\"status\":\"published\",\"version\":1}"
       }
     ],
     "isError": false
@@ -528,7 +528,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Design\",\"version\":2,\"published\":true}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Design\",\"version\":2,\"published\":true}"
       }
     ],
     "isError": false
@@ -537,7 +537,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"parent_id\":null,\"title\":\"Design\",\"status\":\"published\",\"version\":2,\"markdown\":\"<!-- #<bid:1> -->\\n## Flow\\n\\n<!-- #<bid:2> -->\\n[Request flow](diagram:$dg1)\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\"}"
+        "text": "{\"id\":\"<uuid:3>\",\"parent_id\":null,\"title\":\"Design\",\"status\":\"published\",\"version\":2,\"markdown\":\"<!-- #<bid:1> -->\\n## Flow\\n\\n<!-- #<bid:2> -->\\n[Request flow](diagram:$dg1)\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\"}"
       }
     ],
     "isError": false
@@ -744,7 +744,7 @@
     "content": [
       {
         "type": "text",
-        "text": "[{\"id\":\"<sk:8>\",\"title\":\"Dot with layers\",\"owner_kind\":\"ticket\",\"owner_id\":\"DRW-1\",\"version\":1,\"width\":1,\"height\":1,\"layers\":1,\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"markdown\":\"![Dot with layers](sketch:<sk:8>)\"},{\"id\":\"<sk:7>\",\"title\":\"Dot\",\"owner_kind\":\"doc\",\"owner_id\":\"<uuid:4>\",\"version\":1,\"width\":1,\"height\":1,\"layers\":3,\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"markdown\":\"![Dot](sketch:<sk:7>)\"},{\"id\":\"<sk:6>\",\"title\":\"Dot sketch\",\"owner_kind\":\"doc\",\"owner_id\":\"<uuid:4>\",\"version\":1,\"width\":1,\"height\":1,\"layers\":3,\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"markdown\":\"![Dot sketch](sketch:<sk:6>)\"}]"
+        "text": "[{\"id\":\"<sk:8>\",\"title\":\"Dot with layers\",\"owner_kind\":\"ticket\",\"owner_id\":\"DRW-1\",\"version\":1,\"width\":1,\"height\":1,\"layers\":1,\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"markdown\":\"![Dot with layers](sketch:<sk:8>)\"},{\"id\":\"<sk:7>\",\"title\":\"Dot\",\"owner_kind\":\"doc\",\"owner_id\":\"<uuid:3>\",\"version\":1,\"width\":1,\"height\":1,\"layers\":3,\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"markdown\":\"![Dot](sketch:<sk:7>)\"},{\"id\":\"<sk:6>\",\"title\":\"Dot sketch\",\"owner_kind\":\"doc\",\"owner_id\":\"<uuid:3>\",\"version\":1,\"width\":1,\"height\":1,\"layers\":3,\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"markdown\":\"![Dot sketch](sketch:<sk:6>)\"}]"
       }
     ],
     "isError": false
@@ -894,7 +894,7 @@
     "content": [
       {
         "type": "text",
-        "text": "[{\"id\":\"<sk:8>\",\"title\":\"Dot with layers\",\"owner_kind\":\"ticket\",\"owner_id\":\"DRW-1\",\"version\":2,\"width\":1,\"height\":1,\"layers\":1,\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"markdown\":\"![Dot with layers](sketch:<sk:8>)\"},{\"id\":\"<sk:7>\",\"title\":\"Dot v2\",\"owner_kind\":\"doc\",\"owner_id\":\"<uuid:4>\",\"version\":2,\"width\":1,\"height\":1,\"layers\":3,\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"markdown\":\"![Dot v2](sketch:<sk:7>)\"},{\"id\":\"<sk:6>\",\"title\":\"Dot sketch\",\"owner_kind\":\"doc\",\"owner_id\":\"<uuid:4>\",\"version\":1,\"width\":1,\"height\":1,\"layers\":3,\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"markdown\":\"![Dot sketch](sketch:<sk:6>)\"}]"
+        "text": "[{\"id\":\"<sk:8>\",\"title\":\"Dot with layers\",\"owner_kind\":\"ticket\",\"owner_id\":\"DRW-1\",\"version\":2,\"width\":1,\"height\":1,\"layers\":1,\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"markdown\":\"![Dot with layers](sketch:<sk:8>)\"},{\"id\":\"<sk:7>\",\"title\":\"Dot v2\",\"owner_kind\":\"doc\",\"owner_id\":\"<uuid:3>\",\"version\":2,\"width\":1,\"height\":1,\"layers\":3,\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"markdown\":\"![Dot v2](sketch:<sk:7>)\"},{\"id\":\"<sk:6>\",\"title\":\"Dot sketch\",\"owner_kind\":\"doc\",\"owner_id\":\"<uuid:3>\",\"version\":1,\"width\":1,\"height\":1,\"layers\":3,\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"markdown\":\"![Dot sketch](sketch:<sk:6>)\"}]"
       }
     ],
     "isError": false

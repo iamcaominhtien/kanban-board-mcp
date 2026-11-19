@@ -223,107 +223,107 @@
     "session-summary",
     "sketch-ask"
    ],
-   "version": "7a2e881ad05a",
+   "version": "c18c648ef9f5",
    "texts": {
     "board-ask": {
-     "sha256": "e6322b3aec973ee14d15344f1c8d7e7eadf8962f9b340d0289463e86fe9be688",
-     "chars": 1791
+     "sha256": "163a002dfa2759b8f642bf396d8e20dcc65071c0e8678cecce984bbfbce9274f",
+     "chars": 1932
     },
     "board-health": {
-     "sha256": "e1f37b91425ce5bd3466b8a06fb2849343aa86624804086ffdaa2734ff35f6af",
-     "chars": 1646
+     "sha256": "555c5d8152c664520df8e130ef7b4b879ca3726b089ffc5924838fa1aa14f1aa",
+     "chars": 1787
     },
     "db-fix": {
-     "sha256": "19f760f61d8ae7db14a1630e0f687e5b8129f88cdb1808b8664df2479a7f7c28",
-     "chars": 2198
+     "sha256": "6e2ac08a2b96028bd8566b9141d0c7a307cd929f11f91e3a5d949ad20e946b1c",
+     "chars": 2339
     },
     "docs-ask": {
-     "sha256": "44e68bdbf8cb9722deaf96a8490882ba83cfbedb56157ddd23dae70108232080",
-     "chars": 1614
+     "sha256": "9a034e5ae26ab8ecbda7d5dbdf8cab774ba1737de94cb63f36c85d4f9a5ad2ab",
+     "chars": 1814
     },
     "docs-check": {
-     "sha256": "5bb2430af86716da10b041b423770f3d63e4a079b45bf2785fc7a237932aef6c",
-     "chars": 1797
+     "sha256": "2396dd96cd3c4d0168555b72b0316f1fe5723f0199c3ab4f8805b807058f00b5",
+     "chars": 1987
     },
     "docs-diagram": {
-     "sha256": "47217e68a72d415da4e460061d91535f6e8625fc76b79b7f3485d5af5151d5a1",
-     "chars": 1497
+     "sha256": "5ba30b73f6039a4b5d239f443e24a13a3ef9be25f0d8489d1515a9d7476691bf",
+     "chars": 1638
     },
     "docs-explain": {
-     "sha256": "3cd4aa5df92fd27e1bd93929f3085b88f0da83442279e5dc908fb244f39a6e60",
-     "chars": 1202
+     "sha256": "e7da556897bbd34b6aa665e8c199424614d82ea63591bdb78504daa8f6e3d2b0",
+     "chars": 1379
     },
     "docs-fix": {
-     "sha256": "a1a5172506f4caba334b68b247a6e4a3e4008d18b0fe7e5bdf524955ac1c3be9",
-     "chars": 1256
+     "sha256": "344ed936843633535f2970139a41e523c3adb84237961a8e5a93672bfbe3686d",
+     "chars": 1480
     },
     "docs-freshness": {
-     "sha256": "78951650e923245a9e8798886db828325608f76fd700430f03fec06da03964a8",
-     "chars": 1348
+     "sha256": "4bd40572f6a3c85e7251eb9ac858b71d90e52826933f4bac746a093eb74970c8",
+     "chars": 1530
     },
     "docs-history": {
-     "sha256": "e22c292b54a4b0f30d2a74b62b63215be064d1993643690c6330d809a982ee64",
-     "chars": 1643
+     "sha256": "95f7816fa0bade66852d0991df8342367638edb0ff86080f6790124d132911e9",
+     "chars": 2104
     },
     "docs-route": {
-     "sha256": "ea76609ea55efcd54b736b2ea4411cb86856d9f1e39c77afccf8b2f4eb902552",
-     "chars": 2950
+     "sha256": "c3502d6927d0764ae2c2c37c5d7fa7e0cb92aa0c128ad8ba32b65ddfd7cce3dd",
+     "chars": 3091
     },
     "docs-summarise": {
-     "sha256": "afa6b598d3c40fd1a76caaa6b63ae923e9428884accfd281cd2c44722606f0e9",
-     "chars": 1138
+     "sha256": "5e8b0d902e5d244b84150d487496549e4df7f6db5968bad519492ad2be8554f5",
+     "chars": 1308
     },
     "docs-thread": {
-     "sha256": "bd39f2dd76eaa4315fa5506bce74e97d2aeda421af0ed72f880baa317db63eb4",
-     "chars": 1650
+     "sha256": "9405ee5ef01eb47c2de6d7de634be5049398017f75a55919f4f215a8a99c8072",
+     "chars": 1791
     },
     "docs-tickets": {
-     "sha256": "beaa0b8da453369156117aca4f6e9115a3e29ad102a9f367c4457a01bc33792e",
-     "chars": 1465
+     "sha256": "98e4e4ed6a853dc447b501ef432a355c8d2dd0602cfaca012e58527619fa0fe3",
+     "chars": 1635
     },
     "docs-translate": {
-     "sha256": "2ad164e602e9e41f5a0371e79b9695a1beb75c307b59a87d319d8b26938a2758",
-     "chars": 1245
+     "sha256": "b6ba4a14b87538fddc30578b47fe8c8bb55c971be05b39a20eb10b9d4deba47a",
+     "chars": 1583
     },
     "docs-write": {
-     "sha256": "c81fe3507a12720898373df7d05b4cb0ec98450473c8285188a54473c407c58a",
-     "chars": 1839
+     "sha256": "23fa9552054b008b187f9fac1cd7753742b4c8e42b25cb659db16bf4f0ee168c",
+     "chars": 2193
     },
     "editor-write": {
-     "sha256": "5005733331681e4bcbd63f68aeb42576bb07ecf3dd2605ec300c0f98af69043b",
-     "chars": 1594
+     "sha256": "0c3036cba707dce8736ad101aa4406e5cf2b2cdd3ae5d1b88442e37900b68afb",
+     "chars": 1735
     },
     "idea-ask": {
-     "sha256": "5cb2da224fa23ce3616aa47aacdbcdd1be908b18382e1deadfc247f797b844f0",
-     "chars": 1257
+     "sha256": "0ece06bfb4debc1bdf9458d547e0bded52e7c156ffe7d74085fb3f7d852f227e",
+     "chars": 1398
     },
     "idea-digest": {
-     "sha256": "4f180ce1962c282f3195482ceceb13f4f4f13d304929b74f9233f9e524d779ef",
-     "chars": 1315
+     "sha256": "eeb74874fdc191e00cea9db7da39be8f00e8b7bda6026d2ad55bb3b9a9a256c2",
+     "chars": 1456
     },
     "idea-prepare-ticket": {
-     "sha256": "3e5b237530810348e73dc0f66a2031ea8acd6c29f3a8b386a38b5761917b9d8b",
-     "chars": 1407
+     "sha256": "dac93a9e1f7fefa2692beade38a48ed794aef2510d2608d246452ccf04d7a292",
+     "chars": 1548
     },
     "idea-shape": {
-     "sha256": "e40f2d9329569ba9271d81a9d5fc2a74376c1bf98ebd3740dfb504067446b6dc",
-     "chars": 1752
+     "sha256": "0f3e61b49660fe5b09fa564e282b74c249b61f970cfad8cbad023972dff0531d",
+     "chars": 1893
     },
     "idea-triage": {
-     "sha256": "b456a181c9bd89741beb86fdca0bd8917fac4313c76116e41e638504d1d6216b",
-     "chars": 1580
+     "sha256": "6cb120f3c6957d0129883b72bcef15e716d6b16bf4257a1eca05e3f62364b879",
+     "chars": 1721
     },
     "schedule-dry-run": {
-     "sha256": "669d3264b794cd65a26f5d6fa841a1f952abe787c47d0e4a91f0a8f57086c8ce",
-     "chars": 1175
+     "sha256": "0e85425db22a389aa8f563469bdd120f95a734323b5540bbc9b34a1ee4c7435a",
+     "chars": 1316
     },
     "session-summary": {
      "sha256": "10363b2dacaf5015af192fba027c8e8b3dccb393e8bbd634eb572286c3c67d64",
      "chars": 874
     },
     "sketch-ask": {
-     "sha256": "39a68f785d3002901dd24ae3ca53351ba39226d7f1ce12f061839e2ee2bd24ae",
-     "chars": 1434
+     "sha256": "c55899ebe0aacb6244dcf22c30d9dcdcd9405cae7249a67e940188d6e62a6b4b",
+     "chars": 1575
     }
    },
    "schemas": [
@@ -460,7 +460,7 @@
      "{\"type\": \"object\", \"properties\": {\"text\": {\"type\": \"string\"}}, \"required\": [\"text\"]}"
     ]
    ],
-   "plugin_dir": "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+   "plugin_dir": "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
    "plugin_files": {
     ".claude-plugin/plugin.json": {
      "sha256": "79d67126f90c7ff7f58daed1aa9981ef9b81ab16be8b2ef7bf699536b7a33598",
@@ -471,104 +471,104 @@
      "bytes": 2
     },
     "skills/board-ask/SKILL.md": {
-     "sha256": "e6322b3aec973ee14d15344f1c8d7e7eadf8962f9b340d0289463e86fe9be688",
-     "bytes": 1795
+     "sha256": "163a002dfa2759b8f642bf396d8e20dcc65071c0e8678cecce984bbfbce9274f",
+     "bytes": 1936
     },
     "skills/board-health/SKILL.md": {
-     "sha256": "e1f37b91425ce5bd3466b8a06fb2849343aa86624804086ffdaa2734ff35f6af",
-     "bytes": 1650
+     "sha256": "555c5d8152c664520df8e130ef7b4b879ca3726b089ffc5924838fa1aa14f1aa",
+     "bytes": 1791
     },
     "skills/db-fix/SKILL.md": {
-     "sha256": "19f760f61d8ae7db14a1630e0f687e5b8129f88cdb1808b8664df2479a7f7c28",
-     "bytes": 2202
+     "sha256": "6e2ac08a2b96028bd8566b9141d0c7a307cd929f11f91e3a5d949ad20e946b1c",
+     "bytes": 2343
     },
     "skills/docs-ask/SKILL.md": {
-     "sha256": "44e68bdbf8cb9722deaf96a8490882ba83cfbedb56157ddd23dae70108232080",
-     "bytes": 1620
+     "sha256": "9a034e5ae26ab8ecbda7d5dbdf8cab774ba1737de94cb63f36c85d4f9a5ad2ab",
+     "bytes": 1820
     },
     "skills/docs-check/SKILL.md": {
-     "sha256": "5bb2430af86716da10b041b423770f3d63e4a079b45bf2785fc7a237932aef6c",
-     "bytes": 1801
+     "sha256": "2396dd96cd3c4d0168555b72b0316f1fe5723f0199c3ab4f8805b807058f00b5",
+     "bytes": 1991
     },
     "skills/docs-diagram/SKILL.md": {
-     "sha256": "47217e68a72d415da4e460061d91535f6e8625fc76b79b7f3485d5af5151d5a1",
-     "bytes": 1507
+     "sha256": "5ba30b73f6039a4b5d239f443e24a13a3ef9be25f0d8489d1515a9d7476691bf",
+     "bytes": 1648
     },
     "skills/docs-explain/SKILL.md": {
-     "sha256": "3cd4aa5df92fd27e1bd93929f3085b88f0da83442279e5dc908fb244f39a6e60",
-     "bytes": 1206
+     "sha256": "e7da556897bbd34b6aa665e8c199424614d82ea63591bdb78504daa8f6e3d2b0",
+     "bytes": 1383
     },
     "skills/docs-fix/SKILL.md": {
-     "sha256": "a1a5172506f4caba334b68b247a6e4a3e4008d18b0fe7e5bdf524955ac1c3be9",
-     "bytes": 1260
+     "sha256": "344ed936843633535f2970139a41e523c3adb84237961a8e5a93672bfbe3686d",
+     "bytes": 1484
     },
     "skills/docs-freshness/SKILL.md": {
-     "sha256": "78951650e923245a9e8798886db828325608f76fd700430f03fec06da03964a8",
-     "bytes": 1352
+     "sha256": "4bd40572f6a3c85e7251eb9ac858b71d90e52826933f4bac746a093eb74970c8",
+     "bytes": 1534
     },
     "skills/docs-history/SKILL.md": {
-     "sha256": "e22c292b54a4b0f30d2a74b62b63215be064d1993643690c6330d809a982ee64",
-     "bytes": 1647
+     "sha256": "95f7816fa0bade66852d0991df8342367638edb0ff86080f6790124d132911e9",
+     "bytes": 2108
     },
     "skills/docs-route/SKILL.md": {
-     "sha256": "ea76609ea55efcd54b736b2ea4411cb86856d9f1e39c77afccf8b2f4eb902552",
-     "bytes": 2954
+     "sha256": "c3502d6927d0764ae2c2c37c5d7fa7e0cb92aa0c128ad8ba32b65ddfd7cce3dd",
+     "bytes": 3095
     },
     "skills/docs-summarise/SKILL.md": {
-     "sha256": "afa6b598d3c40fd1a76caaa6b63ae923e9428884accfd281cd2c44722606f0e9",
-     "bytes": 1142
+     "sha256": "5e8b0d902e5d244b84150d487496549e4df7f6db5968bad519492ad2be8554f5",
+     "bytes": 1312
     },
     "skills/docs-thread/SKILL.md": {
-     "sha256": "bd39f2dd76eaa4315fa5506bce74e97d2aeda421af0ed72f880baa317db63eb4",
-     "bytes": 1656
+     "sha256": "9405ee5ef01eb47c2de6d7de634be5049398017f75a55919f4f215a8a99c8072",
+     "bytes": 1797
     },
     "skills/docs-tickets/SKILL.md": {
-     "sha256": "beaa0b8da453369156117aca4f6e9115a3e29ad102a9f367c4457a01bc33792e",
-     "bytes": 1469
+     "sha256": "98e4e4ed6a853dc447b501ef432a355c8d2dd0602cfaca012e58527619fa0fe3",
+     "bytes": 1639
     },
     "skills/docs-translate/SKILL.md": {
-     "sha256": "2ad164e602e9e41f5a0371e79b9695a1beb75c307b59a87d319d8b26938a2758",
-     "bytes": 1253
+     "sha256": "b6ba4a14b87538fddc30578b47fe8c8bb55c971be05b39a20eb10b9d4deba47a",
+     "bytes": 1599
     },
     "skills/docs-write/SKILL.md": {
-     "sha256": "c81fe3507a12720898373df7d05b4cb0ec98450473c8285188a54473c407c58a",
-     "bytes": 1845
+     "sha256": "23fa9552054b008b187f9fac1cd7753742b4c8e42b25cb659db16bf4f0ee168c",
+     "bytes": 2197
     },
     "skills/editor-write/SKILL.md": {
-     "sha256": "5005733331681e4bcbd63f68aeb42576bb07ecf3dd2605ec300c0f98af69043b",
-     "bytes": 1600
+     "sha256": "0c3036cba707dce8736ad101aa4406e5cf2b2cdd3ae5d1b88442e37900b68afb",
+     "bytes": 1741
     },
     "skills/idea-ask/SKILL.md": {
-     "sha256": "5cb2da224fa23ce3616aa47aacdbcdd1be908b18382e1deadfc247f797b844f0",
-     "bytes": 1261
+     "sha256": "0ece06bfb4debc1bdf9458d547e0bded52e7c156ffe7d74085fb3f7d852f227e",
+     "bytes": 1402
     },
     "skills/idea-digest/SKILL.md": {
-     "sha256": "4f180ce1962c282f3195482ceceb13f4f4f13d304929b74f9233f9e524d779ef",
-     "bytes": 1319
+     "sha256": "eeb74874fdc191e00cea9db7da39be8f00e8b7bda6026d2ad55bb3b9a9a256c2",
+     "bytes": 1460
     },
     "skills/idea-prepare-ticket/SKILL.md": {
-     "sha256": "3e5b237530810348e73dc0f66a2031ea8acd6c29f3a8b386a38b5761917b9d8b",
-     "bytes": 1411
+     "sha256": "dac93a9e1f7fefa2692beade38a48ed794aef2510d2608d246452ccf04d7a292",
+     "bytes": 1552
     },
     "skills/idea-shape/SKILL.md": {
-     "sha256": "e40f2d9329569ba9271d81a9d5fc2a74376c1bf98ebd3740dfb504067446b6dc",
-     "bytes": 1768
+     "sha256": "0f3e61b49660fe5b09fa564e282b74c249b61f970cfad8cbad023972dff0531d",
+     "bytes": 1909
     },
     "skills/idea-triage/SKILL.md": {
-     "sha256": "b456a181c9bd89741beb86fdca0bd8917fac4313c76116e41e638504d1d6216b",
-     "bytes": 1584
+     "sha256": "6cb120f3c6957d0129883b72bcef15e716d6b16bf4257a1eca05e3f62364b879",
+     "bytes": 1725
     },
     "skills/schedule-dry-run/SKILL.md": {
-     "sha256": "669d3264b794cd65a26f5d6fa841a1f952abe787c47d0e4a91f0a8f57086c8ce",
-     "bytes": 1179
+     "sha256": "0e85425db22a389aa8f563469bdd120f95a734323b5540bbc9b34a1ee4c7435a",
+     "bytes": 1320
     },
     "skills/session-summary/SKILL.md": {
      "sha256": "10363b2dacaf5015af192fba027c8e8b3dccb393e8bbd634eb572286c3c67d64",
      "bytes": 874
     },
     "skills/sketch-ask/SKILL.md": {
-     "sha256": "39a68f785d3002901dd24ae3ca53351ba39226d7f1ce12f061839e2ee2bd24ae",
-     "bytes": 1438
+     "sha256": "c55899ebe0aacb6244dcf22c30d9dcdcd9405cae7249a67e940188d6e62a6b4b",
+     "bytes": 1579
     }
    },
    "plugin_json": "{\"name\": \"kanban-assistant\", \"version\": \"2.0.0\", \"description\": \"The board's assistants: Docs, Board, Ideas, editors, sketches.\"}"
@@ -6659,7 +6659,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -6988,7 +6988,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--resume",
@@ -7453,7 +7453,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -7949,7 +7949,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -8401,7 +8401,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -8856,7 +8856,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -9318,7 +9318,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -9831,7 +9831,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -10463,7 +10463,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -10902,7 +10902,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -11177,7 +11177,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--resume",
@@ -11532,7 +11532,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -11845,7 +11845,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -12119,7 +12119,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -12403,7 +12403,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -12572,7 +12572,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -12878,7 +12878,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -13054,7 +13054,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--resume",
@@ -13230,7 +13230,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -13512,7 +13512,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -13798,7 +13798,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -14098,7 +14098,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -14276,7 +14276,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--resume",
@@ -14556,7 +14556,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -14822,7 +14822,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -15086,7 +15086,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -15340,7 +15340,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -15599,7 +15599,7 @@
         "--plugin-dir",
         "<ROOT>/data/ai-v2/board-plugin/2.1.2",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--plugin-dir",
         "<ROOT>/data/board-skills-46ae66171c",
         "--session-id",
@@ -15878,7 +15878,7 @@
          "chars": 357
         },
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--disallowedTools",
         "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Task,Agent",
         "--session-id",
@@ -16013,7 +16013,7 @@
         "--json-schema",
         "{\"type\": \"object\", \"properties\": {\"title\": {\"type\": \"string\"}, \"summary\": {\"type\": \"string\"}}, \"required\": [\"title\", \"summary\"]}",
         "--plugin-dir",
-        "<ROOT>/data/ai-v2/assistant-skills/7a2e881ad05a",
+        "<ROOT>/data/ai-v2/assistant-skills/c18c648ef9f5",
         "--disallowedTools",
         "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Task,Agent",
         "--session-id",

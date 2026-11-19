@@ -1270,7 +1270,7 @@ fn item_calls(png: &str, txt: &str, folder: &str) -> Vec<Call> {
             "ticket_items",
             it_arguments("$t1", "comment", json!({"action": "add", "text": "first", "author": "Claude"})),
             "c1",
-            "/comments/0/id",
+            "/comment/id",
         ),
         it(
             "comment: add with a role",
@@ -1507,7 +1507,7 @@ fn item_calls(png: &str, txt: &str, folder: &str) -> Vec<Call> {
                 json!({"action": "add", "author": "Claude", "role": "Developer", "note": "looked at the logs", "log_kind": "root_cause", "pinned": true}),
             ),
             "w1",
-            "/work_log/0/id",
+            "/work_log/id",
         ),
         it(
             "work_log: add with defaults",
@@ -1588,7 +1588,7 @@ fn item_calls(png: &str, txt: &str, folder: &str) -> Vec<Call> {
             "ticket_items",
             it_arguments("$t1", "criterion", json!({"action": "add", "text": "  Login fails with a clear message  "})),
             "ac1",
-            "/acceptance_criteria/0/id",
+            "/criterion/id",
         ),
         it("criterion: add a second", "$t1", "criterion", json!({"action": "add", "text": "The field keeps its text"})),
         it("criterion: toggle without an id", "$t1", "criterion", json!({"action": "toggle"})),
@@ -1616,7 +1616,7 @@ fn item_calls(png: &str, txt: &str, folder: &str) -> Vec<Call> {
             "ticket_items",
             it_arguments("$t1", "sub_task", json!({"action": "add", "text": "Confirm the spec"})),
             "st1",
-            "/sub_tasks/0/id",
+            "/sub_task/id",
         ),
         it(
             "sub_task: toggle an id that does not exist",
@@ -1663,7 +1663,7 @@ fn item_calls(png: &str, txt: &str, folder: &str) -> Vec<Call> {
                 json!({"action": "add", "title": "It runs", "description": "Steps", "expected_result": "ok", "notes": "n", "assignee": "$bao"}),
             ),
             "tc1",
-            "/test_cases/0/id",
+            "/test_case/id",
         ),
         it(
             "test_case: add a second, already running",
@@ -1926,7 +1926,7 @@ fn branch_calls() -> Vec<Call> {
             "ticket_branches",
             json!({"ticket_id": "$t1", "action": "add", "name": "feat/TKT-1-login"}),
             "b1",
-            "/branches/0/id",
+            "/branch/id",
         ),
         br("branches: add the same name again", "$t1", "add", json!({"name": "feat/TKT-1-login"})),
         br(

@@ -3,7 +3,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Docs\",\n  \"prefix\": \"DOC\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Docs\",\"prefix\":\"DOC\",\"color\":\"#6366f1\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -12,7 +12,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:2>\",\n  \"name\": \"Other\",\n  \"prefix\": \"OTH\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:2>\",\"name\":\"Other\",\"prefix\":\"OTH\",\"color\":\"#6366f1\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -21,7 +21,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"DOC-1\",\n  \"project_id\": \"<uuid:1>\",\n  \"title\": \"Rate limit\",\n  \"description\": \"\",\n  \"type\": \"task\",\n  \"status\": \"backlog\",\n  \"priority\": \"medium\",\n  \"estimate\": null,\n  \"due_date\": null,\n  \"start_date\": null,\n  \"tags\": [],\n  \"parent_id\": null,\n  \"comments\": [],\n  \"acceptance_criteria\": [],\n  \"sub_tasks\": [],\n  \"work_log\": [],\n  \"test_cases\": [],\n  \"wont_do_reason\": null,\n  \"created_by\": \"<uuid:3>\",\n  \"assignee\": null,\n  \"blocks\": [],\n  \"blocked_by\": [],\n  \"block_done_if_acs_incomplete\": false,\n  \"block_done_if_tcs_incomplete\": false,\n  \"links\": [],\n  \"branches\": [],\n  \"workspace_retention_days\": null,\n  \"repo_path\": null,\n  \"reopen_count\": 0,\n  \"last_reopened_at\": null,\n  \"last_reopened_by\": null,\n  \"last_reopen_reason\": null,\n  \"reopen_history\": [],\n  \"pending\": false,\n  \"pending_reason_type\": null,\n  \"pending_ticket_id\": null,\n  \"pending_member_id\": null,\n  \"pending_party\": null,\n  \"pending_note\": null,\n  \"pending_since\": null,\n  \"pending_by\": null,\n  \"from_idea_id\": null,\n  \"tests_assumption_id\": null,\n  \"wave_pin\": null,\n  \"review_requested_from\": null,\n  \"completed_at\": null,\n  \"completed_by\": null,\n  \"created_at\": \"<time>\",\n  \"updated_at\": \"<time>\"\n}"
+        "text": "{\"id\":\"DOC-1\",\"title\":\"Rate limit\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\"}"
       }
     ],
     "isError": false
@@ -858,7 +858,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"status\":\"published\",\"version\":1}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"status\":\"published\",\"version\":1}"
       }
     ],
     "isError": false
@@ -867,7 +867,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:5>\",\"title\":\"Child\",\"status\":\"published\",\"version\":1}"
+        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Child\",\"status\":\"published\",\"version\":1}"
       }
     ],
     "isError": false
@@ -876,7 +876,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:6>\",\"title\":\"Empty page\",\"status\":\"published\",\"version\":1}"
+        "text": "{\"id\":\"<uuid:5>\",\"title\":\"Empty page\",\"status\":\"published\",\"version\":1}"
       }
     ],
     "isError": false
@@ -885,7 +885,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:7>\",\"title\":\"Runbook\",\"status\":\"published\",\"version\":1}"
+        "text": "{\"id\":\"<uuid:6>\",\"title\":\"Runbook\",\"status\":\"published\",\"version\":1}"
       }
     ],
     "isError": false
@@ -894,7 +894,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:8>\",\"title\":\"Elsewhere\",\"status\":\"published\",\"version\":1}"
+        "text": "{\"id\":\"<uuid:7>\",\"title\":\"Elsewhere\",\"status\":\"published\",\"version\":1}"
       }
     ],
     "isError": false
@@ -912,7 +912,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:9>\",\"title\":\"Limits \\\"v2\\\" & more\",\"status\":\"published\",\"version\":1}"
+        "text": "{\"id\":\"<uuid:8>\",\"title\":\"Limits \\\"v2\\\" & more\",\"status\":\"published\",\"version\":1}"
       }
     ],
     "isError": false
@@ -921,7 +921,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:10>\",\"title\":\"Pictures\",\"status\":\"published\",\"version\":1}"
+        "text": "{\"id\":\"<uuid:9>\",\"title\":\"Pictures\",\"status\":\"published\",\"version\":1}"
       }
     ],
     "isError": false
@@ -930,7 +930,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:11>\",\"title\":\"Keys\",\"status\":\"published\",\"version\":1}"
+        "text": "{\"id\":\"<uuid:10>\",\"title\":\"Keys\",\"status\":\"published\",\"version\":1}"
       }
     ],
     "isError": false
@@ -939,7 +939,7 @@
     "content": [
       {
         "type": "text",
-        "text": "[{\"id\":\"<uuid:4>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:5>\",\"parent_id\":\"<uuid:4>\",\"title\":\"Child\",\"status\":\"published\"},{\"id\":\"<uuid:6>\",\"parent_id\":null,\"title\":\"Empty page\",\"status\":\"published\"},{\"id\":\"<uuid:7>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:9>\",\"parent_id\":null,\"title\":\"Limits \\\"v2\\\" & more\",\"status\":\"published\"},{\"id\":\"<uuid:10>\",\"parent_id\":null,\"title\":\"Pictures\",\"status\":\"published\"},{\"id\":\"<uuid:11>\",\"parent_id\":null,\"title\":\"Keys\",\"status\":\"published\"}]"
+        "text": "[{\"id\":\"<uuid:3>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:4>\",\"parent_id\":\"<uuid:3>\",\"title\":\"Child\",\"status\":\"published\"},{\"id\":\"<uuid:5>\",\"parent_id\":null,\"title\":\"Empty page\",\"status\":\"published\"},{\"id\":\"<uuid:6>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:8>\",\"parent_id\":null,\"title\":\"Limits \\\"v2\\\" & more\",\"status\":\"published\"},{\"id\":\"<uuid:9>\",\"parent_id\":null,\"title\":\"Pictures\",\"status\":\"published\"},{\"id\":\"<uuid:10>\",\"parent_id\":null,\"title\":\"Keys\",\"status\":\"published\"}]"
       }
     ],
     "isError": false
@@ -948,7 +948,7 @@
     "content": [
       {
         "type": "text",
-        "text": "[{\"id\":\"<uuid:8>\",\"parent_id\":null,\"title\":\"Elsewhere\",\"status\":\"published\"}]"
+        "text": "[{\"id\":\"<uuid:7>\",\"parent_id\":null,\"title\":\"Elsewhere\",\"status\":\"published\"}]"
       }
     ],
     "isError": false
@@ -957,7 +957,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\",\"version\":1,\"markdown\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\\n\\n<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:7> -->\\n## Limits\\n\\n<!-- #<bid:8> -->\\nRate limits are not enforced yet.\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"referenced_by\":{\"pages\":[{\"page_id\":\"<uuid:9>\",\"title\":\"Limits \\\"v2\\\" & more\",\"excerpt\":\"See [[Runbook#Limits]] and Ghost and $t1.\",\"section\":\"Limits\"}]}}"
+        "text": "{\"id\":\"<uuid:3>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\",\"version\":1,\"markdown\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\\n\\n<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:7> -->\\n## Limits\\n\\n<!-- #<bid:8> -->\\nRate limits are not enforced yet.\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"referenced_by\":{\"pages\":[{\"page_id\":\"<uuid:8>\",\"title\":\"Limits \\\"v2\\\" & more\",\"excerpt\":\"See [[Runbook#Limits]] and Ghost and $t1.\",\"section\":\"Limits\"}]}}"
       }
     ],
     "isError": false
@@ -966,7 +966,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":1,\"section\":\"Endpoints\",\"markdown\":\"<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\",\"sections\":[\"## Overview\",\"## Endpoints\",\"### Errors\",\"## Limits\"]}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":1,\"section\":\"Endpoints\",\"markdown\":\"<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\",\"sections\":[\"## Overview\",\"## Endpoints\",\"### Errors\",\"## Limits\"]}"
       }
     ],
     "isError": false
@@ -975,7 +975,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":1,\"section\":\"errors\",\"markdown\":\"<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\",\"sections\":[\"## Overview\",\"## Endpoints\",\"### Errors\",\"## Limits\"]}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":1,\"section\":\"errors\",\"markdown\":\"<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\",\"sections\":[\"## Overview\",\"## Endpoints\",\"### Errors\",\"## Limits\"]}"
       }
     ],
     "isError": false
@@ -993,7 +993,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:9>\",\"parent_id\":null,\"title\":\"Limits \\\"v2\\\" & more\",\"status\":\"published\",\"version\":1,\"markdown\":\"<!-- #<bid:9> -->\\nSee [[Runbook#Limits]] and [[Ghost]] and $t1.\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\"}"
+        "text": "{\"id\":\"<uuid:8>\",\"parent_id\":null,\"title\":\"Limits \\\"v2\\\" & more\",\"status\":\"published\",\"version\":1,\"markdown\":\"<!-- #<bid:9> -->\\nSee [[Runbook#Limits]] and [[Ghost]] and $t1.\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\"}"
       }
     ],
     "isError": false
@@ -1002,7 +1002,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:10>\",\"parent_id\":null,\"title\":\"Pictures\",\"status\":\"published\",\"version\":1,\"markdown\":\"<!-- #<bid:10> -->\\n![shot](/uploads/pic-<random>.png)\\n\\n<!-- #<bid:11> -->\\nand [notes](/uploads/notes-<random>.txt)\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\"}"
+        "text": "{\"id\":\"<uuid:9>\",\"parent_id\":null,\"title\":\"Pictures\",\"status\":\"published\",\"version\":1,\"markdown\":\"<!-- #<bid:10> -->\\n![shot](/uploads/pic-<random>.png)\\n\\n<!-- #<bid:11> -->\\nand [notes](/uploads/notes-<random>.txt)\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\"}"
       }
     ],
     "isError": false
@@ -1011,7 +1011,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\",\"version\":1,\"markdown\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\\n\\n<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:7> -->\\n## Limits\\n\\n<!-- #<bid:8> -->\\nRate limits are not enforced yet.\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"referenced_by\":{\"pages\":[{\"page_id\":\"<uuid:9>\",\"title\":\"Limits \\\"v2\\\" & more\",\"excerpt\":\"See [[Runbook#Limits]] and Ghost and $t1.\",\"section\":\"Limits\"}]}}"
+        "text": "{\"id\":\"<uuid:3>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\",\"version\":1,\"markdown\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\\n\\n<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:7> -->\\n## Limits\\n\\n<!-- #<bid:8> -->\\nRate limits are not enforced yet.\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"referenced_by\":{\"pages\":[{\"page_id\":\"<uuid:8>\",\"title\":\"Limits \\\"v2\\\" & more\",\"excerpt\":\"See [[Runbook#Limits]] and Ghost and $t1.\",\"section\":\"Limits\"}]}}"
       }
     ],
     "isError": false
@@ -1038,7 +1038,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":2,\"published\":true}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":2,\"published\":true}"
       }
     ],
     "isError": false
@@ -1047,7 +1047,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:6>\",\"title\":\"Filled page\",\"version\":2,\"published\":true}"
+        "text": "{\"id\":\"<uuid:5>\",\"title\":\"Filled page\",\"version\":2,\"published\":true}"
       }
     ],
     "isError": false
@@ -1056,7 +1056,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:6>\",\"title\":\"Filled page\",\"version\":3,\"published\":true}"
+        "text": "{\"id\":\"<uuid:5>\",\"title\":\"Filled page\",\"version\":3,\"published\":true}"
       }
     ],
     "isError": false
@@ -1065,7 +1065,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:6>\",\"title\":\"Runbook\",\"version\":4,\"published\":true}"
+        "text": "{\"id\":\"<uuid:5>\",\"title\":\"Runbook\",\"version\":4,\"published\":true}"
       }
     ],
     "isError": false
@@ -1074,7 +1074,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:6>\",\"title\":\"Runbook\",\"version\":4,\"published\":false}"
+        "text": "{\"id\":\"<uuid:5>\",\"title\":\"Runbook\",\"version\":4,\"published\":false}"
       }
     ],
     "isError": false
@@ -1083,7 +1083,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:6>\",\"title\":\"Runbook\",\"version\":4,\"published\":false}"
+        "text": "{\"id\":\"<uuid:5>\",\"title\":\"Runbook\",\"version\":4,\"published\":false}"
       }
     ],
     "isError": false
@@ -1101,7 +1101,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\",\"version\":2,\"markdown\":\"<!-- #<bid:12> -->\\n## Overview\\n\\n<!-- #<bid:13> -->\\nThe API is REST.\\n\\n<!-- #<bid:14> -->\\n## Endpoints\\n\\n<!-- #<bid:15> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:16> -->\\n### Errors\\n\\n<!-- #<bid:17> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:18> -->\\n## Limits\\n\\n<!-- #<bid:19> -->\\nRate limits are 100 per minute.\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"referenced_by\":{\"pages\":[{\"page_id\":\"<uuid:9>\",\"title\":\"Limits \\\"v2\\\" & more\",\"excerpt\":\"See [[Runbook#Limits]] and Ghost and $t1.\",\"section\":\"Limits\"}]}}"
+        "text": "{\"id\":\"<uuid:3>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\",\"version\":2,\"markdown\":\"<!-- #<bid:12> -->\\n## Overview\\n\\n<!-- #<bid:13> -->\\nThe API is REST.\\n\\n<!-- #<bid:14> -->\\n## Endpoints\\n\\n<!-- #<bid:15> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:16> -->\\n### Errors\\n\\n<!-- #<bid:17> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:18> -->\\n## Limits\\n\\n<!-- #<bid:19> -->\\nRate limits are 100 per minute.\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"referenced_by\":{\"pages\":[{\"page_id\":\"<uuid:8>\",\"title\":\"Limits \\\"v2\\\" & more\",\"excerpt\":\"See [[Runbook#Limits]] and Ghost and $t1.\",\"section\":\"Limits\"}]}}"
       }
     ],
     "isError": false
@@ -1110,7 +1110,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:6>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\",\"version\":4,\"markdown\":\"<!-- #<bid:20> -->\\nx\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\"}"
+        "text": "{\"id\":\"<uuid:5>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\",\"version\":4,\"markdown\":\"<!-- #<bid:20> -->\\nx\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\"}"
       }
     ],
     "isError": false
@@ -1119,7 +1119,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:6>\",\"title\":\"Runbook\",\"version\":5,\"published\":true,\"changed\":[\"the end of the page\"]}"
+        "text": "{\"id\":\"<uuid:5>\",\"title\":\"Runbook\",\"version\":5,\"published\":true,\"changed\":[\"the end of the page\"]}"
       }
     ],
     "isError": false
@@ -1200,7 +1200,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":3}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":3}"
       }
     ],
     "isError": false
@@ -1227,7 +1227,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":4,\"published\":true,\"changed\":[\"section 'Limits'\"],\"now\":\"<!-- #<bid:7> -->\\n## Limits\\n\\n<!-- #<bid:21> -->\\nRate limits are 100 per minute.\"}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":4,\"published\":true,\"changed\":[\"section 'Limits'\"],\"now\":\"<!-- #<bid:7> -->\\n## Limits\\n\\n<!-- #<bid:21> -->\\nRate limits are 100 per minute.\"}"
       }
     ],
     "isError": false
@@ -1236,7 +1236,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":5,\"published\":true,\"changed\":[\"section 'limits'\"],\"now\":\"<!-- #<bid:7> -->\\n## Limits and quotas\\n\\n<!-- #<bid:22> -->\\nSee the plan.\"}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":5,\"published\":true,\"changed\":[\"section 'limits'\"],\"now\":\"<!-- #<bid:7> -->\\n## Limits and quotas\\n\\n<!-- #<bid:22> -->\\nSee the plan.\"}"
       }
     ],
     "isError": false
@@ -1245,7 +1245,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":6,\"published\":true,\"changed\":[\"section 'Endpoints'\"],\"now\":\"<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:23> -->\\n| POST | /tickets |\"}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":6,\"published\":true,\"changed\":[\"section 'Endpoints'\"],\"now\":\"<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:23> -->\\n| POST | /tickets |\"}"
       }
     ],
     "isError": false
@@ -1254,7 +1254,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":7,\"published\":true,\"changed\":[\"section 'Overview'\"],\"now\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:24> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\"}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":7,\"published\":true,\"changed\":[\"section 'Overview'\"],\"now\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:24> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\"}"
       }
     ],
     "isError": false
@@ -1263,7 +1263,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":8,\"published\":true,\"changed\":[\"section 'Overview'\"],\"now\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:24> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\"}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":8,\"published\":true,\"changed\":[\"section 'Overview'\"],\"now\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:24> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\"}"
       }
     ],
     "isError": false
@@ -1272,7 +1272,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":9,\"published\":true,\"changed\":[\"section 'Auth'\"],\"now\":\"<!-- #<bid:25> -->\\n## Auth\\n\\n<!-- #<bid:26> -->\\nTokens.\"}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":9,\"published\":true,\"changed\":[\"section 'Auth'\"],\"now\":\"<!-- #<bid:25> -->\\n## Auth\\n\\n<!-- #<bid:26> -->\\nTokens.\"}"
       }
     ],
     "isError": false
@@ -1317,7 +1317,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":10,\"published\":true,\"changed\":[\"a passage\"]}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":10,\"published\":true,\"changed\":[\"a passage\"]}"
       }
     ],
     "isError": false
@@ -1353,7 +1353,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":11,\"published\":true,\"changed\":[\"the end of the page\"]}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":11,\"published\":true,\"changed\":[\"the end of the page\"]}"
       }
     ],
     "isError": false
@@ -1371,7 +1371,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":11,\"published\":false,\"changed\":[],\"message\":\"The text is the same as the published page; nothing was changed.\"}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":11,\"published\":false,\"changed\":[],\"message\":\"The text is the same as the published page; nothing was changed.\"}"
       }
     ],
     "isError": false
@@ -1380,7 +1380,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":12,\"published\":true,\"changed\":[\"section 'Appendix'\",\"a passage\"]}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":12,\"published\":true,\"changed\":[\"section 'Appendix'\",\"a passage\"]}"
       }
     ],
     "isError": false
@@ -1452,7 +1452,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":12,\"published\":false,\"changed\":[\"section 'Appendix'\"]}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":12,\"published\":false,\"changed\":[\"section 'Appendix'\"]}"
       }
     ],
     "isError": false
@@ -1461,7 +1461,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\",\"version\":12,\"markdown\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:24> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\\n\\n<!-- #<bid:30> -->\\n## Intro\\n\\n<!-- #<bid:31> -->\\nHi.\\n\\n<!-- #<bid:25> -->\\n## Auth\\n\\n<!-- #<bid:26> -->\\nTokens.More tokens.\\n\\n<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:23> -->\\n| POST | /tickets |\\n\\n<!-- #<bid:7> -->\\n## Limits and quotas\\n\\n<!-- #<bid:22> -->\\nSee the plan.\\n\\n<!-- #<bid:27> -->\\n## Appendix\\n\\n<!-- #<bid:28> -->\\nLast.\\n\\n<!-- #<bid:29> -->\\nFinal words!\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"referenced_by\":{\"pages\":[{\"page_id\":\"<uuid:9>\",\"title\":\"Limits \\\"v2\\\" & more\",\"excerpt\":\"See [[Runbook#Limits]] and Ghost and $t1.\",\"section\":\"Limits\"}]}}"
+        "text": "{\"id\":\"<uuid:3>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\",\"version\":12,\"markdown\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:24> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\\n\\n<!-- #<bid:30> -->\\n## Intro\\n\\n<!-- #<bid:31> -->\\nHi.\\n\\n<!-- #<bid:25> -->\\n## Auth\\n\\n<!-- #<bid:26> -->\\nTokens.More tokens.\\n\\n<!-- #<bid:3> -->\\n## Endpoints\\n\\n<!-- #<bid:4> -->\\n| Method | Path |\\n| --- | --- |\\n| GET | /tickets |\\n\\n<!-- #<bid:5> -->\\n### Errors\\n\\n<!-- #<bid:6> -->\\n401 when the token is missing.\\n\\n<!-- #<bid:23> -->\\n| POST | /tickets |\\n\\n<!-- #<bid:7> -->\\n## Limits and quotas\\n\\n<!-- #<bid:22> -->\\nSee the plan.\\n\\n<!-- #<bid:27> -->\\n## Appendix\\n\\n<!-- #<bid:28> -->\\nLast.\\n\\n<!-- #<bid:29> -->\\nFinal words!\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"referenced_by\":{\"pages\":[{\"page_id\":\"<uuid:8>\",\"title\":\"Limits \\\"v2\\\" & more\",\"excerpt\":\"See [[Runbook#Limits]] and Ghost and $t1.\",\"section\":\"Limits\"}]}}"
       }
     ],
     "isError": false
@@ -1470,7 +1470,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:6>\",\"title\":\"Runbook\",\"parent_id\":\"<uuid:4>\"}"
+        "text": "{\"id\":\"<uuid:5>\",\"title\":\"Runbook\",\"parent_id\":\"<uuid:3>\"}"
       }
     ],
     "isError": false
@@ -1506,7 +1506,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:6>\",\"title\":\"Runbook\",\"parent_id\":\"<uuid:4>\"}"
+        "text": "{\"id\":\"<uuid:5>\",\"title\":\"Runbook\",\"parent_id\":\"<uuid:3>\"}"
       }
     ],
     "isError": false
@@ -1542,7 +1542,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:12>\",\"title\":\"Runbook (copy)\",\"slug\":\"runbook-copy\",\"status\":\"draft\"}"
+        "text": "{\"id\":\"<uuid:11>\",\"title\":\"Runbook (copy)\",\"slug\":\"runbook-copy\",\"status\":\"draft\"}"
       }
     ],
     "isError": false
@@ -1551,7 +1551,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:13>\",\"title\":\"Copy of the child\",\"slug\":\"copy-of-the-child\",\"status\":\"draft\"}"
+        "text": "{\"id\":\"<uuid:12>\",\"title\":\"Copy of the child\",\"slug\":\"copy-of-the-child\",\"status\":\"draft\"}"
       }
     ],
     "isError": false
@@ -1560,7 +1560,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:14>\",\"title\":\"Runbook (copy)\",\"slug\":\"runbook-copy-2\",\"status\":\"draft\"}"
+        "text": "{\"id\":\"<uuid:13>\",\"title\":\"Runbook (copy)\",\"slug\":\"runbook-copy-2\",\"status\":\"draft\"}"
       }
     ],
     "isError": false
@@ -1569,7 +1569,7 @@
     "content": [
       {
         "type": "text",
-        "text": "[{\"id\":\"<uuid:4>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:5>\",\"parent_id\":\"<uuid:4>\",\"title\":\"Child\",\"status\":\"published\"},{\"id\":\"<uuid:6>\",\"parent_id\":\"<uuid:4>\",\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:13>\",\"parent_id\":\"<uuid:4>\",\"title\":\"Copy of the child\",\"status\":\"draft\"},{\"id\":\"<uuid:7>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:9>\",\"parent_id\":null,\"title\":\"Limits \\\"v2\\\" & more\",\"status\":\"published\"},{\"id\":\"<uuid:10>\",\"parent_id\":null,\"title\":\"Pictures\",\"status\":\"published\"},{\"id\":\"<uuid:11>\",\"parent_id\":null,\"title\":\"Keys\",\"status\":\"published\"},{\"id\":\"<uuid:12>\",\"parent_id\":null,\"title\":\"Runbook (copy)\",\"status\":\"draft\"},{\"id\":\"<uuid:15>\",\"parent_id\":\"<uuid:12>\",\"title\":\"Child\",\"status\":\"draft\"},{\"id\":\"<uuid:16>\",\"parent_id\":\"<uuid:12>\",\"title\":\"Runbook\",\"status\":\"draft\"},{\"id\":\"<uuid:14>\",\"parent_id\":null,\"title\":\"Runbook (copy)\",\"status\":\"draft\"}]"
+        "text": "[{\"id\":\"<uuid:3>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:4>\",\"parent_id\":\"<uuid:3>\",\"title\":\"Child\",\"status\":\"published\"},{\"id\":\"<uuid:5>\",\"parent_id\":\"<uuid:3>\",\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:12>\",\"parent_id\":\"<uuid:3>\",\"title\":\"Copy of the child\",\"status\":\"draft\"},{\"id\":\"<uuid:6>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:8>\",\"parent_id\":null,\"title\":\"Limits \\\"v2\\\" & more\",\"status\":\"published\"},{\"id\":\"<uuid:9>\",\"parent_id\":null,\"title\":\"Pictures\",\"status\":\"published\"},{\"id\":\"<uuid:10>\",\"parent_id\":null,\"title\":\"Keys\",\"status\":\"published\"},{\"id\":\"<uuid:11>\",\"parent_id\":null,\"title\":\"Runbook (copy)\",\"status\":\"draft\"},{\"id\":\"<uuid:14>\",\"parent_id\":\"<uuid:11>\",\"title\":\"Child\",\"status\":\"draft\"},{\"id\":\"<uuid:15>\",\"parent_id\":\"<uuid:11>\",\"title\":\"Runbook\",\"status\":\"draft\"},{\"id\":\"<uuid:13>\",\"parent_id\":null,\"title\":\"Runbook (copy)\",\"status\":\"draft\"}]"
       }
     ],
     "isError": false
@@ -1578,7 +1578,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:12>\",\"deleted_pages\":3}"
+        "text": "{\"id\":\"<uuid:11>\",\"deleted_pages\":3}"
       }
     ],
     "isError": false
@@ -1596,7 +1596,7 @@
     "content": [
       {
         "type": "text",
-        "text": "[{\"id\":\"<uuid:12>\",\"title\":\"Runbook (copy)\",\"project_id\":\"<uuid:1>\",\"parent_title\":null,\"parent_deleted\":false,\"deleted_at\":\"<time>\",\"deleted_by\":\"agent\",\"page_count\":3,\"child_titles\":[\"Child\",\"Runbook\"],\"days_left\":30}]"
+        "text": "[{\"id\":\"<uuid:11>\",\"title\":\"Runbook (copy)\",\"project_id\":\"<uuid:1>\",\"parent_title\":null,\"parent_deleted\":false,\"deleted_at\":\"<time>\",\"deleted_by\":\"agent\",\"page_count\":3,\"child_titles\":[\"Child\",\"Runbook\"],\"days_left\":30}]"
       }
     ],
     "isError": false
@@ -1614,7 +1614,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:12>\",\"restored_pages\":3,\"moved_to_top_level\":false}"
+        "text": "{\"id\":\"<uuid:11>\",\"restored_pages\":3,\"moved_to_top_level\":false}"
       }
     ],
     "isError": false
@@ -1641,7 +1641,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"deleted_pages\":4}"
+        "text": "{\"id\":\"<uuid:3>\",\"deleted_pages\":4}"
       }
     ],
     "isError": false
@@ -1650,7 +1650,7 @@
     "content": [
       {
         "type": "text",
-        "text": "[{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"project_id\":\"<uuid:1>\",\"parent_title\":null,\"parent_deleted\":false,\"deleted_at\":\"<time>\",\"deleted_by\":\"agent\",\"page_count\":4,\"child_titles\":[\"Child\",\"Runbook\",\"Copy of the child\"],\"days_left\":30}]"
+        "text": "[{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"project_id\":\"<uuid:1>\",\"parent_title\":null,\"parent_deleted\":false,\"deleted_at\":\"<time>\",\"deleted_by\":\"agent\",\"page_count\":4,\"child_titles\":[\"Child\",\"Runbook\",\"Copy of the child\"],\"days_left\":30}]"
       }
     ],
     "isError": false
@@ -1659,7 +1659,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"restored_pages\":4,\"moved_to_top_level\":false}"
+        "text": "{\"id\":\"<uuid:3>\",\"restored_pages\":4,\"moved_to_top_level\":false}"
       }
     ],
     "isError": false
@@ -1668,7 +1668,7 @@
     "content": [
       {
         "type": "text",
-        "text": "[{\"kind\":\"page\",\"status\":\"ambiguous\",\"page_id\":\"<uuid:4>\",\"title\":\"Runbook\",\"slug\":\"runbook\",\"path\":\"Runbook\",\"published\":true},{\"kind\":\"page\",\"status\":\"ambiguous\",\"page_id\":\"<uuid:4>\",\"title\":\"Runbook\",\"slug\":\"runbook\",\"path\":\"Runbook\",\"published\":true,\"anchor\":\"limits-and-quotas\",\"section\":\"Limits and quotas\"},{\"kind\":\"page\",\"status\":\"section_missing\",\"page_id\":\"<uuid:4>\",\"title\":\"Runbook\",\"slug\":\"runbook\",\"path\":\"Runbook\",\"published\":true,\"anchor\":\"nope\"},{\"kind\":\"page\",\"status\":\"missing\",\"title\":\"Ghost\"},{\"kind\":\"ticket\",\"key\":\"DOC-1\",\"status\":\"ok\",\"title\":\"Rate limit\",\"ticket_status\":\"backlog\"},{\"kind\":\"ticket\",\"key\":\"DOC-99\",\"status\":\"missing\"},{\"kind\":\"page\",\"status\":\"ambiguous\",\"page_id\":\"<uuid:4>\",\"title\":\"Runbook\",\"slug\":\"runbook\",\"path\":\"Runbook\",\"published\":true}]"
+        "text": "[{\"kind\":\"page\",\"status\":\"ambiguous\",\"page_id\":\"<uuid:3>\",\"title\":\"Runbook\",\"slug\":\"runbook\",\"path\":\"Runbook\",\"published\":true},{\"kind\":\"page\",\"status\":\"ambiguous\",\"page_id\":\"<uuid:3>\",\"title\":\"Runbook\",\"slug\":\"runbook\",\"path\":\"Runbook\",\"published\":true,\"anchor\":\"limits-and-quotas\",\"section\":\"Limits and quotas\"},{\"kind\":\"page\",\"status\":\"section_missing\",\"page_id\":\"<uuid:3>\",\"title\":\"Runbook\",\"slug\":\"runbook\",\"path\":\"Runbook\",\"published\":true,\"anchor\":\"nope\"},{\"kind\":\"page\",\"status\":\"missing\",\"title\":\"Ghost\"},{\"kind\":\"ticket\",\"key\":\"DOC-1\",\"status\":\"ok\",\"title\":\"Rate limit\",\"ticket_status\":\"backlog\"},{\"kind\":\"ticket\",\"key\":\"DOC-99\",\"status\":\"missing\"},{\"kind\":\"page\",\"status\":\"ambiguous\",\"page_id\":\"<uuid:3>\",\"title\":\"Runbook\",\"slug\":\"runbook\",\"path\":\"Runbook\",\"published\":true}]"
       }
     ],
     "isError": false
@@ -1695,7 +1695,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"total\":3,\"pages\":[{\"page_id\":\"<uuid:4>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook\",\"title_snippet\":\"Runbook\",\"path\":[],\"status\":\"published\",\"version\":12,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"<mark>Tokens</mark>.More <mark>tokens</mark>.\"}]},{\"page_id\":\"<uuid:14>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook (copy)\",\"title_snippet\":\"Runbook (copy)\",\"path\":[],\"status\":\"draft\",\"version\":0,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"<mark>Tokens</mark>.More <mark>tokens</mark>.\"}]},{\"page_id\":\"<uuid:12>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook (copy)\",\"title_snippet\":\"Runbook (copy)\",\"path\":[],\"status\":\"draft\",\"version\":0,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"<mark>Tokens</mark>.More <mark>tokens</mark>.\"}]}],\"tickets\":[]}"
+        "text": "{\"total\":3,\"pages\":[{\"page_id\":\"<uuid:3>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook\",\"title_snippet\":\"Runbook\",\"path\":[],\"status\":\"published\",\"version\":12,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"<mark>Tokens</mark>.More <mark>tokens</mark>.\"}]},{\"page_id\":\"<uuid:13>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook (copy)\",\"title_snippet\":\"Runbook (copy)\",\"path\":[],\"status\":\"draft\",\"version\":0,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"<mark>Tokens</mark>.More <mark>tokens</mark>.\"}]},{\"page_id\":\"<uuid:11>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook (copy)\",\"title_snippet\":\"Runbook (copy)\",\"path\":[],\"status\":\"draft\",\"version\":0,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"<mark>Tokens</mark>.More <mark>tokens</mark>.\"}]}],\"tickets\":[]}"
       }
     ],
     "isError": false
@@ -1704,7 +1704,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"total\":3,\"pages\":[{\"page_id\":\"<uuid:4>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook\",\"title_snippet\":\"Runbook\",\"path\":[],\"status\":\"published\",\"version\":12,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"Tokens.<mark>More tokens</mark>.\"}]},{\"page_id\":\"<uuid:14>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook (copy)\",\"title_snippet\":\"Runbook (copy)\",\"path\":[],\"status\":\"draft\",\"version\":0,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"Tokens.<mark>More tokens</mark>.\"}]},{\"page_id\":\"<uuid:12>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook (copy)\",\"title_snippet\":\"Runbook (copy)\",\"path\":[],\"status\":\"draft\",\"version\":0,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"Tokens.<mark>More tokens</mark>.\"}]}],\"tickets\":[]}"
+        "text": "{\"total\":3,\"pages\":[{\"page_id\":\"<uuid:3>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook\",\"title_snippet\":\"Runbook\",\"path\":[],\"status\":\"published\",\"version\":12,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"Tokens.<mark>More tokens</mark>.\"}]},{\"page_id\":\"<uuid:13>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook (copy)\",\"title_snippet\":\"Runbook (copy)\",\"path\":[],\"status\":\"draft\",\"version\":0,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"Tokens.<mark>More tokens</mark>.\"}]},{\"page_id\":\"<uuid:11>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook (copy)\",\"title_snippet\":\"Runbook (copy)\",\"path\":[],\"status\":\"draft\",\"version\":0,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"Tokens.<mark>More tokens</mark>.\"}]}],\"tickets\":[]}"
       }
     ],
     "isError": false
@@ -1740,7 +1740,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"total\":1,\"pages\":[{\"page_id\":\"<uuid:8>\",\"project_id\":\"<uuid:2>\",\"project_name\":\"Other\",\"title\":\"Elsewhere\",\"title_snippet\":\"<mark>Elsewhere</mark>\",\"path\":[],\"status\":\"published\",\"version\":1,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[]}],\"tickets\":[]}"
+        "text": "{\"total\":1,\"pages\":[{\"page_id\":\"<uuid:7>\",\"project_id\":\"<uuid:2>\",\"project_name\":\"Other\",\"title\":\"Elsewhere\",\"title_snippet\":\"<mark>Elsewhere</mark>\",\"path\":[],\"status\":\"published\",\"version\":1,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[]}],\"tickets\":[]}"
       }
     ],
     "isError": false
@@ -1758,7 +1758,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"total\":5,\"pages\":[{\"page_id\":\"<uuid:4>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook\",\"title_snippet\":\"Runbook\",\"path\":[],\"status\":\"published\",\"version\":12,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Overview\",\"slug\":\"overview\",\"snippet\":\"Dr<mark>a</mark>ft.\"},{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"<mark>A</mark>uth\"},{\"section\":\"Endpoints\",\"slug\":\"endpoints\",\"snippet\":\"| Method | P<mark>a</mark>th |\"}]}],\"tickets\":[{\"ticket_id\":\"DOC-1\",\"title\":\"Rate limit\",\"status\":\"backlog\",\"assignee\":null,\"snippet\":\"R<mark>a</mark>te limit\"}]}"
+        "text": "{\"total\":5,\"pages\":[{\"page_id\":\"<uuid:3>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook\",\"title_snippet\":\"Runbook\",\"path\":[],\"status\":\"published\",\"version\":12,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Overview\",\"slug\":\"overview\",\"snippet\":\"Dr<mark>a</mark>ft.\"},{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"<mark>A</mark>uth\"},{\"section\":\"Endpoints\",\"slug\":\"endpoints\",\"snippet\":\"| Method | P<mark>a</mark>th |\"}]}],\"tickets\":[{\"ticket_id\":\"DOC-1\",\"title\":\"Rate limit\",\"status\":\"backlog\",\"assignee\":null,\"snippet\":\"R<mark>a</mark>te limit\"}]}"
       }
     ],
     "isError": false
@@ -1767,7 +1767,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"total\":5,\"pages\":[{\"page_id\":\"<uuid:4>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook\",\"title_snippet\":\"Runbook\",\"path\":[],\"status\":\"published\",\"version\":12,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Overview\",\"slug\":\"overview\",\"snippet\":\"Dr<mark>a</mark>ft.\"},{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"<mark>A</mark>uth\"},{\"section\":\"Endpoints\",\"slug\":\"endpoints\",\"snippet\":\"| Method | P<mark>a</mark>th |\"}]}],\"tickets\":[{\"ticket_id\":\"DOC-1\",\"title\":\"Rate limit\",\"status\":\"backlog\",\"assignee\":null,\"snippet\":\"R<mark>a</mark>te limit\"}]}"
+        "text": "{\"total\":5,\"pages\":[{\"page_id\":\"<uuid:3>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook\",\"title_snippet\":\"Runbook\",\"path\":[],\"status\":\"published\",\"version\":12,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Overview\",\"slug\":\"overview\",\"snippet\":\"Dr<mark>a</mark>ft.\"},{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"<mark>A</mark>uth\"},{\"section\":\"Endpoints\",\"slug\":\"endpoints\",\"snippet\":\"| Method | P<mark>a</mark>th |\"}]}],\"tickets\":[{\"ticket_id\":\"DOC-1\",\"title\":\"Rate limit\",\"status\":\"backlog\",\"assignee\":null,\"snippet\":\"R<mark>a</mark>te limit\"}]}"
       }
     ],
     "isError": false
@@ -1776,7 +1776,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"total\":5,\"pages\":[{\"page_id\":\"<uuid:4>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook\",\"title_snippet\":\"Runbook\",\"path\":[],\"status\":\"published\",\"version\":12,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Overview\",\"slug\":\"overview\",\"snippet\":\"Dr<mark>a</mark>ft.\"},{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"<mark>A</mark>uth\"},{\"section\":\"Endpoints\",\"slug\":\"endpoints\",\"snippet\":\"| Method | P<mark>a</mark>th |\"}]}],\"tickets\":[{\"ticket_id\":\"DOC-1\",\"title\":\"Rate limit\",\"status\":\"backlog\",\"assignee\":null,\"snippet\":\"R<mark>a</mark>te limit\"}]}"
+        "text": "{\"total\":5,\"pages\":[{\"page_id\":\"<uuid:3>\",\"project_id\":\"<uuid:1>\",\"project_name\":\"Docs\",\"title\":\"Runbook\",\"title_snippet\":\"Runbook\",\"path\":[],\"status\":\"published\",\"version\":12,\"updated_at\":\"<time>\",\"updated_by\":\"agent\",\"tickets\":[],\"matches\":[{\"section\":\"Overview\",\"slug\":\"overview\",\"snippet\":\"Dr<mark>a</mark>ft.\"},{\"section\":\"Auth\",\"slug\":\"auth\",\"snippet\":\"<mark>A</mark>uth\"},{\"section\":\"Endpoints\",\"slug\":\"endpoints\",\"snippet\":\"| Method | P<mark>a</mark>th |\"}]}],\"tickets\":[{\"ticket_id\":\"DOC-1\",\"title\":\"Rate limit\",\"status\":\"backlog\",\"assignee\":null,\"snippet\":\"R<mark>a</mark>te limit\"}]}"
       }
     ],
     "isError": false
@@ -1920,7 +1920,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"url\":\"/uploads/end-<random>.png\",\"name\":\"end.png\",\"size\":70,\"type\":\"image/png\",\"markdown\":\"![end.png](/uploads/end-<random>.png)\",\"page\":{\"id\":\"<uuid:5>\",\"title\":\"Child\",\"version\":2,\"published\":true,\"changed\":[\"the end of the page\"]}}"
+        "text": "{\"url\":\"/uploads/end-<random>.png\",\"name\":\"end.png\",\"size\":70,\"type\":\"image/png\",\"markdown\":\"![end.png](/uploads/end-<random>.png)\",\"page\":{\"id\":\"<uuid:4>\",\"title\":\"Child\",\"version\":2,\"published\":true,\"changed\":[\"the end of the page\"]}}"
       }
     ],
     "isError": false
@@ -1983,7 +1983,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"url\":\"/uploads/t-<random>.png\",\"name\":\"t.png\",\"size\":70,\"type\":\"image/png\",\"markdown\":\"![t.png](/uploads/t-<random>.png)\",\"ticket\":{\"id\":\"DOC-1\",\"comment_id\":\"<uuid:17>\"}}"
+        "text": "{\"url\":\"/uploads/t-<random>.png\",\"name\":\"t.png\",\"size\":70,\"type\":\"image/png\",\"markdown\":\"![t.png](/uploads/t-<random>.png)\",\"ticket\":{\"id\":\"DOC-1\",\"comment_id\":null}}"
       }
     ],
     "isError": false
@@ -1992,7 +1992,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"url\":\"/uploads/log-<random>.txt\",\"name\":\"log.txt\",\"size\":6,\"type\":\"text/plain\",\"markdown\":\"[log.txt](/uploads/log-<random>.txt)\",\"ticket\":{\"id\":\"DOC-1\",\"comment_id\":\"<uuid:18>\"}}"
+        "text": "{\"url\":\"/uploads/log-<random>.txt\",\"name\":\"log.txt\",\"size\":6,\"type\":\"text/plain\",\"markdown\":\"[log.txt](/uploads/log-<random>.txt)\",\"ticket\":{\"id\":\"DOC-1\",\"comment_id\":null}}"
       }
     ],
     "isError": false
@@ -2010,7 +2010,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"url\":\"/uploads/both-<random>.png\",\"name\":\"both.png\",\"size\":70,\"type\":\"image/png\",\"markdown\":\"![both.png](/uploads/both-<random>.png)\",\"page\":{\"id\":\"<uuid:5>\",\"title\":\"Child\",\"version\":3,\"published\":true,\"changed\":[\"the end of the page\"]},\"ticket\":{\"id\":\"DOC-1\",\"comment_id\":\"<uuid:19>\"}}"
+        "text": "{\"url\":\"/uploads/both-<random>.png\",\"name\":\"both.png\",\"size\":70,\"type\":\"image/png\",\"markdown\":\"![both.png](/uploads/both-<random>.png)\",\"page\":{\"id\":\"<uuid:4>\",\"title\":\"Child\",\"version\":3,\"published\":true,\"changed\":[\"the end of the page\"]},\"ticket\":{\"id\":\"DOC-1\",\"comment_id\":null}}"
       }
     ],
     "isError": false
@@ -2019,7 +2019,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:5>\",\"parent_id\":\"<uuid:4>\",\"title\":\"Child\",\"status\":\"published\",\"version\":3,\"markdown\":\"<!-- #<bid:32> -->\\nBody\\n\\n<!-- #<bid:33> -->\\n![end.png](/uploads/end-<random>.png)\\n\\n<!-- #<bid:34> -->\\n![both.png](/uploads/both-<random>.png)\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\"}"
+        "text": "{\"id\":\"<uuid:4>\",\"parent_id\":\"<uuid:3>\",\"title\":\"Child\",\"status\":\"published\",\"version\":3,\"markdown\":\"<!-- #<bid:32> -->\\nBody\\n\\n<!-- #<bid:33> -->\\n![end.png](/uploads/end-<random>.png)\\n\\n<!-- #<bid:34> -->\\n![both.png](/uploads/both-<random>.png)\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\"}"
       }
     ],
     "isError": false
@@ -2028,7 +2028,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:4>\",\"title\":\"Runbook\",\"version\":12,\"section\":\"Overview\",\"markdown\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:24> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\",\"sections\":[\"## Overview\",\"## Intro\",\"## Auth\",\"## Endpoints\",\"### Errors\",\"## Limits and quotas\",\"## Appendix\"]}"
+        "text": "{\"id\":\"<uuid:3>\",\"title\":\"Runbook\",\"version\":12,\"section\":\"Overview\",\"markdown\":\"<!-- #<bid:1> -->\\n## Overview\\n\\n<!-- #<bid:24> -->\\n> [!NOTE]\\n> Draft.\\n\\n<!-- #<bid:2> -->\\nThe API is REST.\",\"sections\":[\"## Overview\",\"## Intro\",\"## Auth\",\"## Endpoints\",\"### Errors\",\"## Limits and quotas\",\"## Appendix\"]}"
       }
     ],
     "isError": false
@@ -2037,7 +2037,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"ticket_id\": \"DOC-1\",\n  \"count\": 3,\n  \"comments\": [\n    {\n      \"id\": \"<uuid:17>\",\n      \"author\": \"Reviewer\",\n      \"text\": \"The shot\\n\\n![t.png](/uploads/t-<random>.png)\",\n      \"at\": \"<time>\",\n      \"edited_at\": null,\n      \"notified\": [\n        \"Admin\"\n      ]\n    },\n    {\n      \"id\": \"<uuid:18>\",\n      \"author\": \"Agent\",\n      \"text\": \"[log.txt](/uploads/log-<random>.txt)\",\n      \"at\": \"<time>\",\n      \"edited_at\": null,\n      \"notified\": [\n        \"Admin\"\n      ]\n    },\n    {\n      \"id\": \"<uuid:19>\",\n      \"author\": \"Agent\",\n      \"text\": \"![both.png](/uploads/both-<random>.png)\",\n      \"at\": \"<time>\",\n      \"edited_at\": null,\n      \"notified\": [\n        \"Admin\"\n      ]\n    }\n  ]\n}"
+        "text": "{\"ticket_id\":\"DOC-1\",\"count\":3,\"comments\":[{\"id\":\"<uuid:16>\",\"author\":\"Reviewer\",\"text\":\"The shot\\n\\n![t.png](/uploads/t-<random>.png)\",\"at\":\"<time>\",\"edited_at\":null,\"notified\":[\"Admin\"]},{\"id\":\"<uuid:17>\",\"author\":\"Agent\",\"text\":\"[log.txt](/uploads/log-<random>.txt)\",\"at\":\"<time>\",\"edited_at\":null,\"notified\":[\"Admin\"]},{\"id\":\"<uuid:18>\",\"author\":\"Agent\",\"text\":\"![both.png](/uploads/both-<random>.png)\",\"at\":\"<time>\",\"edited_at\":null,\"notified\":[\"Admin\"]}]}"
       }
     ],
     "isError": false
@@ -2046,7 +2046,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"created\":[{\"path\":\"guide\",\"page_id\":\"<uuid:20>\",\"title\":\"guide\"},{\"path\":\"guide/deep\",\"page_id\":\"<uuid:21>\",\"title\":\"deep\"},{\"path\":\"guide/deep/more.markdown\",\"page_id\":\"<uuid:22>\",\"title\":\"More\"},{\"path\":\"guide/intro.md\",\"page_id\":\"<uuid:23>\",\"title\":\"Intro\"},{\"path\":\"notes.md\",\"page_id\":\"<uuid:24>\",\"title\":\"Notes\"}],\"failed\":[],\"skipped\":[],\"published\":true}"
+        "text": "{\"created\":[{\"path\":\"guide\",\"page_id\":\"<uuid:19>\",\"title\":\"guide\"},{\"path\":\"guide/deep\",\"page_id\":\"<uuid:20>\",\"title\":\"deep\"},{\"path\":\"guide/deep/more.markdown\",\"page_id\":\"<uuid:21>\",\"title\":\"More\"},{\"path\":\"guide/intro.md\",\"page_id\":\"<uuid:22>\",\"title\":\"Intro\"},{\"path\":\"notes.md\",\"page_id\":\"<uuid:23>\",\"title\":\"Notes\"}],\"failed\":[],\"skipped\":[],\"published\":true}"
       }
     ],
     "isError": false
@@ -2055,7 +2055,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"created\":[{\"path\":\"single.md\",\"page_id\":\"<uuid:25>\",\"title\":\"Single\"}],\"failed\":[],\"skipped\":[],\"published\":true}"
+        "text": "{\"created\":[{\"path\":\"single.md\",\"page_id\":\"<uuid:24>\",\"title\":\"Single\"}],\"failed\":[],\"skipped\":[],\"published\":true}"
       }
     ],
     "isError": false
@@ -2082,7 +2082,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"created\":[{\"path\":\"guide/deep/more.markdown\",\"page_id\":\"<uuid:26>\",\"title\":\"More (copy)\"},{\"path\":\"guide/intro.md\",\"page_id\":\"<uuid:27>\",\"title\":\"Intro (copy)\"},{\"path\":\"notes.md\",\"page_id\":\"<uuid:28>\",\"title\":\"Notes (copy)\"}],\"failed\":[],\"skipped\":[],\"published\":false,\"note\":\"The pages are your drafts: their published text is still empty. Publish each with docs_write(update, markdown, base_version=0); an edit before that works on the empty page.\"}"
+        "text": "{\"created\":[{\"path\":\"guide/deep/more.markdown\",\"page_id\":\"<uuid:25>\",\"title\":\"More (copy)\"},{\"path\":\"guide/intro.md\",\"page_id\":\"<uuid:26>\",\"title\":\"Intro (copy)\"},{\"path\":\"notes.md\",\"page_id\":\"<uuid:27>\",\"title\":\"Notes (copy)\"}],\"failed\":[],\"skipped\":[],\"published\":false,\"note\":\"The pages are your drafts: their published text is still empty. Publish each with docs_write(update, markdown, base_version=0); an edit before that works on the empty page.\"}"
       }
     ],
     "isError": false
@@ -2091,7 +2091,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"created\":[{\"path\":\"single.md\",\"page_id\":\"<uuid:29>\",\"title\":\"Single\"}],\"failed\":[],\"skipped\":[],\"published\":true}"
+        "text": "{\"created\":[{\"path\":\"single.md\",\"page_id\":\"<uuid:28>\",\"title\":\"Single\"}],\"failed\":[],\"skipped\":[],\"published\":true}"
       }
     ],
     "isError": false
@@ -2118,7 +2118,7 @@
     "content": [
       {
         "type": "text",
-        "text": "[{\"id\":\"<uuid:4>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:5>\",\"parent_id\":\"<uuid:4>\",\"title\":\"Child\",\"status\":\"published\"},{\"id\":\"<uuid:29>\",\"parent_id\":\"<uuid:5>\",\"title\":\"Single\",\"status\":\"published\"},{\"id\":\"<uuid:6>\",\"parent_id\":\"<uuid:4>\",\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:13>\",\"parent_id\":\"<uuid:4>\",\"title\":\"Copy of the child\",\"status\":\"draft\"},{\"id\":\"<uuid:7>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:9>\",\"parent_id\":null,\"title\":\"Limits \\\"v2\\\" & more\",\"status\":\"published\"},{\"id\":\"<uuid:10>\",\"parent_id\":null,\"title\":\"Pictures\",\"status\":\"published\"},{\"id\":\"<uuid:11>\",\"parent_id\":null,\"title\":\"Keys\",\"status\":\"published\"},{\"id\":\"<uuid:12>\",\"parent_id\":null,\"title\":\"Runbook (copy)\",\"status\":\"draft\"},{\"id\":\"<uuid:15>\",\"parent_id\":\"<uuid:12>\",\"title\":\"Child\",\"status\":\"draft\"},{\"id\":\"<uuid:16>\",\"parent_id\":\"<uuid:12>\",\"title\":\"Runbook\",\"status\":\"draft\"},{\"id\":\"<uuid:14>\",\"parent_id\":null,\"title\":\"Runbook (copy)\",\"status\":\"draft\"},{\"id\":\"<uuid:20>\",\"parent_id\":null,\"title\":\"guide\",\"status\":\"published\"},{\"id\":\"<uuid:21>\",\"parent_id\":\"<uuid:20>\",\"title\":\"deep\",\"status\":\"published\"},{\"id\":\"<uuid:22>\",\"parent_id\":\"<uuid:21>\",\"title\":\"More\",\"status\":\"published\"},{\"id\":\"<uuid:26>\",\"parent_id\":\"<uuid:21>\",\"title\":\"More (copy)\",\"status\":\"draft\"},{\"id\":\"<uuid:23>\",\"parent_id\":\"<uuid:20>\",\"title\":\"Intro\",\"status\":\"published\"},{\"id\":\"<uuid:27>\",\"parent_id\":\"<uuid:20>\",\"title\":\"Intro (copy)\",\"status\":\"draft\"},{\"id\":\"<uuid:24>\",\"parent_id\":null,\"title\":\"Notes\",\"status\":\"published\"},{\"id\":\"<uuid:25>\",\"parent_id\":null,\"title\":\"Single\",\"status\":\"published\"},{\"id\":\"<uuid:28>\",\"parent_id\":null,\"title\":\"Notes (copy)\",\"status\":\"draft\"}]"
+        "text": "[{\"id\":\"<uuid:3>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:4>\",\"parent_id\":\"<uuid:3>\",\"title\":\"Child\",\"status\":\"published\"},{\"id\":\"<uuid:28>\",\"parent_id\":\"<uuid:4>\",\"title\":\"Single\",\"status\":\"published\"},{\"id\":\"<uuid:5>\",\"parent_id\":\"<uuid:3>\",\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:12>\",\"parent_id\":\"<uuid:3>\",\"title\":\"Copy of the child\",\"status\":\"draft\"},{\"id\":\"<uuid:6>\",\"parent_id\":null,\"title\":\"Runbook\",\"status\":\"published\"},{\"id\":\"<uuid:8>\",\"parent_id\":null,\"title\":\"Limits \\\"v2\\\" & more\",\"status\":\"published\"},{\"id\":\"<uuid:9>\",\"parent_id\":null,\"title\":\"Pictures\",\"status\":\"published\"},{\"id\":\"<uuid:10>\",\"parent_id\":null,\"title\":\"Keys\",\"status\":\"published\"},{\"id\":\"<uuid:11>\",\"parent_id\":null,\"title\":\"Runbook (copy)\",\"status\":\"draft\"},{\"id\":\"<uuid:14>\",\"parent_id\":\"<uuid:11>\",\"title\":\"Child\",\"status\":\"draft\"},{\"id\":\"<uuid:15>\",\"parent_id\":\"<uuid:11>\",\"title\":\"Runbook\",\"status\":\"draft\"},{\"id\":\"<uuid:13>\",\"parent_id\":null,\"title\":\"Runbook (copy)\",\"status\":\"draft\"},{\"id\":\"<uuid:19>\",\"parent_id\":null,\"title\":\"guide\",\"status\":\"published\"},{\"id\":\"<uuid:20>\",\"parent_id\":\"<uuid:19>\",\"title\":\"deep\",\"status\":\"published\"},{\"id\":\"<uuid:21>\",\"parent_id\":\"<uuid:20>\",\"title\":\"More\",\"status\":\"published\"},{\"id\":\"<uuid:25>\",\"parent_id\":\"<uuid:20>\",\"title\":\"More (copy)\",\"status\":\"draft\"},{\"id\":\"<uuid:22>\",\"parent_id\":\"<uuid:19>\",\"title\":\"Intro\",\"status\":\"published\"},{\"id\":\"<uuid:26>\",\"parent_id\":\"<uuid:19>\",\"title\":\"Intro (copy)\",\"status\":\"draft\"},{\"id\":\"<uuid:23>\",\"parent_id\":null,\"title\":\"Notes\",\"status\":\"published\"},{\"id\":\"<uuid:24>\",\"parent_id\":null,\"title\":\"Single\",\"status\":\"published\"},{\"id\":\"<uuid:27>\",\"parent_id\":null,\"title\":\"Notes (copy)\",\"status\":\"draft\"}]"
       }
     ],
     "isError": false
@@ -2127,7 +2127,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:30>\",\"title\":\"Plan\",\"status\":\"published\",\"version\":1}"
+        "text": "{\"id\":\"<uuid:29>\",\"title\":\"Plan\",\"status\":\"published\",\"version\":1}"
       }
     ],
     "isError": false
@@ -2136,7 +2136,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"tickets\":[{\"id\":\"DOC-2\",\"title\":\"Write the spec\",\"status\":\"backlog\"},{\"id\":\"DOC-3\",\"title\":\"Review the spec\",\"status\":\"backlog\"},{\"id\":\"DOC-4\",\"title\":\"Ask the owner\",\"status\":\"backlog\"}],\"skipped\":[{\"text\":\"Done already\",\"reason\":\"ticked\",\"line\":6},{\"text\":\"Has a ticket DOC-1\",\"reason\":\"has_ticket\",\"key\":\"DOC-1\",\"line\":12}],\"page\":{\"id\":\"<uuid:30>\",\"title\":\"Plan\",\"version\":2,\"published\":true,\"changed\":[\"a passage\",\"a passage\",\"a passage\"]}}"
+        "text": "{\"tickets\":[{\"id\":\"DOC-2\",\"title\":\"Write the spec\",\"status\":\"backlog\"},{\"id\":\"DOC-3\",\"title\":\"Review the spec\",\"status\":\"backlog\"},{\"id\":\"DOC-4\",\"title\":\"Ask the owner\",\"status\":\"backlog\"}],\"skipped\":[{\"text\":\"Done already\",\"reason\":\"ticked\",\"line\":6},{\"text\":\"Has a ticket DOC-1\",\"reason\":\"has_ticket\",\"key\":\"DOC-1\",\"line\":12}],\"page\":{\"id\":\"<uuid:29>\",\"title\":\"Plan\",\"version\":2,\"published\":true,\"changed\":[\"a passage\",\"a passage\",\"a passage\"]}}"
       }
     ],
     "isError": false
@@ -2145,7 +2145,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:30>\",\"parent_id\":null,\"title\":\"Plan\",\"status\":\"published\",\"version\":2,\"markdown\":\"<!-- #<bid:35> -->\\n## Todo\\n\\n<!-- #<bid:36> -->\\n- [ ] Write the spec DOC-2\\n- [ ] Review the spec DOC-3\\n- [x] Done already\\n\\n<!-- #<bid:37> -->\\n- Action: Ask the owner DOC-4\\n\\n<!-- #<bid:38> -->\\n- [ ] Has a ticket DOC-1\\n\\n<!-- #<bid:39> -->\\n## Notes\\n\\n<!-- #<bid:40> -->\\nNothing here.\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"referenced_by\":{\"tickets\":[{\"ticket_id\":\"DOC-2\",\"title\":\"Write the spec\",\"status\":\"backlog\",\"origin\":\"description\",\"detail\":\"\",\"context\":\"From the page Plan:\",\"excerpt\":\"From the page [[Plan]]:\",\"target_anchor\":null},{\"ticket_id\":\"DOC-3\",\"title\":\"Review the spec\",\"status\":\"backlog\",\"origin\":\"description\",\"detail\":\"\",\"context\":\"From the page Plan:\",\"excerpt\":\"From the page [[Plan]]:\",\"target_anchor\":null},{\"ticket_id\":\"DOC-4\",\"title\":\"Ask the owner\",\"status\":\"backlog\",\"origin\":\"description\",\"detail\":\"\",\"context\":\"From the page Plan:\",\"excerpt\":\"From the page [[Plan]]:\",\"target_anchor\":null}]},\"work\":{\"tickets\":[{\"id\":\"DOC-2\",\"title\":\"Write the spec\",\"status\":\"backlog\",\"assignee\":null,\"run\":null},{\"id\":\"DOC-3\",\"title\":\"Review the spec\",\"status\":\"backlog\",\"assignee\":null,\"run\":null},{\"id\":\"DOC-4\",\"title\":\"Ask the owner\",\"status\":\"backlog\",\"assignee\":null,\"run\":null},{\"id\":\"DOC-1\",\"title\":\"Rate limit\",\"status\":\"backlog\",\"assignee\":null,\"run\":null}],\"active\":0}}"
+        "text": "{\"id\":\"<uuid:29>\",\"parent_id\":null,\"title\":\"Plan\",\"status\":\"published\",\"version\":2,\"markdown\":\"<!-- #<bid:35> -->\\n## Todo\\n\\n<!-- #<bid:36> -->\\n- [ ] Write the spec DOC-2\\n- [ ] Review the spec DOC-3\\n- [x] Done already\\n\\n<!-- #<bid:37> -->\\n- Action: Ask the owner DOC-4\\n\\n<!-- #<bid:38> -->\\n- [ ] Has a ticket DOC-1\\n\\n<!-- #<bid:39> -->\\n## Notes\\n\\n<!-- #<bid:40> -->\\nNothing here.\",\"updated_by\":\"agent\",\"updated_at\":\"<time>\",\"referenced_by\":{\"tickets\":[{\"ticket_id\":\"DOC-2\",\"title\":\"Write the spec\",\"status\":\"backlog\",\"origin\":\"description\",\"detail\":\"\",\"context\":\"From the page Plan:\",\"excerpt\":\"From the page [[Plan]]:\",\"target_anchor\":null},{\"ticket_id\":\"DOC-3\",\"title\":\"Review the spec\",\"status\":\"backlog\",\"origin\":\"description\",\"detail\":\"\",\"context\":\"From the page Plan:\",\"excerpt\":\"From the page [[Plan]]:\",\"target_anchor\":null},{\"ticket_id\":\"DOC-4\",\"title\":\"Ask the owner\",\"status\":\"backlog\",\"origin\":\"description\",\"detail\":\"\",\"context\":\"From the page Plan:\",\"excerpt\":\"From the page [[Plan]]:\",\"target_anchor\":null}]},\"work\":{\"tickets\":[{\"id\":\"DOC-2\",\"title\":\"Write the spec\",\"status\":\"backlog\",\"assignee\":null,\"run\":null},{\"id\":\"DOC-3\",\"title\":\"Review the spec\",\"status\":\"backlog\",\"assignee\":null,\"run\":null},{\"id\":\"DOC-4\",\"title\":\"Ask the owner\",\"status\":\"backlog\",\"assignee\":null,\"run\":null},{\"id\":\"DOC-1\",\"title\":\"Rate limit\",\"status\":\"backlog\",\"assignee\":null,\"run\":null}],\"active\":0}}"
       }
     ],
     "isError": false
@@ -2172,7 +2172,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<uuid:31>\",\"title\":\"Plan two\",\"status\":\"published\",\"version\":1}"
+        "text": "{\"id\":\"<uuid:30>\",\"title\":\"Plan two\",\"status\":\"published\",\"version\":1}"
       }
     ],
     "isError": false
@@ -2181,7 +2181,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"tickets\":[{\"id\":\"DOC-5\",\"title\":\"First thing\",\"status\":\"backlog\"}],\"page\":{\"id\":\"<uuid:31>\",\"title\":\"Plan two\",\"version\":2,\"published\":true,\"changed\":[\"a passage\"]}}"
+        "text": "{\"tickets\":[{\"id\":\"DOC-5\",\"title\":\"First thing\",\"status\":\"backlog\"}],\"page\":{\"id\":\"<uuid:30>\",\"title\":\"Plan two\",\"version\":2,\"published\":true,\"changed\":[\"a passage\"]}}"
       }
     ],
     "isError": false
@@ -2190,7 +2190,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"tickets\":[{\"id\":\"DOC-6\",\"title\":\"Second thing\",\"status\":\"backlog\"},{\"id\":\"DOC-7\",\"title\":\"A new one\",\"status\":\"todo\"}],\"page\":{\"id\":\"<uuid:31>\",\"title\":\"Plan two\",\"version\":3,\"published\":true,\"changed\":[\"a passage\"]}}"
+        "text": "{\"tickets\":[{\"id\":\"DOC-6\",\"title\":\"Second thing\",\"status\":\"backlog\"},{\"id\":\"DOC-7\",\"title\":\"A new one\",\"status\":\"todo\"}],\"page\":{\"id\":\"<uuid:30>\",\"title\":\"Plan two\",\"version\":3,\"published\":true,\"changed\":[\"a passage\"]}}"
       }
     ],
     "isError": false
@@ -2253,7 +2253,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"total\": 8,\n  \"count\": 8,\n  \"offset\": 0,\n  \"has_more\": false,\n  \"tickets\": [\n    {\n      \"id\": \"DOC-1\",\n      \"title\": \"Rate limit\",\n      \"type\": \"task\",\n      \"status\": \"backlog\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 3,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    },\n    {\n      \"id\": \"DOC-2\",\n      \"title\": \"Write the spec\",\n      \"type\": \"task\",\n      \"status\": \"backlog\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 0,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    },\n    {\n      \"id\": \"DOC-3\",\n      \"title\": \"Review the spec\",\n      \"type\": \"task\",\n      \"status\": \"backlog\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 0,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    },\n    {\n      \"id\": \"DOC-4\",\n      \"title\": \"Ask the owner\",\n      \"type\": \"task\",\n      \"status\": \"backlog\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 0,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    },\n    {\n      \"id\": \"DOC-5\",\n      \"title\": \"First thing\",\n      \"type\": \"task\",\n      \"status\": \"backlog\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 0,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    },\n    {\n      \"id\": \"DOC-6\",\n      \"title\": \"Second thing\",\n      \"type\": \"task\",\n      \"status\": \"backlog\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 0,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    },\n    {\n      \"id\": \"DOC-7\",\n      \"title\": \"A new one\",\n      \"type\": \"bug\",\n      \"status\": \"todo\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 0,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    },\n    {\n      \"id\": \"DOC-8\",\n      \"title\": \"Loose\",\n      \"type\": \"task\",\n      \"status\": \"backlog\",\n      \"priority\": \"medium\",\n      \"assignee\": null,\n      \"parent_id\": null,\n      \"tags\": [],\n      \"estimate\": null,\n      \"start_date\": null,\n      \"due_date\": null,\n      \"blocked_by\": [],\n      \"wave_pin\": null,\n      \"pending\": false,\n      \"reopen_count\": 0,\n      \"acceptance_criteria\": {\n        \"done\": 0,\n        \"total\": 0\n      },\n      \"test_cases\": {\n        \"passed\": 0,\n        \"total\": 0\n      },\n      \"comments\": 0,\n      \"branches\": 0,\n      \"updated_at\": \"<time>\"\n    }\n  ]\n}"
+        "text": "{\"total\":8,\"count\":8,\"offset\":0,\"has_more\":false,\"tickets\":[{\"id\":\"DOC-1\",\"title\":\"Rate limit\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"comments\":3,\"updated_at\":\"<time>\"},{\"id\":\"DOC-2\",\"title\":\"Write the spec\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"updated_at\":\"<time>\"},{\"id\":\"DOC-3\",\"title\":\"Review the spec\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"updated_at\":\"<time>\"},{\"id\":\"DOC-4\",\"title\":\"Ask the owner\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"updated_at\":\"<time>\"},{\"id\":\"DOC-5\",\"title\":\"First thing\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"updated_at\":\"<time>\"},{\"id\":\"DOC-6\",\"title\":\"Second thing\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"updated_at\":\"<time>\"},{\"id\":\"DOC-7\",\"title\":\"A new one\",\"type\":\"bug\",\"status\":\"todo\",\"priority\":\"medium\",\"updated_at\":\"<time>\"},{\"id\":\"DOC-8\",\"title\":\"Loose\",\"type\":\"task\",\"status\":\"backlog\",\"priority\":\"medium\",\"updated_at\":\"<time>\"}]}"
       }
     ],
     "isError": false

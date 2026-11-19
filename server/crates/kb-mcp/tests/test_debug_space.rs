@@ -20,11 +20,11 @@ async fn test_mcp_can_delete_work_log_and_is_validated() {
     };
     let added =
         call(&mcp, "ticket_items", item("add", json!({"author": "agent", "role": "Developer", "note": "n"}))).await;
-    let lid = added["work_log"][0]["id"].clone();
+    let lid = added["work_log"]["id"].clone();
     // a role the board does not have
     call_err(&mcp, "ticket_items", item("add", json!({"author": "a", "role": "Wizard", "note": "n"}))).await;
     let result = call(&mcp, "ticket_items", item("delete", json!({"item_id": lid}))).await;
-    assert_eq!(result["work_log"], json!([]));
+    assert!(result["deleted"] == lid && result["ticket"].get("work_log").is_none(), "{result}");
     let refused = call_err(
         &mcp,
         "ticket_items",

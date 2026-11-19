@@ -339,8 +339,28 @@ pub fn loads(value: &str) -> Vec<Value> {
     }
 }
 
-/// The few fields needed to triage a list of tickets.
+/// The few fields needed to triage a list of tickets; those that say nothing (null, empty, false, a count of 0) are
+/// left out, so a long list costs the agent only what it can use.
 pub fn ticket_summary(ticket: &ticket::Model) -> Value {
+    let says_something = |value: &Value| match value {
+        Value::Null => false,
+        Value::Bool(flag) => *flag,
+        Value::Number(n) => n.as_f64() != Some(0.0),
+        Value::String(text) => !text.is_empty(),
+        Value::Array(items) => !items.is_empty(),
+        // a tally {done, total}: shown when there is something to count
+        Value::Object(tally) => tally.get("total").is_some_and(|t| t.as_u64() != Some(0)),
+    };
+    match full_summary(ticket) {
+        Value::Object(fields) => {
+            Value::Object(fields.into_iter().filter(|(name, value)| name == "id" || says_something(value)).collect())
+        }
+        other => other,
+    }
+}
+
+/// Every field of the summary, empty or not.
+fn full_summary(ticket: &ticket::Model) -> Value {
     let acs = loads(&ticket.acceptance_criteria);
     let tcs = loads(&ticket.test_cases);
     json!({

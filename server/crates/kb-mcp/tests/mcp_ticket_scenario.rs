@@ -126,7 +126,7 @@ async fn scenario(s: &testkit::Server, repo: &Path, files: &Path) {
     let mention = format!("cc @[Bao](member:{}) see [[Login spec]]", text(&bao["id"]));
     let after =
         item(&mcp, &a_id, "comment", "add", json!({"text": mention, "author": "Claude", "role": "Reviewer"})).await;
-    let cid = after["comments"][0]["id"].clone();
+    let cid = after["comment"]["id"].clone();
     item(&mcp, &a_id, "comment", "add", json!({"text": "second", "author": "user"})).await;
     item(
         &mcp,
@@ -155,7 +155,7 @@ async fn scenario(s: &testkit::Server, repo: &Path, files: &Path) {
     let updated =
         branch(&mcp, &a_id, "update", json!({"branch": "feat/scn-1-login", "pr_url": "https://example.com/pr/1"}))
             .await;
-    assert!(updated["branches"][0]["commit_hash"].is_string(), "{updated}");
+    assert!(updated["branch"]["commit_hash"].is_string(), "{updated}");
     git(repo, &["merge", "-q", "--ff-only", "feat/scn-1-login"]);
     branch(&mcp, &a_id, "update", json!({"branch": "feat/scn-1-login", "status": "merged"})).await;
     branch(&mcp, &a_id, "update", json!({"branch": "feat/scn-1-login", "name": "feat/scn-1-done"})).await;

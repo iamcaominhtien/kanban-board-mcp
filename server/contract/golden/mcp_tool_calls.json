@@ -1,6 +1,11 @@
 {
   "list: no projects": {
-    "content": [],
+    "content": [
+      {
+        "type": "text",
+        "text": "[]"
+      }
+    ],
     "structuredContent": {
       "result": []
     },
@@ -16,14 +21,24 @@
     "isError": true
   },
   "list: project_id null": {
-    "content": [],
+    "content": [
+      {
+        "type": "text",
+        "text": "[]"
+      }
+    ],
     "structuredContent": {
       "result": []
     },
     "isError": false
   },
   "list: project_id the text null": {
-    "content": [],
+    "content": [
+      {
+        "type": "text",
+        "text": "[]"
+      }
+    ],
     "structuredContent": {
       "result": []
     },
@@ -348,7 +363,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Alpha\",\"prefix\":\"ALP\",\"color\":\"#6366f1\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -366,7 +381,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:2>\",\n  \"name\": \"Bêta ☕\",\n  \"prefix\": \"BET\",\n  \"color\": \"#ff0000\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:2>\",\"name\":\"Bêta ☕\",\"prefix\":\"BET\",\"color\":\"#ff0000\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -402,7 +417,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:3>\",\n  \"name\": \"Spaced\",\n  \"prefix\": \"SP1\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:3>\",\"name\":\"Spaced\",\"prefix\":\"SP1\",\"color\":\"#6366f1\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -411,7 +426,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"name\": \"\",\n  \"prefix\": \"EMP\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:4>\",\"name\":\"\",\"prefix\":\"EMP\",\"color\":\"#6366f1\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -429,19 +444,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
-      },
-      {
-        "type": "text",
-        "text": "{\n  \"id\": \"<uuid:2>\",\n  \"name\": \"Bêta ☕\",\n  \"prefix\": \"BET\",\n  \"color\": \"#ff0000\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
-      },
-      {
-        "type": "text",
-        "text": "{\n  \"id\": \"<uuid:3>\",\n  \"name\": \"Spaced\",\n  \"prefix\": \"SP1\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
-      },
-      {
-        "type": "text",
-        "text": "{\n  \"id\": \"<uuid:4>\",\n  \"name\": \"\",\n  \"prefix\": \"EMP\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "[{\"id\":\"<uuid:1>\",\"name\":\"Alpha\",\"prefix\":\"ALP\",\"color\":\"#6366f1\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"},{\"id\":\"<uuid:2>\",\"name\":\"Bêta ☕\",\"prefix\":\"BET\",\"color\":\"#ff0000\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"},{\"id\":\"<uuid:3>\",\"name\":\"Spaced\",\"prefix\":\"SP1\",\"color\":\"#6366f1\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"},{\"id\":\"<uuid:4>\",\"name\":\"\",\"prefix\":\"EMP\",\"color\":\"#6366f1\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}]"
       }
     ],
     "structuredContent": {
@@ -502,7 +505,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\",\n  \"members\": [\n    {\n      \"id\": \"<uuid:5>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Admin\",\n      \"color\": \"#3B82F6\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Alpha\",\"prefix\":\"ALP\",\"color\":\"#6366f1\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\",\"members\":[{\"id\":\"<uuid:5>\",\"project_id\":\"<uuid:1>\",\"name\":\"Admin\",\"color\":\"#3B82F6\",\"role\":\"member\",\"kind\":\"human\",\"created_at\":\"<time>\"}]}"
       }
     ],
     "structuredContent": {
@@ -572,7 +575,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#6366f1\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Alpha\",\"prefix\":\"ALP\",\"color\":\"#6366f1\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -581,7 +584,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Alpha 2\",\"prefix\":\"ALP\",\"color\":\"#00ff00\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -590,7 +593,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": \"../wt/{project}/{ticket_id}-{branch}\",\n  \"worktree_by_default\": true,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Alpha 2\",\"prefix\":\"ALP\",\"color\":\"#00ff00\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":\"../wt/{project}/{ticket_id}-{branch}\",\"worktree_by_default\":true,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -599,7 +602,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": \"../wt/{project}/{ticket_id}-{branch}\",\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Alpha 2\",\"prefix\":\"ALP\",\"color\":\"#00ff00\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":\"../wt/{project}/{ticket_id}-{branch}\",\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -608,7 +611,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": \"../wt/{project}/{ticket_id}-{branch}\",\n  \"worktree_by_default\": true,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Alpha 2\",\"prefix\":\"ALP\",\"color\":\"#00ff00\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":\"../wt/{project}/{ticket_id}-{branch}\",\"worktree_by_default\":true,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -617,7 +620,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": \"../wt/{project}/{ticket_id}-{branch}\",\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Alpha 2\",\"prefix\":\"ALP\",\"color\":\"#00ff00\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":\"../wt/{project}/{ticket_id}-{branch}\",\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -626,7 +629,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Alpha 2\",\"prefix\":\"ALP\",\"color\":\"#00ff00\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -644,7 +647,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\"\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Alpha 2\",\"prefix\":\"ALP\",\"color\":\"#00ff00\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\"}"
       }
     ],
     "isError": false
@@ -680,7 +683,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:6>\",\n  \"project_id\": \"<uuid:1>\",\n  \"name\": \"Bao\",\n  \"color\": \"#10B981\",\n  \"role\": \"member\",\n  \"kind\": \"human\",\n  \"created_at\": \"<time>\"\n}"
+        "text": "{\"id\":\"<uuid:6>\",\"project_id\":\"<uuid:1>\",\"name\":\"Bao\",\"color\":\"#10B981\",\"role\":\"member\",\"kind\":\"human\",\"created_at\":\"<time>\"}"
       }
     ],
     "isError": false
@@ -689,7 +692,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:7>\",\n  \"project_id\": \"<uuid:1>\",\n  \"name\": \"Hà My\",\n  \"color\": \"#123456\",\n  \"role\": \"member\",\n  \"kind\": \"human\",\n  \"created_at\": \"<time>\"\n}"
+        "text": "{\"id\":\"<uuid:7>\",\"project_id\":\"<uuid:1>\",\"name\":\"Hà My\",\"color\":\"#123456\",\"role\":\"member\",\"kind\":\"human\",\"created_at\":\"<time>\"}"
       }
     ],
     "isError": false
@@ -698,7 +701,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:8>\",\n  \"project_id\": \"<uuid:1>\",\n  \"name\": \"Chi\",\n  \"color\": \"#EF4444\",\n  \"role\": \"member\",\n  \"kind\": \"human\",\n  \"created_at\": \"<time>\"\n}"
+        "text": "{\"id\":\"<uuid:8>\",\"project_id\":\"<uuid:1>\",\"name\":\"Chi\",\"color\":\"#EF4444\",\"role\":\"member\",\"kind\":\"human\",\"created_at\":\"<time>\"}"
       }
     ],
     "isError": false
@@ -707,7 +710,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:9>\",\n  \"project_id\": \"ghost\",\n  \"name\": \"Nobody\",\n  \"color\": \"#3B82F6\",\n  \"role\": \"member\",\n  \"kind\": \"human\",\n  \"created_at\": \"<time>\"\n}"
+        "text": "{\"id\":\"<uuid:9>\",\"project_id\":\"ghost\",\"name\":\"Nobody\",\"color\":\"#3B82F6\",\"role\":\"member\",\"kind\":\"human\",\"created_at\":\"<time>\"}"
       }
     ],
     "isError": false
@@ -716,7 +719,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 0,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\",\n  \"members\": [\n    {\n      \"id\": \"<uuid:5>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Admin\",\n      \"color\": \"#3B82F6\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:6>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Bao\",\n      \"color\": \"#10B981\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:7>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Hà My\",\n      \"color\": \"#123456\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:8>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Chi\",\n      \"color\": \"#EF4444\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Alpha 2\",\"prefix\":\"ALP\",\"color\":\"#00ff00\",\"ticket_counter\":0,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\",\"members\":[{\"id\":\"<uuid:5>\",\"project_id\":\"<uuid:1>\",\"name\":\"Admin\",\"color\":\"#3B82F6\",\"role\":\"member\",\"kind\":\"human\",\"created_at\":\"<time>\"},{\"id\":\"<uuid:6>\",\"project_id\":\"<uuid:1>\",\"name\":\"Bao\",\"color\":\"#10B981\",\"role\":\"member\",\"kind\":\"human\",\"created_at\":\"<time>\"},{\"id\":\"<uuid:7>\",\"project_id\":\"<uuid:1>\",\"name\":\"Hà My\",\"color\":\"#123456\",\"role\":\"member\",\"kind\":\"human\",\"created_at\":\"<time>\"},{\"id\":\"<uuid:8>\",\"project_id\":\"<uuid:1>\",\"name\":\"Chi\",\"color\":\"#EF4444\",\"role\":\"member\",\"kind\":\"human\",\"created_at\":\"<time>\"}]}"
       }
     ],
     "structuredContent": {
@@ -822,7 +825,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"ok\": true\n}"
+        "text": "{\"ok\":true}"
       }
     ],
     "isError": false
@@ -885,7 +888,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"ok\": true\n}"
+        "text": "{\"ok\":true}"
       }
     ],
     "isError": false
@@ -895,7 +898,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"id\": \"<uuid:1>\",\n  \"name\": \"Alpha 2\",\n  \"prefix\": \"ALP\",\n  \"color\": \"#00ff00\",\n  \"ticket_counter\": 4,\n  \"repo_path\": null,\n  \"worktree_template\": null,\n  \"worktree_by_default\": false,\n  \"docs_enabled\": true,\n  \"docs_edit_policy\": \"members\",\n  \"members\": [\n    {\n      \"id\": \"<uuid:5>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Admin\",\n      \"color\": \"#3B82F6\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:6>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Bao\",\n      \"color\": \"#10B981\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    },\n    {\n      \"id\": \"<uuid:7>\",\n      \"project_id\": \"<uuid:1>\",\n      \"name\": \"Hà My\",\n      \"color\": \"#123456\",\n      \"role\": \"member\",\n      \"kind\": \"human\",\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
+        "text": "{\"id\":\"<uuid:1>\",\"name\":\"Alpha 2\",\"prefix\":\"ALP\",\"color\":\"#00ff00\",\"ticket_counter\":4,\"repo_path\":null,\"worktree_template\":null,\"worktree_by_default\":false,\"docs_enabled\":true,\"docs_edit_policy\":\"members\",\"members\":[{\"id\":\"<uuid:5>\",\"project_id\":\"<uuid:1>\",\"name\":\"Admin\",\"color\":\"#3B82F6\",\"role\":\"member\",\"kind\":\"human\",\"created_at\":\"<time>\"},{\"id\":\"<uuid:6>\",\"project_id\":\"<uuid:1>\",\"name\":\"Bao\",\"color\":\"#10B981\",\"role\":\"member\",\"kind\":\"human\",\"created_at\":\"<time>\"},{\"id\":\"<uuid:7>\",\"project_id\":\"<uuid:1>\",\"name\":\"Hà My\",\"color\":\"#123456\",\"role\":\"member\",\"kind\":\"human\",\"created_at\":\"<time>\"}]}"
       }
     ],
     "structuredContent": {

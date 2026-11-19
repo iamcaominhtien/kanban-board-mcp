@@ -39,7 +39,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\"head\":0,\"cursor_too_old\":false,\"events\":[]}"
       }
     ],
     "isError": false
@@ -48,7 +48,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\"head\":0,\"cursor_too_old\":false,\"events\":[]}"
       }
     ],
     "isError": false
@@ -57,7 +57,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\"head\":0,\"cursor_too_old\":false,\"events\":[]}"
       }
     ],
     "isError": false
@@ -66,7 +66,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\"head\":0,\"cursor_too_old\":false,\"events\":[]}"
       }
     ],
     "isError": false
@@ -75,7 +75,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\"head\":0,\"cursor_too_old\":false,\"events\":[]}"
       }
     ],
     "isError": false
@@ -93,7 +93,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\"head\":0,\"cursor_too_old\":false,\"events\":[]}"
       }
     ],
     "isError": false
@@ -102,7 +102,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\"head\":0,\"cursor_too_old\":false,\"events\":[]}"
       }
     ],
     "isError": false
@@ -111,7 +111,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 0,\n  \"cursor_too_old\": true,\n  \"events\": []\n}"
+        "text": "{\"head\":0,\"cursor_too_old\":true,\"events\":[]}"
       }
     ],
     "isError": false
@@ -120,7 +120,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"lesson\": {\n    \"id\": \"<lsn:1>\",\n    \"text\": \"Wait for the board.\",\n    \"state\": \"proposed\",\n    \"tokens\": 5,\n    \"source_ticket_id\": null,\n    \"source_run_id\": null,\n    \"proposed_by\": \"user\",\n    \"kept_by\": null,\n    \"uses\": 0,\n    \"last_used_at\": null,\n    \"created_at\": \"<time>\",\n    \"updated_at\": \"<time>\"\n  },\n  \"note\": \"Proposed. It reaches every AI's prompt once a person keeps it.\"\n}"
+        "text": "{\"lesson\":{\"id\":\"<lsn:1>\",\"text\":\"Wait for the board.\",\"state\":\"proposed\",\"tokens\":5,\"source_ticket_id\":null,\"source_run_id\":null,\"proposed_by\":\"user\",\"kept_by\":null,\"uses\":0,\"last_used_at\":null,\"created_at\":\"<time>\",\"updated_at\":\"<time>\"},\"note\":\"Proposed. It reaches every AI's prompt once a person keeps it.\"}"
       }
     ],
     "structuredContent": {
@@ -148,7 +148,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": [\n    {\n      \"id\": 1,\n      \"project_id\": \"<uuid:1>\",\n      \"kind\": \"lesson\",\n      \"op\": \"new\",\n      \"needs\": false,\n      \"target_kind\": \"lesson\",\n      \"target_id\": \"<lsn:1>\",\n      \"ticket_id\": null,\n      \"page_id\": null,\n      \"member_id\": null,\n      \"actor\": null,\n      \"title\": \"A lesson proposed by user\",\n      \"body\": \"Wait for the board.\",\n      \"data\": {},\n      \"recipients\": [\n        \"user\"\n      ],\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
+        "text": "{\"head\":1,\"cursor_too_old\":false,\"events\":[{\"id\":1,\"project_id\":\"<uuid:1>\",\"kind\":\"lesson\",\"op\":\"new\",\"needs\":false,\"target_kind\":\"lesson\",\"target_id\":\"<lsn:1>\",\"ticket_id\":null,\"page_id\":null,\"member_id\":null,\"actor\":null,\"title\":\"A lesson proposed by user\",\"body\":\"Wait for the board.\",\"data\":{},\"recipients\":[\"user\"],\"created_at\":\"<time>\"}]}"
       }
     ],
     "isError": false
@@ -157,7 +157,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": [\n    {\n      \"id\": 1,\n      \"project_id\": \"<uuid:1>\",\n      \"kind\": \"lesson\",\n      \"op\": \"new\",\n      \"needs\": false,\n      \"target_kind\": \"lesson\",\n      \"target_id\": \"<lsn:1>\",\n      \"ticket_id\": null,\n      \"page_id\": null,\n      \"member_id\": null,\n      \"actor\": null,\n      \"title\": \"A lesson proposed by user\",\n      \"body\": \"Wait for the board.\",\n      \"data\": {},\n      \"recipients\": [\n        \"user\"\n      ],\n      \"created_at\": \"<time>\"\n    }\n  ]\n}"
+        "text": "{\"head\":1,\"cursor_too_old\":false,\"events\":[{\"id\":1,\"project_id\":\"<uuid:1>\",\"kind\":\"lesson\",\"op\":\"new\",\"needs\":false,\"target_kind\":\"lesson\",\"target_id\":\"<lsn:1>\",\"ticket_id\":null,\"page_id\":null,\"member_id\":null,\"actor\":null,\"title\":\"A lesson proposed by user\",\"body\":\"Wait for the board.\",\"data\":{},\"recipients\":[\"user\"],\"created_at\":\"<time>\"}]}"
       }
     ],
     "isError": false
@@ -166,7 +166,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\"head\":1,\"cursor_too_old\":false,\"events\":[]}"
       }
     ],
     "isError": false
@@ -175,7 +175,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\"head\":1,\"cursor_too_old\":false,\"events\":[]}"
       }
     ],
     "isError": false
@@ -184,7 +184,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\"head\":1,\"cursor_too_old\":false,\"events\":[]}"
       }
     ],
     "isError": false
@@ -193,7 +193,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"head\": 1,\n  \"cursor_too_old\": false,\n  \"events\": []\n}"
+        "text": "{\"head\":1,\"cursor_too_old\":false,\"events\":[]}"
       }
     ],
     "isError": false

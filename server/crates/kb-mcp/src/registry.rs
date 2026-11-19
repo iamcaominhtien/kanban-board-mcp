@@ -87,16 +87,8 @@ fn find(name: &str, include_ideas: bool) -> Option<(Tool, &'static Value)> {
 pub enum JsonText {
     /// Indented, as FastMCP wrote it (`pydantic_core.to_json(result, indent=2)`).
     Indented,
-    /// On one line, a list as one array: the Docs tools, whose answers carry whole pages, spend no tokens on the
-    /// indentation.
+    /// On one line, a list as one array: what every tool writes, so an answer spends no tokens on indentation.
     Compact,
-}
-
-impl JsonText {
-    /// The form a tool writes its answers in.
-    pub fn of(tool: &str) -> Self {
-        if tool.starts_with("docs_") { Self::Compact } else { Self::Indented }
-    }
 }
 
 /// FastMCP's `_convert_to_content`: nothing for `None`, a block per item of a list, text as it is, anything else as
@@ -162,7 +154,7 @@ pub async fn call_tool_for(name: &str, arguments: Map<String, Value>, include_id
     match outcome {
         Ok(result) => {
             let mut reply = Map::new();
-            reply.insert("content".into(), Value::Array(convert_to_content_as(&result, JsonText::of(name))));
+            reply.insert("content".into(), Value::Array(convert_to_content_as(&result, JsonText::Compact)));
             // every output schema of the snapshot is FastMCP's wrapper for a return type that is not an object
             // of known fields: `{"result": <the value>}`
             if entry.get("outputSchema").is_some() {

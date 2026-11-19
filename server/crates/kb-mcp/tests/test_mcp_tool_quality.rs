@@ -322,8 +322,12 @@ async fn test_list_tickets_is_paginated_and_compact() {
     let rest = call(&mcp, "list_tickets", json!({"project_id": p["id"], "limit": 2, "offset": 4})).await;
     assert_eq!((&rest["count"], &rest["has_more"]), (&json!(1), &json!(false)));
     let summary = page["tickets"][0].as_object().expect("a summary");
-    for key in ["id", "title", "status", "priority", "blocked_by", "acceptance_criteria", "test_cases"] {
+    for key in ["id", "title", "status", "priority"] {
         assert!(summary.contains_key(key), "{key}");
+    }
+    // what says nothing is left out: no blocker, no criteria, no test cases yet
+    for key in ["blocked_by", "acceptance_criteria", "test_cases", "assignee", "tags", "pending"] {
+        assert!(!summary.contains_key(key), "{key}");
     }
     assert!(!summary.contains_key("description") && !summary.contains_key("activity_log"));
     let full = call(&mcp, "list_tickets", json!({"project_id": p["id"], "detail": true, "limit": 1})).await;
@@ -371,7 +375,7 @@ async fn test_sub_item_errors_list_the_valid_ids() {
         json!({"ticket_id": id, "item": "comment", "action": "add", "text": "hello", "author": "Claude"}),
     )
     .await;
-    let cid = created["comments"][0]["id"].as_str().expect("an id").to_string();
+    let cid = created["comment"]["id"].as_str().expect("an id").to_string();
     // used to "succeed" silently
     let text = call_err(
         &mcp,
@@ -405,7 +409,7 @@ async fn test_test_cases_and_branches_can_be_addressed_by_code_and_name() {
         json!({"ticket_id": i, "item": "test_case", "action": "update", "item_id": "TC-1", "status": "pass"}),
     )
     .await;
-    assert_eq!(updated["test_cases"][0]["status"], "pass");
+    assert!(updated["test_case"]["code"] == "TC-1" && updated["test_case"]["status"] == "pass", "{updated}");
     call(&mcp, "ticket_branches", json!({"ticket_id": i, "action": "add", "name": "feat/x"})).await;
     // by name
     let renamed = call(
@@ -414,9 +418,9 @@ async fn test_test_cases_and_branches_can_be_addressed_by_code_and_name() {
         json!({"ticket_id": i, "action": "update", "branch": "feat/x", "pr_url": "https://example.com/pr/1"}),
     )
     .await;
-    assert_eq!(renamed["branches"][0]["pr_url"], "https://example.com/pr/1");
+    assert_eq!(renamed["branch"]["pr_url"], "https://example.com/pr/1");
     let after = call(&mcp, "ticket_branches", json!({"ticket_id": i, "action": "delete", "branch": "feat/x"})).await;
-    assert_eq!(after["branches"], json!([]));
+    assert!(after["deleted"] == "feat/x" && after["ticket"].get("branches").is_none(), "{after}");
 }
 
 #[tokio::test]

@@ -510,7 +510,7 @@
       "x-accel-buffering": "no",
       "transfer-encoding": "chunked"
     },
-    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":14,\"result\":{\"content\":[],\"structuredContent\":{\"result\":[]},\"isError\":false}}\r\n\r\n"
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":14,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"[]\"}],\"structuredContent\":{\"result\":[]},\"isError\":false}}\r\n\r\n"
   },
   "tools/call without arguments": {
     "status": 200,
@@ -521,7 +521,7 @@
       "x-accel-buffering": "no",
       "transfer-encoding": "chunked"
     },
-    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":14,\"result\":{\"content\":[],\"structuredContent\":{\"result\":[]},\"isError\":false}}\r\n\r\n"
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":14,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"[]\"}],\"structuredContent\":{\"result\":[]},\"isError\":false}}\r\n\r\n"
   },
   "tools/call with a task": {
     "status": 200,
@@ -532,7 +532,7 @@
       "x-accel-buffering": "no",
       "transfer-encoding": "chunked"
     },
-    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":14,\"result\":{\"content\":[],\"structuredContent\":{\"result\":[]},\"isError\":false}}\r\n\r\n"
+    "body": "event: message\r\ndata: {\"jsonrpc\":\"2.0\",\"id\":14,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"[]\"}],\"structuredContent\":{\"result\":[]},\"isError\":false}}\r\n\r\n"
   },
   "tools/list with a cursor": {
     "status": 200,
@@ -1226,32 +1226,32 @@
   "GET below": {
     "status": 404,
     "headers": {
-      "content-length": "9",
-      "content-type": "text/plain; charset=utf-8"
+      "content-type": "text/plain; charset=utf-8",
+      "content-length": "9"
     },
     "body": "Not Found"
   },
   "GET deeper": {
     "status": 404,
     "headers": {
-      "content-length": "9",
-      "content-type": "text/plain; charset=utf-8"
+      "content-type": "text/plain; charset=utf-8",
+      "content-length": "9"
     },
     "body": "Not Found"
   },
   "POST below": {
     "status": 404,
     "headers": {
-      "content-length": "9",
-      "content-type": "text/plain; charset=utf-8"
+      "content-type": "text/plain; charset=utf-8",
+      "content-length": "9"
     },
     "body": "Not Found"
   },
   "POST double slash": {
     "status": 404,
     "headers": {
-      "content-length": "9",
-      "content-type": "text/plain; charset=utf-8"
+      "content-type": "text/plain; charset=utf-8",
+      "content-length": "9"
     },
     "body": "Not Found"
   },
@@ -1269,9 +1269,9 @@
   "POST without the slash": {
     "status": 405,
     "headers": {
+      "content-type": "application/json",
       "allow": "GET",
-      "content-length": "31",
-      "content-type": "application/json"
+      "content-length": "31"
     },
     "body": "{\"detail\":\"Method Not Allowed\"}"
   }

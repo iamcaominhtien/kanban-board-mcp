@@ -2,6 +2,7 @@
 
 use serde_json::{Map, Value};
 
+use super::reply;
 use super::routing::{Op, dispatch, params_of};
 use crate::common::{ToolResult, arg_bool, arg_int, arg_str, arg_text};
 use crate::operations as ops;
@@ -123,11 +124,15 @@ pub const BRANCH_OPS: &[(&str, Op)] = &[
 
 /// Branches of a ticket. If the project (update via manage_project's repo_path) or the ticket has a linked git repo,
 /// the real git branch is created / renamed / deleted and commit, ahead and behind come from git; otherwise only the
-/// board record changes. Returns the updated ticket (without its activity log). `action`: add, update, delete,
-/// checkout.
+/// board record changes. Returns `{ticket, branch}`: the ticket in brief and the branch as it is now (`deleted`
+/// when it is gone). `action`: add, update, delete, checkout.
 pub async fn ticket_branches(args: Map<String, Value>) -> ToolResult {
     let action = arg_text(&args, "action");
-    dispatch("ticket_branches", BRANCH_OPS, &action, params_of(args)).await
+    // an update's new name first: the branch is found under it once renamed
+    let keys: Vec<String> =
+        ["name", "branch"].iter().filter_map(|k| args.get(*k).and_then(Value::as_str)).map(str::to_string).collect();
+    let out = dispatch("ticket_branches", BRANCH_OPS, &action, params_of(args)).await?;
+    Ok(reply::item_answer(out, "branch", &action, &keys))
 }
 
 #[cfg(test)]
