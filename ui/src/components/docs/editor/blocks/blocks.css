@@ -1714,10 +1714,11 @@
 
 /* Columns properties (Blocks board, F 37, L 70): ratio tiles with little bars */
 .dk-ratios {
-  display: flex;
-  align-items: center;
+  /* the tiles share the panel's width evenly */
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 6px;
-  flex-wrap: wrap;
 }
 .dk-ratio {
   display: flex;

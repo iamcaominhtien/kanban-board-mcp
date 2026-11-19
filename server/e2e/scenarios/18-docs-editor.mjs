@@ -252,6 +252,13 @@ export default {
       await p.keyboard.type('Colour line');
       await p.keyboard.press('Shift+Home');
       await tb('Text colour').click();
+      // the twelve named colours spread over the popover's width, six a row
+      const spread = await p.getByRole('menu', { name: 'Text colour' }).locator('.dk-cp-grid').evaluate((g) => {
+        const r = g.getBoundingClientRect();
+        const xs = [...g.children].slice(0, 6).map((c) => c.getBoundingClientRect());
+        return { gap: r.right - xs[5].right, first: xs[0].left - r.left, top6: xs[5].top === xs[0].top };
+      });
+      if (!spread.top6 || Math.abs(spread.gap - spread.first) > 2) throw new Error('the colours are not spread evenly ' + JSON.stringify(spread));
       await p.getByRole('menu', { name: 'Text colour' }).getByRole('menuitemradio', { name: 'Green' }).click();
       // stored by name, drawn through the page's palette variable
       const green = content().locator('span[data-color="green"]', { hasText: 'Colour line' });
@@ -657,6 +664,18 @@ export default {
       await p.waitForFunction(() =>
         [...document.querySelectorAll('[aria-label="Page content"] .dk-colsv')].some((c) => c.style.getPropertyValue('--dk-cols').includes('2fr')),
       );
+      // the ratio tiles in Columns properties share the panel's width evenly
+      await p.getByRole('button', { name: 'Columns properties' }).first().click();
+      const ratio = p.getByRole('radiogroup', { name: 'Ratio' });
+      await ratio.waitFor();
+      const tiles = await ratio.evaluate((g) => {
+        const r = g.getBoundingClientRect();
+        const ws = [...g.children].map((c) => c.getBoundingClientRect());
+        return { row: r.width, used: ws.at(-1).right - ws[0].left, widths: ws.map((w) => Math.round(w.width)) };
+      });
+      if (Math.abs(tiles.row - tiles.used) > 1 || new Set(tiles.widths).size !== 1) throw new Error('ratio tiles ' + JSON.stringify(tiles));
+      await p.keyboard.press('Escape');
+      await ratio.waitFor({ state: 'detached' });
       await saved();
     });
     await s.step('callout: Danger from the catalog, then made Custom with its own colour and a left bar', async () => {
@@ -798,6 +817,9 @@ export default {
       // only the metadata loads (the length, the first frame): an address the test machine cannot reach says so at
       // once instead of showing Play
       await video.getByRole('button', { name: /^Play/ }).or(video.getByText('This video could not be played')).first().waitFor();
+      // its buttons are the board's compact ones (26 px), not the tablet layout's 44 px
+      const heights = await video.locator('.dk-vid-state .st-btn').evaluateAll((bs) => bs.map((b) => b.getBoundingClientRect().height));
+      if (heights.some((h) => h > 28)) throw new Error('the video state buttons are tall: ' + heights.join(', '));
       const playing = await video.locator('video').evaluateAll((vs) => vs.some((v) => !v.paused || v.autoplay || v.controls));
       if (playing) throw new Error('the video started, or showed its player, before Play');
       await saved();

@@ -856,6 +856,10 @@
   letter-spacing: 0.04em;
   color: var(--dp-muted, #5b6b60);
 }
+/* the cover pulls itself up 12 px: under the chapter line it would cover it */
+.dk-chapter-line + .dk-cover {
+  margin-top: 4px;
+}
 .dk-readfoot {
   display: grid;
   grid-template-columns: 1fr 1fr;

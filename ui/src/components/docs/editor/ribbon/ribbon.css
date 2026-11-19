@@ -1007,8 +1007,10 @@
 }
 /* six named swatches a row, each 46 px wide with its name under it */
 .dk-cp-grid {
-  display: flex;
-  flex-wrap: wrap;
+  /* six named colours a row, spread across the popover's width */
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  justify-items: center;
   gap: 8px 0;
 }
 .dk-cp-recent {

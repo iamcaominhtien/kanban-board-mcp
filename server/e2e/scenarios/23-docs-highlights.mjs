@@ -508,8 +508,13 @@ export default {
       const ch = await api('POST', `/projects/${pid}/docs/pages`, { title: 'The Long Tide', parent_id: book.id });
       await api('PUT', `/docs/pages/${ch.id}/draft`, { markdown: 'The tide went out.\n' });
       await api('POST', `/docs/pages/${ch.id}/publish`, { base_version: 0 });
+      await api('PATCH', `/docs/pages/${ch.id}/settings`, { settings: { cover: { color: '#E39A7C', height: 'm' } } });
       await p.goto(`${base}/?proj=${pid}&docs=${ch.id}`);
       await p.getByTestId('focus-back').waitFor({ timeout: 20000 });
+      // the chapter line sits above the cover, not under it (the cover pulls itself up)
+      const line = await p.getByTestId('chapter-line').boundingBox();
+      const cover = await p.getByTestId('page-cover').boundingBox();
+      if (line.y + line.height > cover.y) throw new Error(`the cover hides the chapter line: ${JSON.stringify({ line, cover })}`);
       // no project sidebar, no app header, no tree: the chapter list and the page
       // the chrome steps aside once the page knows it is a book's chapter: wait for it, then check
       await p.getByTestId('sidebar-idea-space').waitFor({ state: 'hidden' }).catch(() => {

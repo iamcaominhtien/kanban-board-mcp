@@ -911,6 +911,19 @@
 .dk-vid-state .dk-emb-actions {
   margin-top: 2px;
   justify-content: center;
+  align-items: center;
+}
+/* compact buttons (26 px, Embeds board B 17-18): a link (Download) would take the page text's 1.7 line height and
+   stretch the row to 32 px, and a tablet-wide layout gives every button 44 px; a real touch screen keeps 40 */
+.dk-vid-state .dk-emb-actions .st-btn {
+  min-height: 0;
+  line-height: 16px;
+  padding: 4px 11px;
+}
+@media (pointer: coarse) {
+  .dk-vid-state .dk-emb-actions .st-btn {
+    min-height: 40px;
+  }
 }
 .dk-vid-state a.st-btn {
   text-decoration: none;
