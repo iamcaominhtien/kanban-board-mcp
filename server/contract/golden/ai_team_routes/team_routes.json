@@ -361,7 +361,7 @@
       "account_ref": null,
       "assigned": [],
       "cap_per_run": null,
-      "checked_at": "<time>",
+      "checked_at": null,
       "cli_path": "<tmp>/no-such/claude",
       "color": "#2E6F40",
       "config": {
@@ -386,8 +386,8 @@
       "daily_budget": null,
       "description": "Writes code",
       "effort": "high",
-      "health": "runner_missing",
-      "health_detail": "The CLI set for this AI, <tmp>/no-such/claude, cannot be used: it is not a file. The board does not run another claude instead. Fix the path in the AI's settings, or clear it to use the one on this computer",
+      "health": "unknown",
+      "health_detail": null,
       "id": "<uuid:1>",
       "kind": "ai_removed",
       "last_run": {
@@ -486,7 +486,7 @@
       "updated_at": "<time>",
       "usage": {
         "cost_today": 0,
-        "runs_today": 0,
+        "runs_today": 1,
         "tokens_today": 0
       },
       "working_dir": "<tmp>/repo"
@@ -738,7 +738,7 @@
         "account_ref": null,
         "assigned": [],
         "cap_per_run": null,
-        "checked_at": "<time>",
+        "checked_at": null,
         "cli_path": "<tmp>/no-such/claude",
         "color": "#2E6F40",
         "config": {
@@ -763,8 +763,8 @@
         "daily_budget": null,
         "description": "Writes code",
         "effort": "high",
-        "health": "runner_missing",
-        "health_detail": "The CLI set for this AI, <tmp>/no-such/claude, cannot be used: it is not a file. The board does not run another claude instead. Fix the path in the AI's settings, or clear it to use the one on this computer",
+        "health": "unknown",
+        "health_detail": null,
         "id": "<uuid:1>",
         "kind": "ai_removed",
         "last_run": {
@@ -863,7 +863,7 @@
         "updated_at": "<time>",
         "usage": {
           "cost_today": 0,
-          "runs_today": 0,
+          "runs_today": 1,
           "tokens_today": 0
         },
         "working_dir": "<tmp>/repo"
@@ -2443,7 +2443,7 @@
       },
       "assigned": [],
       "cap_per_run": null,
-      "checked_at": "<time>",
+      "checked_at": null,
       "cli_path": "<tmp>/no-such/claude",
       "color": "#2E6F40",
       "config": {
@@ -2468,8 +2468,8 @@
       "daily_budget": null,
       "description": "Writes code",
       "effort": "high",
-      "health": "runner_missing",
-      "health_detail": "The CLI set for this AI, <tmp>/no-such/claude, cannot be used: it is not a file. The board does not run another claude instead. Fix the path in the AI's settings, or clear it to use the one on this computer",
+      "health": "unknown",
+      "health_detail": null,
       "id": "<uuid:1>",
       "kind": "ai",
       "last_run": null,
@@ -2555,9 +2555,9 @@
       "scope": "assigned",
       "slots_in_use": 0,
       "status": {
-        "code": "runner_missing",
-        "detail": "The CLI set for this AI, <tmp>/no-such/claude, cannot be used: it is not a file. The board does not run another claude instead. Fix the path in the AI's settings, or clear it to use the one on this computer",
-        "label": "Runner not detected"
+        "code": "idle",
+        "detail": null,
+        "label": "Idle"
       },
       "tokens_per_day": null,
       "updated_at": "<time>",
@@ -2595,7 +2595,7 @@
       "account_ref": null,
       "assigned": [],
       "cap_per_run": null,
-      "checked_at": "<time>",
+      "checked_at": null,
       "cli_path": "<tmp>/no-such/claude",
       "color": "#2E6F40",
       "config": {
@@ -2620,8 +2620,8 @@
       "daily_budget": null,
       "description": "Writes code",
       "effort": "high",
-      "health": "runner_missing",
-      "health_detail": "The CLI set for this AI, <tmp>/no-such/claude, cannot be used: it is not a file. The board does not run another claude instead. Fix the path in the AI's settings, or clear it to use the one on this computer",
+      "health": "unknown",
+      "health_detail": null,
       "id": "<uuid:1>",
       "kind": "ai",
       "last_run": null,
@@ -2707,9 +2707,9 @@
       "scope": "assigned",
       "slots_in_use": 0,
       "status": {
-        "code": "runner_missing",
-        "detail": "The CLI set for this AI, <tmp>/no-such/claude, cannot be used: it is not a file. The board does not run another claude instead. Fix the path in the AI's settings, or clear it to use the one on this computer",
-        "label": "Runner not detected"
+        "code": "idle",
+        "detail": null,
+        "label": "Idle"
       },
       "tokens_per_day": null,
       "updated_at": "<time>",
@@ -2728,7 +2728,7 @@
       "account_ref": null,
       "assigned": [],
       "cap_per_run": null,
-      "checked_at": "<time>",
+      "checked_at": null,
       "cli_path": "<tmp>/no-such/claude",
       "color": "#2E6F40",
       "config": {
@@ -2753,8 +2753,8 @@
       "daily_budget": null,
       "description": "Writes code",
       "effort": "high",
-      "health": "runner_missing",
-      "health_detail": "The CLI set for this AI, <tmp>/no-such/claude, cannot be used: it is not a file. The board does not run another claude instead. Fix the path in the AI's settings, or clear it to use the one on this computer",
+      "health": "unknown",
+      "health_detail": null,
       "id": "<uuid:1>",
       "kind": "ai",
       "last_run": null,
@@ -2840,9 +2840,9 @@
       "scope": "assigned",
       "slots_in_use": 0,
       "status": {
-        "code": "runner_missing",
-        "detail": "The CLI set for this AI, <tmp>/no-such/claude, cannot be used: it is not a file. The board does not run another claude instead. Fix the path in the AI's settings, or clear it to use the one on this computer",
-        "label": "Runner not detected"
+        "code": "idle",
+        "detail": null,
+        "label": "Idle"
       },
       "tokens_per_day": null,
       "updated_at": "<time>",

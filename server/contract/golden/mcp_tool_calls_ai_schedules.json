@@ -234,7 +234,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool ai_schedules: That time has passed. Next free time: Fri Nov 13, 09:00."
+        "text": "Error executing tool ai_schedules: That time has passed. Next free time: <day>, 09:00."
       }
     ],
     "isError": true
