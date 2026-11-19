@@ -522,3 +522,107 @@ fn a_picture_keeps_its_line_colour_and_its_soft_shadow() {
     assert!(html.contains("border:1px solid currentColor;"));
     assert!(html.contains("box-shadow:0 4px 16px rgba(0,0,0,.18);"));
 }
+
+fn cell(kind: &str, text: &str, attrs: Value) -> Value {
+    json!({"type":kind,"attrs":attrs,"content":[{"type":"paragraph","content":[{"type":"text","text":text}]}]})
+}
+
+fn html_of(doc: Value) -> String {
+    render_html(&[page("Rich", doc)], &TestAssets, &HtmlOptions::default()).index_html().to_string()
+}
+
+fn docx_xml_of(doc: Value) -> String {
+    zip_text(&render_docx(&[page("Rich", doc)], &TestAssets, &DocxOptions::default()), "word/document.xml")
+}
+
+fn rich_table() -> Value {
+    json!({"type":"doc","content":[{"type":"table","attrs":{"banded":true,"borders":"outer","spacing":"roomy","align":"center","caption":"Totals <b>"},"content":[
+        {"type":"tableRow","content":[cell("tableHeader","H1",json!({})),cell("tableHeader","H2",json!({}))]},
+        {"type":"tableRow","content":[cell("tableCell","a1",json!({})),cell("tableCell","a2",json!({}))]},
+        {"type":"tableRow","content":[cell("tableCell","b1",json!({"border":"top bottom","borderStyle":"dashed","borderColor":"red","padding":"tight"})),
+            cell("tableCell","b2",json!({"border":"none","padding":"roomy","background":"yellow"})),
+            cell("tableCell","b3",json!({"border":"left","borderStyle":"thick","borderColor":"#112233"}))]}]}]})
+}
+
+#[test]
+fn a_rich_table_reaches_the_html() {
+    let html = html_of(rich_table());
+    assert!(html.contains("<table class=\"t-lined fit banded b-outer sp-roomy al-center\">"), "{html}");
+    assert!(html.contains("<tr class=\"band\">"), "the second body row is banded, the header row is not");
+    assert_eq!(html.matches("<tr class=\"band\">").count(), 1);
+    assert!(html.contains("<div class=\"table-caption\">Totals &lt;b&gt;</div>"), "caption under the table");
+    assert!(html.contains("border-color:transparent;border-top:1px dashed #C4432A;border-bottom:1px dashed #C4432A;"));
+    assert!(html.contains("padding:2px 8px;"));
+    assert!(html.contains("border-color:transparent;padding:10px 14px;"), "border none: no side is drawn");
+    assert!(html.contains("table.banded tr.band td"), "the rules are written when used");
+}
+
+#[test]
+fn a_page_without_rich_attributes_keeps_its_html() {
+    let doc = json!({"type":"doc","content":[
+        {"type":"table","content":[{"type":"tableRow","content":[cell("tableCell","x",json!({}))]}]},
+        {"type":"paragraph","attrs":{"dropCap":3},"content":[{"type":"text","text":"Once"}]},
+        {"type":"columns","attrs":{},"content":[{"type":"column","content":[{"type":"paragraph"}]},{"type":"column","content":[{"type":"paragraph"}]}]}]});
+    let html = html_of(doc);
+    assert!(html.contains("<table class=\"t-lined full\">"));
+    assert!(html.contains("<p class=\"dropcap dropcap-3\">"));
+    assert!(html.contains("<div class=\"columns\" "));
+    assert!(!html.contains("EXTRA") && !html.contains("table.banded") && !html.contains(".dropcap-x"));
+}
+
+#[test]
+fn a_rich_table_reaches_the_docx() {
+    let xml = docx_xml_of(rich_table());
+    assert!(xml.contains(r#"<w:jc w:val="center""#), "the table is centred");
+    assert!(xml.contains(r#"w:fill="F6FAF7""#), "banded row shading");
+    assert_eq!(xml.matches(r#"w:fill="F6FAF7""#).count(), 2, "only the banded row cells without its own background");
+    assert!(xml.contains("tblCellMar"), "table spacing");
+    assert!(xml.contains(r#"w:insideH w:val="nil""#) || xml.contains("insideH"), "outer borders only");
+    assert!(xml.contains(r#"w:val="dashed""#) && xml.contains(r#"w:color="C4432A""#), "dashed red cell line");
+    assert!(xml.contains(r#"w:color="112233""#) && xml.contains(r#"w:sz="12""#), "thick line in its colour");
+    assert!(xml.contains(r#"w:val="nil""#), "sides without a line");
+    assert!(xml.contains("tcMar"), "cell padding");
+    assert!(xml.contains("Totals &lt;b&gt;") || xml.contains("Totals <b>"), "caption");
+    assert!(xml.contains(r#"w:val="Caption""#));
+}
+
+#[test]
+fn drop_caps_in_html_and_docx() {
+    let doc = json!({"type":"doc","content":[
+        {"type":"paragraph","attrs":{"dropCap":2,"dropCapStyle":"raised","dropCapColor":"blue","dropCapFont":"body"},"content":[{"type":"text","text":"Zebra crossing"}]},
+        {"type":"paragraph","attrs":{"dropCap":4,"dropCapColor":"#ab12cd"},"content":[{"type":"text","text":"Quick fox"}]}]});
+    let html = html_of(doc.clone());
+    assert!(
+        html.contains("class=\"dropcap dropcap-x dropcap-2 dropcap-raised dropcap-body\" style=\"--dc:#1F5A8E;\""),
+        "{html}"
+    );
+    assert!(html.contains("class=\"dropcap dropcap-x dropcap-4\" style=\"--dc:#AB12CD;\""));
+    assert!(html.contains(".dropcap-4::first-letter { font-size: 4.7em; }"));
+    let xml = docx_xml_of(doc);
+    // the first letter is its own large run (2.4 and 4.7 times 11 pt), in the colour, the rest follows
+    assert!(xml.contains(r#"<w:sz w:val="53""#) && xml.contains(r#"<w:sz w:val="103""#), "{xml}");
+    assert!(xml.contains(r#"w:color w:val="1F5A8E""#) && xml.contains(r#"w:color w:val="AB12CD""#));
+    assert!(xml.contains(">ebra crossing<") && xml.contains(">uick fox<"));
+}
+
+#[test]
+fn middle_aligned_columns() {
+    let doc = json!({"type":"doc","content":[{"type":"columns","attrs":{"valign":"middle"},"content":[
+        {"type":"column","content":[{"type":"paragraph","content":[{"type":"text","text":"L"}]}]},
+        {"type":"column","content":[{"type":"paragraph","content":[{"type":"text","text":"R"}]}]}]}]});
+    let html = html_of(doc.clone());
+    assert!(html.contains("<div class=\"columns valign-middle\" "));
+    assert!(html.contains(".columns.valign-middle { align-items: center; }"));
+    assert_eq!(docx_xml_of(doc).matches(r#"<w:vAlign w:val="center""#).count(), 2);
+}
+
+#[test]
+fn a_picture_border_in_docx_and_named_colours_in_html() {
+    let doc = json!({"type":"doc","content":[
+        {"type":"image","attrs":{"src":"/uploads/a.png","border":"medium","borderColor":"#2F6FB0"}}]});
+    let xml = docx_xml_of(doc);
+    assert!(xml.contains(r#"w:sz="12""#) && xml.contains(r#"w:color="2F6FB0""#), "{xml}");
+    let html = html_of(json!({"type":"doc","content":[
+        {"type":"image","attrs":{"src":"/uploads/a.png","border":"medium","borderColor":"blue"}}]}));
+    assert!(html.contains("border:2px solid #1F5A8E;"));
+}

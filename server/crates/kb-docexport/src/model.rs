@@ -548,6 +548,11 @@ pub(crate) fn resolve_color(value: &str, used: ColorUse, background: &str) -> Op
     bg.get(list)?.get(value)?.as_str().map(str::to_string)
 }
 
+/// Resolves a colour that may be a text-list name, a highlight-list name or `#rrggbb` (borders, drop caps).
+pub(crate) fn resolve_any_color(value: &str, background: &str) -> Option<String> {
+    resolve_color(value, ColorUse::Text, background).or_else(|| resolve_color(value, ColorUse::Highlight, background))
+}
+
 /// The page and ink colours of a background.
 pub(crate) fn page_colors(background: &str) -> (String, String) {
     let bg = palette().get("backgrounds").and_then(|b| b.get(background).or_else(|| b.get("white")));

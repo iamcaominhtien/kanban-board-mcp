@@ -4,7 +4,9 @@
 //! margins; a header with the title and a footer with page numbers; a Word contents field; book mode with a cover,
 //! a title page and each chapter on a new page under a running header with the book title.
 //!
-//! Left out: floats (pictures are placed inline, aligned), drop caps, picture crops, rules other than a line or a
+//! Drop caps are a large first letter (docx-rs has no `w:dropCap` frame); picture shadows are left out.
+//!
+//! Left out: floats (pictures are placed inline, aligned), picture crops, rules other than a line or a
 //! centred glyph, line numbers of code are written as text.
 
 use std::io::Cursor;
@@ -12,9 +14,10 @@ use std::io::Cursor;
 use docx_rs::{
     AbstractNumbering, AlignmentType, BorderType, BreakType, Docx, Footer, Header, Hyperlink, HyperlinkType,
     IndentLevel, Level, LevelJc, LevelOverride, LevelText, LineSpacing, NumberFormat, Numbering, NumberingId,
-    PageMargin, PageNum, PageOrientationType, Paragraph, ParagraphBorder, ParagraphBorderPosition, Pic, Run, RunFonts,
-    Shading, ShdType, SpecialIndentType, Start, Style, StyleType, Table, TableCell, TableOfContents, TableRow,
-    VAlignType, VMergeType, VertAlignType, WidthType,
+    PageMargin, PageNum, PageOrientationType, Paragraph, ParagraphBorder, ParagraphBorderPosition, ParagraphChild, Pic,
+    Run, RunChild, RunFonts, Shading, ShdType, SpecialIndentType, Start, Style, StyleType, Table, TableAlignmentType,
+    TableBorderPosition, TableCell, TableCellBorder, TableCellBorderPosition, TableCellMargins, TableOfContents,
+    TableRow, VAlignType, VMergeType, VertAlignType, WidthType,
 };
 use serde_json::Value;
 
@@ -24,7 +27,8 @@ use crate::inline::{Marks, Piece, block_highlights, pieces, safe_href};
 use crate::model::{
     Book, ColorUse, ExportPage, HeaderFooter, Highlight, HighlightMode, Orientation, PageSetup, PageSize, Settings,
     TableOfContents as Contents, attr_bool, attr_f64, attr_int, attr_str, callout_palette, children, doc_ref_label,
-    embed_kind_title, font_name, inline_text, placeholder_line, resolve_color, table_grid, ty,
+    embed_kind_title, font_name, inline_text, page_colors, placeholder_line, resolve_any_color, resolve_color,
+    table_grid, ty,
 };
 
 /// Which fonts the Word styles use.
@@ -75,6 +79,8 @@ pub fn render_docx(pages: &[ExportPage], assets: &dyn AssetSource, opts: &DocxOp
         heading_shift: if opts.book.is_some() { 1 } else { 0 },
         highlights: &[],
         content_width_emu: content_width_emu(&opts.setup),
+        body_font: body_font.clone(),
+        heading_font: heading_font.clone(),
     };
     w.document(pages);
 
@@ -285,6 +291,9 @@ struct Writer<'a> {
     heading_shift: u8,
     highlights: &'a [Highlight],
     content_width_emu: u32,
+    /// Font names of the body and the headings (the drop cap's two choices).
+    body_font: String,
+    heading_font: String,
 }
 
 /// Where a list paragraph sits: its numbering instance and level.
@@ -451,6 +460,8 @@ impl<'a> Writer<'a> {
                 }
                 if let Some(ctx) = list {
                     p = p.style("ListParagraph").numbering(NumberingId::new(ctx.num), IndentLevel::new(ctx.level));
+                } else {
+                    p = self.drop_cap(p, node);
                 }
                 out.push(Child::P(p));
             }
@@ -529,7 +540,12 @@ impl<'a> Writer<'a> {
             "table" => {
                 let t = self.table(node);
                 out.push(Child::T(t));
-                out.push(Child::P(Paragraph::new()));
+                match attr_str(node, "caption").filter(|c| !c.trim().is_empty()) {
+                    Some(c) => out.push(Child::P(
+                        Paragraph::new().style("Caption").align(AlignmentType::Center).add_run(Run::new().add_text(c)),
+                    )),
+                    None => out.push(Child::P(Paragraph::new())),
+                }
             }
             "image" => self.image(node, out),
             "columns" => {
@@ -538,11 +554,13 @@ impl<'a> Writer<'a> {
                     return;
                 }
                 let n = cols.len();
+                let middle = attr_str(node, "valign") == Some("middle");
                 let cells: Vec<TableCell> = cols
                     .iter()
                     .map(|c| {
                         let kids = self.blocks(children(c), None);
-                        fill_cell(TableCell::new().width(5000 / n, WidthType::Pct), kids)
+                        let cell = fill_cell(TableCell::new().width(5000 / n, WidthType::Pct), kids);
+                        if middle { cell.vertical_align(VAlignType::Center) } else { cell }
                     })
                     .collect();
                 out.push(Child::T(Table::without_borders(vec![TableRow::new(cells)]).width(5000, WidthType::Pct)));
@@ -749,11 +767,18 @@ impl<'a> Writer<'a> {
         let mut continues: Vec<Vec<Option<(usize, usize, Option<String>)>>> = vec![vec![None; width]; rows.len()];
         let mut table_rows = Vec::new();
         let header_bold = |cell: &Value| ty(cell) == "tableHeader";
+        let banded = attr_bool(node, "banded");
+        let has_header = rows.first().is_some_and(|r| !r.is_empty() && r.iter().all(|c| header_bold(c.node)));
         for (r, row) in rows.iter().enumerate() {
             let mut cells: Vec<(usize, TableCell)> = Vec::new();
+            let body_index = if has_header { r.checked_sub(1) } else { Some(r) };
+            let band = banded && body_index.is_some_and(|b| b % 2 == 1);
             for cell in row {
-                let fill =
+                let mut fill =
                     attr_str(cell.node, "background").and_then(|c| resolve_color(c, ColorUse::Highlight, &self.bg));
+                if fill.is_none() && band {
+                    fill = Some("#F6FAF7".to_string());
+                }
                 let mut kids = self.blocks(children(cell.node), None);
                 if header_bold(cell.node) {
                     kids = kids
@@ -796,6 +821,7 @@ impl<'a> Writer<'a> {
                     Some("bottom") => tc = tc.vertical_align(VAlignType::Bottom),
                     _ => {}
                 }
+                tc = self.cell_look(tc, cell.node);
                 cells.push((cell.col, tc));
             }
             for (col, slot) in continues[r].iter().enumerate() {
@@ -814,7 +840,115 @@ impl<'a> Writer<'a> {
             table_rows.push(TableRow::new(cells.into_iter().map(|(_, c)| c).collect()));
         }
         let usable_twips = (self.content_width_emu / 635) as usize;
-        Table::new(table_rows).set_grid(vec![usable_twips / width; width]).width(5000, WidthType::Pct)
+        let mut table = Table::new(table_rows).set_grid(vec![usable_twips / width; width]);
+        let align = match attr_str(node, "align") {
+            Some("left") => Some(TableAlignmentType::Left),
+            Some("center") => Some(TableAlignmentType::Center),
+            Some("right") => Some(TableAlignmentType::Right),
+            _ => None,
+        };
+        table = match (align, attr_str(node, "width")) {
+            // a positioned table is as wide as its content
+            (Some(a), _) => table.width(0, WidthType::Auto).align(a),
+            (None, Some("fit")) => table.width(0, WidthType::Auto),
+            _ => table.width(5000, WidthType::Pct),
+        };
+        match attr_str(node, "borders") {
+            Some("rows") => {
+                table = table.clear_border(TableBorderPosition::Left).clear_border(TableBorderPosition::Right);
+                table = table.clear_border(TableBorderPosition::InsideV);
+            }
+            Some("outer") => {
+                table = table.clear_border(TableBorderPosition::InsideH).clear_border(TableBorderPosition::InsideV);
+            }
+            Some("none") => table = table.clear_all_border(),
+            _ => {}
+        }
+        match attr_str(node, "spacing") {
+            Some("tight") => table = table.margins(TableCellMargins::new().margin(30, 120, 30, 120)),
+            Some("roomy") => table = table.margins(TableCellMargins::new().margin(150, 210, 150, 210)),
+            _ => {}
+        }
+        table
+    }
+
+    /// The sides, line style and colour, and padding of one table cell.
+    fn cell_look(&self, mut tc: TableCell, cell: &Value) -> TableCell {
+        if let Some(sides) = attr_str(cell, "border") {
+            let (size, kind) = match attr_str(cell, "borderStyle") {
+                Some("thick") => (12, BorderType::Single),
+                Some("dashed") => (6, BorderType::Dashed),
+                _ => (6, BorderType::Single),
+            };
+            let color = attr_str(cell, "borderColor")
+                .and_then(|c| resolve_any_color(c, &self.bg))
+                .unwrap_or_else(|| "#D5DDD8".to_string());
+            for (name, pos) in [
+                ("top", TableCellBorderPosition::Top),
+                ("right", TableCellBorderPosition::Right),
+                ("bottom", TableCellBorderPosition::Bottom),
+                ("left", TableCellBorderPosition::Left),
+            ] {
+                let border = TableCellBorder::new(pos);
+                tc = tc.set_border(if sides.split_whitespace().any(|s| s == name) {
+                    border.size(size).color(color.trim_start_matches('#')).border_type(kind)
+                } else {
+                    border.border_type(BorderType::Nil)
+                });
+            }
+        }
+        // padding in twips: top and bottom, left and right
+        let (v, h) = match attr_str(cell, "padding") {
+            Some("tight") => (30, 120),
+            Some("roomy") => (150, 210),
+            _ => return tc,
+        };
+        tc.property = tc
+            .property
+            .margin_top(v, WidthType::Dxa)
+            .margin_bottom(v, WidthType::Dxa)
+            .margin_left(h, WidthType::Dxa)
+            .margin_right(h, WidthType::Dxa);
+        tc
+    }
+
+    /// Turns the first letter of a paragraph with a drop cap into a large run (Word's own drop cap frame is not
+    /// available in `docx-rs`): 2.4, 3.54, 4.7 or 5.8 times the text size for 2 to 5 lines, in the colour and font
+    /// chosen (the heading font unless it says `body`).
+    fn drop_cap(&self, mut p: Paragraph, node: &Value) -> Paragraph {
+        let lines = attr_int(node, "dropCap", 0, 0, 5);
+        if lines < 2 {
+            return p;
+        }
+        let factor: f64 = match lines {
+            2 => 2.4,
+            3 => 3.54,
+            4 => 4.7,
+            _ => 5.8,
+        };
+        let pos = p.children.iter().position(|c| matches!(c, ParagraphChild::Run(r) if r.children.iter().any(|k| matches!(k, RunChild::Text(t) if !t.text.is_empty()))));
+        let Some(pos) = pos else {
+            return p;
+        };
+        let ParagraphChild::Run(run) = &mut p.children[pos] else {
+            return p;
+        };
+        let Some(RunChild::Text(t)) =
+            run.children.iter_mut().find(|k| matches!(k, RunChild::Text(t) if !t.text.is_empty()))
+        else {
+            return p;
+        };
+        let first: String = t.text.chars().take(1).collect();
+        t.text = t.text.chars().skip(1).collect();
+        let mut cap = Run::new().add_text(first).bold().size((22.0 * factor).round() as usize);
+        let font = if attr_str(node, "dropCapFont") == Some("body") { &self.body_font } else { &self.heading_font };
+        cap = cap.fonts(RunFonts::new().ascii(font).hi_ansi(font).cs(font));
+        let color = attr_str(node, "dropCapColor").and_then(|c| resolve_any_color(c, &self.bg));
+        if let Some(c) = color {
+            cap = cap.color(c.trim_start_matches('#'));
+        }
+        p.children.insert(pos, ParagraphChild::Run(Box::new(cap)));
+        p
     }
 
     fn image(&mut self, node: &Value, out: &mut Vec<Child>) {
@@ -825,7 +959,47 @@ impl<'a> Writer<'a> {
             _ => AlignmentType::Center,
         };
         match self.picture(src, attr_f64(node, "widthPct"), attr_f64(node, "width"), align) {
-            Some(p) => out.push(Child::P(p)),
+            Some(p) => {
+                let size = match attr_str(node, "border") {
+                    Some("thin") => Some(6),
+                    Some("medium") => Some(12),
+                    Some("thick") => Some(24),
+                    _ => None,
+                };
+                match size {
+                    // a line around the picture: a one-cell table as wide as the picture, with the line on its cell
+                    Some(size) => {
+                        let color = attr_str(node, "borderColor")
+                            .and_then(|c| resolve_any_color(c, &self.bg))
+                            .unwrap_or_else(|| page_colors(&self.bg).1);
+                        let color = color.trim_start_matches('#').to_string();
+                        let mut cell = TableCell::new().add_paragraph(p);
+                        for pos in [
+                            TableCellBorderPosition::Top,
+                            TableCellBorderPosition::Right,
+                            TableCellBorderPosition::Bottom,
+                            TableCellBorderPosition::Left,
+                        ] {
+                            cell = cell.set_border(TableCellBorder::new(pos).size(size).color(&color));
+                        }
+                        let table_align = match align {
+                            AlignmentType::Left => TableAlignmentType::Left,
+                            AlignmentType::Right => TableAlignmentType::Right,
+                            _ => TableAlignmentType::Center,
+                        };
+                        let usable_twips = (self.content_width_emu / 635) as usize;
+                        out.push(Child::T(
+                            Table::new(vec![TableRow::new(vec![cell])])
+                                .set_grid(vec![usable_twips])
+                                .width(0, WidthType::Auto)
+                                .align(table_align)
+                                .clear_all_border(),
+                        ));
+                        out.push(Child::P(Paragraph::new()));
+                    }
+                    None => out.push(Child::P(p)),
+                }
+            }
             None => {
                 let alt = attr_str(node, "alt").unwrap_or("Picture");
                 out.push(Child::P(self.link_or_text(Paragraph::new().align(align), src, &format!("[{alt}]"))));

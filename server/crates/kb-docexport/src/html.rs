@@ -14,8 +14,8 @@ use crate::inline::{Marks, Piece, block_highlights, pieces, safe_href, safe_src}
 use crate::model::{
     Book, ColorUse, ExportPage, HeaderFooter, Highlight, HighlightMode, OutFile, PageSetup, PageSize, Settings,
     TableOfContents, UniqueNames, attr_bool, attr_f64, attr_int, attr_str, callout_palette, children, doc_ref_label,
-    file_name_of, font_generic, font_name, headings, inline_text, page_colors, placeholder_line, resolve_color, slug,
-    table_grid, ty,
+    file_name_of, font_generic, font_name, headings, inline_text, page_colors, placeholder_line, resolve_any_color,
+    resolve_color, slug, table_grid, ty,
 };
 
 /// One file or a folder.
@@ -162,6 +162,8 @@ struct HtmlRenderer<'a> {
     /// How many levels headings move down (1 in a book: the chapter title is the level-1 heading).
     heading_shift: u8,
     highlights: &'a [Highlight],
+    /// Whether a block used a rich attribute whose rules live in [`EXTRA_CSS`] (emitted only then).
+    extra_css: bool,
 }
 
 impl<'a> HtmlRenderer<'a> {
@@ -184,6 +186,7 @@ impl<'a> HtmlRenderer<'a> {
             bg: "white".into(),
             heading_shift: if opts.book.is_some() { 1 } else { 0 },
             highlights: &[],
+            extra_css: false,
         }
     }
 
@@ -234,6 +237,9 @@ impl<'a> HtmlRenderer<'a> {
         let _ = writeln!(out, "<title>{}</title>", esc(&title));
         out.push_str("<style>\n");
         out.push_str(BASE_CSS);
+        if self.extra_css {
+            out.push_str(EXTRA_CSS);
+        }
         if self.theme() {
             out.push_str(&theme_css(&settings));
         } else {
@@ -606,7 +612,11 @@ impl<'a> HtmlRenderer<'a> {
                     })
                     .collect();
                 let gap = attr_int(node, "gap", 24, 0, 200);
-                let line = if attr_bool(node, "line") { " lined" } else { "" };
+                let mut line = if attr_bool(node, "line") { " lined".to_string() } else { String::new() };
+                if attr_str(node, "valign") == Some("middle") {
+                    line.push_str(" valign-middle");
+                    self.extra_css = true;
+                }
                 let _ = writeln!(
                     out,
                     "<div class=\"columns{line}\" style=\"grid-template-columns:{};gap:{gap}px\">",
@@ -754,11 +764,30 @@ impl<'a> HtmlRenderer<'a> {
             _ => {}
         }
         let drop = attr_int(node, "dropCap", 0, 0, 5);
-        if drop >= 3 {
-            classes.push(format!("dropcap dropcap-{}", if drop >= 5 { 5 } else { 3 }));
+        let mut style = text_block_style(node);
+        if drop >= 2 {
+            let raised = attr_str(node, "dropCapStyle") == Some("raised");
+            let body_font = attr_str(node, "dropCapFont") == Some("body");
+            let color = attr_str(node, "dropCapColor").and_then(|c| resolve_any_color(c, &self.bg));
+            if drop == 2 || drop == 4 || raised || body_font || color.is_some() {
+                // the sizes 2 and 4, the raised look, a colour or the body font: the rules of `EXTRA_CSS`
+                self.extra_css = true;
+                let mut c = format!("dropcap dropcap-x dropcap-{drop}");
+                if raised {
+                    c.push_str(" dropcap-raised");
+                }
+                if body_font {
+                    c.push_str(" dropcap-body");
+                }
+                classes.push(c);
+                if let Some(color) = color {
+                    let _ = write!(style, "--dc:{color};");
+                }
+            } else {
+                classes.push(format!("dropcap dropcap-{}", if drop >= 5 { 5 } else { 3 }));
+            }
         }
         let class = if classes.is_empty() { String::new() } else { format!(" class=\"{}\"", classes.join(" ")) };
-        let style = text_block_style(node);
         let _ = write!(out, "<p{class}{}>", style_attr(&style));
         self.inline(node, out);
         out.push_str("</p>\n");
@@ -817,14 +846,42 @@ impl<'a> HtmlRenderer<'a> {
         let style = attr_str(node, "style")
             .filter(|s| matches!(*s, "plain" | "lined" | "striped" | "boxed" | "minimal"))
             .unwrap_or("lined");
-        let width = match attr_str(node, "width") {
-            Some("fit") => " fit",
-            _ => " full",
+        let align = attr_str(node, "align").filter(|a| matches!(*a, "left" | "center" | "right"));
+        // a table with a position is as wide as its content, as in the editor
+        let mut width = match (attr_str(node, "width"), align) {
+            (Some("fit"), _) | (_, Some(_)) => " fit".to_string(),
+            _ => " full".to_string(),
         };
+        let banded = attr_bool(node, "banded");
+        let borders = attr_str(node, "borders").filter(|b| matches!(*b, "rows" | "outer" | "none"));
+        let spacing = attr_str(node, "spacing").filter(|b| matches!(*b, "tight" | "roomy"));
+        let caption = attr_str(node, "caption").filter(|c| !c.trim().is_empty());
+        if banded {
+            width.push_str(" banded");
+        }
+        if let Some(b) = borders {
+            let _ = write!(width, " b-{b}");
+        }
+        if let Some(s) = spacing {
+            let _ = write!(width, " sp-{s}");
+        }
+        if let Some(a) = align {
+            let _ = write!(width, " al-{a}");
+        }
+        if banded || borders.is_some() || spacing.is_some() || align.is_some() {
+            self.extra_css = true;
+        }
         let (rows, _) = table_grid(node);
+        // the rows after a header row alternate; without a header row the second, fourth... row is shaded
+        let has_header = rows.first().is_some_and(|r| !r.is_empty() && r.iter().all(|c| ty(c.node) == "tableHeader"));
         let _ = writeln!(out, "<div class=\"table-wrap\"><table class=\"t-{style}{width}\">");
-        for row in rows {
-            out.push_str("<tr>");
+        for (ri, row) in rows.into_iter().enumerate() {
+            let body_index = if has_header { ri.checked_sub(1) } else { Some(ri) };
+            if banded && body_index.is_some_and(|b| b % 2 == 1) {
+                out.push_str("<tr class=\"band\">");
+            } else {
+                out.push_str("<tr>");
+            }
             for cell in row {
                 let tag = if ty(cell.node) == "tableHeader" { "th" } else { "td" };
                 let mut attrs = String::new();
@@ -846,6 +903,7 @@ impl<'a> HtmlRenderer<'a> {
                 {
                     let _ = write!(css, "background:{bg};");
                 }
+                self.cell_look(cell.node, &mut css);
                 if let Some(w) = cell.node.get("attrs").and_then(|a| a.get("colwidth")).and_then(Value::as_array) {
                     let total: f64 = w.iter().filter_map(Value::as_f64).filter(|n| *n > 0.0 && *n < 5000.0).sum();
                     if total > 0.0 {
@@ -858,7 +916,39 @@ impl<'a> HtmlRenderer<'a> {
             }
             out.push_str("</tr>\n");
         }
-        out.push_str("</table></div>\n");
+        out.push_str("</table>");
+        if let Some(c) = caption {
+            let _ = write!(out, "<div class=\"table-caption\">{}</div>", esc(c));
+            self.extra_css = true;
+        }
+        out.push_str("</div>\n");
+    }
+
+    /// Adds the sides, line style, line colour and padding of a table cell to its inline CSS.
+    fn cell_look(&mut self, cell: &Value, css: &mut String) {
+        if let Some(sides) = attr_str(cell, "border") {
+            self.extra_css = true;
+            let width = match attr_str(cell, "borderStyle") {
+                Some("thick") => "2px",
+                _ => "1px",
+            };
+            let style = if attr_str(cell, "borderStyle") == Some("dashed") { "dashed" } else { "solid" };
+            let color = attr_str(cell, "borderColor")
+                .and_then(|c| resolve_any_color(c, &self.bg))
+                .unwrap_or_else(|| "#D5DDD8".to_string());
+            // as the editor: every side starts transparent, the listed ones get the line
+            css.push_str("border-color:transparent;");
+            for side in ["top", "right", "bottom", "left"] {
+                if sides.split_whitespace().any(|s| s == side) {
+                    let _ = write!(css, "border-{side}:{width} {style} {color};");
+                }
+            }
+        }
+        match attr_str(cell, "padding") {
+            Some("tight") => css.push_str("padding:2px 8px;"),
+            Some("roomy") => css.push_str("padding:10px 14px;"),
+            _ => {}
+        }
     }
 
     fn image(&mut self, node: &Value, out: &mut String) {
@@ -883,8 +973,8 @@ impl<'a> HtmlRenderer<'a> {
         let mut img_css = String::new();
         // the line's own colour when it has one (#rrggbb), else the text colour
         let line = attr_str(node, "borderColor")
-            .filter(|c| c.len() == 7 && c.starts_with('#') && c[1..].chars().all(|h| h.is_ascii_hexdigit()))
-            .unwrap_or("currentColor");
+            .and_then(|c| resolve_any_color(c, &self.bg))
+            .unwrap_or_else(|| "currentColor".to_string());
         match attr_str(node, "border") {
             Some("thin") => {
                 let _ = write!(img_css, "border:1px solid {line};");
@@ -1307,6 +1397,23 @@ figure.image img { display: block; width: 100%; }
 .ticket-ref, .ticket-card { font-family: ui-monospace, Menlo, Consolas, monospace; }
 .doc-ref { text-decoration: underline dotted; }
 mark { color: inherit; padding: 0 1px; }
+"#;
+
+/// Rules for the rich attributes (banded rows, borders, spacing, position and caption of a table, cell padding, drop
+/// cap sizes and looks, middle-aligned columns); written only when a page uses one, so other pages keep their bytes.
+const EXTRA_CSS: &str = r#"table.banded tr.band td { background: #F6FAF7; }
+table.b-rows th, table.b-rows td { border-left-color: transparent; border-right-color: transparent; }
+table.b-outer { outline: 1px solid #D5DDD8; outline-offset: -1px; }
+table.b-outer th, table.b-outer td, table.b-none th, table.b-none td { border-color: transparent; }
+table.sp-tight th, table.sp-tight td { padding: 2px 8px; } table.sp-roomy th, table.sp-roomy td { padding: 10px 14px; }
+table.al-center { margin-left: auto; margin-right: auto; } table.al-right { margin-left: auto; }
+.table-caption { margin-top: 6px; font-size: .75em; opacity: .75; text-align: center; }
+.dropcap-x::first-letter { float: left; font-weight: 700; line-height: .82; padding: 3px 7px 0 0; color: var(--dc, inherit); font-family: var(--heading-font, inherit); }
+.dropcap-2::first-letter { font-size: 2.4em; } .dropcap-3.dropcap-x::first-letter { font-size: 3.54em; }
+.dropcap-4::first-letter { font-size: 4.7em; } .dropcap-5.dropcap-x::first-letter { font-size: 5.8em; }
+.dropcap-x.dropcap-body::first-letter { font-family: inherit; }
+.dropcap-x.dropcap-raised::first-letter { float: none; line-height: 1; padding: 0 2px 0 0; }
+.columns.valign-middle { align-items: center; }
 "#;
 
 const THEME_CSS: &str = r#"body.theme .page { max-width: var(--page-width, 680px); background: var(--page-bg); color: var(--ink); font-family: var(--body-font); font-size: var(--text-size, 17px); line-height: var(--line-height, 1.6); }
