@@ -322,6 +322,57 @@ async fn a_book_exports_its_chapters_and_the_tree_reads_in_order() {
     assert!(lonely.contains("scope='page'"), "{lonely}");
 }
 
+/// A book written in Vietnamese, with a diagram in a chapter, exported as HTML: the diagram is a picture, the
+/// export's own words and `lang` follow the text, and the cover is not repeated by a title page.
+#[tokio::test]
+async fn a_book_export_draws_its_diagrams_and_speaks_the_book_s_language() {
+    if !skip_unless_available("a_book_export_draws_its_diagrams_and_speaks_the_book_s_language") {
+        return;
+    }
+    let s = Server::start().await;
+    let (c, mcp) = (s.client(), s.mcp());
+    let pid = project(&c).await;
+    let dir = tempfile::Builder::new().prefix("docs-book").tempdir().expect("a folder");
+    let src = dir.path().join("luong.drawio");
+    let cells = "<mxCell id=\"a\" value=\"Mở ứng dụng\" style=\"rounded=1;\" vertex=\"1\" parent=\"1\"><mxGeometry x=\"40\" y=\"40\" width=\"120\" height=\"60\" as=\"geometry\"/></mxCell><mxCell id=\"b\" value=\"Nhận lời nhắc\" style=\"rounded=1;\" vertex=\"1\" parent=\"1\"><mxGeometry x=\"220\" y=\"40\" width=\"120\" height=\"60\" as=\"geometry\"/></mxCell><mxCell id=\"e\" style=\"endArrow=classic;\" edge=\"1\" parent=\"1\" source=\"a\" target=\"b\"><mxGeometry relative=\"1\" as=\"geometry\"/></mxCell>";
+    let xml = format!(
+        "<mxfile><diagram id=\"d\" name=\"Trang 1\"><mxGraphModel><root><mxCell id=\"0\"/><mxCell id=\"1\" parent=\"0\"/>{cells}</root></mxGraphModel></diagram></mxfile>"
+    );
+    std::fs::write(&src, xml).expect("a file");
+    let diagram = write(
+        &mcp,
+        "diagram_create",
+        json!({"project_id": pid, "title": "Luồng người dùng", "path": src.to_str().expect("utf-8")}),
+    )
+    .await;
+    let line = diagram["markdown"].as_str().expect("its line").to_string();
+    let book = write(&mcp, "create", json!({"project_id": pid, "title": "Sổ tay sản phẩm", "markdown": "Lời mở đầu."}))
+        .await["id"]
+        .clone();
+    write(
+        &mcp,
+        "settings",
+        json!({"page_id": book, "settings": {"book": {"isBook": true}, "cover": {"color": "#2e6f40"}}}),
+    )
+    .await;
+    let chapter = format!("Người dùng mở ứng dụng và nhận lời nhắc uống nước đúng giờ.\n\n{line}\n\nHết chương.");
+    write(&mcp, "create", json!({"project_id": pid, "title": "Thiết kế", "markdown": chapter, "parent_id": book}))
+        .await;
+    let file = dir.path().join("so-tay.html");
+    let got = read(
+        &mcp,
+        "export",
+        json!({"page_id": book, "scope": "book", "format": "html", "path": file.to_str().expect("utf-8")}),
+    )
+    .await;
+    let html = std::fs::read_to_string(got["path"].as_str().expect("a path")).expect("the file");
+    assert!(html.contains("<figure class=\"drawing\"") && html.contains("data:image/png"), "the diagram is drawn");
+    assert!(!html.contains("[embed:"), "no placeholder line");
+    assert!(html.contains("<html lang=\"vi\">") && html.contains("<h2>Mục lục</h2>"), "the book's language");
+    assert!(!html.contains("<section class=\"title-page\">"), "the cover is not repeated by a title page");
+    assert!(!html.contains("<p class=\"book-author\">agent</p>"), "no generic author");
+}
+
 #[tokio::test]
 async fn history_pictures_and_the_guide_are_short() {
     if !skip_unless_available("history_pictures_and_the_guide_are_short") {

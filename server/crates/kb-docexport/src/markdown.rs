@@ -152,7 +152,7 @@ impl<'a> MdRenderer<'a> {
             }
         }
         if book.contents {
-            out.push_str("## Contents\n\n");
+            let _ = writeln!(out, "## {}\n", crate::lang::Lang::of(pages).contents());
             for (i, p) in pages.iter().enumerate() {
                 let _ = writeln!(out, "- {}", escape_text(&chapter_label(book, i, &p.title)));
             }

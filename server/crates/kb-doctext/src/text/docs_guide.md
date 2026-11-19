@@ -205,7 +205,8 @@ serves the reader: a centred title, a pull quote or a coloured word where it hel
     title), `titleSize` (standard, large, huge), `titleAlign`, `showTitle`, `showByline`, `showReadingTime`,
     `showEditedBy`;
   - a book: `book={"isBook": true, "numberChapters": true}` on the parent page; its sub-pages are the chapters, in
-    tree order (`move` with `after_id` orders them);
+    tree order (`move` with `after_id` orders them). Exported (`export`, scope book), the book page gives the title
+    and the cover and its own text is not printed: an introduction goes in the first chapter;
   - `status` (draft, in-review, final, outdated): where the page stands.
   A person alone decides who may read or change a page and what readers may do (`notForAi`, `aiApply`,
   `lockedBlocks`, `highlights`, `reviewedAt`): a team that sends one is refused; say in your report what you would

@@ -15,6 +15,7 @@ mod assets;
 mod docx;
 mod html;
 mod inline;
+mod lang;
 mod markdown;
 mod model;
 mod pdf;

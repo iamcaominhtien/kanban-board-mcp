@@ -2,6 +2,7 @@
 //! its children, the whole space or a book, run in the background. Files are kept 7 days in the private uploads
 //! folder; the history keeps the last 20 per person. A whole-space export runs one at a time per project.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use kb_base::{activity, ctx, events, time};
@@ -245,14 +246,88 @@ fn path_of(all: &[docs_page::Model], page: &docs_page::Model) -> String {
     parts.join("/")
 }
 
-/// The uploads folder as an asset source for the renderer.
+/// The uploads folder as an asset source for the renderer, with the pictures of the drawings the pages show.
 struct Uploads {
     root: PathBuf,
+    /// PNGs of diagrams, sketches and canvases by [`drawing_key`]; a drawing missing here becomes a placeholder.
+    drawings: HashMap<String, Vec<u8>>,
 }
 
 impl Uploads {
     fn new() -> Self {
-        Self { root: kb_files::uploads::resolve_uploads_dir().0 }
+        Self::with_drawings(HashMap::new())
+    }
+
+    fn with_drawings(drawings: HashMap<String, Vec<u8>>) -> Self {
+        Self { root: kb_files::uploads::resolve_uploads_dir().0, drawings }
+    }
+}
+
+/// The key of a drawing's picture: its kind and id.
+fn drawing_key(kind: DrawingKind, id: &str) -> String {
+    format!("{kind:?}:{id}")
+}
+
+/// The drawings a document shows, in order: their kind, id and node.
+fn drawings_in<'a>(node: &'a Value, out: &mut Vec<(DrawingKind, &'a Value)>) {
+    if let Some(kind) = node.get("type").and_then(Value::as_str).and_then(DrawingKind::of_node_type) {
+        out.push((kind, node));
+    }
+    for child in node.get("content").and_then(Value::as_array).into_iter().flatten() {
+        drawings_in(child, out);
+    }
+}
+
+/// Draws a PNG of every diagram, sketch and canvas the pages show, as the page shows it: a diagram from its saved
+/// preview (or the board's own drawing of its shapes), a sketch from its stored picture, a canvas as an overview
+/// of its frames. A drawing that cannot be drawn is left out, and the export shows its placeholder line.
+async fn drawing_pictures(pages: &[ExportPage]) -> HashMap<String, Vec<u8>> {
+    let mut found = Vec::new();
+    for page in pages {
+        drawings_in(&page.doc, &mut found);
+    }
+    let session = kb_db::database::session();
+    let mut out = HashMap::new();
+    for (kind, node) in found {
+        let attr = |k: &str| node.get("attrs").and_then(|a| a.get(k)).and_then(Value::as_str).unwrap_or_default();
+        let id = attr("id");
+        let key = drawing_key(kind, id);
+        if id.is_empty() || out.contains_key(&key) {
+            continue;
+        }
+        let png = match kind {
+            DrawingKind::Diagram => diagram_picture(&session, id).await,
+            DrawingKind::Sketch => std::fs::read(kb_draw::sketches::png_path(id)).ok(),
+            DrawingKind::Canvas => {
+                let page = Some(attr("page")).filter(|p| !p.is_empty());
+                kb_draw::canvases::boards::overview_png(&session, id, page).await.ok()
+            }
+        };
+        if let Some(png) = png.filter(|p| !p.is_empty()) {
+            out.insert(key, png);
+        }
+    }
+    out
+}
+
+/// A diagram's latest version as a PNG: its saved preview when the draw.io editor or an agent drew it, else the
+/// board's own drawing of its shapes; a wireframe when no browser can turn the SVG into a picture.
+async fn diagram_picture(session: &Session, id: &str) -> Option<Vec<u8>> {
+    let d = kb_draw::diagrams::get_diagram(session, id, None, true).await.ok()?;
+    let source = d.get("source").and_then(Value::as_str).unwrap_or_default().to_string();
+    let saved = matches!(d.get("preview_kind").and_then(Value::as_str), Some("editor" | "agent"));
+    let svg = if saved {
+        kb_draw::diagrams::read_file(session, id, "svg", None).await.ok().map(|(svg, _, _)| svg)
+    } else {
+        None
+    };
+    let svg = match svg.filter(|s| !s.trim().is_empty()) {
+        Some(svg) => svg,
+        None => kb_draw::diagram_model::render_svg(&source).ok()?,
+    };
+    match kb_draw::screenshots::svg_png(&svg, None).await {
+        Some(png) => Some(png),
+        None => kb_draw::diagram_model::wireframe_png(&source, 1600.0).ok(),
     }
 }
 
@@ -269,8 +344,8 @@ impl AssetSource for Uploads {
         Some(Asset { bytes, mime })
     }
 
-    fn drawing_png(&self, _kind: DrawingKind, _id: &str) -> Option<Vec<u8>> {
-        None
+    fn drawing_png(&self, kind: DrawingKind, id: &str) -> Option<Vec<u8>> {
+        self.drawings.get(&drawing_key(kind, id)).cloned()
     }
 
     fn size_of(&self, src: &str) -> Option<u64> {
@@ -354,8 +429,10 @@ async fn run(
 ) -> std::result::Result<Output, String> {
     let id = id.to_string();
     let req = req.clone();
+    // the renderer runs off the runtime and cannot wait on the database or a browser: draw the drawings first
+    let drawings = if req.format == "md" { HashMap::new() } else { drawing_pictures(&pages).await };
     tokio::task::spawn_blocking(move || {
-        let assets = Uploads::new();
+        let assets = Uploads::with_drawings(drawings);
         let highlights = if req.options.get("includeHighlights").and_then(Value::as_bool).unwrap_or(false) {
             HighlightMode::Show
         } else {

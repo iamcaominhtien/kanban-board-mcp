@@ -81,7 +81,9 @@ pub fn render_docx(pages: &[ExportPage], assets: &dyn AssetSource, opts: &DocxOp
         content_width_emu: content_width_emu(&opts.setup),
         body_font: body_font.clone(),
         heading_font: heading_font.clone(),
+        lang: crate::lang::Lang::of(pages),
     };
+    let contents_alias = w.lang.contents();
     w.document(pages);
 
     let (page_w, page_h) = page_twips(&opts.setup);
@@ -120,9 +122,8 @@ pub fn render_docx(pages: &[ExportPage], assets: &dyn AssetSource, opts: &DocxOp
         docx = match child {
             Child::P(p) => docx.add_paragraph(p),
             Child::T(t) => docx.add_table(t),
-            Child::Toc => docx.add_table_of_contents(
-                TableOfContents::new().heading_styles_range(1, 3).alias("Table of contents").auto(),
-            ),
+            Child::Toc => docx
+                .add_table_of_contents(TableOfContents::new().heading_styles_range(1, 3).alias(contents_alias).auto()),
         };
     }
     let mut buf = Cursor::new(Vec::new());
@@ -294,6 +295,8 @@ struct Writer<'a> {
     /// Font names of the body and the headings (the drop cap's two choices).
     body_font: String,
     heading_font: String,
+    /// The language of the export's own words.
+    lang: crate::lang::Lang,
 }
 
 /// Where a list paragraph sits: its numbering instance and level.
@@ -314,7 +317,9 @@ impl<'a> Writer<'a> {
                 }
             }
             if self.opts.setup.contents == Contents::Include {
-                self.out.push(Child::P(Paragraph::new().style("Subtitle").add_run(Run::new().add_text("Contents"))));
+                self.out.push(Child::P(
+                    Paragraph::new().style("Subtitle").add_run(Run::new().add_text(self.lang.contents())),
+                ));
                 self.out.push(Child::Toc);
                 self.page_break();
             }
@@ -361,7 +366,8 @@ impl<'a> Writer<'a> {
             self.page_break();
         }
         if book.contents {
-            self.out.push(Child::P(Paragraph::new().style("Subtitle").add_run(Run::new().add_text("Contents"))));
+            self.out
+                .push(Child::P(Paragraph::new().style("Subtitle").add_run(Run::new().add_text(self.lang.contents()))));
             // Chapter list as written text, then the Word field (headings 1-3) that Word can update with page numbers.
             for (i, p) in pages.iter().enumerate() {
                 self.out

@@ -177,12 +177,17 @@ pub async fn export_docs(page_id: &str, scope: &str, format: &str, path: &str) -
     Ok(out)
 }
 
-/// What a book export prints on its title page, from the book page: its title, author, cover and chapter numbers.
+/// What a book export prints on its cover, from the book page: its title, author, cover and chapter numbers. The
+/// cover carries the title and author, so no title page repeats them (an export from MCP has no subtitle or date
+/// to add); the author is the page's creator, unless that is the generic name of an MCP client ("agent").
 fn book_details(root: &Map<String, Value>) -> Map<String, Value> {
     let settings = root.get("settings");
     let mut out = Map::new();
     out.insert("title".into(), root.get("title").cloned().unwrap_or(Value::Null));
-    if let Some(author) = root.get("created_by").and_then(Value::as_str).filter(|a| !a.is_empty()) {
+    out.insert("titlePage".into(), json!(false));
+    if let Some(author) =
+        root.get("created_by").and_then(Value::as_str).filter(|a| !a.is_empty() && *a != kb_base::activity::AGENT_ACTOR)
+    {
         out.insert("author".into(), json!(author));
     }
     if let Some(src) = settings.and_then(|s| s.get("cover")).and_then(|c| c.get("src")).and_then(Value::as_str) {

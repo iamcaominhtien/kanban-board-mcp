@@ -149,6 +149,8 @@ pub(crate) fn absolute(url: &str, base: Option<&str>) -> String {
 
 struct HtmlRenderer<'a> {
     pages: &'a [ExportPage],
+    /// The language of the export's own words and of its `lang`.
+    lang: crate::lang::Lang,
     assets: &'a dyn AssetSource,
     opts: &'a HtmlOptions,
     files: Vec<OutFile>,
@@ -177,6 +179,7 @@ impl<'a> HtmlRenderer<'a> {
         }
         HtmlRenderer {
             pages,
+            lang: crate::lang::Lang::of(pages),
             assets,
             opts,
             files: Vec::new(),
@@ -231,7 +234,8 @@ impl<'a> HtmlRenderer<'a> {
             self.page(i, page, &mut body);
         }
         let mut out = String::new();
-        out.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n");
+        let _ =
+            write!(out, "<!DOCTYPE html>\n<html lang=\"{}\">\n<head>\n<meta charset=\"utf-8\">\n", self.lang.code());
         out.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
         out.push_str("<meta name=\"generator\" content=\"Kanban Board Docs export\">\n");
         let _ = writeln!(out, "<title>{}</title>", esc(&title));
@@ -289,7 +293,8 @@ impl<'a> HtmlRenderer<'a> {
             out.push_str("</section>\n");
         }
         if book.contents {
-            out.push_str("<nav class=\"toc\" aria-label=\"Contents\">\n<h2>Contents</h2>\n<ul class=\"chapters\">\n");
+            let c = self.lang.contents();
+            let _ = write!(out, "<nav class=\"toc\" aria-label=\"{c}\">\n<h2>{c}</h2>\n<ul class=\"chapters\">\n");
             for (i, page) in self.pages.iter().enumerate() {
                 let label = chapter_label(book, i, &page.title);
                 let _ = writeln!(out, "<li><a href=\"#{}\">{}</a></li>", self.page_anchor(page), esc(&label));
@@ -317,7 +322,8 @@ impl<'a> HtmlRenderer<'a> {
     }
 
     fn contents(&mut self, out: &mut String) {
-        out.push_str("<nav class=\"toc\" aria-label=\"Contents\">\n<h2>Contents</h2>\n<ul>\n");
+        let c = self.lang.contents();
+        let _ = write!(out, "<nav class=\"toc\" aria-label=\"{c}\">\n<h2>{c}</h2>\n<ul>\n");
         let several = self.pages.len() > 1;
         for page in self.pages {
             let anchor = self.page_anchor(page);
