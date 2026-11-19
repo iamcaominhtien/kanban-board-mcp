@@ -254,7 +254,9 @@ impl<'a> HtmlRenderer<'a> {
                 Some(b) => b.title.clone(),
                 None => title.clone(),
             };
-            out.push_str(&print_css(&setup, &header, estimate_height(self.pages)));
+            // a coloured page (paper, sepia…) colours the whole sheet, margins included, as printed paper is
+            let sheet = (self.theme() && settings.background != "white").then(|| page_colors(&settings.background).0);
+            out.push_str(&print_css(&setup, &header, estimate_height(self.pages), sheet.as_deref()));
         }
         out.push_str("</style>\n</head>\n");
         let class = if self.theme() { "theme" } else { "plain" };
@@ -1286,14 +1288,18 @@ fn estimate_height(pages: &[ExportPage]) -> f64 {
     pages.iter().map(|p| 260.0 + walk(&p.doc)).sum::<f64>() + 200.0
 }
 
-fn print_css(setup: &PageSetup, header: &str, content_height: f64) -> String {
+/// The print rules of a paged export: the paper, its margins, the running header and page numbers, and where pages
+/// break. `sheet` is the colour of the whole sheet (the page's background), margins included; `None` leaves the
+/// paper white.
+fn print_css(setup: &PageSetup, header: &str, content_height: f64, sheet: Option<&str>) -> String {
     let mut css = String::from("@media print {\n");
     let margin = setup.margins.mm();
+    let fill = sheet.map(|c| format!(" background: {c};")).unwrap_or_default();
     match setup.size {
         PageSize::FitToContent => {
             // 794 px is the width of A4 at 96 dpi; Chromium allows pages up to 200 inches (19 200 px).
             let height = content_height.clamp(1123.0, 19_200.0).round();
-            let _ = writeln!(css, "@page {{ size: 794px {height}px; margin: {margin}mm; }}");
+            let _ = writeln!(css, "@page {{ size: 794px {height}px; margin: {margin}mm;{fill} }}");
         }
         size => {
             let paper = match size {
@@ -1302,7 +1308,7 @@ fn print_css(setup: &PageSetup, header: &str, content_height: f64) -> String {
                 _ => "A4",
             };
             let turn = if setup.orientation == crate::model::Orientation::Landscape { "landscape" } else { "portrait" };
-            let _ = write!(css, "@page {{ size: {paper} {turn}; margin: {margin}mm;");
+            let _ = write!(css, "@page {{ size: {paper} {turn}; margin: {margin}mm;{fill}");
             if setup.header_footer == HeaderFooter::On {
                 let _ = write!(
                     css,

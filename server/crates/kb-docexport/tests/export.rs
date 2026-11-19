@@ -646,3 +646,19 @@ fn a_hidden_title_is_left_out() {
     std::io::Read::read_to_string(&mut zip.by_name("word/document.xml").expect("its text"), &mut xml).expect("read");
     assert!(!xml.contains("Báo Sáng - số 12") && xml.contains("Măng-sét"), "the title is left out of Word");
 }
+
+/// A page coloured like paper prints on a sheet of that colour, margins included (a white border around a
+/// newspaper looked like a picture of one); a white page leaves the sheet alone.
+#[test]
+fn a_coloured_page_colours_the_whole_sheet() {
+    let body = json!({"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Body"}]}]});
+    let mut paper = page("Paper", body.clone());
+    paper.settings = json!({"background": "paper"});
+    let print = HtmlOptions { print: Some(PageSetup::default()), ..Default::default() };
+    let html = render_html(&[paper], &TestAssets, &print);
+    let at_page = html.index_html().split("@page {").nth(1).map(|r| r.split('}').next().unwrap_or("").to_string());
+    assert!(at_page.as_deref().is_some_and(|r| r.contains("background: #")), "{at_page:?}");
+    let white = render_html(&[page("White", body)], &TestAssets, &print);
+    let at_page = white.index_html().split("@page {").nth(1).map(|r| r.split('}').next().unwrap_or("").to_string());
+    assert!(at_page.as_deref().is_some_and(|r| !r.contains("background")), "{at_page:?}");
+}
