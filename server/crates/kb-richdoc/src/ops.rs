@@ -220,13 +220,17 @@ pub fn apply(doc: &Value, edits: &[BlockOp], ids: &mut dyn IdSource) -> Result<V
             BlockOp::Replace { block_id: id, markdown } => {
                 let place = find(&doc, id).ok_or_else(|| no_block(id))?;
                 let target = get(&doc, &place).cloned().unwrap_or(Value::Null);
-                if is_placeholder(&target) {
+                let mut blocks = fragment(markdown, &doc)?;
+                // a placeholder is replaced only by a block of the kind it is (a new HTML embed or video written
+                // under its marker); a Markdown block or an `[embed: …]` line would lose or fake it
+                if is_placeholder(&target) && !(is_placeholder(&blocks[0]) && ty(&blocks[0]) == ty(&target)) {
                     return Err(RichDocError::Placeholder(format!(
-                        "block {id} is a {} that Markdown cannot hold: it can only be deleted",
+                        "block {id} is a {} that Markdown cannot hold: it can only be deleted, or replaced by a new \
+                         one of the same kind written under its marker (`<!-- htmlEmbed title=… height=… -->` then \
+                         an ```html code block)",
                         ty(&target)
                     )));
                 }
-                let mut blocks = fragment(markdown, &doc)?;
                 // ids held elsewhere on the page stay there
                 let mut own = HashSet::new();
                 ids_in(&target, &mut own);

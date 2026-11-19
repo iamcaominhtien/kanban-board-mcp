@@ -183,7 +183,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\nowner_kind\n  Input should be 'ticket', 'doc' or 'idea' [type=literal_error, input_value='note', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\nowner_kind\n  Input should be 'ticket', 'doc', 'idea' or 'page' [type=literal_error, input_value='note', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
       }
     ],
     "isError": true

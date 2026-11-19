@@ -523,7 +523,8 @@ impl<'a> Writer<'a> {
             }
             "heading" => {
                 let level = (attr_int(node, "level", 1, 1, 6) as u8 + self.heading_shift).min(6);
-                let p = self.text_block(Paragraph::new().style(&format!("Heading{level}")), node);
+                // a heading stays on the page of the paragraph under it
+                let p = self.text_block(Paragraph::new().style(&format!("Heading{level}")).keep_next(true), node);
                 out.push(Child::P(p));
             }
             "blockquote" => {

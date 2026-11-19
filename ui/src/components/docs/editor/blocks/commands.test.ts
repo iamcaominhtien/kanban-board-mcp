@@ -212,6 +212,22 @@ describe('columns', () => {
     setColumnCount(ed, 0, 3);
     expect(ed.getJSON().content?.[0].content).toHaveLength(3);
   });
+
+  it('grows up to six columns, no more', () => {
+    const ed = make([
+      {
+        type: 'columns',
+        content: [
+          { type: 'column', content: [p('One')] },
+          { type: 'column', content: [p('Two')] },
+        ],
+      },
+    ]);
+    setColumnCount(ed, 0, 6);
+    expect(ed.getJSON().content?.[0].content).toHaveLength(6);
+    setColumnCount(ed, 0, 9);
+    expect(ed.getJSON().content?.[0].content).toHaveLength(6);
+  });
 });
 
 describe('callouts, dividers and lists', () => {

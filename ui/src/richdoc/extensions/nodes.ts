@@ -51,11 +51,11 @@ export const PullQuote = Node.create({
       .join('\n'),
 });
 
-/** Two to four columns side by side; Markdown writes the columns' blocks one after another. */
+/** Two to six columns side by side; Markdown writes the columns' blocks one after another. */
 export const Columns = Node.create({
   name: 'columns',
   group: 'block',
-  content: 'column{2,4}',
+  content: 'column{2,6}',
   defining: true,
   isolating: true,
   addAttributes: () => ({

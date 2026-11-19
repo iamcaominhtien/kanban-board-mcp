@@ -150,8 +150,8 @@ async fn edit_inner(given: Map<String, Value>) -> ToolResult {
                 ));
             }
             match many {
-                Value::Array(list) if !list.is_empty() && list.len() <= 25 => list.clone(),
-                _ => return Err(ToolError::value("items: a list of 1 to 25 edits.")),
+                Value::Array(list) if !list.is_empty() && list.len() <= 100 => list.clone(),
+                _ => return Err(ToolError::value("items: a list of 1 to 100 edits.")),
             }
         }
         None => {
@@ -400,8 +400,18 @@ async fn upload_file(given: Map<String, Value>) -> ToolResult {
             None => (if by_text || by_block { "after" } else { "append" }).to_string(),
         };
         let mut snippet = pyjson::py_str(&stored["markdown"]);
+        let mut find = given.get("find").cloned().unwrap_or(Value::Null);
         if by_text && (mode == "before" || mode == "after") {
             snippet = if mode == "before" { format!("{snippet}\n\n") } else { format!("\n\n{snippet}") };
+            // the file goes next to the whole block that holds the passage, not into its line (a canvas reference
+            // `![Name](canvas:cv_…)` is one line: splitting it would break it)
+            let session = common::async_session();
+            if let Ok(page) = docs_rich::load(&session, &pyjson::py_str(&page_id)).await {
+                let view = page.view();
+                if let Some(block) = docs_edit::block_around(&view, &pyjson::py_str(&find)) {
+                    find = json!(block);
+                }
+            }
         }
         let note = match truthy("note") {
             Some(note) => pyjson::py_str(&note),
@@ -411,7 +421,7 @@ async fn upload_file(given: Map<String, Value>) -> ToolResult {
             "page_id": page_id,
             "markdown": snippet,
             "section": given.get("section").cloned().unwrap_or(Value::Null),
-            "find": given.get("find").cloned().unwrap_or(Value::Null),
+            "find": find,
             "block_id": given.get("block_id").cloned().unwrap_or(Value::Null),
             "mode": mode,
             "note": note,

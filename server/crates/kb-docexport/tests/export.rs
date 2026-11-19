@@ -745,3 +745,30 @@ fn equations_are_typeset() {
     let page_html = kb_docexport::equation_page("x^2").expect("a page");
     assert!(page_html.contains("<msup>") && page_html.contains("STIX Two Math"));
 }
+
+/// An HTML export carries its uploaded video and files: the video plays in place, a link to slides downloads them,
+/// and on paper a heading stays with the block under it while the video stays a poster and a link.
+#[test]
+fn an_html_export_carries_its_video_and_files() {
+    let doc = json!({"type":"doc","content":[
+        {"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Teaser"}]},
+        {"type":"video","attrs":{"src":"/uploads/teaser.mp4","poster":"/uploads/poster.png","caption":"12 giây"}},
+        {"type":"paragraph","content":[{"type":"text","text":"Bộ slide","marks":[{"type":"link","attrs":{"href":"/uploads/deck-68edbba08866.pptx"}}]}]}
+    ]});
+    let html = render_html(&[page("Tiếp thị", doc.clone())], &TestAssets, &HtmlOptions::default());
+    let html = html.index_html();
+    assert!(html.contains("<video controls playsinline"), "the video plays in the page");
+    assert!(html.contains("src=\"data:video/mp4;base64,"), "from inside the file");
+    assert!(html.contains("poster=\"data:image/png;base64,"), "with its poster");
+    assert!(
+        html.contains("href=\"data:application/vnd.openxmlformats-officedocument.presentationml.presentation;base64,")
+            && html.contains("download=\"deck.pptx\""),
+        "the slides download from the file"
+    );
+    assert!(!html.contains("keep-next\">"), "a web page has no pages to keep together");
+    let print = HtmlOptions { print: Some(PageSetup::default()), ..Default::default() };
+    let pdf = render_html(&[page("Tiếp thị", doc)], &TestAssets, &print);
+    let pdf = pdf.index_html();
+    assert!(!pdf.contains("<video"), "paper shows the poster");
+    assert!(pdf.contains("<div class=\"keep-next\">\n<h2"), "the heading travels with the video");
+}

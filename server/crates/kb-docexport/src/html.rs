@@ -393,9 +393,7 @@ impl<'a> HtmlRenderer<'a> {
             writeln!(out, "<article class=\"{class}\" id=\"{}\" style=\"{}\">", self.page_anchor(page), esc(&style));
         self.page_header(index, page, &s, out);
         out.push_str("<div class=\"body\">\n");
-        for block in children(&page.doc) {
-            self.block(block, out);
-        }
+        self.blocks(children(&page.doc), out);
         out.push_str("</div>\n</article>\n");
     }
 
@@ -535,17 +533,28 @@ impl<'a> HtmlRenderer<'a> {
         url
     }
 
-    /// The link for a video or file: copied into `assets/` in a folder export, else the checked source.
+    /// The link for an uploaded video or file: carried inside the export (a data URI in one file, a copy under
+    /// `assets/` in a folder) so it plays or downloads where the file is opened, else the checked source. A PDF
+    /// keeps the link (paper cannot play it), and so does a file over [`MEDIA_EMBED_LIMIT`].
     fn media_link(&mut self, src: &str) -> Option<String> {
-        if self.opts.layout == HtmlLayout::Folder && src.starts_with("/uploads/") {
-            if let Some(hit) = self.cache.get(src) {
+        if self.opts.print.is_none() && src.starts_with("/uploads/") {
+            let key = format!("media:{src}");
+            if let Some(hit) = self.cache.get(&key) {
                 return hit.clone();
             }
-            if let Some(asset) = self.assets.fetch(src) {
-                let name = file_name_of(src, "bin");
-                let url = self.store(&name, "application/octet-stream", asset.bytes);
-                self.cache.insert(src.to_string(), Some(url.clone()));
-                return Some(url);
+            let small = self.assets.size_of(src).is_none_or(|n| n <= MEDIA_EMBED_LIMIT);
+            if let Some(asset) = small.then(|| self.assets.fetch(src)).flatten() {
+                if asset.bytes.len() as u64 <= MEDIA_EMBED_LIMIT {
+                    let name = file_name_of(src, "bin");
+                    // the extension names a type a browser plays or opens better than a stored octet-stream
+                    let mime = match media_mime(&name) {
+                        "application/octet-stream" if !asset.mime.is_empty() => asset.mime.clone(),
+                        known => known.to_string(),
+                    };
+                    let url = self.store(&name, &mime, asset.bytes);
+                    self.cache.insert(key, Some(url.clone()));
+                    return Some(url);
+                }
             }
         }
         safe_href(src).map(|s| absolute(&s, self.base()))
@@ -556,8 +565,24 @@ impl<'a> HtmlRenderer<'a> {
     // -----------------------------------------------------------------------------------------------------------
 
     fn blocks(&mut self, nodes: &[Value], out: &mut String) {
-        for n in nodes {
-            self.block(n, out);
+        let mut i = 0;
+        while i < nodes.len() {
+            // on paper a heading travels with the block under it, so it never ends a page alone
+            if self.opts.print.is_some() && ty(&nodes[i]) == "heading" && i + 1 < nodes.len() {
+                let mut end = i + 1;
+                while end < nodes.len() && ty(&nodes[end]) == "heading" {
+                    end += 1;
+                }
+                out.push_str("<div class=\"keep-next\">\n");
+                for n in &nodes[i..(end + 1).min(nodes.len())] {
+                    self.block(n, out);
+                }
+                out.push_str("</div>\n");
+                i = end + 1;
+                continue;
+            }
+            self.block(&nodes[i], out);
+            i += 1;
         }
     }
 
@@ -1153,6 +1178,27 @@ impl<'a> HtmlRenderer<'a> {
         let width = attr_f64(node, "widthPct").unwrap_or(100.0).clamp(10.0, 100.0).round();
         let _ = write!(out, "<figure class=\"video\" style=\"width:{width}%\">");
         let link = self.media_link(src);
+        // a web page plays the video in place; the PDF keeps the poster and the link
+        if let Some(href) = link.as_ref().filter(|h| self.opts.print.is_none() && is_playable(src, h)) {
+            let poster = attr_str(node, "poster")
+                .and_then(|p| self.image_url(p))
+                .map(|u| format!(" poster=\"{}\"", esc(&u)))
+                .unwrap_or_default();
+            let _ = write!(
+                out,
+                "<video controls playsinline preload=\"metadata\"{poster} src=\"{}\" title=\"{}\" \
+                 style=\"width:100%;border-radius:8px;background:#000\"></video>",
+                esc(href),
+                esc(title)
+            );
+            let caption: Vec<&str> =
+                [attr_str(node, "caption"), attr_str(node, "description")].into_iter().flatten().collect();
+            if !caption.is_empty() {
+                let _ = write!(out, "<figcaption>{}</figcaption>", esc(&caption.join(" — ")));
+            }
+            out.push_str("</figure>\n");
+            return;
+        }
         if let Some(poster) = attr_str(node, "poster") {
             if let Some(url) = self.image_url(poster) {
                 match &link {
@@ -1237,7 +1283,7 @@ impl<'a> HtmlRenderer<'a> {
         }
     }
 
-    fn wrap_marks(&self, mut s: String, m: &Marks) -> String {
+    fn wrap_marks(&mut self, mut s: String, m: &Marks) -> String {
         if m.code {
             s = format!("<code>{s}</code>");
         }
@@ -1284,12 +1330,22 @@ impl<'a> HtmlRenderer<'a> {
             s = format!("<mark class=\"reader\" style=\"background:{c}\"{title}>{s}</mark>");
         }
         if let Some(link) = &m.link {
-            if let Some(href) = safe_href(&link.href) {
-                let title = link.title.as_deref().map(|t| format!(" title=\"{}\"", esc(t))).unwrap_or_default();
-                s = format!(
-                    "<a href=\"{}\"{title} rel=\"noopener noreferrer\">{s}</a>",
-                    esc(&absolute(&href, self.base()))
-                );
+            let title = link.title.as_deref().map(|t| format!(" title=\"{}\"", esc(t))).unwrap_or_default();
+            // a link to an uploaded file (slides, a spreadsheet) travels with the page and downloads from it
+            let carried = link.href.starts_with("/uploads/").then(|| self.media_link(&link.href)).flatten();
+            match carried.filter(|u| !u.starts_with('/') && !u.contains("://")) {
+                Some(url) => {
+                    let name = download_name(&file_name_of(&link.href, "bin"));
+                    s = format!("<a href=\"{}\"{title} download=\"{}\">{s}</a>", esc(&url), esc(&name));
+                }
+                None => {
+                    if let Some(href) = safe_href(&link.href) {
+                        s = format!(
+                            "<a href=\"{}\"{title} rel=\"noopener noreferrer\">{s}</a>",
+                            esc(&absolute(&href, self.base()))
+                        );
+                    }
+                }
             }
         }
         s
@@ -1415,7 +1471,7 @@ fn print_css(setup: &PageSetup, header: &str, content_height: f64, sheet: Option
     }
     css.push_str(
         "body { background: none !important; }\n.page { max-width: none !important; padding: 0 !important; box-shadow: none !important; }\n\
-         .page.break { break-before: page; }\n.toc { break-after: page; }\nfigure, pre, .callout, img, tr { break-inside: avoid; }\n\
+         .page.break { break-before: page; }\n.toc { break-after: page; }\nfigure, pre, .callout, img, tr { break-inside: avoid; }\n.keep-next { break-inside: avoid; }\n\
          h1, h2, h3, h4, h5, h6 { break-after: avoid; }\na { color: inherit; }\n",
     );
     if setup.size == PageSize::FitToContent {
@@ -1435,12 +1491,51 @@ fn theme_css(s: &Settings) -> String {
 
 /// The page settings for paragraphs (as the reader draws them, pageLook.css): their alignment, a first-line indent
 /// instead of a space, a drop cap on the first one. A paragraph's own alignment still wins (it is inline).
+/// The largest uploaded video or file an HTML export carries inside itself (50 MB); a larger one stays a link.
+const MEDIA_EMBED_LIMIT: u64 = 50 * 1024 * 1024;
+
+/// Returns the media type of an uploaded file by its extension, for the data URI it is carried in.
+fn media_mime(name: &str) -> &'static str {
+    let ext = name.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+    match ext.as_str() {
+        "mp4" | "m4v" => "video/mp4",
+        "webm" => "video/webm",
+        "ogv" | "ogg" => "video/ogg",
+        "mov" => "video/quicktime",
+        "mp3" => "audio/mpeg",
+        "pdf" => "application/pdf",
+        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "csv" => "text/csv",
+        "zip" => "application/zip",
+        _ => "application/octet-stream",
+    }
+}
+
+/// Returns the name a carried file saves under: the stored name without the `-1a2b3c4d5e6f` the upload store adds
+/// to keep names apart (`deck-68edbba08866.pptx` saves as `deck.pptx`).
+fn download_name(stored: &str) -> String {
+    let (stem, ext) = stored.rsplit_once('.').unwrap_or((stored, ""));
+    let stem = match stem.rsplit_once('-') {
+        Some((base, tag)) if !base.is_empty() && tag.len() == 12 && tag.bytes().all(|b| b.is_ascii_hexdigit()) => base,
+        _ => stem,
+    };
+    if ext.is_empty() { stem.to_string() } else { format!("{stem}.{ext}") }
+}
+
+/// Whether a browser can play the video at `src` in place (`url` is where the export points to it).
+fn is_playable(src: &str, url: &str) -> bool {
+    url.starts_with("data:video/") || media_mime(src).starts_with("video/") && !media_mime(src).ends_with("quicktime")
+}
+
 const PARAGRAPH_CSS: &str = ".page.ta-center .body p { text-align: center; }\n\
 .page.ta-right .body p { text-align: right; }\n\
 .page.ta-justify .body p { text-align: justify; hyphens: auto; }\n\
 .page.para-indent .body p { margin-top: 0; margin-bottom: 0; }\n\
 .page.para-indent .body p + p { text-indent: 1.6em; }\n\
-.page.page-dropcap .body > p:first-of-type::first-letter { float: left; font-size: 3.3em; line-height: .85; \
+.page.page-dropcap .body > p:first-of-type::first-letter, \
+.page.page-dropcap .body > .keep-next:first-child > p:first-of-type::first-letter { float: left; font-size: 3.3em; line-height: .85; \
 padding: 4px 8px 0 0; font-family: var(--heading-font, inherit); }\n";
 
 const BASE_CSS: &str = r#"*, *::before, *::after { box-sizing: border-box; }

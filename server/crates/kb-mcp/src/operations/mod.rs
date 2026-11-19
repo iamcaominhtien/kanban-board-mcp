@@ -23,8 +23,9 @@ pub mod work_log;
 
 pub use branches::{add_branch, checkout_branch, delete_branch, update_branch};
 pub use canvases::{
-    comment_on_canvas, create_canvas_from_files, design_guide, diagram_guide, docs_guide, list_project_canvases,
-    read_canvas, role_guide, shared_guides, ticket_guide, update_canvas_frame,
+    comment_on_canvas, create_canvas_from_files, delete_canvas_by_id, design_guide, diagram_guide, docs_guide,
+    list_project_canvases, read_canvas, restore_canvas_by_id, role_guide, shared_guides, ticket_guide,
+    update_canvas_frame,
 };
 pub use checklists::{
     add_acceptance_criterion, add_sub_task, delete_acceptance_criterion, delete_sub_task, toggle_acceptance_criterion,

@@ -350,6 +350,22 @@ pub const DOCS_WRITE_OPS: &[(&str, Op)] = &[
         ),
     ),
     (
+        "canvas_delete",
+        Op::new(
+            |a| Box::pin(async move { ops::delete_canvas_by_id(&arg_text(&a, "canvas_id")).await }),
+            &["canvas_id"],
+            &[],
+        ),
+    ),
+    (
+        "canvas_restore",
+        Op::new(
+            |a| Box::pin(async move { ops::restore_canvas_by_id(&arg_text(&a, "canvas_id")).await }),
+            &["canvas_id"],
+            &[],
+        ),
+    ),
+    (
         "canvas_comment",
         Op::new(
             |a| {
@@ -405,8 +421,8 @@ pub async fn run_write(action: String, given: Map<String, Value>) -> ToolResult 
 
 /// Write a project's Docs. `action`: create, update, edit, upload, tickets, assign, move, duplicate, delete, restore,
 /// restore_version, import, comment, reply, edit_comment, delete_comment, resolve, reopen, diagram_create,
-/// diagram_save, diagram_delete, diagram_restore, sketch_create, sketch_save, canvas_create, canvas_comment,
-/// canvas_update (the tool's description says what each takes).
+/// diagram_save, diagram_delete, diagram_restore, sketch_create, sketch_save, canvas_create, canvas_delete,
+/// canvas_restore, canvas_comment, canvas_update (the tool's description says what each takes).
 pub async fn docs_write(args: Map<String, Value>) -> ToolResult {
     let action = arg_text(&args, "action");
     let mut given = params_of(args);

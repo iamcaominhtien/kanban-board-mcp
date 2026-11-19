@@ -617,7 +617,7 @@
     },
     "columns": {
       "group": "block",
-      "content": "column{2,4}",
+      "content": "column{2,6}",
       "attrs": {
         "blockId": {
           "default": null,

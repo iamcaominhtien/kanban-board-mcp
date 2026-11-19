@@ -157,7 +157,7 @@ fn refused_arguments() -> Vec<Call> {
         dw(
             "edit: too many items",
             "edit",
-            json!({"page_id": "x", "items": (0..26).map(|i| json!({"markdown": format!("m{i}")})).collect::<Vec<_>>()}),
+            json!({"page_id": "x", "items": (0..101).map(|i| json!({"markdown": format!("m{i}")})).collect::<Vec<_>>()}),
         ),
         dw("upload: nothing", "upload", json!({})),
         dw("upload: both a path and data", "upload", json!({"path": "/x.png", "data": "AAAA", "name": "x.png"})),

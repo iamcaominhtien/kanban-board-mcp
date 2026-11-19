@@ -303,6 +303,23 @@ pub fn edit_passage(markdown: &str, find: &str, new: &str, mode: &str) -> Result
     })
 }
 
+/// The whole block of the page's text that holds the one place where `find` occurs: from the blank line before it
+/// (its marker line included) to the blank line after it.
+///
+/// A new block put before or after a passage then lands next to the block instead of inside its line. `None` when
+/// `find` is not on the page exactly once (the edit then reports it).
+pub fn block_around<'a>(markdown: &'a str, find: &str) -> Option<&'a str> {
+    if find.is_empty() || markdown.matches(find).count() != 1 {
+        return None;
+    }
+    let at = markdown.find(find)?;
+    let end_of_find = at + find.len();
+    let start = markdown[..at].rfind("\n\n").map_or(0, |i| i + 2);
+    let end = markdown[end_of_find..].find("\n\n").map_or(markdown.len(), |i| end_of_find + i);
+    let block = markdown[start..end].trim_matches('\n');
+    (!block.is_empty()).then_some(block)
+}
+
 /// `new` as the last block of the page.
 pub fn append_page(markdown: &str, new: &str) -> String {
     let lines: Vec<String> = if pystr::strip(markdown).is_empty() {
@@ -377,6 +394,16 @@ mod tests {
     use super::*;
 
     const ANNOTATED: &str = "<!-- #b-000001 -->\n## A\n\n<!-- #b-000002 align=center -->\nOne.\n\n<!-- #b-000003 -->\n## B\n\n<!-- #b-000004 -->\nTwo.\n";
+
+    #[test]
+    fn the_block_around_a_passage_runs_from_blank_line_to_blank_line() {
+        let text =
+            "<!-- #b-000001 -->\nOne.\n\n<!-- #b-000002 -->\n![Plan](canvas:cv_abc)\n\n<!-- #b-000003 -->\nTwo.\n";
+        assert_eq!(block_around(text, "Plan"), Some("<!-- #b-000002 -->\n![Plan](canvas:cv_abc)"));
+        assert_eq!(block_around(text, "One."), Some("<!-- #b-000001 -->\nOne."));
+        assert_eq!(block_around(text, "Two."), Some("<!-- #b-000003 -->\nTwo."));
+        assert_eq!(block_around(text, "nope"), None);
+    }
 
     #[test]
     fn a_section_of_annotated_markdown_owns_its_heading_marker_and_not_the_next_one() {

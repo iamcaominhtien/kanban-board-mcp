@@ -150,6 +150,18 @@ fn invalid(doc: Value) -> String {
 }
 
 #[test]
+fn columns_hold_two_to_six_columns() {
+    let cols = |n: usize| {
+        let col = json!({"type": "column", "content": [{"type": "paragraph"}]});
+        json!({"type": "doc", "content": [{"type": "columns", "content": vec![col; n]}]})
+    };
+    for n in 2..=6 {
+        assert!(validate(&cols(n)).is_ok(), "{n} columns");
+    }
+    assert!(matches!(validate(&cols(7)), Err(RichDocError::Invalid(m)) if m.contains("column{2,6}")));
+}
+
+#[test]
 fn validate_accepts_pages_and_names_the_first_problem() {
     let ok = markdown_to_doc("# T\n\n- a\n- [ ] b\n\n| x |\n|---|\n| y |\n\n> [!INFO]\n> z", &mut SeqIds(1));
     validate(&ok).unwrap();
@@ -181,7 +193,7 @@ fn validate_accepts_pages_and_names_the_first_problem() {
     );
     assert!(
         invalid(p(json!({"type": "columns", "content": [{"type": "column", "content": [{"type": "paragraph"}]}]})))
-            .contains("column{2,4}")
+            .contains("column{2,6}")
     );
     assert!(invalid(p(json!({"type": "codeBlock", "content": [{"type": "hardBreak"}]}))).contains("hardBreak"));
     // too deep

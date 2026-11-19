@@ -29,6 +29,8 @@ export const RATIO_PRESETS: Record<number, number[][]> = {
     [1, 1, 2],
   ],
   4: [[1, 1, 1, 1]],
+  5: [[1, 1, 1, 1, 1]],
+  6: [[1, 1, 1, 1, 1, 1]],
 };
 
 /** "33 / 67" for weights [1, 2]. */

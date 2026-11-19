@@ -585,3 +585,95 @@ async fn the_formatting_summary_of_the_description_works_as_written() {
     assert_eq!(set["settings"]["width"], "wide");
     assert_eq!(set["settings"]["book"]["isBook"], true);
 }
+
+/// `edit` takes up to 100 items in one call (all or nothing), and an HTML embed is replaced in place, by its block
+/// id, with the marker form the import accepts.
+#[tokio::test]
+async fn edit_takes_a_hundred_items_and_replaces_an_html_embed() {
+    if !skip_unless_available("edit_takes_a_hundred_items_and_replaces_an_html_embed") {
+        return;
+    }
+    let s = Server::start().await;
+    let (c, mcp) = (s.client(), s.mcp());
+    let pid = project(&c).await;
+    let body: String = (1..=100).map(|i| format!("Line {i}.\n\n")).collect();
+    let md = format!("{body}<!-- htmlEmbed title=\"Old\" height=200 -->\n```html\n<b>old</b>\n```\n\nEnd.");
+    let made = write(&mcp, "create", json!({"project_id": pid, "title": "Many", "markdown": md})).await;
+    let id = made["id"].clone();
+
+    let items = |n: usize, tag: &str| -> Vec<Value> {
+        (1..=n).map(|i| json!({"find": format!("Line {i}."), "markdown": format!("{tag} {i}.")})).collect()
+    };
+    let refused =
+        call_err(&mcp, "docs_write", json!({"action": "edit", "page_id": id, "items": items(101, "X")})).await;
+    assert!(refused.contains("1 to 100 edits"), "{refused}");
+    let done = write(&mcp, "edit", json!({"page_id": id, "items": items(100, "New")})).await;
+    assert_eq!(done["changed"].as_array().map(Vec::len), Some(100), "{done}");
+    let got = read(&mcp, "get", json!({"page_id": id})).await;
+    let text = got["markdown"].as_str().expect("markdown").to_string();
+    assert!(text.contains("New 100.") && !text.contains("Line 1."), "all hundred applied");
+
+    // the embed's block id, from the marker line before its placeholder
+    let at = text.find("[embed: HTML embed · Old]").expect("the placeholder");
+    let marker = text[..at].lines().rev().find(|l| l.starts_with("<!-- #b-")).expect("its marker");
+    let embed_id = marker.trim_start_matches("<!-- #").split_whitespace().next().expect("an id").to_string();
+
+    let new = "<!-- htmlEmbed title=\"Fresh\" height=320 scripts=true -->\n```html\n<i>fresh</i>\n```";
+    let out = write(&mcp, "edit", json!({"page_id": id, "block_id": embed_id, "markdown": new})).await;
+    assert_eq!(out["changed"], json!([format!("block {embed_id}")]), "{out}");
+    let block = read(&mcp, "block", json!({"page_id": id, "block_id": embed_id})).await;
+    let shown = block.to_string();
+    assert!(shown.contains("Fresh") && shown.contains("320"), "{shown}");
+    let now = read(&mcp, "get", json!({"page_id": id})).await["markdown"].as_str().expect("markdown").to_string();
+    assert!(now.contains("[embed: HTML embed · Fresh]") && !now.contains("· Old]"), "{now}");
+    assert!(now.find("[embed: HTML embed · Fresh]") < now.find("End."), "same position: {now}");
+
+    // only its attributes
+    write(
+        &mcp,
+        "edit",
+        json!({"page_id": id, "block_id": embed_id, "mode": "attrs", "attrs": {"title": "Renamed", "height": 150}}),
+    )
+    .await;
+    let now = read(&mcp, "get", json!({"page_id": id})).await["markdown"].as_str().expect("markdown").to_string();
+    assert!(now.contains("[embed: HTML embed · Renamed]"), "{now}");
+}
+
+/// A file uploaded after a passage that sits in a canvas reference line goes in a block of its own: the line of the
+/// canvas is not split.
+#[tokio::test]
+async fn upload_after_a_canvas_line_keeps_the_line_whole() {
+    if !skip_unless_available("upload_after_a_canvas_line_keeps_the_line_whole") {
+        return;
+    }
+    let s = Server::start().await;
+    let (c, mcp) = (s.client(), s.mcp());
+    let pid = project(&c).await;
+    let md = "Intro.\n\n![Roadmap sketch](canvas:cv_abc123)\n\nEnd.";
+    let made = write(&mcp, "create", json!({"project_id": pid, "title": "Canvas", "markdown": md})).await;
+    let id = made["id"].clone();
+    let dir = tempfile::Builder::new().prefix("docs-upload-find").tempdir().expect("a folder");
+    let png = dir.path().join("dot.png");
+    let bytes: [u8; 67] = [
+        137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21,
+        196, 137, 0, 0, 0, 10, 73, 68, 65, 84, 120, 156, 99, 0, 1, 0, 0, 5, 0, 1, 13, 10, 45, 180, 0, 0, 0, 0, 73, 69,
+        78, 68, 174, 66, 96, 130,
+    ];
+    std::fs::write(&png, bytes).expect("write the picture");
+    let before = read(&mcp, "get", json!({"page_id": id})).await["markdown"].as_str().expect("markdown").to_string();
+    assert!(before.contains("![Roadmap sketch](canvas:cv_abc123)"), "{before}");
+    write(
+        &mcp,
+        "upload",
+        json!({"path": png.to_str().expect("utf-8"), "alt": "Dot", "page_id": id, "find": "Roadmap sketch"}),
+    )
+    .await;
+    let after = read(&mcp, "get", json!({"page_id": id})).await["markdown"].as_str().expect("markdown").to_string();
+    assert!(after.contains("![Roadmap sketch](canvas:cv_abc123)"), "the canvas line is whole: {after}");
+    let (canvas, dot, end) = (
+        after.find("canvas:cv_abc123").expect("canvas"),
+        after.find("![Dot](/uploads/").expect("the picture"),
+        after.find("End.").expect("end"),
+    );
+    assert!(canvas < dot && dot < end, "the picture comes after the canvas block: {after}");
+}

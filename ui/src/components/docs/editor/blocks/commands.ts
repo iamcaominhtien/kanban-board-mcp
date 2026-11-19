@@ -339,7 +339,7 @@ export function insertTableSized(editor: Editor, size: TableSize, range?: Range)
 
 /** The column JSON for `n` empty columns. */
 export function columnsJson(n: number, ratio: string | null = null): JSONContent {
-  const count = Math.max(2, Math.min(4, n));
+  const count = Math.max(2, Math.min(6, n));
   return {
     type: 'columns',
     ...(ratio ? { attrs: { ratio } } : {}),
@@ -425,7 +425,7 @@ export function setColumnCount(editor: Editor, pos: number, n: number): boolean 
   const { state } = editor;
   const node = state.doc.nodeAt(pos);
   if (!node || node.type.name !== 'columns') return false;
-  const count = Math.max(2, Math.min(4, n));
+  const count = Math.max(2, Math.min(6, n));
   if (count === node.childCount) return true;
   const schema = state.schema;
   const cols: PMNode[] = [];

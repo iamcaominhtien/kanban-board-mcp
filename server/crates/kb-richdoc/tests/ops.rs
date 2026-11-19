@@ -243,3 +243,44 @@ fn replace_page_reports_broken_markdown() {
         Err(RichDocError::NoBlock(_))
     ));
 }
+
+#[test]
+fn an_html_embed_is_replaced_in_place_by_a_new_one_under_its_marker() {
+    let mut doc = page();
+    doc["content"].as_array_mut().unwrap().insert(
+        2,
+        json!({"type": "htmlEmbed", "attrs": {"blockId": "b-0000e1", "html": "<b>old</b>", "title": "Old", "height": 200}}),
+    );
+    let new = "<!-- htmlEmbed title=\"New\" height=300 scripts=true -->\n```html\n<i>new</i>\n```";
+    let out =
+        apply(&doc, &[BlockOp::Replace { block_id: "b-0000e1".into(), markdown: new.into() }], &mut SeqIds(0xa00000))
+            .unwrap();
+    validate(&out).unwrap();
+    let embed = &out["content"][2];
+    assert_eq!(embed["type"], "htmlEmbed");
+    assert_eq!(embed["attrs"]["blockId"], "b-0000e1", "position and id stay");
+    assert_eq!(embed["attrs"]["html"], "<i>new</i>");
+    assert_eq!(embed["attrs"]["title"], "New");
+    assert_eq!(embed["attrs"]["height"], 300);
+    assert_eq!(embed["attrs"]["runScripts"], true);
+    assert_eq!(out["content"].as_array().unwrap().len(), doc["content"].as_array().unwrap().len());
+    // its attributes alone change through SetAttrs
+    let attrs = json!({"title": "Renamed", "height": 150, "runScripts": false});
+    let out = apply(
+        &doc,
+        &[BlockOp::SetAttrs { block_id: "b-0000e1".into(), attrs: attrs.as_object().unwrap().clone() }],
+        &mut SeqIds(0xa00000),
+    )
+    .unwrap();
+    assert_eq!(out["content"][2]["attrs"]["title"], "Renamed");
+    assert_eq!(out["content"][2]["attrs"]["html"], "<b>old</b>");
+    // a Markdown block or another placeholder kind does not replace it
+    for md in ["plain text", "<!-- video -->\n![Clip](/c.mp4)"] {
+        let r = apply(
+            &doc,
+            &[BlockOp::Replace { block_id: "b-0000e1".into(), markdown: md.into() }],
+            &mut SeqIds(0xa00000),
+        );
+        assert!(matches!(r, Err(RichDocError::Placeholder(_))), "{md}: {r:?}");
+    }
+}

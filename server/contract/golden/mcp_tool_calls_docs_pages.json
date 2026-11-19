@@ -345,7 +345,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\naction\n  Input should be 'create', 'update', 'edit', 'upload', 'tickets', 'assign', 'settings', 'move', 'duplicate', 'delete', 'restore', 'restore_version', 'import', 'comment', 'reply', 'edit_comment', 'delete_comment', 'resolve', 'reopen', 'diagram_create', 'diagram_save', 'diagram_delete', 'diagram_restore', 'sketch_create', 'sketch_save', 'canvas_create', 'canvas_comment' or 'canvas_update' [type=literal_error, input_value='', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\naction\n  Input should be 'create', 'update', 'edit', 'upload', 'tickets', 'assign', 'settings', 'move', 'duplicate', 'delete', 'restore', 'restore_version', 'import', 'comment', 'reply', 'edit_comment', 'delete_comment', 'resolve', 'reopen', 'diagram_create', 'diagram_save', 'diagram_delete', 'diagram_restore', 'sketch_create', 'sketch_save', 'canvas_create', 'canvas_comment', 'canvas_update', 'canvas_delete' or 'canvas_restore' [type=literal_error, input_value='', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
       }
     ],
     "isError": true
@@ -363,7 +363,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\naction\n  Input should be 'create', 'update', 'edit', 'upload', 'tickets', 'assign', 'settings', 'move', 'duplicate', 'delete', 'restore', 'restore_version', 'import', 'comment', 'reply', 'edit_comment', 'delete_comment', 'resolve', 'reopen', 'diagram_create', 'diagram_save', 'diagram_delete', 'diagram_restore', 'sketch_create', 'sketch_save', 'canvas_create', 'canvas_comment' or 'canvas_update' [type=literal_error, input_value='nope', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\naction\n  Input should be 'create', 'update', 'edit', 'upload', 'tickets', 'assign', 'settings', 'move', 'duplicate', 'delete', 'restore', 'restore_version', 'import', 'comment', 'reply', 'edit_comment', 'delete_comment', 'resolve', 'reopen', 'diagram_create', 'diagram_save', 'diagram_delete', 'diagram_restore', 'sketch_create', 'sketch_save', 'canvas_create', 'canvas_comment', 'canvas_update', 'canvas_delete' or 'canvas_restore' [type=literal_error, input_value='nope', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
       }
     ],
     "isError": true
@@ -372,7 +372,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\naction\n  Input should be 'create', 'update', 'edit', 'upload', 'tickets', 'assign', 'settings', 'move', 'duplicate', 'delete', 'restore', 'restore_version', 'import', 'comment', 'reply', 'edit_comment', 'delete_comment', 'resolve', 'reopen', 'diagram_create', 'diagram_save', 'diagram_delete', 'diagram_restore', 'sketch_create', 'sketch_save', 'canvas_create', 'canvas_comment' or 'canvas_update' [type=literal_error, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+        "text": "Error executing tool docs_write: 1 validation error for docs_writeArguments\naction\n  Input should be 'create', 'update', 'edit', 'upload', 'tickets', 'assign', 'settings', 'move', 'duplicate', 'delete', 'restore', 'restore_version', 'import', 'comment', 'reply', 'edit_comment', 'delete_comment', 'resolve', 'reopen', 'diagram_create', 'diagram_save', 'diagram_delete', 'diagram_restore', 'sketch_create', 'sketch_save', 'canvas_create', 'canvas_comment', 'canvas_update', 'canvas_delete' or 'canvas_restore' [type=literal_error, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
       }
     ],
     "isError": true
@@ -390,7 +390,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: 3 validation errors for docs_writeArguments\naction\n  Input should be 'create', 'update', 'edit', 'upload', 'tickets', 'assign', 'settings', 'move', 'duplicate', 'delete', 'restore', 'restore_version', 'import', 'comment', 'reply', 'edit_comment', 'delete_comment', 'resolve', 'reopen', 'diagram_create', 'diagram_save', 'diagram_delete', 'diagram_restore', 'sketch_create', 'sketch_save', 'canvas_create', 'canvas_comment' or 'canvas_update' [type=literal_error, input_value='nope', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error\nbase_version\n  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='v2', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/int_parsing\npublish\n  Input should be a valid boolean, unable to interpret input [type=bool_parsing, input_value='maybe', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/bool_parsing"
+        "text": "Error executing tool docs_write: 3 validation errors for docs_writeArguments\naction\n  Input should be 'create', 'update', 'edit', 'upload', 'tickets', 'assign', 'settings', 'move', 'duplicate', 'delete', 'restore', 'restore_version', 'import', 'comment', 'reply', 'edit_comment', 'delete_comment', 'resolve', 'reopen', 'diagram_create', 'diagram_save', 'diagram_delete', 'diagram_restore', 'sketch_create', 'sketch_save', 'canvas_create', 'canvas_comment', 'canvas_update', 'canvas_delete' or 'canvas_restore' [type=literal_error, input_value='nope', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error\nbase_version\n  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='v2', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/int_parsing\npublish\n  Input should be a valid boolean, unable to interpret input [type=bool_parsing, input_value='maybe', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/bool_parsing"
       }
     ],
     "isError": true
@@ -678,7 +678,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: items: a list of 1 to 25 edits."
+        "text": "Error executing tool docs_write: items: a list of 1 to 100 edits."
       }
     ],
     "isError": true
@@ -687,7 +687,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: items: a list of 1 to 25 edits."
+        "text": "Error executing tool docs_write: items: a list of 1 to 100 edits."
       }
     ],
     "isError": true

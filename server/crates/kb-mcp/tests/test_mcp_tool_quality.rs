@@ -192,9 +192,10 @@ async fn test_the_tool_list_stays_compact() {
     // 49,340 / 52,170; with table cells, the common settings and upload's alt added to it (a live run read the
     // guide for those): 49,680 / 52,510. Short answers of the ticket tools (what a field left out means, a create's
     // criteria) and export's `print` page setup (paper up to A3, margins, header: a newspaper page needs them): 50,420
-    // / 53,250. The bounds leave some room; raise them on purpose, with what was added, never by reflex.
-    assert!(default < 50_700, "default tool list is {default} characters (about {} tokens)", default / 4);
-    assert!(full < 53_700, "full tool list is {full} characters (about {} tokens)", full / 4);
+    // / 53,250. Canvas delete and restore (an agent left a canvas it could not remove) and the "page" owner of a
+    // canvas: 50,721 / 53,551. The bounds leave some room; raise them on purpose, with what was added, never by reflex.
+    assert!(default < 50_900, "default tool list is {default} characters (about {} tokens)", default / 4);
+    assert!(full < 53_900, "full tool list is {full} characters (about {} tokens)", full / 4);
     if target() == Target::Python {
         assert!(default < full);
         // the measure is the Python test's: the numbers of its comment, within the bounds

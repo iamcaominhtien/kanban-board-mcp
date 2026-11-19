@@ -580,6 +580,50 @@ fn without_number(text: &str) -> String {
     if after.len() == rest.len() { text.to_string() } else { after.to_string() }
 }
 
+/// The `size` of a frame.json: a preset name or `[w, h]`; None when it is not there or has another shape.
+fn frame_size(meta: &Map<String, Value>) -> Result<Option<Size>, ToolError> {
+    Ok(match meta.get("size") {
+        Some(Value::Array(list)) if list.len() == 2 => Some(Size::Dims(py_int(&list[0])?, py_int(&list[1])?)),
+        Some(Value::String(name)) => Some(Size::Preset(name.clone())),
+        _ => None,
+    })
+}
+
+/// The layout fields a frame.json sets for an existing frame (`name`, `size`, `fit`, `x`, `y`, `page`), as the item
+/// `save` merges into the board; empty when the file says nothing about the layout. `page` counts only when a page
+/// tab of that name already exists.
+fn frame_layout_changes(meta: &Map<String, Value>, doc: &Map<String, Value>) -> Result<Map<String, Value>, ToolError> {
+    let mut out = Map::new();
+    if let Some(name) = meta.get("name").filter(|v| pyjson::truthy(v)) {
+        out.insert("name".into(), json!(pyjson::py_str(name).chars().take(120).collect::<String>()));
+    }
+    if let Some(size) = frame_size(meta)? {
+        let (w, h) = size.resolve().map_err(canvas_error)?;
+        out.insert("w".into(), json!(w));
+        out.insert("h".into(), json!(h));
+    }
+    if let Some(fit) = meta.get("fit") {
+        out.insert("fit".into(), json!(pyjson::truthy(fit)));
+    }
+    for key in ["x", "y"] {
+        let n = match meta.get(key) {
+            Some(Value::Number(n)) => n.as_f64(),
+            Some(Value::String(s)) => pytext::strip(s).parse::<f64>().ok(),
+            _ => None,
+        };
+        if let Some(n) = n {
+            out.insert(key.into(), json!(n));
+        }
+    }
+    if let Some(name) = page_name(meta.get("page")) {
+        let found = canvases::list(doc, "pages").iter().find(|p| pyjson::py_str(&p["name"]) == name);
+        if let Some(page) = found {
+            out.insert("page".into(), page["id"].clone());
+        }
+    }
+    Ok(out)
+}
+
 /// `_frames_of(root, title)`: the frames in a folder: each sub-folder with an .html page is one (named after it, or by
 /// its frame.json); loose pages at the top are one frame.
 fn frames_of(root: &Path, title: &str) -> Result<Vec<Frame>, ToolError> {
@@ -606,11 +650,7 @@ fn frames_of(root: &Path, title: &str) -> Result<Vec<Frame>, ToolError> {
     let mut frames = Vec::new();
     for d in dirs {
         let meta = json_file(&d.join("frame.json"))?;
-        let size = match meta.get("size") {
-            Some(Value::Array(list)) if list.len() == 2 => Some(Size::Dims(py_int(&list[0])?, py_int(&list[1])?)),
-            Some(Value::String(name)) => Some(Size::Preset(name.clone())),
-            _ => None,
-        };
+        let size = frame_size(&meta)?;
         let dir_name = d.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let is_root = d == root;
         let shown = if is_root { title.to_string() } else { dir_name.clone() };
@@ -946,7 +986,7 @@ pub async fn create_canvas_from_files(
                 same_project(project.as_deref())?;
                 let made = create_canvas(
                     &session,
-                    NewCanvas { owner_kind: kind, owner_id: id, title, start: "none", ..NewCanvas::default() },
+                    NewCanvas { owner_kind: project_kind, owner_id: id, title, start: "none", ..NewCanvas::default() },
                 )
                 .await
                 .map_err(canvas_error)?;
@@ -1008,6 +1048,7 @@ pub async fn update_canvas_frame(canvas_id: &str, board_id: &str, path: &str, no
     notify_on_success(async {
         let root = ai_folder(path, false)?;
         let files = read_folder(&root, false)?;
+        let meta = json_file(&root.join("frame.json"))?;
         if files.is_empty() {
             return Err(ToolError::Value(format!("{} holds no files to put in the frame.", root.display())));
         }
@@ -1053,7 +1094,24 @@ pub async fn update_canvas_frame(canvas_id: &str, board_id: &str, path: &str, no
         )
         .await
         .map_err(canvas_error)?;
-        let changed = &out["board"];
+        let mut changed = out["board"].clone();
+        let layout = frame_layout_changes(&meta, &doc)?;
+        if !layout.is_empty() {
+            let mut item = layout;
+            item.insert("id".into(), json!(board_id));
+            item.insert("rev".into(), changed["rev"].clone());
+            let args = SaveArgs {
+                base_rev: i64::from(c.rev),
+                upsert: vec![("boards".into(), vec![item])],
+                ..Default::default()
+            };
+            let saved = save(&session, canvas_id, args).await.map_err(canvas_error)?;
+            let boards = saved["doc"]["boards"].as_array().cloned().unwrap_or_default();
+            if let Some(board) = boards.iter().find(|b| b["id"] == json!(board_id)) {
+                changed = board.clone();
+            }
+        }
+        let changed = &changed;
         let mut names: Vec<&str> = files.iter().map(|(n, _)| n.as_str()).collect();
         names.sort_unstable();
         let mut reply = Map::new();
@@ -1065,6 +1123,30 @@ pub async fn update_canvas_frame(canvas_id: &str, board_id: &str, path: &str, no
             reply.insert("note".into(), json!(note));
         }
         Ok(Value::Object(reply))
+    })
+    .await
+}
+
+/// Unlink a canvas. It is kept and can be restored; texts that embed it show it as missing. Returns {id, deleted_at}.
+pub async fn delete_canvas_by_id(canvas_id: &str) -> ToolResult {
+    notify_on_success(async {
+        let session = common::async_session();
+        let c = get_row(&session, canvas_id, false).await.map_err(canvas_error)?;
+        same_project(c.project_id.as_deref())?;
+        let out = kb_draw::canvases::rows::delete_canvas(&session, &c.id).await.map_err(canvas_error)?;
+        Ok(Value::Object(out))
+    })
+    .await
+}
+
+/// Bring an unlinked canvas back. Returns {id, title}.
+pub async fn restore_canvas_by_id(canvas_id: &str) -> ToolResult {
+    notify_on_success(async {
+        let session = common::async_session();
+        let c = get_row(&session, canvas_id, true).await.map_err(canvas_error)?;
+        same_project(c.project_id.as_deref())?;
+        let out = kb_draw::canvases::rows::restore_canvas(&session, &c.id).await.map_err(canvas_error)?;
+        Ok(json!({"id": out.get("id"), "title": out.get("title")}))
     })
     .await
 }

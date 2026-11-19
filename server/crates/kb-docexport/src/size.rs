@@ -52,7 +52,7 @@ fn walk(node: &Value, format: ExportFormat, assets: &dyn AssetSource, text: &mut
             if let Some(poster) = attr_str(node, "poster") {
                 *media += assets.size_of(poster).unwrap_or(IMAGE_GUESS);
             }
-            // Only a folder of HTML copies the video itself; the other formats keep a link.
+            // An HTML export carries the video itself; the other formats keep a link.
             if format == ExportFormat::Html {
                 *media += attr_str(node, "src").and_then(|s| assets.size_of(s)).unwrap_or(VIDEO_GUESS);
             }
