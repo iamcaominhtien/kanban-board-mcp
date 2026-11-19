@@ -1296,7 +1296,11 @@ fn print_css(setup: &PageSetup, header: &str, content_height: f64) -> String {
             let _ = writeln!(css, "@page {{ size: 794px {height}px; margin: {margin}mm; }}");
         }
         size => {
-            let paper = if size == PageSize::Letter { "letter" } else { "A4" };
+            let paper = match size {
+                PageSize::Letter => "letter",
+                PageSize::A3 => "A3",
+                _ => "A4",
+            };
             let turn = if setup.orientation == crate::model::Orientation::Landscape { "landscape" } else { "portrait" };
             let _ = write!(css, "@page {{ size: {paper} {turn}; margin: {margin}mm;");
             if setup.header_footer == HeaderFooter::On {

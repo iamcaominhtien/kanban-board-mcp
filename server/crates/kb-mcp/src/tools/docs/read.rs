@@ -3,7 +3,7 @@
 
 use serde_json::{Map, Value};
 
-use crate::common::{ToolResult, arg_bool, arg_int, arg_str, arg_strings, arg_text};
+use crate::common::{ToolResult, arg_bool, arg_int, arg_object, arg_str, arg_strings, arg_text};
 use crate::operations as ops;
 use crate::operations::pictures::PictureArgs;
 use crate::tools::routing::{Op, dispatch, params_of};
@@ -107,11 +107,13 @@ pub const DOCS_READ_OPS: &[(&str, Op)] = &[
                 Box::pin(async move {
                     let scope = arg_str(&a, "scope").unwrap_or_else(|| "page".to_string());
                     let format = arg_str(&a, "format").unwrap_or_else(|| "md".to_string());
-                    ops::export_docs(&arg_text(&a, "page_id"), &scope, &format, &arg_text(&a, "path")).await
+                    let print = arg_object(&a, "print");
+                    ops::export_docs(&arg_text(&a, "page_id"), &scope, &format, &arg_text(&a, "path"), print.as_ref())
+                        .await
                 })
             },
             &["page_id", "path"],
-            &["scope", "format"],
+            &["scope", "format", "print"],
         ),
     ),
     (

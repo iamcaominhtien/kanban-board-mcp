@@ -114,10 +114,17 @@ pub async fn create_from_template(
 /// # Errors
 /// A relative path, an unknown scope or format, an empty page, a failed or too slow export, a file that cannot be
 /// written.
-pub async fn export_docs(page_id: &str, scope: &str, format: &str, path: &str) -> ToolResult {
+pub async fn export_docs(
+    page_id: &str,
+    scope: &str,
+    format: &str,
+    path: &str,
+    print: Option<&Map<String, Value>>,
+) -> ToolResult {
     if !kb_files::pathlib::is_absolute(path) {
         return Err(ToolError::Value(format!("Give an absolute path (got {}).", pytext::repr(path))));
     }
+    let options = print.map(print_options).transpose()?.unwrap_or_default();
     let session = common::async_session();
     let page = docs::page_detail(&session, page_id).await.map_err(docs_error)?;
     let project_id = page.get("project_id").and_then(Value::as_str).unwrap_or_default().to_string();
@@ -136,7 +143,7 @@ pub async fn export_docs(page_id: &str, scope: &str, format: &str, path: &str) -
         format: format.to_string(),
         draft: false,
         file_name,
-        options: Map::new(),
+        options,
         book,
     };
     let row = docs_export::start(&session, &project_id, &req).await.map_err(docs_error)?;
@@ -173,6 +180,32 @@ pub async fn export_docs(page_id: &str, scope: &str, format: &str, path: &str) -
     let mut out = json!({"path": target.display().to_string(), "format": format, "size": bytes.len()});
     if zip {
         out["zip"] = json!("a .zip of the files (each page, its pictures)");
+    }
+    Ok(out)
+}
+
+/// The export dialog's page options from `print` (`{paper, orientation, margins, header}`): the paper and how the
+/// pages of a PDF or Word file are laid out.
+///
+/// # Errors
+/// A key or a value it does not know, with the ones it takes.
+fn print_options(print: &Map<String, Value>) -> Result<Map<String, Value>, ToolError> {
+    const TAKES: &str = "print takes paper (a4, a3, letter, fit: one long page), orientation (portrait, landscape), \
+                         margins (narrow, normal, wide) and header (false: no running title or page numbers)";
+    let mut out = Map::new();
+    for (key, value) in print {
+        let text = value.as_str().unwrap_or_default();
+        let (name, ok) = match key.as_str() {
+            "paper" => ("pageSize", matches!(text, "a4" | "a3" | "letter" | "fit")),
+            "orientation" => ("orientation", matches!(text, "portrait" | "landscape")),
+            "margins" => ("margins", matches!(text, "narrow" | "normal" | "wide")),
+            "header" => ("pageNumbers", value.is_boolean()),
+            _ => return Err(ToolError::Value(format!("{TAKES}; not {key}."))),
+        };
+        if !ok {
+            return Err(ToolError::Value(format!("{TAKES}; not {key}={value}.")));
+        }
+        out.insert(name.into(), value.clone());
     }
     Ok(out)
 }

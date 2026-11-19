@@ -371,6 +371,35 @@ async fn a_book_export_draws_its_diagrams_and_speaks_the_book_s_language() {
     assert!(html.contains("<html lang=\"vi\">") && html.contains("<h2>Mục lục</h2>"), "the book's language");
     assert!(!html.contains("<section class=\"title-page\">"), "the cover is not repeated by a title page");
     assert!(!html.contains("<p class=\"book-author\">agent</p>"), "no generic author");
+
+    // a newspaper page: A3, narrow margins, no running header
+    let pdf = dir.path().join("bao.pdf");
+    let got = read(
+        &mcp,
+        "export",
+        json!({"page_id": book, "format": "pdf", "path": pdf.to_str().expect("utf-8"),
+               "print": {"paper": "a3", "margins": "narrow", "header": false}}),
+    )
+    .await;
+    let bytes = std::fs::read(got["path"].as_str().expect("a path")).expect("the file");
+    let text = String::from_utf8_lossy(&bytes);
+    let media = text.split("/MediaBox").nth(1).expect("a page size");
+    let numbers: Vec<f64> = media
+        .trim_start_matches([' ', '['])
+        .split(|c: char| c.is_whitespace() || c == ']')
+        .filter_map(|n| n.parse().ok())
+        .take(4)
+        .collect();
+    // A3 is 297 x 420 mm: 842 x 1191 points
+    assert!((numbers[2] - 842.0).abs() < 2.0 && (numbers[3] - 1191.0).abs() < 2.0, "{numbers:?}");
+    let refused = call_err(
+        &mcp,
+        "docs_read",
+        json!({"action": "export", "page_id": book, "format": "pdf", "path": pdf.to_str().expect("utf-8"),
+               "print": {"paper": "a2"}}),
+    )
+    .await;
+    assert!(refused.contains("print takes paper (a4, a3, letter") && refused.contains("paper=\"a2\""), "{refused}");
 }
 
 #[tokio::test]

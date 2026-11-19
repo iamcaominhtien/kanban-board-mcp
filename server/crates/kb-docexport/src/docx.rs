@@ -149,7 +149,8 @@ enum Child {
 fn page_twips(setup: &PageSetup) -> (u32, u32) {
     let (w, h) = match setup.size {
         PageSize::Letter => (12240, 15840),
-        _ => (11906, 16838),
+        PageSize::A3 => (16838, 23811),
+        PageSize::A4 | PageSize::FitToContent => (11906, 16838),
     };
     if setup.orientation == Orientation::Landscape && setup.size != PageSize::FitToContent { (h, w) } else { (w, h) }
 }

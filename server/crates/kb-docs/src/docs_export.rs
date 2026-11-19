@@ -362,6 +362,7 @@ fn setup_of(o: &Map<String, Value>) -> PageSetup {
     PageSetup {
         size: match s("pageSize") {
             "letter" => PageSize::Letter,
+            "a3" => PageSize::A3,
             "fit" => PageSize::FitToContent,
             _ => PageSize::A4,
         },

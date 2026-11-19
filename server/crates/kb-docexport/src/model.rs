@@ -84,6 +84,8 @@ pub enum PageSize {
     A4,
     /// 8.5 × 11 in.
     Letter,
+    /// 297 × 420 mm: twice A4, the size of a tabloid newspaper page.
+    A3,
     /// One long page as tall as the content (PDF); Word has no such page and uses A4.
     FitToContent,
 }
