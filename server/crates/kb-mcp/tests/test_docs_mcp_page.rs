@@ -363,3 +363,54 @@ async fn history_pictures_and_the_guide_are_short() {
     let none = call_err(&mcp, "docs_read", json!({"action": "docs_guide", "section": "cooking"})).await;
     assert!(none.contains("no section 'cooking'"), "{none}");
 }
+
+/// Every form the formatting summary of docs_write's description shows is read as it says: an agent copies them.
+#[tokio::test]
+async fn the_formatting_summary_of_the_description_works_as_written() {
+    if !skip_unless_available("the_formatting_summary_of_the_description_works_as_written") {
+        return;
+    }
+    let s = Server::start().await;
+    let (c, mcp) = (s.client(), s.mcp());
+    let listed = common::tools(&mcp).await;
+    let text = listed["docs_write"]["description"].as_str().expect("a description");
+    for form in [
+        "`<!-- align=center -->`",
+        "`dropcap=3`",
+        "`placement=floatRight width=40 caption=\"…\"`",
+        "`banded=true caption=\"…\"`",
+        "`> [!INFO]`",
+        "`[words]{color=red}`",
+        "`{highlight=yellow}`",
+        "`{.underline}`",
+    ] {
+        assert!(text.contains(form), "the summary shows {form}");
+    }
+    let pid = project(&c).await;
+    let markdown = "<!-- align=center -->\n## Title\n\n<!-- dropcap=3 -->\nOnce upon a time.\n\n\
+        <!-- placement=floatRight width=40 caption=\"A dot\" -->\n![A dot](/uploads/dot.png)\n\n\
+        <!-- banded=true caption=\"Plans\" -->\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\n\
+        > [!INFO]\n> Note this.\n\n\
+        Some [red]{color=red}, [marked]{highlight=yellow} and [lined]{.underline} words.\n";
+    let made = write(&mcp, "create", json!({"project_id": pid, "title": "Forms", "markdown": markdown})).await;
+    let page = c.get(&format!("/docs/pages/{}", made["id"].as_str().expect("an id"))).await.json();
+    let blocks = page["content"]["content"].as_array().expect("blocks").clone();
+    let attrs = |i: usize| blocks[i]["attrs"].clone();
+    assert_eq!(attrs(0)["textAlign"], "center");
+    assert_eq!(attrs(1)["dropCap"], 3);
+    assert_eq!(
+        (&attrs(2)["placement"], &attrs(2)["widthPct"], &attrs(2)["caption"]),
+        (&json!("floatRight"), &json!(40), &json!("A dot"))
+    );
+    assert_eq!((&attrs(3)["banded"], &attrs(3)["caption"]), (&json!(true), &json!("Plans")));
+    // info is the callout's default kind: it is not written out
+    assert!(
+        blocks[4]["type"] == "callout" && [json!(null), json!("info")].contains(&attrs(4)["kind"]),
+        "{}",
+        blocks[4]
+    );
+    let words = blocks[5].to_string();
+    for mark in ["\"color\":\"red\"", "\"highlight\"", "\"underline\""] {
+        assert!(words.contains(mark), "{mark}: {words}");
+    }
+}
