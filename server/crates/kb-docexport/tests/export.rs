@@ -771,4 +771,6 @@ fn an_html_export_carries_its_video_and_files() {
     let pdf = pdf.index_html();
     assert!(!pdf.contains("<video"), "paper shows the poster");
     assert!(pdf.contains("<div class=\"keep-next\">\n<h2"), "the heading travels with the video");
+    // a scrolling box on paper makes Chromium add an empty last page when a kept group holds a table
+    assert!(pdf.contains(".table-wrap { overflow: visible; }"), "tables do not scroll on paper");
 }

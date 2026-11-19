@@ -1471,7 +1471,7 @@ fn print_css(setup: &PageSetup, header: &str, content_height: f64, sheet: Option
     }
     css.push_str(
         "body { background: none !important; }\n.page { max-width: none !important; padding: 0 !important; box-shadow: none !important; }\n\
-         .page.break { break-before: page; }\n.toc { break-after: page; }\nfigure, pre, .callout, img, tr { break-inside: avoid; }\n.keep-next { break-inside: avoid; }\n\
+         .page.break { break-before: page; }\n.toc { break-after: page; }\nfigure, pre, .callout, img, tr { break-inside: avoid; }\n.keep-next { break-inside: avoid; }\n.table-wrap { overflow: visible; }\n\
          h1, h2, h3, h4, h5, h6 { break-after: avoid; }\na { color: inherit; }\n",
     );
     if setup.size == PageSize::FitToContent {
