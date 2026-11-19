@@ -163,8 +163,9 @@ async fn diagram_png(source: &str, svg: Option<String>) -> Result<Drawn, ToolErr
     let svg = match svg {
         Some(svg) => svg,
         None => {
-            note = "Drawn by the board's plain renderer (boxes, ellipses, diamonds, cylinders, arrows, text); other \
-                    shapes show as boxes and the editor draws them exactly."
+            note = "The shapes were laid out by the board's plain renderer, not the draw.io editor (drawn_by is what \
+                    made the PNG of it): boxes, ellipses, diamonds, cylinders, arrows and text are right; other \
+                    shapes show as boxes, and the editor draws them exactly."
                 .to_string();
             diagram_model::render_svg(source).map_err(model_error)?
         }

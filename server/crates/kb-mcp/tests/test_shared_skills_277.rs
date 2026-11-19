@@ -32,18 +32,32 @@ const SHARED: [&str; 13] = [
 #[tokio::test]
 async fn test_an_outside_agent_reads_the_same_text_as_the_skill() {
     let s = common::start().await;
+    // without a name: the guides every ticket needs, and `more` names the ones read when the work needs them
     let guides = call(&s.mcp(), "docs_read", json!({"action": "guides"})).await;
+    let on_request = kb_mcp::operations::canvases::GUIDES_ON_REQUEST;
     let names: Vec<&str> = guides.as_object().expect("guides").keys().map(String::as_str).collect();
-    assert_eq!(names, SHARED);
+    let core: Vec<&str> = SHARED.iter().copied().filter(|n| !on_request.contains(n)).collect();
+    assert_eq!(names, [core.clone(), vec!["more"]].concat());
+    let more: Vec<&str> = guides["more"].as_object().expect("more").keys().map(String::as_str).collect();
+    assert_eq!(more, on_request);
+    assert!(guides["more"]["slides"].as_str().is_some_and(|d| !d.is_empty()), "what each is for");
+    // with a name: that guide, the same text as the skill
     let shared = kb_skills::shared_skills::guides();
-    for (name, text) in guides.as_object().expect("guides") {
+    for name in SHARED {
+        let one = call(&s.mcp(), "docs_read", json!({"action": "guides", "query": name})).await;
         let body = &shared.iter().find(|(n, _)| n == name).expect("a shared guide").1;
-        assert!(text.as_str().expect("text").starts_with(body.as_str()), "{name}");
+        assert!(one[name].as_str().expect("text").starts_with(body.as_str()), "{name}");
+        if core.contains(&name) {
+            assert_eq!(one[name], guides[name], "{name}");
+        }
     }
     // a guide with files says where they are, so an outside agent can run its scripts
     let root = s.db_path().parent().expect("the data folder").join("board-skills");
     let slides = root.join("skills").join("slides");
-    assert!(guides["slides"].as_str().expect("text").contains(slides.to_string_lossy().as_ref()));
+    let one = call(&s.mcp(), "docs_read", json!({"action": "guides", "query": "slides"})).await;
+    assert!(one["slides"].as_str().expect("text").contains(slides.to_string_lossy().as_ref()));
+    let unknown = common::call_err(&s.mcp(), "docs_read", json!({"action": "guides", "query": "cooking"})).await;
+    assert!(unknown.contains("No guide 'cooking'") && unknown.contains("slides"), "{unknown}");
 }
 
 #[tokio::test]

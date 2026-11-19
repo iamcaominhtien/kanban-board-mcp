@@ -429,7 +429,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"id\":\"<dg:2>\",\"label\":\"Request flow v3\",\"version\":3,\"markdown\":\"[Request flow v3](diagram:<dg:2>)\",\"model\":{\"page\":\"Page-1\",\"pages\":1,\"shapes\":[{\"id\":\"n0\",\"label\":\"Client\",\"shape\":\"rounded\",\"x\":40.0,\"y\":40.0,\"w\":120.0,\"h\":60.0,\"style\":\"rounded=1;fillColor=#E6F2EA;\"},{\"id\":\"n1\",\"label\":\"API gateway\",\"shape\":\"rounded\",\"x\":200.0,\"y\":40.0,\"w\":120.0,\"h\":60.0,\"style\":\"rounded=1;fillColor=#E6F2EA;\"},{\"id\":\"n2\",\"label\":\"Service\",\"shape\":\"rounded\",\"x\":360.0,\"y\":40.0,\"w\":120.0,\"h\":60.0,\"style\":\"rounded=1;fillColor=#E6F2EA;\"}],\"links\":[{\"id\":\"e0\",\"label\":\"yes\",\"from\":\"n0\",\"to\":\"n1\",\"style\":\"endArrow=classic;\"},{\"id\":\"e1\",\"label\":\"\",\"from\":\"n1\",\"to\":\"n2\",\"style\":\"endArrow=classic;\"}],\"problems\":[]}}"
+        "text": "{\"id\":\"<dg:2>\",\"label\":\"Request flow v3\",\"version\":1,\"markdown\":\"[Request flow v3](diagram:<dg:2>)\",\"model\":{\"page\":\"Page-1\",\"pages\":1,\"shapes\":[{\"id\":\"n0\",\"label\":\"Client\",\"shape\":\"rounded\",\"x\":40.0,\"y\":40.0,\"w\":120.0,\"h\":60.0,\"style\":\"rounded=1;fillColor=#E6F2EA;\"},{\"id\":\"n1\",\"label\":\"API gateway\",\"shape\":\"rounded\",\"x\":200.0,\"y\":40.0,\"w\":120.0,\"h\":60.0,\"style\":\"rounded=1;fillColor=#E6F2EA;\"},{\"id\":\"n2\",\"label\":\"Service\",\"shape\":\"rounded\",\"x\":360.0,\"y\":40.0,\"w\":120.0,\"h\":60.0,\"style\":\"rounded=1;fillColor=#E6F2EA;\"}],\"links\":[{\"id\":\"e0\",\"label\":\"yes\",\"from\":\"n0\",\"to\":\"n1\",\"style\":\"endArrow=classic;\"},{\"id\":\"e1\",\"label\":\"\",\"from\":\"n1\",\"to\":\"n2\",\"style\":\"endArrow=classic;\"}],\"problems\":[]},\"latest\":3}"
       }
     ],
     "isError": false
@@ -1011,7 +1011,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"path\":\"<files>/pic/diagram.png\",\"width\":320,\"height\":100,\"drawn_by\":\"browser\",\"note\":\"Drawn by the board's plain renderer (boxes, ellipses, diamonds, cylinders, arrows, text); other shapes show as boxes and the editor draws them exactly.\",\"markdown\":\"![Request flow v3](/uploads/diagram-<random>.png)\",\"look\":\"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"}"
+        "text": "{\"path\":\"<files>/pic/diagram.png\",\"width\":320,\"height\":100,\"drawn_by\":\"browser\",\"note\":\"The shapes were laid out by the board's plain renderer, not the draw.io editor (drawn_by is what made the PNG of it): boxes, ellipses, diamonds, cylinders, arrows and text are right; other shapes show as boxes, and the editor draws them exactly.\",\"markdown\":\"![Request flow v3](/uploads/diagram-<random>.png)\",\"look\":\"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"}"
       }
     ],
     "isError": false
@@ -1024,7 +1024,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"path\":\"<files>/pic/v1/Request-flow-v3.png\",\"width\":480,\"height\":100,\"drawn_by\":\"browser\",\"note\":\"Drawn by the board's plain renderer (boxes, ellipses, diamonds, cylinders, arrows, text); other shapes show as boxes and the editor draws them exactly.\",\"markdown\":\"![Request flow v3](/uploads/Request-flow-v3-<random>.png)\",\"look\":\"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"}"
+        "text": "{\"path\":\"<files>/pic/v1/Request-flow-v3.png\",\"width\":480,\"height\":100,\"drawn_by\":\"browser\",\"note\":\"The shapes were laid out by the board's plain renderer, not the draw.io editor (drawn_by is what made the PNG of it): boxes, ellipses, diamonds, cylinders, arrows and text are right; other shapes show as boxes, and the editor draws them exactly.\",\"markdown\":\"![Request flow v3](/uploads/Request-flow-v3-<random>.png)\",\"look\":\"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"}"
       }
     ],
     "isError": false
@@ -1072,7 +1072,7 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"path\":\"<files>/flow2.png\",\"width\":640,\"height\":100,\"drawn_by\":\"browser\",\"note\":\"Drawn by the board's plain renderer (boxes, ellipses, diamonds, cylinders, arrows, text); other shapes show as boxes and the editor draws them exactly.\",\"markdown\":\"![flow2](/uploads/flow2-<random>.png)\",\"look\":\"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"}"
+        "text": "{\"path\":\"<files>/flow2.png\",\"width\":640,\"height\":100,\"drawn_by\":\"browser\",\"note\":\"The shapes were laid out by the board's plain renderer, not the draw.io editor (drawn_by is what made the PNG of it): boxes, ellipses, diamonds, cylinders, arrows and text are right; other shapes show as boxes, and the editor draws them exactly.\",\"markdown\":\"![flow2](/uploads/flow2-<random>.png)\",\"look\":\"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"}"
       }
     ],
     "isError": false

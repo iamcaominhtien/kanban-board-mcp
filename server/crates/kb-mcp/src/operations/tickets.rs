@@ -154,7 +154,8 @@ fn entry_time(entry: &Value) -> Option<chrono::DateTime<chrono::Utc>> {
 pub const DEFAULT_ACTIVITY_ENTRIES: usize = 10;
 const HOW_TO_WORK: &str = "Before you work on this ticket, read docs_read(action='ticket_guide') (criteria, \
      sub-tickets, work log, comments, evidence, where files go) and docs_read(action='guides') once: how to work a \
-     ticket here, show proof, ask, brainstorm, check your work as its user would, and make office files.";
+     ticket here, show proof, ask, brainstorm, check your work as its user would (its `more` names the guides to \
+     read by query when the work needs them: decks, office files, demo videos).";
 const ACTIVITY_TEXT_CLIP: usize = 300;
 
 /// Description edits store the whole old and new text; for a quick look the start of each is enough.

@@ -229,7 +229,19 @@ pub const DOCS_READ_OPS: &[(&str, Op)] = &[
             &["path", "diagram_id", "version", "canvas_id", "board_id", "sketch_id", "width"],
         ),
     ),
-    ("guides", Op::new(|_| Box::pin(async move { ops::shared_guides().await }), &[], &[])),
+    (
+        "guides",
+        Op::new(
+            |a| {
+                Box::pin(async move {
+                    let query = arg_str(&a, "query");
+                    ops::shared_guides(query.as_deref()).await
+                })
+            },
+            &[],
+            &["query"],
+        ),
+    ),
     (
         "role_guide",
         Op::new(

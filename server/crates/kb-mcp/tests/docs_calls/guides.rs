@@ -16,7 +16,7 @@ fn calls() -> Vec<Call> {
         dr("ticket_guide", "ticket_guide", json!({})),
         dr("ticket_guide: a parameter it does not use", "ticket_guide", json!({"query": "dev"})),
         dr("guides", "guides", json!({})),
-        dr("guides: a parameter it does not use", "guides", json!({"query": "dev"})),
+        dr("guides: a name it does not have", "guides", json!({"query": "dev"})),
         dr("role_guide: the roles", "role_guide", json!({})),
         dr("role_guide: a blank query", "role_guide", json!({"query": "   "})),
         dr("role_guide: dev", "role_guide", json!({"query": "dev"})),

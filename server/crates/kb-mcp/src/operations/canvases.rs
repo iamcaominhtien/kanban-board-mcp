@@ -166,23 +166,51 @@ pub async fn docs_guide(section: Option<&str>) -> ToolResult {
     }
 }
 
-/// The board's shared guides for any role (in Claude Code they are its skills): {name: text} (issue #277).
-pub async fn shared_guides() -> ToolResult {
-    let mut out: Map<String, Value> =
-        kb_skills::shared_skills::guides().into_iter().map(|(name, text)| (name, Value::String(text))).collect();
+/// The shared guides read only when the work needs them (a deck, an office file, a demo video, a page's comment
+/// threads): `guides` without `query` lists them in `more` instead of giving their text.
+pub const GUIDES_ON_REQUEST: [&str; 4] = ["docs-comment-threads", "office-files", "slides", "demo-video"];
+
+/// The board's shared guides for any role (in Claude Code they are its skills; issue #277). Without `query`: the
+/// guides every ticket needs, `{name: text}`, and `more`: `{name: what it is for}` for the ones read on request.
+/// With `query` (a guide's name): `{name: text}` of that one.
+///
+/// # Errors
+/// An unknown name (the answer lists the names).
+pub async fn shared_guides(query: Option<&str>) -> ToolResult {
+    let mut texts: Vec<(String, String)> = kb_skills::shared_skills::guides();
     for (name, _files) in kb_skills::shared_skills::extra_files() {
         // the scripts and themes a guide refers to are files: say where they are on this machine
-        let mut text = out
-            .get(&name)
-            .and_then(Value::as_str)
-            .map(str::to_string)
-            .ok_or_else(|| ToolError::Other(kb_base::pytext::repr(&name)))?;
-        text.push_str(&format!(
+        let text =
+            texts.iter_mut().find(|(n, _)| *n == name).ok_or_else(|| ToolError::Other(kb_base::pytext::repr(&name)))?;
+        text.1.push_str(&format!(
             "\n\nThis guide's folder (scripts/, themes/, examples/): {}\n",
             hooks::skill_dir(&name)
         ));
-        out.insert(name, Value::String(text));
     }
+    if let Some(want) = query.map(str::trim).filter(|q| !q.is_empty()) {
+        return match texts.into_iter().find(|(n, _)| n == want) {
+            Some((name, text)) => Ok(json!({ name: text })),
+            None => Err(ToolError::Value(format!(
+                "No guide '{want}'. The guides: {}.",
+                kb_skills::shared_skills::guides().into_iter().map(|(n, _)| n).collect::<Vec<_>>().join(", ")
+            ))),
+        };
+    }
+    let mut out = Map::new();
+    let mut more = Map::new();
+    for (name, text) in texts {
+        if GUIDES_ON_REQUEST.contains(&name.as_str()) {
+            let what = kb_skills::shared_skills::SKILLS
+                .iter()
+                .find(|(n, _, _)| *n == name)
+                .map(|(_, desc, _)| desc.clone())
+                .unwrap_or_default();
+            more.insert(name, json!(what));
+        } else {
+            out.insert(name, Value::String(text));
+        }
+    }
+    out.insert("more".into(), Value::Object(more));
     Ok(Value::Object(out))
 }
 
@@ -390,7 +418,27 @@ pub async fn read_canvas(canvas_id: &str, board_id: Option<&str>, path: Option<&
             shown.insert("files".into(), Value::Array(inline));
             shown.insert("truncated".into(), json!(total > MAX_INLINE));
         }
-        result.insert("board".into(), Value::Object(shown));
+        // one frame read for its source: the canvas around it is not repeated (read it without board_id)
+        let mut one = Map::new();
+        for key in ["id", "title", "rev", "version"] {
+            one.insert(key.into(), result.get(key).cloned().unwrap_or(Value::Null));
+        }
+        let of_board = |key: &str| {
+            Value::Array(
+                result
+                    .get(key)
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .filter(|x| x["board_id"] == json!(board_id))
+                    .cloned()
+                    .collect(),
+            )
+        };
+        one.insert("comments".into(), of_board("comments"));
+        one.insert("locks".into(), of_board("locks"));
+        one.insert("board".into(), Value::Object(shown));
+        return Ok(Value::Object(one));
     }
     Ok(Value::Object(result))
 }

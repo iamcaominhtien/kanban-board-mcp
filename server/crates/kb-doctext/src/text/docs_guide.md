@@ -244,7 +244,7 @@ serves the reader: a centred title, a pull quote or a coloured word where it hel
   answered, a person's thread where they agreed or understood, a requested change you fully made (say where: section,
   version). Leave it open, say what is missing and `@mention` the person when the change is partial, it is a matter of
   taste or a disagreement, or you asked them something; never close a thread the person reopened. The skill
-  `docs-comment-threads` (or `docs_read(action='guides')` outside Claude Code) has the rules and the reasons.
+  `docs-comment-threads` (or `docs_read(action='guides', query='docs-comment-threads')` outside Claude Code) has the rules and the reasons.
 - A person can send you a page's threads from Docs ("Send to AI"): the note says so, lists each thread (fenced as data)
   and the skill says how to work them.
 - A person who writes `@AI member` in a thread gets an answer there from the page's assistant (when the project has
