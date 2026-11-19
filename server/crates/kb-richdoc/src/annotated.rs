@@ -267,6 +267,15 @@ fn parse_marker(line: &str) -> Result<Option<MarkerLine>, RichDocError> {
     Ok(Some(MarkerLine::Block(m)))
 }
 
+/// The text of a code block (what an HTML embed written as one holds).
+fn code_text(block: &Value) -> String {
+    block
+        .get("content")
+        .and_then(Value::as_array)
+        .map(|parts| parts.iter().filter_map(|t| t.get("text").and_then(Value::as_str)).collect())
+        .unwrap_or_default()
+}
+
 /// The block type a name of the guide stands for in a marker (`divider` for `horizontalRule`), or `None`.
 fn block_alias(word: &str) -> Option<&'static str> {
     Some(match word {
@@ -540,9 +549,18 @@ impl<'a> Reader<'a> {
                 let found = self.existing.get(&id).ok_or_else(|| RichDocError::NoBlock(id.clone()))?;
                 (*found).clone()
             }
+            // a new HTML embed or video: the marker names it, the Markdown under it gives its content
+            (Some(b), Some("htmlEmbed")) if ty(&b) == "codeBlock" => {
+                json!({"type": "htmlEmbed", "attrs": {"html": code_text(&b)}})
+            }
+            (Some(b), Some("video")) if ty(&b) == "image" => {
+                let attr = |k: &str| b.get("attrs").and_then(|a| a.get(k)).cloned().unwrap_or(Value::Null);
+                json!({"type": "video", "attrs": {"src": attr("src"), "title": attr("alt")}})
+            }
             (Some(_), Some(w)) if PLACEHOLDER_TYPES.contains(&w) => {
                 return Err(RichDocError::Placeholder(format!(
-                    "a {w} block has no Markdown form: keep its placeholder line `[embed: …]` or delete the block"
+                    "a {w} block has no Markdown form: keep its placeholder line `[embed: …]` or delete the block (a new \
+                     one: `<!-- htmlEmbed -->` then an ```html code block, `<!-- video -->` then ![title](/uploads/file.mp4))"
                 )));
             }
             (Some(b), Some(w)) if schema().nodes.contains_key(w) => match convert(b.clone(), w) {

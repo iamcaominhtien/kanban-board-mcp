@@ -300,3 +300,27 @@ fn a_marker_may_name_the_block_it_formats() {
     assert_eq!(blocks[1]["attrs"]["banded"], true);
     assert_eq!(blocks[2]["attrs"]["placement"], "floatRight");
 }
+
+/// An agent adds an HTML embed or a video: the marker names the block, the Markdown under it gives its content (a
+/// code block for the HTML, a picture line for the video's file).
+#[test]
+fn a_marker_makes_an_html_embed_or_a_video() {
+    let doc = kb_richdoc::annotated_to_doc(
+        "<!-- htmlEmbed title=\"Khối lập phương\" height=420 scripts=true -->\n```html\n<canvas id=\"c\"></canvas>\n<script>draw()</script>\n```\n\n<!-- video caption=\"Teaser\" loop=true muted=true -->\n![Teaser 30 giây](/uploads/teaser.mp4)\n\nAfter.",
+        None,
+        &mut kb_richdoc::SeqIds(1),
+    )
+    .expect("read");
+    let blocks = doc["content"].as_array().expect("blocks");
+    assert_eq!(blocks[0]["type"], "htmlEmbed", "{blocks:?}");
+    assert_eq!(blocks[0]["attrs"]["html"], "<canvas id=\"c\"></canvas>\n<script>draw()</script>");
+    assert_eq!((&blocks[0]["attrs"]["title"], &blocks[0]["attrs"]["height"]), (&json!("Khối lập phương"), &json!(420)));
+    assert_eq!(blocks[0]["attrs"]["runScripts"], true);
+    assert_eq!(blocks[1]["type"], "video");
+    assert_eq!(blocks[1]["attrs"]["src"], "/uploads/teaser.mp4");
+    assert_eq!((&blocks[1]["attrs"]["caption"], &blocks[1]["attrs"]["loop"]), (&json!("Teaser"), &json!(true)));
+    assert_eq!(blocks[2]["type"], "paragraph");
+    // read back, they are placeholders, kept by id
+    let back = kb_richdoc::doc_to_annotated(&doc);
+    assert!(back.contains("[embed: HTML embed · Khối lập phương]") && back.contains("video"), "{back}");
+}

@@ -630,6 +630,20 @@ impl<'a> Writer<'a> {
                 }
             }
             "htmlEmbed" => {
+                let id = node.get("attrs").and_then(|a| a.get("blockId")).and_then(Value::as_str).unwrap_or("");
+                let png = if id.is_empty() { None } else { self.assets.drawing_png(DrawingKind::Embed, id) };
+                if let Some(p) = png.and_then(|b| self.picture_bytes(&b, None, None, AlignmentType::Center)) {
+                    out.push(Child::P(p));
+                    if let Some(t) = attr_str(node, "title") {
+                        out.push(Child::P(
+                            Paragraph::new()
+                                .style("Caption")
+                                .align(AlignmentType::Center)
+                                .add_run(Run::new().add_text(t)),
+                        ));
+                    }
+                    return;
+                }
                 let note = match attr_str(node, "title") {
                     Some(t) => format!("HTML embed: {t} (open the page to run it)"),
                     None => "HTML embed (open the page to run it)".to_string(),

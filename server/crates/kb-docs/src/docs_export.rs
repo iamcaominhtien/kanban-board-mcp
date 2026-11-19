@@ -268,10 +268,13 @@ fn drawing_key(kind: DrawingKind, id: &str) -> String {
     format!("{kind:?}:{id}")
 }
 
-/// The drawings a document shows, in order: their kind, id and node.
+/// The drawings and HTML embeds a document shows, in order: their kind and node.
 fn drawings_in<'a>(node: &'a Value, out: &mut Vec<(DrawingKind, &'a Value)>) {
-    if let Some(kind) = node.get("type").and_then(Value::as_str).and_then(DrawingKind::of_node_type) {
+    let ty = node.get("type").and_then(Value::as_str).unwrap_or_default();
+    if let Some(kind) = DrawingKind::of_node_type(ty) {
         out.push((kind, node));
+    } else if ty == "htmlEmbed" {
+        out.push((DrawingKind::Embed, node));
     }
     for child in node.get("content").and_then(Value::as_array).into_iter().flatten() {
         drawings_in(child, out);
@@ -290,7 +293,8 @@ async fn drawing_pictures(pages: &[ExportPage]) -> HashMap<String, Vec<u8>> {
     let mut out = HashMap::new();
     for (kind, node) in found {
         let attr = |k: &str| node.get("attrs").and_then(|a| a.get(k)).and_then(Value::as_str).unwrap_or_default();
-        let id = attr("id");
+        // an embed is known by its block id, a drawing by its own
+        let id = if kind == DrawingKind::Embed { attr("blockId") } else { attr("id") };
         let key = drawing_key(kind, id);
         if id.is_empty() || out.contains_key(&key) {
             continue;
@@ -302,12 +306,23 @@ async fn drawing_pictures(pages: &[ExportPage]) -> HashMap<String, Vec<u8>> {
                 let page = Some(attr("page")).filter(|p| !p.is_empty());
                 kb_draw::canvases::boards::overview_png(&session, id, page).await.ok()
             }
+            DrawingKind::Embed => embed_picture(attr("html")).await,
         };
         if let Some(png) = png.filter(|p| !p.is_empty()) {
             out.insert(key, png);
         }
     }
     out
+}
+
+/// An HTML embed as it first draws, as tall as what it draws (a picture for paper, where it cannot run).
+async fn embed_picture(html: &str) -> Option<Vec<u8>> {
+    if html.trim().is_empty() {
+        return None;
+    }
+    let dir = tempfile::Builder::new().prefix("kanban-embed-").tempdir().ok()?;
+    std::fs::write(dir.path().join("index.html"), html).ok()?;
+    kb_draw::screenshots::content_png(dir.path(), "index.html", 1000).await
 }
 
 /// A diagram's latest version as a PNG: its saved preview when the draw.io editor or an agent drew it, else the

@@ -402,6 +402,39 @@ async fn a_book_export_draws_its_diagrams_and_speaks_the_book_s_language() {
     assert!(refused.contains("print takes paper (a4, a3, letter") && refused.contains("paper=\"a2\""), "{refused}");
 }
 
+/// An agent adds an HTML embed (a demo with a script) and a video, written as the guide says; an HTML export runs
+/// the embed in a sandboxed frame and a PDF shows a picture of it.
+#[tokio::test]
+async fn an_agent_embeds_html_and_a_video_and_exports_them() {
+    if !skip_unless_available("an_agent_embeds_html_and_a_video_and_exports_them") {
+        return;
+    }
+    let s = Server::start().await;
+    let (c, mcp) = (s.client(), s.mcp());
+    let pid = project(&c).await;
+    let md = "Intro.\n\n<!-- htmlEmbed title=\"Orbit demo\" height=300 scripts=true -->\n```html\n<div id=\"o\" style=\"width:200px;height:120px;background:#2e6f40\"></div><script>document.getElementById('o').textContent='ready'</script>\n```\n\n<!-- video caption=\"Teaser\" -->\n![Teaser](/uploads/teaser.mp4)\n\nEnd.";
+    let made = write(&mcp, "create", json!({"project_id": pid, "title": "Embeds", "markdown": md})).await;
+    let id = made["id"].clone();
+    let got = read(&mcp, "get", json!({"page_id": id})).await;
+    let text = got["markdown"].as_str().expect("markdown");
+    assert!(text.contains("[embed: HTML embed · Orbit demo]") && text.contains("[embed: video"), "{text}");
+    let dir = tempfile::Builder::new().prefix("docs-embed").tempdir().expect("a folder");
+    let html_path = dir.path().join("embeds.html");
+    let out =
+        read(&mcp, "export", json!({"page_id": id, "format": "html", "path": html_path.to_str().expect("utf-8")}))
+            .await;
+    let html = std::fs::read_to_string(out["path"].as_str().expect("a path")).expect("the file");
+    assert!(
+        html.contains("<iframe sandbox=\"allow-scripts\" srcdoc=") && html.contains("getElementById"),
+        "runs in a frame"
+    );
+    let pdf_path = dir.path().join("embeds.pdf");
+    let out =
+        read(&mcp, "export", json!({"page_id": id, "format": "pdf", "path": pdf_path.to_str().expect("utf-8")})).await;
+    let bytes = std::fs::read(out["path"].as_str().expect("a path")).expect("the file");
+    assert!(String::from_utf8_lossy(&bytes).contains("/Subtype /Image"), "a picture of the embed on paper");
+}
+
 #[tokio::test]
 async fn history_pictures_and_the_guide_are_short() {
     if !skip_unless_available("history_pictures_and_the_guide_are_short") {

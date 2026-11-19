@@ -460,6 +460,48 @@ impl<'a> HtmlRenderer<'a> {
         }
     }
 
+    /// An HTML embed: running in a sandboxed frame in an HTML file (scripts only when the block allows them, never
+    /// with access to the file around it), a picture of it on paper, else a line that says to open the page.
+    fn html_embed(&mut self, node: &Value, out: &mut String) {
+        let title = attr_str(node, "title");
+        let html = attr_str(node, "html").unwrap_or("");
+        if self.opts.print.is_none() && !html.is_empty() {
+            let sandbox = if attr_bool(node, "runScripts") { "allow-scripts" } else { "" };
+            let height = attr_f64(node, "height").filter(|h| *h > 0.0).unwrap_or(400.0).clamp(80.0, 4000.0).round();
+            let _ = write!(
+                out,
+                "<figure class=\"html-embed\"><iframe sandbox=\"{sandbox}\" srcdoc=\"{}\" title=\"{}\" loading=\"lazy\" \
+                 style=\"width:100%;height:{height}px;border:0;border-radius:8px\"></iframe>",
+                esc(html),
+                esc(title.unwrap_or("HTML embed"))
+            );
+            if let Some(t) = title {
+                let _ = write!(out, "<figcaption>{}</figcaption>", esc(t));
+            }
+            out.push_str("</figure>\n");
+            return;
+        }
+        let id = node.get("attrs").and_then(|a| a.get("blockId")).and_then(Value::as_str).unwrap_or("");
+        if let Some(url) = Some(id).filter(|i| !i.is_empty()).and_then(|i| self.drawing_url(DrawingKind::Embed, i)) {
+            let _ = write!(
+                out,
+                "<figure class=\"drawing\"><img src=\"{}\" alt=\"{}\">",
+                esc(&url),
+                esc(title.unwrap_or(""))
+            );
+            if let Some(t) = title {
+                let _ = write!(out, "<figcaption>{}</figcaption>", esc(t));
+            }
+            out.push_str("</figure>\n");
+            return;
+        }
+        let note = match title {
+            Some(t) => format!("HTML embed: {t} (open the page to run it)"),
+            None => "HTML embed (open the page to run it)".to_string(),
+        };
+        let _ = writeln!(out, "<p class=\"embed-note\">{}</p>", esc(&note));
+    }
+
     fn drawing_url(&mut self, kind: DrawingKind, id: &str) -> Option<String> {
         let key = format!("drawing:{kind:?}:{id}");
         if let Some(hit) = self.cache.get(&key) {
@@ -671,13 +713,7 @@ impl<'a> HtmlRenderer<'a> {
             }
             "diagram" | "sketch" | "canvas" => self.drawing(node, out),
             "video" => self.video(node, out),
-            "htmlEmbed" => {
-                let note = match attr_str(node, "title") {
-                    Some(t) => format!("HTML embed: {t} (open the page to run it)"),
-                    None => "HTML embed (open the page to run it)".to_string(),
-                };
-                let _ = writeln!(out, "<p class=\"embed-note\">{}</p>", esc(&note));
-            }
+            "htmlEmbed" => self.html_embed(node, out),
             "fileCard" => {
                 let src = attr_str(node, "src").unwrap_or("");
                 let name = attr_str(node, "name").unwrap_or(src);

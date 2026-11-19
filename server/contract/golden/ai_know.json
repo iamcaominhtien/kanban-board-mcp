@@ -1736,9 +1736,9 @@
    [
     "docs-pages",
     {
-     "sha256": "8d25470b3486170177380972b2f5c8edadcc0155917252dfde3d7af7cac58a24",
-     "chars": 23381,
-     "bytes": 23414
+     "sha256": "8cddd64268c243afe0a238dc112959bd9cfd8b80cbec33ea188b563aab346564",
+     "chars": 23863,
+     "bytes": 23896
     }
    ],
    [
@@ -2309,8 +2309,8 @@
     ],
     [
      "skills/docs-pages/SKILL.md",
-     "8d25470b3486170177380972b2f5c8edadcc0155917252dfde3d7af7cac58a24",
-     23414
+     "8cddd64268c243afe0a238dc112959bd9cfd8b80cbec33ea188b563aab346564",
+     23896
     ],
     [
      "skills/drawio-diagrams/SKILL.md",
@@ -3297,8 +3297,8 @@
      ],
      [
       "skills/docs-pages/SKILL.md",
-      "8d25470b3486170177380972b2f5c8edadcc0155917252dfde3d7af7cac58a24",
-      23414
+      "8cddd64268c243afe0a238dc112959bd9cfd8b80cbec33ea188b563aab346564",
+      23896
      ],
      [
       "skills/role-ba/SKILL.md",

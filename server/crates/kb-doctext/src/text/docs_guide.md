@@ -141,7 +141,12 @@ jakarta, lora, source-serif, merriweather, playfair, inter, jetbrains-mono, cave
 rarely a block that would not read back exactly), with their id: `<!-- #b-91c2de video -->` and the line
 `[embed: video · Release demo]`. Keep both lines as they are to keep the block; `docs_read(action='block')` shows it
 in full. You never edit inside one, nor inside a diagram, sketch or canvas: replace, add or remove the whole block. A
-placeholder is removed only on purpose, with `block_id` and `mode='delete'`; an edit that drops one is refused.
+placeholder is removed only on purpose, with `block_id` and `mode='delete'`; an edit that drops one is refused. A
+new HTML embed (a demo, a chart, an animation; it runs in a sandbox with no access to the board) is a marker line
+that names it, `<!-- htmlEmbed title="Orbit demo" height=480 scripts=true -->`, then the HTML as an `html` code
+block; a new video is `<!-- video caption="The release in 30 seconds" -->`, then the uploaded file as a picture
+line, `![Release demo](/uploads/release-demo.mp4)`. An export runs the embed in an HTML file and shows a picture of
+it in a PDF or Word file.
 
 A post with a centred title, a picture the text wraps around and a pull quote:
 

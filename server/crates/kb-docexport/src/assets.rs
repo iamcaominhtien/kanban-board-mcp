@@ -11,7 +11,7 @@ pub struct Asset {
     pub mime: String,
 }
 
-/// The three drawing blocks whose rendered PNG an export can show.
+/// The blocks whose rendered PNG an export can show: the three drawings, and an HTML embed (as it first draws).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DrawingKind {
     /// A draw.io diagram (`diagram` block, id `dg_…`).
@@ -20,6 +20,8 @@ pub enum DrawingKind {
     Sketch,
     /// A canvas (`canvas` block, id `cv_…`).
     Canvas,
+    /// An HTML embed (`htmlEmbed` block, by its block id `b-…`): a picture of the page it shows, for paper.
+    Embed,
 }
 
 impl DrawingKind {
@@ -39,6 +41,7 @@ impl DrawingKind {
             DrawingKind::Diagram => "draw.io diagram",
             DrawingKind::Sketch => "sketch",
             DrawingKind::Canvas => "canvas",
+            DrawingKind::Embed => "HTML embed",
         }
     }
 
@@ -48,6 +51,8 @@ impl DrawingKind {
             DrawingKind::Diagram => format!("/diagrams/{id}/svg"),
             DrawingKind::Sketch => format!("/sketches/{id}/png"),
             DrawingKind::Canvas => format!("/canvases/{id}/overview.png"),
+            // an embed lives in its page; there is no address of its own
+            DrawingKind::Embed => String::new(),
         }
     }
 }
