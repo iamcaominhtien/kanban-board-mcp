@@ -626,3 +626,23 @@ fn a_picture_border_in_docx_and_named_colours_in_html() {
         {"type":"image","attrs":{"src":"/uploads/a.png","border":"medium","borderColor":"blue"}}]}));
     assert!(html.contains("border:2px solid #1F5A8E;"));
 }
+
+/// A page that hides its title (`showTitle: false`, a newspaper whose nameplate is in its text) has none in the
+/// export either, in HTML, PDF and Word.
+#[test]
+fn a_hidden_title_is_left_out() {
+    let mut p = page(
+        "Báo Sáng - số 12",
+        json!({"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Măng-sét"}]}]}),
+    );
+    p.settings = json!({"showTitle": false});
+    let pages = [p];
+    let html = render_html(&pages, &TestAssets, &HtmlOptions::default());
+    let html = html.index_html();
+    assert!(!html.contains("<h1 class=\"page-title\">") && html.contains("Măng-sét"), "{html}");
+    let docx = render_docx(&pages, &TestAssets, &DocxOptions::default());
+    let mut zip = zip::ZipArchive::new(std::io::Cursor::new(docx)).expect("a docx is a zip");
+    let mut xml = String::new();
+    std::io::Read::read_to_string(&mut zip.by_name("word/document.xml").expect("its text"), &mut xml).expect("read");
+    assert!(!xml.contains("Báo Sáng - số 12") && xml.contains("Măng-sét"), "the title is left out of Word");
+}

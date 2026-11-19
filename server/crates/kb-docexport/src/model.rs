@@ -431,6 +431,9 @@ pub(crate) struct Settings {
     pub eyebrow: Option<String>,
     /// Whether the byline (author · date) is shown.
     pub show_byline: bool,
+    /// Whether the title is shown (`showTitle`: a page that sets its own title in its text, like a newspaper's
+    /// nameplate, hides it).
+    pub show_title: bool,
 }
 
 impl Settings {
@@ -482,6 +485,7 @@ impl Settings {
             title_center: s("titleAlign") == Some("center"),
             eyebrow: s("eyebrow").map(str::to_string),
             show_byline: v.get("showByline").and_then(Value::as_bool).unwrap_or(true),
+            show_title: v.get("showTitle").and_then(Value::as_bool).unwrap_or(true),
         }
     }
 }

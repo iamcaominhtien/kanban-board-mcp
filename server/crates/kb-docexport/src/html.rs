@@ -414,7 +414,7 @@ impl<'a> HtmlRenderer<'a> {
         if let Some(e) = &s.eyebrow {
             let _ = writeln!(out, "<p class=\"eyebrow\">{}</p>", esc(e));
         }
-        if !title_done {
+        if !title_done && s.show_title {
             let _ = writeln!(out, "<h1 class=\"page-title\">{}</h1>", esc(&page.title));
         }
         if s.show_byline {

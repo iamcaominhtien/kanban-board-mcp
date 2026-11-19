@@ -425,11 +425,17 @@ impl<'a> Writer<'a> {
                     self.out.push(Child::P(p));
                     eyebrow_or_title = false;
                 }
-                let mut title = Paragraph::new().style("Title").align(align).add_run(Run::new().add_text(&page.title));
-                if index > 0 && eyebrow_or_title {
-                    title = title.page_break_before(true);
+                if s.show_title {
+                    let mut title =
+                        Paragraph::new().style("Title").align(align).add_run(Run::new().add_text(&page.title));
+                    if index > 0 && eyebrow_or_title {
+                        title = title.page_break_before(true);
+                    }
+                    self.out.push(Child::P(title));
+                } else if index > 0 && eyebrow_or_title {
+                    // the title started the page: without it, the page starts with an empty line
+                    self.out.push(Child::P(Paragraph::new().page_break_before(true)));
                 }
-                self.out.push(Child::P(title));
                 if s.show_byline {
                     let line: Vec<&str> =
                         [page.author.as_deref(), page.updated_at.as_deref()].into_iter().flatten().collect();
