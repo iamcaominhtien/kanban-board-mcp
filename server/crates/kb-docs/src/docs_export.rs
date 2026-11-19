@@ -321,7 +321,11 @@ async fn drawing_pictures(pages: &[ExportPage], equations: Equations) -> HashMap
             DrawingKind::Sketch => std::fs::read(kb_draw::sketches::png_path(id)).ok(),
             DrawingKind::Canvas => {
                 let page = Some(attr("page")).filter(|p| !p.is_empty());
-                kb_draw::canvases::boards::overview_png(&session, id, page).await.ok()
+                // the frames as they look; the wireframe of the layout where no browser can draw them
+                match kb_draw::canvases::boards::plane_png(&session, id, page, 1400).await {
+                    Ok(Some(png)) => Some(png),
+                    _ => kb_draw::canvases::boards::overview_png(&session, id, page).await.ok(),
+                }
             }
             DrawingKind::Embed => embed_picture(attr("html")).await,
             DrawingKind::Math => match kb_docexport::equation_page(id) {

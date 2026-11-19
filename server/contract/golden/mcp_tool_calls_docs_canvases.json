@@ -698,13 +698,13 @@
     "content": [
       {
         "type": "text",
-        "text": "{\"path\":\"<pictures>/Mockups.png\",\"width\":1200,\"height\":271,\"drawn_by\":\"wireframe\",\"note\":\"The page's layout only: frames as boxes, notes as squares. Pass board_id for a real picture of a frame.\",\"markdown\":\"![Mockups](/uploads/Mockups-<random>.png)\",\"look\":\"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"}"
+        "text": "{\"path\":\"<pictures>/Mockups.png\",\"width\":1600,\"height\":331,\"drawn_by\":\"browser\",\"markdown\":\"![Mockups](/uploads/Mockups-<random>.png)\",\"look\":\"Open the PNG and check it before you hand it in; to show it, put `markdown` in a ticket comment or Docs page.\"}"
       }
     ],
     "isError": false
   },
   "picture: the plane's layout [file 1]": {
-    "sha256": "8a0643d5d56f09b1ae942d4b60c243ec892256c54929f963ad91994481499828",
+    "sha256": "<not compared>",
     "name": "Mockups.png"
   },
   "picture: a frame": {

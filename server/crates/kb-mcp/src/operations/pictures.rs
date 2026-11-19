@@ -180,6 +180,43 @@ async fn diagram_png(source: &str, svg: Option<String>) -> Result<Drawn, ToolErr
     }
 }
 
+/// A page to draw, read as UTF-8: a file that does not say its charset (no `<meta charset>`, as agents often
+/// write a quick chart) is drawn from a copy beside it that says so, removed afterwards; the browser read it as
+/// Latin-1 and drew Vietnamese as mojibake.
+struct Utf8Page {
+    entry: String,
+    copy: Option<PathBuf>,
+}
+
+impl Utf8Page {
+    fn of(folder: &Path, entry: &str) -> Self {
+        let plain = Self { entry: entry.to_string(), copy: None };
+        let Ok(text) = std::fs::read_to_string(folder.join(entry)) else { return plain };
+        let head: String = text.chars().take(2048).collect::<String>().to_lowercase();
+        if head.contains("charset") {
+            return plain;
+        }
+        let name = format!(".kanban-utf8-{entry}");
+        let copy = folder.join(&name);
+        match std::fs::write(&copy, format!("<meta charset=\"utf-8\">{text}")) {
+            Ok(()) => Self { entry: name, copy: Some(copy) },
+            Err(_) => plain,
+        }
+    }
+
+    fn entry(&self) -> &str {
+        &self.entry
+    }
+}
+
+impl Drop for Utf8Page {
+    fn drop(&mut self) {
+        if let Some(copy) = &self.copy {
+            let _ = std::fs::remove_file(copy);
+        }
+    }
+}
+
 /// `_frame_png(folder, entry, width)`.
 async fn frame_png(folder: &Path, entry: &str, width: i64) -> Result<Drawn, ToolError> {
     if let Some(png) = screenshots::page_png(folder, entry, width, None).await {
@@ -231,13 +268,16 @@ async fn local(src: &Path, width: Option<i64>) -> Result<(Vec<u8>, &'static str,
         // a frame of a canvas is a screen (at least one screen tall); any other page is a drawing, as tall as it is
         ".html" | ".htm" if !parent.join("frame.json").is_file() => {
             let width = width.unwrap_or_else(|| frame_width(parent));
-            match screenshots::content_png(parent, &file_name, width).await {
+            let page = Utf8Page::of(parent, &file_name);
+            let drawn = match screenshots::content_png(parent, page.entry(), width).await {
                 Some(png) => Ok((png, "browser", String::new(), name)),
                 None => {
-                    let (png, by, note) = frame_png(parent, &file_name, width).await?;
+                    let (png, by, note) = frame_png(parent, page.entry(), width).await?;
                     Ok((png, by, note, name))
                 }
-            }
+            };
+            drop(page);
+            drawn
         }
         ".html" | ".htm" => {
             let (png, by, note) = frame_png(parent, &file_name, width.unwrap_or_else(|| frame_width(parent))).await?;
@@ -329,12 +369,22 @@ pub async fn picture(args: PictureArgs) -> ToolResult {
         may_write = check_run(c.project_id.as_deref(), None).await?;
         match board_id.as_deref().filter(|b| !b.is_empty()) {
             None => {
-                png = canvas_png::overview(&Value::Object(doc), None, 1200);
-                drawn_by = "wireframe";
-                note = "The page's layout only: frames as boxes, notes as squares. Pass board_id for a real picture \
-                        of a frame."
-                    .to_string();
                 name = c.title.clone();
+                let width = width.filter(|w| *w > 0).unwrap_or(1600);
+                match canvases::boards::plane_png(&session, &c.id, None, width).await.map_err(plain)? {
+                    Some(real) => {
+                        png = real;
+                        drawn_by = "browser";
+                        note = String::new();
+                    }
+                    None => {
+                        png = canvas_png::overview(&Value::Object(doc), None, 1200);
+                        drawn_by = "wireframe";
+                        note = "The page's layout only: frames as boxes, notes as squares. Pass board_id for a real \
+                                picture of a frame."
+                            .to_string();
+                    }
+                }
             }
             Some(board_id) => {
                 let index = canvases::board_of(&doc, board_id).map_err(docs_failure)?;
