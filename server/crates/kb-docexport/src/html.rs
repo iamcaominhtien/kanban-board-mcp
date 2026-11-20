@@ -491,12 +491,20 @@ impl<'a> HtmlRenderer<'a> {
         }
     }
 
-    /// An HTML embed: running in a sandboxed frame in an HTML file (scripts only when the block allows them, never
-    /// with access to the file around it), a picture of it on paper, else a line that says to open the page.
+    /// An HTML embed: running in a frame in an HTML file (no sandbox when its scripts run, as on the page; a site's
+    /// files inlined or copied next to the file), a picture of it on paper, else a line that says to open the page.
     fn html_embed(&mut self, node: &Value, out: &mut String) {
         let title = attr_str(node, "title");
         let html = attr_str(node, "html").unwrap_or("");
-        let height = attr_f64(node, "height").filter(|h| *h > 0.0).unwrap_or(400.0).clamp(80.0, 4000.0).round();
+        let fixed = attr_f64(node, "height").filter(|h| *h > 0.0);
+        let height = fixed.unwrap_or(400.0).clamp(80.0, 4000.0).round();
+        // Height: Auto on the page: the frame grows to its page once loaded (it shares the file's origin, so it can
+        // be read; a folder export opened from the disk may not allow it, and keeps 400 px)
+        let grow = if fixed.is_none() {
+            " onload=\"try{this.style.height=Math.min(4000,this.contentDocument.documentElement.scrollHeight)+'px'}catch(e){}\""
+        } else {
+            ""
+        };
         if self.opts.print.is_none()
             && html.is_empty()
             && let Some(frame) = attr_str(node, "src").and_then(|s| self.site_frame(s))
@@ -504,7 +512,7 @@ impl<'a> HtmlRenderer<'a> {
             // a site (a folder of files): no sandbox, as on the page; its scripts run
             let _ = write!(
                 out,
-                "<figure class=\"html-embed\"><iframe {frame} title=\"{}\" loading=\"lazy\" allowfullscreen \
+                "<figure class=\"html-embed\"><iframe {frame} title=\"{}\" loading=\"lazy\" allowfullscreen{grow} \
                  style=\"width:100%;height:{height}px;border:0;border-radius:8px\"></iframe>",
                 esc(title.unwrap_or("HTML embed"))
             );
@@ -517,10 +525,12 @@ impl<'a> HtmlRenderer<'a> {
         if self.opts.print.is_none() && !html.is_empty() {
             // as on the page: a frame with scripts has no sandbox (the page works as in a browser), one without
             // scripts allows nothing
-            let sandbox = if attr_bool(node, "runScripts") { "" } else { " sandbox=\"\"" };
+            let scripts = attr_bool(node, "runScripts");
+            let sandbox = if scripts { "" } else { " sandbox=\"\"" };
+            let grow = if scripts { grow } else { "" };
             let _ = write!(
                 out,
-                "<figure class=\"html-embed\"><iframe{sandbox} srcdoc=\"{}\" title=\"{}\" loading=\"lazy\" allowfullscreen \
+                "<figure class=\"html-embed\"><iframe{sandbox} srcdoc=\"{}\" title=\"{}\" loading=\"lazy\" allowfullscreen{grow} \
                  style=\"width:100%;height:{height}px;border:0;border-radius:8px\"></iframe>",
                 esc(html),
                 esc(title.unwrap_or("HTML embed"))

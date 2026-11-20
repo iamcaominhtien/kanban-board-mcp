@@ -914,3 +914,18 @@ fn site_modules_are_rewritten_to_data_uris() {
     // the cycle (shapes imports main) keeps its relative specifier
     assert!(shapes.contains("import './main.js';"), "{shapes}");
 }
+
+#[test]
+fn an_embed_without_a_height_grows_to_its_page_in_the_export() {
+    let doc = json!({"type":"doc","content":[
+        {"type":"htmlEmbed","attrs":{"html":"<p>tall</p><script>1</script>","title":"Auto","runScripts":true}},
+        {"type":"htmlEmbed","attrs":{"html":"<p>fixed</p><script>1</script>","title":"Fixed","runScripts":true,"height":300}},
+        {"type":"htmlEmbed","attrs":{"html":"<p>plain</p>","title":"Plain"}}]});
+    let html = render_html(&[page("Embeds", doc)], &TestAssets, &HtmlOptions::default()).index_html().to_string();
+    let frames: Vec<&str> = html.split("<iframe").skip(1).map(|f| f.split("></iframe>").next().unwrap_or("")).collect();
+    assert_eq!(frames.len(), 3, "{html}");
+    // Height: Auto reads the page's height once loaded; a set height and a frame with no scripts stay as they are
+    assert!(frames[0].contains("onload=") && frames[0].contains("scrollHeight"), "{}", frames[0]);
+    assert!(!frames[1].contains("onload=") && frames[1].contains("height:300px"), "{}", frames[1]);
+    assert!(!frames[2].contains("onload="), "{}", frames[2]);
+}
