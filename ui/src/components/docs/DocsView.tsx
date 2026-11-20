@@ -1492,15 +1492,17 @@ export function DocsView({
             projectId={projectId}
             page={deleteFor}
             onClose={() => setDeleteFor(null)}
-            onDeleted={(count) => {
+            onDeleted={(count, gone) => {
               const { id, title } = deleteFor;
               setDeleteFor(null);
               toast.success(
                 `Moved “${title}” to the Recycle Bin`,
                 count > 1 ? `${count} pages, kept for 30 days` : 'Kept for 30 days',
               );
-              deletedHere.current.add(id);
-              if (selectedId === id) {
+              for (const g of gone) deletedHere.current.add(g);
+              // the open page closes when it went too, also as a sub-page of the deleted one (it would ask for itself
+              // again and get 410)
+              if (selectedId && (selectedId === id || gone.includes(selectedId))) {
                 localStorage.removeItem(`docsPage:${projectId}`);
                 setSelectedId(null);
                 setEditing(false);

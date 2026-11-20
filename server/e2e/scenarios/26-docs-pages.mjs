@@ -319,14 +319,14 @@ export default {
         await p.getByRole('link', { name: 'Team handbook' }).or(p.getByText('Team handbook', { exact: true })).first().waitFor();
       });
 
-      await s.step('Rename only: the links keep the old title', async () => {
+      await s.step('Rename from the row menu: the Rename page dialog, and the links follow the page', async () => {
+        // the row menu opens the dialog (F2 on a row renames inline); a link to the page keeps working under the new
+        // title, and the dialog says so before the rename
         await (await menuOf('Release notes')).getByRole('menuitem', { name: /^Rename/ }).click();
-        const input = tree().getByRole('textbox', { name: 'Page title' });
-        await input.fill('Releases');
-        await input.press('Enter');
         const d = p.getByRole('dialog', { name: 'Rename page' });
-        await d.getByRole('button', { name: 'Rename and update links' }).waitFor();
-        await d.getByRole('button', { name: 'Rename only' }).click();
+        await d.getByLabel('New title').fill('Releases');
+        await d.getByText(/link/).first().waitFor();
+        await d.getByTestId('confirm-rename').click();
         await d.waitFor({ state: 'detached' });
         await toast('Renamed to “Releases”');
         await row('Releases').waitFor();
@@ -440,15 +440,18 @@ export default {
       });
 
       await s.step('Recycle Bin: Cancel the "Delete forever" question, then delete forever', async () => {
-        await p.getByRole('button', { name: 'Recycle Bin' }).click();
+        await p.getByTestId('tree-recycle-bin').click(); // the Docs tree's own bin, not the app sidebar's
         const bin = p.getByRole('dialog', { name: 'Recycle Bin' });
         const scratch = bin.getByTestId('bin-row-page').filter({ hasText: 'Scratch' });
+        // the question is a dialog of its own, over the bin: it names the page and says it cannot be undone
+        const ask = p.getByRole('dialog', { name: 'Delete forever' });
         await scratch.getByRole('button', { name: 'Delete forever' }).click();
-        await scratch.getByRole('alert').getByText(/Delete “Scratch”.* forever\? This can’t be undone\./).waitFor();
-        await scratch.getByRole('button', { name: 'Cancel' }).click();
-        await scratch.getByRole('alert').waitFor({ state: 'detached' });
+        await ask.getByText('Delete “Scratch” forever?').waitFor();
+        await ask.getByText(/This can’t be undone\./).waitFor();
+        await ask.getByRole('button', { name: 'Cancel' }).click();
+        await ask.waitFor({ state: 'detached' });
         await scratch.getByRole('button', { name: 'Delete forever' }).click();
-        await scratch.getByRole('button', { name: 'Delete forever' }).click();
+        await ask.getByTestId('purge-confirm').click();
         await toast('Deleted “Scratch” forever');
         await scratch.waitFor({ state: 'detached' });
       });
@@ -457,7 +460,7 @@ export default {
         const bin = p.getByRole('dialog', { name: 'Recycle Bin' });
         await bin.getByTestId('bin-row-page').filter({ hasText: 'Handbook (copy)' }).waitFor();
         await bin.getByRole('button', { name: 'Empty bin' }).click();
-        await bin.getByRole('alert').getByRole('button', { name: 'Empty bin' }).click();
+        await p.getByRole('dialog', { name: 'Empty the Recycle Bin' }).getByTestId('empty-bin-confirm').click();
         await toast('Recycle Bin emptied');
         await bin.getByText('No deleted pages.').or(bin.getByText('The Recycle Bin is empty.')).waitFor();
         await p.keyboard.press('Escape');

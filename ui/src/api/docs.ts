@@ -72,10 +72,18 @@ export function useDocsPage(pageId: string | null) {
   return useQuery({
     queryKey: docsKeys.page(pageId ?? ''),
     queryFn: async () => (await client.get<DocsPage>(`/docs/pages/${pageId}`)).data,
-    enabled: !!pageId,
+    // a page this window just deleted is not asked for again: a view that mounts in the moment before the page closes
+    // would only get 410 (or 404 once it is deleted forever)
+    enabled: !!pageId && !goneHere.has(pageId),
     retry: (count, err) => (docsErrorDetail(err) ? false : count < 2),
   });
 }
+
+/**
+ * Pages deleted in this window (with their sub-pages), until one is restored: their queries are not run again.
+ * Exported for the tests.
+ */
+export const goneHere = new Set<string>();
 
 /** Query the page templates. */
 export function useDocsTemplates() {
@@ -270,16 +278,32 @@ export function useDuplicatePage(projectId: string) {
   );
 }
 
+/**
+ * A page and every page under it in the tree, by id.
+ * @param nodes - The project's page tree (flat, each with its parent).
+ * @param pageId - The page.
+ */
+export function withSubPages(nodes: DocsTreeNode[], pageId: string): string[] {
+  const out = [pageId];
+  for (let i = 0; i < out.length; i++) for (const n of nodes) if (n.parentId === out[i]) out.push(n.id);
+  return out;
+}
+
 /** Mutation: move a page to the Recycle Bin. */
 export function useDeletePage(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (pageId: string) =>
-      (await client.delete<{ id: string; deletedPages: number }>(`/docs/pages/${pageId}`)).data,
-    // Refresh Docs, except the deleted page's own queries: fetched again they only answer 410 (the open page's view
-    // closes it right after).
-    onSuccess: (_, pageId) => {
-      void qc.invalidateQueries({ queryKey: ['docs'], predicate: (q) => !q.queryKey.includes(pageId) });
+    mutationFn: async (pageId: string) => {
+      // its sub-pages go to the bin with it: read them from the tree before it changes
+      const gone = withSubPages(qc.getQueryData<DocsTreeNode[]>(docsKeys.tree(projectId)) ?? [], pageId);
+      const out = (await client.delete<{ id: string; deletedPages: number }>(`/docs/pages/${pageId}`)).data;
+      for (const id of gone) goneHere.add(id);
+      return { ...out, gone };
+    },
+    // Refresh Docs, except the deleted pages' own queries (sub-pages too): fetched again they only answer 410 (the
+    // open page's view and the dialog close right after)
+    onSuccess: ({ gone }) => {
+      void qc.invalidateQueries({ queryKey: ['docs'], predicate: (q) => !gone.some((id) => q.queryKey.includes(id)) });
       void qc.invalidateQueries({ queryKey: docsKeys.tree(projectId) });
     },
   });
@@ -287,22 +311,32 @@ export function useDeletePage(projectId: string) {
 
 /** Mutation: restore a page from the Recycle Bin. */
 export function useRestorePage(projectId: string) {
-  return useDocsMutation(
-    async (pageId: string) =>
-      (
-        await client.post<{ id: string; restoredPages: number; movedToTopLevel: boolean }>(
-          `/docs/pages/${pageId}/restore`,
-        )
-      ).data,
-    projectId,
-  );
+  return useDocsMutation(async (pageId: string) => {
+    const out = (
+      await client.post<{ id: string; restoredPages: number; movedToTopLevel: boolean }>(
+        `/docs/pages/${pageId}/restore`,
+      )
+    ).data;
+    // its sub-pages come back with it: forget every page this window deleted, they are asked for as usual again
+    goneHere.clear();
+    return out;
+  }, projectId);
 }
 
 /** Mutation: permanently delete a page. */
 export function usePurgePage(projectId: string) {
-  return useDocsMutation(async (pageId: string) => {
-    await client.delete(`/docs/pages/${pageId}/purge`);
-  }, projectId);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (pageId: string) => {
+      await client.delete(`/docs/pages/${pageId}/purge`);
+      goneHere.add(pageId);
+    },
+    // as after a delete: the page's own queries are not fetched again (they could only answer 404)
+    onSuccess: (_, pageId) => {
+      void qc.invalidateQueries({ queryKey: ['docs'], predicate: (q) => !q.queryKey.includes(pageId) });
+      void qc.invalidateQueries({ queryKey: docsKeys.tree(projectId) });
+    },
+  });
 }
 
 /**

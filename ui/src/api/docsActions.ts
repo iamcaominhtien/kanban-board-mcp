@@ -88,10 +88,13 @@ export function useEmptyRecycleBin(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
+      // the pages in the bin, read before they go: their queries are not fetched again (they could only answer 404)
+      const gone = (qc.getQueryData<RecycleEntry[]>(docsKeys.recycle(projectId)) ?? []).map((e) => e.id);
       await client.delete(`/projects/${projectId}/docs/recycle-bin`);
+      return gone;
     },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['docs'] });
+    onSuccess: (gone) => {
+      void qc.invalidateQueries({ queryKey: ['docs'], predicate: (q) => !gone.some((id) => q.queryKey.includes(id)) });
       void qc.invalidateQueries({ queryKey: docsKeys.tree(projectId) });
     },
   });
