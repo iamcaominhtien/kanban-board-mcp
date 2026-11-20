@@ -2,9 +2,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+/** `text` as a pattern that matches it literally (every special character escaped, the backslash too). */
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const css = readFileSync(join(__dirname, 'Diagrams.module.css'), 'utf8');
-const rule = (sel: string) =>
-  new RegExp(`(?:^|\\n)${sel.replace(/[.]/g, '\\.')}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
+const rule = (sel: string) => new RegExp(`(?:^|\\n)${escapeRegExp(sel)}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
 
 describe('diagram preview sizing', () => {
   it('shows the drawing at its own size, only made smaller to fit the column, with no height cap', () => {
