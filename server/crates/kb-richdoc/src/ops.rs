@@ -21,7 +21,9 @@ pub enum BlockOp {
     InsertAfter { block_id: Option<String>, markdown: String },
     /// Remove the block (the only way to remove a placeholder block).
     Delete { block_id: String },
-    /// Set or clear attributes of the block (`null` clears one); unknown attributes are refused.
+    /// Set or clear attributes of the block (`null` clears one); unknown attributes are refused. `type` changes the
+    /// block's kind: `htmlEmbed` turns a code block into an HTML embed whose page is the code (the other attributes
+    /// are then the embed's).
     SetAttrs { block_id: String, attrs: Map<String, Value> },
     /// Set or clear attributes of some cells of a table block: `cells` is a cell (`B2`) or a range (`A1:C3`), a
     /// column letter and a 1-based row as a spreadsheet names them (row 1 is the first row, the header row when
@@ -276,9 +278,25 @@ pub fn apply(doc: &Value, edits: &[BlockOp], ids: &mut dyn IdSource) -> Result<V
             BlockOp::SetAttrs { block_id: id, attrs } => {
                 let place = find(&doc, id).ok_or_else(|| no_block(id))?;
                 let target = get(&doc, &place).ok_or_else(|| no_block(id))?;
-                let t = ty(target).to_string();
+                let from = ty(target).to_string();
+                // `type` turns the block into another kind (only a code block into an HTML embed of its code)
+                let turned = match attrs.get("type") {
+                    None => None,
+                    Some(Value::String(to)) if *to == from => None,
+                    Some(Value::String(to)) if from == "codeBlock" && to == "htmlEmbed" => {
+                        let code: String = children(target).iter().filter_map(|n| n["text"].as_str()).collect();
+                        Some(json!({"type": "htmlEmbed", "attrs": {"blockId": id, "html": code}}))
+                    }
+                    Some(other) => {
+                        return Err(RichDocError::Invalid(format!(
+                            "type: a {from} block cannot become {other}; only a codeBlock can be turned into an \
+                             htmlEmbed (its code becomes the embed's page)"
+                        )));
+                    }
+                };
+                let t = turned.as_ref().map_or(from.clone(), |n| ty(n).to_string());
                 let mut updates: Vec<(String, Value)> = Vec::new();
-                for (k, v) in attrs {
+                for (k, v) in attrs.iter().filter(|(k, _)| k.as_str() != "type") {
                     let name = schema_name(&t, k)
                         .ok_or_else(|| RichDocError::Invalid(format!("a {t} block has no attribute {k}")))?;
                     if !v.is_null() {
@@ -288,6 +306,9 @@ pub fn apply(doc: &Value, edits: &[BlockOp], ids: &mut dyn IdSource) -> Result<V
                 }
                 let c = container_mut(&mut doc, &place.0).ok_or_else(|| no_block(id))?;
                 let node = c.get_mut(place.1).ok_or_else(|| no_block(id))?;
+                if let Some(n) = turned {
+                    *node = n;
+                }
                 if let Some(obj) = node.as_object_mut() {
                     let a = obj.entry("attrs").or_insert_with(|| Value::Object(Map::new()));
                     if let Some(a) = a.as_object_mut() {

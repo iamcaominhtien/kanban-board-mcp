@@ -8,7 +8,7 @@ pub mod docs;
 
 /// Every route of this area (the app merges them, in the order the Python app included its routers).
 pub fn routes() -> Routes {
-    Routes::new().merge(docs::routes())
+    Routes::new().merge(docs::routes()).merge(crate::docs_sites::routes())
 }
 
 /// `docs_error_handler` of `api/docs.py` (registered for `DocsError` in `main.py`): every `DocsError` answers

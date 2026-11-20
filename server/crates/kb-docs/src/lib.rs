@@ -14,6 +14,7 @@ pub mod docs_export;
 pub mod docs_highlights;
 pub mod docs_import;
 pub mod docs_search;
+pub mod docs_sites;
 pub mod docs_suggestions;
 pub mod docs_work;
 pub mod hooks;

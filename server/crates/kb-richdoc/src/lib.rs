@@ -83,6 +83,12 @@ pub fn annotated_to_doc(md: &str, existing: Option<&Value>, ids: &mut dyn IdSour
     annotated::annotated_to_doc(md, existing, ids)
 }
 
+/// Returns whether Markdown holds annotated block markers (`<!-- #b-… -->`, `<!-- htmlEmbed … -->`, `<!-- columns
+/// -->`…) outside fenced code: a file written in the MCP view of a page rather than plain Markdown.
+pub fn has_markers(md: &str) -> bool {
+    annotated::has_markers(md)
+}
+
 /// Returns the plain-text projection (README "Projections").
 pub fn doc_to_text(doc: &Value) -> String {
     text::doc_to_text(&schema::clamp(doc))

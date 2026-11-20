@@ -267,6 +267,16 @@ fn parse_marker(line: &str) -> Result<Option<MarkerLine>, RichDocError> {
     Ok(Some(MarkerLine::Block(m)))
 }
 
+/// Whether an HTML embed shows a site: its `src` is set (not empty).
+pub fn has_src(block: &Value) -> bool {
+    attr(block, "src").as_str().is_some_and(|s| !s.is_empty())
+}
+
+/// Whether a marker gives an HTML embed a site address (`src=…`, not empty or null).
+fn gives_src(m: &Marker) -> bool {
+    m.pairs.iter().any(|(k, v, quoted)| k == "src" && !v.is_empty() && (*quoted || v != "null"))
+}
+
 /// The text of a code block (what an HTML embed written as one holds).
 fn code_text(block: &Value) -> String {
     block
@@ -549,6 +559,11 @@ impl<'a> Reader<'a> {
                 let found = self.existing.get(&id).ok_or_else(|| RichDocError::NoBlock(id.clone()))?;
                 (*found).clone()
             }
+            // an HTML embed showing a site (`src`) is its marker alone: what follows is the next block
+            (Some(b), Some("htmlEmbed")) if gives_src(m) => {
+                blocks.insert(0, b);
+                json!({"type": "htmlEmbed"})
+            }
             // a new HTML embed or video: the marker names it, the Markdown under it gives its content
             (Some(b), Some("htmlEmbed")) if ty(&b) == "codeBlock" => {
                 json!({"type": "htmlEmbed", "attrs": {"html": code_text(&b)}})
@@ -581,6 +596,18 @@ impl<'a> Reader<'a> {
             set_block_id(&mut block, id);
         }
         self.apply_pairs(&mut block, &m.pairs)?;
+        // an embed showing a site keeps the inline HTML the page's block of the same id holds (the marker cannot
+        // carry it; it is shown again when the site is taken off)
+        if ty(&block) == "htmlEmbed" && has_src(&block) && attr(&block, "html").as_str().is_none_or(str::is_empty) {
+            if let Some(old) = m.id.as_ref().and_then(|id| self.existing.get(id)).filter(|o| ty(o) == "htmlEmbed") {
+                let html = attr(old, "html").clone();
+                if html.as_str().is_some_and(|h| !h.is_empty()) {
+                    if let Some(a) = block.get_mut("attrs").and_then(Value::as_object_mut) {
+                        a.insert("html".into(), html);
+                    }
+                }
+            }
+        }
         // a block the Markdown leaves as it was keeps the page's JSON exactly (white space at mark edges and other
         // details plain Markdown cannot show are not lost)
         if let Some(old) = m.id.as_ref().and_then(|id| self.existing.get(id)) {
@@ -700,6 +727,18 @@ fn segments(md: &str) -> Result<Vec<(Option<MarkerLine>, String)>, RichDocError>
         }
     }
     Ok(out)
+}
+
+/// Whether Markdown holds a well-formed or broken marker line outside fenced code.
+pub fn has_markers(md: &str) -> bool {
+    let mut fence = FenceState::default();
+    for line in md.lines() {
+        fence.feed(line);
+        if !fence.open() && line.trim_start_matches(' ').starts_with("<!--") && !matches!(parse_marker(line), Ok(None)) {
+            return true;
+        }
+    }
+    false
 }
 
 /// One open `columns` block while reading.
@@ -867,6 +906,11 @@ fn marker_pairs(block: &Value, back: Option<&Value>) -> Vec<(String, String)> {
 fn write_block(block: &Value, page: &Value) -> String {
     let id = block_id(block).filter(|i| is_block_id(i));
     let t = ty(block);
+    // an HTML embed showing a site: its marker says it all (its inline HTML, if any, stays on the page)
+    if t == "htmlEmbed" && has_src(block) {
+        let pairs: Vec<(String, String)> = marker_pairs(block, None).into_iter().filter(|(k, _)| k != "html").collect();
+        return marker_text(id, Some(t), &pairs);
+    }
     if is_placeholder(block) {
         return format!("{}\n{}", marker_text(id, Some(t), &[]), placeholder_line(block));
     }

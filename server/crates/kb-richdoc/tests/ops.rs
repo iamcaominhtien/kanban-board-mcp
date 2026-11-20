@@ -284,3 +284,54 @@ fn an_html_embed_is_replaced_in_place_by_a_new_one_under_its_marker() {
         assert!(matches!(r, Err(RichDocError::Placeholder(_))), "{md}: {r:?}");
     }
 }
+
+/// `type: htmlEmbed` turns a code block into an HTML embed of its code; other kinds cannot be changed so.
+#[test]
+fn set_attrs_turns_a_code_block_into_an_html_embed() {
+    let page = json!({"type": "doc", "content": [
+        {"type": "codeBlock", "attrs": {"blockId": "b-000001", "language": "html"}, "content": [{"type": "text", "text": "<canvas id=c></canvas>\n<script>go()</script>"}]},
+        {"type": "paragraph", "attrs": {"blockId": "b-000002"}, "content": [{"type": "text", "text": "x"}]}
+    ]});
+    let mut attrs = Map::new();
+    attrs.insert("type".into(), json!("htmlEmbed"));
+    attrs.insert("title".into(), json!("Globe"));
+    attrs.insert("scripts".into(), json!(true));
+    let doc = apply(&page, &[BlockOp::SetAttrs { block_id: "b-000001".into(), attrs }], &mut SeqIds(0xa00000)).unwrap();
+    validate(&doc).unwrap();
+    assert_eq!(
+        doc["content"][0],
+        json!({"type": "htmlEmbed", "attrs": {"blockId": "b-000001", "html": "<canvas id=c></canvas>\n<script>go()</script>", "runScripts": true, "title": "Globe"}})
+    );
+    // the same type is no change; another one is refused
+    let mut same = Map::new();
+    same.insert("type".into(), json!("paragraph"));
+    same.insert("align".into(), json!("center"));
+    let doc = apply(&page, &[BlockOp::SetAttrs { block_id: "b-000002".into(), attrs: same }], &mut SeqIds(1)).unwrap();
+    assert_eq!(doc["content"][1]["attrs"]["textAlign"], "center");
+    let mut other = Map::new();
+    other.insert("type".into(), json!("htmlEmbed"));
+    match apply(&page, &[BlockOp::SetAttrs { block_id: "b-000002".into(), attrs: other }], &mut SeqIds(1)) {
+        Err(RichDocError::Invalid(m)) => assert!(m.contains("only a codeBlock"), "{m}"),
+        other => panic!("{other:?}"),
+    }
+}
+
+/// A site embed replaces an inline HTML embed through its marker alone.
+#[test]
+fn replace_an_html_embed_with_a_site() {
+    let page = json!({"type": "doc", "content": [
+        {"type": "htmlEmbed", "attrs": {"blockId": "b-000001", "html": "<p>old</p>"}}
+    ]});
+    let doc = apply(
+        &page,
+        &[BlockOp::Replace {
+            block_id: "b-000001".into(),
+            markdown: "<!-- htmlEmbed src=/docs/sites/ab12cd34ef56/index.html title=Globe -->".into(),
+        }],
+        &mut SeqIds(0xa00000),
+    )
+    .unwrap();
+    assert_eq!(doc["content"][0]["attrs"]["src"], "/docs/sites/ab12cd34ef56/index.html");
+    assert_eq!(doc["content"][0]["attrs"]["blockId"], "b-000001");
+    assert!(doc_to_annotated(&doc).starts_with("<!-- #b-000001 htmlEmbed src="));
+}
