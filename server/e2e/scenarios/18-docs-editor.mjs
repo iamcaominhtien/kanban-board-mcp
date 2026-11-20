@@ -791,6 +791,30 @@ export default {
         fs.rmSync(dir, { recursive: true, force: true });
       }
     });
+    await s.step('export with a folder embed: one HTML file holds the site, its script inlined and running', async () => {
+      // an export is of the published page: publish the tour so far, export it, then go on editing
+      await publishDoc(s, 'Embeds tour');
+      const { name, file } = await exportAs('html');
+      const text = file.toString('utf8');
+      if (!name.endsWith('.html')) throw new Error('not an .html file: ' + name);
+      // the site's own script is inside the file, and nothing points back at the board
+      if (!text.includes('Site ran')) throw new Error('the site is not in the export');
+      if (text.includes('/docs/sites/')) throw new Error('the export points back at the board');
+      // opened on its own, the page runs the site in its frame
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kb-e2e-export-'));
+      const out = path.join(dir, 'export.html');
+      fs.writeFileSync(out, file);
+      const page = await p.context().newPage();
+      try {
+        await page.goto('file://' + out);
+        await page.frameLocator('iframe[title="globe-demo"]').getByText('Site ran').waitFor();
+      } finally {
+        await page.close();
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+      await p.getByTestId('edit-page').click();
+      await content().locator('.dk-html-embed').first().waitFor();
+    });
     await s.step('code block of HTML: Turn into HTML embed in its block menu runs the code at once', async () => {
       await atEnd();
       await p.keyboard.press('Enter');
