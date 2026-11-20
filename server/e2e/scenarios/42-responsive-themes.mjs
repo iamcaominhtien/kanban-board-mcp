@@ -15,11 +15,10 @@ const THEMES = ['default', 'bw'];
 const KNOWN = {
   // inline `style={{ color: '#9AA8A0' }}` in ui/src/components/TicketModal.tsx (2.48:1 on white): the empty Due Date
   // and Estimate ('–', line ~3262 / ~3288), the 'Unassigned' option label and the dashed avatar (~1039), the
-  // 'Add tag' button and the '0' counter. Fix: `var(--color-text-sec)` in those styles.
+  // 'Add tag' button. Fix: `var(--color-text-sec)` in those styles.
   'ticket modal: –': 'inline #9AA8A0',
   'ticket modal: Unassigned': 'inline #9AA8A0',
   'ticket modal: Add tag': 'inline #9AA8A0',
-  'ticket modal: 0': 'inline #9AA8A0',
   // a tab count shown only in one of the two widths, inline colour as well
   'ticket modal: Comments': 'inline #8A998F (2.99:1)',
   // member avatars take an inline tint and text colour from a palette (3.16:1 on its tint): the palette in

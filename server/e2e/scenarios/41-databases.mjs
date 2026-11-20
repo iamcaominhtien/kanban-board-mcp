@@ -178,7 +178,7 @@ async function body(s, env) {
     await d.getByText(/From: SQLite/).waitFor();
     await d.getByText(/To: PostgreSQL 1\d/).waitFor();
     await d.getByText(`${pg.host}:${pg.port}/${pgDb}`).first().waitFor();
-    await d.getByText(/Empty · the board will create 77 tables/).waitFor();
+    await d.getByText(/Empty · the board will create 82 tables/).waitFor();
     await d.getByText(/2 tickets, 1 projects/).waitFor();
     const job = (await api('GET', '/database/move')).body;
     if (job.state !== 'ready' || job.target.engine !== 'postgresql' || job.target.name !== pgDb || job.target.host !== pg.host) throw new Error(`move: ${JSON.stringify(job.target)}`);
@@ -196,7 +196,7 @@ async function body(s, env) {
     await d.getByTestId('move-verified').waitFor({ timeout: 90000 });
     await d.getByText('Step 4 of 4').waitFor();
     await d.getByText(/Everything was copied and checked/).waitFor();
-    await d.getByText(/Row counts · equal in all 77 tables/).waitFor();
+    await d.getByText(/Row counts · equal in all 82 tables/).waitFor();
     await d.getByText(/Counters · the next ticket number carries on from ALP-3/).waitFor();
     await d.getByTestId('move-verify-table').getByText('project', { exact: true }).waitFor();
     // the rows are in PostgreSQL, the board still reads SQLite until Switch
@@ -234,7 +234,7 @@ async function body(s, env) {
     await title.getByText(new RegExp(`^PostgreSQL 1\\d(\\.\\d+)? · ${pg.host}$`)).waitFor();
     await p.getByText(`${pg.host}:${pg.port}/${pgDb}`).first().waitFor();
     const facts = p.getByTestId('db-facts');
-    await facts.getByText(/^Connected · \d+ ms · 77 tables · 3 tickets in 1 project · up to date · no password saved$/).waitFor();
+    await facts.getByText(/^Connected · \d+ ms · 82 tables · 3 tickets in 1 project · up to date · no password saved$/).waitFor();
     await p.getByTestId('db-chip').getByText('Connected').waitFor();
     for (const name of ['Edit connection…', 'Test connection', 'Move to another database…', 'Use the SQLite file again']) await p.getByRole('button', { name }).waitFor();
     await p.getByText(/The database lives on the server\. Back it up with your own tools/).waitFor();
@@ -250,7 +250,7 @@ async function body(s, env) {
     const found = p.getByTestId('database-card').getByTestId('test-findings');
     await found.waitFor();
     await found.getByText(`Signed in · as ${pg.user}`).waitFor();
-    await found.getByText(/Already holds a Kanban board · 77 tables/).waitFor();
+    await found.getByText(/Already holds a Kanban board · 82 tables/).waitFor();
   });
 
   await s.step('Edit connection (PostgreSQL): the form shows what is saved; a wrong port and another database are refused in words', async () => {
@@ -322,7 +322,7 @@ async function body(s, env) {
       await fill(e, { port: relay.port });
       await e.getByRole('button', { name: 'Test connection' }).click();
       await e.getByText(new RegExp(`Reached the server · ${pg.host}:${relay.port}`)).waitFor();
-      await e.getByText(/Already holds a Kanban board · 77 tables/).waitFor();
+      await e.getByText(/Already holds a Kanban board · 82 tables/).waitFor();
       const [saved] = await Promise.all([
         p.waitForResponse((r) => /\/database\/connection$/.test(r.url())),
         e.getByRole('button', { name: /^Save and reconnect/ }).click(),
@@ -512,7 +512,7 @@ async function body(s, env) {
     await d.getByTestId('move-step-check').waitFor();
     await d.getByText(/From: PostgreSQL/).waitFor();
     await d.getByText(/To: .*MariaDB/).waitFor();
-    await d.getByText(/Empty · the board will create 77 tables/).waitFor();
+    await d.getByText(/Empty · the board will create 82 tables/).waitFor();
     await d.getByText(/3 tickets, 1 projects/).waitFor();
     const job = (await api('GET', '/database/move')).body;
     if (job.state !== 'ready' || job.source.engine !== 'postgresql' || job.target.engine !== 'mysql' || job.target.name !== myDb) throw new Error(`move: ${JSON.stringify([job.source, job.target])}`);
@@ -527,7 +527,7 @@ async function body(s, env) {
     const d = wizard();
     await d.getByTestId('move-start').click();
     await d.getByTestId('move-verified').waitFor({ timeout: 90000 });
-    await d.getByText(/Row counts · equal in all 77 tables/).waitFor();
+    await d.getByText(/Row counts · equal in all 82 tables/).waitFor();
     await d.getByText(/Counters · the next ticket number carries on from ALP-4/).waitFor();
     await d.getByTestId('move-verify-table').getByText('ticket', { exact: true }).waitFor();
     if (mysql(myDb, 'SELECT count(*) FROM ticket') !== '3') throw new Error('the tickets are not in MariaDB');
@@ -556,7 +556,7 @@ async function body(s, env) {
     await openStorage();
     await p.getByTestId('db-title').getByText(new RegExp(`MariaDB.* · ${my.host}$`)).waitFor();
     await p.getByText(`${my.user}@${my.host}:${my.port}/${myDb}`).first().waitFor();
-    await p.getByTestId('db-facts').getByText(/^Connected · \d+ ms · 77 tables · 4 tickets in 1 project · up to date · password (encrypted|in your system keychain)$/).waitFor();
+    await p.getByTestId('db-facts').getByText(/^Connected · \d+ ms · 82 tables · 4 tickets in 1 project · up to date · password (encrypted|in your system keychain)$/).waitFor();
     await p.getByTestId('db-chip').getByText('Connected').waitFor();
     const db = await dbInfo();
     if (db.password_saved !== true || /"password"\s*:\s*"[^"]/.test(JSON.stringify(db))) throw new Error('the password is saved but the database info must not carry it');
@@ -580,7 +580,7 @@ async function body(s, env) {
     // empty password: the saved one is used
     await e.getByRole('button', { name: 'Test connection' }).click();
     await e.getByText(`Signed in · as ${my.user}`).waitFor();
-    await e.getByText(/Already holds a Kanban board · 77 tables/).waitFor();
+    await e.getByText(/Already holds a Kanban board · 82 tables/).waitFor();
     // a wrong one
     await fill(e, { password: 'not-' + my.password });
     await e.getByRole('button', { name: 'Test connection' }).click();

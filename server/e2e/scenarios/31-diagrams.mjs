@@ -86,8 +86,9 @@ export default {
     let editorOpen = false;
     // settings: Integrations > Diagrams (draw.io)
     const diagSettings = () => p.getByTestId('diagram-settings');
+    // the app sidebar's gear (the Docs editor also has a 'Settings' button, so the role and name alone are ambiguous)
     const openDiagramSettings = async () => {
-      if (!(await p.getByRole('navigation', { name: 'Settings pages' }).count())) await p.getByRole('button', { name: 'Settings' }).click();
+      if (!(await p.getByRole('navigation', { name: 'Settings pages' }).count())) await p.locator('button[title="Settings"][class*="_sidebarIcon"]').click();
       await p.getByRole('navigation', { name: 'Settings pages' }).getByRole('button', { name: 'Integrations', exact: true }).click();
       await diagSettings().waitFor();
     };
@@ -115,7 +116,7 @@ export default {
         await ensureProject(s);
         await createTicket(s, { title: 'Design the login flow' });
         projectId = (await api('/projects')).json[0].id;
-        await p.getByRole('button', { name: 'Settings' }).click();
+        await p.locator('button[title="Settings"][class*="_sidebarIcon"]').click();
         await openDiagramSettings();
         await diagSettings().getByRole('radio', { name: /Self-hosted/ }).waitFor();
       });
@@ -585,7 +586,7 @@ export default {
       });
 
       await s.step('settings: switch to Public, the address field goes away, the setting is stored, then back to the stand-in', async () => {
-        await p.getByRole('button', { name: 'Settings' }).click();
+        await p.locator('button[title="Settings"][class*="_sidebarIcon"]').click();
         await openDiagramSettings();
         const c = diagSettings();
         await c.getByRole('radio', { name: /Public diagrams.net/ }).check();

@@ -99,7 +99,7 @@ export default {
       await p.getByTestId('db-title').getByText('SQLite · local file').waitFor();
       const facts = p.getByTestId('db-facts');
       await facts.getByText(/2 tickets in 1 project/).waitFor();
-      await facts.getByText(/77 tables/).waitFor();
+      await facts.getByText(/82 tables/).waitFor();
       await facts.getByText(/up to date/).waitFor();
       await p.getByTestId('db-chip').getByText('Local file').waitFor();
       const db = (await api('GET', '/database')).body;
@@ -137,7 +137,7 @@ export default {
       await whereTo(good);
       await d.getByTestId('move-next').click();
       await d.getByTestId('move-step-check').waitFor();
-      await d.getByText(/Empty · the board will create 77 tables/).waitFor();
+      await d.getByText(/Empty · the board will create 82 tables/).waitFor();
       await d.getByText(/Connection tested a moment ago/).waitFor();
       await d.getByRole('button', { name: 'Show it' }).click();
       const script = d.getByTestId('move-script');
@@ -182,7 +182,7 @@ export default {
       await d.getByText('Step 4 of 4').waitFor();
       const table = d.getByTestId('move-verify-table');
       await table.getByText('project', { exact: true }).waitFor();
-      await d.getByText(/Row counts · equal in all 77 tables/).waitFor();
+      await d.getByText(/Row counts · equal in all 82 tables/).waitFor();
       await d.getByText(/Counters · the next ticket number carries on from ALP-3/).waitFor();
       // the file really holds the board now, and the old `notes` table is gone
       if (scalar(foreign, 'SELECT count(*) FROM ticket') !== 2) throw new Error('the tickets are not in the new file');
