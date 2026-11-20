@@ -890,10 +890,12 @@ export default {
       await toggle.click();
       const preview = p.getByTestId('editor-preview');
       await preview.waitFor();
-      await preview.getByTestId('html-embed').getByRole('button', { name: 'View source' }).waitFor();
+      await preview.getByTestId('html-embed').first().getByRole('button', { name: 'View source' }).waitFor();
+      // the folder embed reads as a site frame too: its page runs from /docs/sites
+      await preview.locator('.dk-html-embed iframe[src*="/docs/sites/"]').waitFor();
       await checkSandbox(preview);
       // a reader's embed runs its scripts without a click too
-      await preview.locator('.dk-html-embed iframe[data-scripts="on"]').waitFor();
+      await preview.locator('.dk-html-embed iframe[data-scripts="on"]').first().waitFor();
       await preview.locator('[data-testid="code-view"].dk-cv-light').getByText('tokens.py').waitFor();
       await preview.getByTestId('video-poster').or(preview.getByText('This video could not be played')).first().waitFor();
       const started = await preview.locator('video').evaluateAll((vs) => vs.some((v) => !v.paused || v.autoplay || v.controls));
@@ -1035,7 +1037,7 @@ export default {
     await s.step(
       "phone: the HTML embed has no footer; Edit code and View source are 44 px under the card",
       async () => {
-        const embed = content().getByTestId("html-embed");
+        const embed = content().getByTestId("html-embed").first();
         const under = embed.locator(".dk-emb-under");
         await under.scrollIntoViewIfNeeded();
         const card = await bbox(embed.locator(".dk-emb").first());

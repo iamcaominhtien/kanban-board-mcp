@@ -10,6 +10,7 @@ pub mod diagrams;
 pub mod docs;
 pub mod docs_page;
 pub mod docs_rich;
+pub mod docs_sites;
 pub mod ideas;
 pub mod members;
 pub mod memory;

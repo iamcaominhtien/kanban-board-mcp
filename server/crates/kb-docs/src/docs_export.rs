@@ -406,11 +406,7 @@ impl AssetSource for Uploads {
     }
 
     fn site_files(&self, id: &str) -> Option<Vec<SiteFile>> {
-        // TEMPORARY: replace with `kb_docs::docs_sites::site_dir(id)` once that module exists.
-        if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric()) {
-            return None;
-        }
-        let dir = kb_files::uploads::get_uploads_dir(false).join("docs-sites").join(id);
+        let dir = crate::docs_sites::site_dir(id)?;
         let mut files = Vec::new();
         collect_site_files(&dir, &dir, &mut files);
         (!files.is_empty()).then_some(files)

@@ -193,9 +193,11 @@ async fn test_the_tool_list_stays_compact() {
     // guide for those): 49,680 / 52,510. Short answers of the ticket tools (what a field left out means, a create's
     // criteria) and export's `print` page setup (paper up to A3, margins, header: a newspaper page needs them): 50,420
     // / 53,250. Canvas delete and restore (an agent left a canvas it could not remove) and the "page" owner of a
-    // canvas: 50,721 / 53,551. The bounds leave some room; raise them on purpose, with what was added, never by reflex.
-    assert!(default < 50_900, "default tool list is {default} characters (about {} tokens)", default / 4);
-    assert!(full < 53_900, "full tool list is {full} characters (about {} tokens)", full / 4);
+    // canvas: 50,721 / 53,551. HTML embeds from a folder: upload of a folder, .zip or .html as a site, markdown_file
+    // for big pages, a code block turned into an embed, and that embeds run as web pages: 51,348 / 54,178. The bounds
+    // leave some room; raise them on purpose, with what was added, never by reflex.
+    assert!(default < 51_500, "default tool list is {default} characters (about {} tokens)", default / 4);
+    assert!(full < 54_350, "full tool list is {full} characters (about {} tokens)", full / 4);
     if target() == Target::Python {
         assert!(default < full);
         // the measure is the Python test's: the numbers of its comment, within the bounds
@@ -613,6 +615,12 @@ async fn test_the_docs_tools_describe_rich_pages_and_block_edits() {
     }
     assert!(props.contains_key("block_id") && props.contains_key("attrs"));
     assert!(props["attrs"]["description"].as_str().expect("text").contains("align"));
+    // HTML embeds: a big page goes in as a folder (a site) and its marker; a code block can become an embed
+    for must in ["markdown_file", "folder, .zip or .html", "htmlEmbed src=", "\"type\": \"htmlEmbed\"", "as a web page"]
+    {
+        assert!(write_text.contains(must), "docs_write: {must}");
+    }
+    assert!(props.contains_key("markdown_file"));
 }
 
 // Not ported:

@@ -344,11 +344,8 @@ fn annotated_html_embed_with_src() {
         moved["content"][0]["attrs"],
         json!({"blockId": "b-000005", "html": "<p>inline</p>", "src": "/docs/sites/ab12cd34ef56/index.html"})
     );
-    let back = annotated_to_doc(
-        "<!-- #b-000005 htmlEmbed src=null -->\n[embed: HTML embed]",
-        Some(&moved),
-        &mut SeqIds(9),
-    )
-    .unwrap();
+    let back =
+        annotated_to_doc("<!-- #b-000005 htmlEmbed src=null -->\n[embed: HTML embed]", Some(&moved), &mut SeqIds(9))
+            .unwrap();
     assert_eq!(back["content"][0]["attrs"], json!({"blockId": "b-000005", "html": "<p>inline</p>"}));
 }

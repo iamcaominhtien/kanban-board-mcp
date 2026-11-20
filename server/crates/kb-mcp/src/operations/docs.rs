@@ -853,7 +853,9 @@ fn stored(name: &str, content: &[u8]) -> ToolResult {
 }
 
 /// Store a file (a picture, a PDF, a sheet, a log…) on the board. Returns {url, name, size, type, markdown,
-/// stored_in}: put `markdown` in a page, a description or a comment to show it.
+/// stored_in}: put `markdown` in a page, a description or a comment to show it. A folder, a `.zip` or an `.html`
+/// file becomes a site for an HTML embed instead: {id, url, entry, files, bytes, markdown} (`markdown` is the
+/// embed's marker line).
 pub async fn upload_file(path: Option<&str>, data: Option<&str>, name: Option<&str>) -> ToolResult {
     if path.is_none() == data.is_none() {
         return Err(ToolError::value("upload: give path (a local file) or data (base64 with name), not both."));
@@ -869,9 +871,17 @@ pub async fn upload_file(path: Option<&str>, data: Option<&str>, name: Option<&s
                 .with_decode_padding_mode(DecodePaddingMode::RequireCanonical),
         );
         let content = engine.decode(data).map_err(|_| ToolError::value("upload: data is not valid base64."))?;
+        // a web page (one .html file, or a .zip of a site) becomes a site an HTML embed shows
+        if super::docs_sites::is_site_file(name) {
+            return super::docs_sites::site_from_data(name, content).await;
+        }
         return stored(name, &content);
     }
     let path = path.unwrap_or_default();
+    // a folder, a .zip or an .html file becomes a site an HTML embed shows
+    if let Some(site) = super::docs_sites::site_from_path(path, name).await? {
+        return Ok(site);
+    }
     // the same rule as an attachment (ticket_items(item='attachment')): an AI run names a file in its working folders
     // or the ticket's Workspace, an agent outside a board run by its absolute path; keys, `.env` and dot folders never
     let Some(folder) = common::attach_folder().await? else {

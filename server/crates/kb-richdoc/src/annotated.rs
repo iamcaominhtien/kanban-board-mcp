@@ -734,7 +734,8 @@ pub fn has_markers(md: &str) -> bool {
     let mut fence = FenceState::default();
     for line in md.lines() {
         fence.feed(line);
-        if !fence.open() && line.trim_start_matches(' ').starts_with("<!--") && !matches!(parse_marker(line), Ok(None)) {
+        if !fence.open() && line.trim_start_matches(' ').starts_with("<!--") && !matches!(parse_marker(line), Ok(None))
+        {
             return true;
         }
     }

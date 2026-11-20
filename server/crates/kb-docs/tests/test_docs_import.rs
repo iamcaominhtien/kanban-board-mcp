@@ -436,6 +436,32 @@ async fn test_import_with_publish_creates_versions_and_links() {
     assert_eq!(titles, ["B"]);
 }
 
+/// A file written in the MCP view of a page (annotated Markdown) keeps its HTML embeds: the marker and its ```html
+/// block are one embed, a marker with `src` an embed showing a site; a plain file's code block stays code.
+#[tokio::test]
+async fn test_import_reads_annotated_markers_as_embeds() {
+    let (_s, c, pid) = setup!("test_import_reads_annotated_markers_as_embeds");
+    let annotated = "# Scene\n\n<!-- #b-00a001 htmlEmbed title=\"Orbit\" height=480 scripts=true -->\n```html\n<canvas id=c></canvas>\n```\n\n<!-- htmlEmbed src=\"/docs/sites/ab12cd34ef56/index.html\" title=\"Globe\" -->\n\nAfter.";
+    let plain = "# Plain\n\n```html\n<b>code</b>\n```";
+    let out = do_import(&c, &pid, &[("scene.md", annotated), ("plain.md", plain)], &[("publish", "true")]).await;
+    let page_of = |t: &str| {
+        out["created"].as_array().unwrap().iter().find(|x| x["title"] == t).unwrap()["page_id"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let scene = c.get(&format!("/docs/pages/{}", page_of("Scene"))).await.json();
+    let blocks = scene["content"]["content"].as_array().unwrap();
+    let embeds: Vec<&Value> = blocks.iter().filter(|b| b["type"] == "htmlEmbed").collect();
+    assert_eq!(embeds.len(), 2, "{blocks:?}");
+    assert_eq!(embeds[0]["attrs"]["html"], "<canvas id=c></canvas>");
+    assert_eq!(embeds[0]["attrs"]["height"], 480);
+    assert_eq!(embeds[0]["attrs"]["runScripts"], true);
+    assert_eq!(embeds[1]["attrs"]["src"], "/docs/sites/ab12cd34ef56/index.html");
+    let plain = c.get(&format!("/docs/pages/{}", page_of("Plain"))).await.json();
+    assert!(plain["content"]["content"].as_array().unwrap().iter().any(|b| b["type"] == "codeBlock"));
+}
+
 #[tokio::test]
 async fn test_imported_drafts_are_searchable_by_title_and_body() {
     let (_s, c, pid) = setup!("test_imported_drafts_are_searchable_by_title_and_body");

@@ -203,7 +203,7 @@ pub fn content_type(path: &str) -> &'static str {
 /// # Errors
 /// 422 `unsafe_path` for a `..` segment, an absolute path, a drive letter, a NUL or an empty path.
 pub fn safe_path(path: &str) -> Result<String> {
-    let unsafe_path = || docs_err(422, "unsafe_path", format!("The path {path} leads outside the site's folder."));
+    let unsafe_path = || docs_err(422, "unsafe_path", format!("The path {path} leads outside the site's folder"));
     let p = path.replace('\\', "/");
     if p.starts_with('/') || p.contains('\0') {
         return unsafe_path();
@@ -244,7 +244,7 @@ fn too_large<T>(total: u64) -> Result<T> {
         413,
         "too_large",
         format!(
-            "This site is {}. A site can be {} at most.",
+            "This site is {}. A site can be {} at most",
             crate::docs_embeds::html::human_size(total),
             crate::docs_embeds::html::human_size(MAX_SITE_BYTES)
         ),
@@ -258,7 +258,7 @@ fn too_many_files<T>(count: usize) -> Result<T> {
     Err(DocsError::new(
         422,
         "too_many_files",
-        format!("This site has {count} files. A site can have {MAX_SITE_FILES} files at most."),
+        format!("This site has {count} files. A site can have {MAX_SITE_FILES} files at most"),
     )
     .with("limit", MAX_SITE_FILES)
     .into())
@@ -266,7 +266,7 @@ fn too_many_files<T>(count: usize) -> Result<T> {
 
 /// Unpacks a zip into `(path, bytes)` (folders and system files left out), within the size and count limits.
 fn unzip(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>> {
-    let bad = || docs_err(422, "bad_zip", "This .zip file cannot be read.");
+    let bad = || docs_err(422, "bad_zip", "This .zip file cannot be read");
     let Ok(mut archive) = zip::ZipArchive::new(Cursor::new(bytes)) else { return bad() };
     let mut out = Vec::new();
     let mut total: u64 = 0;
@@ -321,7 +321,7 @@ fn strip_common_folder(files: &mut [(String, Vec<u8>)]) -> Option<String> {
 /// As [`create_site`].
 fn site_files(files: Vec<(String, Vec<u8>)>) -> Result<(Vec<(String, Vec<u8>)>, Option<String>)> {
     if files.is_empty() {
-        return docs_err(422, "missing_file", "Choose a folder, a .zip file or an .html file.");
+        return docs_err(422, "missing_file", "Choose a folder, a .zip file or an .html file");
     }
     let files = if files.len() == 1 && files[0].0.to_ascii_lowercase().ends_with(".zip") {
         unzip(&files[0].1)?
@@ -368,17 +368,17 @@ fn pick_entry(files: &[(String, Vec<u8>)], entry: Option<&str>, dropped: Option<
                 return Ok(cand);
             }
         }
-        return docs_err(422, "no_html_page", format!("The entry page {want} is not among the files."));
+        return docs_err(422, "no_html_page", format!("The entry page {want} is not among the files"));
     }
     if has("index.html") {
         return Ok("index.html".into());
     }
     let mut root_pages: Vec<&str> =
         files.iter().map(|(p, _)| p.as_str()).filter(|p| !p.contains('/') && is_html(p)).collect();
-    root_pages.sort_by_key(|p| (p.to_ascii_lowercase() != "index.htm", p.to_string()));
+    root_pages.sort_by_key(|p| (!p.eq_ignore_ascii_case("index.htm"), p.to_string()));
     match root_pages.first() {
         Some(p) => Ok((*p).to_string()),
-        None => docs_err(422, "no_html_page", "There is no .html page at the top of the folder (index.html)."),
+        None => docs_err(422, "no_html_page", "There is no .html page at the top of the folder (index.html)"),
     }
 }
 

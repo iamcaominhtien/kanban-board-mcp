@@ -403,7 +403,7 @@ async fn a_book_export_draws_its_diagrams_and_speaks_the_book_s_language() {
 }
 
 /// An agent adds an HTML embed (a demo with a script) and a video, written as the guide says; an HTML export runs
-/// the embed in a sandboxed frame and a PDF shows a picture of it.
+/// the embed in a frame (scripts on: no sandbox, as on the page) and a PDF shows a picture of it.
 #[tokio::test]
 async fn an_agent_embeds_html_and_a_video_and_exports_them() {
     if !skip_unless_available("an_agent_embeds_html_and_a_video_and_exports_them") {
@@ -425,8 +425,8 @@ async fn an_agent_embeds_html_and_a_video_and_exports_them() {
             .await;
     let html = std::fs::read_to_string(out["path"].as_str().expect("a path")).expect("the file");
     assert!(
-        html.contains("<iframe sandbox=\"allow-scripts\" srcdoc=") && html.contains("getElementById"),
-        "runs in a frame"
+        html.contains("<iframe srcdoc=") && html.contains("getElementById"),
+        "runs in a frame, with no sandbox as on the page"
     );
     let pdf_path = dir.path().join("embeds.pdf");
     let out =

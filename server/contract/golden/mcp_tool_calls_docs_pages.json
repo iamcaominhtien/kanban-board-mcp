@@ -1911,7 +1911,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Error executing tool docs_write: <files>/canvas: no such file. Save it first, then attach it."
+        "text": "Error executing tool docs_write: There is no .html page at the top of the folder (index.html)."
       }
     ],
     "isError": true

@@ -336,8 +336,8 @@ export const SLASH_ITEMS: SlashItem[] = [
     id: 'html',
     group: 'Embeds',
     label: 'HTML embed',
-    desc: 'A small web page that runs in a sandbox',
-    keywords: 'html widget iframe css script sandbox',
+    desc: 'A small web page, or a whole folder, that runs here',
+    keywords: 'html widget iframe css script site folder zip 3d',
     richOnly: true,
     tile: { text: '</>' },
     run: (e, r) =>
